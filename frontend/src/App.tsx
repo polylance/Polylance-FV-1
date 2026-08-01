@@ -1,0 +1,79 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Web3Provider, useWeb3 } from './context/Web3Context';
+import { PolyLanceDataProvider } from './context/PolyLanceDataContext';
+import { Navbar } from './components/Navbar';
+import { Landing } from './pages/Landing';
+import { Login } from './pages/Login';
+import { Onboarding } from './pages/Onboarding';
+import { Dashboard } from './pages/Dashboard';
+import { FindJobs } from './pages/FindJobs';
+import { PostJob } from './pages/PostJob';
+import { JobDetail } from './pages/JobDetail';
+import { Profile } from './pages/Profile';
+import { Reputation } from './pages/Reputation';
+import { Dao } from './pages/Dao';
+import { Judge } from './pages/Judge';
+import { Treasury } from './pages/Treasury';
+import { Analytics } from './pages/Analytics';
+
+const AnimatedRoutes: React.FC = () => {
+  const location = useLocation();
+  const { isConnected, currentRole } = useWeb3();
+
+  const isVisitor = !isConnected || currentRole === 'visitor';
+
+  return (
+    <div key={location.pathname} className="page-transition">
+      <Routes location={location}>
+        {/* PUBLIC & PERCEPTION ACCESS ROUTES */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/jobs" element={<FindJobs />} />
+        <Route path="/jobs/:id" element={<JobDetail />} />
+        <Route path="/reputation" element={<Reputation />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/:address" element={<Profile />} />
+
+        {/* ROLE PROTECTED OR PERCEPTION-GUIDED ROUTES */}
+        <Route path="/onboarding" element={isVisitor ? <Navigate to="/login" replace /> : <Onboarding />} />
+        <Route path="/dashboard" element={isVisitor ? <Navigate to="/login" replace /> : <Dashboard />} />
+        <Route path="/dao" element={isVisitor ? <Navigate to="/login" replace /> : <Dao />} />
+        <Route path="/analytics" element={isVisitor ? <Navigate to="/login" replace /> : <Analytics />} />
+        <Route path="/jobs/post" element={currentRole === 'client' ? <PostJob /> : <Navigate to="/jobs" replace />} />
+        <Route path="/judge" element={currentRole === 'judge' ? <Judge /> : <Navigate to="/dashboard" replace />} />
+        <Route path="/treasury" element={currentRole === 'admin' ? <Treasury /> : <Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <Web3Provider>
+      <PolyLanceDataProvider>
+        <Router>
+          <div className="min-h-screen bg-[#faf8ff] text-[#131b2e] flex flex-col font-sans selection:bg-purple-600 selection:text-white">
+            {/* Production Navbar with Role-Aware Perception Navigation */}
+            <Navbar />
+
+            {/* Main Application Content */}
+            <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6">
+              <AnimatedRoutes />
+            </main>
+
+            {/* Footer */}
+            <footer className="border-t border-slate-200 bg-white py-6 px-4 md:px-8 text-center text-xs text-slate-600 font-mono">
+              <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+                <span>PolyLance MVP © 2026 — Permanent Blockchain Freelance Reputation</span>
+              </div>
+            </footer>
+          </div>
+        </Router>
+      </PolyLanceDataProvider>
+    </Web3Provider>
+  );
+};
+
+export default App;
