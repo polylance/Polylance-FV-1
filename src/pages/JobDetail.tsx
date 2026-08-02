@@ -227,9 +227,8 @@ export const JobDetail: React.FC = () => {
                 {chatMessages.map((msg, idx) => (
                   <div
                     key={idx}
-                    className={`p-3 rounded-lg max-w-lg ${
-                      msg.sender === 'Client' ? 'bg-purple-100 border border-purple-200 text-purple-950 ml-auto' : 'bg-white border border-slate-200 text-slate-800'
-                    }`}
+                    className={`p-3 rounded-lg max-w-lg ${msg.sender === 'Client' ? 'bg-purple-100 border border-purple-200 text-purple-950 ml-auto' : 'bg-white border border-slate-200 text-slate-800'
+                      }`}
                   >
                     <div className="font-bold text-[10px] text-slate-500 mb-1">{msg.sender}</div>
                     <div>{msg.text}</div>
@@ -425,7 +424,7 @@ export const JobDetail: React.FC = () => {
             {/* Verification Checklist */}
             <div className="space-y-3 pt-1">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Legitimacy Audit Checklist</span>
-              
+
               <div className="space-y-2.5 text-[11px] font-mono">
                 <div className="flex items-start gap-2">
                   <CheckCircle2 size={13} className="text-emerald-600 shrink-0 mt-0.5" />
