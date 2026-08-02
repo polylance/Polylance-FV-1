@@ -211,7 +211,7 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               placeholder="https://github.com/org/repo/pull/42"
               value={externalLink}
               onChange={(e) => setExternalLink(e.target.value)}
-              className="w-full glass-input pl-9"
+              className="w-full glass-input !pl-9"
             />
           </div>
         </div>

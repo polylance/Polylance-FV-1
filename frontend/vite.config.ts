@@ -13,9 +13,6 @@ export default defineConfig({
     port: 5173,
     allowedHosts: true,
     cors: true,
-    hmr: {
-      clientPort: 443,
-    },
   },
   preview: {
     host: '0.0.0.0',

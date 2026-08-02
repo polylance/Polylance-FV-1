@@ -68,7 +68,7 @@ export const FindJobs: React.FC = () => {
             placeholder="Search by keywords (e.g. Solidity, Circom, Go indexer, React)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full glass-input pl-10"
+            className="w-full glass-input !pl-10"
           />
         </div>
 
