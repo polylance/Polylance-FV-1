@@ -3,13 +3,25 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
-import { ArrowRight, Wallet, Lock, History, Network, Activity, PlusCircle, Search, FileText, Cpu, CheckCircle2, ShieldCheck, ChevronDown, Sparkles, HelpCircle, User, XCircle, Percent, Shield, Scale, Zap, LayoutGrid, Box, Briefcase } from 'lucide-react';
+import { ArrowRight, Wallet, Lock, History, Network, Activity, PlusCircle, Search, FileText, Cpu, CheckCircle2, ShieldCheck, ChevronDown, Sparkles, HelpCircle, User, XCircle, Percent, Shield, Scale, Zap, LayoutGrid, Box, Briefcase, Crown } from 'lucide-react';
 
 export const Landing: React.FC = () => {
   const { isConnected, address, currentRole } = useWeb3();
   const { jobs, profiles } = usePolyLanceData();
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [heroAvatar, setHeroAvatar] = useState<string | null>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setHeroAvatar(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleGetStarted = () => {
     if (!isConnected) {
