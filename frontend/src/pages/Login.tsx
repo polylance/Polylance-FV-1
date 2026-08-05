@@ -213,33 +213,33 @@ export const Login: React.FC = () => {
         </div>
 
         {/* Grid items */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-left flex-1 md:border-l md:border-slate-800/80 md:pl-8">
-          <div className="space-y-1.5">
-            <div className="w-7.5 h-7.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-inner">
-              <Award size={14} />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-left flex-1 md:border-l md:border-slate-800/85 md:pl-8">
+          <div className="space-y-2.5">
+            <div className="w-9.5 h-9.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-inner">
+              <Award size={17} />
             </div>
-            <span className="font-extrabold text-[11px] block font-satoshi leading-tight text-slate-100">On-Chain Reputation</span>
-            <span className="text-[9.5px] text-slate-400 font-sans block leading-normal font-medium">
+            <span className="font-black text-[12.5px] sm:text-[13.5px] block font-satoshi leading-tight text-slate-100 tracking-tight">On-Chain Reputation</span>
+            <span className="text-[10.5px] sm:text-[11.5px] text-slate-400 font-sans block leading-relaxed font-medium">
               Your work speaks. The chain remembers.
             </span>
           </div>
 
-          <div className="space-y-1.5">
-            <div className="w-7.5 h-7.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-inner">
-              <TrendingUp size={14} />
+          <div className="space-y-2.5">
+            <div className="w-9.5 h-9.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-inner">
+              <TrendingUp size={17} />
             </div>
-            <span className="font-extrabold text-[11px] block font-satoshi leading-tight text-slate-100">Better Opportunities</span>
-            <span className="text-[9.5px] text-slate-400 font-sans block leading-normal font-medium">
+            <span className="font-black text-[12.5px] sm:text-[13.5px] block font-satoshi leading-tight text-slate-100 tracking-tight">Better Opportunities</span>
+            <span className="text-[10.5px] sm:text-[11.5px] text-slate-400 font-sans block leading-relaxed font-medium">
               Top rated pros get priority access.
             </span>
           </div>
 
-          <div className="space-y-1.5">
-            <div className="w-7.5 h-7.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-inner">
-              <CheckCircle2 size={14} />
+          <div className="space-y-2.5">
+            <div className="w-9.5 h-9.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-inner">
+              <CheckCircle2 size={17} />
             </div>
-            <span className="font-extrabold text-[11px] block font-satoshi leading-tight text-slate-100">Higher Earnings</span>
-            <span className="text-[9.5px] text-slate-400 font-sans block leading-normal font-medium">
+            <span className="font-black text-[12.5px] sm:text-[13.5px] block font-satoshi leading-tight text-slate-100 tracking-tight">Higher Earnings</span>
+            <span className="text-[10.5px] sm:text-[11.5px] text-slate-400 font-sans block leading-relaxed font-medium">
               More trust means better rewards.
             </span>
           </div>
