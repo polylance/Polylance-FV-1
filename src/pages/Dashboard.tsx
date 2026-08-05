@@ -16,13 +16,11 @@ export const Dashboard: React.FC = () => {
   const { jobs, profiles } = usePolyLanceData();
 
   const userProfile = profiles[address] || {
-    displayName: currentRole === 'client' ? 'GlobalCorp Enterprise' : 'Alex Rivera',
-    bio: 'Decentralized RWA Talent & Protocol Engineer',
-    avatarUrl: currentRole === 'client'
-      ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
-      : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    skills: ['Solidity', 'Rust', 'TypeScript', 'React'],
-    reputationSbtCount: 14,
+    displayName: address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Anonymous User',
+    bio: 'No biography has been written yet.',
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+    skills: [],
+    reputationSbtCount: 0,
   };
 
   const isClientRole = currentRole === 'client';
@@ -55,7 +53,10 @@ export const Dashboard: React.FC = () => {
             <h1 className="text-2xl font-extrabold text-slate-900 font-heading flex items-center gap-2">
               {userProfile.displayName}
               <span className="text-xs bg-purple-100 text-purple-900 border border-purple-200 px-2.5 py-0.5 rounded-full font-mono font-bold capitalize">
-                {isClientRole ? 'Verified Enterprise Client' : 'Diamond Freelancer'}
+                {isClientRole ? 'Verified Enterprise Client' : 
+                 (userProfile.reputationSbtCount >= 10 ? 'Diamond Freelancer' : 
+                  userProfile.reputationSbtCount >= 5 ? 'Gold Freelancer' : 
+                  userProfile.reputationSbtCount >= 1 ? 'Silver Freelancer' : 'New Freelancer')}
               </span>
               <span className="text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1">
                 <CheckCircle2 size={12} /> On-Chain Verified
