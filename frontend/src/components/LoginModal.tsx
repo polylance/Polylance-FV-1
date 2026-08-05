@@ -296,7 +296,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           <div className="relative flex items-center justify-center py-6">
             <div className="w-full border-t border-slate-100" />
             <div className="absolute bg-white px-3 flex items-center justify-center">
-              <PolyLanceLogo size={50} className="animate-spin-slow" />
+              <PolyLanceLogo size={50} />
             </div>
           </div>
           <div className="text-center font-mono text-[8px] text-slate-400 uppercase tracking-widest">
