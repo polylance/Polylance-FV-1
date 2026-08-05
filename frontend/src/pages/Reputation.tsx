@@ -74,13 +74,42 @@ export const Reputation: React.FC = () => {
     avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80'
   };
 
-  const leaderboardData = [
-    { rank: 1, name: 'Alex Rivera', role: 'Solidity Architect', points: 1402, successRate: '100%', earnings: '$428.5k', isUser: false, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80' },
-    { rank: 2, name: 'Sarah Chen', role: 'Cyber Auditor', points: 1280, successRate: '100%', earnings: '$312.0k', isUser: false, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80' },
-    { rank: 3, name: 'Marcus Thorne', role: 'DevOps Lead', points: 1190, successRate: '98.5%', earnings: '$284.2k', isUser: false, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80' },
-    { rank: 4, name: 'Dmitri Volkov', role: 'Zero-Knowledge Dev', points: 978, successRate: '97.8%', earnings: '$176.0k', isUser: false, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80' },
-    userLeaderboardItem,
-  ].sort((a, b) => b.points - a.points);
+  const leaderboardData = Object.values(profiles)
+    .map((profile) => {
+      const isYou = profile.address.toLowerCase() === address?.toLowerCase();
+      const sbtCount = profile.reputationSbtCount || 0;
+      const pts = sbtCount * 100;
+      return {
+        rank: 0,
+        name: isYou ? `${profile.displayName || 'Anonymous'} (You)` : (profile.displayName || `${profile.address.slice(0, 6)}...${profile.address.slice(-4)}`),
+        role: profile.primaryCategory === 'web3' ? 'Web3 Engineer' : profile.primaryCategory === 'frontend' ? 'Frontend Dev' : profile.primaryCategory === 'backend' ? 'Backend Dev' : 'Sovereign Developer',
+        points: pts,
+        successRate: sbtCount > 0 ? '100%' : '0%',
+        earnings: sbtCount > 0 ? `$${(sbtCount * 25).toFixed(1)}k` : '$0.0k',
+        isUser: isYou,
+        avatar: profile.avatarUrl || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+        address: profile.address
+      };
+    })
+    .concat(
+      address && !profiles[address]
+        ? [
+            {
+              rank: 0,
+              name: address ? `${address.slice(0, 6)}...${address.slice(-4)} (You)` : 'You',
+              role: isArbitrator ? 'DAO Arbitrator' : 'Web3 Engineer',
+              points: totalPoints,
+              successRate: reputationCount > 0 ? '100%' : '0%',
+              earnings: reputationCount > 0 ? `$${(reputationCount * 25).toFixed(1)}k` : '$0.0k',
+              isUser: true,
+              avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+              address: address
+            }
+          ]
+        : []
+    )
+    .sort((a, b) => b.points - a.points)
+    .map((item, idx) => ({ ...item, rank: idx + 1 }));
 
   const getRoleBadge = (role: string) => {
     const normalized = role.toLowerCase();
