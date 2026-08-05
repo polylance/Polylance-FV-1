@@ -18,21 +18,21 @@ export const Login: React.FC = () => {
       id: 'metamask',
       name: 'MetaMask',
       logo: (
-        <img src="/MetaMask_logo.png" alt="MetaMask" className="w-5.5 h-5.5 object-contain shrink-0" />
+        <img src="/MetaMask_logo.png" alt="MetaMask" className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0" />
       )
     },
     {
       id: 'walletconnect',
       name: 'WalletConnect',
       logo: (
-        <img src="/WalletConnect_logo.png" alt="WalletConnect" className="w-5.5 h-5.5 object-contain shrink-0" />
+        <img src="/WalletConnect_logo.png" alt="WalletConnect" className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0" />
       )
     },
     {
       id: 'coinbase',
-      name: 'Coinbase',
+      name: 'Coinbase Wallet',
       logo: (
-        <img src="/CoinBase_logo.png" alt="Coinbase Wallet" className="w-5.5 h-5.5 object-contain shrink-0" />
+        <img src="/CoinBase_logo.png" alt="Coinbase Wallet" className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0" />
       )
     },
   ];
@@ -170,22 +170,22 @@ export const Login: React.FC = () => {
           </div>
 
           {/* Wallet Options Side-by-Side Grid */}
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-3 gap-3">
             {walletProviders.map((prov) => (
               <button
                 key={prov.id}
                 type="button"
                 disabled={Boolean(connectingProvider)}
                 onClick={() => handleWeb2Login(prov.name)}
-                className="flex items-center justify-between p-2.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 hover:border-purple-400 transition-all cursor-pointer shadow-4xs group hover:scale-[1.01] duration-300 relative select-none"
+                className="flex items-center justify-between p-3.5 sm:p-4 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 hover:border-purple-400 transition-all cursor-pointer shadow-4xs group hover:scale-[1.01] duration-300 relative select-none"
               >
-                <div className="flex items-center gap-1.5 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                   {prov.logo}
-                  <span className="text-[9.5px] font-black text-slate-800 tracking-tight font-satoshi truncate">
+                  <span className="text-[11px] sm:text-[12.5px] font-black text-slate-800 tracking-tight font-satoshi truncate">
                     {prov.name}
                   </span>
                 </div>
-                <ArrowRight size={9} className="text-slate-400 group-hover:text-purple-650 group-hover:translate-x-0.5 transition-all shrink-0" />
+                <ArrowRight size={11} className="text-slate-400 group-hover:text-purple-650 group-hover:translate-x-0.5 transition-all shrink-0" />
               </button>
             ))}
           </div>
