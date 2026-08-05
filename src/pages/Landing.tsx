@@ -104,41 +104,126 @@ export const Landing: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Reputation Card Mockup from reference HTML */}
+          {/* Right Column: Reputation Card Mockup */}
           <div className="md:col-span-5 relative">
-            <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-5">
+            <div className="glass-panel p-5 sm:p-6 border-purple-200 bg-white hard-shadow space-y-6">
+              {/* Card Header */}
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-700">
-                    <User size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-headline text-lg font-bold text-slate-900">Alex Rivera</h3>
-                    <p className="font-label-mono text-xs text-purple-700 font-semibold">0x71C...3921</p>
+                  {/* Photo upload field for future photo */}
+                  <label className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-700 relative overflow-hidden group cursor-pointer border border-purple-100/80 shrink-0">
+                    {heroAvatar ? (
+                      <img src={heroAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={24} className="text-purple-600" />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[9px] text-white font-bold font-sans">EDIT</span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarChange}
+                    />
+                  </label>
+                  
+                  <div className="text-left">
+                    <h3 className="font-headline text-sm sm:text-base font-black text-slate-900 leading-tight">Akhil Muvva</h3>
+                    <p className="font-mono text-[10px] text-purple-700 font-bold leading-tight mt-0.5">0x71C...3921</p>
+                    
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-100/50 text-[9px] font-bold mt-1 font-sans">
+                      <ShieldCheck size={10} className="text-purple-700" />
+                      Verified by PolyLance
+                    </div>
                   </div>
                 </div>
-                <span className="bg-purple-900 text-white px-2.5 py-1 rounded text-[11px] font-mono font-bold uppercase">
+                
+                <span className="bg-purple-900 text-white px-2 py-0.5 rounded-lg text-[9px] font-mono font-bold uppercase flex items-center gap-1 select-none shadow-3xs">
+                  <Crown size={10} className="text-amber-400 fill-amber-400" />
                   TOP RATED
                 </span>
               </div>
 
-              <div className="space-y-3 font-mono text-xs">
-                <div className="flex justify-between border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">Success Rate</span>
-                  <span className="font-bold text-emerald-600">99.2%</span>
+              {/* Main Content Layout */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 pt-1">
+                {/* Left Column (Heading & Descr) */}
+                <div className="sm:col-span-7 space-y-3 text-left">
+                  <h4 className="font-headline text-base sm:text-lg font-black text-slate-900 leading-tight">
+                    Become the <br />
+                    <span className="text-purple-600">Top Rated Freelancer</span> <br />
+                    on PolyLance
+                  </h4>
+                  {/* Decorative underline */}
+                  <div className="w-16 h-1 bg-purple-500 rounded-full" />
+                  <p className="text-[11px] text-slate-500 leading-relaxed font-sans font-medium">
+                    Build your reputation, earn trust, and unlock high-value opportunities in a transparent decentralized ecosystem.
+                  </p>
                 </div>
-                <div className="flex justify-between border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">Jobs Completed</span>
-                  <span className="font-bold text-purple-700">142</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">Volume Handled</span>
-                  <span className="font-bold text-purple-900">$42,500 USDC</span>
+
+                {/* Right Column (Feature bullets & 3D Star) */}
+                <div className="sm:col-span-5 space-y-4">
+                  {/* Star 3D SVG */}
+                  <div className="relative select-none pointer-events-none">
+                    <svg className="w-20 h-20 mx-auto" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <ellipse cx="60" cy="95" rx="35" ry="8" fill="#F3E8FF" opacity="0.6" />
+                      <ellipse cx="60" cy="92" rx="35" ry="8" fill="#EEF2F6" />
+                      <path d="M60 25 L68 48 L92 48 L73 63 L80 86 L60 72 L40 86 L47 63 L28 48 L52 48 Z" fill="url(#starGrad)" filter="drop-shadow(0px 8px 16px rgba(139, 92, 246, 0.25))" />
+                      <defs>
+                        <linearGradient id="starGrad" x1="28" y1="25" x2="92" y2="86" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor="#C084FC" />
+                          <stop offset="50%" stopColor="#8B5CF6" />
+                          <stop offset="100%" stopColor="#5B21B6" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+
+                  <div className="space-y-2 text-left text-[9px] font-sans">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                      <Activity size={10} className="text-purple-600" />
+                      <span>Build Your Reputation</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                      <Zap size={10} className="text-purple-600" />
+                      <span>Unlock Better Opportunities</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                      <ShieldCheck size={10} className="text-purple-600" />
+                      <span>Stand Out On-Chain</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 font-data-hash text-[11px] text-purple-900">
-                <span className="text-purple-700 font-bold">sig:</span> 0xf82a...9b2c (Verified by PolyLance Protocol)
+              {/* Bottom Banner */}
+              <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+                <div className="space-y-0.5 text-center sm:text-left">
+                  <p className="text-[10px] font-bold text-purple-900 flex items-center justify-center sm:justify-start gap-1 font-mono">
+                    <Crown size={11} className="text-amber-500 fill-amber-500" />
+                    Top Rated Pros earn more.
+                  </p>
+                  <p className="text-[9px] text-slate-500 font-sans font-medium">Higher trust. Higher visibility. Higher rewards.</p>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={handleGetStarted}
+                  className="gradient-btn-primary px-3 py-1.5 rounded-lg font-headline font-bold text-[10px] flex items-center gap-1 select-none shadow-xs text-white cursor-pointer"
+                >
+                  <Sparkles size={10} />
+                  Start Building
+                </button>
+              </div>
+
+              {/* Footer Row */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-center gap-1.5 font-mono text-[9px] text-slate-500 font-bold uppercase tracking-wider select-none">
+                <ShieldCheck size={11} className="text-emerald-500" />
+                <span>100% On-Chain</span>
+                <span>•</span>
+                <span>Transparent</span>
+                <span>•</span>
+                <span>Verified by PolyLance Protocol</span>
               </div>
             </div>
           </div>
@@ -621,13 +706,13 @@ export const Landing: React.FC = () => {
       <section className="grid md:grid-cols-2 gap-8 items-start py-8">
         <div className="space-y-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100/50 text-[10px] uppercase font-bold tracking-widest w-fit shadow-4xs">
-            <ShieldCheck size={13} className="text-blue-705" />
+            <ShieldCheck size={13} className="text-blue-700" />
             Trusted by Builders. Powered by Blockchain.
           </div>
 
           <h2 className="font-headline text-3xl font-black text-slate-900 leading-tight text-left">
             Institutional Trust <br />
-            for the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-650 to-indigo-600 font-black" style={{ WebkitBackgroundClip: 'text', backgroundClip: 'text' }}>Decentralized <br />Workforce</span>.
+            for the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-black" style={{ WebkitBackgroundClip: 'text', backgroundClip: 'text' }}>Decentralized <br />Workforce</span>.
           </h2>
           <p className="text-sm text-slate-600 leading-relaxed text-left">
             PolyLance isn't just another job board. It's a financial terminal for talent. By removing middlemen and replacing them with smart contract code, we ensure that top engineers get paid fastest.
