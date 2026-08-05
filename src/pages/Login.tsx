@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { DemoRole } from '../types';
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
-import { ShieldCheck, User, Briefcase, ArrowRight, Check, CheckCircle2, Zap, Sparkles, Lock } from 'lucide-react';
+import { ShieldCheck, User, Briefcase, ArrowRight, Check, CheckCircle2, Zap, Sparkles, Lock, Network, Award, TrendingUp, Globe, FolderLock, Cpu } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const Login: React.FC = () => {
@@ -11,28 +11,27 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState<'freelancer' | 'client'>('freelancer');
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
 
   const walletProviders = [
     {
       id: 'metamask',
       name: 'MetaMask',
       logo: (
-        <img src="/MetaMask_logo.png" alt="MetaMask" className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0" />
+        <img src="/MetaMask_logo.png" alt="MetaMask" className="w-8 h-8 object-contain shrink-0" />
       )
     },
     {
       id: 'walletconnect',
       name: 'WalletConnect',
       logo: (
-        <img src="/WalletConnect_logo.png" alt="WalletConnect" className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0" />
+        <img src="/WalletConnect_logo.png" alt="WalletConnect" className="w-8 h-8 object-contain shrink-0" />
       )
     },
     {
       id: 'coinbase',
       name: 'Coinbase Wallet',
       logo: (
-        <img src="/CoinBase_logo.png" alt="Coinbase Wallet" className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0" />
+        <img src="/CoinBase_logo.png" alt="Coinbase Wallet" className="w-8 h-8 object-contain shrink-0" />
       )
     },
   ];
@@ -50,168 +49,298 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[75vh] flex items-center justify-center py-8 px-4 page-transition">
-      <div className="glass-panel max-w-lg w-full p-6 sm:p-8 border-purple-200 bg-white hard-shadow relative space-y-5">
-        {/* Logo and Header with glow effect */}
-        <div className="text-center relative pt-2">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-purple-400/10 rounded-full blur-xl pointer-events-none" />
-          <div className="relative z-10 flex justify-center mb-2">
-            <PolyLanceLogo size={58} />
+    <div className="max-w-5xl mx-auto py-12 px-4 space-y-12 page-transition relative overflow-hidden">
+      {/* Floating background decorative shape elements mimicking 3D cubes */}
+      <div className="hidden lg:block absolute top-10 left-0 w-24 h-24 bg-gradient-to-tr from-purple-500/10 to-blue-500/5 rounded-3xl border border-white/20 shadow-md rotate-12 animate-pulse pointer-events-none" />
+      <div className="hidden lg:block absolute top-32 right-0 w-16 h-16 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 rounded-2xl border border-white/20 shadow-sm -rotate-45 animate-bounce-slow pointer-events-none" />
+
+      {/* Header Section */}
+      <div className="text-center space-y-3 relative z-10 select-none">
+        <div className="flex items-center justify-center gap-1 text-[10px] font-mono tracking-widest text-purple-600/80 font-black uppercase">
+          <Sparkles size={9} className="fill-purple-200" /> Welcome to <Sparkles size={9} className="fill-purple-200" />
+        </div>
+        
+        {/* Glow hex logo container */}
+        <div className="relative flex justify-center py-2">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-purple-400/10 rounded-full blur-xl pointer-events-none animate-pulse" />
+          <PolyLanceLogo size={66} className="relative z-10 shrink-0" />
+        </div>
+
+        <h1 className="font-heading text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-none mt-1">
+          Welcome to <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">PolyLance</span>
+        </h1>
+        <h2 className="font-heading text-base sm:text-lg font-extrabold text-slate-800 tracking-tight mt-1.5 uppercase">
+          Build. <span className="text-purple-650">Earn.</span> <span className="text-blue-650">Grow.</span> On-Chain.
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed mt-3 font-sans font-medium">
+          PolyLance connects verified talent with real opportunities using smart contracts and on-chain reputation.
+        </p>
+
+        {/* Highlights Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto pt-5 text-left">
+          {/* No Middlemen */}
+          <div className="flex items-center gap-3 bg-white/60 border border-slate-200/60 p-3 rounded-2xl shadow-3xs">
+            <div className="w-8.5 h-8.5 rounded-xl bg-purple-50 text-purple-655 flex items-center justify-center shrink-0 shadow-inner">
+              <Network size={15} />
+            </div>
+            <div className="space-y-0.5">
+              <span className="font-black text-slate-850 text-[11px] block leading-none font-satoshi">No Middlemen</span>
+              <span className="text-[9.5px] text-slate-450 font-sans block font-medium">100% Transparent</span>
+            </div>
           </div>
-          <h2 className="font-heading text-2xl font-black text-slate-900 tracking-tight">
-            Welcome to <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">PolyLance</span>
-          </h2>
-          <p className="text-xs text-slate-500 font-sans font-medium mt-1 leading-relaxed max-w-sm mx-auto">
-            The decentralized platform for verified talent and trusted opportunities.
+
+          {/* On-Chain Reputation */}
+          <div className="flex items-center gap-3 bg-white/60 border border-slate-200/60 p-3 rounded-2xl shadow-3xs">
+            <div className="w-8.5 h-8.5 rounded-xl bg-purple-50 text-purple-655 flex items-center justify-center shrink-0 shadow-inner">
+              <Cpu size={15} />
+            </div>
+            <div className="space-y-0.5">
+              <span className="font-black text-slate-850 text-[11px] block leading-none font-satoshi">On-Chain Reputation</span>
+              <span className="text-[9.5px] text-slate-450 font-sans block font-medium">Earn Trust, Get More</span>
+            </div>
+          </div>
+
+          {/* Fair & Secure */}
+          <div className="flex items-center gap-3 bg-white/60 border border-slate-200/60 p-3 rounded-2xl shadow-3xs">
+            <div className="w-8.5 h-8.5 rounded-xl bg-purple-50 text-purple-655 flex items-center justify-center shrink-0 shadow-inner">
+              <ShieldCheck size={15} />
+            </div>
+            <div className="space-y-0.5">
+              <span className="font-black text-slate-850 text-[11px] block leading-none font-satoshi">Fair & Secure</span>
+              <span className="text-[9.5px] text-slate-450 font-sans block font-medium">Built for Everyone</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center justify-center gap-3 select-none">
+        <div className="h-[1px] bg-slate-200 flex-1" />
+        <span className="font-mono text-[9px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+          <Sparkles size={8} /> Choose Your Role <Sparkles size={8} />
+        </span>
+        <div className="h-[1px] bg-slate-200 flex-1" />
+      </div>
+
+      {/* Role Selector Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        {/* Freelancer Card */}
+        <button
+          type="button"
+          onClick={() => setSelectedRole('freelancer')}
+          className={`relative flex flex-col justify-between p-5 rounded-3xl border-2 transition-all cursor-pointer text-left h-full group ${
+            selectedRole === 'freelancer'
+              ? 'border-purple-600 bg-purple-50/50 shadow-md ring-1 ring-purple-500/10'
+              : 'border-slate-200 bg-white hover:border-slate-350 hover:bg-slate-50/20'
+          }`}
+        >
+          <div className="flex gap-4 items-start min-w-0">
+            {/* Color circle icon container */}
+            <div className="w-12 h-12 rounded-full bg-purple-100/90 flex items-center justify-center text-purple-700 shadow-inner shrink-0 relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
+              <User size={22} className="text-purple-650" />
+            </div>
+            
+            <div className="min-w-0">
+              <span className="font-black text-slate-900 text-base sm:text-lg font-satoshi block">Freelancer</span>
+              <span className="text-[11.5px] text-slate-500 font-sans block mt-1 leading-normal font-medium max-w-xs">
+                Offer your skills and get paid fairly.
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-1">
+            <div className="inline-block text-[9px] px-3 py-0.5 bg-purple-50 border border-purple-100/50 text-purple-700 font-mono font-black uppercase rounded-full tracking-wider">
+              Build • Earn • Grow
+            </div>
+          </div>
+
+          {selectedRole === 'freelancer' && (
+            <div className="absolute -top-1.5 -right-1.5 bg-purple-600 text-white p-0.5 rounded-full shadow-md border border-white">
+              <Check size={11} className="stroke-[3.5]" />
+            </div>
+          )}
+        </button>
+
+        {/* Client Card */}
+        <button
+          type="button"
+          onClick={() => setSelectedRole('client')}
+          className={`relative flex flex-col justify-between p-5 rounded-3xl border-2 transition-all cursor-pointer text-left h-full group ${
+            selectedRole === 'client'
+              ? 'border-purple-600 bg-purple-50/50 shadow-md ring-1 ring-purple-500/10'
+              : 'border-slate-200 bg-white hover:border-slate-350 hover:bg-slate-50/20'
+          }`}
+        >
+          <div className="flex gap-4 items-start min-w-0">
+            {/* Color circle icon container */}
+            <div className="w-12 h-12 rounded-full bg-blue-100/90 flex items-center justify-center text-blue-700 shadow-inner shrink-0 relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
+              <Briefcase size={20} className="text-blue-650" />
+            </div>
+
+            <div className="min-w-0">
+              <span className="font-black text-slate-900 text-base sm:text-lg font-satoshi block">Client</span>
+              <span className="text-[11.5px] text-slate-500 font-sans block mt-1 leading-normal font-medium max-w-xs">
+                Find talent and get work done securely.
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-1">
+            <div className="inline-block text-[9px] px-3 py-0.5 bg-blue-50 border border-blue-100/50 text-blue-700 font-mono font-black uppercase rounded-full tracking-wider">
+              Hire • Collaborate • Scale
+            </div>
+          </div>
+
+          {selectedRole === 'client' && (
+            <div className="absolute -top-1.5 -right-1.5 bg-purple-600 text-white p-0.5 rounded-full shadow-md border border-white">
+              <Check size={11} className="stroke-[3.5]" />
+            </div>
+          )}
+        </button>
+      </div>
+
+      {/* Reputation Superpower Banner */}
+      <div className="max-w-4xl mx-auto bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl border border-slate-800/80 shadow-md flex flex-col md:flex-row items-center gap-6 justify-between select-none text-left">
+        {/* Left column */}
+        <div className="space-y-1.5 md:max-w-xs shrink-0">
+          <span className="text-[9px] font-mono font-black uppercase tracking-widest text-indigo-400">Reputation Score</span>
+          <h3 className="text-xl sm:text-2xl font-black font-heading leading-tight">
+            Reputation is your <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Superpower.</span>
+          </h3>
+          <p className="text-[11px] text-slate-400 font-sans leading-relaxed font-medium">
+            Every task. Every delivery. Every review. Build your on-chain reputation and unlock better opportunities, higher earnings, and global visibility.
           </p>
         </div>
 
-        {/* Divider with Role Label */}
-        <div className="flex items-center justify-center gap-3 pt-1">
-          <div className="h-[1px] bg-slate-100 flex-1" />
-          <span className="font-mono text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
-            Choose Your Role
-          </span>
-          <div className="h-[1px] bg-slate-100 flex-1" />
-        </div>
-
-        {/* Role Selection Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Freelancer Card */}
-          <button
-            type="button"
-            onClick={() => setSelectedRole('freelancer')}
-            className={`relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer text-left h-full ${
-              selectedRole === 'freelancer'
-                ? 'border-purple-600 bg-purple-50/50 shadow-xs ring-1 ring-purple-500/10'
-                : 'border-slate-200 bg-white hover:border-slate-300'
-            }`}
-          >
-            <div className="flex gap-3 items-start min-w-0">
-              <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shadow-inner shrink-0 relative overflow-hidden">
-                <User size={18} className="text-purple-650" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-extrabold text-slate-900 text-xs sm:text-sm font-satoshi block">Freelancer</span>
-                <span className="text-[9.5px] text-slate-500 font-sans block mt-0.5 leading-tight font-medium">
-                  Offer your skills and get paid fairly.
-                </span>
-              </div>
+        {/* Grid items */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-left flex-1 md:border-l md:border-slate-800/80 md:pl-8">
+          <div className="space-y-1.5">
+            <div className="w-7.5 h-7.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-inner">
+              <Award size={14} />
             </div>
-            
-            <div className="mt-3.5">
-              <div className="inline-block text-[8.5px] px-2.5 py-0.5 bg-purple-50 border border-purple-100/50 text-purple-700 font-mono font-black uppercase rounded-full tracking-wider">
-                Build • Earn • Grow
-              </div>
-            </div>
-
-            {selectedRole === 'freelancer' && (
-              <div className="absolute -top-1.5 -right-1.5 bg-purple-600 text-white p-0.5 rounded-full shadow-md border border-white">
-                <Check size={10} className="stroke-[3.5]" />
-              </div>
-            )}
-          </button>
-
-          {/* Client Card */}
-          <button
-            type="button"
-            onClick={() => setSelectedRole('client')}
-            className={`relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer text-left h-full ${
-              selectedRole === 'client'
-                ? 'border-purple-600 bg-purple-50/50 shadow-xs ring-1 ring-purple-500/10'
-                : 'border-slate-200 bg-white hover:border-slate-300'
-            }`}
-          >
-            <div className="flex gap-3 items-start min-w-0">
-              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-inner shrink-0 relative overflow-hidden">
-                <Briefcase size={16} className="text-blue-650" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-extrabold text-slate-900 text-xs sm:text-sm font-satoshi block">Client</span>
-                <span className="text-[9.5px] text-slate-500 font-sans block mt-0.5 leading-tight font-medium">
-                  Find talent and get work done securely.
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-3.5">
-              <div className="inline-block text-[8.5px] px-2.5 py-0.5 bg-blue-50 border border-blue-100/50 text-blue-700 font-mono font-black uppercase rounded-full tracking-wider">
-                Hire • Collaborate • Scale
-              </div>
-            </div>
-
-            {selectedRole === 'client' && (
-              <div className="absolute -top-1.5 -right-1.5 bg-purple-600 text-white p-0.5 rounded-full shadow-md border border-white">
-                <Check size={10} className="stroke-[3.5]" />
-              </div>
-            )}
-          </button>
-        </div>
-
-        {/* Divider with Sparkles icon */}
-        <div className="flex items-center justify-center my-3.5">
-          <div className="h-[1px] bg-slate-100 flex-grow" />
-          <Sparkles size={11} className="text-purple-400/80 mx-3 fill-purple-100/30" />
-          <div className="h-[1px] bg-slate-100 flex-grow" />
-        </div>
-
-        {/* Connect Wallet section */}
-        <div className="space-y-4 pt-1">
-          <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 border border-purple-200/50 flex items-center justify-center mx-auto shadow-4xs shrink-0">
-            <Lock size={14} className="text-purple-750 fill-purple-750/10" />
-          </div>
-          <div className="text-center">
-            <h3 className="font-heading text-sm font-black text-slate-900">
-              Connect Your Wallet
-            </h3>
-            <p className="text-[10.5px] text-slate-500 font-sans mt-0.5 font-medium">
-              Choose your preferred wallet to continue
-            </p>
+            <span className="font-extrabold text-[11px] block font-satoshi leading-tight text-slate-100">On-Chain Reputation</span>
+            <span className="text-[9.5px] text-slate-400 font-sans block leading-normal font-medium">
+              Your work speaks. The chain remembers.
+            </span>
           </div>
 
-          {/* Wallet Options Side-by-Side Grid */}
-          <div className="grid grid-cols-3 gap-3">
-            {walletProviders.map((prov) => (
-              <button
-                key={prov.id}
-                type="button"
-                disabled={Boolean(connectingProvider)}
-                onClick={() => handleWeb2Login(prov.name)}
-                className="flex items-center justify-between p-3.5 sm:p-4 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 hover:border-purple-400 transition-all cursor-pointer shadow-4xs group hover:scale-[1.01] duration-300 relative select-none"
-              >
-                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                  {prov.logo}
-                  <span className="text-[11px] sm:text-[12.5px] font-black text-slate-800 tracking-tight font-satoshi truncate">
+          <div className="space-y-1.5">
+            <div className="w-7.5 h-7.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-inner">
+              <TrendingUp size={14} />
+            </div>
+            <span className="font-extrabold text-[11px] block font-satoshi leading-tight text-slate-100">Better Opportunities</span>
+            <span className="text-[9.5px] text-slate-400 font-sans block leading-normal font-medium">
+              Top rated pros get priority access.
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="w-7.5 h-7.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-inner">
+              <CheckCircle2 size={14} />
+            </div>
+            <span className="font-extrabold text-[11px] block font-satoshi leading-tight text-slate-100">Higher Earnings</span>
+            <span className="text-[9.5px] text-slate-400 font-sans block leading-normal font-medium">
+              More trust means better rewards.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center justify-center gap-3 select-none">
+        <div className="h-[1px] bg-slate-200 flex-1" />
+        <span className="font-mono text-[9px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+          <Lock size={8} /> Secure & Decentralized <Lock size={8} />
+        </span>
+        <div className="h-[1px] bg-slate-200 flex-1" />
+      </div>
+
+      {/* Connect Wallet section */}
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 border border-purple-200/50 flex items-center justify-center mx-auto shadow-4xs shrink-0 select-none">
+          <Lock size={14} className="text-purple-750 fill-purple-750/10" />
+        </div>
+        <div className="text-center select-none">
+          <h3 className="font-heading text-xl sm:text-2xl font-black text-slate-900">
+            Connect Your Wallet
+          </h3>
+          <p className="text-xs text-slate-500 font-sans mt-0.5 font-medium">
+            Choose your preferred wallet to continue
+          </p>
+        </div>
+
+        {/* Wallet Options Side-by-Side Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {walletProviders.map((prov) => (
+            <button
+              key={prov.id}
+              type="button"
+              disabled={Boolean(connectingProvider)}
+              onClick={() => handleWeb2Login(prov.name)}
+              className="flex items-center justify-between p-4.5 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 hover:border-purple-400 transition-all cursor-pointer shadow-sm group hover:scale-[1.01] duration-300 relative select-none"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                {prov.logo}
+                <div className="text-left">
+                  <span className="text-xs sm:text-sm font-black text-slate-900 block leading-tight font-satoshi">
                     {prov.name}
                   </span>
+                  <span className="text-[9.5px] font-black text-purple-650 block mt-0.5 leading-none">
+                    Connect
+                  </span>
                 </div>
-                <ArrowRight size={11} className="text-slate-400 group-hover:text-purple-650 group-hover:translate-x-0.5 transition-all shrink-0" />
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-center gap-1.5 text-[9.5px] text-slate-500 font-sans font-medium mt-1">
-            <ShieldCheck size={11.5} className="text-purple-600" />
-            <span>Your data stays on-chain. You stay in control.</span>
-          </div>
+              </div>
+              <ArrowRight size={14} className="text-slate-400 group-hover:text-purple-655 group-hover:translate-x-0.5 transition-all shrink-0" />
+            </button>
+          ))}
         </div>
 
-        {/* Security / Bottom highlights bar inside the card */}
-        <div className="bg-slate-50 border-t border-slate-100 p-4 -mx-6 -mb-5 sm:-mx-8 sm:-mb-8 rounded-b-2xl grid grid-cols-3 gap-2 text-center select-none">
-          <div>
-            <ShieldCheck size={14} className="text-purple-600 mx-auto" />
-            <span className="text-[9px] font-black text-slate-800 block mt-1">100% On-Chain</span>
-            <span className="text-[7.5px] text-slate-500 block leading-tight font-sans mt-0.5">Transparent & Secure</span>
+        <div className="flex items-center justify-center gap-1.5 text-[10.5px] text-slate-500 font-sans font-medium select-none">
+          <ShieldCheck size={13} className="text-purple-650" />
+          <span>Your data stays on-chain. You stay in control.</span>
+        </div>
+      </div>
+
+      {/* Why Choose PolyLance? Footer grid */}
+      <div className="max-w-4xl mx-auto bg-slate-950 text-white p-6 sm:p-8 rounded-3xl border border-slate-900 shadow-lg select-none">
+        <div className="flex items-center justify-center gap-2 mb-6 font-mono text-[9px] font-black uppercase tracking-widest text-purple-400">
+          <span>✦ Why Choose PolyLance? ✦</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-left">
+          {/* 100% On-Chain */}
+          <div className="space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shadow-inner shrink-0">
+              <ShieldCheck size={16} />
+            </div>
+            <h4 className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">100% On-Chain</h4>
+            <p className="text-[10px] text-slate-400 leading-normal font-sans font-medium">Transparent by design. Powered by blockchain.</p>
           </div>
-          <div className="border-l border-slate-200">
-            <CheckCircle2 size={13.5} className="text-purple-650 mx-auto" />
-            <span className="text-[9px] font-black text-slate-800 block mt-1">Verified Platform</span>
-            <span className="text-[7.5px] text-slate-500 block leading-tight font-sans mt-0.5">Built for Trust</span>
+
+          {/* Smart Contract Escrow */}
+          <div className="space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shadow-inner shrink-0">
+              <FolderLock size={16} />
+            </div>
+            <h4 className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">Smart Contract Escrow</h4>
+            <p className="text-[10px] text-slate-400 leading-normal font-sans font-medium">Secure payments. No disputes.</p>
           </div>
-          <div className="border-l border-slate-200">
-            <Zap size={13.5} className="text-purple-650 mx-auto" />
-            <span className="text-[9px] font-black text-slate-800 block mt-1">Fair & Transparent</span>
-            <span className="text-[7.5px] text-slate-500 block leading-tight font-sans mt-0.5">No Middlemen</span>
+
+          {/* Verified Talent Only */}
+          <div className="space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shadow-inner shrink-0">
+              <CheckCircle2 size={16} />
+            </div>
+            <h4 className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">Verified Talent Only</h4>
+            <p className="text-[10px] text-slate-400 leading-normal font-sans font-medium">Quality assured. Community trusted.</p>
+          </div>
+
+          {/* Global Opportunities */}
+          <div className="space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shadow-inner shrink-0">
+              <Globe size={16} />
+            </div>
+            <h4 className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">Global Opportunities</h4>
+            <p className="text-[10px] text-slate-400 leading-normal font-sans font-medium">Work with top clients worldwide.</p>
           </div>
         </div>
       </div>
