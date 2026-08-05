@@ -204,9 +204,9 @@ export const Login: React.FC = () => {
         {/* Left column */}
         <div className="space-y-1.5 md:max-w-xs shrink-0">
           <span className="text-[9px] font-mono font-black uppercase tracking-widest text-indigo-400">Reputation Score</span>
-          <h3 className="text-xl sm:text-2xl font-black font-heading leading-tight">
+          <div className="text-xl sm:text-2xl font-black font-heading leading-tight text-white">
             Reputation is your <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Superpower.</span>
-          </h3>
+          </div>
           <p className="text-[11px] text-slate-400 font-sans leading-relaxed font-medium">
             Every task. Every delivery. Every review. Build your on-chain reputation and unlock better opportunities, higher earnings, and global visibility.
           </p>
@@ -312,7 +312,7 @@ export const Login: React.FC = () => {
             <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shadow-inner shrink-0">
               <ShieldCheck size={16} />
             </div>
-            <h4 className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">100% On-Chain</h4>
+            <div className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">100% On-Chain</div>
             <p className="text-[10px] text-slate-400 leading-normal font-sans font-medium">Transparent by design. Powered by blockchain.</p>
           </div>
 
@@ -321,7 +321,7 @@ export const Login: React.FC = () => {
             <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shadow-inner shrink-0">
               <FolderLock size={16} />
             </div>
-            <h4 className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">Smart Contract Escrow</h4>
+            <div className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">Smart Contract Escrow</div>
             <p className="text-[10px] text-slate-400 leading-normal font-sans font-medium">Secure payments. No disputes.</p>
           </div>
 
@@ -330,7 +330,7 @@ export const Login: React.FC = () => {
             <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shadow-inner shrink-0">
               <CheckCircle2 size={16} />
             </div>
-            <h4 className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">Verified Talent Only</h4>
+            <div className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">Verified Talent Only</div>
             <p className="text-[10px] text-slate-400 leading-normal font-sans font-medium">Quality assured. Community trusted.</p>
           </div>
 
@@ -339,7 +339,7 @@ export const Login: React.FC = () => {
             <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shadow-inner shrink-0">
               <Globe size={16} />
             </div>
-            <h4 className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">Global Opportunities</h4>
+            <div className="font-extrabold text-xs sm:text-sm font-satoshi text-slate-100">Global Opportunities</div>
             <p className="text-[10px] text-slate-400 leading-normal font-sans font-medium">Work with top clients worldwide.</p>
           </div>
         </div>
