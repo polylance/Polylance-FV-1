@@ -621,14 +621,15 @@ export const Landing: React.FC = () => {
       <section className="grid md:grid-cols-2 gap-8 items-start py-8">
         <div className="space-y-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100/50 text-[10px] uppercase font-bold tracking-widest w-fit shadow-4xs">
-            <ShieldCheck size={13} className="text-blue-700" />
+            <ShieldCheck size={13} className="text-blue-705" />
             Trusted by Builders. Powered by Blockchain.
           </div>
 
-          <h2 className="font-headline text-3xl font-black text-slate-900 leading-tight">
-            Institutional Trust <br />for the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-650 font-black">Decentralized Workforce</span>.
+          <h2 className="font-headline text-3xl font-black text-slate-900 leading-tight text-left">
+            Institutional Trust <br />
+            for the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-650 to-indigo-600 font-black" style={{ WebkitBackgroundClip: 'text', backgroundClip: 'text' }}>Decentralized <br />Workforce</span>.
           </h2>
-          <p className="text-sm text-slate-600 leading-relaxed">
+          <p className="text-sm text-slate-600 leading-relaxed text-left">
             PolyLance isn't just another job board. It's a financial terminal for talent. By removing middlemen and replacing them with smart contract code, we ensure that top engineers get paid fastest.
           </p>
         </div>
@@ -637,7 +638,7 @@ export const Landing: React.FC = () => {
           {/* Card Header with Glowing Wave */}
           <div className="bg-slate-950 p-4 flex items-center justify-between text-white relative overflow-hidden">
             <div className="space-y-1 relative z-10 text-left">
-              <h4 className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-100">
+              <h4 className="font-mono text-[10px] font-bold uppercase tracking-widest" style={{ color: '#f8fafc' }}>
                 REAL-TIME PROTOCOL STATS
               </h4>
               <span className="flex items-center gap-1.5 text-[9px] font-mono text-emerald-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full select-none w-fit">
@@ -660,7 +661,7 @@ export const Landing: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between text-xs font-bold text-slate-800 mb-1">
                   <span>Total Jobs Created</span>
-                  <span className="text-purple-750 font-mono">{totalJobs} Jobs</span>
+                  <span className="text-purple-700 font-mono font-bold">{totalJobs} Jobs</span>
                 </div>
                 <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden border border-slate-200/50">
                   <div className="bg-gradient-to-r from-purple-600 to-indigo-600 h-full transition-all duration-500" style={{ width: totalJobs > 0 ? '40%' : '0%' }} />
@@ -676,7 +677,7 @@ export const Landing: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between text-xs font-bold text-slate-800 mb-1">
                   <span>Total Escrow Value Locked</span>
-                  <span className="text-emerald-750 font-mono">${totalEscrowUsdc.toLocaleString()} USDC</span>
+                  <span className="text-emerald-700 font-mono font-bold">${totalEscrowUsdc.toLocaleString()} USDC</span>
                 </div>
                 <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden border border-slate-200/50">
                   <div className="bg-gradient-to-r from-emerald-500 to-cyan-500 h-full transition-all duration-500" style={{ width: totalEscrowUsdc > 0 ? '50%' : '0%' }} />
@@ -692,7 +693,7 @@ export const Landing: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between text-xs font-bold text-slate-800 mb-1">
                   <span>Jobs Completed (SBTs Minted)</span>
-                  <span className="text-blue-755 font-mono">{completedJobs}</span>
+                  <span className="text-blue-700 font-mono font-bold">{completedJobs}</span>
                 </div>
                 <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden border border-slate-200/50">
                   <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-500" style={{ width: completedJobs > 0 ? '40%' : '0%' }} />
@@ -709,8 +710,8 @@ export const Landing: React.FC = () => {
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between group hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
             <div className="space-y-1.5 text-left">
-              <span className="text-[10px] text-slate-400 font-bold uppercase font-mono tracking-wider">Total Jobs</span>
-              <p className="text-3xl font-black text-slate-800 font-sans">{totalJobs}</p>
+              <span className="text-[10px] text-slate-450 font-bold uppercase font-mono tracking-wider">Total Jobs</span>
+              <p className="text-3xl font-black text-slate-805 font-sans">{totalJobs}</p>
             </div>
             <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shadow-3xs">
               <Briefcase size={16} />
@@ -738,7 +739,7 @@ export const Landing: React.FC = () => {
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between group hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
             <div className="space-y-1.5 text-left">
-              <span className="text-[10px] text-slate-400 font-bold uppercase font-mono tracking-wider">Total in Escrow</span>
+              <span className="text-[10px] text-slate-455 font-bold uppercase font-mono tracking-wider">Total in Escrow</span>
               <p className="text-3xl font-black text-emerald-600 font-sans">${totalEscrowUsdc.toLocaleString()}</p>
             </div>
             <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 shadow-3xs">
@@ -767,7 +768,7 @@ export const Landing: React.FC = () => {
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between group hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
             <div className="space-y-1.5 text-left">
-              <span className="text-[10px] text-slate-400 font-bold uppercase font-mono tracking-wider">Dispute Rate</span>
+              <span className="text-[10px] text-slate-455 font-bold uppercase font-mono tracking-wider">Dispute Rate</span>
               <p className="text-3xl font-black text-amber-600 font-sans">0.02%</p>
             </div>
             <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-700 shadow-3xs">
@@ -794,10 +795,10 @@ export const Landing: React.FC = () => {
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between group hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
             <div className="space-y-1.5 text-left">
-              <span className="text-[10px] text-slate-400 font-bold uppercase font-mono tracking-wider">Verified Pros</span>
-              <p className="text-3xl font-black text-purple-755 font-sans">0</p>
+              <span className="text-[10px] text-slate-455 font-bold uppercase font-mono tracking-wider">Verified Pros</span>
+              <p className="text-3xl font-black text-purple-600 font-sans">0</p>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-750 shadow-3xs">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shadow-3xs">
               <User size={16} />
             </div>
           </div>
