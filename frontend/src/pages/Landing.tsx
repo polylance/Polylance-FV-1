@@ -65,178 +65,198 @@ export const Landing: React.FC = () => {
 
   return (
     <div className="space-y-16 py-6 max-w-6xl mx-auto">
-      {/* Hero Section matching landing_connect_wallet/code.html */}
-      <section className="hero-gradient pt-8 pb-12">
-        <div className="grid md:grid-cols-12 gap-8 items-center">
-          <div className="md:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-900 rounded-full border border-purple-200">
-              <ShieldCheck size={16} className="text-purple-700" />
-              <span className="font-label-mono uppercase tracking-wider text-xs font-bold">
-                PolyLance Zenith • Sovereign Escrow Protocol
+      {/* Hero Section */}
+      <section className="hero-gradient pt-8 pb-12 space-y-12">
+        <div className="text-center max-w-3xl mx-auto space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-900 rounded-full border border-purple-200 mx-auto select-none shadow-2xs">
+            <ShieldCheck size={16} className="text-purple-700" />
+            <span className="font-label-mono uppercase tracking-wider text-xs font-bold">
+              PolyLance Zenith • Sovereign Escrow Protocol
+            </span>
+          </div>
+
+          <h1 className="font-headline text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 leading-tight">
+            Verifiable Reputation. <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-650 to-indigo-650 font-black">Immutable Professionalism.</span>
+          </h1>
+
+          <p className="text-base sm:text-lg text-slate-600 max-w-xl mx-auto leading-relaxed">
+            The world's first decentralized talent protocol where work history is written in stone. No inflated resumes. No fake reviews. Just pure, on-chain performance.
+          </p>
+
+          {/* HERO CTA BUTTONS */}
+          <div className="flex flex-wrap justify-center gap-4 pt-2">
+            <button
+              onClick={handleGetStarted}
+              className="gradient-btn-primary px-8 py-3.5 rounded-xl font-headline font-bold text-base flex items-center gap-2.5 hard-shadow cursor-pointer"
+            >
+              <Wallet size={18} />
+              {isConnected ? 'Go to Dashboard' : 'Connect Wallet to Start'}
+              <ArrowRight size={18} />
+            </button>
+
+            {currentRole === 'client' ? (
+              <Link
+                to="/jobs/post"
+                className="glass-panel px-8 py-3.5 rounded-xl font-headline font-bold text-purple-900 text-base hover:bg-slate-50 border-purple-200 transition-all flex items-center gap-2"
+              >
+                <PlusCircle size={18} className="text-purple-700" />
+                Post Job Escrow
+              </Link>
+            ) : (
+              <Link
+                to="/jobs"
+                className="glass-panel px-8 py-3.5 rounded-xl font-headline font-bold text-slate-800 text-base hover:bg-slate-50 border-slate-200 transition-all flex items-center gap-2"
+              >
+                <Search size={18} className="text-purple-700" />
+                Browse Jobs (Marketplace)
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Full-width Mockup Card matching 1st image */}
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="bg-white border border-purple-100 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 sm:space-y-8">
+            {/* Card Header */}
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                {/* Photo upload field for future photo */}
+                <label className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-700 relative overflow-hidden group cursor-pointer border border-purple-100/85 shrink-0 shadow-2xs">
+                  {heroAvatar ? (
+                    <img src={heroAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={24} className="text-purple-600" />
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[9px] text-white font-bold font-sans">EDIT</span>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                </label>
+                
+                <div className="text-left">
+                  <h3 className="font-headline text-lg sm:text-xl font-black text-slate-900 leading-tight">Akhil Muvva</h3>
+                  <p className="font-mono text-[11px] text-purple-700 font-bold leading-tight mt-0.5">0x71C...3921</p>
+                  
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-100/50 text-[10px] font-bold mt-1.5 font-sans">
+                    <ShieldCheck size={11} className="text-purple-700" />
+                    Verified by PolyLance
+                  </div>
+                </div>
+              </div>
+              
+              <span className="bg-purple-900 text-white px-3 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 select-none shadow-sm">
+                <Crown size={11} className="text-amber-400 fill-amber-400" />
+                TOP RATED
               </span>
             </div>
 
-            <h1 className="font-headline text-4xl sm:text-5xl font-black text-slate-900 leading-tight">
-              Verifiable Reputation. <br />
-              <span className="gradient-text-purple-pink">Immutable Professionalism.</span>
-            </h1>
-
-            <p className="text-base sm:text-lg text-slate-600 max-w-xl leading-relaxed">
-              The world's first decentralized talent protocol where work history is written in stone. No inflated resumes. No fake reviews. Just pure, on-chain performance.
-            </p>
-
-            {/* HERO CTA BUTTONS */}
-            <div className="flex flex-wrap gap-4 pt-2">
-              <button
-                onClick={handleGetStarted}
-                className="gradient-btn-primary px-8 py-3.5 rounded-xl font-headline font-bold text-base flex items-center gap-2.5 hard-shadow cursor-pointer"
-              >
-                <Wallet size={18} />
-                {isConnected ? 'Go to Dashboard' : 'Connect Wallet to Start'}
-                <ArrowRight size={18} />
-              </button>
-
-              {currentRole === 'client' ? (
-                <Link
-                  to="/jobs/post"
-                  className="glass-panel px-8 py-3.5 rounded-xl font-headline font-bold text-purple-900 text-base hover:bg-slate-50 border-purple-200 transition-all flex items-center gap-2"
-                >
-                  <PlusCircle size={18} className="text-purple-700" />
-                  Post Job Escrow
-                </Link>
-              ) : (
-                <Link
-                  to="/jobs"
-                  className="glass-panel px-8 py-3.5 rounded-xl font-headline font-bold text-slate-800 text-base hover:bg-slate-50 border-slate-200 transition-all flex items-center gap-2"
-                >
-                  <Search size={18} className="text-purple-700" />
-                  Browse Jobs (Marketplace)
-                </Link>
-              )}
-            </div>
-          </div>
-
-          {/* Right Column: Reputation Card Mockup */}
-          <div className="md:col-span-5 relative">
-            <div className="glass-panel p-5 sm:p-6 border-purple-200 bg-white hard-shadow space-y-6">
-              {/* Card Header */}
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                  {/* Photo upload field for future photo */}
-                  <label className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-700 relative overflow-hidden group cursor-pointer border border-purple-100/80 shrink-0">
-                    {heroAvatar ? (
-                      <img src={heroAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <User size={24} className="text-purple-600" />
-                    )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[9px] text-white font-bold font-sans">EDIT</span>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleAvatarChange}
-                    />
-                  </label>
-                  
-                  <div className="text-left">
-                    <h3 className="font-headline text-sm sm:text-base font-black text-slate-900 leading-tight">Akhil Muvva</h3>
-                    <p className="font-mono text-[10px] text-purple-700 font-bold leading-tight mt-0.5">0x71C...3921</p>
-                    
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-100/50 text-[9px] font-bold mt-1 font-sans">
-                      <ShieldCheck size={10} className="text-purple-700" />
-                      Verified by PolyLance
-                    </div>
-                  </div>
-                </div>
+            {/* Main Content Layout (Landscape 2-Column) */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center pt-2">
+              {/* Left Column (Heading & Descr) */}
+              <div className="md:col-span-7 space-y-4 text-left">
+                <h4 className="font-headline text-3xl sm:text-4xl font-black text-slate-900 leading-tight">
+                  Become the <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-605 to-indigo-605 font-black">Top Rated Freelancer</span> <br />
+                  on PolyLance
+                </h4>
+                {/* Decorative underline curve styling */}
+                <div className="w-20 h-1 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full" />
                 
-                <span className="bg-purple-900 text-white px-2 py-0.5 rounded-lg text-[9px] font-mono font-bold uppercase flex items-center gap-1 select-none shadow-3xs">
-                  <Crown size={10} className="text-amber-400 fill-amber-400" />
-                  TOP RATED
-                </span>
+                <p className="text-sm text-slate-600 leading-relaxed font-sans font-medium max-w-xl">
+                  Build your reputation, earn trust, and unlock high-value opportunities in a transparent decentralized ecosystem.
+                </p>
               </div>
 
-              {/* Main Content Layout */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 pt-1">
-                {/* Left Column (Heading & Descr) */}
-                <div className="sm:col-span-7 space-y-3 text-left">
-                  <h4 className="font-headline text-base sm:text-lg font-black text-slate-900 leading-tight">
-                    Become the <br />
-                    <span className="text-purple-600">Top Rated Freelancer</span> <br />
-                    on PolyLance
-                  </h4>
-                  {/* Decorative underline */}
-                  <div className="w-16 h-1 bg-purple-500 rounded-full" />
-                  <p className="text-[11px] text-slate-500 leading-relaxed font-sans font-medium">
-                    Build your reputation, earn trust, and unlock high-value opportunities in a transparent decentralized ecosystem.
-                  </p>
+              {/* Right Column (Feature bullets & 3D Star) */}
+              <div className="md:col-span-5 flex flex-col sm:flex-row items-center gap-6 justify-end">
+                {/* Star 3D SVG */}
+                <div className="relative select-none pointer-events-none w-36 h-36 shrink-0">
+                  <svg className="w-full h-full animate-bounce-slow" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="60" cy="95" rx="35" ry="8" fill="#F3E8FF" opacity="0.6" />
+                    <ellipse cx="60" cy="92" rx="35" ry="8" fill="#EEF2F6" />
+                    <path d="M60 25 L68 48 L92 48 L73 63 L80 86 L60 72 L40 86 L47 63 L28 48 L52 48 Z" fill="url(#starGradHero)" filter="drop-shadow(0px 8px 16px rgba(139, 92, 246, 0.25))" />
+                    <defs>
+                      <linearGradient id="starGradHero" x1="28" y1="25" x2="92" y2="86" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor="#C084FC" />
+                        <stop offset="50%" stopColor="#8B5CF6" />
+                        <stop offset="100%" stopColor="#5B21B6" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
                 </div>
 
-                {/* Right Column (Feature bullets & 3D Star) */}
-                <div className="sm:col-span-5 space-y-4">
-                  {/* Star 3D SVG */}
-                  <div className="relative select-none pointer-events-none">
-                    <svg className="w-20 h-20 mx-auto" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <ellipse cx="60" cy="95" rx="35" ry="8" fill="#F3E8FF" opacity="0.6" />
-                      <ellipse cx="60" cy="92" rx="35" ry="8" fill="#EEF2F6" />
-                      <path d="M60 25 L68 48 L92 48 L73 63 L80 86 L60 72 L40 86 L47 63 L28 48 L52 48 Z" fill="url(#starGrad)" filter="drop-shadow(0px 8px 16px rgba(139, 92, 246, 0.25))" />
-                      <defs>
-                        <linearGradient id="starGrad" x1="28" y1="25" x2="92" y2="86" gradientUnits="userSpaceOnUse">
-                          <stop offset="0%" stopColor="#C084FC" />
-                          <stop offset="50%" stopColor="#8B5CF6" />
-                          <stop offset="100%" stopColor="#5B21B6" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
+                <div className="space-y-4 flex-1 text-left">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0 shadow-3xs">
+                      <Activity size={14} className="text-purple-600" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <h5 className="font-bold text-slate-800 text-sm font-satoshi">Build Your Reputation</h5>
+                      <p className="text-xs text-slate-500 font-sans font-medium">Deliver quality, earn trust, rise above.</p>
+                    </div>
                   </div>
-
-                  <div className="space-y-2 text-left text-[9px] font-sans">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                      <Activity size={10} className="text-purple-600" />
-                      <span>Build Your Reputation</span>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 shrink-0 shadow-3xs">
+                      <Zap size={14} className="text-indigo-600" />
                     </div>
-                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                      <Zap size={10} className="text-purple-600" />
-                      <span>Unlock Better Opportunities</span>
+                    <div className="space-y-0.5">
+                      <h5 className="font-bold text-slate-800 text-sm font-satoshi">Unlock Better Opportunities</h5>
+                      <p className="text-xs text-slate-500 font-sans font-medium">Top rated pros get top tier projects.</p>
                     </div>
-                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                      <ShieldCheck size={10} className="text-purple-600" />
-                      <span>Stand Out On-Chain</span>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0 shadow-3xs">
+                      <ShieldCheck size={14} className="text-purple-600" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <h5 className="font-bold text-slate-800 text-sm font-satoshi">Stand Out On-Chain</h5>
+                      <p className="text-xs text-slate-500 font-sans font-medium">Your reputation is your biggest asset.</p>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Bottom Banner */}
-              <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
-                <div className="space-y-0.5 text-center sm:text-left">
-                  <p className="text-[10px] font-bold text-purple-900 flex items-center justify-center sm:justify-start gap-1 font-mono">
-                    <Crown size={11} className="text-amber-500 fill-amber-500" />
+            {/* Bottom Banner */}
+            <div className="bg-purple-50/50 border border-purple-100/50 p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-700 shrink-0">
+                  <Crown size={18} className="text-purple-700 fill-purple-700/10" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-bold text-purple-900 font-satoshi">
                     Top Rated Pros earn more.
                   </p>
-                  <p className="text-[9px] text-slate-500 font-sans font-medium">Higher trust. Higher visibility. Higher rewards.</p>
+                  <p className="text-xs text-slate-500 font-sans font-medium">Higher trust. Higher visibility. Higher rewards.</p>
                 </div>
-                
-                <button
-                  type="button"
-                  onClick={handleGetStarted}
-                  className="gradient-btn-primary px-3 py-1.5 rounded-lg font-headline font-bold text-[10px] flex items-center gap-1 select-none shadow-xs text-white cursor-pointer"
-                >
-                  <Sparkles size={10} />
-                  Start Building
-                </button>
               </div>
+              
+              <button
+                type="button"
+                onClick={handleGetStarted}
+                className="gradient-btn-primary px-5 py-2.5 rounded-xl font-headline font-bold text-xs flex items-center gap-1.5 select-none shadow-sm text-white cursor-pointer shrink-0"
+              >
+                <Sparkles size={13} />
+                Start Building Reputation
+              </button>
+            </div>
 
-              {/* Footer Row */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-center gap-1.5 font-mono text-[9px] text-slate-500 font-bold uppercase tracking-wider select-none">
-                <ShieldCheck size={11} className="text-emerald-500" />
-                <span>100% On-Chain</span>
-                <span>•</span>
-                <span>Transparent</span>
-                <span>•</span>
-                <span>Verified by PolyLance Protocol</span>
-              </div>
+            {/* Footer Row */}
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-center gap-2 font-mono text-[10px] text-slate-500 font-bold uppercase tracking-wider select-none">
+              <ShieldCheck size={12} className="text-emerald-500" />
+              <span>100% On-Chain</span>
+              <span>•</span>
+              <span>Transparent</span>
+              <span>•</span>
+              <span>Verified by PolyLance Protocol</span>
             </div>
           </div>
         </div>
