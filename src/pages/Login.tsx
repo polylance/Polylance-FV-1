@@ -16,22 +16,34 @@ export const Login: React.FC = () => {
     {
       id: 'metamask',
       name: 'MetaMask',
+      badgeColor: 'bg-orange-50 text-orange-700 border-orange-100/50',
+      circleBg: 'bg-orange-50/30',
+      desc: 'Connect using your MetaMask wallet instantly.',
+      arrowColor: 'text-orange-500 bg-orange-50/20 border-orange-100/30 group-hover:bg-orange-50 group-hover:border-orange-300',
       logo: (
-        <img src="/MetaMask_logo.png" alt="MetaMask" className="w-8 h-8 object-contain shrink-0" />
+        <img src="/MetaMask_logo.png" alt="MetaMask" className="w-9 h-9 object-contain shrink-0" />
       )
     },
     {
       id: 'walletconnect',
       name: 'WalletConnect',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-100/50',
+      circleBg: 'bg-blue-50/30',
+      desc: 'Scan with your wallet app to connect.',
+      arrowColor: 'text-blue-500 bg-blue-50/20 border-blue-100/30 group-hover:bg-blue-50 group-hover:border-blue-300',
       logo: (
-        <img src="/WalletConnect_logo.png" alt="WalletConnect" className="w-8 h-8 object-contain shrink-0" />
+        <img src="/WalletConnect_logo.png" alt="WalletConnect" className="w-9 h-9 object-contain shrink-0" />
       )
     },
     {
       id: 'coinbase',
       name: 'Coinbase Wallet',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-100/50',
+      circleBg: 'bg-blue-50/30',
+      desc: 'Connect with Coinbase Wallet in one click.',
+      arrowColor: 'text-blue-500 bg-blue-50/20 border-blue-100/30 group-hover:bg-blue-50 group-hover:border-blue-300',
       logo: (
-        <img src="/CoinBase_logo.png" alt="Coinbase Wallet" className="w-8 h-8 object-contain shrink-0" />
+        <img src="/CoinBase_logo.png" alt="Coinbase Wallet" className="w-9 h-9 object-contain shrink-0" />
       )
     },
   ];
@@ -248,56 +260,86 @@ export const Login: React.FC = () => {
 
       {/* Divider */}
       <div className="flex items-center justify-center gap-3 select-none">
-        <div className="h-[1px] bg-slate-200 flex-1" />
-        <span className="font-mono text-[9px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-          <Lock size={8} /> Secure & Decentralized <Lock size={8} />
-        </span>
-        <div className="h-[1px] bg-slate-200 flex-1" />
+        <div className="h-[1px] bg-slate-200/60 flex-grow" />
+        <div className="flex items-center gap-1.5 px-3.5 py-1 border border-purple-100 rounded-full bg-purple-50/30 text-[9px] font-black font-mono tracking-widest text-purple-650 uppercase">
+          <Lock size={10} className="fill-purple-100/50" /> Secure & Decentralized <Lock size={10} className="fill-purple-100/50" />
+        </div>
+        <div className="h-[1px] bg-slate-200/60 flex-grow" />
       </div>
 
       {/* Connect Wallet section */}
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 border border-purple-200/50 flex items-center justify-center mx-auto shadow-4xs shrink-0 select-none">
-          <Lock size={14} className="text-purple-750 fill-purple-750/10" />
-        </div>
-        <div className="text-center select-none">
-          <h3 className="font-heading text-xl sm:text-2xl font-black text-slate-900">
-            Connect Your Wallet
+      <div className="max-w-5xl mx-auto space-y-8 relative">
+        {/* Floating elements inside section */}
+        <div className="hidden lg:block absolute -left-12 top-6 w-20 h-20 bg-gradient-to-tr from-purple-500/10 to-blue-500/5 rounded-3xl border border-white/20 shadow-md rotate-12 pointer-events-none animate-pulse" />
+
+        {/* Logo and title platform */}
+        <div className="text-center space-y-3 select-none relative z-10">
+          <div className="relative flex justify-center py-1">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-purple-400/10 rounded-full blur-xl pointer-events-none animate-pulse" />
+            <div className="absolute bottom-0 w-20 h-1.5 bg-gradient-to-r from-purple-200 to-blue-200 rounded-full blur-xs opacity-85" />
+            <PolyLanceLogo size={66} className="relative z-10 shrink-0" />
+          </div>
+
+          <h3 className="font-heading text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-none">
+            Connect Your <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Wallet</span>
           </h3>
-          <p className="text-xs text-slate-500 font-sans mt-0.5 font-medium">
-            Choose your preferred wallet to continue
+          <p className="text-xs sm:text-sm text-slate-500 font-sans mt-2.5 font-medium max-w-md mx-auto leading-relaxed">
+            Securely access PolyLance and unlock a world of decentralized opportunities.
           </p>
+
+          {/* Capsule lists */}
+          <div className="flex justify-center pt-1.5">
+            <div className="inline-flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 px-4.5 py-1.5 border border-slate-200/60 bg-white/70 backdrop-blur-md rounded-full shadow-4xs text-[10px] sm:text-[11px] font-black text-slate-700 select-none">
+              <span className="flex items-center gap-1"><Sparkles size={11} className="text-purple-650" /> Verified Talent</span>
+              <span className="text-slate-350">•</span>
+              <span>Smart Contracts</span>
+              <span className="text-slate-300">•</span>
+              <span>Fair Payments</span>
+              <span className="text-slate-300">•</span>
+              <span>Global Opportunities</span>
+            </div>
+          </div>
         </div>
 
-        {/* Wallet Options Side-by-Side Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Wallet Options Horizontal Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto pt-2">
           {walletProviders.map((prov) => (
             <button
               key={prov.id}
               type="button"
               disabled={Boolean(connectingProvider)}
               onClick={() => handleWeb2Login(prov.name)}
-              className="flex items-center justify-between p-4.5 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 hover:border-purple-400 transition-all cursor-pointer shadow-sm group hover:scale-[1.01] duration-300 relative select-none"
+              className="flex items-center justify-between p-5 border border-slate-200 rounded-3xl bg-white hover:bg-slate-50/50 hover:border-purple-300 transition-all cursor-pointer shadow-sm group hover:scale-[1.01] duration-300 relative select-none text-left"
             >
-              <div className="flex items-center gap-3.5 min-w-0">
-                {prov.logo}
-                <div className="text-left">
-                  <span className="text-xs sm:text-sm font-black text-slate-900 block leading-tight font-satoshi">
+              <div className="flex gap-4 items-start min-w-0">
+                <div className={`w-14 h-14 rounded-full ${prov.circleBg} flex items-center justify-center shadow-inner shrink-0 relative overflow-hidden group-hover:scale-105 transition-transform duration-300`}>
+                  {prov.logo}
+                </div>
+                <div className="min-w-0 pr-1">
+                  <span className="font-black text-slate-900 text-base font-satoshi block">
                     {prov.name}
                   </span>
-                  <span className="text-[9.5px] font-black text-purple-650 block mt-0.5 leading-none">
-                    Connect
+                  <div className={`inline-block text-[8px] px-2 py-0.5 ${prov.badgeColor} border font-mono font-black uppercase rounded-full tracking-wider mt-1.5`}>
+                    ⚡ Fast & Secure
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-sans block mt-2.5 leading-snug font-medium">
+                    {prov.desc}
                   </span>
                 </div>
               </div>
-              <ArrowRight size={14} className="text-slate-400 group-hover:text-purple-655 group-hover:translate-x-0.5 transition-all shrink-0" />
+              <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 shadow-4xs shrink-0 hover:scale-105 ${prov.arrowColor}`}>
+                <ArrowRight size={14} className="stroke-[3]" />
+              </div>
             </button>
           ))}
         </div>
 
-        <div className="flex items-center justify-center gap-1.5 text-[10.5px] text-slate-500 font-sans font-medium select-none">
-          <ShieldCheck size={13} className="text-purple-650" />
-          <span>Your data stays on-chain. You stay in control.</span>
+        {/* Identity Footer */}
+        <div className="flex items-center justify-center gap-2 select-none pt-2 text-[10.5px] sm:text-xs text-slate-500 font-sans font-medium text-center">
+          <div className="w-1.5 h-1.5 rounded-full bg-purple-200" />
+          <ShieldCheck size={13.5} className="text-purple-600 fill-purple-100" />
+          <span>Your wallet. Your identity. Your reputation. <span className="text-purple-650 font-black">Fully on-chain.</span></span>
+          <div className="w-1.5 h-1.5 rounded-full bg-purple-200" />
         </div>
       </div>
 
