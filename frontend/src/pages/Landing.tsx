@@ -10,18 +10,7 @@ export const Landing: React.FC = () => {
   const { jobs, profiles } = usePolyLanceData();
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [heroAvatar, setHeroAvatar] = useState<string | null>(null);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setHeroAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleGetStarted = () => {
     if (!isConnected) {
@@ -123,23 +112,16 @@ export const Landing: React.FC = () => {
               {/* Card Header */}
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-2.5">
-                  {/* Photo upload field for future photo */}
-                  <label className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-700 relative overflow-hidden group cursor-pointer border border-purple-100/80 shrink-0 shadow-3xs">
-                    {heroAvatar ? (
-                      <img src={heroAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <User size={20} className="text-purple-600" />
-                    )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[8px] text-white font-bold font-sans">EDIT</span>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleAvatarChange}
+                  <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-750 relative overflow-hidden border border-purple-100/80 shrink-0 shadow-3xs">
+                    <img 
+                      src="/akhil_avatar.png" 
+                      alt="Akhil Muvva" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80";
+                      }}
                     />
-                  </label>
+                  </div>
                   
                   <div>
                     <h3 className="font-headline text-sm font-black text-slate-900 leading-tight">Akhil Muvva</h3>
