@@ -119,19 +119,19 @@ export const Landing: React.FC = () => {
 
           {/* Right Column: Compact Mockup Card matching 2nd image */}
           <div className="md:col-span-5 relative">
-            <div className="glass-panel p-5 border-purple-200 bg-white hard-shadow space-y-5 text-left">
+            <div className="glass-panel p-4 sm:p-4.5 border-purple-200 bg-white hard-shadow space-y-3.5 text-left">
               {/* Card Header */}
               <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   {/* Photo upload field for future photo */}
-                  <label className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-700 relative overflow-hidden group cursor-pointer border border-purple-100/80 shrink-0 shadow-3xs">
+                  <label className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-700 relative overflow-hidden group cursor-pointer border border-purple-100/80 shrink-0 shadow-3xs">
                     {heroAvatar ? (
                       <img src={heroAvatar} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <User size={24} className="text-purple-600" />
+                      <User size={20} className="text-purple-600" />
                     )}
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[9px] text-white font-bold font-sans">EDIT</span>
+                      <span className="text-[8px] text-white font-bold font-sans">EDIT</span>
                     </div>
                     <input
                       type="file"
@@ -142,35 +142,35 @@ export const Landing: React.FC = () => {
                   </label>
                   
                   <div>
-                    <h3 className="font-headline text-base font-black text-slate-900 leading-tight">Akhil Muvva</h3>
-                    <p className="font-mono text-[10px] text-purple-700 font-bold leading-tight mt-0.5">0x71C...3921</p>
+                    <h3 className="font-headline text-sm font-black text-slate-900 leading-tight">Akhil Muvva</h3>
+                    <p className="font-mono text-[9px] text-purple-700 font-bold leading-tight mt-0.5">0x71C...3921</p>
                     
-                    <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-purple-50/75 text-purple-750 rounded-full border border-purple-100/30 text-[9px] font-bold mt-1 font-sans">
-                      <ShieldCheck size={10} className="text-purple-750" />
+                    <div className="inline-flex items-center gap-1 px-1.5 py-0.2 bg-purple-50/70 text-purple-700 rounded-full border border-purple-100/25 text-[8.5px] font-bold mt-0.5 font-sans">
+                      <ShieldCheck size={9} className="text-purple-700" />
                       Verified by PolyLance
                     </div>
                   </div>
                 </div>
                 
-                <span className="bg-purple-900 text-white px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase flex items-center gap-1 select-none shadow-3xs">
-                  <Crown size={10} className="text-amber-400 fill-amber-400" />
+                <span className="bg-purple-900 text-white px-2 py-0.5 rounded-full text-[8px] font-mono font-bold uppercase flex items-center gap-1 select-none shadow-3xs">
+                  <Crown size={9} className="text-amber-400 fill-amber-400" />
                   TOP RATED
                 </span>
               </div>
 
               {/* Grid split for title/desc on left and star on right */}
-              <div className="grid grid-cols-12 gap-3 items-center">
-                <div className="col-span-8 space-y-2">
-                  <h4 className="font-headline text-lg sm:text-xl font-black text-slate-905 leading-tight">
+              <div className="grid grid-cols-12 gap-2 items-center">
+                <div className="col-span-8 space-y-1">
+                  <h4 className="font-headline text-base font-black text-slate-900 leading-tight">
                     Become the <br />
-                    <span className="text-purple-605">Top Rated Freelancer</span> <br />
+                    <span className="text-purple-600">Top Rated Freelancer</span> <br />
                     on PolyLance
                   </h4>
-                  <div className="w-12 h-1 bg-purple-500 rounded-full" />
+                  <div className="w-10 h-0.5 bg-purple-500 rounded-full" />
                 </div>
                 <div className="col-span-4 flex justify-end">
                   {/* Star 3D SVG */}
-                  <div className="relative select-none pointer-events-none w-20 h-20">
+                  <div className="relative select-none pointer-events-none w-16 h-16">
                     <svg className="w-full h-full animate-bounce-slow" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <ellipse cx="60" cy="95" rx="35" ry="8" fill="#F3E8FF" opacity="0.6" />
                       <ellipse cx="60" cy="92" rx="35" ry="8" fill="#EEF2F6" />
@@ -188,84 +188,84 @@ export const Landing: React.FC = () => {
               </div>
 
               {/* Description */}
-              <p className="text-[11px] text-slate-500 leading-relaxed font-sans font-medium">
+              <p className="text-[10px] text-slate-500 leading-normal font-sans font-medium">
                 Build your reputation, earn trust, and unlock high-value opportunities in a transparent decentralized ecosystem.
               </p>
 
               {/* Feature bullet list */}
-              <div className="space-y-3 pt-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-705 shrink-0 shadow-4xs">
-                    <Activity size={12} className="text-purple-600" />
+              <div className="space-y-2 pt-0.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0 shadow-4xs">
+                    <Activity size={10} className="text-purple-600" />
                   </div>
-                  <div className="text-[10px] font-sans">
+                  <div className="text-[9.5px] font-sans">
                     <span className="font-bold text-slate-800">Build Your Reputation</span>
-                    <span className="text-slate-405 mx-1.5">•</span>
+                    <span className="text-slate-400 mx-1">•</span>
                     <span className="text-slate-505 font-medium">Deliver quality, earn trust.</span>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-705 shrink-0 shadow-4xs">
-                    <Zap size={12} className="text-indigo-600" />
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-705 shrink-0 shadow-4xs">
+                    <Zap size={10} className="text-indigo-650" />
                   </div>
-                  <div className="text-[10px] font-sans">
+                  <div className="text-[9.5px] font-sans">
                     <span className="font-bold text-slate-800">Unlock Better Opportunities</span>
-                    <span className="text-slate-405 mx-1.5">•</span>
-                    <span className="text-slate-505 font-medium">Top rated pros get top tier projects.</span>
+                    <span className="text-slate-400 mx-1">•</span>
+                    <span className="text-slate-550 font-medium">Top rated pros get top tier projects.</span>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-705 shrink-0 shadow-4xs">
-                    <ShieldCheck size={12} className="text-purple-600" />
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0 shadow-4xs">
+                    <ShieldCheck size={10} className="text-purple-600" />
                   </div>
-                  <div className="text-[10px] font-sans">
+                  <div className="text-[9.5px] font-sans">
                     <span className="font-bold text-slate-800">Stand Out On-Chain</span>
-                    <span className="text-slate-405 mx-1.5">•</span>
+                    <span className="text-slate-400 mx-1">•</span>
                     <span className="text-slate-505 font-medium">Your reputation is your biggest asset.</span>
                   </div>
                 </div>
               </div>
 
               {/* Bottom Banner */}
-              <div className="bg-purple-50/40 border border-purple-100/30 p-3 rounded-xl flex items-center justify-between gap-3 text-left">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 shrink-0 relative overflow-hidden">
-                    <Crown size={14} className="text-purple-700 fill-purple-700/10" />
+              <div className="bg-purple-50/40 border border-purple-100/30 p-2.5 rounded-xl flex items-center justify-between gap-2 text-left">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 shrink-0">
+                    <Crown size={12} className="text-purple-700 fill-purple-700/10" />
                   </div>
-                  <div className="space-y-0.5">
-                    <p className="text-[10.5px] font-bold text-purple-900 font-satoshi">
+                  <div className="space-y-0.2">
+                    <p className="text-[9.5px] font-bold text-purple-900 font-satoshi">
                       Top Rated Pros earn more.
                     </p>
-                    <p className="text-[9px] text-slate-450 font-sans font-medium">Higher trust. Higher visibility. Higher rewards.</p>
+                    <p className="text-[8.5px] text-slate-450 font-sans font-medium leading-none">Higher trust. Higher rewards.</p>
                   </div>
                 </div>
                 
                 <button
                   type="button"
                   onClick={handleGetStarted}
-                  className="gradient-btn-primary px-3 py-2 rounded-lg font-headline font-bold text-[9px] flex items-center gap-1.5 select-none shadow-xs text-white cursor-pointer shrink-0 text-right leading-tight"
+                  className="gradient-btn-primary px-2.5 py-1.5 rounded-lg font-headline font-bold text-[8.5px] flex items-center gap-1 select-none shadow-xs text-white cursor-pointer shrink-0 text-right leading-none"
                 >
-                  <Sparkles size={11} />
-                  <span>Start Building<br />Your Reputation</span>
-                  <ArrowRight size={10} />
+                  <Sparkles size={9} />
+                  <span>Start Building<br />Reputation</span>
+                  <ArrowRight size={8} />
                 </button>
               </div>
 
               {/* Footer Row */}
-              <div className="pt-3.5 border-t border-slate-100 grid grid-cols-3 gap-2 font-mono text-[8px] text-slate-500 font-bold uppercase tracking-wider text-center select-none">
+              <div className="pt-2.5 border-t border-slate-100 grid grid-cols-3 gap-1.5 font-mono text-[7.5px] text-slate-500 font-bold uppercase tracking-wider text-center select-none">
                 <div className="flex items-center justify-center gap-1">
-                  <ShieldCheck size={10} className="text-purple-600" />
+                  <ShieldCheck size={9} className="text-purple-600" />
                   <span>100% On-Chain</span>
                 </div>
                 <div className="flex items-center justify-center gap-1 border-l border-slate-200">
-                  <Lock size={10} className="text-purple-600" />
-                  <span>Transparent & Secure</span>
+                  <Lock size={9} className="text-purple-600" />
+                  <span>Secure Escrow</span>
                 </div>
                 <div className="flex items-center justify-center gap-1 border-l border-slate-200">
-                  <Cpu size={10} className="text-purple-600" />
-                  <span>Verified Protocol</span>
+                  <Cpu size={9} className="text-purple-600" />
+                  <span>Verified Code</span>
                 </div>
               </div>
             </div>
