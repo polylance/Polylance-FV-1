@@ -58,7 +58,7 @@ export const Reputation: React.FC = () => {
       };
     })
     .concat(
-      address && !profiles[address]
+      address && !Object.keys(profiles).some(k => k.toLowerCase() === address.toLowerCase())
         ? [
             {
               rank: 0,
