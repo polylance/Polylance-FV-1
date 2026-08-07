@@ -114,6 +114,10 @@ export interface UserProfile {
   attestationUID?: string;
   reputationSbtCount: number;
   languageBytes?: Record<string, number>;
+  commitsCount?: number;
+  reposCount?: number;
+  prsCount?: number;
+  reputationTier?: string;
 }
 
 export interface DaoProposal {

@@ -1053,7 +1053,7 @@ export const Reputation: React.FC = () => {
 
           {/* Badge 4 - Identity Verified */}
           {(() => {
-            const isUnlocked = reputationCount > 0;
+            const isUnlocked = address ? (profiles[address]?.githubVerified === true) : false;
             return (
               <motion.div 
                 whileHover={isUnlocked ? { y: -5, scale: 1.02 } : {}}

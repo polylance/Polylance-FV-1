@@ -14,7 +14,7 @@ export const Onboarding: React.FC = () => {
   const existing = profiles[address] || {};
   const isClient = currentRole === 'client';
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
   const [displayName, setDisplayName] = useState(existing.displayName || '');
   const [bio, setBio] = useState(existing.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(() => {
@@ -30,10 +30,9 @@ export const Onboarding: React.FC = () => {
   });
   const [tagInput, setTagInput] = useState('');
 
-  const [githubUsername, setGithubUsername] = useState('');
+  const [githubUsername, setGithubUsername] = useState(existing.githubUsername || '');
   const [isScanningGithub, setIsScanningGithub] = useState(false);
   const [githubResult, setGithubResult] = useState<GithubScoreResult | null>(null);
-  const [commitToChain, setCommitToChain] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [mintedTxHash, setMintedTxHash] = useState('');
 
@@ -118,6 +117,10 @@ export const Onboarding: React.FC = () => {
               secondaryScores: githubResult.secondaryScores,
               attestationUID: githubResult.attestationUID,
               languageBytes: githubResult.languageBytes,
+              commitsCount: githubResult.commitsCount,
+              reposCount: githubResult.reposCount,
+              prsCount: githubResult.prsCount,
+              reputationTier: githubResult.reputationTier,
             }
           : {}),
       },
@@ -128,8 +131,8 @@ export const Onboarding: React.FC = () => {
     setShowSuccessModal(true);
   };
 
-  const stepLabels = ['Profile Basics', 'Add Skills', 'GitHub Verify'];
-  const progressPercent = Math.round((step / 3) * 100);
+  const stepLabels = ['Profile Basics & Verification', 'Add Skills'];
+  const progressPercent = Math.round((step / 2) * 100);
 
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-8">
@@ -181,6 +184,150 @@ export const Onboarding: React.FC = () => {
                 Your profile metadata is encrypted and stored on IPFS. Once submitted, your identity is pinned permanently to ProfileRegistry.sol.
               </p>
             </div>
+
+            {/* GITHUB SYNC WIDGET FOR FREELANCERS */}
+            {!isClient && (
+              <div className="bg-purple-50/30 p-5 sm:p-6 rounded-2xl border border-purple-100 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4 items-end">
+                  <div className="flex-grow">
+                    <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1.5 font-bold">
+                      GitHub Handle / Username *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. sunny200551 or https://github.com/sunny200551"
+                      value={githubUsername}
+                      onChange={(e) => setGithubUsername(e.target.value)}
+                      className="w-full glass-input text-xs"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSimulateGithubSync}
+                    disabled={isScanningGithub}
+                    className="gradient-btn-primary px-6 py-3 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-md h-[42px]"
+                  >
+                    {isScanningGithub ? (
+                      <>
+                        <Loader2 className="animate-spin" size={14} /> Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={14} /> Sync GitHub
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {githubResult && (
+                  <div className="glass-panel border-purple-200 bg-white overflow-hidden shadow-xs">
+                    <div className="bg-slate-50 px-5 py-3 border-b border-slate-150 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Terminal size={16} className="text-purple-700" />
+                        <h3 className="font-headline font-bold text-xs text-slate-900">Repository Audit Results</h3>
+                      </div>
+                      <span className="font-mono text-[9px] text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 font-bold">
+                        SCAN COMPLETE
+                      </span>
+                    </div>
+
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Skill Bars with dynamic percentages */}
+                      <div className="space-y-3 font-mono text-xs">
+                        {(() => {
+                          const totalBytes = (githubResult.languageBytes.Solidity || 0) +
+                                             (githubResult.languageBytes.Rust || 0) +
+                                             (githubResult.languageBytes.TypeScript || 0) +
+                                             (githubResult.languageBytes.Go || 0);
+
+                          const web3Percent = totalBytes > 0 ? Math.round(((githubResult.languageBytes.Solidity || 0) + (githubResult.languageBytes.Rust || 0)) / totalBytes * 100) : 0;
+                          const frontendPercent = totalBytes > 0 ? Math.round((githubResult.languageBytes.TypeScript || 0) / totalBytes * 100) : 0;
+                          const backendPercent = totalBytes > 0 ? Math.round((githubResult.languageBytes.Go || 0) * 0.85 / totalBytes * 100) : 0;
+                          const mobilePercent = totalBytes > 0 ? Math.max(0, 100 - web3Percent - frontendPercent - backendPercent) : 0;
+
+                          return (
+                            <>
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-slate-700 font-medium">Web3 & Smart Contracts</span>
+                                  <span className="text-purple-700 font-bold">{web3Percent}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                                  <div className="h-full bg-gradient-to-r from-purple-600 to-indigo-600" style={{ width: `${web3Percent}%` }} />
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-slate-700 font-medium">Frontend (React/Next)</span>
+                                  <span className="text-purple-700 font-bold">{frontendPercent}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                                  <div className="h-full bg-gradient-to-r from-indigo-600 to-purple-500" style={{ width: `${frontendPercent}%` }} />
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-slate-700 font-medium">Backend Systems</span>
+                                  <span className="text-purple-700 font-bold">{backendPercent}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                                  <div className="h-full bg-purple-500" style={{ width: `${backendPercent}%` }} />
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-slate-700 font-medium">Mobile Apps</span>
+                                  <span className="text-purple-700 font-bold">{mobilePercent}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                                  <div className="h-full bg-slate-400" style={{ width: `${mobilePercent}%` }} />
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Dynamic Aggregated Reputation Tier Card */}
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col justify-center text-center shadow-2xs">
+                        <span className="font-label-mono text-[9px] text-slate-500 uppercase tracking-widest mb-1 font-bold">
+                          AGGREGATED REPUTATION
+                        </span>
+                        <div className="font-headline text-2xl font-black gradient-text-purple-pink">
+                          {githubResult.reputationTier}
+                        </div>
+                        <div className="flex justify-between border-t border-slate-100 pt-2.5 mt-2.5 font-mono text-[10px]">
+                          <div>
+                            <div className="font-bold text-slate-900">{githubResult.commitsCount}</div>
+                            <div className="text-[9px] text-slate-500">COMMITS</div>
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900">{githubResult.reposCount}</div>
+                            <div className="text-[9px] text-slate-500">DAPPS</div>
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900">{githubResult.prsCount}</div>
+                            <div className="text-[9px] text-slate-500">PRs</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-50/75 p-3 border-t border-slate-150 flex items-center justify-between text-[10px] font-mono">
+                      <span className="text-slate-600">
+                        SHA256 Proof: <code className="text-purple-800 font-bold">{githubResult.attestationUID.slice(0, 20)}...</code>
+                      </span>
+                      <span className="text-emerald-700 font-bold flex items-center gap-1">
+                        <ShieldCheck size={12} /> Sync Complete
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start pt-2">
               <div className="md:col-span-1 flex flex-col items-center">
@@ -392,169 +539,6 @@ export const Onboarding: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-slate-600 hover:text-slate-900 font-mono text-xs flex items-center gap-1.5 font-bold"
-              >
-                <ArrowLeft size={14} /> Back
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep(3)}
-                className="gradient-btn-primary px-8 py-3 rounded-xl font-headline font-bold text-sm flex items-center gap-2"
-              >
-                Next Stage <ArrowRight size={16} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: GITHUB VERIFICATION & REPOSITORY AUDIT */}
-        {step === 3 && (
-          <div className="space-y-6">
-            <div>
-              <h1 className="font-headline text-3xl font-extrabold text-slate-900 mb-1">
-                Verified Proof-of-Work Audit
-              </h1>
-              <p className="text-xs text-slate-600">
-                Synchronize your GitHub repositories to generate verified performance scores audited by the Oracle engine.
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-2 font-bold">
-                  GitHub Handle / Username *
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="e.g. polycoder-dev"
-                    value={githubUsername}
-                    onChange={(e) => setGithubUsername(e.target.value)}
-                    className="flex-grow glass-input text-xs"
-                  />
-                  <button
-                    type="button"
-                    disabled={isScanningGithub}
-                    onClick={handleSimulateGithubSync}
-                    className="gradient-btn-primary px-6 py-3 rounded-xl font-mono text-xs font-bold flex items-center gap-2"
-                  >
-                    {isScanningGithub ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" /> Scanning Repos...
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined text-sm">sync</span> Sync GitHub
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* GitHub Repository Audit Results matching reference HTML */}
-              {githubResult && (
-                <div className="border border-purple-200 rounded-xl overflow-hidden bg-slate-50 space-y-4">
-                  <div className="bg-white px-6 py-3 border-b border-slate-200 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <Terminal size={16} className="text-purple-700" />
-                      <h3 className="font-headline font-bold text-sm text-slate-900">Repository Audit Results</h3>
-                    </div>
-                    <span className="font-mono text-[10px] text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded border border-emerald-300 font-bold">
-                      SCAN COMPLETE
-                    </span>
-                  </div>
-
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Skill Bars matching reference spec */}
-                    <div className="space-y-3 font-mono text-xs">
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-slate-700 font-medium">Web3 & Smart Contracts</span>
-                          <span className="text-purple-700 font-bold">88%</span>
-                        </div>
-                        <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-purple-600 to-indigo-600" style={{ width: '88%' }} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-slate-700 font-medium">Frontend (React/Next)</span>
-                          <span className="text-purple-700 font-bold">72%</span>
-                        </div>
-                        <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-indigo-600 to-purple-500" style={{ width: '72%' }} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-slate-700 font-medium">Backend Systems</span>
-                          <span className="text-purple-700 font-bold">45%</span>
-                        </div>
-                        <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-purple-500" style={{ width: '45%' }} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-slate-700 font-medium">Mobile Apps</span>
-                          <span className="text-purple-700 font-bold">15%</span>
-                        </div>
-                        <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-slate-400" style={{ width: '15%' }} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Aggregated Reputation Tier Card matching reference HTML */}
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 flex flex-col justify-center text-center shadow-xs">
-                      <span className="font-label-mono text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-bold">
-                        AGGREGATED REPUTATION
-                      </span>
-                      <div className="font-headline text-3xl font-black gradient-text-purple-pink">
-                        PLATINUM
-                      </div>
-                      <div className="flex justify-between border-t border-slate-100 pt-3 mt-3 font-mono text-xs">
-                        <div>
-                          <div className="font-bold text-slate-900">4.2k</div>
-                          <div className="text-[10px] text-slate-500">COMMITS</div>
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-900">12</div>
-                          <div className="text-[10px] text-slate-500">DAPPS</div>
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-900">98</div>
-                          <div className="text-[10px] text-slate-500">PRs</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-purple-50 p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
-                    <span className="text-slate-600">
-                      SHA256 Proof: <code className="text-purple-800 font-bold">{githubResult.attestationUID.slice(0, 20)}...</code>
-                    </span>
-                    <label className="flex items-center gap-2 cursor-pointer text-purple-900 font-bold">
-                      <input
-                        type="checkbox"
-                        checked={commitToChain}
-                        onChange={(e) => setCommitToChain(e.target.checked)}
-                        className="rounded border-slate-300 text-purple-700 focus:ring-purple-600"
-                      />
-                      <span>Commit these scores to on-chain profile</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setStep(2)}
                 className="text-slate-600 hover:text-slate-900 font-mono text-xs flex items-center gap-1.5 font-bold"
               >
                 <ArrowLeft size={14} /> Back

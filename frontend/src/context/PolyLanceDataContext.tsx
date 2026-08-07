@@ -561,6 +561,21 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateProfile = (profileData: Partial<UserProfile>, address: string) => {
     setProfiles((prev) => {
+      // Uniqueness check: Ensure no other wallet has already linked this GitHub account
+      if (profileData.githubVerified && profileData.githubUsername) {
+        const lowerUsername = profileData.githubUsername.toLowerCase().trim();
+        const duplicateAddress = Object.keys(prev).find(
+          (addr) =>
+            addr.toLowerCase() !== address.toLowerCase() &&
+            prev[addr].githubVerified &&
+            prev[addr].githubUsername?.toLowerCase().trim() === lowerUsername
+        );
+        if (duplicateAddress) {
+          alert(`Verification Error: The GitHub account @${profileData.githubUsername} is already linked to another wallet address (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})!\nOnly one wallet connection per GitHub username is allowed for Sybil resistance.`);
+          return prev; // Reject updates
+        }
+      }
+
       const existing = prev[address] || {
         address,
         displayName: 'Anonymous PolyLancer',

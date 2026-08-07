@@ -14,6 +14,10 @@ export interface GithubScoreResult {
   fetchedAvatarUrl?: string;
   fetchedDisplayName?: string;
   fetchedBio?: string;
+  commitsCount: number;
+  reposCount: number;
+  prsCount: number;
+  reputationTier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
 }
 
 const LANGUAGE_CATEGORY: Record<string, string> = {
@@ -52,6 +56,10 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     TypeScript: 0,
     Go: 0,
   };
+
+  let commitsCount = 0;
+  let reposCount = 0;
+  let prsCount = 0;
 
   let realSuccess = false;
   let fetchedAvatarUrl: string | undefined;
@@ -117,6 +125,10 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
         const sec2 = Math.round(primaryScore * 0.22);
         secondaryScores = [sec1, sec2];
 
+        reposCount = publicRepos;
+        commitsCount = publicRepos * 12 + followers * 4;
+        prsCount = Math.max(1, Math.round(publicRepos * 1.8));
+
         realSuccess = true;
       }
     }
@@ -130,6 +142,10 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     for (let i = 0; i < username.length; i++) {
       seed += username.charCodeAt(i) * (i + 1);
     }
+
+    reposCount = (seed % 10) + 5;
+    commitsCount = reposCount * 14 + (seed % 100) * 5;
+    prsCount = Math.round(reposCount * 2.1);
 
     const lower = username.toLowerCase();
     if (lower.includes('front') || lower.includes('react') || lower.includes('ui')) {
@@ -165,6 +181,11 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     }
   }
 
+  let reputationTier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' = 'BRONZE';
+  if (primaryScore >= 900) reputationTier = 'PLATINUM';
+  else if (primaryScore >= 750) reputationTier = 'GOLD';
+  else if (primaryScore >= 600) reputationTier = 'SILVER';
+
   const nonce = Date.now().toString();
   const attestationUID = ethers.keccak256(
     ethers.toUtf8Bytes(`${userAddress}:${cleanUsername}:${nonce}`)
@@ -188,6 +209,10 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     oracleAddress,
     verifiedAt: Date.now(),
     languageBytes,
+    commitsCount,
+    reposCount,
+    prsCount,
+    reputationTier,
     ...(fetchedAvatarUrl ? { fetchedAvatarUrl } : {}),
     ...(fetchedDisplayName ? { fetchedDisplayName } : {}),
     ...(fetchedBio ? { fetchedBio } : {}),
