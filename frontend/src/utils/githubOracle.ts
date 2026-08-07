@@ -35,6 +35,13 @@ const LANGUAGE_CATEGORY: Record<string, string> = {
 };
 
 export async function scoreGithubUser(username: string, userAddress: string): Promise<GithubScoreResult> {
+  let cleanUsername = username.trim();
+  if (cleanUsername.includes('github.com/')) {
+    const parts = cleanUsername.split('github.com/');
+    cleanUsername = parts[parts.length - 1].split('/')[0];
+  }
+  cleanUsername = cleanUsername.replace(/^@/, '').replace(/\/$/, '').trim();
+
   let primaryCategory = 'web3';
   let primaryScore = 850;
   let secondaryCategories = ['frontend', 'backend'];
@@ -53,7 +60,7 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
 
   try {
     // 1. Fetch user profile
-    const userRes = await fetch(`https://api.github.com/users/${username}`);
+    const userRes = await fetch(`https://api.github.com/users/${cleanUsername}`);
     if (userRes.ok) {
       const userData = await userRes.json();
       fetchedAvatarUrl = userData.avatar_url;
@@ -64,7 +71,7 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
       const publicRepos = userData.public_repos || 0;
 
       // 2. Fetch public repos
-      const reposRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=100`);
+      const reposRes = await fetch(`https://api.github.com/users/${cleanUsername}/repos?per_page=100`);
       if (reposRes.ok) {
         const reposData = await reposRes.json();
         let totalStars = 0;
@@ -160,7 +167,7 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
 
   const nonce = Date.now().toString();
   const attestationUID = ethers.keccak256(
-    ethers.toUtf8Bytes(`${userAddress}:${username}:${nonce}`)
+    ethers.toUtf8Bytes(`${userAddress}:${cleanUsername}:${nonce}`)
   );
 
   // Oracle wallet simulator signature
@@ -171,7 +178,7 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
   );
 
   return {
-    username,
+    username: cleanUsername,
     primaryCategory,
     primaryScore,
     secondaryCategories,
