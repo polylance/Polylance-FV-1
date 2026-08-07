@@ -460,12 +460,20 @@ export const Profile: React.FC = () => {
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
                     Audited Code Byte Matrix:
                   </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">Solidity</span>
                       <span className="font-extrabold text-purple-900">
                         {userProfile.languageBytes?.Solidity !== undefined
                           ? `${userProfile.languageBytes.Solidity.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                      <span className="text-[10px] text-slate-500 uppercase block font-bold">Rust</span>
+                      <span className="font-extrabold text-purple-900">
+                        {userProfile.languageBytes?.Rust !== undefined
+                          ? `${userProfile.languageBytes.Rust.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
                     </div>
@@ -490,6 +498,14 @@ export const Profile: React.FC = () => {
                       <span className="font-extrabold text-purple-900">
                         {userProfile.languageBytes?.Python !== undefined
                           ? `${userProfile.languageBytes.Python.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                      <span className="text-[10px] text-slate-500 uppercase block font-bold">Go / Indexers</span>
+                      <span className="font-extrabold text-purple-900">
+                        {userProfile.languageBytes?.Go !== undefined
+                          ? `${userProfile.languageBytes.Go.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
                     </div>
