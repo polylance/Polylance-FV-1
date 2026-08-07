@@ -337,17 +337,8 @@ export const Profile: React.FC = () => {
             </h3>
 
             {jobs.filter((j) => j.dispute?.resolved).length === 0 ? (
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between font-mono text-xs text-slate-700">
-                <div>
-                  <span className="font-bold text-slate-900 text-sm">Case #148: DeFi Liquidity UI Components</span>
-                  <p className="text-[11px] text-slate-500 font-sans mt-0.5">Ruling: 60% Freelancer allocation / 40% Client return</p>
-                  <p className="text-[10px] text-slate-500 italic mt-1 bg-white p-2 rounded border">
-                    "Freelancer completed 2 of 3 milestones successfully. GitHub logs confirm commits. Leftover budget returned to client due to final delay."
-                  </p>
-                </div>
-                <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full text-[10px] font-bold">
-                  Ruled & Closed
-                </span>
+              <div className="text-center py-6 text-slate-500 border border-dashed border-slate-350 rounded-xl bg-slate-50 font-sans text-xs">
+                No resolved disputes in ruling history.
               </div>
             ) : (
               <div className="space-y-4">
