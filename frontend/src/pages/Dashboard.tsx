@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { truncateAddress } from '../utils/formatters';
+import { scoreGithubUser } from '../utils/githubOracle';
 import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, TrendingUp, ShieldCheck, CheckCircle2, FileText, MessageSquare, Clock } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const { address, currentRole } = useWeb3();
-  const { jobs, profiles } = usePolyLanceData();
+  const { jobs, profiles, updateProfile } = usePolyLanceData();
   
   if (currentRole === 'judge') {
     return <Navigate to="/judge" replace />;
@@ -23,6 +24,24 @@ export const Dashboard: React.FC = () => {
     skills: [],
     reputationSbtCount: 0,
   };
+
+  // Real-time GitHub sync on dashboard mount if verified
+  useEffect(() => {
+    if (userProfile.githubVerified && userProfile.githubUsername) {
+      scoreGithubUser(userProfile.githubUsername, address)
+        .then((res) => {
+          if (res && res.primaryScore) {
+            updateProfile({
+              primaryScore: res.primaryScore,
+              secondaryScores: res.secondaryScores,
+              languageBytes: res.languageBytes,
+              verifiedAt: res.verifiedAt,
+            }, address);
+          }
+        })
+        .catch((err) => console.warn('Real-time background GitHub sync failed on dashboard:', err));
+    }
+  }, [address, userProfile.githubUsername, userProfile.githubVerified]);
 
   const isClientRole = currentRole === 'client';
 
@@ -484,30 +503,67 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* GitHub Verified Skill Score */}
-              <div className="glass-panel p-6 border-cyan-200 bg-white hard-shadow space-y-3 font-mono text-xs">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <CheckCircle2 size={16} className="text-cyan-700" /> GitHub E-KYC Attestation
-                  </span>
-                  <span className="text-[10px] bg-cyan-100 text-cyan-900 px-2 py-0.5 rounded font-bold">
-                    Score: 850
-                  </span>
+              {userProfile.githubVerified ? (
+                <div className="glass-panel p-6 border-cyan-200 bg-white hard-shadow space-y-3 font-mono text-xs">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <CheckCircle2 size={16} className="text-emerald-700" /> GitHub E-KYC Attestation
+                    </span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-bold">
+                      Score: {userProfile.primaryScore || 850}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Solidity</span>
+                      <span className="font-bold text-purple-900">
+                        {userProfile.languageBytes?.Solidity !== undefined
+                          ? `${userProfile.languageBytes.Solidity.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Rust</span>
+                      <span className="font-bold text-purple-900">
+                        {userProfile.languageBytes?.Rust !== undefined
+                          ? `${userProfile.languageBytes.Rust.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">TypeScript</span>
+                      <span className="font-bold text-purple-900">
+                        {userProfile.languageBytes?.TypeScript !== undefined
+                          ? `${userProfile.languageBytes.TypeScript.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Go / Indexers</span>
+                      <span className="font-bold text-purple-900">
+                        {userProfile.languageBytes?.Go !== undefined
+                          ? `${userProfile.languageBytes.Go.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Solidity</span>
-                    <span className="font-bold text-purple-900">88,420 Bytes</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Rust</span>
-                    <span className="font-bold text-purple-900">42,100 Bytes</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">TypeScript</span>
-                    <span className="font-bold text-purple-900">120,500 Bytes</span>
-                  </div>
+              ) : (
+                <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-3 font-mono text-xs text-center">
+                  <span className="font-bold text-slate-900 flex items-center justify-center gap-1.5">
+                    GitHub Not Attested
+                  </span>
+                  <p className="text-[11px] text-slate-505 font-sans leading-relaxed">
+                    Sync your GitHub account in onboarding to verify your developer reputation scores.
+                  </p>
+                  <Link
+                    to="/onboarding"
+                    className="gradient-btn-primary w-full py-2.5 rounded-xl font-headline font-bold text-xs shadow-md block text-center"
+                  >
+                    Sync GitHub Account
+                  </Link>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
