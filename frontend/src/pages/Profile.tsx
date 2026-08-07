@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { UserProfile } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { scoreGithubUser } from '../utils/githubOracle';
 import { Award, CheckCircle2, ShieldCheck, FolderGit2, ExternalLink, Building2, Star, Zap, Activity, Scale, Search, History } from 'lucide-react';
@@ -15,7 +16,8 @@ export const Profile: React.FC = () => {
 
   const isOwnProfile = isConnected && currentAddress.toLowerCase() === profileAddr?.toLowerCase();
 
-  const userProfile = profiles[profileAddr] || {
+  const userProfileKey = profileAddr ? Object.keys(profiles).find(k => k.toLowerCase() === profileAddr.toLowerCase()) : null;
+  const userProfile = ((userProfileKey ? profiles[userProfileKey] : null) || {
     address: profileAddr,
     displayName: profileAddr ? `${profileAddr.slice(0, 6)}...${profileAddr.slice(-4)}` : 'Anonymous Member',
     bio: 'No biography has been written yet.',
@@ -23,7 +25,7 @@ export const Profile: React.FC = () => {
     skills: [],
     githubVerified: false,
     reputationSbtCount: 0,
-  };
+  }) as UserProfile;
 
   // Real-time GitHub sync on mount/viewing a verified developer profile
   useEffect(() => {

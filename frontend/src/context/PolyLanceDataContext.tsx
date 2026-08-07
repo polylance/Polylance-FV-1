@@ -107,9 +107,28 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const newest = rows.sort((a: any, b: any) => new Date(b.date_pinned).getTime() - new Date(a.date_pinned).getTime())[0];
             const cid = newest.ipfs_pin_hash;
             
-            const getResponse = await fetch(`https://cloudflare-ipfs.com/ipfs/${cid}`);
-            if (getResponse.ok) {
-              const data = await getResponse.json();
+            const gateways = [
+              `https://cloudflare-ipfs.com/ipfs/${cid}`,
+              `https://ipfs.io/ipfs/${cid}`,
+              `https://gateway.pinata.cloud/ipfs/${cid}`,
+              `https://dweb.link/ipfs/${cid}`
+            ];
+
+            let data = null;
+            for (const gatewayUrl of gateways) {
+              try {
+                const getResponse = await fetch(gatewayUrl);
+                if (getResponse.ok) {
+                  data = await getResponse.json();
+                  console.log('Restored live cloud state from IPFS via:', gatewayUrl);
+                  break;
+                }
+              } catch (e) {
+                console.warn(`Gateway fetch failed for ${gatewayUrl}, trying next...`);
+              }
+            }
+
+            if (data) {
               if (data.jobs) setJobs(data.jobs);
               if (data.daoProposals) setDaoProposals(data.daoProposals);
               if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
@@ -117,7 +136,6 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
               if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
               if (data.profiles) setProfiles(data.profiles);
-              console.log('Restored live cloud state from Pinata IPFS CID:', cid);
             }
           }
         }
@@ -678,33 +696,24 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateProfile = (profileData: Partial<UserProfile>, address: string) => {
     setProfiles((prev) => {
+      const lowerAddress = address.toLowerCase();
       // Uniqueness check: Ensure no other wallet has already linked this GitHub account
-      const updatedPrev = { ...prev };
       if (profileData.githubVerified && profileData.githubUsername) {
         const lowerUsername = profileData.githubUsername.toLowerCase().trim();
         const duplicateAddress = Object.keys(prev).find(
           (addr) =>
-            addr.toLowerCase() !== address.toLowerCase() &&
+            addr.toLowerCase() !== lowerAddress &&
             prev[addr].githubVerified &&
             prev[addr].githubUsername?.toLowerCase().trim() === lowerUsername
         );
         if (duplicateAddress) {
-          // Unlink from the old wallet to allow re-linking to the new active wallet
-          const oldProfile = prev[duplicateAddress];
-          updatedPrev[duplicateAddress] = {
-            ...oldProfile,
-            githubVerified: false,
-            githubUsername: undefined,
-            primaryScore: undefined,
-            languageBytes: undefined,
-            reputationTier: undefined,
-          };
-          console.log(`Unlinked GitHub account @${profileData.githubUsername} from old wallet address ${duplicateAddress} to link to new wallet.`);
+          alert(`Verification Error: The GitHub account @${profileData.githubUsername} is already linked to another wallet address (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})!\nOnly one wallet connection per GitHub username is allowed for Sybil resistance.`);
+          return prev; // Reject updates
         }
       }
 
-      const existing = updatedPrev[address] || {
-        address,
+      const existing = prev[lowerAddress] || {
+        address: lowerAddress,
         displayName: 'Anonymous PolyLancer',
         bio: '',
         avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
@@ -714,8 +723,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         reputationSbtCount: 0,
       };
       return {
-        ...updatedPrev,
-        [address]: {
+        ...prev,
+        [lowerAddress]: {
           ...existing,
           ...profileData,
         },

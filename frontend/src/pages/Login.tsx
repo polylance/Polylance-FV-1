@@ -97,8 +97,11 @@ export const Login: React.FC = () => {
         return;
       }
 
-      // 3. Check if existing profile matches
-      const existingProfile = profiles[address];
+      // 3. Check if existing profile matches case-insensitively
+      const existingKey = Object.keys(profiles).find(
+        (k) => k.toLowerCase() === lowerAddress
+      );
+      const existingProfile = existingKey ? profiles[existingKey] : null;
       if (existingProfile) {
         const userRole = existingProfile.role || 'freelancer';
         setRole(userRole);

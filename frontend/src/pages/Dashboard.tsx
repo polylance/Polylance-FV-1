@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { UserProfile } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { scoreGithubUser } from '../utils/githubOracle';
 import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, TrendingUp, ShieldCheck, CheckCircle2, FileText, MessageSquare, Clock } from 'lucide-react';
@@ -17,13 +18,14 @@ export const Dashboard: React.FC = () => {
     return <Navigate to="/treasury" replace />;
   }
 
-  const userProfile = profiles[address] || {
+  const userProfileKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
+  const userProfile = ((userProfileKey ? profiles[userProfileKey] : null) || {
     displayName: address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Anonymous User',
     bio: 'No biography has been written yet.',
     avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
     skills: [],
     reputationSbtCount: 0,
-  };
+  }) as UserProfile;
 
   // Real-time GitHub sync on dashboard mount if verified
   useEffect(() => {

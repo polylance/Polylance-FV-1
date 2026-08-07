@@ -17,7 +17,8 @@ export const Landing: React.FC = () => {
       navigate('/login');
       return;
     }
-    const profile = profiles[address];
+    const profileKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
+    const profile = profileKey ? profiles[profileKey] : null;
     if (profile && profile.displayName) {
       navigate('/dashboard');
     } else {

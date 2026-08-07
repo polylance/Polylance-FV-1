@@ -6,7 +6,7 @@ import { EscrowTimeline } from '../components/EscrowTimeline';
 import { ApplicantTable } from '../components/ApplicantTable';
 import { DisputePanel } from '../components/DisputePanel';
 import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSubmissionPanel';
-import { DisputeReason } from '../types';
+import { DisputeReason, UserProfile } from '../types';
 import { truncateAddress, formatDaysRemaining } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
 import { Shield, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award } from 'lucide-react';
@@ -64,7 +64,8 @@ export const JobDetail: React.FC = () => {
   const handleApplySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!applyProposalText.trim()) return;
-    const userProf = profiles[address] || {};
+    const userProfKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
+    const userProf = ((userProfKey ? profiles[userProfKey] : null) || {}) as UserProfile;
     applyToJob(
       job.id,
       applyProposalText,

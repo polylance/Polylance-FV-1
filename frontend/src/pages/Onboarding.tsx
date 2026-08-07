@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { UserProfile } from '../types';
 import { scoreGithubUser, GithubScoreResult } from '../utils/githubOracle';
 import { generateIpfsCid } from '../utils/ipfs';
 import { ArrowRight, ArrowLeft, X, Sparkles, Loader2, ShieldCheck, Terminal, CheckCircle2 } from 'lucide-react';
@@ -11,7 +12,8 @@ export const Onboarding: React.FC = () => {
   const { profiles, updateProfile } = usePolyLanceData();
   const navigate = useNavigate();
 
-  const existing = profiles[address] || {};
+  const existingKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
+  const existing = (existingKey ? profiles[existingKey] : {}) as UserProfile;
   const isClient = currentRole === 'client';
 
   if (currentRole === 'admin') {
