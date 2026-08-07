@@ -107,7 +107,7 @@ export const Onboarding: React.FC = () => {
         avatarUrl,
         ipfsHash: profileIpfsCid,
         skills,
-        ...(githubResult && commitToChain
+        ...(githubResult
           ? {
               githubVerified: true,
               githubUsername: githubResult.username,

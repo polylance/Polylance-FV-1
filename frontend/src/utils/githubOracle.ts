@@ -124,8 +124,8 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     console.warn('GitHub API fetch failed, falling back to mock generator', err);
   }
 
-  // If real fetch failed or didn't populate language bytes, fall back to deterministic mocks
-  if (!realSuccess || (languageBytes.Solidity === 0 && languageBytes.Rust === 0 && languageBytes.TypeScript === 0 && languageBytes.Go === 0)) {
+  // If real fetch failed, fall back to deterministic mocks
+  if (!realSuccess) {
     let seed = 0;
     for (let i = 0; i < username.length; i++) {
       seed += username.charCodeAt(i) * (i + 1);

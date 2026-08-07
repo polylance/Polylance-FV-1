@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { truncateAddress } from '../utils/formatters';
+import { scoreGithubUser } from '../utils/githubOracle';
 import { Award, CheckCircle2, ShieldCheck, FolderGit2, ExternalLink, Building2, Star, Zap, Activity, Scale, Search, History } from 'lucide-react';
 
 export const Profile: React.FC = () => {
   const { address: targetAddress } = useParams<{ address: string }>();
   const { address: currentAddress, isConnected, currentRole } = useWeb3();
-  const { profiles, jobs } = usePolyLanceData();
+  const { profiles, jobs, updateProfile } = usePolyLanceData();
 
   const profileAddr = targetAddress || currentAddress;
+
   const isOwnProfile = isConnected && currentAddress.toLowerCase() === profileAddr?.toLowerCase();
 
   const userProfile = profiles[profileAddr] || {
@@ -22,6 +24,24 @@ export const Profile: React.FC = () => {
     githubVerified: false,
     reputationSbtCount: 0,
   };
+
+  // Real-time GitHub sync on mount/viewing a verified developer profile
+  useEffect(() => {
+    if (userProfile.githubVerified && userProfile.githubUsername) {
+      scoreGithubUser(userProfile.githubUsername, profileAddr)
+        .then((res) => {
+          if (res && res.primaryScore) {
+            updateProfile({
+              primaryScore: res.primaryScore,
+              secondaryScores: res.secondaryScores,
+              languageBytes: res.languageBytes,
+              verifiedAt: res.verifiedAt,
+            }, profileAddr);
+          }
+        })
+        .catch((err) => console.warn('Real-time background GitHub sync failed:', err));
+    }
+  }, [profileAddr, userProfile.githubUsername, userProfile.githubVerified]);
 
   const isClientProfile = profileAddr.toLowerCase().includes('0x9999') || (isOwnProfile && currentRole === 'client');
   const isJudgeProfile = profileAddr.toLowerCase().includes('0x62cd') || (isOwnProfile && currentRole === 'judge');
