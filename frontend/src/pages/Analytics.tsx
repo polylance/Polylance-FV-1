@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export const Analytics: React.FC = () => {
-  const { jobs, treasury } = usePolyLanceData();
+  const { jobs, treasury, treasuryHistory } = usePolyLanceData();
   const { currentRole, address } = useWeb3();
 
   const isClientRole = currentRole === 'client';
@@ -29,6 +29,18 @@ export const Analytics: React.FC = () => {
   if (currentRole === 'judge') {
     return <Navigate to="/judge" replace />;
   }
+
+  // Admin dynamic real-time calculations
+  const platformMilestoneFees = treasuryHistory
+    ?.filter((h) => h.type === 'FEE_COLLECTED')
+    .reduce((acc, h) => acc + h.amountUsdc, 0) || 0;
+
+  const disputeArbitrationFees = 0;
+
+  const cumulativeFeeRevenue = platformMilestoneFees + disputeArbitrationFees;
+  const totalFeesCombined = cumulativeFeeRevenue || 1;
+  const platformPercent = Math.round((platformMilestoneFees / totalFeesCombined) * 100);
+  const disputePercent = Math.round((disputeArbitrationFees / totalFeesCombined) * 100);
 
   // Calculations for mock database jobs
   const completedJobs = jobs.filter((j) => j.status === 'Completed').length;
@@ -99,21 +111,25 @@ export const Analytics: React.FC = () => {
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-emerald-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">Safe Treasury Balance</p>
               <h4 className="font-headline text-3xl font-black text-emerald-700">
-                ${parseFloat(treasury?.balanceUsdc || '148250').toLocaleString()} <span className="text-xs text-slate-400 font-mono font-bold">USDC</span>
+                ${parseFloat(treasury?.balanceUsdc || '0').toLocaleString()} <span className="text-xs text-slate-400 font-mono font-bold">USDC</span>
               </h4>
-              <p className="text-[11px] font-mono text-slate-500">1-of-2 Signature Threshold</p>
+              <p className="text-[11px] font-mono text-slate-500">
+                {treasury?.requiredSignatures || 2}-of-{treasury?.signers?.length || 2} Signature Threshold
+              </p>
             </div>
 
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-emerald-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">Cumulative Fee Revenue</p>
-              <h4 className="font-headline text-3xl font-black text-slate-900">$32,450 <span className="text-xs text-slate-400 font-mono font-bold">USDC</span></h4>
+              <h4 className="font-headline text-3xl font-black text-slate-900">
+                ${cumulativeFeeRevenue.toLocaleString()} <span className="text-xs text-slate-400 font-mono font-bold">USDC</span>
+              </h4>
               <p className="text-[11px] font-mono text-emerald-700 font-bold">Ingested from escrow payouts</p>
             </div>
 
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-emerald-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">Protocol Gas Reserve</p>
               <h4 className="font-headline text-3xl font-black text-purple-900">
-                {treasury?.balanceEth || '42.85'} <span className="text-xs text-slate-400 font-mono font-bold">ETH</span>
+                {parseFloat(treasury?.balanceEth || '0').toFixed(2)} <span className="text-xs text-slate-400 font-mono font-bold">ETH</span>
               </h4>
               <p className="text-[11px] font-mono text-slate-500">Polygon network gas vault</p>
             </div>
@@ -137,10 +153,10 @@ export const Analytics: React.FC = () => {
                 <div className="space-y-1.5">
                   <div className="flex justify-between font-bold text-slate-800">
                     <span>Platform Milestone Ingestion Fees (2.5%)</span>
-                    <span>$28,556 USDC (88%)</span>
+                    <span>${platformMilestoneFees.toLocaleString()} USDC ({platformPercent}%)</span>
                   </div>
                   <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
-                    <div className="bg-emerald-600 h-full rounded-full" style={{ width: '88%' }} />
+                    <div className="bg-emerald-600 h-full rounded-full" style={{ width: `${platformPercent}%` }} />
                   </div>
                 </div>
 
@@ -148,10 +164,10 @@ export const Analytics: React.FC = () => {
                 <div className="space-y-1.5">
                   <div className="flex justify-between font-bold text-slate-800">
                     <span>DAO Dispute Arbitration Resolution Fees (2.5%)</span>
-                    <span>$3,894 USDC (12%)</span>
+                    <span>${disputeArbitrationFees.toLocaleString()} USDC ({disputePercent}%)</span>
                   </div>
                   <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
-                    <div className="bg-emerald-400 h-full rounded-full" style={{ width: '12%' }} />
+                    <div className="bg-emerald-400 h-full rounded-full" style={{ width: `${disputePercent}%` }} />
                   </div>
                 </div>
               </div>
@@ -167,13 +183,15 @@ export const Analytics: React.FC = () => {
               <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <FileCode size={18} className="text-emerald-700" /> Safe Withdrawal & Ledger Analytics
               </h3>
-              <p className="text-xs text-slate-600 font-mono leading-relaxed">
-                As per the updated security policy, any disbursement of company funds from the treasury Safe requires only a **single sign-off (1-of-2)** of the multi-sig keys.
+              <p className="text-xs text-slate-650 font-mono leading-relaxed">
+                As per the updated security policy, any disbursement of company funds from the treasury Safe requires approval of **{treasury?.requiredSignatures || 2}-of-{treasury?.signers?.length || 2}** of the multi-sig keys.
               </p>
               <div className="space-y-3 font-mono text-[11px]">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                   <span className="text-slate-600 font-medium">Safe Signature Threshold</span>
-                  <span className="font-bold text-emerald-700">1 of 2 Owners</span>
+                  <span className="font-bold text-emerald-700">
+                    {treasury?.requiredSignatures || 2} of {treasury?.signers?.length || 2} Owners
+                  </span>
                 </div>
                 <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                   <span className="text-slate-600 font-medium">Total Pending Proposals</span>

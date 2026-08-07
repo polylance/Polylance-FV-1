@@ -287,7 +287,7 @@ export const Treasury: React.FC = () => {
                 <CheckCircle2 size={13} className="stroke-[2.5]" />
               </div>
               <div className="font-bold text-emerald-600 leading-relaxed">
-                SAFE STATUS: HEALTHY (TVL $23,400.00 USDC, 2.50 ETH)
+                SAFE STATUS: HEALTHY (TVL ${parseFloat(treasury.balanceUsdc).toLocaleString()} USDC, {treasury.balanceEth} ETH)
               </div>
               <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full text-[10px] font-bold font-sans flex items-center gap-1 shadow-3xs">
                 <Zap size={10} className="fill-emerald-100" />
@@ -346,11 +346,11 @@ export const Treasury: React.FC = () => {
                 <Zap size={11} className="fill-purple-300 text-purple-700" />
               </div>
               <div className="font-bold text-purple-700 leading-relaxed">
-                PROPOSAL #1 STATUS: READY_TO_EXECUTE (1/1 SIGS)
+                SAFE REQUIRED THRESHOLD: {treasury.requiredSignatures}-OF-{treasury.signers.length} OWNER SIGNATURES
               </div>
               <span className="bg-purple-100 text-purple-700 border border-purple-200 px-3 py-1 rounded-full text-[10px] font-bold font-sans flex items-center gap-1 shadow-3xs">
                 <CheckCircle2 size={11} className="stroke-[2.5]" />
-                READY
+                ENFORCED
               </span>
             </div>
           </div>
