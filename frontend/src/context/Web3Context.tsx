@@ -77,7 +77,10 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       const lowerAddr = walletAddress.toLowerCase();
       if (lowerAddr === DEMO_WALLETS.judge.address.toLowerCase()) {
         setCurrentRole('judge');
-      } else if (lowerAddr === DEMO_WALLETS.admin.address.toLowerCase()) {
+      } else if (
+        lowerAddr === DEMO_WALLETS.admin.address.toLowerCase() ||
+        lowerAddr === '0xb8aa0398b91a150b041da819bc954bb356e009dd'
+      ) {
         setCurrentRole('admin');
       } else {
         // Default to freelancer if not a predefined special role

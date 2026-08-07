@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
+import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { DemoRole } from '../types';
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
 import { ShieldCheck, User, Briefcase, ArrowRight, Check, CheckCircle2, Zap, Sparkles, Lock, Network, Award, TrendingUp, Globe, FolderLock, Cpu, Rocket, DollarSign, Users, MessageSquare, ArrowLeft } from 'lucide-react';
@@ -29,11 +30,12 @@ const LaurelRight = () => (
 );
 
 export const Login: React.FC = () => {
-  const { isConnected, currentRole, setRole, connectWallet } = useWeb3();
+  const { isConnected, address, currentRole, setRole, connectWallet } = useWeb3();
+  const { profiles } = usePolyLanceData();
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState<'freelancer' | 'client'>('freelancer');
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
-  const [step, setStep] = useState<'role' | 'wallet'>('role');
+  const [step, setStep] = useState<'wallet' | 'role'>('wallet');
 
   const walletProviders = [
     {
@@ -71,17 +73,47 @@ export const Login: React.FC = () => {
     },
   ];
 
-  // Redirect to dashboard upon successful wallet connection
+  // Dynamic routing based on connected address
   React.useEffect(() => {
-    if (isConnected && currentRole !== 'visitor') {
-      confetti({ particleCount: 80, spread: 70 });
-      navigate('/dashboard');
+    if (isConnected && address) {
+      const lowerAddress = address.toLowerCase();
+
+      // 1. Check if Admin
+      const isAdmin = lowerAddress === '0xb8aa0398b91a150b041da819bc954bb356e009dd' || 
+                      lowerAddress === '0x25f6111122223333444455556666777788880e9a';
+      if (isAdmin) {
+        setRole('admin');
+        confetti({ particleCount: 80, spread: 70 });
+        navigate('/treasury');
+        return;
+      }
+
+      // 2. Check if Judge
+      const isJudge = lowerAddress === '0x62cd88889999000011112222333344445555dcba';
+      if (isJudge) {
+        setRole('judge');
+        confetti({ particleCount: 80, spread: 70 });
+        navigate('/judge');
+        return;
+      }
+
+      // 3. Check if existing profile matches
+      const existingProfile = profiles[address];
+      if (existingProfile) {
+        const userRole = existingProfile.role || 'freelancer';
+        setRole(userRole);
+        confetti({ particleCount: 80, spread: 70 });
+        navigate('/dashboard');
+        return;
+      }
+
+      // 4. New user -> Show profile selection stage
+      setStep('role');
     }
-  }, [isConnected, currentRole, navigate]);
+  }, [isConnected, address, profiles, navigate, setRole]);
 
   const handleWalletConnect = async (provider: string) => {
     setConnectingProvider(provider);
-    setRole(selectedRole as DemoRole);
     try {
       await connectWallet();
     } catch (err) {
@@ -92,9 +124,8 @@ export const Login: React.FC = () => {
   };
 
   const handleContinue = (role: 'freelancer' | 'client') => {
-    setSelectedRole(role);
     setRole(role as DemoRole);
-    setStep('wallet');
+    navigate('/onboarding');
   };
 
   return (
@@ -413,18 +444,6 @@ export const Login: React.FC = () => {
         </>
       ) : (
         <>
-          {/* Wallet step header with Go Back button */}
-          <div className="text-left max-w-4xl mx-auto space-y-4">
-            <button 
-              type="button"
-              onClick={() => setStep('role')} 
-              className="inline-flex items-center gap-2 text-xs font-bold text-slate-650 hover:text-slate-900 transition-colors bg-white hover:bg-slate-50 px-4 py-2 rounded-full border border-slate-200/80 shadow-3xs cursor-pointer"
-            >
-              <ArrowLeft size={13} className="stroke-[2.5]" />
-              <span>Back to role selection</span>
-            </button>
-          </div>
-
           {/* Connect Wallet section */}
           <div className="max-w-5xl mx-auto space-y-8 relative pt-2">
             {/* Logo and title platform */}
@@ -439,14 +458,7 @@ export const Login: React.FC = () => {
                 Connect Your <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Wallet</span>
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 font-sans mt-2.5 font-medium max-w-md mx-auto leading-relaxed">
-                Connect your wallet to access PolyLance as a{' '}
-                <span className={`font-black uppercase tracking-wider text-xs px-2.5 py-0.5 rounded-full border ${
-                  selectedRole === 'freelancer' 
-                    ? 'text-purple-700 bg-purple-50 border-purple-100'
-                    : 'text-blue-700 bg-blue-50 border-blue-100'
-                }`}>
-                  {selectedRole}
-                </span>
+                Connect your decentralized professional identity to start building on-chain reputation.
               </p>
 
               {/* Capsule lists */}

@@ -118,6 +118,7 @@ export interface UserProfile {
   reposCount?: number;
   prsCount?: number;
   reputationTier?: string;
+  role?: 'freelancer' | 'client';
 }
 
 export interface DaoProposal {

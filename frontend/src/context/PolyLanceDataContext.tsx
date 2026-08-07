@@ -111,8 +111,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const treasuryState: TreasuryState = {
     balanceUsdc: treasuryBalanceUsdc.toString(),
     balanceEth: treasuryBalanceEth.toString(),
-    requiredSignatures: 1,
-    signers: ['0x25F6111122223333444455556666777788880e9A', '0x62cD88889999000011112222333344445555dCba'],
+    requiredSignatures: 2,
+    signers: ['0xB8aa0398B91A150B041DA819bc954Bb356e009Dd', '0x25F6111122223333444455556666777788880e9A'],
     proposals: treasuryProposals,
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { scoreGithubUser, GithubScoreResult } from '../utils/githubOracle';
@@ -13,6 +13,13 @@ export const Onboarding: React.FC = () => {
 
   const existing = profiles[address] || {};
   const isClient = currentRole === 'client';
+
+  if (currentRole === 'admin') {
+    return <Navigate to="/treasury" replace />;
+  }
+  if (currentRole === 'judge') {
+    return <Navigate to="/judge" replace />;
+  }
 
   const [step, setStep] = useState<1 | 2>(1);
   const [displayName, setDisplayName] = useState(existing.displayName || '');
@@ -106,6 +113,7 @@ export const Onboarding: React.FC = () => {
         avatarUrl,
         ipfsHash: profileIpfsCid,
         skills,
+        role: currentRole === 'client' ? 'client' : 'freelancer',
         ...(githubResult
           ? {
             githubVerified: true,
