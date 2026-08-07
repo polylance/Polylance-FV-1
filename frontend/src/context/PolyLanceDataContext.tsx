@@ -678,6 +678,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateProfile = (profileData: Partial<UserProfile>, address: string) => {
     setProfiles((prev) => {
       // Uniqueness check: Ensure no other wallet has already linked this GitHub account
+      const updatedPrev = { ...prev };
       if (profileData.githubVerified && profileData.githubUsername) {
         const lowerUsername = profileData.githubUsername.toLowerCase().trim();
         const duplicateAddress = Object.keys(prev).find(
@@ -687,12 +688,21 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             prev[addr].githubUsername?.toLowerCase().trim() === lowerUsername
         );
         if (duplicateAddress) {
-          alert(`Verification Error: The GitHub account @${profileData.githubUsername} is already linked to another wallet address (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})!\nOnly one wallet connection per GitHub username is allowed for Sybil resistance.`);
-          return prev; // Reject updates
+          // Unlink from the old wallet to allow re-linking to the new active wallet
+          const oldProfile = prev[duplicateAddress];
+          updatedPrev[duplicateAddress] = {
+            ...oldProfile,
+            githubVerified: false,
+            githubUsername: undefined,
+            primaryScore: undefined,
+            languageBytes: undefined,
+            reputationTier: undefined,
+          };
+          console.log(`Unlinked GitHub account @${profileData.githubUsername} from old wallet address ${duplicateAddress} to link to new wallet.`);
         }
       }
 
-      const existing = prev[address] || {
+      const existing = updatedPrev[address] || {
         address,
         displayName: 'Anonymous PolyLancer',
         bio: '',
@@ -703,7 +713,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         reputationSbtCount: 0,
       };
       return {
-        ...prev,
+        ...updatedPrev,
         [address]: {
           ...existing,
           ...profileData,
