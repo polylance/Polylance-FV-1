@@ -48,7 +48,7 @@ export const Treasury: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-600 font-mono">
-              TREASURY_ADMIN_ROLE: <span className="text-purple-900 font-bold">{truncateAddress(address)}</span> (1-of-2 Threshold Safe)
+              TREASURY_ADMIN_ROLE: <span className="text-purple-900 font-bold">{truncateAddress(address)}</span> ({treasury.requiredSignatures}-of-{treasury.signers.length} Threshold Safe)
             </p>
           </div>
 

@@ -58,11 +58,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   });
   const [treasuryBalanceUsdc, setTreasuryBalanceUsdc] = useState<number>(() => {
     const saved = localStorage.getItem('polylance_treasury_balance_usdc');
-    return saved ? parseFloat(saved) : 0;
+    if (saved === '10000' || !saved) return 0;
+    return parseFloat(saved);
   });
   const [treasuryBalanceEth, setTreasuryBalanceEth] = useState<number>(() => {
     const saved = localStorage.getItem('polylance_treasury_balance_eth');
-    return saved ? parseFloat(saved) : 0.0;
+    if (saved === '4.5' || !saved) return 0.0;
+    return parseFloat(saved);
   });
 
   const [treasuryProposals, setTreasuryProposals] = useState<TreasuryProposal[]>(() => {
