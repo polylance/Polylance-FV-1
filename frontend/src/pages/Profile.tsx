@@ -470,14 +470,6 @@ export const Profile: React.FC = () => {
                       </span>
                     </div>
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] text-slate-500 uppercase block font-bold">Rust</span>
-                      <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.Rust !== undefined
-                          ? `${userProfile.languageBytes.Rust.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">TypeScript</span>
                       <span className="font-extrabold text-purple-900">
                         {userProfile.languageBytes?.TypeScript !== undefined
@@ -486,10 +478,18 @@ export const Profile: React.FC = () => {
                       </span>
                     </div>
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] text-slate-500 uppercase block font-bold">Go / Indexers</span>
+                      <span className="text-[10px] text-slate-500 uppercase block font-bold">JavaScript</span>
                       <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.Go !== undefined
-                          ? `${userProfile.languageBytes.Go.toLocaleString()} Bytes`
+                        {userProfile.languageBytes?.JavaScript !== undefined
+                          ? `${userProfile.languageBytes.JavaScript.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                      <span className="text-[10px] text-slate-500 uppercase block font-bold">Python</span>
+                      <span className="font-extrabold text-purple-900">
+                        {userProfile.languageBytes?.Python !== undefined
+                          ? `${userProfile.languageBytes.Python.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
                     </div>

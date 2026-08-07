@@ -52,9 +52,9 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
   let secondaryScores = [320, 190];
   const languageBytes: Record<string, number> = {
     Solidity: 0,
-    Rust: 0,
     TypeScript: 0,
-    Go: 0,
+    JavaScript: 0,
+    Python: 0,
   };
 
   let commitsCount = 0;
@@ -154,18 +154,18 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
       secondaryCategories = ['web3', 'backend'];
       secondaryScores = [410, 150];
       languageBytes.Solidity = 12000;
-      languageBytes.Rust = 5000;
       languageBytes.TypeScript = 188000;
-      languageBytes.Go = 32000;
+      languageBytes.JavaScript = 85000;
+      languageBytes.Python = 32000;
     } else if (lower.includes('rust') || lower.includes('dev') || lower.includes('back')) {
       primaryCategory = 'backend';
       primaryScore = 780;
       secondaryCategories = ['web3', 'mobile'];
       secondaryScores = [620, 110];
       languageBytes.Solidity = 44000;
-      languageBytes.Rust = 142000;
       languageBytes.TypeScript = 28000;
-      languageBytes.Go = 65000;
+      languageBytes.JavaScript = 95000;
+      languageBytes.Python = 142000;
     } else {
       // Math-based variation derived from username seed
       const pScores = [620, 750, 810, 890, 940];
@@ -175,9 +175,9 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
       secondaryScores = [s1, s2];
 
       languageBytes.Solidity = (seed % 10) * 12300 + 15000;
-      languageBytes.Rust = (seed % 7) * 8900 + 5000;
       languageBytes.TypeScript = (seed % 12) * 15400 + 20000;
-      languageBytes.Go = (seed % 5) * 18200 + 10000;
+      languageBytes.JavaScript = (seed % 7) * 11200 + 15000;
+      languageBytes.Python = (seed % 5) * 18200 + 10000;
     }
   }
 

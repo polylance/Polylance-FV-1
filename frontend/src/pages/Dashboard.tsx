@@ -523,14 +523,6 @@ export const Dashboard: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Rust</span>
-                      <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.Rust !== undefined
-                          ? `${userProfile.languageBytes.Rust.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-slate-500">TypeScript</span>
                       <span className="font-bold text-purple-900">
                         {userProfile.languageBytes?.TypeScript !== undefined
@@ -539,10 +531,18 @@ export const Dashboard: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Go / Indexers</span>
+                      <span className="text-slate-500">JavaScript</span>
                       <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.Go !== undefined
-                          ? `${userProfile.languageBytes.Go.toLocaleString()} Bytes`
+                        {userProfile.languageBytes?.JavaScript !== undefined
+                          ? `${userProfile.languageBytes.JavaScript.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Python</span>
+                      <span className="font-bold text-purple-900">
+                        {userProfile.languageBytes?.Python !== undefined
+                          ? `${userProfile.languageBytes.Python.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
                     </div>
