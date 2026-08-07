@@ -40,6 +40,7 @@ export const Onboarding: React.FC = () => {
   const [githubUsername, setGithubUsername] = useState(existing.githubUsername || '');
   const [isScanningGithub, setIsScanningGithub] = useState(false);
   const [githubResult, setGithubResult] = useState<GithubScoreResult | null>(null);
+  const [githubError, setGithubError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [mintedTxHash, setMintedTxHash] = useState('');
 
@@ -77,6 +78,20 @@ export const Onboarding: React.FC = () => {
       alert('Please enter your GitHub handle.');
       return;
     }
+    const lowerUsername = githubUsername.toLowerCase().trim();
+    const duplicateAddress = Object.keys(profiles).find(
+      (addr) =>
+        addr.toLowerCase() !== address.toLowerCase() &&
+        profiles[addr].githubVerified &&
+        profiles[addr].githubUsername?.toLowerCase().trim() === lowerUsername
+    );
+
+    if (duplicateAddress) {
+      setGithubError(`The GitHub account @${githubUsername.trim()} is already connected to another wallet address (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})! Only one wallet connection per GitHub username is allowed for Sybil resistance. Please link a different GitHub account.`);
+      return;
+    }
+
+    setGithubError(null);
     setIsScanningGithub(true);
     setGithubResult(null);
 
@@ -100,6 +115,10 @@ export const Onboarding: React.FC = () => {
     e.preventDefault();
     if (!displayName.trim()) {
       alert('Please enter a display name.');
+      return;
+    }
+    if (!isClient && githubError) {
+      alert('Cannot finalize profile: Please connect a unique, unused GitHub account.');
       return;
     }
 
@@ -205,7 +224,11 @@ export const Onboarding: React.FC = () => {
                       type="text"
                       placeholder="e.g. sunny200551 or https://github.com/sunny200551"
                       value={githubUsername}
-                      onChange={(e) => setGithubUsername(e.target.value)}
+                      onChange={(e) => {
+                        setGithubUsername(e.target.value);
+                        setGithubError(null);
+                        setGithubResult(null);
+                      }}
                       className="w-full glass-input text-xs"
                     />
                   </div>
@@ -226,6 +249,16 @@ export const Onboarding: React.FC = () => {
                     )}
                   </button>
                 </div>
+
+                {githubError && (
+                  <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 font-sans text-xs flex items-start gap-3">
+                    <span className="material-symbols-outlined text-rose-600 shrink-0 mt-0.5">warning</span>
+                    <div className="space-y-1">
+                      <p className="font-bold text-rose-800">GitHub Connection Warning</p>
+                      <p className="leading-relaxed text-slate-700">{githubError}</p>
+                    </div>
+                  </div>
+                )}
 
                 {githubResult && (
                   <div className="glass-panel border-purple-200 bg-white overflow-hidden shadow-xs">
