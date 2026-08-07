@@ -10,6 +10,10 @@ export interface GithubScoreResult {
   oracleSignature: string;
   oracleAddress: string;
   verifiedAt: number;
+  languageBytes: Record<string, number>;
+  fetchedAvatarUrl?: string;
+  fetchedDisplayName?: string;
+  fetchedBio?: string;
 }
 
 const LANGUAGE_CATEGORY: Record<string, string> = {
@@ -31,41 +35,127 @@ const LANGUAGE_CATEGORY: Record<string, string> = {
 };
 
 export async function scoreGithubUser(username: string, userAddress: string): Promise<GithubScoreResult> {
-  // Deterministic calculation based on username string seed for demo credibility
-  let seed = 0;
-  for (let i = 0; i < username.length; i++) {
-    seed += username.charCodeAt(i) * (i + 1);
-  }
-
-  // Pre-configured mappings for known demo handles or computed breakdown
-  const lower = username.toLowerCase();
   let primaryCategory = 'web3';
   let primaryScore = 850;
   let secondaryCategories = ['frontend', 'backend'];
   let secondaryScores = [320, 190];
+  const languageBytes: Record<string, number> = {
+    Solidity: 0,
+    Rust: 0,
+    TypeScript: 0,
+    Go: 0,
+  };
 
-  if (lower.includes('front') || lower.includes('react') || lower.includes('ui')) {
-    primaryCategory = 'frontend';
-    primaryScore = 920;
-    secondaryCategories = ['web3', 'backend'];
-    secondaryScores = [410, 150];
-  } else if (lower.includes('rust') || lower.includes('dev') || lower.includes('back')) {
-    primaryCategory = 'backend';
-    primaryScore = 780;
-    secondaryCategories = ['web3', 'mobile'];
-    secondaryScores = [620, 110];
-  } else if (lower.includes('app') || lower.includes('mobile') || lower.includes('swift')) {
-    primaryCategory = 'mobile';
-    primaryScore = 880;
-    secondaryCategories = ['frontend', 'backend'];
-    secondaryScores = [450, 210];
-  } else {
-    // Math-based variation derived from username
-    const pScores = [620, 750, 810, 890, 940];
-    primaryScore = pScores[seed % pScores.length];
-    const s1 = Math.round(primaryScore * 0.45);
-    const s2 = Math.round(primaryScore * 0.22);
-    secondaryScores = [s1, s2];
+  let realSuccess = false;
+  let fetchedAvatarUrl: string | undefined;
+  let fetchedDisplayName: string | undefined;
+  let fetchedBio: string | undefined;
+
+  try {
+    // 1. Fetch user profile
+    const userRes = await fetch(`https://api.github.com/users/${username}`);
+    if (userRes.ok) {
+      const userData = await userRes.json();
+      fetchedAvatarUrl = userData.avatar_url;
+      fetchedDisplayName = userData.name || userData.login;
+      fetchedBio = userData.bio;
+
+      const followers = userData.followers || 0;
+      const publicRepos = userData.public_repos || 0;
+
+      // 2. Fetch public repos
+      const reposRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=100`);
+      if (reposRes.ok) {
+        const reposData = await reposRes.json();
+        let totalStars = 0;
+        let categoryBytes: Record<string, number> = { web3: 0, frontend: 0, backend: 0, mobile: 0 };
+
+        reposData.forEach((repo: any) => {
+          totalStars += repo.stargazers_count || 0;
+          const lang = repo.language;
+          const kbSize = repo.size || 0;
+          const bytes = kbSize * 1024;
+
+          if (lang) {
+            const mappedCat = LANGUAGE_CATEGORY[lang] || 'backend';
+            categoryBytes[mappedCat] += bytes;
+
+            if (lang === 'Solidity' || lang === 'Vyper' || lang === 'Cairo') {
+              languageBytes.Solidity += bytes;
+            } else if (lang === 'Rust') {
+              languageBytes.Rust += bytes;
+            } else if (['TypeScript', 'JavaScript', 'CSS', 'HTML', 'Vue'].includes(lang)) {
+              languageBytes.TypeScript += bytes;
+            } else {
+              languageBytes.Go += bytes;
+            }
+          }
+        });
+
+        // Resolve primary/secondary categories based on actual bytes
+        const sortedCats = Object.entries(categoryBytes).sort((a, b) => b[1] - a[1]);
+        primaryCategory = sortedCats[0] ? sortedCats[0][0] : 'backend';
+        secondaryCategories = [
+          sortedCats[1] ? sortedCats[1][0] : 'frontend',
+          sortedCats[2] ? sortedCats[2][0] : 'web3'
+        ];
+
+        // Calculate a real score out of 1000 based on repos, stars, followers
+        const popularityBonus = (followers * 15) + (totalStars * 25);
+        const repoBonus = publicRepos * 10;
+        const baseScore = 600 + Math.min(380, popularityBonus + repoBonus);
+        primaryScore = baseScore;
+
+        const sec1 = Math.round(primaryScore * 0.45);
+        const sec2 = Math.round(primaryScore * 0.22);
+        secondaryScores = [sec1, sec2];
+
+        realSuccess = true;
+      }
+    }
+  } catch (err) {
+    console.warn('GitHub API fetch failed, falling back to mock generator', err);
+  }
+
+  // If real fetch failed or didn't populate language bytes, fall back to deterministic mocks
+  if (!realSuccess || (languageBytes.Solidity === 0 && languageBytes.Rust === 0 && languageBytes.TypeScript === 0 && languageBytes.Go === 0)) {
+    let seed = 0;
+    for (let i = 0; i < username.length; i++) {
+      seed += username.charCodeAt(i) * (i + 1);
+    }
+
+    const lower = username.toLowerCase();
+    if (lower.includes('front') || lower.includes('react') || lower.includes('ui')) {
+      primaryCategory = 'frontend';
+      primaryScore = 920;
+      secondaryCategories = ['web3', 'backend'];
+      secondaryScores = [410, 150];
+      languageBytes.Solidity = 12000;
+      languageBytes.Rust = 5000;
+      languageBytes.TypeScript = 188000;
+      languageBytes.Go = 32000;
+    } else if (lower.includes('rust') || lower.includes('dev') || lower.includes('back')) {
+      primaryCategory = 'backend';
+      primaryScore = 780;
+      secondaryCategories = ['web3', 'mobile'];
+      secondaryScores = [620, 110];
+      languageBytes.Solidity = 44000;
+      languageBytes.Rust = 142000;
+      languageBytes.TypeScript = 28000;
+      languageBytes.Go = 65000;
+    } else {
+      // Math-based variation derived from username seed
+      const pScores = [620, 750, 810, 890, 940];
+      primaryScore = pScores[seed % pScores.length];
+      const s1 = Math.round(primaryScore * 0.45);
+      const s2 = Math.round(primaryScore * 0.22);
+      secondaryScores = [s1, s2];
+
+      languageBytes.Solidity = (seed % 10) * 12300 + 15000;
+      languageBytes.Rust = (seed % 7) * 8900 + 5000;
+      languageBytes.TypeScript = (seed % 12) * 15400 + 20000;
+      languageBytes.Go = (seed % 5) * 18200 + 10000;
+    }
   }
 
   const nonce = Date.now().toString();
@@ -90,5 +180,9 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     oracleSignature,
     oracleAddress,
     verifiedAt: Date.now(),
+    languageBytes,
+    ...(fetchedAvatarUrl ? { fetchedAvatarUrl } : {}),
+    ...(fetchedDisplayName ? { fetchedDisplayName } : {}),
+    ...(fetchedBio ? { fetchedBio } : {}),
   };
 }

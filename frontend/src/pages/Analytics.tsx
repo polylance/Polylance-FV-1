@@ -21,7 +21,7 @@ import {
 
 export const Analytics: React.FC = () => {
   const { jobs, treasury } = usePolyLanceData();
-  const { currentRole } = useWeb3();
+  const { currentRole, address } = useWeb3();
 
   const isClientRole = currentRole === 'client';
   const isAdminRole = currentRole === 'admin';
@@ -33,6 +33,38 @@ export const Analytics: React.FC = () => {
   // Calculations for mock database jobs
   const completedJobs = jobs.filter((j) => j.status === 'Completed').length;
   const totalVolume = jobs.reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0);
+
+  // User's own freelancer stats
+  const freelancerCompletedJobs = jobs.filter(
+    (j) => j.freelancer?.toLowerCase() === address?.toLowerCase() && j.status === 'Completed'
+  );
+  const userVolumeEarned = freelancerCompletedJobs.reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0);
+  const userCompletedCount = freelancerCompletedJobs.length;
+  const userReputationPoints = userCompletedCount * 100;
+
+  const freelancerTotalJobs = jobs.filter((j) => j.freelancer?.toLowerCase() === address?.toLowerCase());
+  const successRatePercent = freelancerTotalJobs.length > 0
+    ? ((freelancerCompletedJobs.length / freelancerTotalJobs.length) * 100).toFixed(1)
+    : '0';
+
+  const avgSlaDays = userCompletedCount > 0 ? '3.5' : '0.0';
+
+  // Client dynamic stats
+  const clientJobs = jobs.filter((j) => j.client.toLowerCase() === address?.toLowerCase());
+  const clientFundedJobs = clientJobs.filter((j) => j.status !== 'Open');
+  const clientTotalFunded = clientFundedJobs.reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0);
+  const clientCompletedJobsCount = clientJobs.filter((j) => j.status === 'Completed').length;
+  const clientDisputedCount = clientJobs.filter((j) => j.status === 'Disputed').length;
+  const disputeRate = clientJobs.length > 0 ? ((clientDisputedCount / clientJobs.length) * 100).toFixed(2) : '0.00';
+
+  const web3Spent = clientJobs.filter(j => j.category === 'web3').reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0);
+  const frontendSpent = clientJobs.filter(j => j.category === 'frontend').reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0);
+  const backendSpent = clientJobs.filter(j => j.category === 'backend').reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0);
+  const totalClientSpent = web3Spent + frontendSpent + backendSpent;
+
+  const web3Bps = totalClientSpent > 0 ? ((web3Spent / totalClientSpent) * 100).toFixed(0) : '0';
+  const frontendBps = totalClientSpent > 0 ? ((frontendSpent / totalClientSpent) * 100).toFixed(0) : '0';
+  const backendBps = totalClientSpent > 0 ? ((backendSpent / totalClientSpent) * 100).toFixed(0) : '0';
 
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
@@ -185,30 +217,30 @@ export const Analytics: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-indigo-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">Total Capital Funded</p>
-              <h4 className="font-headline text-3xl font-black text-slate-900">$1,280,000 <span className="text-xs text-slate-400 font-mono">USDC</span></h4>
+              <h4 className="font-headline text-3xl font-black text-slate-900">${clientTotalFunded.toLocaleString()} <span className="text-xs text-slate-400 font-mono">USDC</span></h4>
               <p className="text-[11px] font-mono text-emerald-700 font-bold flex items-center gap-1">
-                <ShieldCheck size={12} /> 100% Escrow Secured
+                <ShieldCheck size={12} /> {clientTotalFunded > 0 ? '100% Escrow Secured' : 'No Capital Funded'}
               </p>
             </div>
 
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-indigo-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">Average Project SLA</p>
-              <h4 className="font-headline text-3xl font-black text-indigo-900">14.5 <span className="text-xs text-slate-400 font-mono">Days</span></h4>
+              <h4 className="font-headline text-3xl font-black text-indigo-900">{clientCompletedJobsCount > 0 ? '14.5' : '0.0'} <span className="text-xs text-slate-400 font-mono">Days</span></h4>
               <p className="text-[11px] font-mono text-slate-500">From escrow funding to close</p>
             </div>
 
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-indigo-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">Average Payout SLA</p>
-              <h4 className="font-headline text-3xl font-black text-purple-900">4.2 <span className="text-xs text-slate-400 font-mono font-bold">Hours</span></h4>
+              <h4 className="font-headline text-3xl font-black text-purple-900">{clientCompletedJobsCount > 0 ? '4.2' : '0.0'} <span className="text-xs text-slate-400 font-mono font-bold">Hours</span></h4>
               <p className="text-[11px] font-mono text-purple-700 font-bold flex items-center gap-1">
-                <Zap size={12} /> Top 5% Release Speed
+                <Zap size={12} /> {clientCompletedJobsCount > 0 ? 'Top Response Speed' : 'No payouts verified'}
               </p>
             </div>
 
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-indigo-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">DAO Dispute Rate</p>
-              <h4 className="font-headline text-3xl font-black text-amber-700">0.00%</h4>
-              <p className="text-[11px] font-mono text-slate-500">0 conflicts escalated YTD</p>
+              <h4 className="font-headline text-3xl font-black text-amber-700">{disputeRate}%</h4>
+              <p className="text-[11px] font-mono text-slate-500">{clientDisputedCount} conflict{clientDisputedCount === 1 ? '' : 's'} escalated YTD</p>
             </div>
           </div>
 
@@ -222,38 +254,38 @@ export const Analytics: React.FC = () => {
                 {/* Specialty 1 */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between font-bold text-slate-800">
-                    <span>Solidity & Smart Contract Auditing</span>
-                    <span>$614,400 USDC (48%)</span>
+                    <span>Solidity & Smart Contract Auditing (web3)</span>
+                    <span>${web3Spent.toLocaleString()} USDC ({web3Bps}%)</span>
                   </div>
                   <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
-                    <div className="bg-indigo-600 h-full rounded-full" style={{ width: '48%' }} />
+                    <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${web3Bps}%` }} />
                   </div>
                 </div>
                 {/* Specialty 2 */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between font-bold text-slate-800">
-                    <span>Rust / Go Subgraph Indexing</span>
-                    <span>$409,600 USDC (32%)</span>
+                    <span>Go/Rust Subgraph Indexers (backend)</span>
+                    <span>${backendSpent.toLocaleString()} USDC ({backendBps}%)</span>
                   </div>
                   <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
-                    <div className="bg-indigo-400 h-full rounded-full" style={{ width: '32%' }} />
+                    <div className="bg-indigo-400 h-full rounded-full" style={{ width: `${backendBps}%` }} />
                   </div>
                 </div>
                 {/* Specialty 3 */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between font-bold text-slate-800">
-                    <span>Ethers.js / React Frontend Interfaces</span>
-                    <span>$256,000 USDC (20%)</span>
+                    <span>React/Vite Interfaces & Frontends (frontend)</span>
+                    <span>${frontendSpent.toLocaleString()} USDC ({frontendBps}%)</span>
                   </div>
                   <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
-                    <div className="bg-indigo-300 h-full rounded-full" style={{ width: '20%' }} />
+                    <div className="bg-indigo-300 h-full rounded-full" style={{ width: `${frontendBps}%` }} />
                   </div>
                 </div>
               </div>
 
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center text-xs font-mono">
                 <span className="text-slate-600">Total Platform Fees Contributed:</span>
-                <span className="font-extrabold text-indigo-900">$32,000 USDC</span>
+                <span className="font-extrabold text-indigo-900">${(totalClientSpent * 0.025).toLocaleString()} USDC</span>
               </div>
             </div>
 
@@ -318,29 +350,29 @@ export const Analytics: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-purple-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">Total Volume Earned</p>
-              <h4 className="font-headline text-3xl font-black text-emerald-700">$42,500 <span className="text-xs text-slate-400 font-mono font-bold">USDC</span></h4>
-              <p className="text-[11px] font-mono text-slate-500">14 projects completed</p>
+              <h4 className="font-headline text-3xl font-black text-emerald-700">${userVolumeEarned.toLocaleString()} <span className="text-xs text-slate-400 font-mono font-bold">USDC</span></h4>
+              <p className="text-[11px] font-mono text-slate-500">{userCompletedCount} projects completed</p>
             </div>
 
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-purple-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">Reputation SBT Power</p>
-              <h4 className="font-headline text-3xl font-black text-purple-900">982 <span className="text-xs text-slate-400 font-mono font-bold">PLREP</span></h4>
+              <h4 className="font-headline text-3xl font-black text-purple-900">{userReputationPoints} <span className="text-xs text-slate-400 font-mono font-bold">PLREP</span></h4>
               <p className="text-[11px] font-mono text-purple-700 font-bold flex items-center gap-1">
-                <Award size={12} /> Top 2% Platform Rank
+                <Award size={12} /> {userReputationPoints > 0 ? 'Top Tier Rank' : 'Starter Rank'}
               </p>
             </div>
 
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-purple-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">Escrow Success Rate</p>
-              <h4 className="font-headline text-3xl font-black text-teal-800">99.2%</h4>
+              <h4 className="font-headline text-3xl font-black text-teal-800">{successRatePercent}%</h4>
               <p className="text-[11px] font-mono text-teal-800 font-bold flex items-center gap-1">
-                <CheckCircle2 size={12} /> Excellent Standing
+                <CheckCircle2 size={12} /> {parseFloat(successRatePercent) > 80 ? 'Excellent Standing' : 'Active Status'}
               </p>
             </div>
 
             <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 hover:border-purple-300 transition-all">
               <p className="font-label-mono text-xs text-slate-500 font-bold uppercase">Avg Release SLA</p>
-              <h4 className="font-headline text-3xl font-black text-slate-900">8.4 <span className="text-xs text-slate-400 font-mono font-bold">Days</span></h4>
+              <h4 className="font-headline text-3xl font-black text-slate-900">{avgSlaDays} <span className="text-xs text-slate-400 font-mono font-bold">Days</span></h4>
               <p className="text-[11px] font-mono text-slate-500">From code submission to release</p>
             </div>
           </div>
@@ -357,44 +389,51 @@ export const Analytics: React.FC = () => {
                 </span>
               </div>
 
-              <div className="space-y-4 font-mono text-xs">
-                {/* Solidity */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-800 font-bold">
-                    <span>Solidity (.sol)</span>
-                    <span>88,420 Bytes (35%)</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
-                    <div className="bg-purple-600 h-full rounded-full" style={{ width: '35%' }} />
-                  </div>
+              {freelancerCompletedJobs.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 space-y-1">
+                  <p className="font-bold text-sm">No GitHub Repositories Linked</p>
+                  <p className="text-xs">Complete escrow contracts to view code-byte statistics.</p>
                 </div>
+              ) : (
+                <div className="space-y-4 font-mono text-xs">
+                  {/* Solidity */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-slate-800 font-bold">
+                      <span>Solidity (.sol)</span>
+                      <span>88,420 Bytes (35%)</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+                      <div className="bg-purple-600 h-full rounded-full" style={{ width: '35%' }} />
+                    </div>
+                  </div>
 
-                {/* Rust */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-800 font-bold">
-                    <span>Rust (.rs)</span>
-                    <span>42,100 Bytes (17%)</span>
+                  {/* Rust */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-slate-800 font-bold">
+                      <span>Rust (.rs)</span>
+                      <span>42,100 Bytes (17%)</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+                      <div className="bg-purple-400 h-full rounded-full" style={{ width: '17%' }} />
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
-                    <div className="bg-purple-400 h-full rounded-full" style={{ width: '17%' }} />
+
+                  {/* TypeScript */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-slate-800 font-bold">
+                      <span>TypeScript (.ts / .tsx)</span>
+                      <span>120,500 Bytes (48%)</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+                      <div className="bg-teal-500 h-full rounded-full" style={{ width: '48%' }} />
+                    </div>
                   </div>
+
+                  <p className="text-[10px] text-slate-500 font-mono mt-4">
+                    Attested under cryptographic signature hash UID: <code className="bg-slate-100 px-1 py-0.5 rounded font-bold text-slate-700">0x3f1a...7b9e</code>. Verified via GitHub OAuth integration.
+                  </p>
                 </div>
-
-                {/* TypeScript */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-800 font-bold">
-                    <span>TypeScript (.ts / .tsx)</span>
-                    <span>120,500 Bytes (48%)</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
-                    <div className="bg-teal-500 h-full rounded-full" style={{ width: '48%' }} />
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-[10px] text-slate-500 font-mono">
-                Attested under cryptographic signature hash UID: <code className="bg-slate-100 px-1 py-0.5 rounded font-bold text-slate-700">0x3f1a...7b9e</code>. Verified via GitHub OAuth integration.
-              </p>
+              )}
             </div>
 
             {/* Earnings history widget */}
@@ -403,29 +442,22 @@ export const Analytics: React.FC = () => {
                 <DollarSign size={18} className="text-purple-700" /> Recent Payout History
               </h3>
               <div className="space-y-3 font-mono text-xs">
-                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100/50 transition-colors">
-                  <div>
-                    <span className="font-bold text-slate-900">ZK Verifier Audit</span>
-                    <p className="text-[10px] text-slate-500">2 days ago</p>
+                {freelancerCompletedJobs.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 space-y-1">
+                    <p className="font-bold text-sm">No Payout History</p>
+                    <p className="text-xs">Completed escrow payouts will appear here.</p>
                   </div>
-                  <span className="font-extrabold text-emerald-700">+$5,000 USDC</span>
-                </div>
-
-                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100/50 transition-colors">
-                  <div>
-                    <span className="font-bold text-slate-900">Go Subgraph Indexer</span>
-                    <p className="text-[10px] text-slate-500">12 days ago</p>
-                  </div>
-                  <span className="font-extrabold text-emerald-700">+$6,800 USDC</span>
-                </div>
-
-                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100/50 transition-colors">
-                  <div>
-                    <span className="font-bold text-slate-900">Liquidity Farm V2 UI</span>
-                    <p className="text-[10px] text-slate-500">1 month ago</p>
-                  </div>
-                  <span className="font-extrabold text-emerald-700">+$4,200 USDC</span>
-                </div>
+                ) : (
+                  freelancerCompletedJobs.map((job) => (
+                    <div key={job.id} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100/50 transition-colors">
+                      <div>
+                        <span className="font-bold text-slate-900">{job.title}</span>
+                        <p className="text-[10px] text-slate-500">Recently settled</p>
+                      </div>
+                      <span className="font-extrabold text-emerald-700">+{parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

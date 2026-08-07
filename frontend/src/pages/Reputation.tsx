@@ -20,72 +20,38 @@ import {
 import { motion } from 'framer-motion';
 
 export const Reputation: React.FC = () => {
-  const { address, reputationCount, isArbitrator } = useWeb3();
-  const { profiles } = usePolyLanceData();
+  const { address, isArbitrator } = useWeb3();
+  const { profiles, jobs } = usePolyLanceData();
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'monthly'>('all');
 
+  // Compute actual completed freelance jobs count for this user
+  const userCompletedJobsCount = jobs.filter(
+    (j) => j.freelancer?.toLowerCase() === address?.toLowerCase() && j.status === 'Completed'
+  ).length;
+  const reputationCount = userCompletedJobsCount;
+
   // Calculate dynamic points breakdown based on actual wallet reputation count
-  const escrowPoints = reputationCount * 60;
-  const multisigPoints = isArbitrator ? reputationCount * 25 : 0;
-  const govPoints = reputationCount > 0 ? (reputationCount * 15) + 10 : 0;
+  const escrowPoints = userCompletedJobsCount * 60;
+  const multisigPoints = isArbitrator ? userCompletedJobsCount * 25 : 0;
+  const govPoints = userCompletedJobsCount > 0 ? (userCompletedJobsCount * 15) + 10 : 0;
   const totalPoints = escrowPoints + multisigPoints + govPoints;
 
-  // Determine active tier and standings
-  let activeTier: 'Diamond' | 'Gold' | 'Silver' | 'None' = 'None';
-  let tierProgress = 0;
-  let ptsLeft = 100 - totalPoints;
-  let nextTierName = 'Silver';
-  let rankLabel = 'Unranked';
-
-  if (totalPoints >= 800) {
-    activeTier = 'Diamond';
-    nextTierName = 'Elite Platinum';
-    ptsLeft = Math.max(0, 1500 - totalPoints);
-    tierProgress = Math.min(100, ((totalPoints - 800) / 700) * 100);
-    rankLabel = '#42';
-  } else if (totalPoints >= 300) {
-    activeTier = 'Gold';
-    nextTierName = 'Diamond';
-    ptsLeft = 800 - totalPoints;
-    tierProgress = ((totalPoints - 300) / 500) * 100;
-    rankLabel = '#156';
-  } else if (totalPoints >= 100) {
-    activeTier = 'Silver';
-    nextTierName = 'Gold';
-    ptsLeft = 300 - totalPoints;
-    tierProgress = ((totalPoints - 100) / 200) * 100;
-    rankLabel = '#842';
-  } else {
-    activeTier = 'None';
-    nextTierName = 'Silver';
-    ptsLeft = 100 - totalPoints;
-    tierProgress = (totalPoints / 100) * 100;
-    rankLabel = 'Unranked';
-  }
-
-  const userLeaderboardItem = {
-    rank: totalPoints >= 800 ? 42 : totalPoints >= 300 ? 156 : totalPoints >= 100 ? 842 : 99,
-    name: address ? `${address.slice(0, 6)}...${address.slice(-4)} (You)` : 'You',
-    role: isArbitrator ? 'DAO Arbitrator' : 'Web3 Engineer',
-    points: totalPoints,
-    successRate: reputationCount > 0 ? '99.2%' : '0%',
-    earnings: reputationCount > 0 ? `$${(reputationCount * 45).toFixed(1)}k` : '$0.0k',
-    isUser: true,
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80'
-  };
-
+  // Compute leaderboard first to determine dynamic rank
   const leaderboardData = Object.values(profiles)
     .map((profile) => {
       const isYou = profile.address.toLowerCase() === address?.toLowerCase();
-      const sbtCount = profile.reputationSbtCount || 0;
-      const pts = sbtCount * 100;
+      // For other profile entries, count their completed jobs in jobs database
+      const profileCompletedJobs = jobs.filter(
+        (j) => j.freelancer?.toLowerCase() === profile.address.toLowerCase() && j.status === 'Completed'
+      ).length;
+      const pts = profileCompletedJobs * 100;
       return {
         rank: 0,
         name: isYou ? `${profile.displayName || 'Anonymous'} (You)` : (profile.displayName || `${profile.address.slice(0, 6)}...${profile.address.slice(-4)}`),
         role: profile.primaryCategory === 'web3' ? 'Web3 Engineer' : profile.primaryCategory === 'frontend' ? 'Frontend Dev' : profile.primaryCategory === 'backend' ? 'Backend Dev' : 'Sovereign Developer',
         points: pts,
-        successRate: sbtCount > 0 ? '100%' : '0%',
-        earnings: sbtCount > 0 ? `$${(sbtCount * 25).toFixed(1)}k` : '$0.0k',
+        successRate: profileCompletedJobs > 0 ? '100%' : '0%',
+        earnings: profileCompletedJobs > 0 ? `$${(profileCompletedJobs * 25).toFixed(1)}k` : '$0.0k',
         isUser: isYou,
         avatar: profile.avatarUrl || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
         address: profile.address
@@ -99,8 +65,8 @@ export const Reputation: React.FC = () => {
               name: address ? `${address.slice(0, 6)}...${address.slice(-4)} (You)` : 'You',
               role: isArbitrator ? 'DAO Arbitrator' : 'Web3 Engineer',
               points: totalPoints,
-              successRate: reputationCount > 0 ? '100%' : '0%',
-              earnings: reputationCount > 0 ? `$${(reputationCount * 25).toFixed(1)}k` : '$0.0k',
+              successRate: userCompletedJobsCount > 0 ? '100%' : '0%',
+              earnings: userCompletedJobsCount > 0 ? `$${(userCompletedJobsCount * 25).toFixed(1)}k` : '$0.0k',
               isUser: true,
               avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
               address: address
@@ -110,6 +76,45 @@ export const Reputation: React.FC = () => {
     )
     .sort((a, b) => b.points - a.points)
     .map((item, idx) => ({ ...item, rank: idx + 1 }));
+
+  // Find user's dynamic rank index
+  const userRankIndex = leaderboardData.findIndex((item) => item.isUser);
+
+  // Determine active tier and standings
+  let activeTier: 'Diamond' | 'Gold' | 'Silver' | 'None' = 'None';
+  let tierProgress = 0;
+  let ptsLeft = 100 - totalPoints;
+  let nextTierName = 'Silver';
+  let rankLabel = 'Unranked';
+
+  if (totalPoints >= 800) {
+    activeTier = 'Diamond';
+    nextTierName = 'Elite Platinum';
+    ptsLeft = Math.max(0, 1500 - totalPoints);
+    tierProgress = Math.min(100, ((totalPoints - 800) / 700) * 100);
+  } else if (totalPoints >= 300) {
+    activeTier = 'Gold';
+    nextTierName = 'Diamond';
+    ptsLeft = 800 - totalPoints;
+    tierProgress = ((totalPoints - 300) / 500) * 100;
+  } else if (totalPoints >= 100) {
+    activeTier = 'Silver';
+    nextTierName = 'Gold';
+    ptsLeft = 300 - totalPoints;
+    tierProgress = ((totalPoints - 100) / 200) * 100;
+  } else {
+    activeTier = 'None';
+    nextTierName = 'Silver';
+    ptsLeft = 100 - totalPoints;
+    tierProgress = (totalPoints / 100) * 100;
+  }
+
+  if (userRankIndex !== -1 && totalPoints > 0) {
+    rankLabel = `#${userRankIndex + 1}`;
+  } else {
+    rankLabel = 'Unranked';
+  }
+
 
   const firstPlace = leaderboardData[0] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k' };
   const secondPlace = leaderboardData[1] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k' };
@@ -207,7 +212,7 @@ export const Reputation: React.FC = () => {
               {rankLabel}
             </span>
             <span className="text-xs font-semibold text-cyan-200 opacity-90">
-              {totalPoints > 0 ? 'of 124,502 Verified On-Chain Freelancers' : 'Connect wallet to rank on the leaderboard'}
+              {totalPoints > 0 ? `of ${leaderboardData.length} Verified On-Chain Freelancers` : 'Connect wallet to rank on the leaderboard'}
             </span>
           </div>
         </div>
@@ -929,7 +934,7 @@ export const Reputation: React.FC = () => {
 
           <div className="p-3 bg-slate-50/50 border-t border-slate-100 text-center">
             <button className="text-purple-700 font-extrabold text-xs hover:text-purple-800 transition-colors inline-flex items-center gap-1.5 cursor-pointer group">
-              View All 124,502 Freelancers
+              View All {leaderboardData.length} Freelancers
               <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-sm group-hover:bg-purple-700 transition-colors">
                 <ChevronRight size={12} className="stroke-[2.5]" />
               </span>

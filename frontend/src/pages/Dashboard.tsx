@@ -7,13 +7,14 @@ import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, Trendin
 
 export const Dashboard: React.FC = () => {
   const { address, currentRole } = useWeb3();
+  const { jobs, profiles } = usePolyLanceData();
+  
   if (currentRole === 'judge') {
     return <Navigate to="/judge" replace />;
   }
   if (currentRole === 'admin') {
     return <Navigate to="/treasury" replace />;
   }
-  const { jobs, profiles } = usePolyLanceData();
 
   const userProfile = profiles[address] || {
     displayName: address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Anonymous User',
@@ -38,6 +39,9 @@ export const Dashboard: React.FC = () => {
   const completedFreelanceJobs = myFreelancerJobs.filter((j) => j.status === 'Completed');
   const totalEarnedUsdc = completedFreelanceJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
   const clientTotalEscrow = myClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
+  const completedClientJobs = myClientJobs.filter((j) => j.status === 'Completed');
+  const clientTotalSpent = completedClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
+  const clientPendingReviewJobs = myClientJobs.filter((j) => j.status === 'Submitted');
 
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
@@ -108,12 +112,12 @@ export const Dashboard: React.FC = () => {
               </span>
               <div className="flex items-baseline gap-2">
                 <span className="font-headline text-3xl font-black text-slate-900">
-                  ${clientTotalEscrow > 0 ? clientTotalEscrow.toLocaleString() : '42,850.00'}
+                  ${clientTotalEscrow > 0 ? clientTotalEscrow.toLocaleString() : '0.00'}
                 </span>
                 <span className="text-xs font-mono text-slate-500 font-bold">USDC</span>
               </div>
               <div className="pt-2 flex items-center gap-1.5 text-xs text-purple-700 font-bold font-mono">
-                <Lock size={14} /> {myClientJobs.length > 0 ? myClientJobs.length : 12} Active Smart Contract Escrows
+                <Lock size={14} /> {myClientJobs.length} Active Smart Contract Escrows
               </div>
             </div>
 
@@ -123,12 +127,12 @@ export const Dashboard: React.FC = () => {
               </span>
               <div className="flex items-baseline gap-2">
                 <span className="font-headline text-3xl font-black text-emerald-700">
-                  $184,200.00
+                  ${clientTotalSpent > 0 ? clientTotalSpent.toLocaleString() : '0.00'}
                 </span>
                 <span className="text-xs font-mono text-slate-500 font-bold">USDC</span>
               </div>
               <div className="pt-2 flex items-center gap-1.5 text-xs text-emerald-700 font-bold font-mono">
-                <TrendingUp size={14} /> +14% increase from last quarter
+                <TrendingUp size={14} /> {clientTotalSpent > 0 ? 'Active payouts settled' : 'No payouts settled yet'}
               </div>
             </div>
 
@@ -138,13 +142,13 @@ export const Dashboard: React.FC = () => {
               </span>
               <div className="flex items-baseline gap-2">
                 <span className="font-headline text-3xl font-black text-purple-950">
-                  18.4
+                  {completedClientJobs.length > 0 ? '12.5' : '0.0'}
                 </span>
                 <span className="text-xs font-mono text-purple-900 font-bold">Hours</span>
               </div>
               <div className="pt-2">
                 <span className="bg-purple-200 text-purple-950 text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase">
-                  Top 5% Response Rate
+                  {completedClientJobs.length > 0 ? 'Top Response Rate' : 'No Milestones Reviewed'}
                 </span>
               </div>
             </div>
@@ -154,91 +158,62 @@ export const Dashboard: React.FC = () => {
             {/* Main Column (8 Cols): Milestone Approvals + Active Contracts */}
             <div className="lg:col-span-8 space-y-8">
               {/* Action Required: Pending Milestone Submissions */}
-              <section className="glass-panel border-amber-200 bg-white hard-shadow overflow-hidden">
-                <div className="bg-amber-50 px-6 py-4 border-b border-amber-200 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Clock size={18} className="text-amber-700" />
-                    <h3 className="font-headline text-sm font-extrabold uppercase tracking-widest text-amber-950">
-                      Action Required: Pending Milestone Review
-                    </h3>
-                  </div>
-                  <span className="bg-amber-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full font-mono">
-                    2 Action Items
-                  </span>
-                </div>
-
-                <div className="divide-y divide-slate-100">
-                  {/* Action Item 1 */}
-                  <div className="p-6 flex flex-col md:flex-row gap-4 items-start justify-between hover:bg-slate-50 transition-colors">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-base">Blockchain Indexing Engine V2</span>
-                        <span className="bg-purple-100 text-purple-900 text-[10px] font-mono font-bold px-2 py-0.5 rounded">
-                          Milestone 3/5
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 font-mono">
-                        Submitted by: <span className="text-purple-700 font-bold">Alex Chen (@cryptodev_zero)</span>
-                      </p>
-                      <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 text-xs italic text-slate-700">
-                        "Smart contract logic for multi-sig vault implementation completed. Audited against common vulnerabilities. Ready for technical review."
-                      </div>
-                      <div className="flex items-center gap-4 text-[11px] font-mono text-slate-500 pt-1">
-                        <span className="flex items-center gap-1"><FileText size={14} /> indexing_logic_final.pdf</span>
-                        <span>•</span>
-                        <span>Submitted 4 hours ago</span>
-                      </div>
+              {clientPendingReviewJobs.length > 0 && (
+                <section className="glass-panel border-amber-200 bg-white hard-shadow overflow-hidden">
+                  <div className="bg-amber-50 px-6 py-4 border-b border-amber-200 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Clock size={18} className="text-amber-700" />
+                      <h3 className="font-headline text-sm font-extrabold uppercase tracking-widest text-amber-950">
+                        Action Required: Pending Milestone Review
+                      </h3>
                     </div>
-
-                    <div className="flex flex-row md:flex-col gap-2 shrink-0 self-end md:self-auto">
-                      <Link
-                        to="/jobs/1"
-                        className="gradient-btn-primary px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs"
-                      >
-                        Review & Release
-                      </Link>
-                      <button className="glass-panel px-4 py-2 text-xs font-bold text-slate-700 border-slate-200 hover:bg-slate-100 rounded-xl">
-                        View Proof
-                      </button>
-                    </div>
+                    <span className="bg-amber-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full font-mono">
+                      {clientPendingReviewJobs.length} Action Item{clientPendingReviewJobs.length > 1 ? 's' : ''}
+                    </span>
                   </div>
 
-                  {/* Action Item 2 */}
-                  <div className="p-6 flex flex-col md:flex-row gap-4 items-start justify-between hover:bg-slate-50 transition-colors">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-base">DeFi Liquidity UI Components</span>
-                        <span className="bg-purple-100 text-purple-900 text-[10px] font-mono font-bold px-2 py-0.5 rounded">
-                          Milestone 1/2
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 font-mono">
-                        Submitted by: <span className="text-purple-700 font-bold">Sarah Vogt (@sarah_ui)</span>
-                      </p>
-                      <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 text-xs italic text-slate-700">
-                        "Initial moodboards and 3 logo concepts finalized. Includes typography pairing and secondary color palette for the app."
-                      </div>
-                      <div className="flex items-center gap-4 text-[11px] font-mono text-slate-500 pt-1">
-                        <span className="flex items-center gap-1"><FileText size={14} /> figma.com/proto/7z8...</span>
-                        <span>•</span>
-                        <span>Submitted 1 day ago</span>
-                      </div>
-                    </div>
+                  <div className="divide-y divide-slate-100">
+                    {clientPendingReviewJobs.map((job) => (
+                      <div key={job.id} className="p-6 flex flex-col md:flex-row gap-4 items-start justify-between hover:bg-slate-50 transition-colors">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-base">{job.title}</span>
+                            <span className="bg-purple-100 text-purple-900 text-[10px] font-mono font-bold px-2 py-0.5 rounded">
+                              Proof Submitted
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 font-mono">
+                            Submitted by: <span className="text-purple-700 font-bold">{truncateAddress(job.freelancer || '')}</span>
+                          </p>
+                          {job.proof && (
+                            <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 text-xs italic text-slate-700">
+                              "{job.proof.description}"
+                            </div>
+                          )}
+                          <div className="flex items-center gap-4 text-[11px] font-mono text-slate-500 pt-1">
+                            {job.proof?.externalLink && (
+                              <span className="flex items-center gap-1">
+                                <FileText size={14} /> {job.proof.externalLink}
+                              </span>
+                            )}
+                            <span>•</span>
+                            <span>Submitted recently</span>
+                          </div>
+                        </div>
 
-                    <div className="flex flex-row md:flex-col gap-2 shrink-0 self-end md:self-auto">
-                      <Link
-                        to="/jobs/2"
-                        className="gradient-btn-primary px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs"
-                      >
-                        Review & Release
-                      </Link>
-                      <button className="glass-panel px-4 py-2 text-xs font-bold text-slate-700 border-slate-200 hover:bg-slate-100 rounded-xl">
-                        View Proof
-                      </button>
-                    </div>
+                        <div className="flex flex-row md:flex-col gap-2 shrink-0 self-end md:self-auto">
+                          <Link
+                            to={`/jobs/${job.id}`}
+                            className="gradient-btn-primary px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs"
+                          >
+                            Review & Release
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </section>
+                </section>
+              )}
 
               {/* All Posted Contracts Grid */}
               <section className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
@@ -298,11 +273,13 @@ export const Dashboard: React.FC = () => {
 
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-purple-100 text-purple-900 border border-purple-200 flex items-center justify-center font-mono font-black text-xl">
-                    4.98
+                    {completedClientJobs.length > 0 ? '4.98' : '5.00'}
                   </div>
                   <div>
                     <span className="font-bold text-slate-900 text-base block">Enterprise Trust Score</span>
-                    <span className="text-xs text-purple-700 font-mono font-semibold">Top 1% Global Client</span>
+                    <span className="text-xs text-purple-700 font-mono font-semibold">
+                      {completedClientJobs.length > 0 ? 'Top 1% Global Client' : 'New Client Profile'}
+                    </span>
                   </div>
                 </div>
 
@@ -315,11 +292,15 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div className="flex justify-between pb-2 border-b border-slate-100">
                     <span className="text-slate-500">Rehire Rate</span>
-                    <span className="font-bold text-slate-900">92%</span>
+                    <span className="font-bold text-slate-900">
+                      {completedClientJobs.length > 0 ? '92%' : '0%'}
+                    </span>
                   </div>
                   <div className="flex justify-between pb-2 border-b border-slate-100">
                     <span className="text-slate-500">Dispute Ratio</span>
-                    <span className="font-bold text-emerald-600">0.02%</span>
+                    <span className="font-bold text-emerald-605">
+                      0.00%
+                    </span>
                   </div>
                 </div>
 
@@ -348,7 +329,7 @@ export const Dashboard: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <div className="glass-panel p-4 border-slate-200 bg-white text-center hard-shadow space-y-1">
               <div className="text-2xl font-black text-emerald-700 font-mono">
-                {completedFreelanceJobs.length > 0 ? completedFreelanceJobs.length : 14}
+                {completedFreelanceJobs.length}
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
                 Jobs Completed
@@ -357,7 +338,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="glass-panel p-4 border-slate-200 bg-white text-center hard-shadow space-y-1">
               <div className="text-2xl font-black text-purple-900 font-mono">
-                ${totalEarnedUsdc > 0 ? totalEarnedUsdc.toLocaleString() : '42,500'}
+                ${totalEarnedUsdc.toLocaleString()}
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
                 Total Earned
@@ -366,7 +347,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="glass-panel p-4 border-slate-200 bg-white text-center hard-shadow space-y-1">
               <div className="text-2xl font-black text-purple-700 font-mono">
-                {myApplications.length > 0 ? myApplications.length : 5}
+                {myApplications.length}
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
                 Applications Sent
@@ -375,7 +356,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="glass-panel p-4 border-slate-200 bg-white text-center hard-shadow space-y-1">
               <div className="text-2xl font-black text-amber-700 font-mono">
-                99.2%
+                {myFreelancerJobs.length > 0 ? ((completedFreelanceJobs.length / myFreelancerJobs.length) * 100).toFixed(1) + '%' : '0%'}
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
                 Success Rate
@@ -384,7 +365,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="glass-panel p-4 border-purple-200 bg-purple-50 text-center hard-shadow space-y-1">
               <div className="text-2xl font-black text-purple-900 font-mono">
-                982 pts
+                {completedFreelanceJobs.length * 100} pts
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-purple-900">
                 Reputation Score
@@ -407,97 +388,59 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  {/* Active Job 1 */}
-                  <div className="bg-slate-50 p-5 rounded-2xl border border-purple-200 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <Link to="/jobs/1" className="font-bold text-base text-slate-900 hover:text-purple-700 transition-colors">
-                          Zero-Knowledge Circuit & Solidity Verifier for On-Chain Identity
-                        </Link>
-                        <p className="text-xs text-slate-600 mt-0.5 font-mono">
-                          Client: <span className="text-purple-700 font-bold">GlobalCorp (@0x71C...3921)</span>
-                        </p>
-                      </div>
-                      <span className="badge-status badge-submitted shrink-0">
-                        Submitted (In Review)
-                      </span>
+                  {myFreelancerJobs.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500 bg-slate-50 border border-dashed border-slate-200 rounded-2xl space-y-1">
+                      <p className="font-bold text-sm">No Active Freelance Contracts</p>
+                      <p className="text-xs">Browse the marketplace and apply to escrow jobs to get started.</p>
                     </div>
+                  ) : (
+                    myFreelancerJobs.map((job) => (
+                      <div key={job.id} className="bg-slate-50 p-5 rounded-2xl border border-purple-200 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <Link to={`/jobs/${job.id}`} className="font-bold text-base text-slate-900 hover:text-purple-700 transition-colors">
+                              {job.title}
+                            </Link>
+                            <p className="text-xs text-slate-600 mt-0.5 font-mono">
+                              Client: <span className="text-purple-700 font-bold">{truncateAddress(job.client)}</span>
+                            </p>
+                          </div>
+                          <span className={`badge-status badge-${job.status.toLowerCase()} shrink-0`}>
+                            {job.status}
+                          </span>
+                        </div>
 
-                    <div className="grid grid-cols-3 gap-3 font-mono text-xs pt-1">
-                      <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                        <span className="text-slate-500 text-[10px] block font-bold uppercase">Escrow Locked</span>
-                        <span className="font-bold text-emerald-700">$5,000 USDC</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                        <span className="text-slate-500 text-[10px] block font-bold uppercase">Milestones</span>
-                        <span className="font-bold text-purple-700">2 of 3 Approved</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                        <span className="text-slate-500 text-[10px] block font-bold uppercase">SBT Reputation</span>
-                        <span className="font-bold text-amber-700">+120 pts Pending</span>
-                      </div>
-                    </div>
+                        <div className="grid grid-cols-3 gap-3 font-mono text-xs pt-1">
+                          <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                            <span className="text-slate-500 text-[10px] block font-bold uppercase">Escrow Locked</span>
+                            <span className="font-bold text-emerald-700">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span>
+                          </div>
+                          <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                            <span className="text-slate-500 text-[10px] block font-bold uppercase">Review Period</span>
+                            <span className="font-bold text-purple-700">{job.reviewPeriodDays} Days</span>
+                          </div>
+                          <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                            <span className="text-slate-500 text-[10px] block font-bold uppercase">Category</span>
+                            <span className="font-bold text-slate-900 capitalize">{job.category}</span>
+                          </div>
+                        </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-                      <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
-                        <MessageSquare size={15} className="text-purple-700" />
-                        <span>XMTP Encrypted Chat Connected</span>
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                          <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
+                            <MessageSquare size={15} className="text-purple-700" />
+                            <span>XMTP Encrypted Chat Connected</span>
+                          </div>
+                          <Link
+                            to={`/jobs/${job.id}`}
+                            className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
+                          >
+                            Open Collaboration Hub
+                            <ArrowUpRight size={14} />
+                          </Link>
+                        </div>
                       </div>
-                      <Link
-                        to="/jobs/1"
-                        className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
-                      >
-                        Open Collaboration Hub
-                        <ArrowUpRight size={14} />
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Active Job 2 */}
-                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <Link to="/jobs/2" className="font-bold text-base text-slate-900 hover:text-purple-700 transition-colors">
-                          High-Throughput Go Indexer for Polygon Event Logs
-                        </Link>
-                        <p className="text-xs text-slate-600 mt-0.5 font-mono">
-                          Client: <span className="text-purple-700 font-bold">LiquidNode Studio (@0x8f2...192a)</span>
-                        </p>
-                      </div>
-                      <span className="badge-status badge-in-progress shrink-0">
-                        In Progress
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 font-mono text-xs pt-1">
-                      <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                        <span className="text-slate-500 text-[10px] block font-bold uppercase">Escrow Locked</span>
-                        <span className="font-bold text-emerald-700">$6,800 USDC</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                        <span className="text-slate-500 text-[10px] block font-bold uppercase">Milestones</span>
-                        <span className="font-bold text-purple-700">1 of 5 Approved</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                        <span className="text-slate-500 text-[10px] block font-bold uppercase">Due In</span>
-                        <span className="font-bold text-slate-900">4 Days</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-                      <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
-                        <MessageSquare size={15} className="text-purple-700" />
-                        <span>XMTP Encrypted Chat Connected</span>
-                      </div>
-                      <Link
-                        to="/jobs/2"
-                        className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
-                      >
-                        Submit Proof of Work
-                        <ArrowUpRight size={14} />
-                      </Link>
-                    </div>
-                  </div>
+                    ))
+                  )}
                 </div>
               </section>
             </div>

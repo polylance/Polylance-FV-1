@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
@@ -7,19 +7,27 @@ import { generateIpfsCid } from '../utils/ipfs';
 import { ArrowRight, ArrowLeft, X, Sparkles, Loader2, ShieldCheck, Terminal, CheckCircle2 } from 'lucide-react';
 
 export const Onboarding: React.FC = () => {
-  const { address } = useWeb3();
+  const { address, currentRole } = useWeb3();
   const { profiles, updateProfile } = usePolyLanceData();
   const navigate = useNavigate();
 
   const existing = profiles[address] || {};
+  const isClient = currentRole === 'client';
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [displayName, setDisplayName] = useState(existing.displayName || '');
   const [bio, setBio] = useState(existing.bio || '');
-  const [avatarUrl, setAvatarUrl] = useState(
-    existing.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-  );
-  const [skills, setSkills] = useState<string[]>(existing.skills || ['Solidity', 'TypeScript', 'Ethers.js']);
+  const [avatarUrl, setAvatarUrl] = useState(() => {
+    if (existing.avatarUrl) return existing.avatarUrl;
+    if (currentRole === 'client') {
+      return 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80';
+    }
+    return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+  });
+  const [skills, setSkills] = useState<string[]>(() => {
+    if (currentRole === 'client') return [];
+    return existing.skills || ['Solidity', 'TypeScript', 'Ethers.js'];
+  });
   const [tagInput, setTagInput] = useState('');
 
   const [githubUsername, setGithubUsername] = useState('');
@@ -29,14 +37,28 @@ export const Onboarding: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [mintedTxHash, setMintedTxHash] = useState('');
 
+  // Sync form state when existing profile or wallet switches
+  useEffect(() => {
+    if (existing.displayName) setDisplayName(existing.displayName);
+    if (existing.bio) setBio(existing.bio);
+    if (existing.avatarUrl) setAvatarUrl(existing.avatarUrl);
+    if (existing.skills) setSkills(existing.skills);
+  }, [address, existing.displayName, existing.bio, existing.avatarUrl, existing.skills]);
+
   const suggestedSkills = ['React', 'The Graph', 'IPFS', 'Next.js', 'Hardhat', 'Rust', 'Go', 'Circom'];
 
-  const handleAddSkill = (e: React.KeyboardEvent | React.MouseEvent, skillName?: string) => {
-    if (e) e.preventDefault();
+  const handleAddSkill = (e?: React.KeyboardEvent | React.MouseEvent, skillName?: string) => {
+    if (e && 'key' in e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      } else {
+        return; // Only proceed if Enter is pressed
+      }
+    }
     const toAdd = skillName || tagInput.trim();
     if (toAdd && !skills.includes(toAdd)) {
       setSkills([...skills, toAdd]);
-      if (!skillName) setTagInput('');
+      setTagInput('');
     }
   };
 
@@ -57,6 +79,10 @@ export const Onboarding: React.FC = () => {
       setTimeout(() => {
         setGithubResult(res);
         setIsScanningGithub(false);
+        // Automatically prefill profile basics if fetched from real GitHub profile
+        if (res.fetchedDisplayName) setDisplayName(res.fetchedDisplayName);
+        if (res.fetchedBio) setBio(res.fetchedBio);
+        if (res.fetchedAvatarUrl) setAvatarUrl(res.fetchedAvatarUrl);
       }, 1200);
     } catch (err) {
       console.error(err);
@@ -91,6 +117,7 @@ export const Onboarding: React.FC = () => {
               secondaryCategories: githubResult.secondaryCategories,
               secondaryScores: githubResult.secondaryScores,
               attestationUID: githubResult.attestationUID,
+              languageBytes: githubResult.languageBytes,
             }
           : {}),
       },
@@ -107,22 +134,39 @@ export const Onboarding: React.FC = () => {
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-8">
       {/* Onboarding Header & Stepper matching reference HTML */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center text-xs font-mono">
-          <span className="font-bold text-purple-800 uppercase tracking-widest">
-            Step {step}: {stepLabels[step - 1]}
-          </span>
-          <span className="text-slate-500 font-semibold">{progressPercent}% Complete</span>
+      {isClient ? (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center text-xs font-mono">
+            <span className="font-bold text-purple-800 uppercase tracking-widest">
+              Client Identity Profile
+            </span>
+            <span className="text-slate-500 font-semibold">100% Complete</span>
+          </div>
+          <div className="w-full h-2.5 bg-purple-100 rounded-full overflow-hidden border border-purple-200">
+            <div
+              className="h-full bg-gradient-to-r from-purple-600 to-indigo-600"
+              style={{ width: '100%' }}
+            />
+          </div>
         </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center text-xs font-mono">
+            <span className="font-bold text-purple-800 uppercase tracking-widest">
+              Step {step}: {stepLabels[step - 1]}
+            </span>
+            <span className="text-slate-500 font-semibold">{progressPercent}% Complete</span>
+          </div>
 
-        {/* Progress Bar */}
-        <div className="w-full h-2.5 bg-purple-100 rounded-full overflow-hidden border border-purple-200">
-          <div
-            className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-500"
-            style={{ width: `${progressPercent}%` }}
-          />
+          {/* Progress Bar */}
+          <div className="w-full h-2.5 bg-purple-100 rounded-full overflow-hidden border border-purple-200">
+            <div
+              className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Onboarding Form */}
       <form onSubmit={handleFinalizeOnboarding} className="glass-panel p-8 sm:p-10 border-slate-200 bg-white hard-shadow space-y-8">
@@ -147,6 +191,76 @@ export const Onboarding: React.FC = () => {
               </div>
 
               <div className="md:col-span-3 space-y-4">
+                <div>
+                  <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
+                    Avatar / Logo Image URL
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://images.unsplash.com/..."
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    className="w-full glass-input text-xs"
+                  />
+                  {/* Preset Avatar Selection Grid */}
+                  <div className="mt-2.5 space-y-1.5">
+                    <span className="text-[10px] font-label-mono text-slate-500 uppercase tracking-wider font-bold block">
+                      Or Choose a Preset Logo/Avatar:
+                    </span>
+                    <div className="flex gap-2">
+                      {isClient ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                          >
+                            <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80" alt="Preset Building 1" className="w-full h-full object-cover" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=150&auto=format&fit=crop&q=80')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                          >
+                            <img src="https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=150&auto=format&fit=crop&q=80" alt="Preset Logo 2" className="w-full h-full object-cover" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                          >
+                            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80" alt="Preset Office 3" className="w-full h-full object-cover" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                          >
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 1" className="w-full h-full object-cover" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                          >
+                            <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 2" className="w-full h-full object-cover" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                          >
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 3" className="w-full h-full object-cover" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
                     Professional Display Name *
@@ -181,13 +295,22 @@ export const Onboarding: React.FC = () => {
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="gradient-btn-primary px-8 py-3 rounded-xl font-headline font-bold text-sm flex items-center gap-2"
-              >
-                Next Stage <ArrowRight size={16} />
-              </button>
+              {isClient ? (
+                <button
+                  type="submit"
+                  className="gradient-btn-emerald px-10 py-3.5 rounded-xl font-headline font-bold text-sm flex items-center gap-2 shadow-md"
+                >
+                  <Sparkles size={16} /> Finalize & Save Client Profile
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="gradient-btn-primary px-8 py-3 rounded-xl font-headline font-bold text-sm flex items-center gap-2"
+                >
+                  Next Stage <ArrowRight size={16} />
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -458,10 +581,12 @@ export const Onboarding: React.FC = () => {
 
             <div className="space-y-2">
               <h2 className="font-headline text-2xl font-black text-slate-900">
-                Immutable Identity Established
+                {isClient ? 'Client Profile Saved' : 'Immutable Identity Established'}
               </h2>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Your profile has been minted to ProfileRegistry.sol. You are now a verified professional on PolyLance.
+                {isClient
+                  ? 'Your organization metadata has been updated and pinned to ProfileRegistry.sol.'
+                  : 'Your profile has been minted to ProfileRegistry.sol. You are now a verified professional on PolyLance.'}
               </p>
             </div>
 

@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAccount, useDisconnect } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { DemoRole } from '../types';
 
 export const DEMO_WALLETS = {
@@ -21,7 +23,7 @@ export const DEMO_WALLETS = {
     label: 'Freelancer (Dev)',
     isArbitrator: false,
     isTreasuryAdmin: false,
-    reputationCount: 4, // 4 completed jobs SBT
+    reputationCount: 4,
   },
   judge: {
     address: '0x62cD88889999000011112222333344445555dCba',
@@ -54,44 +56,54 @@ interface Web3ContextType {
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
 
 export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { address: walletAddress, isConnected: walletIsConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { openConnectModal } = useConnectModal();
+
   const [currentRole, setCurrentRole] = useState<DemoRole>(() => {
     const saved = localStorage.getItem('polylance_demo_role');
     return (saved as DemoRole) || 'visitor';
   });
-  const [customAddress, setCustomAddress] = useState<string | null>(null);
 
   const walletInfo = DEMO_WALLETS[currentRole];
-  const address = customAddress || walletInfo.address;
-  const isConnected = currentRole !== 'visitor' || !!customAddress;
+
+  // If a real wallet is connected, use its address. Otherwise, fall back to the selected role's mock address.
+  const address = walletAddress || walletInfo.address;
+  const isConnected = walletIsConnected;
+
+  // Automatically adjust currentRole if connected address matches a known arbitrator/admin
+  useEffect(() => {
+    if (walletAddress) {
+      const lowerAddr = walletAddress.toLowerCase();
+      if (lowerAddr === DEMO_WALLETS.judge.address.toLowerCase()) {
+        setCurrentRole('judge');
+      } else if (lowerAddr === DEMO_WALLETS.admin.address.toLowerCase()) {
+        setCurrentRole('admin');
+      } else {
+        // Default to freelancer if not a predefined special role
+        const activeRole = localStorage.getItem('polylance_demo_role') as DemoRole;
+        if (!activeRole || activeRole === 'visitor' || activeRole === 'judge' || activeRole === 'admin') {
+          setCurrentRole('freelancer');
+        }
+      }
+    }
+  }, [walletAddress]);
 
   const setRole = (role: DemoRole) => {
-    setCustomAddress(null);
     setCurrentRole(role);
     localStorage.setItem('polylance_demo_role', role);
   };
 
   const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts && accounts[0]) {
-          setCustomAddress(accounts[0]);
-          // Let's set role to freelancer by default on connect if no role was set
-          if (currentRole === 'visitor') {
-            setRole('freelancer');
-          }
-        }
-      } catch (err) {
-        console.error('User rejected wallet connection', err);
-      }
+    if (openConnectModal) {
+      openConnectModal();
     } else {
-      // Default to visitor role if no browser extension
-      setRole('visitor');
+      console.warn('Connect modal not ready');
     }
   };
 
   const disconnectWallet = () => {
-    setCustomAddress(null);
+    disconnect();
     setRole('visitor');
   };
 
@@ -102,8 +114,8 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         setRole,
         address,
         isConnected,
-        isArbitrator: walletInfo.isArbitrator,
-        isTreasuryAdmin: walletInfo.isTreasuryAdmin,
+        isArbitrator: currentRole === 'judge',
+        isTreasuryAdmin: currentRole === 'admin',
         reputationCount: walletInfo.reputationCount,
         connectWallet,
         disconnectWallet,

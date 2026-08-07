@@ -49,8 +49,12 @@ export const Profile: React.FC = () => {
           <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-6">
               <div className="flex items-center gap-5">
-                <div className="w-20 h-20 bg-purple-100 border-2 border-purple-300 rounded-2xl flex items-center justify-center text-purple-700">
-                  <Building2 size={36} />
+                <div className="w-20 h-20 bg-purple-100 border-2 border-purple-300 rounded-2xl flex items-center justify-center text-purple-700 overflow-hidden shrink-0">
+                  {userProfile.avatarUrl && !userProfile.avatarUrl.includes('photo-1517841905240') ? (
+                    <img src={userProfile.avatarUrl} alt={userProfile.displayName} className="w-full h-full object-cover" />
+                  ) : (
+                    <Building2 size={36} />
+                  )}
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -68,18 +72,28 @@ export const Profile: React.FC = () => {
                 </div>
               </div>
 
-              <div className="text-right font-mono text-xs">
-                <span className="text-slate-500 font-bold uppercase tracking-wider block">Credibility Rating</span>
-                <div className="flex items-center justify-end gap-1.5 mt-1">
-                  <span className="font-headline text-2xl font-black text-purple-900">AA+</span>
-                  <div className="flex text-amber-500">
-                    <Star size={16} className="fill-amber-500" />
-                    <Star size={16} className="fill-amber-500" />
-                    <Star size={16} className="fill-amber-500" />
-                    <Star size={16} className="fill-amber-500" />
-                    <Star size={16} className="fill-amber-500" />
+              <div className="text-right font-mono text-xs flex flex-col items-end gap-3">
+                <div>
+                  <span className="text-slate-500 font-bold uppercase tracking-wider block">Credibility Rating</span>
+                  <div className="flex items-center justify-end gap-1.5 mt-1">
+                    <span className="font-headline text-2xl font-black text-purple-900">AA+</span>
+                    <div className="flex text-amber-500">
+                      <Star size={16} className="fill-amber-500" />
+                      <Star size={16} className="fill-amber-500" />
+                      <Star size={16} className="fill-amber-500" />
+                      <Star size={16} className="fill-amber-500" />
+                      <Star size={16} className="fill-amber-500" />
+                    </div>
                   </div>
                 </div>
+                {isOwnProfile && (
+                  <Link
+                    to="/onboarding"
+                    className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold shadow-md"
+                  >
+                    Edit Profile
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -343,7 +357,15 @@ export const Profile: React.FC = () => {
           </div>
 
           {/* Score Auditor Tool */}
-          <ScoreAuditorWidget />
+          <ScoreAuditorWidget
+            userProfile={userProfile}
+            freelancerJobs={freelancerJobs}
+            completedFreelancerJobs={completedFreelancerJobs}
+            reliabilityScore={reliabilityScore}
+            clientTvl={clientTvl}
+            completedClientJobs={completedClientJobs}
+            disputes={disputes}
+          />
         </div>
       ) : (
         /* 2. FREELANCER PROFILE VIEW */
@@ -421,19 +443,35 @@ export const Profile: React.FC = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">Solidity</span>
-                      <span className="font-extrabold text-purple-900">88,420 Bytes</span>
+                      <span className="font-extrabold text-purple-900">
+                        {userProfile.languageBytes?.Solidity !== undefined
+                          ? `${userProfile.languageBytes.Solidity.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
                     </div>
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">Rust</span>
-                      <span className="font-extrabold text-purple-900">42,100 Bytes</span>
+                      <span className="font-extrabold text-purple-900">
+                        {userProfile.languageBytes?.Rust !== undefined
+                          ? `${userProfile.languageBytes.Rust.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
                     </div>
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">TypeScript</span>
-                      <span className="font-extrabold text-purple-900">120,500 Bytes</span>
+                      <span className="font-extrabold text-purple-900">
+                        {userProfile.languageBytes?.TypeScript !== undefined
+                          ? `${userProfile.languageBytes.TypeScript.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
                     </div>
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">Go / Indexers</span>
-                      <span className="font-extrabold text-purple-900">65,800 Bytes</span>
+                      <span className="font-extrabold text-purple-900">
+                        {userProfile.languageBytes?.Go !== undefined
+                          ? `${userProfile.languageBytes.Go.toLocaleString()} Bytes`
+                          : '0 Bytes'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -470,33 +508,27 @@ export const Profile: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-sm">ZK Circuit & Solidity Verifier</span>
-                  <ExternalLink size={14} className="text-purple-700" />
+              {completedFreelancerJobs.length > 0 ? (
+                completedFreelancerJobs.map((j) => (
+                  <div key={j.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 text-sm">{j.title}</span>
+                      <ExternalLink size={14} className="text-purple-700" />
+                    </div>
+                    <p className="text-[11px] text-slate-600 font-sans line-clamp-2">
+                      {j.description}
+                    </p>
+                    <div className="pt-2 flex justify-between items-center text-[10px] text-purple-900 font-bold">
+                      <span>Payout: ${parseFloat(j.amountUsdc).toLocaleString()} USDC</span>
+                      <span>Contract: {truncateAddress(j.contractAddress)}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-2 text-center py-6 text-slate-500 border border-dashed border-slate-350 rounded-xl bg-slate-50 font-sans">
+                  No verifiable portfolio deliverables completed on-chain yet.
                 </div>
-                <p className="text-[11px] text-slate-600 font-sans">
-                  Deployed zero-knowledge snark verifier smart contracts with automated test suite.
-                </p>
-                <div className="pt-2 flex justify-between items-center text-[10px] text-purple-900 font-bold">
-                  <span>Payout: $5,000 USDC</span>
-                  <span>CID: bafybeig...</span>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-sm">High-Throughput Go Indexer</span>
-                  <ExternalLink size={14} className="text-purple-700" />
-                </div>
-                <p className="text-[11px] text-slate-600 font-sans">
-                  Custom Polygon WebSocket event log indexing engine handling 10k TPS.
-                </p>
-                <div className="pt-2 flex justify-between items-center text-[10px] text-purple-900 font-bold">
-                  <span>Payout: $6,800 USDC</span>
-                  <span>CID: bafybei9...</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -504,7 +536,7 @@ export const Profile: React.FC = () => {
           <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
-                <Award size={20} className="text-purple-700" /> ReputationSBT Token Collection ({userProfile.reputationSbtCount})
+                <Award size={20} className="text-purple-700" /> ReputationSBT Token Collection ({completedFreelancerJobs.length})
               </h3>
               <span className="text-[10px] font-mono text-purple-900 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200 font-bold">
                 ERC-721 Votes Soulbound
@@ -512,25 +544,31 @@ export const Profile: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {Array.from({ length: userProfile.reputationSbtCount }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 relative overflow-hidden group hover:border-purple-300 transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold text-purple-900">
-                      PLREP Token #{400 + idx}
+              {completedFreelancerJobs.length > 0 ? (
+                completedFreelancerJobs.map((j, idx) => (
+                  <div
+                    key={j.id}
+                    className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 relative overflow-hidden group hover:border-purple-300 transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold text-purple-900">
+                        PLREP Token #{1000 + idx}
+                      </span>
+                      <ShieldCheck size={16} className="text-emerald-600" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-900">
+                      Completed Job: {j.title}
+                    </p>
+                    <span className="text-[10px] font-mono text-slate-500 block">
+                      Non-transferable Soulbound reputation proof
                     </span>
-                    <ShieldCheck size={16} className="text-emerald-600" />
                   </div>
-                  <p className="text-xs font-bold text-slate-900">
-                    Completed Escrow Contract #{idx + 1}
-                  </p>
-                  <span className="text-[10px] font-mono text-slate-500 block">
-                    Non-transferable Soulbound reputation proof
-                  </span>
+                ))
+              ) : (
+                <div className="col-span-2 text-center py-6 text-slate-550 border border-dashed border-slate-300 rounded-xl bg-slate-50 font-sans">
+                  No Soulbound SBT Attestations minted yet.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -539,7 +577,25 @@ export const Profile: React.FC = () => {
   );
 };
 
-const ScoreAuditorWidget: React.FC = () => {
+interface ScoreAuditorWidgetProps {
+  userProfile: any;
+  freelancerJobs: any[];
+  completedFreelancerJobs: any[];
+  reliabilityScore: string;
+  clientTvl: number;
+  completedClientJobs: any[];
+  disputes: any[];
+}
+
+const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
+  userProfile,
+  freelancerJobs,
+  completedFreelancerJobs,
+  reliabilityScore,
+  clientTvl,
+  completedClientJobs,
+  disputes
+}) => {
   const [auditType, setAuditType] = useState<'freelancer' | 'client'>('freelancer');
   
   return (
@@ -590,7 +646,7 @@ const ScoreAuditorWidget: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center">
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Reputation Score</span>
-              <span className="font-extrabold text-purple-900 text-base">{(userProfile.reputationSbtCount || 0) * 100} PLREP</span>
+              <span className="font-extrabold text-purple-900 text-base">{completedFreelancerJobs.length * 100} PLREP</span>
             </div>
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Escrow Success Rate</span>
@@ -612,15 +668,27 @@ const ScoreAuditorWidget: React.FC = () => {
               <div className="grid grid-cols-3 gap-2 text-[10px] text-center text-slate-700 font-mono">
                 <div className="bg-white p-2.5 rounded-lg border border-slate-200">
                   <span className="block font-bold text-slate-800">Solidity</span>
-                  <span className="text-purple-700 font-bold">88k Bytes</span>
+                  <span className="text-purple-700 font-bold">
+                    {userProfile.languageBytes?.Solidity !== undefined
+                      ? `${Math.round(userProfile.languageBytes.Solidity / 1024).toLocaleString()}k Bytes`
+                      : '0k Bytes'}
+                  </span>
                 </div>
                 <div className="bg-white p-2.5 rounded-lg border border-slate-200">
                   <span className="block font-bold text-slate-800">Rust</span>
-                  <span className="text-purple-700 font-bold">42k Bytes</span>
+                  <span className="text-purple-700 font-bold">
+                    {userProfile.languageBytes?.Rust !== undefined
+                      ? `${Math.round(userProfile.languageBytes.Rust / 1024).toLocaleString()}k Bytes`
+                      : '0k Bytes'}
+                  </span>
                 </div>
                 <div className="bg-white p-2.5 rounded-lg border border-slate-200">
                   <span className="block font-bold text-slate-800">TypeScript</span>
-                  <span className="text-purple-700 font-bold">120k Bytes</span>
+                  <span className="text-purple-700 font-bold">
+                    {userProfile.languageBytes?.TypeScript !== undefined
+                      ? `${Math.round(userProfile.languageBytes.TypeScript / 1024).toLocaleString()}k Bytes`
+                      : '0k Bytes'}
+                  </span>
                 </div>
               </div>
             </div>

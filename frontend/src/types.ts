@@ -113,6 +113,7 @@ export interface UserProfile {
   secondaryScores?: number[];
   attestationUID?: string;
   reputationSbtCount: number;
+  languageBytes?: Record<string, number>;
 }
 
 export interface DaoProposal {

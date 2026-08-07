@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, TreasuryProposal, TreasuryState } from '../types';
 import { generateMockTxHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
@@ -7,6 +7,9 @@ import { generateIpfsCid } from '../utils/ipfs';
 const INITIAL_JOBS: Job[] = [];
 
 const INITIAL_PROPOSALS: DaoProposal[] = [];
+
+const INITIAL_PROFILES: Record<string, UserProfile> = {};
+
 
 interface PolyLanceDataContextType {
   jobs: Job[];
@@ -45,16 +48,65 @@ interface PolyLanceDataContextType {
 const PolyLanceDataContext = createContext<PolyLanceDataContextType | undefined>(undefined);
 
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
-  const [daoProposals, setDaoProposals] = useState<DaoProposal[]>(INITIAL_PROPOSALS);
-  const [treasuryBalanceUsdc, setTreasuryBalanceUsdc] = useState<number>(0);
-  const [treasuryBalanceEth, setTreasuryBalanceEth] = useState<number>(0);
+  const [jobs, setJobs] = useState<Job[]>(() => {
+    const saved = localStorage.getItem('polylance_jobs');
+    return saved ? JSON.parse(saved) : INITIAL_JOBS;
+  });
+  const [daoProposals, setDaoProposals] = useState<DaoProposal[]>(() => {
+    const saved = localStorage.getItem('polylance_dao_proposals');
+    return saved ? JSON.parse(saved) : INITIAL_PROPOSALS;
+  });
+  const [treasuryBalanceUsdc, setTreasuryBalanceUsdc] = useState<number>(() => {
+    const saved = localStorage.getItem('polylance_treasury_balance_usdc');
+    return saved ? parseFloat(saved) : 10000; // start with some USDC in treasury for demo
+  });
+  const [treasuryBalanceEth, setTreasuryBalanceEth] = useState<number>(() => {
+    const saved = localStorage.getItem('polylance_treasury_balance_eth');
+    return saved ? parseFloat(saved) : 4.5; // start with some ETH in treasury for demo
+  });
 
-  const [treasuryProposals, setTreasuryProposals] = useState<TreasuryProposal[]>([]);
+  const [treasuryProposals, setTreasuryProposals] = useState<TreasuryProposal[]>(() => {
+    const saved = localStorage.getItem('polylance_treasury_proposals');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  const [treasuryHistory, setTreasuryHistory] = useState<any[]>([]);
+  const [treasuryHistory, setTreasuryHistory] = useState<any[]>(() => {
+    const saved = localStorage.getItem('polylance_treasury_history');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
+  const [profiles, setProfiles] = useState<Record<string, UserProfile>>(() => {
+    const saved = localStorage.getItem('polylance_profiles');
+    return saved ? JSON.parse(saved) : INITIAL_PROFILES;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('polylance_jobs', JSON.stringify(jobs));
+  }, [jobs]);
+
+  useEffect(() => {
+    localStorage.setItem('polylance_dao_proposals', JSON.stringify(daoProposals));
+  }, [daoProposals]);
+
+  useEffect(() => {
+    localStorage.setItem('polylance_treasury_balance_usdc', treasuryBalanceUsdc.toString());
+  }, [treasuryBalanceUsdc]);
+
+  useEffect(() => {
+    localStorage.setItem('polylance_treasury_balance_eth', treasuryBalanceEth.toString());
+  }, [treasuryBalanceEth]);
+
+  useEffect(() => {
+    localStorage.setItem('polylance_treasury_proposals', JSON.stringify(treasuryProposals));
+  }, [treasuryProposals]);
+
+  useEffect(() => {
+    localStorage.setItem('polylance_treasury_history', JSON.stringify(treasuryHistory));
+  }, [treasuryHistory]);
+
+  useEffect(() => {
+    localStorage.setItem('polylance_profiles', JSON.stringify(profiles));
+  }, [profiles]);
 
   const treasuryState: TreasuryState = {
     balanceUsdc: treasuryBalanceUsdc.toString(),
