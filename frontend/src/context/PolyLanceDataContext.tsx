@@ -48,6 +48,27 @@ interface PolyLanceDataContextType {
 
 const PolyLanceDataContext = createContext<PolyLanceDataContextType | undefined>(undefined);
 
+const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<string, UserProfile> => {
+  const normalized: Record<string, UserProfile> = {};
+  for (const [addr, profile] of Object.entries(rawProfiles)) {
+    if (!addr) continue;
+    const lowerAddr = addr.toLowerCase();
+    const existing = normalized[lowerAddr];
+    
+    if (!existing) {
+      normalized[lowerAddr] = { ...profile, address: lowerAddr };
+    } else {
+      const selectNewer = (!existing.displayName && profile.displayName) || 
+                          (!existing.githubVerified && profile.githubVerified) || 
+                          (profile.displayName && existing.displayName && profile.displayName !== 'Anonymous PolyLancer' && existing.displayName === 'Anonymous PolyLancer');
+      if (selectNewer) {
+        normalized[lowerAddr] = { ...profile, address: lowerAddr };
+      }
+    }
+  }
+  return normalized;
+};
+
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [jobs, setJobs] = useState<Job[]>(() => {
     const saved = localStorage.getItem('polylance_jobs');
@@ -80,7 +101,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>(() => {
     const saved = localStorage.getItem('polylance_profiles');
-    return saved ? JSON.parse(saved) : INITIAL_PROFILES;
+    const raw = saved ? JSON.parse(saved) : INITIAL_PROFILES;
+    return normalizeProfiles(raw);
   });
 
   const [loading, setLoading] = useState(true);
@@ -135,7 +157,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
               if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
               if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
-              if (data.profiles) setProfiles(data.profiles);
+              if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
             }
           }
         }
