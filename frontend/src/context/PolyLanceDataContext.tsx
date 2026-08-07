@@ -114,7 +114,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     balanceUsdc: treasuryBalanceUsdc.toString(),
     balanceEth: treasuryBalanceEth.toString(),
     requiredSignatures: 2,
-    signers: ['0xB8aa0398B91A150B041DA819bc954Bb356e009Dd', '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A'],
+    signers: ['0x62cDfc0692cC675c95304BaCE2C834D8F901dCba', '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A'],
     proposals: treasuryProposals,
   };
 

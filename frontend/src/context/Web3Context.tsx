@@ -26,7 +26,7 @@ export const DEMO_WALLETS = {
     reputationCount: 4,
   },
   judge: {
-    address: '0x62cD88889999000011112222333344445555dCba',
+    address: '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd',
     label: 'Judge / Arbitrator',
     isArbitrator: true,
     isTreasuryAdmin: false,
@@ -75,11 +75,14 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (walletAddress) {
       const lowerAddr = walletAddress.toLowerCase();
-      if (lowerAddr === DEMO_WALLETS.judge.address.toLowerCase()) {
+      if (
+        lowerAddr === DEMO_WALLETS.judge.address.toLowerCase() ||
+        lowerAddr === '0xb8aa0398b91a150b041da819bc954bb356e009dd'
+      ) {
         setCurrentRole('judge');
       } else if (
         lowerAddr === DEMO_WALLETS.admin.address.toLowerCase() ||
-        lowerAddr === '0xb8aa0398b91a150b041da819bc954bb356e009dd'
+        lowerAddr === '0x62cdfc0692cc675c95304bace2c834d8f901dcba'
       ) {
         setCurrentRole('admin');
       } else {
