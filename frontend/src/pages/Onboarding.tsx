@@ -558,22 +558,18 @@ export const Onboarding: React.FC = () => {
       {/* Success Screen Overlay Modal matching reference HTML */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="glass-panel p-6 sm:p-10 rounded-3xl max-w-3xl w-full text-center border-purple-200 bg-white hard-shadow space-y-6 relative overflow-hidden max-h-[95vh] overflow-y-auto">
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full text-center border-purple-200 bg-white hard-shadow space-y-5 relative overflow-hidden">
             {/* Background design elements to mimic Stripe/Linear style */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.08),transparent_50%)] pointer-events-none" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.06),transparent_50%)] pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.06),transparent_50%)] pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.05),transparent_50%)] pointer-events-none" />
             
             {/* Pulsing Hexagonal Verified Badge */}
-            <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
-              {/* Floating 3D cubes / elements from the reference image */}
-              <div className="absolute top-0 right-0 w-8 h-8 opacity-20 bg-purple-500 rounded-lg blur-xs animate-pulse" />
-              <div className="absolute bottom-2 left-0 w-6 h-6 opacity-30 bg-indigo-500 rounded-md blur-xs animate-bounce" />
-              
+            <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
               {/* Glow */}
               <div className="absolute inset-0 bg-indigo-500/10 rounded-full blur-xl animate-pulse" />
               
               {/* Hexagon shape */}
-              <svg className="w-20 h-20 drop-shadow-[0_8px_16px_rgba(99,102,241,0.25)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-16 h-16 drop-shadow-[0_6px_12px_rgba(99,102,241,0.2)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#c084fc" />
@@ -586,31 +582,29 @@ export const Onboarding: React.FC = () => {
                 <path d="M50 15 L74 30 L74 70 L50 85 L26 70 L26 30 Z" fill="url(#hexGrad)" opacity="0.15" />
               </svg>
               {/* Check Icon centered inside the Hexagon */}
-              <div className="absolute inset-0 flex items-center justify-center text-indigo-600">
-                <ShieldCheck size={32} className="drop-shadow-[0_2px_4px_rgba(99,102,241,0.4)] animate-pulse" />
+              <div className="absolute inset-0 flex items-center justify-center text-indigo-605">
+                <ShieldCheck size={26} className="drop-shadow-[0_2px_4px_rgba(99,102,241,0.4)] animate-pulse" />
               </div>
             </div>
 
             {/* Title and Description */}
-            <div className="space-y-3">
-              <h2 className="font-headline text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-purple-950 to-indigo-950">
+            <div className="space-y-2">
+              <h2 className="font-headline text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-purple-950 to-indigo-950">
                 Your Reputation Journey Begins
               </h2>
-              <p className="text-xs text-slate-600 leading-relaxed max-w-xl mx-auto font-sans">
-                Your decentralized professional identity is now verified and ready.<br/>
-                Start building your on-chain reputation, unlock better opportunities, and earn trust with every successful collaboration.
+              <p className="text-[11px] text-slate-550 leading-relaxed font-sans max-w-sm mx-auto">
+                Your decentralized professional identity is now verified and ready. Start building your on-chain reputation and earn trust with every successful collaboration.
               </p>
             </div>
 
             {/* On-Chain Verification Section with Clipboard */}
-            <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200 text-left flex flex-col sm:flex-row sm:items-center gap-4 max-w-lg mx-auto w-full">
-              <div className="w-12 h-12 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0 shadow-3xs">
-                <ShieldCheck size={24} />
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-left flex items-center gap-3 w-full">
+              <div className="w-9 h-9 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0 shadow-3xs">
+                <ShieldCheck size={18} />
               </div>
               <div className="flex-grow min-w-0 font-mono">
-                <span className="text-[11px] font-bold text-slate-900 block leading-tight">On-Chain Verification</span>
-                <span className="text-[9.5px] text-slate-500 block leading-tight mt-0.5">Your identity has been permanently recorded on the blockchain.</span>
-                <code className="text-[10px] text-purple-800 font-bold block truncate mt-1 bg-white px-2 py-1 rounded border select-all border-slate-250">
+                <span className="text-[10px] font-bold text-slate-900 block leading-tight">On-Chain Verification</span>
+                <code className="text-[9px] text-purple-800 font-bold block truncate mt-0.5 bg-white px-2 py-0.5 rounded border border-slate-200">
                   {mintedTxHash}
                 </code>
               </div>
@@ -620,73 +614,73 @@ export const Onboarding: React.FC = () => {
                   navigator.clipboard.writeText(mintedTxHash);
                   alert('Transaction hash copied to clipboard!');
                 }}
-                className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-all shadow-3xs active:scale-95 shrink-0 text-slate-500 hover:text-indigo-650 self-end sm:self-auto"
+                className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 shrink-0 text-slate-500 hover:text-indigo-600"
                 title="Copy Hash"
               >
-                <Copy size={16} />
+                <Copy size={12} />
               </button>
             </div>
 
             {/* Benefits Cards Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full pt-2 text-left">
+            <div className="grid grid-cols-2 gap-2 text-left w-full">
               {/* Card 1: Verified Identity */}
-              <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex flex-col items-start gap-2 hover:border-purple-300 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100 shadow-3xs">
-                  <Shield size={16} />
+              <div className="bg-slate-50/50 p-2.5 rounded-xl border border-slate-150 flex gap-2 hover:border-purple-200 transition-all">
+                <div className="w-6 h-6 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100 shadow-3xs">
+                  <Shield size={12} />
                 </div>
                 <div>
-                  <h4 className="font-extrabold text-xs text-slate-900 font-heading">Verified Identity</h4>
-                  <p className="text-[10px] text-slate-500 font-sans mt-0.5 leading-normal">Your professional profile is secured forever.</p>
+                  <h4 className="font-extrabold text-[10px] text-slate-900 font-heading leading-tight">Verified Profile</h4>
+                  <p className="text-[8.5px] text-slate-500 font-sans mt-0.5 leading-tight">Secured on-chain forever.</p>
                 </div>
               </div>
 
               {/* Card 2: On-Chain Reputation */}
-              <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex flex-col items-start gap-2 hover:border-purple-300 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100 shadow-3xs">
-                  <Award size={16} />
+              <div className="bg-slate-50/50 p-2.5 rounded-xl border border-slate-150 flex gap-2 hover:border-purple-200 transition-all">
+                <div className="w-6 h-6 rounded bg-purple-50 text-purple-650 flex items-center justify-center shrink-0 border border-purple-100 shadow-3xs">
+                  <Award size={12} />
                 </div>
                 <div>
-                  <h4 className="font-extrabold text-xs text-slate-900 font-heading">On-Chain Reputation</h4>
-                  <p className="text-[10px] text-slate-500 font-sans mt-0.5 leading-normal">Every completed project builds your credibility.</p>
+                  <h4 className="font-extrabold text-[10px] text-slate-900 font-heading leading-tight">On-Chain Cred</h4>
+                  <p className="text-[8.5px] text-slate-500 font-sans mt-0.5 leading-tight">Every completed job builds trust.</p>
                 </div>
               </div>
 
               {/* Card 3: Smart Contract Ready */}
-              <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex flex-col items-start gap-2 hover:border-purple-300 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100 shadow-3xs">
-                  <Lock size={16} />
+              <div className="bg-slate-50/50 p-2.5 rounded-xl border border-slate-150 flex gap-2 hover:border-purple-200 transition-all">
+                <div className="w-6 h-6 rounded bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100 shadow-3xs">
+                  <Lock size={12} />
                 </div>
                 <div>
-                  <h4 className="font-extrabold text-xs text-slate-900 font-heading">Smart Contract Ready</h4>
-                  <p className="text-[10px] text-slate-500 font-sans mt-0.5 leading-normal">Transparent collaboration with secure payments.</p>
+                  <h4 className="font-extrabold text-[10px] text-slate-900 font-heading leading-tight">Smart Escrow</h4>
+                  <p className="text-[8.5px] text-slate-500 font-sans mt-0.5 leading-tight">Secure transparent payments.</p>
                 </div>
               </div>
 
               {/* Card 4: Unlock Better Opportunities */}
-              <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex flex-col items-start gap-2 hover:border-purple-300 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100 shadow-3xs">
-                  <Star size={16} />
+              <div className="bg-slate-50/50 p-2.5 rounded-xl border border-slate-150 flex gap-2 hover:border-purple-200 transition-all">
+                <div className="w-6 h-6 rounded bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100 shadow-3xs">
+                  <Star size={12} />
                 </div>
                 <div>
-                  <h4 className="font-extrabold text-xs text-slate-900 font-heading">Unlock Opportunities</h4>
-                  <p className="text-[10px] text-slate-500 font-sans mt-0.5 leading-normal">Higher reputation increases your visibility to premium clients.</p>
+                  <h4 className="font-extrabold text-[10px] text-slate-900 font-heading leading-tight">Get Visibility</h4>
+                  <p className="text-[8.5px] text-slate-500 font-sans mt-0.5 leading-tight">Higher ranking, premium clients.</p>
                 </div>
               </div>
             </div>
 
             {/* Launch My Dashboard CTA Button */}
-            <div className="max-w-xs mx-auto pt-3 w-full">
+            <div className="max-w-xs mx-auto pt-1 w-full">
               <button
                 type="button"
                 onClick={() => navigate('/dashboard')}
-                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-headline font-black text-sm shadow-md hover:shadow-lg transition-all hover:scale-102 active:scale-98 flex items-center justify-center gap-2 hover:from-indigo-700 hover:to-purple-700 cursor-pointer"
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-650 text-white rounded-xl font-headline font-black text-xs shadow-md hover:shadow-lg transition-all hover:scale-102 active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 Launch My Dashboard ⭐
               </button>
             </div>
 
             {/* Premium Footer Quote */}
-            <p className="text-[10px] font-mono text-purple-700 font-bold tracking-wide border-t border-slate-100 pt-4 max-w-sm mx-auto">
+            <p className="text-[9px] font-mono text-purple-700 font-bold tracking-wide border-t border-slate-100 pt-3 w-full">
               ✦ Reputation isn't claimed—it’s earned, verified, and stored on-chain.
             </p>
           </div>
