@@ -33,7 +33,7 @@ export const DEMO_WALLETS = {
     reputationCount: 12,
   },
   admin: {
-    address: '0x25F6111122223333444455556666777788880e9A',
+    address: '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
     label: 'Treasury Admin (Safe Multisig)',
     isArbitrator: false,
     isTreasuryAdmin: true,

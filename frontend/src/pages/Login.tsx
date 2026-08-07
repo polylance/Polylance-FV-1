@@ -80,7 +80,7 @@ export const Login: React.FC = () => {
 
       // 1. Check if Admin
       const isAdmin = lowerAddress === '0xb8aa0398b91a150b041da819bc954bb356e009dd' || 
-                      lowerAddress === '0x25f6111122223333444455556666777788880e9a';
+                      lowerAddress === '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a';
       if (isAdmin) {
         setRole('admin');
         confetti({ particleCount: 80, spread: 70 });
