@@ -560,7 +560,7 @@ export const Dashboard: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-slate-500">Solidity</span>
                       <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.Solidity !== undefined
+                        {userProfile.languageBytes?.Solidity
                           ? `${userProfile.languageBytes.Solidity.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
@@ -568,7 +568,7 @@ export const Dashboard: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-slate-500">Rust</span>
                       <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.Rust !== undefined
+                        {userProfile.languageBytes?.Rust
                           ? `${userProfile.languageBytes.Rust.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
@@ -576,7 +576,7 @@ export const Dashboard: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-slate-500">TypeScript</span>
                       <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.TypeScript !== undefined
+                        {userProfile.languageBytes?.TypeScript
                           ? `${userProfile.languageBytes.TypeScript.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
@@ -584,7 +584,7 @@ export const Dashboard: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-slate-500">JavaScript</span>
                       <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.JavaScript !== undefined
+                        {userProfile.languageBytes?.JavaScript
                           ? `${userProfile.languageBytes.JavaScript.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
@@ -592,7 +592,7 @@ export const Dashboard: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-slate-500">Python</span>
                       <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.Python !== undefined
+                        {userProfile.languageBytes?.Python
                           ? `${userProfile.languageBytes.Python.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
@@ -600,7 +600,7 @@ export const Dashboard: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-slate-500">Go / Indexers</span>
                       <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.Go !== undefined
+                        {userProfile.languageBytes?.Go
                           ? `${userProfile.languageBytes.Go.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>

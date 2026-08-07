@@ -464,7 +464,7 @@ export const Profile: React.FC = () => {
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">Solidity</span>
                       <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.Solidity !== undefined
+                        {userProfile.languageBytes?.Solidity
                           ? `${userProfile.languageBytes.Solidity.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
@@ -472,7 +472,7 @@ export const Profile: React.FC = () => {
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">Rust</span>
                       <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.Rust !== undefined
+                        {userProfile.languageBytes?.Rust
                           ? `${userProfile.languageBytes.Rust.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
@@ -480,7 +480,7 @@ export const Profile: React.FC = () => {
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">TypeScript</span>
                       <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.TypeScript !== undefined
+                        {userProfile.languageBytes?.TypeScript
                           ? `${userProfile.languageBytes.TypeScript.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
@@ -488,7 +488,7 @@ export const Profile: React.FC = () => {
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">JavaScript</span>
                       <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.JavaScript !== undefined
+                        {userProfile.languageBytes?.JavaScript
                           ? `${userProfile.languageBytes.JavaScript.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
@@ -496,7 +496,7 @@ export const Profile: React.FC = () => {
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">Python</span>
                       <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.Python !== undefined
+                        {userProfile.languageBytes?.Python
                           ? `${userProfile.languageBytes.Python.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
@@ -504,7 +504,7 @@ export const Profile: React.FC = () => {
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase block font-bold">Go / Indexers</span>
                       <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.Go !== undefined
+                        {userProfile.languageBytes?.Go
                           ? `${userProfile.languageBytes.Go.toLocaleString()} Bytes`
                           : '0 Bytes'}
                       </span>
