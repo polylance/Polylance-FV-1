@@ -62,6 +62,50 @@ export const Dashboard: React.FC = () => {
   const clientTotalSpent = completedClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
   const clientPendingReviewJobs = myClientJobs.filter((j) => j.status === 'Submitted');
 
+  // Dynamic ranking calculation
+  const sortedProfiles = Object.values(profiles)
+    .map((p) => {
+      const profileCompletedJobs = jobs.filter(
+        (j) => j.freelancer?.toLowerCase() === p.address.toLowerCase() && j.status === 'Completed'
+      ).length;
+      return { address: p.address, points: profileCompletedJobs * 100 };
+    })
+    .sort((a, b) => b.points - a.points);
+  
+  const myRankIdx = sortedProfiles.findIndex((p) => p.address.toLowerCase() === address.toLowerCase());
+  const myRank = myRankIdx !== -1 ? myRankIdx + 1 : sortedProfiles.length + 1;
+
+  // Dynamic unlocked badges
+  const unlockedBadges = [];
+  const completedJobsCount = completedFreelanceJobs.length;
+  if (completedJobsCount >= 1) {
+    unlockedBadges.push({
+      name: 'Genesis Auditor SBT',
+      token: `#${1000 + completedJobsCount}`,
+      desc: 'Minted for completing smart contract escrows on PolyLance.',
+      bgClass: 'bg-purple-50 border-purple-100 text-purple-950',
+      tokenBgClass: 'bg-purple-200 text-purple-900',
+    });
+  }
+  if (completedJobsCount >= 4) {
+    unlockedBadges.push({
+      name: 'Escrow Master SBT',
+      token: `#${900 + completedJobsCount}`,
+      desc: 'Achieved a high delivery rate across multiple escrows.',
+      bgClass: 'bg-emerald-50 border-emerald-100 text-emerald-950',
+      tokenBgClass: 'bg-emerald-200 text-emerald-900',
+    });
+  }
+  if (userProfile.githubVerified) {
+    unlockedBadges.push({
+      name: 'Identity Verified SBT',
+      token: '#0001',
+      desc: 'Successfully linked and verified your GitHub developer footprint.',
+      bgClass: 'bg-indigo-50 border-indigo-100 text-indigo-950',
+      tokenBgClass: 'bg-indigo-200 text-indigo-900',
+    });
+  }
+
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
       {/* Top Banner with Role Context */}
@@ -473,32 +517,31 @@ export const Dashboard: React.FC = () => {
                 </h3>
 
                 <div className="space-y-3 font-mono text-xs">
-                  <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-purple-950">Genesis Auditor SBT</span>
-                      <span className="bg-purple-200 text-purple-900 text-[10px] px-2 py-0.5 rounded font-bold">
-                        Token #1042
-                      </span>
+                  {unlockedBadges.length === 0 ? (
+                    <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-slate-550 font-sans">
+                      <p className="font-extrabold text-slate-800">No SBTs Minted Yet</p>
+                      <p className="mt-1 text-[10px] leading-relaxed">Complete your first job or link your GitHub profile to unlock your first dynamic badge attestation.</p>
                     </div>
-                    <p className="text-[10px] text-slate-600">Minted for 10+ audited smart contract escrows with zero bugs.</p>
-                  </div>
-
-                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-emerald-950">Escrow Master SBT</span>
-                      <span className="bg-emerald-200 text-emerald-900 text-[10px] px-2 py-0.5 rounded font-bold">
-                        Token #0912
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-600">100% on-time milestone delivery rate across 14 contracts.</p>
-                  </div>
+                  ) : (
+                    unlockedBadges.map((badge, index) => (
+                      <div key={index} className={`p-3 rounded-xl border space-y-1 ${badge.bgClass}`}>
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold">{badge.name}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${badge.tokenBgClass}`}>
+                            {badge.token}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-650 leading-relaxed font-sans">{badge.desc}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 <Link
                   to="/reputation"
                   className="w-full glass-panel py-2 text-xs font-bold text-slate-700 border-slate-200 hover:bg-slate-50 rounded-xl text-center block"
                 >
-                  View Global Leaderboard Rank (#42)
+                  View Global Leaderboard Rank (#{myRank})
                 </Link>
               </div>
 
