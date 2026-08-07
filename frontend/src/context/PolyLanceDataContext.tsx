@@ -12,6 +12,7 @@ const INITIAL_PROFILES: Record<string, UserProfile> = {};
 
 
 interface PolyLanceDataContextType {
+  loading: boolean;
   jobs: Job[];
   daoProposals: DaoProposal[];
   treasury: TreasuryState;
@@ -81,6 +82,119 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     const saved = localStorage.getItem('polylance_profiles');
     return saved ? JSON.parse(saved) : INITIAL_PROFILES;
   });
+
+  const [loading, setLoading] = useState(true);
+  const pinataJwt = import.meta.env.VITE_PINATA_JWT;
+
+  // Background Pinata IPFS State Sync
+  useEffect(() => {
+    const loadStateFromPinata = async () => {
+      if (!pinataJwt) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
+        const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
+          headers: {
+            Authorization: `Bearer ${pinataJwt}`,
+          }
+        });
+        if (listResponse.ok) {
+          const listData = await listResponse.json();
+          const rows = listData.rows || [];
+          if (rows.length > 0) {
+            const newest = rows.sort((a: any, b: any) => new Date(b.date_pinned).getTime() - new Date(a.date_pinned).getTime())[0];
+            const cid = newest.ipfs_pin_hash;
+            
+            const getResponse = await fetch(`https://cloudflare-ipfs.com/ipfs/${cid}`);
+            if (getResponse.ok) {
+              const data = await getResponse.json();
+              if (data.jobs) setJobs(data.jobs);
+              if (data.daoProposals) setDaoProposals(data.daoProposals);
+              if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
+              if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
+              if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
+              if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
+              if (data.profiles) setProfiles(data.profiles);
+              console.log('Restored live cloud state from Pinata IPFS CID:', cid);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Unable to load cloud state from Pinata, using local cache:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadStateFromPinata();
+  }, [pinataJwt]);
+
+  useEffect(() => {
+    if (loading || !pinataJwt) return;
+
+    const syncStateToPinata = async () => {
+      try {
+        const statePayload = {
+          jobs,
+          daoProposals,
+          treasuryBalanceUsdc,
+          treasuryBalanceEth,
+          treasuryProposals,
+          treasuryHistory,
+          profiles
+        };
+        const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${pinataJwt}`,
+          },
+          body: JSON.stringify({
+            pinataOptions: { cidVersion: 1 },
+            pinataMetadata: {
+              name: 'polylance_db_state',
+              keyvalues: { app: 'polylance', type: 'state' }
+            },
+            pinataContent: statePayload
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const newCid = data.IpfsHash;
+          console.log('Synced live cloud state to Pinata IPFS CID:', newCid);
+
+          // Clean up old state pins to keep IPFS storage clean
+          const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
+          const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
+            headers: {
+              Authorization: `Bearer ${pinataJwt}`,
+            }
+          });
+          if (listResponse.ok) {
+            const listData = await listResponse.json();
+            const rows = listData.rows || [];
+            for (const row of rows) {
+              if (row.ipfs_pin_hash !== newCid) {
+                fetch(`https://api.pinata.cloud/pinning/unpin/${row.ipfs_pin_hash}`, {
+                  method: 'DELETE',
+                  headers: {
+                    Authorization: `Bearer ${pinataJwt}`,
+                  }
+                }).catch(() => {});
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to sync state to Pinata in background:', error);
+      }
+    };
+
+    const timer = setTimeout(syncStateToPinata, 2500);
+    return () => clearTimeout(timer);
+  }, [jobs, daoProposals, treasuryBalanceUsdc, treasuryBalanceEth, treasuryProposals, treasuryHistory, profiles, loading, pinataJwt]);
 
   useEffect(() => {
     localStorage.setItem('polylance_jobs', JSON.stringify(jobs));
@@ -711,6 +825,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <PolyLanceDataContext.Provider
       value={{
+        loading,
         jobs,
         daoProposals,
         treasury: treasuryState,

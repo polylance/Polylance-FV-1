@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Web3Provider, useWeb3 } from './context/Web3Context';
-import { PolyLanceDataProvider } from './context/PolyLanceDataContext';
+import { PolyLanceDataProvider, usePolyLanceData } from './context/PolyLanceDataContext';
 import { Navbar } from './components/Navbar';
+import { LoadingScreen } from './components/LoadingScreen';
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
@@ -49,27 +50,39 @@ const AnimatedRoutes: React.FC = () => {
   );
 };
 
+const AppContent: React.FC = () => {
+  const { loading } = usePolyLanceData();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  return (
+    <div className="min-h-screen bg-[#faf8ff] text-[#131b2e] flex flex-col font-sans selection:bg-purple-600 selection:text-white">
+      {/* Production Navbar with Role-Aware Perception Navigation */}
+      <Navbar />
+
+      {/* Main Application Content */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6">
+        <AnimatedRoutes />
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white py-6 px-4 md:px-8 text-center text-xs text-slate-600 font-mono">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+          <span>PolyLance MVP © 2026 — Permanent Blockchain Freelance Reputation</span>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
 export const App: React.FC = () => {
   return (
     <Web3Provider>
       <PolyLanceDataProvider>
         <Router>
-          <div className="min-h-screen bg-[#faf8ff] text-[#131b2e] flex flex-col font-sans selection:bg-purple-600 selection:text-white">
-            {/* Production Navbar with Role-Aware Perception Navigation */}
-            <Navbar />
-
-            {/* Main Application Content */}
-            <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6">
-              <AnimatedRoutes />
-            </main>
-
-            {/* Footer */}
-            <footer className="border-t border-slate-200 bg-white py-6 px-4 md:px-8 text-center text-xs text-slate-600 font-mono">
-              <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-                <span>PolyLance MVP © 2026 — Permanent Blockchain Freelance Reputation</span>
-              </div>
-            </footer>
-          </div>
+          <AppContent />
         </Router>
       </PolyLanceDataProvider>
     </Web3Provider>
