@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { Web3Provider, useWeb3 } from './context/Web3Context';
 import { PolyLanceDataProvider, usePolyLanceData } from './context/PolyLanceDataContext';
 import { Navbar } from './components/Navbar';
-import { LoadingScreen } from './components/LoadingScreen';
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
@@ -51,12 +50,6 @@ const AnimatedRoutes: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-  const { loading } = usePolyLanceData();
-
-  if (loading) {
-    return <LoadingScreen />;
-  }
-
   return (
     <div className="min-h-screen bg-[#faf8ff] text-[#131b2e] flex flex-col font-sans selection:bg-purple-600 selection:text-white">
       {/* Production Navbar with Role-Aware Perception Navigation */}
