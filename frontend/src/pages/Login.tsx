@@ -79,8 +79,8 @@ export const Login: React.FC = () => {
       const lowerAddress = address.toLowerCase();
 
       // 1. Check if Admin
-      const isAdmin = lowerAddress === '0x62cdfc0692cc675c95304bace2c834d8f901dcba' || 
-                      lowerAddress === '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a';
+      const isAdmin = lowerAddress === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() || 
+                      lowerAddress === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase();
       if (isAdmin) {
         setRole('admin');
         confetti({ particleCount: 80, spread: 70 });
@@ -89,7 +89,7 @@ export const Login: React.FC = () => {
       }
 
       // 2. Check if Judge
-      const isJudge = lowerAddress === '0xb8aa0398b91a150b041da819bc954bb356e009dd';
+      const isJudge = lowerAddress === (import.meta.env.VITE_JUDGE_ADDRESS || '0xb8aa0398b91a150b041da819bc954bb356e009dd').toLowerCase();
       if (isJudge) {
         setRole('judge');
         confetti({ particleCount: 80, spread: 70 });

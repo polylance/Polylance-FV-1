@@ -70,11 +70,22 @@ const AppContent: React.FC = () => {
   );
 };
 
+const ScrollToTop: React.FC = () => {
+  const { pathname } = useLocation();
+
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
 export const App: React.FC = () => {
   return (
     <Web3Provider>
       <PolyLanceDataProvider>
         <Router>
+          <ScrollToTop />
           <AppContent />
         </Router>
       </PolyLanceDataProvider>

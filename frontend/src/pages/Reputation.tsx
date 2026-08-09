@@ -15,7 +15,9 @@ import {
   Compass,
   Hexagon,
   Landmark,
-  Bookmark
+  Bookmark,
+  Check,
+  Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -23,6 +25,10 @@ export const Reputation: React.FC = () => {
   const { address, isArbitrator } = useWeb3();
   const { profiles, jobs } = usePolyLanceData();
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'monthly'>('all');
+
+  // Retrieve user profile case-insensitively
+  const userProfileKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
+  const userProfile = userProfileKey ? profiles[userProfileKey] : null;
 
   // Compute actual completed freelance jobs count for this user
   const userCompletedJobsCount = jobs.filter(
@@ -944,51 +950,102 @@ export const Reputation: React.FC = () => {
       </motion.section>
 
       {/* On-Chain Achievements / Badges Grid matching reference HTML */}
-      <motion.section variants={itemVariants} className="bg-white border border-slate-100 shadow-md rounded-2xl p-5 space-y-4.5">
+      <motion.section variants={itemVariants} className="bg-white border border-slate-200/80 shadow-md rounded-3xl p-6 relative overflow-hidden space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-2.5 pb-2">
-          <div className="w-9 h-9 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-xs shrink-0">
-            <svg className="w-4 h-4 text-slate-800" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              <path d="M12 7l1.5 3 3.5.5-2.5 2.5 1 3.5-3.5-2-3.5 2 1-3.5-2.5-2.5 3.5-.5z" fill="currentColor" className="text-slate-800" />
+        <div className="flex items-center gap-3.5 pb-2 relative">
+          <div className="relative w-11 h-11 flex items-center justify-center shrink-0">
+            <svg className="absolute inset-0 w-full h-full text-indigo-50 fill-indigo-50/50 stroke-indigo-200 stroke-[1.5]" viewBox="0 0 100 100">
+              <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" />
             </svg>
+            <ShieldCheck size={18} className="text-[#6366F1] relative z-10 stroke-[2]" />
           </div>
           <div>
-            <h2 className="font-headline text-base font-extrabold text-slate-900 leading-tight">
-              On-Chain SBT Achievements
+            <h2 className="font-headline text-lg font-extrabold text-slate-900 leading-tight">
+              On-Chain SBT <span className="text-[#6366F1]">Achievements</span>
             </h2>
-            <p className="text-[11px] text-slate-500 font-sans mt-0.5">
+            <p className="text-xs text-slate-500 font-sans mt-0.5">
               Your soulbound badge milestones on-chain.
             </p>
           </div>
+
+          {/* Trophy Artwork + Sparkles (Right side) */}
+          <div className="hidden sm:block absolute right-4 top-[-10px] w-28 h-20 opacity-90 select-none">
+            <div className="relative w-full h-full">
+              <Sparkles className="absolute top-2 left-2 text-[#818CF8]/30 w-3 h-3 animate-pulse" />
+              <Sparkles className="absolute bottom-4 right-10 text-[#818CF8]/40 w-4 h-4" />
+              <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-tr from-purple-100 to-indigo-50 rounded-full blur-xl opacity-60" />
+              
+              <svg className="w-16 h-16 text-indigo-200 absolute right-4 top-1" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M46 16c0-4.418-3.582-8-8-8H26c-4.418 0-8 3.582-8 8v6c0 5.523 4.477 10 10 10h8c5.523 0 10-4.477 10-10v-6z" fill="#E0E7FF" stroke="#818CF8" strokeWidth="2" strokeLinejoin="round"/>
+                <path d="M18 16h-4c-2.209 0-4 1.791-4 4v4c0 2.209 1.791 4 4 4h4" stroke="#818CF8" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M46 16h4c2.209 0 4 1.791 4 4v4c0 2.209-1.791 4-4 4h-4" stroke="#818CF8" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M32 38v10M24 48h16" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="32" cy="23" r="3" fill="#818CF8"/>
+              </svg>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Badge Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Badge 1 - Genesis Auditor */}
           {(() => {
             const isUnlocked = reputationCount >= 1;
             return (
               <motion.div 
-                whileHover={isUnlocked ? { y: -5, scale: 1.02 } : {}}
-                className={`bg-white border border-slate-100 rounded-2xl text-center p-4.5 space-y-3 relative overflow-hidden group shadow-2xs ${
-                  isUnlocked ? 'hover:border-purple-300 transition-all hover:shadow-xs' : 'opacity-70'
+                whileHover={{ y: -6, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className={`rounded-3xl p-5 text-center flex flex-col justify-between items-center relative overflow-hidden shadow-xs h-[325px] transition-all border ${
+                  isUnlocked 
+                    ? 'bg-purple-50/20 border-purple-400/80 shadow-purple-50' 
+                    : 'bg-white border-slate-200/60 shadow-slate-50/50'
                 }`}
               >
-                <div className="relative w-14 h-14 mx-auto flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border border-slate-100 bg-slate-50/50" />
-                  <div className="absolute inset-1.5 rounded-full border border-slate-100 bg-white" />
-                  <div className="relative z-10 text-slate-800 flex items-center justify-center">
-                    {isUnlocked ? (
-                      <Award size={22} className="stroke-[2] text-slate-800" />
-                    ) : (
-                      <Lock size={18} className="text-slate-400 stroke-[2]" />
-                    )}
+                {isUnlocked && (
+                  <div className="absolute top-3.5 right-3.5 w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center text-white shadow-xs">
+                    <Check size={11} className="stroke-[3]" />
+                  </div>
+                )}
+
+                {/* Status Pill */}
+                <div className={`flex items-center gap-1.5 px-3 py-1 border rounded-full text-[9px] font-mono font-bold ${
+                  isUnlocked 
+                    ? 'bg-purple-100/60 border-purple-200 text-purple-800' 
+                    : 'bg-slate-50 border-slate-100 text-slate-500'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isUnlocked ? 'bg-purple-600' : 'bg-slate-400'}`} />
+                  <span>{isUnlocked ? 'ACHIEVED' : 'LOCKED'}</span>
+                </div>
+
+                {/* Center graphic container */}
+                <div className="relative w-28 h-28 flex items-center justify-center mt-4 mb-2">
+                  <div className={`absolute inset-0 rounded-full border border-dashed ${isUnlocked ? 'border-purple-200' : 'border-slate-100'}`} />
+                  <div className={`absolute inset-3 rounded-full border ${isUnlocked ? 'border-purple-100 bg-purple-50/40' : 'border-slate-100 bg-slate-50/50'}`} />
+                  <div className={`absolute inset-6 rounded-full flex items-center justify-center shadow-xs ${
+                    isUnlocked ? 'bg-purple-600 text-white' : 'bg-white border border-slate-200 text-slate-400'
+                  }`}>
+                    {isUnlocked ? <Award size={20} className="stroke-[2.5]" /> : <Lock size={18} className="stroke-[2.5]" />}
                   </div>
                 </div>
-                <h4 className="font-extrabold text-xs text-slate-900">Genesis Auditor</h4>
-                <p className="text-[8px] text-slate-500 font-mono font-bold uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded-full inline-block border border-slate-100">
-                  {isUnlocked ? 'Protocol Pioneer' : 'LOCKED (1+ JOB REQ)'}
-                </p>
+
+                {/* Info Text */}
+                <div className="space-y-1">
+                  <h4 className="font-extrabold text-sm text-slate-900">Genesis Auditor</h4>
+                  <p className="text-[10px] text-slate-500 leading-normal max-w-[160px] mx-auto">
+                    {isUnlocked ? 'Protocol pioneer credential verified' : 'Complete 1+ job to unlock this badge'}
+                  </p>
+                </div>
+
+                {/* Footer Tag */}
+                <div className={`w-full pt-4 border-t border-dashed ${isUnlocked ? 'border-purple-200/60' : 'border-slate-150'}`}>
+                  <span className={`text-[9px] font-mono font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${
+                    isUnlocked 
+                      ? 'bg-purple-100/50 border-purple-200 text-purple-800' 
+                      : 'bg-slate-50 border-slate-100 text-slate-500'
+                  }`}>
+                    1+ JOB REQUIRED
+                  </span>
+                </div>
               </motion.div>
             );
           })()}
@@ -998,87 +1055,213 @@ export const Reputation: React.FC = () => {
             const isUnlocked = reputationCount >= 4;
             return (
               <motion.div 
-                whileHover={isUnlocked ? { y: -5, scale: 1.02 } : {}}
-                className={`bg-white border border-slate-100 rounded-2xl text-center p-4.5 space-y-3 relative overflow-hidden group shadow-2xs ${
-                  isUnlocked ? 'hover:border-purple-300 transition-all hover:shadow-xs' : 'opacity-70'
+                whileHover={{ y: -6, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className={`rounded-3xl p-5 text-center flex flex-col justify-between items-center relative overflow-hidden shadow-xs h-[325px] transition-all border ${
+                  isUnlocked 
+                    ? 'bg-indigo-50/20 border-indigo-400/80 shadow-indigo-50' 
+                    : 'bg-white border-slate-200/60 shadow-slate-50/50'
                 }`}
               >
-                <div className="relative w-14 h-14 mx-auto flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border border-slate-100 bg-slate-50/50" />
-                  <div className="absolute inset-1.5 rounded-full border border-slate-100 bg-white" />
-                  <div className="relative z-10 text-slate-800 flex items-center justify-center">
-                    {isUnlocked ? (
-                      <ShieldCheck size={22} className="stroke-[2] text-slate-800" />
-                    ) : (
-                      <Lock size={18} className="text-slate-400 stroke-[2]" />
-                    )}
+                {isUnlocked && (
+                  <div className="absolute top-3.5 right-3.5 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-xs">
+                    <Check size={11} className="stroke-[3]" />
+                  </div>
+                )}
+
+                {/* Status Pill */}
+                <div className={`flex items-center gap-1.5 px-3 py-1 border rounded-full text-[9px] font-mono font-bold ${
+                  isUnlocked 
+                    ? 'bg-indigo-100/60 border-indigo-200 text-indigo-800' 
+                    : 'bg-slate-50 border-slate-100 text-slate-500'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isUnlocked ? 'bg-indigo-600' : 'bg-slate-400'}`} />
+                  <span>{isUnlocked ? 'ACHIEVED' : 'LOCKED'}</span>
+                </div>
+
+                {/* Center graphic container */}
+                <div className="relative w-28 h-28 flex items-center justify-center mt-4 mb-2">
+                  <div className={`absolute inset-0 rounded-full border border-dashed ${isUnlocked ? 'border-indigo-200' : 'border-slate-100'}`} />
+                  <div className={`absolute inset-3 rounded-full border ${isUnlocked ? 'border-indigo-100 bg-indigo-50/40' : 'border-slate-100 bg-slate-50/50'}`} />
+                  <div className={`absolute inset-6 rounded-full flex items-center justify-center shadow-xs ${
+                    isUnlocked ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-400'
+                  }`}>
+                    {isUnlocked ? <ShieldCheck size={20} className="stroke-[2.5]" /> : <Lock size={18} className="stroke-[2.5]" />}
                   </div>
                 </div>
-                <h4 className="font-extrabold text-xs text-slate-900">Escrow Master</h4>
-                <p className="text-[8px] text-slate-500 font-mono font-bold uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded-full inline-block border border-slate-100">
-                  {isUnlocked ? '100+ Escrows Released' : 'LOCKED (4+ JOBS REQ)'}
-                </p>
+
+                {/* Info Text */}
+                <div className="space-y-1">
+                  <h4 className="font-extrabold text-sm text-slate-900">Escrow Master</h4>
+                  <p className="text-[10px] text-slate-500 leading-normal max-w-[160px] mx-auto">
+                    {isUnlocked ? 'Escrow expert status validated' : 'Complete 4+ jobs to unlock this badge'}
+                  </p>
+                </div>
+
+                {/* Footer Tag */}
+                <div className={`w-full pt-4 border-t border-dashed ${isUnlocked ? 'border-indigo-200/60' : 'border-slate-150'}`}>
+                  <span className={`text-[9px] font-mono font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${
+                    isUnlocked 
+                      ? 'bg-indigo-100/50 border-indigo-200 text-indigo-800' 
+                      : 'bg-slate-50 border-slate-100 text-slate-500'
+                  }`}>
+                    4+ JOBS REQUIRED
+                  </span>
+                </div>
               </motion.div>
             );
           })()}
 
           {/* Badge 3 - Oracle Tier */}
           {(() => {
-            const isUnlocked = totalPoints >= 1000;
+            const isUnlocked = userRankIndex !== -1 && (userRankIndex + 1) <= 10;
             return (
               <motion.div 
-                whileHover={isUnlocked ? { y: -5, scale: 1.02 } : {}}
-                className={`bg-white border border-slate-100 rounded-2xl text-center p-4.5 space-y-3 relative overflow-hidden group shadow-2xs ${
-                  isUnlocked ? 'hover:border-purple-300 transition-all hover:shadow-xs' : 'opacity-70'
+                whileHover={{ y: -6, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className={`rounded-3xl p-5 text-center flex flex-col justify-between items-center relative overflow-hidden shadow-xs h-[325px] transition-all border ${
+                  isUnlocked 
+                    ? 'bg-emerald-50/20 border-emerald-400 shadow-emerald-50' 
+                    : 'bg-white border-slate-200/60 shadow-slate-50/50'
                 }`}
               >
-                <div className="relative w-14 h-14 mx-auto flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border border-slate-100 bg-slate-50/50" />
-                  <div className="absolute inset-1.5 rounded-full border border-slate-100 bg-white" />
-                  <div className="relative z-10 text-slate-800 flex items-center justify-center">
-                    {isUnlocked ? (
-                      <Star size={20} className="stroke-[2] text-slate-800 fill-slate-800/10" />
-                    ) : (
-                      <Lock size={18} className="text-slate-400 stroke-[2]" />
-                    )}
+                {isUnlocked && (
+                  <div className="absolute top-3.5 right-3.5 w-5 h-5 bg-emerald-600 rounded-full flex items-center justify-center text-white shadow-xs">
+                    <Check size={11} className="stroke-[3]" />
+                  </div>
+                )}
+
+                {/* Status Pill */}
+                <div className={`flex items-center gap-1.5 px-3 py-1 border rounded-full text-[9px] font-mono font-bold ${
+                  isUnlocked 
+                    ? 'bg-emerald-100 border-emerald-200 text-emerald-800' 
+                    : 'bg-slate-50 border-slate-100 text-slate-500'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isUnlocked ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                  <span>{isUnlocked ? 'ACHIEVED' : 'LOCKED'}</span>
+                </div>
+
+                {/* Center graphic container */}
+                <div className="relative w-28 h-28 flex items-center justify-center mt-4 mb-2">
+                  {isUnlocked && (
+                    <>
+                      <span className="absolute top-4 left-2 text-emerald-400/50 text-[10px] font-bold">+</span>
+                      <span className="absolute bottom-6 right-2 text-emerald-400/50 text-[10px] font-bold">+</span>
+                    </>
+                  )}
+                  <div className={`absolute inset-0 rounded-full border border-dashed ${isUnlocked ? 'border-emerald-200' : 'border-slate-100'}`} />
+                  <div className={`absolute inset-3 rounded-full border ${isUnlocked ? 'border-emerald-100 bg-emerald-50/40' : 'border-slate-100 bg-slate-50/50'}`} />
+                  <div className={`absolute inset-6 rounded-full flex items-center justify-center shadow-xs ${
+                    isUnlocked ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-400'
+                  }`}>
+                    {isUnlocked ? <Star size={20} className="text-white fill-white stroke-[2]" /> : <Lock size={18} className="stroke-[2.5]" />}
                   </div>
                 </div>
-                <h4 className="font-extrabold text-xs text-slate-900">Oracle Tier</h4>
-                <p className="text-[8px] text-slate-500 font-mono font-bold uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded-full inline-block border border-slate-100">
-                  {isUnlocked ? 'Oracle Status Active' : 'Locked (Rank #10 Req)'}
-                </p>
+
+                {/* Info Text */}
+                <div className="space-y-1">
+                  <h4 className="font-extrabold text-sm text-slate-900">Oracle Tier</h4>
+                  <p className="text-[10px] text-slate-500 leading-normal max-w-[160px] mx-auto">
+                    {isUnlocked ? 'Oracle status successfully active' : 'Be in top 10 rank to unlock this badge'}
+                  </p>
+                </div>
+
+                {/* Footer Tag */}
+                <div className={`w-full pt-4 border-t border-dashed ${isUnlocked ? 'border-emerald-200/60' : 'border-slate-150'}`}>
+                  <span className={`text-[9px] font-mono font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${
+                    isUnlocked 
+                      ? 'bg-emerald-100 border-emerald-200 text-emerald-800' 
+                      : 'bg-slate-50 border-slate-100 text-slate-500'
+                  }`}>
+                    ORACLE STATUS ACTIVE
+                  </span>
+                </div>
               </motion.div>
             );
           })()}
 
           {/* Badge 4 - Identity Verified */}
           {(() => {
-            const isUnlocked = address ? (profiles[address]?.githubVerified === true) : false;
+            const isUnlocked = userProfile?.githubVerified === true;
             return (
               <motion.div 
-                whileHover={isUnlocked ? { y: -5, scale: 1.02 } : {}}
-                className={`bg-white border border-slate-100 rounded-2xl text-center p-4.5 space-y-3 relative overflow-hidden group shadow-2xs ${
-                  isUnlocked ? 'hover:border-purple-300 transition-all hover:shadow-xs' : 'opacity-70'
+                whileHover={{ y: -6, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className={`rounded-3xl p-5 text-center flex flex-col justify-between items-center relative overflow-hidden shadow-xs h-[325px] transition-all border ${
+                  isUnlocked 
+                    ? 'bg-blue-50/20 border-blue-400 shadow-blue-50' 
+                    : 'bg-white border-slate-200/60 shadow-slate-50/50'
                 }`}
               >
-                <div className="relative w-14 h-14 mx-auto flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border border-slate-100 bg-slate-50/50" />
-                  <div className="absolute inset-1.5 rounded-full border border-slate-100 bg-white" />
-                  <div className="relative z-10 text-slate-800 flex items-center justify-center">
+                {isUnlocked && (
+                  <div className="absolute top-3.5 right-3.5 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xs">
+                    <Check size={11} className="stroke-[3]" />
+                  </div>
+                )}
+
+                {/* Status Pill */}
+                <div className={`flex items-center gap-1.5 px-3 py-1 border rounded-full text-[9px] font-mono font-bold ${
+                  isUnlocked 
+                    ? 'bg-blue-100 border-blue-200 text-blue-800' 
+                    : 'bg-slate-50 border-slate-100 text-slate-500'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isUnlocked ? 'bg-blue-500' : 'bg-slate-400'}`} />
+                  <span>{isUnlocked ? 'VERIFIED' : 'LOCKED'}</span>
+                </div>
+
+                {/* Center graphic container */}
+                <div className="relative w-28 h-28 flex items-center justify-center mt-4 mb-2">
+                  {isUnlocked && (
+                    <>
+                      <span className="absolute top-8 left-1 text-blue-400/50 text-[10px] font-bold">+</span>
+                      <span className="absolute bottom-8 right-1 text-blue-400/50 text-[10px] font-bold">+</span>
+                    </>
+                  )}
+                  <div className={`absolute inset-0 rounded-full border border-dashed ${isUnlocked ? 'border-blue-200' : 'border-slate-100'}`} />
+                  <div className={`absolute inset-3 rounded-full border ${isUnlocked ? 'border-blue-100 bg-blue-50/40' : 'border-slate-100 bg-slate-50/50'}`} />
+                  <div className={`absolute inset-6 rounded-full flex items-center justify-center shadow-xs ${
+                    isUnlocked ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-400'
+                  }`}>
                     {isUnlocked ? (
-                      <CheckCircle2 size={22} className="stroke-[2] text-slate-800" />
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      </svg>
                     ) : (
-                      <Lock size={18} className="text-slate-400 stroke-[2]" />
+                      <Lock size={18} className="stroke-[2.5]" />
                     )}
                   </div>
                 </div>
-                <h4 className="font-extrabold text-xs text-slate-900">Identity Verified</h4>
-                <p className="text-[8px] text-slate-500 font-mono font-bold uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded-full inline-block border border-slate-100">
-                  {isUnlocked ? 'GitHub Attestation' : 'LOCKED (LINK GITHUB)'}
-                </p>
+
+                {/* Info Text */}
+                <div className="space-y-1">
+                  <h4 className="font-extrabold text-sm text-slate-900">Identity Verified</h4>
+                  <p className="text-[10px] text-slate-500 leading-normal max-w-[160px] mx-auto">
+                    {isUnlocked ? 'GitHub identity successfully verified' : 'Link GitHub account to verify identity'}
+                  </p>
+                </div>
+
+                {/* Footer Tag */}
+                <div className={`w-full pt-4 border-t border-dashed ${isUnlocked ? 'border-blue-200/60' : 'border-slate-150'}`}>
+                  <span className={`text-[9px] font-mono font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${
+                    isUnlocked 
+                      ? 'bg-blue-100 border-blue-200 text-blue-800' 
+                      : 'bg-slate-50 border-slate-100 text-slate-500'
+                  }`}>
+                    GITHUB ATTESTATION
+                  </span>
+                </div>
               </motion.div>
             );
           })()}
+        </div>
+
+        {/* Center Bottom Attestation Info banner */}
+        <div className="bg-indigo-50/50 border border-indigo-100/50 rounded-2xl p-3 flex items-center justify-center gap-2 text-xs font-mono font-bold text-indigo-950 mt-4">
+          <svg className="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          <span>All achievements are soulbound and verifiable on-chain.</span>
         </div>
       </motion.section>
     </motion.div>

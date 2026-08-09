@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, TreasuryProposal, TreasuryState } from '../types';
 import { generateMockTxHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
+import { fetchLiveExchangeRates } from '../utils/currency';
 
 // Demo initial state with rich realistic data fulfilling all sections of the spec
 const INITIAL_JOBS: Job[] = [];
@@ -20,7 +21,7 @@ interface PolyLanceDataContextType {
   treasuryBalanceEth: number;
   treasuryHistory: { id: string; type: 'FEE_COLLECTED' | 'WITHDRAWAL'; amountUsdc: number; txHash: string; timestamp: number; by?: string }[];
   profiles: Record<string, UserProfile>;
-  postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; reviewPeriodDays: number }, clientAddress: string) => Job;
+  postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; reviewPeriodDays: number; paymentToken?: 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'POL'; tokenAmount?: string }, clientAddress: string) => Job;
   applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => void;
   selectFreelancer: (jobId: string, freelancerAddress: string) => void;
   proposeTerms: (jobId: string, userAddress: string) => void;
@@ -70,40 +71,75 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
 };
 
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [jobs, setJobs] = useState<Job[]>(() => {
+  const hasUnsyncedChangesRef = useRef(false);
+  const isRestoringRef = useRef(false);
+  const lastLoadedCidRef = useRef<string | null>(null);
+
+  const [jobs, setJobsRaw] = useState<Job[]>(() => {
     const saved = localStorage.getItem('polylance_jobs');
     return saved ? JSON.parse(saved) : INITIAL_JOBS;
   });
-  const [daoProposals, setDaoProposals] = useState<DaoProposal[]>(() => {
+  const setJobs = (val: React.SetStateAction<Job[]>) => {
+    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    setJobsRaw(val);
+  };
+
+  const [daoProposals, setDaoProposalsRaw] = useState<DaoProposal[]>(() => {
     const saved = localStorage.getItem('polylance_dao_proposals');
     return saved ? JSON.parse(saved) : INITIAL_PROPOSALS;
   });
-  const [treasuryBalanceUsdc, setTreasuryBalanceUsdc] = useState<number>(() => {
+  const setDaoProposals = (val: React.SetStateAction<DaoProposal[]>) => {
+    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    setDaoProposalsRaw(val);
+  };
+
+  const [treasuryBalanceUsdc, setTreasuryBalanceUsdcRaw] = useState<number>(() => {
     const saved = localStorage.getItem('polylance_treasury_balance_usdc');
     if (saved === '10000' || !saved) return 0;
     return parseFloat(saved);
   });
-  const [treasuryBalanceEth, setTreasuryBalanceEth] = useState<number>(() => {
+  const setTreasuryBalanceUsdc = (val: React.SetStateAction<number>) => {
+    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    setTreasuryBalanceUsdcRaw(val);
+  };
+
+  const [treasuryBalanceEth, setTreasuryBalanceEthRaw] = useState<number>(() => {
     const saved = localStorage.getItem('polylance_treasury_balance_eth');
     if (saved === '4.5' || !saved) return 0.0;
     return parseFloat(saved);
   });
+  const setTreasuryBalanceEth = (val: React.SetStateAction<number>) => {
+    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    setTreasuryBalanceEthRaw(val);
+  };
 
-  const [treasuryProposals, setTreasuryProposals] = useState<TreasuryProposal[]>(() => {
+  const [treasuryProposals, setTreasuryProposalsRaw] = useState<TreasuryProposal[]>(() => {
     const saved = localStorage.getItem('polylance_treasury_proposals');
     return saved ? JSON.parse(saved) : [];
   });
+  const setTreasuryProposals = (val: React.SetStateAction<TreasuryProposal[]>) => {
+    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    setTreasuryProposalsRaw(val);
+  };
 
-  const [treasuryHistory, setTreasuryHistory] = useState<any[]>(() => {
+  const [treasuryHistory, setTreasuryHistoryRaw] = useState<any[]>(() => {
     const saved = localStorage.getItem('polylance_treasury_history');
     return saved ? JSON.parse(saved) : [];
   });
+  const setTreasuryHistory = (val: React.SetStateAction<any[]>) => {
+    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    setTreasuryHistoryRaw(val);
+  };
 
-  const [profiles, setProfiles] = useState<Record<string, UserProfile>>(() => {
+  const [profiles, setProfilesRaw] = useState<Record<string, UserProfile>>(() => {
     const saved = localStorage.getItem('polylance_profiles');
     const raw = saved ? JSON.parse(saved) : INITIAL_PROFILES;
     return normalizeProfiles(raw);
   });
+  const setProfiles = (val: React.SetStateAction<Record<string, UserProfile>>) => {
+    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    setProfilesRaw(val);
+  };
 
   const [loading, setLoading] = useState(true);
   const pinataJwt = import.meta.env.VITE_PINATA_JWT;
@@ -151,6 +187,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             }
 
             if (data) {
+              isRestoringRef.current = true;
               if (data.jobs) setJobs(data.jobs);
               if (data.daoProposals) setDaoProposals(data.daoProposals);
               if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
@@ -158,6 +195,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
               if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
               if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
+              
+              lastLoadedCidRef.current = cid;
+              isRestoringRef.current = false;
             }
           }
         }
@@ -169,6 +209,63 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     loadStateFromPinata();
   }, [pinataJwt]);
+
+  // Background Polling Loop to fetch other party's updates
+  useEffect(() => {
+    if (!pinataJwt) return;
+
+    const pollInterval = setInterval(async () => {
+      // Only poll and update if there are no unsynced local changes
+      if (hasUnsyncedChangesRef.current) return;
+
+      try {
+        const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
+        const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
+          headers: {
+            Authorization: `Bearer ${pinataJwt}`,
+          }
+        });
+        if (listResponse.ok) {
+          const listData = await listResponse.json();
+          const rows = listData.rows || [];
+          if (rows.length > 0) {
+            const newest = rows.sort((a: any, b: any) => new Date(b.date_pinned).getTime() - new Date(a.date_pinned).getTime())[0];
+            const cid = newest.ipfs_pin_hash;
+            
+            // Avoid redundant download if already matched
+            if (cid === lastLoadedCidRef.current) return;
+
+            const response = await fetch(`https://gateway.pinata.cloud/ipfs/${cid}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data && !hasUnsyncedChangesRef.current) {
+                isRestoringRef.current = true;
+                if (data.jobs) setJobs(data.jobs);
+                if (data.daoProposals) setDaoProposals(data.daoProposals);
+                if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
+                if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
+                if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
+                if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
+                if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
+                
+                lastLoadedCidRef.current = cid;
+                isRestoringRef.current = false;
+                console.log('Background updated state to latest cloud CID:', cid);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Background state poll failed:', error);
+      }
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [pinataJwt]);
+
+  useEffect(() => {
+    fetchLiveExchangeRates().catch((err) => console.warn('Failed to load rates on boot:', err));
+  }, []);
 
   useEffect(() => {
     if (loading || !pinataJwt) return;
@@ -204,6 +301,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           const data = await response.json();
           const newCid = data.IpfsHash;
           console.log('Synced live cloud state to Pinata IPFS CID:', newCid);
+          
+          lastLoadedCidRef.current = newCid;
+          hasUnsyncedChangesRef.current = false;
 
           // Clean up old state pins to keep IPFS storage clean without hitting rate limits
           const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
@@ -269,12 +369,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     balanceUsdc: treasuryBalanceUsdc.toString(),
     balanceEth: treasuryBalanceEth.toString(),
     requiredSignatures: 2,
-    signers: ['0x62cDfc0692cC675c95304BaCE2C834D8F901dCba', '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A'],
+    signers: [
+      import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cDfc0692cC675c95304BaCE2C834D8F901dCba',
+      import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A'
+    ],
     proposals: treasuryProposals,
   };
 
   const postJob = (
-    jobData: { title: string; description: string; category: any; amountUsdc: string; reviewPeriodDays: number },
+    jobData: { title: string; description: string; category: any; amountUsdc: string; reviewPeriodDays: number; paymentToken?: 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'POL'; tokenAmount?: string },
     clientAddress: string
   ) => {
     const contractAddr = '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
@@ -287,6 +390,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       client: clientAddress,
       amountEth: ethAmount,
       amountUsdc: jobData.amountUsdc,
+      paymentToken: jobData.paymentToken || 'USDC',
+      tokenAmount: jobData.tokenAmount || jobData.amountUsdc,
       status: 'Open',
       title: jobData.title,
       description: jobData.description,
@@ -611,6 +716,23 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           { id: Date.now().toString(), type: 'FEE_COLLECTED', amountUsdc: fee, txHash, timestamp: Date.now() },
           ...h,
         ]);
+
+        // Update freelancer profile stats if present
+        if (job.freelancer) {
+          const flAddr = job.freelancer.toLowerCase();
+          setProfiles((prevProfiles) => {
+            const next = { ...prevProfiles };
+            const key = Object.keys(next).find(k => k.toLowerCase() === flAddr);
+            if (key) {
+              next[key] = {
+                ...next[key],
+                reputationSbtCount: (next[key].reputationSbtCount || 0) + 1,
+                primaryScore: Math.min((next[key].primaryScore || 700) + 35, 1000), // Increase score by 35 points on success!
+              };
+            }
+            return next;
+          });
+        }
 
         const updatedEvents = job.events.map((evt) => {
           if (evt.step === 'Completed') return { ...evt, title: 'Payment Released (100%)', status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };

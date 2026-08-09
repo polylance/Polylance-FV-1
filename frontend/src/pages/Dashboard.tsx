@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
@@ -10,6 +10,7 @@ import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, Trendin
 export const Dashboard: React.FC = () => {
   const { address, currentRole } = useWeb3();
   const { jobs, profiles, updateProfile } = usePolyLanceData();
+  const navigate = useNavigate();
   
   if (currentRole === 'judge') {
     return <Navigate to="/judge" replace />;
@@ -239,10 +240,14 @@ export const Dashboard: React.FC = () => {
 
                   <div className="divide-y divide-slate-100">
                     {clientPendingReviewJobs.map((job) => (
-                      <div key={job.id} className="p-6 flex flex-col md:flex-row gap-4 items-start justify-between hover:bg-slate-50 transition-colors">
+                      <div
+                        key={job.id}
+                        onClick={() => navigate(`/jobs/${job.id}`)}
+                        className="p-6 flex flex-col md:flex-row gap-4 items-start justify-between hover:bg-slate-50 transition-colors cursor-pointer group"
+                      >
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 text-base">{job.title}</span>
+                            <span className="font-bold text-slate-900 text-base group-hover:text-purple-700 transition-colors">{job.title}</span>
                             <span className="bg-purple-100 text-purple-900 text-[10px] font-mono font-bold px-2 py-0.5 rounded">
                               Proof Submitted
                             </span>
@@ -267,12 +272,11 @@ export const Dashboard: React.FC = () => {
                         </div>
 
                         <div className="flex flex-row md:flex-col gap-2 shrink-0 self-end md:self-auto">
-                          <Link
-                            to={`/jobs/${job.id}`}
+                          <div
                             className="gradient-btn-primary px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs"
                           >
                             Review & Release
-                          </Link>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -295,15 +299,15 @@ export const Dashboard: React.FC = () => {
                   {(myClientJobs.length > 0 ? myClientJobs : jobs.slice(0, 3)).map((job) => (
                     <div
                       key={job.id}
-                      className="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-purple-300 transition-all flex items-center justify-between"
+                      onClick={() => navigate(`/jobs/${job.id}`)}
+                      className="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-purple-300 transition-all flex items-center justify-between cursor-pointer group"
                     >
                       <div className="space-y-1 max-w-md">
-                        <Link
-                          to={`/jobs/${job.id}`}
-                          className="font-bold text-sm text-slate-900 hover:text-purple-700 transition-colors line-clamp-1"
+                        <div
+                          className="font-bold text-sm text-slate-900 group-hover:text-purple-700 transition-colors line-clamp-1"
                         >
                           {job.title}
-                        </Link>
+                        </div>
                         <div className="flex items-center gap-3 text-[11px] text-slate-600 font-mono">
                           <span className="font-bold text-emerald-700">${job.amountUsdc} USDC Escrow</span>
                           <span>•</span>
@@ -315,12 +319,11 @@ export const Dashboard: React.FC = () => {
                         <span className={`badge-status badge-${job.status.toLowerCase()}`}>
                           {job.status}
                         </span>
-                        <Link
-                          to={`/jobs/${job.id}`}
-                          className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200"
+                        <div
+                          className="p-2 rounded-xl bg-purple-50 group-hover:bg-purple-100 text-purple-900 border border-purple-200 transition-colors"
                         >
                           <ArrowUpRight size={16} />
-                        </Link>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -460,12 +463,16 @@ export const Dashboard: React.FC = () => {
                     </div>
                   ) : (
                     myFreelancerJobs.map((job) => (
-                      <div key={job.id} className="bg-slate-50 p-5 rounded-2xl border border-purple-200 space-y-3">
+                      <div
+                        key={job.id}
+                        onClick={() => navigate(`/jobs/${job.id}`)}
+                        className="bg-slate-50 p-5 rounded-2xl border border-purple-200 space-y-3 cursor-pointer group hover:border-purple-400 transition-all"
+                      >
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <Link to={`/jobs/${job.id}`} className="font-bold text-base text-slate-900 hover:text-purple-700 transition-colors">
+                            <div className="font-bold text-base text-slate-900 group-hover:text-purple-700 transition-colors">
                               {job.title}
-                            </Link>
+                            </div>
                             <p className="text-xs text-slate-600 mt-0.5 font-mono">
                               Client: <span className="text-purple-700 font-bold">{truncateAddress(job.client)}</span>
                             </p>
@@ -495,13 +502,12 @@ export const Dashboard: React.FC = () => {
                             <MessageSquare size={15} className="text-purple-700" />
                             <span>XMTP Encrypted Chat Connected</span>
                           </div>
-                          <Link
-                            to={`/jobs/${job.id}`}
+                          <div
                             className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
                           >
                             Open Collaboration Hub
                             <ArrowUpRight size={14} />
-                          </Link>
+                          </div>
                         </div>
                       </div>
                     ))

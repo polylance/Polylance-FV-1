@@ -224,7 +224,7 @@ export const Onboarding: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. sunny200551 or https://github.com/sunny200551"
+                      placeholder="e.g. username  or https://github.com/username"
                       value={githubUsername}
                       onChange={(e) => {
                         setGithubUsername(e.target.value);

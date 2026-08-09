@@ -78,6 +78,8 @@ export interface Job {
   freelancer?: string;
   amountEth: string;
   amountUsdc: string;
+  paymentToken?: 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'POL';
+  tokenAmount?: string;
   status: JobStatus;
   title: string;
   description: string;

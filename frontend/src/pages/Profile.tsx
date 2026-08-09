@@ -45,8 +45,8 @@ export const Profile: React.FC = () => {
     }
   }, [profileAddr, userProfile.githubUsername, userProfile.githubVerified]);
 
-  const isClientProfile = profileAddr.toLowerCase().includes('0x9999') || (isOwnProfile && currentRole === 'client');
-  const isJudgeProfile = profileAddr.toLowerCase().includes('0x62cd') || (isOwnProfile && currentRole === 'judge');
+  const isClientProfile = profileAddr.toLowerCase() === (import.meta.env.VITE_CLIENT_ADDRESS || '0x9999888877776666555544443333222211110000').toLowerCase() || (isOwnProfile && currentRole === 'client');
+  const isJudgeProfile = profileAddr.toLowerCase() === (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase() || (isOwnProfile && currentRole === 'judge');
 
   const clientJobs = jobs.filter((j) => j.client.toLowerCase() === profileAddr?.toLowerCase());
   const completedClientJobs = clientJobs.filter((j) => j.status === 'Completed');
@@ -130,10 +130,27 @@ export const Profile: React.FC = () => {
               </div>
 
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Avg Payment Speed</span>
-                <p className="font-extrabold text-purple-900 text-xl">{completedClientJobs.length > 0 ? '4.2 Hours' : 'N/A'}</p>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">Avg Payout Speed</span>
+                <p className="font-extrabold text-purple-900 text-xl">
+                  {(() => {
+                    const releaseSpeeds = clientJobs
+                      .filter(j => j.status === 'Completed')
+                      .map(j => {
+                        const postedEvent = j.events.find(e => e.step === 'Posted');
+                        const completedEvent = j.events.find(e => e.step === 'Completed');
+                        if (postedEvent && completedEvent && completedEvent.timestamp > 0 && postedEvent.timestamp > 0) {
+                          return (completedEvent.timestamp - postedEvent.timestamp) / 3600000;
+                        }
+                        return null;
+                      })
+                      .filter((v): v is number => v !== null && v > 0);
+                    return releaseSpeeds.length > 0 
+                      ? `${(releaseSpeeds.reduce((a,b)=>a+b,0)/releaseSpeeds.length).toFixed(1)} Hours` 
+                      : 'N/A';
+                  })()}
+                </p>
                 <span className="text-[10px] text-purple-700 font-bold flex items-center gap-1">
-                  <Zap size={12} /> {completedClientJobs.length > 0 ? 'Top 5% Payout Speed' : 'No releases yet'}
+                  <Zap size={12} /> {completedClientJobs.length > 0 ? 'Top Tier Payout Speed' : 'No releases yet'}
                 </span>
               </div>
 
@@ -174,9 +191,21 @@ export const Profile: React.FC = () => {
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-slate-800 font-bold block text-xs">Verified Multi-Sig Safe Wallet</span>
+                      <span className="text-slate-800 font-bold block text-xs">
+                        {(() => {
+                          const isMultisig = profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
+                                             profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase();
+                          return isMultisig ? 'Verified Multi-Sig Safe Wallet' : 'Standard Web3 EOA Wallet';
+                        })()}
+                      </span>
                       <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
-                        The client's wallet `0x9999...0000` is a Gnosis Safe smart contract with 2-of-3 key holders verified as organizational representatives.
+                        {(() => {
+                          const isMultisig = profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
+                                             profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase();
+                          return isMultisig 
+                            ? `The client's wallet ${truncateAddress(profileAddr)} is a Gnosis Safe smart contract with 2-of-3 key holders verified as organizational representatives.`
+                            : `The client's wallet ${truncateAddress(profileAddr)} is a verified standard externally owned account (EOA) active on-chain.`;
+                        })()}
                       </span>
                     </div>
                   </div>
@@ -184,9 +213,13 @@ export const Profile: React.FC = () => {
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-slate-800 font-bold block text-xs">0% Dispute History Rate</span>
+                      <span className="text-slate-800 font-bold block text-xs">
+                        {disputes.length === 0 ? '0% Dispute History Rate' : `${Math.round((disputes.length / (clientJobs.length || 1)) * 100)}% Dispute Rate`}
+                      </span>
                       <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
-                        No disputes have ever escalated to DAO Judge Panel arbitration. All escrows were completed amicably with on-time payouts.
+                        {disputes.length === 0 
+                          ? 'No disputes have ever escalated to DAO Judge Panel arbitration. All escrows were completed amicably with on-time payouts.' 
+                          : `${disputes.length} dispute${disputes.length === 1 ? '' : 's'} required arbitrator intervention out of ${clientJobs.length} total escrow contracts.`}
                       </span>
                     </div>
                   </div>
@@ -194,9 +227,20 @@ export const Profile: React.FC = () => {
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-slate-800 font-bold block text-xs">Platform Longevity (2+ Years)</span>
+                      <span className="text-slate-800 font-bold block text-xs">Platform Longevity</span>
                       <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
-                        Registered since 2024. Active participation and consistent escrow funding history verified.
+                        {(() => {
+                          const oldest = clientJobs.reduce((old, j) => {
+                            const posted = j.events.find(e => e.step === 'Posted');
+                            if (posted && posted.timestamp > 0) {
+                              return old === 0 || posted.timestamp < old ? posted.timestamp : old;
+                            }
+                            return old;
+                          }, 0);
+                          return oldest > 0 
+                            ? `Active member since ${new Date(oldest).toLocaleDateString()}. Consistent escrow funding history verified.`
+                            : 'Newly registered client on PolyLance. Wallet successfully connected.';
+                        })()}
                       </span>
                     </div>
                   </div>
@@ -208,15 +252,38 @@ export const Profile: React.FC = () => {
                   <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider border-b border-slate-200 pb-2">Payment Speed & Performance SLA</span>
                   <div className="flex justify-between items-baseline border-b border-slate-200 pb-2">
                     <span className="text-slate-600 font-medium">Avg Review Time</span>
-                    <span className="font-bold text-slate-900 text-sm">{completedClientJobs.length > 0 ? '4.2 Hours' : 'N/A'}</span>
+                    <span className="font-bold text-slate-900 text-sm">
+                      {(() => {
+                        const releaseSpeeds = clientJobs
+                          .filter(j => j.status === 'Completed')
+                          .map(j => {
+                            const postedEvent = j.events.find(e => e.step === 'Posted');
+                            const completedEvent = j.events.find(e => e.step === 'Completed');
+                            if (postedEvent && completedEvent && completedEvent.timestamp > 0 && postedEvent.timestamp > 0) {
+                              return (completedEvent.timestamp - postedEvent.timestamp) / 3600000;
+                            }
+                            return null;
+                          })
+                          .filter((v): v is number => v !== null && v > 0);
+                        return releaseSpeeds.length > 0 
+                          ? `${(releaseSpeeds.reduce((a,b)=>a+b,0)/releaseSpeeds.length).toFixed(1)} Hours` 
+                          : 'N/A';
+                      })()}
+                    </span>
                   </div>
                   <div className="flex justify-between items-baseline border-b border-slate-200 pb-2">
                     <span className="text-slate-600 font-medium">Escrow Completion Rate</span>
-                    <span className="font-bold text-slate-900 text-sm">{clientJobs.length > 0 ? '100%' : 'N/A'}</span>
+                    <span className="font-bold text-slate-900 text-sm">
+                      {clientJobs.length > 0 
+                        ? `${Math.round((completedClientJobs.length / clientJobs.length) * 100)}%` 
+                        : 'N/A'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-slate-600 font-medium">On-Time Release SLA</span>
-                    <span className="font-bold text-slate-900 text-sm">{clientJobs.length > 0 ? '100% compliant' : 'N/A'}</span>
+                    <span className="font-bold text-slate-900 text-sm">
+                      {clientJobs.length > 0 ? '100% compliant' : 'N/A'}
+                    </span>
                   </div>
                 </div>
 
@@ -224,7 +291,7 @@ export const Profile: React.FC = () => {
                   <div className="bg-purple-50 border border-purple-200 p-5 rounded-xl space-y-2 text-[11px] text-purple-950 font-sans shadow-2xs">
                     <span className="font-headline font-bold text-purple-900 block text-xs">Freelancer Trust Endorsement</span>
                     <p className="leading-relaxed">
-                      "Client is highly professional. The scope was clear, escrow was immediately funded with USDC, and payouts were approved within hours of submission."
+                      "Client is highly professional. The scope was clear, escrow was immediately funded, and payouts were approved upon milestone verification."
                     </p>
                     <p className="text-[10px] font-mono text-purple-700 font-bold pt-1">— Verified Freelancer Partner</p>
                   </div>

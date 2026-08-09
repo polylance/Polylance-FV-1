@@ -1,0 +1,52 @@
+name: Deploy PolyLance to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - dev.sunny
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './package-lock.json'
+
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          VITE_WALLETCONNECT_PROJECT_ID: 3a8170812b534d0ff9d794f19a901d64
+          VITE_PINATA_API_KEY: 87a4a13a73733000ba76
+          VITE_PINATA_API_SECRET: 0c0a8b16fc5480f5a588c6c8e80c2196188598778ed1e471fd49f4d94899a0e9
+          VITE_PINATA_JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJiOGFiYzA1OC05MjY0LTRjZjktYmFjNi1mOTI0MWM4NTVjYjciLCJlbWFpbCI6InBhc3VtYXJ0aGlzdW5ueTAwQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI4N2E0YTEzYTczNzMzMDAwYmE3NiIsInNjb3BlZEtleVNlY3JldCI6IjBjMGE4YjE2ZmM1NDgwZjVhNTg4YzZjOGU4MGMyMTk2MTg4NTk4Nzc4ZWQxZTQ3MWZkNDlmNGQ5NDg5OWEwZTkiLCJleHAiOjE4MTc2NTI2NDd9.Hgq3hOZpUIsu6rFrFaFS6V2bW1TxLf59EBK_rgln9pI
+          VITE_CLIENT_ADDRESS: 0x9999888877776666555544443333222211110000
+          VITE_TESTER_ADDRESS: 0x3333444455556666777788889999000011112222
+          VITE_JUDGE_ADDRESS: 0xB8aa0398B91A150B041DA819bc954Bb356e009Dd
+          VITE_ADMIN_ADDRESS_1: 0x62cdfc0692cc675c95304bace2c834d8f901dcba
+          VITE_ADMIN_ADDRESS_2: 0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: frontend/dist
+          branch: gh-pages
