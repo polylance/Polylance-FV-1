@@ -162,7 +162,7 @@ export const Chat: React.FC = () => {
                 placeholder="Search channels..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs glass-input font-medium"
+                className="w-full !pl-8 !pr-3 !py-1.5 text-xs glass-input font-medium"
               />
               <Search className="absolute left-2.5 top-2.5 text-slate-400" size={13} />
             </div>

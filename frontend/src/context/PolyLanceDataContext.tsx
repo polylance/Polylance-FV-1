@@ -167,9 +167,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const cid = newest.ipfs_pin_hash;
             
             const gateways = [
-              `https://cloudflare-ipfs.com/ipfs/${cid}`,
               `https://ipfs.io/ipfs/${cid}`,
               `https://gateway.pinata.cloud/ipfs/${cid}`,
+              `https://cloudflare-ipfs.com/ipfs/${cid}`,
               `https://dweb.link/ipfs/${cid}`
             ];
 
@@ -372,7 +372,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     requiredSignatures: 2,
     signers: [
       import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cDfc0692cC675c95304BaCE2C834D8F901dCba',
-      import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A'
+      import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
+      '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1'
     ],
     proposals: treasuryProposals,
   };

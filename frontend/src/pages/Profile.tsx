@@ -194,14 +194,16 @@ export const Profile: React.FC = () => {
                       <span className="text-slate-800 font-bold block text-xs">
                         {(() => {
                           const isMultisig = profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
-                                             profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase();
+                                             profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase() ||
+                                             profileAddr?.toLowerCase() === '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1';
                           return isMultisig ? 'Verified Multi-Sig Safe Wallet' : 'Standard Web3 EOA Wallet';
                         })()}
                       </span>
                       <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
                         {(() => {
                           const isMultisig = profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
-                                             profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase();
+                                             profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase() ||
+                                             profileAddr?.toLowerCase() === '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1';
                           return isMultisig 
                             ? `The client's wallet ${truncateAddress(profileAddr)} is a Gnosis Safe smart contract with 2-of-3 key holders verified as organizational representatives.`
                             : `The client's wallet ${truncateAddress(profileAddr)} is a verified standard externally owned account (EOA) active on-chain.`;

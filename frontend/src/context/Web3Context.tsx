@@ -82,7 +82,8 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentRole('judge');
       } else if (
         lowerAddr === DEMO_WALLETS.admin.address.toLowerCase() ||
-        lowerAddr === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase()
+        lowerAddr === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
+        lowerAddr === '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1'
       ) {
         setCurrentRole('admin');
       } else {

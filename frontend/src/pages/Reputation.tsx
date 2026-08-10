@@ -23,7 +23,7 @@ import {
 import { motion } from 'framer-motion';
 
 export const Reputation: React.FC = () => {
-  const { address, isArbitrator } = useWeb3();
+  const { address, isArbitrator, currentRole } = useWeb3();
   const { profiles, jobs } = usePolyLanceData();
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'monthly'>('all');
 
@@ -49,8 +49,19 @@ export const Reputation: React.FC = () => {
   const govPoints = userCompletedJobsCount > 0 ? (userCompletedJobsCount * 15) + 10 : 0;
   const totalPoints = escrowPoints + multisigPoints + govPoints;
 
+  // Exclude non-developer roles/addresses (judge, admins, client) from rankings
+  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
+  const adminAddr1 = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase();
+  const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A').toLowerCase();
+  const adminAddr3 = '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1'.toLowerCase();
+  const clientAddr = (import.meta.env.VITE_CLIENT_ADDRESS || '0x9999888877776666555544443333222211110000').toLowerCase();
+
   // Compute leaderboard first to determine dynamic rank
   const leaderboardData = Object.values(profiles)
+    .filter((profile) => {
+      const lower = profile.address.toLowerCase();
+      return lower !== judgeAddr && lower !== adminAddr1 && lower !== adminAddr2 && lower !== adminAddr3 && lower !== clientAddr;
+    })
     .map((profile) => {
       const isYou = profile.address.toLowerCase() === address?.toLowerCase();
       // For other profile entries, count their completed jobs in jobs database
@@ -80,7 +91,7 @@ export const Reputation: React.FC = () => {
       };
     })
     .concat(
-      address && !Object.keys(profiles).some(k => k.toLowerCase() === address.toLowerCase())
+      address && currentRole === 'freelancer' && !Object.keys(profiles).some(k => k.toLowerCase() === address.toLowerCase())
         ? [
             {
               rank: 0,

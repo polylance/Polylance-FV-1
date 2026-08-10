@@ -526,7 +526,8 @@ export const JobDetail: React.FC = () => {
             }
 
             const isMultisig = job.client.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
-                               job.client.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase();
+                               job.client.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase() ||
+                               job.client.toLowerCase() === '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1';
 
             return (
               <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-5">
