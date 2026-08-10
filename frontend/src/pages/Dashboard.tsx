@@ -15,9 +15,6 @@ export const Dashboard: React.FC = () => {
   if (currentRole === 'judge') {
     return <Navigate to="/judge" replace />;
   }
-  if (currentRole === 'admin') {
-    return <Navigate to="/treasury" replace />;
-  }
 
   const userProfileKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
   const userProfile = ((userProfileKey ? profiles[userProfileKey] : null) || {

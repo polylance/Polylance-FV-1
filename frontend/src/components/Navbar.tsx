@@ -24,7 +24,8 @@ import {
   Settings,
   Beaker,
   Grid,
-  ChevronRight
+  ChevronRight,
+  Power
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
 
@@ -34,9 +35,13 @@ export const Navbar: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  
+  const [isJudgeMoreOpen, setIsJudgeMoreOpen] = useState(false);
+  const [isJudgeMobileOpen, setIsJudgeMobileOpen] = useState(false);
 
   const moreRef = React.useRef<HTMLDivElement>(null);
   const mobileMoreRef = React.useRef<HTMLDivElement>(null);
+  const judgeMoreRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -46,6 +51,9 @@ export const Navbar: React.FC = () => {
       if (mobileMoreRef.current && !mobileMoreRef.current.contains(event.target as Node)) {
         setIsMoreOpen(false);
       }
+      if (judgeMoreRef.current && !judgeMoreRef.current.contains(event.target as Node)) {
+        setIsJudgeMoreOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -54,6 +62,296 @@ export const Navbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
 
   const isVisitor = !isConnected || currentRole === 'visitor';
+
+  if (currentRole === 'judge') {
+    return (
+      <>
+        {/* REDESIGNED JUDGE ENVIRONMENT NAVBAR */}
+        <nav className="mx-4 md:mx-8 my-4 max-w-7xl md:mx-auto bg-white border border-[#E9D5FF] rounded-3xl shadow-xs px-6 py-3 flex items-center justify-between sticky top-4 z-40">
+          <div className="flex items-center justify-between w-full">
+            {/* LEFT: Logo & Badge */}
+            <div className="flex items-center gap-3.5 shrink-0">
+              <Link to="/" className="flex items-center gap-3 group shrink-0">
+                <PolyLanceLogo size={36} className="group-hover:scale-105 transition-transform duration-200" />
+                <span className="font-extrabold text-xl tracking-tight text-[#111827] font-heading">
+                  Poly<span className="text-[#7C3AED]">Lance</span>
+                </span>
+              </Link>
+              <span className="text-[9px] font-mono text-[#7C3AED] font-extrabold bg-[#F3E8FF] px-2 py-0.5 rounded-md border border-[#E9D5FF] tracking-wider uppercase shadow-2xs select-none">
+                MVP ON-CHAIN
+              </span>
+            </div>
+
+            {/* CENTER: Navigation (Desktop) */}
+            <div className="hidden md:flex items-center gap-1">
+              {/* 1. Find Jobs */}
+              <Link
+                to="/jobs"
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 ${
+                  isActive('/jobs') && !isActive('/jobs/post')
+                    ? 'bg-[#F3E8FF] text-[#7C3AED]'
+                    : 'text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
+                }`}
+              >
+                <Briefcase size={14} className="opacity-80" />
+                Find Jobs
+              </Link>
+
+              {/* 2. SBT Leaderboard */}
+              <Link
+                to="/reputation"
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 ${
+                  isActive('/reputation')
+                    ? 'bg-[#F3E8FF] text-[#7C3AED]'
+                    : 'text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
+                }`}
+              >
+                <Trophy size={14} className="opacity-80" />
+                SBT Leaderboard
+              </Link>
+
+              {/* 3. Judge Panel (Orange Active State) */}
+              <Link
+                to="/judge"
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 border ${
+                  isActive('/judge')
+                    ? 'bg-[#FFF7ED] text-[#F97316] border-[#FFEDD5] font-extrabold shadow-sm'
+                    : 'border-transparent text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
+                }`}
+              >
+                <Scale size={14} className={isActive('/judge') ? 'text-[#F97316]' : 'opacity-80'} />
+                Judge Panel
+              </Link>
+
+              {/* 4. DAO */}
+              <Link
+                to="/dao"
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 ${
+                  isActive('/dao')
+                    ? 'bg-[#F3E8FF] text-[#7C3AED]'
+                    : 'text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
+                }`}
+              >
+                <Users size={14} className="opacity-80" />
+                DAO
+              </Link>
+
+              {/* 5. Messages */}
+              <Link
+                to="/chat"
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 ${
+                  isActive('/chat')
+                    ? 'bg-[#F3E8FF] text-[#7C3AED]'
+                    : 'text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
+                }`}
+              >
+                <MessageSquare size={14} className="opacity-80" />
+                Messages
+              </Link>
+
+              {/* 6. More button */}
+              <div className="relative" ref={judgeMoreRef}>
+                <button
+                  onClick={() => setIsJudgeMoreOpen(!isJudgeMoreOpen)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${
+                    isJudgeMoreOpen
+                      ? 'bg-[#F3E8FF] text-[#7C3AED]'
+                      : 'text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
+                  }`}
+                >
+                  <Grid size={14} />
+                  More
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${isJudgeMoreOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isJudgeMoreOpen && (
+                  <div className="absolute right-0 top-full mt-2.5 w-64 bg-white border border-[#E9D5FF] rounded-2xl shadow-lg z-50 p-2 space-y-0.5 animate-fade-in font-sans">
+                    <Link
+                      to="/analytics"
+                      onClick={() => setIsJudgeMoreOpen(false)}
+                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-[#FAF9FF] transition-all duration-150 ${
+                        isActive('/analytics') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#111827]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <BarChart3 size={15} className="text-[#7C3AED] shrink-0 mt-0.5" />
+                        <div className="text-left">
+                          <p className="font-bold text-xs text-[#111827]">Analytics</p>
+                          <p className="text-[10px] text-[#64748B]">View platform insights</p>
+                        </div>
+                      </div>
+                      <ChevronRight size={12} className="text-[#64748B] opacity-60" />
+                    </Link>
+
+                    <Link
+                      to="/onboarding"
+                      onClick={() => setIsJudgeMoreOpen(false)}
+                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-[#FAF9FF] transition-all duration-150 ${
+                        isActive('/onboarding') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#111827]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <Settings size={15} className="text-[#64748B] shrink-0 mt-0.5" />
+                        <div className="text-left">
+                          <p className="font-bold text-xs text-[#111827]">Settings</p>
+                          <p className="text-[10px] text-[#64748B]">Manage preferences</p>
+                        </div>
+                      </div>
+                      <ChevronRight size={12} className="text-[#64748B] opacity-60" />
+                    </Link>
+
+                    {/* Network Status indicator */}
+                    <div className="border-t border-[#E9D5FF] mt-1.5 pt-1.5 px-2.5 pb-1 flex items-center justify-between text-[11px] font-semibold text-[#64748B]">
+                      <span>Network Status</span>
+                      <span className="flex items-center gap-1.5 text-emerald-600">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Online
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT: Wallet & Disconnect */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              {isConnected && address ? (
+                <div className="flex items-center gap-2">
+                  {/* Wallet address pill */}
+                  <Link
+                    to={`/profile/${address}`}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#F3E8FF] border border-[#E9D5FF] text-[#7C3AED] text-xs font-bold font-mono transition-all duration-150 hover:bg-[#FAF9FF] shadow-2xs"
+                  >
+                    <User size={13} className="text-[#7C3AED] shrink-0" />
+                    <span>{truncateAddress(address)}</span>
+                    <ChevronDown size={12} className="text-[#7C3AED] shrink-0" />
+                  </Link>
+
+                  {/* Disconnect Power Button */}
+                  <button
+                    onClick={disconnectWallet}
+                    title="Disconnect Wallet"
+                    className="w-8 h-8 rounded-full bg-white border border-[#E9D5FF] text-[#64748B] hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-all duration-150 shadow-2xs cursor-pointer shrink-0"
+                  >
+                    <Power size={14} className="stroke-[2.5]" />
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  className="bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] hover:from-purple-700 hover:to-purple-500 text-white px-4 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all duration-150 hover:scale-[1.02]"
+                >
+                  <LogIn size={13} />
+                  Connect Wallet
+                </Link>
+              )}
+
+              {/* Mobile menu trigger */}
+              <button
+                onClick={() => setIsJudgeMobileOpen(!isJudgeMobileOpen)}
+                className="md:hidden p-2 rounded-xl text-[#64748B] hover:bg-[#FAF9FF] hover:text-[#111827] border border-[#E9D5FF] transition-all duration-150 cursor-pointer"
+              >
+                {isJudgeMobileOpen ? <X size={16} /> : <Menu size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Menu Panel */}
+          {isJudgeMobileOpen && (
+            <div className="absolute top-full left-0 right-0 mt-2 mx-4 bg-white border border-[#E9D5FF] rounded-2xl shadow-lg p-3 space-y-1 z-50 md:hidden animate-fade-in font-sans">
+              <Link
+                to="/jobs"
+                onClick={() => setIsJudgeMobileOpen(false)}
+                className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
+                  isActive('/jobs') && !isActive('/jobs/post') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
+                }`}
+              >
+                <Briefcase size={15} />
+                Find Jobs
+              </Link>
+
+              <Link
+                to="/reputation"
+                onClick={() => setIsJudgeMobileOpen(false)}
+                className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
+                  isActive('/reputation') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
+                }`}
+              >
+                <Trophy size={15} />
+                SBT Leaderboard
+              </Link>
+
+              <Link
+                to="/judge"
+                onClick={() => setIsJudgeMobileOpen(false)}
+                className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs border ${
+                  isActive('/judge') ? 'bg-[#FFF7ED] text-[#F97316] border-[#FFEDD5]' : 'border-transparent text-[#64748B]'
+                }`}
+              >
+                <Scale size={15} />
+                Judge Panel
+              </Link>
+
+              <Link
+                to="/dao"
+                onClick={() => setIsJudgeMobileOpen(false)}
+                className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
+                  isActive('/dao') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
+                }`}
+              >
+                <Users size={15} />
+                DAO
+              </Link>
+
+              <Link
+                to="/chat"
+                onClick={() => setIsJudgeMobileOpen(false)}
+                className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
+                  isActive('/chat') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
+                }`}
+              >
+                <MessageSquare size={15} />
+                Messages
+              </Link>
+
+              <div className="border-t border-[#E9D5FF] my-2 pt-2 space-y-1">
+                <Link
+                  to="/analytics"
+                  onClick={() => setIsJudgeMobileOpen(false)}
+                  className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
+                    isActive('/analytics') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
+                  }`}
+                >
+                  <BarChart3 size={15} />
+                  Analytics
+                </Link>
+
+                <Link
+                  to="/onboarding"
+                  onClick={() => setIsJudgeMobileOpen(false)}
+                  className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
+                    isActive('/onboarding') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
+                  }`}
+                >
+                  <Settings size={15} />
+                  Settings
+                </Link>
+              </div>
+
+              <div className="px-2.5 py-1.5 flex items-center justify-between text-[11px] font-semibold text-[#64748B]">
+                <span>Network Status</span>
+                <span className="flex items-center gap-1.5 text-emerald-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Online
+                </span>
+              </div>
+            </div>
+          )}
+        </nav>
+        <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -169,7 +467,7 @@ export const Navbar: React.FC = () => {
                   )}
 
                   {/* 5. JUDGE PANEL (JUDGE PERCEPTION) */}
-                  {(isArbitrator || currentRole === 'judge') && (
+                  {(isArbitrator || (currentRole as string) === 'judge') && (
                     <Link
                       to="/judge"
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/judge')
@@ -223,7 +521,7 @@ export const Navbar: React.FC = () => {
                   )}
 
                   {/* 8. ANALYTICS */}
-                  {currentRole !== 'judge' && (
+                  {(currentRole as string) !== 'judge' && (
                     <Link
                       to="/analytics"
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/analytics')

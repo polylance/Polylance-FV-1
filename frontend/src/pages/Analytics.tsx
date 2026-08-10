@@ -26,9 +26,7 @@ export const Analytics: React.FC = () => {
   const isClientRole = currentRole === 'client';
   const isAdminRole = currentRole === 'admin';
 
-  if (currentRole === 'judge') {
-    return <Navigate to="/judge" replace />;
-  }
+
 
   // Admin dynamic real-time calculations
   const platformMilestoneFees = treasuryHistory

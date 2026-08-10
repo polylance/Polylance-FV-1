@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Web3Provider, useWeb3 } from './context/Web3Context';
 import { PolyLanceDataProvider, usePolyLanceData } from './context/PolyLanceDataContext';
 import { Navbar } from './components/Navbar';

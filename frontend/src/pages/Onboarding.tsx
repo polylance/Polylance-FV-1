@@ -16,12 +16,7 @@ export const Onboarding: React.FC = () => {
   const existing = (existingKey ? profiles[existingKey] : {}) as UserProfile;
   const isClient = currentRole === 'client';
 
-  if (currentRole === 'admin') {
-    return <Navigate to="/treasury" replace />;
-  }
-  if (currentRole === 'judge') {
-    return <Navigate to="/judge" replace />;
-  }
+
 
   const [step, setStep] = useState<1 | 2>(1);
   const [displayName, setDisplayName] = useState(existing.displayName || '');
