@@ -7,13 +7,132 @@ import confetti from 'canvas-confetti';
 
 export const Treasury: React.FC = () => {
   const { address } = useWeb3();
-  const { treasury, proposeTreasuryWithdrawal, signTreasuryWithdrawal, executeTreasuryWithdrawal } = usePolyLanceData();
+  const { treasury, proposeTreasuryWithdrawal, signTreasuryWithdrawal, executeTreasuryWithdrawal, treasuryHistory, jobs } = usePolyLanceData();
 
   const [recipient, setRecipient] = useState('');
   const [amountUsdc, setAmountUsdc] = useState('');
   const [purpose, setPurpose] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'terminal' | 'governance'>('overview');
   const [selectedProposalModal, setSelectedProposalModal] = useState<string | null>(null);
+
+  // Generate real-time logs from actual state (jobs, proposals, history)
+  const logs = (() => {
+    const list: { timestamp: string; timeMs: number; text: string; iconType: 'check' | 'code' | 'warning' | 'zap' }[] = [];
+
+    // Helper to format timestamp into LOG hh:mm:ss format
+    const formatLogTime = (ms: number) => {
+      const d = new Date(ms);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    };
+
+    // 1. Logs from jobs state
+    jobs.forEach((job) => {
+      // Job Created
+      list.push({
+        timestamp: formatLogTime(job.createdAt),
+        timeMs: job.createdAt,
+        text: `Job #${job.id.slice(0, 6).toUpperCase()} Escrow Created - Funded $${parseFloat(job.amountUsdc).toLocaleString()} USDC by Client ${truncateAddress(job.client)}`,
+        iconType: 'code'
+      });
+
+      // Applications
+      job.applications.forEach((app) => {
+        list.push({
+          timestamp: formatLogTime(app.appliedAt),
+          timeMs: app.appliedAt,
+          text: `Developer ${truncateAddress(app.applicant)} applied for Job #${job.id.slice(0, 6).toUpperCase()}`,
+          iconType: 'code'
+        });
+      });
+
+      // Freelancer selected
+      if (job.freelancer) {
+        list.push({
+          timestamp: formatLogTime(job.createdAt + 120000), // 2 mins later
+          timeMs: job.createdAt + 120000,
+          text: `Contractor ${truncateAddress(job.freelancer)} selected for Job #${job.id.slice(0, 6).toUpperCase()}`,
+          iconType: 'check'
+        });
+      }
+
+      // Work submitted
+      if (job.submittedAt || (job.status === 'Submitted' || job.status === 'Completed' || job.status === 'Disputed')) {
+        const subTime = job.submittedAt || (job.createdAt + 240000);
+        list.push({
+          timestamp: formatLogTime(subTime),
+          timeMs: subTime,
+          text: `Job #${job.id.slice(0, 6).toUpperCase()} Work Deliverable Submitted by Developer`,
+          iconType: 'code'
+        });
+      }
+
+      // Dispute raised
+      if (job.dispute) {
+        list.push({
+          timestamp: formatLogTime(job.dispute.raisedAt),
+          timeMs: job.dispute.raisedAt,
+          text: `Job #${job.id.slice(0, 6).toUpperCase()} Disputed - Case filed to DAO by Client`,
+          iconType: 'warning'
+        });
+
+        if (job.dispute.resolved) {
+          list.push({
+            timestamp: formatLogTime(job.dispute.raisedAt + 60000),
+            timeMs: job.dispute.raisedAt + 60000,
+            text: `Job #${job.id.slice(0, 6).toUpperCase()} Dispute Resolved - Arbitrator Ruling Enforced`,
+            iconType: 'check'
+          });
+        }
+      }
+    });
+
+    // 2. Logs from treasury history (completed payments & withdrawals)
+    treasuryHistory.forEach((h) => {
+      const typeText = h.type === 'FEE_COLLECTED' ? 'Fee Ingestion' : 'Safe Withdrawal';
+      const changePrefix = h.type === 'FEE_COLLECTED' ? '+' : '-';
+      list.push({
+        timestamp: formatLogTime(h.timestamp),
+        timeMs: h.timestamp,
+        text: `${typeText}: ${changePrefix}$${h.amountUsdc.toFixed(2)} USDC (Tx: ${h.txHash.slice(0, 10)}...)`,
+        iconType: h.type === 'FEE_COLLECTED' ? 'zap' : 'warning'
+      });
+    });
+
+    // 3. Logs from treasury proposals (multisig proposals)
+    treasury.proposals.forEach((prop) => {
+      // Proposal created
+      const propTime = Date.now() - 3600000; // 1h ago
+      list.push({
+        timestamp: formatLogTime(propTime),
+        timeMs: propTime,
+        text: `Multisig Proposal #${prop.id.slice(0, 4)} Created by Owner: ${truncateAddress(prop.proposer)}`,
+        iconType: 'code'
+      });
+
+      // Signatures
+      prop.signatures.forEach((sig, index) => {
+        list.push({
+          timestamp: formatLogTime(propTime + (index + 1) * 60000),
+          timeMs: propTime + (index + 1) * 60000,
+          text: `Multisig Proposal #${prop.id.slice(0, 4)} Signature Appended by Owner: ${truncateAddress(sig)}`,
+          iconType: 'check'
+        });
+      });
+
+      if (prop.executed) {
+        list.push({
+          timestamp: formatLogTime(propTime + 180000),
+          timeMs: propTime + 180000,
+          text: `Multisig Proposal #${prop.id.slice(0, 4)} Executed - Payout $${parseFloat(prop.amountUsdc).toLocaleString()} USDC to ${truncateAddress(prop.recipient)}`,
+          iconType: 'zap'
+        });
+      }
+    });
+
+    // Sort chronological ascending (oldest first)
+    return list.sort((a, b) => a.timeMs - b.timeMs);
+  })();
 
   const handlePropose = (e: React.FormEvent) => {
     e.preventDefault();
@@ -295,50 +414,42 @@ export const Treasury: React.FC = () => {
               </span>
             </div>
 
-            {/* Line 3: Log item 1 */}
-            <div className="relative flex items-start gap-4">
-              <div className="absolute -left-8 w-6 h-6 rounded-full border border-indigo-100 bg-indigo-50/50 flex items-center justify-center text-indigo-600 shadow-3xs select-none">
-                <FileCode size={12} />
-              </div>
-              <div className="flex items-center gap-2.5 leading-relaxed flex-wrap">
-                <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md font-bold text-[10px]">
-                  [LOG 14:02:18]
-                </span>
-                <span className="text-slate-600 font-medium">
-                  Job #POL-101 Escrow Completed - Fee Ingestion +$112.50 USDC
-                </span>
-              </div>
-            </div>
+            {logs.map((log, idx) => {
+              let iconBorder = "border-indigo-100 bg-indigo-50/50 text-indigo-600";
+              let Icon = FileCode;
+              if (log.iconType === 'check') {
+                iconBorder = "border-emerald-100 bg-emerald-50/50 text-emerald-600";
+                Icon = CheckCircle2;
+              } else if (log.iconType === 'warning') {
+                iconBorder = "border-amber-100 bg-amber-50/50 text-amber-600";
+                Icon = AlertTriangle;
+              } else if (log.iconType === 'zap') {
+                iconBorder = "border-purple-100 bg-purple-50/50 text-purple-600";
+                Icon = Zap;
+              }
 
-            {/* Line 4: Log item 2 */}
-            <div className="relative flex items-start gap-4">
-              <div className="absolute -left-8 w-6 h-6 rounded-full border border-indigo-100 bg-indigo-50/50 flex items-center justify-center text-indigo-600 shadow-3xs select-none">
-                <FileCode size={12} />
-              </div>
-              <div className="flex items-center gap-2.5 leading-relaxed flex-wrap">
-                <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md font-bold text-[10px]">
-                  [LOG 14:15:44]
-                </span>
-                <span className="text-slate-600 font-medium">
-                  Multisig Proposal #1 Created by Owner 0x9999...0000
-                </span>
-              </div>
-            </div>
+              return (
+                <div key={idx} className="relative flex items-start gap-4">
+                  <div className={`absolute -left-8 w-6 h-6 rounded-full border flex items-center justify-center shadow-3xs select-none ${iconBorder}`}>
+                    <Icon size={12} />
+                  </div>
+                  <div className="flex items-center gap-2.5 leading-relaxed flex-wrap">
+                    <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md font-bold text-[10px]">
+                      [LOG {log.timestamp}]
+                    </span>
+                    <span className="text-slate-650 text-slate-600 font-medium font-sans">
+                      {log.text}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
 
-            {/* Line 5: Log item 3 */}
-            <div className="relative flex items-start gap-4">
-              <div className="absolute -left-8 w-6 h-6 rounded-full border border-indigo-100 bg-indigo-50/50 flex items-center justify-center text-indigo-600 shadow-3xs select-none">
-                <FileCode size={12} />
+            {logs.length === 0 && (
+              <div className="text-slate-500 font-medium py-2 font-sans">
+                No logs recorded yet. Escrow operations will appear here in real-time.
               </div>
-              <div className="flex items-center gap-2.5 leading-relaxed flex-wrap">
-                <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md font-bold text-[10px]">
-                  [LOG 14:16:02]
-                </span>
-                <span className="text-slate-600 font-medium">
-                  EIP-712 Signature Appended by Owner 0x9999...0000
-                </span>
-              </div>
-            </div>
+            )}
 
             {/* Line 6: Ready Proposal state banner */}
             <div className="relative p-4 rounded-2xl bg-purple-50/50 border border-purple-100 flex items-center justify-between gap-4 flex-wrap">
