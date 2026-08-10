@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, TreasuryProposal, TreasuryState } from '../types';
 import { generateDeterministicHash } from '../utils/formatters';
@@ -59,6 +59,85 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [treasuryProposals, setTreasuryProposals] = useState<TreasuryProposal[]>([]);
   const [treasuryHistory, setTreasuryHistory] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
+
+  const syncOnChainJobs = useCallback(async () => {
+    if (!provider) return;
+    try {
+      const factory = new ethers.Contract(CONTRACTS.JobFactory, JobFactoryABI, provider);
+      if (!factory.filters || typeof factory.filters.JobPosted !== 'function') return;
+      const filter = factory.filters.JobPosted();
+      const logs = await factory.queryFilter(filter);
+
+      const parsedJobs: Job[] = await Promise.all(
+        logs.map(async (log: any) => {
+          const jobAddr = log.args[0] || log.args.jobAddress;
+          const client = log.args[1] || log.args.client;
+          const paymentToken = log.args[3] || log.args.paymentToken || ethers.ZeroAddress;
+
+          const escrow = new ethers.Contract(jobAddr, JobEscrowABI, provider);
+          const [statusRaw, freelancer, amountRaw, reviewPeriod, submittedAt, termsHash] = await Promise.all([
+            escrow.status().catch(() => 0n),
+            escrow.freelancer().catch(() => ethers.ZeroAddress),
+            escrow.amount().catch(() => 0n),
+            escrow.reviewPeriod().catch(() => 7n * 86400n),
+            escrow.submittedAt().catch(() => 0n),
+            escrow.termsHash().catch(() => ''),
+          ]);
+
+          const statusMap: JobStatus[] = ['Open', 'Selected', 'Submitted', 'Disputed', 'Completed', 'Cancelled'];
+          const status = statusMap[Number(statusRaw)] || 'Open';
+
+          const tokenConfig = getTokenByAddress(paymentToken);
+          const formattedAmount = ethers.formatUnits(amountRaw, tokenConfig.decimals);
+
+          return {
+            id: jobAddr.slice(0, 14),
+            contractAddress: jobAddr,
+            client,
+            freelancer: freelancer === ethers.ZeroAddress ? undefined : freelancer,
+            amountEth: tokenConfig.symbol === 'MATIC' ? formattedAmount : (parseFloat(formattedAmount) / 2800).toFixed(4),
+            amountUsdc: formattedAmount,
+            paymentToken,
+            paymentTokenSymbol: tokenConfig.symbol,
+            paymentTokenDecimals: tokenConfig.decimals,
+            status,
+            title: `Job ${jobAddr.slice(0, 6)}...${jobAddr.slice(-4)}`,
+            description: `On-chain JobEscrow clone deployed at ${jobAddr}`,
+            category: 'web3',
+            reviewPeriodDays: Math.round(Number(reviewPeriod) / 86400) || 7,
+            createdAt: Date.now() - 3600000,
+            submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : undefined,
+            termsHash: termsHash || undefined,
+            applications: [],
+            events: [
+              { step: 'Posted', title: `Job Posted (${tokenConfig.symbol} Escrow)`, timestamp: Date.now() - 3600000, txHash: log.transactionHash, status: 'completed', actor: 'Client' },
+              { step: 'Funded', title: 'Fund Escrow', timestamp: Number(amountRaw) > 0 ? Date.now() - 1800000 : 0, txHash: '', status: Number(amountRaw) > 0 ? 'completed' : 'pending' },
+            ],
+          };
+        })
+      );
+
+      if (parsedJobs.length > 0) {
+        setJobs((prev) => {
+          const merged = [...parsedJobs];
+          prev.forEach((p) => {
+            if (!merged.some((m) => m.contractAddress.toLowerCase() === p.contractAddress.toLowerCase())) {
+              merged.push(p);
+            }
+          });
+          return merged;
+        });
+      }
+    } catch (err) {
+      console.warn('Real-time on-chain job sync warning:', err);
+    }
+  }, [provider]);
+
+  useEffect(() => {
+    syncOnChainJobs();
+    const interval = setInterval(syncOnChainJobs, 5000);
+    return () => clearInterval(interval);
+  }, [syncOnChainJobs]);
 
   const treasuryState: TreasuryState = {
     balanceUsdc: treasuryBalanceUsdc.toString(),
