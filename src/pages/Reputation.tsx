@@ -74,46 +74,13 @@ export const Reputation: React.FC = () => {
     avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80'
   };
 
-  const leaderboardData = Object.values(profiles)
-    .map((profile) => {
-      const isYou = profile.address.toLowerCase() === address?.toLowerCase();
-      const sbtCount = profile.reputationSbtCount || 0;
-      const pts = sbtCount * 100;
-      return {
-        rank: 0,
-        name: isYou ? `${profile.displayName || 'Anonymous'} (You)` : (profile.displayName || `${profile.address.slice(0, 6)}...${profile.address.slice(-4)}`),
-        role: profile.primaryCategory === 'web3' ? 'Web3 Engineer' : profile.primaryCategory === 'frontend' ? 'Frontend Dev' : profile.primaryCategory === 'backend' ? 'Backend Dev' : 'Sovereign Developer',
-        points: pts,
-        successRate: sbtCount > 0 ? '100%' : '0%',
-        earnings: sbtCount > 0 ? `$${(sbtCount * 25).toFixed(1)}k` : '$0.0k',
-        isUser: isYou,
-        avatar: profile.avatarUrl || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
-        address: profile.address
-      };
-    })
-    .concat(
-      address && !profiles[address]
-        ? [
-            {
-              rank: 0,
-              name: address ? `${address.slice(0, 6)}...${address.slice(-4)} (You)` : 'You',
-              role: isArbitrator ? 'DAO Arbitrator' : 'Web3 Engineer',
-              points: totalPoints,
-              successRate: reputationCount > 0 ? '100%' : '0%',
-              earnings: reputationCount > 0 ? `$${(reputationCount * 25).toFixed(1)}k` : '$0.0k',
-              isUser: true,
-              avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
-              address: address
-            }
-          ]
-        : []
-    )
-    .sort((a, b) => b.points - a.points)
-    .map((item, idx) => ({ ...item, rank: idx + 1 }));
-
-  const firstPlace = leaderboardData[0] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k' };
-  const secondPlace = leaderboardData[1] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k' };
-  const thirdPlace = leaderboardData[2] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k' };
+  const leaderboardData = [
+    { rank: 1, name: 'Alex Rivera', role: 'Solidity Architect', points: 1402, successRate: '100%', earnings: '$428.5k', isUser: false, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80' },
+    { rank: 2, name: 'Sarah Chen', role: 'Cyber Auditor', points: 1280, successRate: '100%', earnings: '$312.0k', isUser: false, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80' },
+    { rank: 3, name: 'Marcus Thorne', role: 'DevOps Lead', points: 1190, successRate: '98.5%', earnings: '$284.2k', isUser: false, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80' },
+    { rank: 4, name: 'Dmitri Volkov', role: 'Zero-Knowledge Dev', points: 978, successRate: '97.8%', earnings: '$176.0k', isUser: false, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80' },
+    userLeaderboardItem,
+  ].sort((a, b) => b.points - a.points);
 
   const getRoleBadge = (role: string) => {
     const normalized = role.toLowerCase();
@@ -675,8 +642,8 @@ export const Reputation: React.FC = () => {
             <div className="flex flex-col items-center space-y-2 mt-1">
               <div className="relative">
                 <img
-                  src={secondPlace?.avatar}
-                  alt={secondPlace?.name}
+                  src={leaderboardData[1].avatar}
+                  alt={leaderboardData[1].name}
                   className="w-12 h-12 rounded-full border-2 border-slate-200 object-cover shadow-inner"
                 />
                 <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-800 font-black text-[10px] border border-white shadow-xs font-mono">
@@ -686,10 +653,10 @@ export const Reputation: React.FC = () => {
               
               <div>
                 <h4 className="font-extrabold text-slate-900 tracking-tight text-sm group-hover:text-purple-700 transition-colors">
-                  {secondPlace?.name}
+                  {leaderboardData[1].name}
                 </h4>
                 <p className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-slate-200/40">
-                  {secondPlace?.role}
+                  {leaderboardData[1].role}
                 </p>
               </div>
             </div>
@@ -697,17 +664,17 @@ export const Reputation: React.FC = () => {
             <div className="mt-3.5 pt-3 border-t border-slate-100 grid grid-cols-2 gap-1.5 text-left">
               <div className="space-y-0.5">
                 <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Reputation</span>
-                <p className="text-xs font-black text-slate-800 font-mono">{secondPlace?.points} pts</p>
+                <p className="text-xs font-black text-slate-800 font-mono">{leaderboardData[1].points} pts</p>
               </div>
               <div className="space-y-0.5 text-right">
                 <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Success Rate</span>
-                <p className="text-xs font-black text-emerald-600 font-mono">{secondPlace?.successRate}</p>
+                <p className="text-xs font-black text-emerald-600 font-mono">{leaderboardData[1].successRate}</p>
               </div>
             </div>
             
             <div className="mt-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100/50 flex items-center justify-between text-[11px]">
               <span className="font-mono text-slate-400 text-[9.5px] font-bold uppercase">Volume</span>
-              <span className="font-black text-emerald-700 font-mono">{secondPlace?.earnings}</span>
+              <span className="font-black text-emerald-700 font-mono">{leaderboardData[1].earnings}</span>
             </div>
           </motion.div>
 
@@ -727,8 +694,8 @@ export const Reputation: React.FC = () => {
             <div className="flex flex-col items-center space-y-2 mt-2">
               <div className="relative">
                 <img
-                  src={firstPlace?.avatar}
-                  alt={firstPlace?.name}
+                  src={leaderboardData[0].avatar}
+                  alt={leaderboardData[0].name}
                   className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shadow-inner ring-2 ring-amber-400/10"
                 />
                 <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5.5 h-5.5 rounded-full bg-amber-400 text-amber-955 font-black text-xs border border-white shadow-xs font-mono">
@@ -738,10 +705,10 @@ export const Reputation: React.FC = () => {
 
               <div>
                 <h4 className="font-extrabold text-slate-900 tracking-tight text-base group-hover:text-purple-700 transition-colors">
-                  {firstPlace?.name}
+                  {leaderboardData[0].name}
                 </h4>
                 <p className="text-[9px] bg-amber-100 text-amber-955 px-2 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-black mt-0.5 border border-amber-200/40">
-                  {firstPlace?.role}
+                  {leaderboardData[0].role}
                 </p>
               </div>
             </div>
@@ -749,17 +716,17 @@ export const Reputation: React.FC = () => {
             <div className="mt-3.5 pt-3 border-t border-slate-100 grid grid-cols-2 gap-1.5 text-left">
               <div className="space-y-0.5">
                 <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Reputation</span>
-                <p className="text-xs font-black text-slate-800 font-mono">{firstPlace?.points} pts</p>
+                <p className="text-xs font-black text-slate-800 font-mono">{leaderboardData[0].points} pts</p>
               </div>
               <div className="space-y-0.5 text-right">
                 <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Success Rate</span>
-                <p className="text-xs font-black text-emerald-600 font-mono">{firstPlace?.successRate}</p>
+                <p className="text-xs font-black text-emerald-600 font-mono">{leaderboardData[0].successRate}</p>
               </div>
             </div>
 
             <div className="mt-2.5 bg-amber-500/5 p-2 rounded-xl border border-amber-100 flex items-center justify-between text-[11px]">
               <span className="font-mono text-amber-850/60 text-amber-850 font-bold text-[9.5px] uppercase">Volume</span>
-              <span className="font-black text-emerald-700 font-mono">{firstPlace?.earnings}</span>
+              <span className="font-black text-emerald-700 font-mono">{leaderboardData[0].earnings}</span>
             </div>
           </motion.div>
 
@@ -775,8 +742,8 @@ export const Reputation: React.FC = () => {
             <div className="flex flex-col items-center space-y-2 mt-1">
               <div className="relative">
                 <img
-                  src={thirdPlace?.avatar}
-                  alt={thirdPlace?.name}
+                  src={leaderboardData[2].avatar}
+                  alt={leaderboardData[2].name}
                   className="w-12 h-12 rounded-full border-2 border-amber-700/40 object-cover shadow-inner"
                 />
                 <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-700 text-white font-black text-[10px] border border-white shadow-xs font-mono">
@@ -786,10 +753,10 @@ export const Reputation: React.FC = () => {
 
               <div>
                 <h4 className="font-extrabold text-slate-900 tracking-tight text-sm group-hover:text-purple-700 transition-colors">
-                  {thirdPlace?.name}
+                  {leaderboardData[2].name}
                 </h4>
                 <p className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-slate-200/40">
-                  {thirdPlace?.role}
+                  {leaderboardData[2].role}
                 </p>
               </div>
             </div>
@@ -797,17 +764,17 @@ export const Reputation: React.FC = () => {
             <div className="mt-3.5 pt-3 border-t border-slate-100 grid grid-cols-2 gap-1.5 text-left">
               <div className="space-y-0.5">
                 <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Reputation</span>
-                <p className="text-xs font-black text-slate-800 font-mono">{thirdPlace?.points} pts</p>
+                <p className="text-xs font-black text-slate-800 font-mono">{leaderboardData[2].points} pts</p>
               </div>
               <div className="space-y-0.5 text-right">
                 <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Success Rate</span>
-                <p className="text-xs font-black text-emerald-600 font-mono">{thirdPlace?.successRate}</p>
+                <p className="text-xs font-black text-emerald-600 font-mono">{leaderboardData[2].successRate}</p>
               </div>
             </div>
 
             <div className="mt-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100/50 flex items-center justify-between text-[11px]">
               <span className="font-mono text-slate-400 text-[9.5px] font-bold uppercase">Volume</span>
-              <span className="font-black text-emerald-700 font-mono">{thirdPlace?.earnings}</span>
+              <span className="font-black text-emerald-700 font-mono">{leaderboardData[2].earnings}</span>
             </div>
           </motion.div>
         </div>

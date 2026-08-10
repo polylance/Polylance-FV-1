@@ -4,6 +4,7 @@ import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { scoreGithubUser, GithubScoreResult } from '../utils/githubOracle';
 import { generateIpfsCid } from '../utils/ipfs';
+import { generateDeterministicHash } from '../utils/formatters';
 import { ArrowRight, ArrowLeft, X, Sparkles, Loader2, ShieldCheck, Terminal, CheckCircle2 } from 'lucide-react';
 
 export const Onboarding: React.FC = () => {
@@ -72,7 +73,7 @@ export const Onboarding: React.FC = () => {
     }
 
     const profileIpfsCid = generateIpfsCid({ displayName, bio, avatarUrl, timestamp: Date.now() });
-    const txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    const txHash = generateDeterministicHash(`${address}-${profileIpfsCid}`);
 
     updateProfile(
       {

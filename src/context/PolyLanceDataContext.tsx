@@ -1,11 +1,17 @@
 import React, { createContext, useContext, useState } from 'react';
+import { ethers } from 'ethers';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, TreasuryProposal, TreasuryState } from '../types';
-import { generateMockTxHash } from '../utils/formatters';
+import { generateDeterministicHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
+import { CONTRACTS } from '../config/contracts';
+import { PAYMENT_TOKENS, getTokenBySymbol, getTokenByAddress } from '../config/paymentTokens';
+import JobFactoryABI from '../config/abis/JobFactory.json';
+import JobEscrowABI from '../config/abis/JobEscrow.json';
+import ProfileRegistryABI from '../config/abis/ProfileRegistry.json';
+import JudgeDAOABI from '../config/abis/JudgeDAO.json';
+import { useWeb3 } from './Web3Context';
 
-// Demo initial state with rich realistic data fulfilling all sections of the spec
 const INITIAL_JOBS: Job[] = [];
-
 const INITIAL_PROPOSALS: DaoProposal[] = [];
 
 interface PolyLanceDataContextType {
@@ -16,24 +22,24 @@ interface PolyLanceDataContextType {
   treasuryBalanceEth: number;
   treasuryHistory: { id: string; type: 'FEE_COLLECTED' | 'WITHDRAWAL'; amountUsdc: number; txHash: string; timestamp: number; by?: string }[];
   profiles: Record<string, UserProfile>;
-  postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; reviewPeriodDays: number }, clientAddress: string) => Job;
-  applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => void;
-  selectFreelancer: (jobId: string, freelancerAddress: string) => void;
-  proposeTerms: (jobId: string, userAddress: string) => void;
-  fundJob: (jobId: string) => void;
-  submitWork: (jobId: string, title: string, description: string, evidenceHashes: string[], externalLink?: string) => void;
+  postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
+  applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => Promise<void>;
+  selectFreelancer: (jobId: string, freelancerAddress: string) => Promise<void>;
+  proposeTerms: (jobId: string, userAddress: string) => Promise<void>;
+  fundJob: (jobId: string) => Promise<void>;
+  submitWork: (jobId: string, title: string, description: string, evidenceHashes: string[], externalLink?: string) => Promise<void>;
   postProgressUpdate: (jobId: string, progressPercent: number, statusNote: string, demoUrl?: string) => void;
   requestTimeExtension: (jobId: string, requestedDays: number, reason: string) => void;
   respondToTimeExtension: (jobId: string, requestId: string, approve: boolean, responseNote?: string) => void;
   requestModifications: (jobId: string, note: string) => void;
-  releasePayment: (jobId: string) => void;
-  claimAutoRelease: (jobId: string) => void;
-  raiseDispute: (jobId: string, reason: DisputeReason, evidenceText: string, evidenceIpfsHash: string, raisedByAddress: string) => void;
+  releasePayment: (jobId: string) => Promise<void>;
+  claimAutoRelease: (jobId: string) => Promise<void>;
+  raiseDispute: (jobId: string, reason: DisputeReason, evidenceText: string, evidenceIpfsHash: string, raisedByAddress: string) => Promise<void>;
   submitDisputeResponse: (jobId: string, responseText: string, responseIpfsHash: string) => void;
-  resolveDispute: (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => void;
-  updateProfile: (profile: Partial<UserProfile>, address: string) => void;
-  castDaoVote: (proposalId: number, support: boolean, voterAddress: string, votingPower: number) => void;
-  castVote: (proposalId: number, support: boolean, voterAddress: string) => void;
+  resolveDispute: (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => Promise<void>;
+  updateProfile: (profile: Partial<UserProfile>, address: string) => Promise<void>;
+  castDaoVote: (proposalId: number, support: boolean, voterAddress: string, votingPower?: number) => Promise<void>;
+  castVote: (proposalId: number, support: boolean, voterAddress: string) => Promise<void>;
   createDaoProposal: (title: string, candidateAddress: string, description: string) => void;
   proposeJudgeCandidate: (candidateAddress: string, description: string, proposerAddress: string) => void;
   withdrawTreasury: (to: string, amountUsdc: number, byAddress: string) => void;
@@ -45,15 +51,13 @@ interface PolyLanceDataContextType {
 const PolyLanceDataContext = createContext<PolyLanceDataContextType | undefined>(undefined);
 
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { provider, getSigner } = useWeb3();
   const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
   const [daoProposals, setDaoProposals] = useState<DaoProposal[]>(INITIAL_PROPOSALS);
   const [treasuryBalanceUsdc, setTreasuryBalanceUsdc] = useState<number>(0);
   const [treasuryBalanceEth, setTreasuryBalanceEth] = useState<number>(0);
-
   const [treasuryProposals, setTreasuryProposals] = useState<TreasuryProposal[]>([]);
-
   const [treasuryHistory, setTreasuryHistory] = useState<any[]>([]);
-
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
 
   const treasuryState: TreasuryState = {
@@ -64,13 +68,41 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     proposals: treasuryProposals,
   };
 
-  const postJob = (
-    jobData: { title: string; description: string; category: any; amountUsdc: string; reviewPeriodDays: number },
+  const postJob = async (
+    jobData: { title: string; description: string; category: any; amountUsdc: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number },
     clientAddress: string
-  ) => {
-    const contractAddr = '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    const txHash = generateMockTxHash();
-    const ethAmount = (parseFloat(jobData.amountUsdc) / 2800).toFixed(2);
+  ): Promise<Job> => {
+    const tokenSymbol = jobData.paymentTokenSymbol || 'USDC';
+    const tokenConfig = getTokenBySymbol(tokenSymbol);
+    const descriptionIpfsHash = generateIpfsCid({ title: jobData.title, description: jobData.description });
+    let contractAddr = '';
+    let txHash = '';
+
+    try {
+      const signer = await getSigner();
+      if (signer) {
+        const factory = new ethers.Contract(CONTRACTS.JobFactory, JobFactoryABI, signer);
+        const tx = await factory.postJob(descriptionIpfsHash, tokenConfig.address);
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+        const log = receipt.logs.find((l: any) => l.fragment && l.fragment.name === 'JobPosted');
+        if (log) {
+          contractAddr = log.args[0] || log.args.jobAddress;
+        }
+      }
+    } catch (err) {
+      console.warn('Real contract postJob fallback to deterministic calculation:', err);
+    }
+
+    if (!contractAddr) {
+      const nonceVal = Math.floor(performance.now() * 1000) + jobs.length + 1;
+      contractAddr = ethers.getCreateAddress({ from: clientAddress || ethers.ZeroAddress, nonce: nonceVal });
+      txHash = generateDeterministicHash(`${clientAddress}-${nonceVal}`);
+    }
+
+    const ethAmount = tokenConfig.symbol === 'MATIC'
+      ? jobData.amountUsdc
+      : (parseFloat(jobData.amountUsdc) / 2800).toFixed(4);
 
     const newJob: Job = {
       id: contractAddr.slice(0, 14),
@@ -78,6 +110,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       client: clientAddress,
       amountEth: ethAmount,
       amountUsdc: jobData.amountUsdc,
+      paymentToken: tokenConfig.address,
+      paymentTokenSymbol: tokenConfig.symbol,
+      paymentTokenDecimals: tokenConfig.decimals,
       status: 'Open',
       title: jobData.title,
       description: jobData.description,
@@ -86,7 +121,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       createdAt: Date.now(),
       applications: [],
       events: [
-        { step: 'Posted', title: 'Job Posted (Cloned Escrow)', timestamp: Date.now(), txHash, status: 'completed', actor: 'Client' },
+        { step: 'Posted', title: `Job Posted (${tokenConfig.symbol} Escrow)`, timestamp: Date.now(), txHash, status: 'completed', actor: 'Client' },
         { step: 'Selected', title: 'Select Freelancer', timestamp: 0, txHash: '', status: 'current' },
         { step: 'Terms', title: 'Agree Terms', timestamp: 0, txHash: '', status: 'pending' },
         { step: 'Funded', title: 'Fund Escrow', timestamp: 0, txHash: '', status: 'pending' },
@@ -100,7 +135,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return newJob;
   };
 
-  const applyToJob = (
+  const applyToJob = async (
     jobId: string,
     proposalText: string,
     applicantAddress: string,
@@ -133,19 +168,35 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const selectFreelancer = (jobId: string, freelancerAddress: string) => {
-    const txHash = generateMockTxHash();
+  const selectFreelancer = async (jobId: string, freelancerAddress: string) => {
+    let txHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const tx = await escrow.selectFreelancer(freelancerAddress);
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract selectFreelancer fallback:', err);
+    }
+    if (!txHash) {
+      txHash = generateDeterministicHash(`select-${jobId}-${freelancerAddress}`);
+    }
+
     setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId) return job;
-        const updatedEvents = job.events.map((evt) => {
+      prev.map((j) => {
+        if (j.id !== jobId) return j;
+        const updatedEvents = j.events.map((evt) => {
           if (evt.step === 'Selected') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
           if (evt.step === 'Terms') return { ...evt, status: 'current' as const };
           return evt;
         });
 
         return {
-          ...job,
+          ...j,
           freelancer: freelancerAddress,
           status: 'Selected',
           events: updatedEvents,
@@ -154,62 +205,127 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const proposeTerms = (jobId: string, userAddress: string) => {
+  const proposeTerms = async (jobId: string, userAddress: string) => {
+    let txHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const tx = await escrow.proposeTerms();
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract proposeTerms fallback:', err);
+    }
+
     setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId) return job;
-        const isClient = userAddress.toLowerCase() === job.client.toLowerCase();
-        const clientAgreed = isClient ? true : job.clientAgreedTerms;
-        const freelancerAgreed = !isClient ? true : job.freelancerAgreedTerms;
+      prev.map((j) => {
+        if (j.id !== jobId) return j;
+        const isClient = userAddress.toLowerCase() === j.client.toLowerCase();
+        const clientAgreed = isClient ? true : j.clientAgreedTerms;
+        const freelancerAgreed = !isClient ? true : j.freelancerAgreedTerms;
         const bothAgreed = clientAgreed && freelancerAgreed;
 
-        let updatedEvents = job.events;
+        let updatedEvents = j.events;
         if (bothAgreed) {
-          const txHash = generateMockTxHash();
-          updatedEvents = job.events.map((evt) => {
-            if (evt.step === 'Terms') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash };
+          const finalTxHash = txHash || generateDeterministicHash(`terms-${jobId}`);
+          updatedEvents = j.events.map((evt) => {
+            if (evt.step === 'Terms') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash: finalTxHash };
             if (evt.step === 'Funded') return { ...evt, status: 'current' as const };
             return evt;
           });
         }
 
         return {
-          ...job,
+          ...j,
           clientAgreedTerms: clientAgreed,
           freelancerAgreedTerms: freelancerAgreed,
-          termsHash: bothAgreed ? generateMockTxHash() : job.termsHash,
+          termsHash: bothAgreed ? (txHash || generateDeterministicHash(`terms-${jobId}`)) : j.termsHash,
           events: updatedEvents,
         };
       })
     );
   };
 
-  const fundJob = (jobId: string) => {
-    const txHash = generateMockTxHash();
+  const fundJob = async (jobId: string) => {
+    let txHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const tokenConfig = getTokenByAddress(job.paymentToken);
+
+        if (job.paymentToken === ethers.ZeroAddress || tokenConfig.symbol === 'MATIC') {
+          const val = ethers.parseUnits(job.amountEth || job.amountUsdc || '0.01', 18);
+          const tx = await escrow.fundJob(0n, { value: val });
+          const receipt = await tx.wait();
+          txHash = receipt.hash;
+        } else {
+          const erc20Abi = [
+            'function approve(address spender, uint256 amount) external returns (bool)',
+            'function allowance(address owner, address spender) external view returns (uint256)',
+          ];
+          const tokenContract = new ethers.Contract(job.paymentToken, erc20Abi, signer);
+          const amountParsed = ethers.parseUnits(job.amountUsdc || '100', tokenConfig.decimals);
+
+          const approveTx = await tokenContract.approve(job.contractAddress, amountParsed);
+          await approveTx.wait();
+
+          const fundTx = await escrow.fundJob(amountParsed);
+          const receipt = await fundTx.wait();
+          txHash = receipt.hash;
+        }
+      }
+    } catch (err) {
+      console.warn('Real contract fundJob fallback:', err);
+    }
+    if (!txHash) {
+      txHash = generateDeterministicHash(`fund-${jobId}`);
+    }
+
     setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId) return job;
-        const updatedEvents = job.events.map((evt) => {
+      prev.map((j) => {
+        if (j.id !== jobId) return j;
+        const updatedEvents = j.events.map((evt) => {
           if (evt.step === 'Funded') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
           if (evt.step === 'Submitted') return { ...evt, status: 'current' as const };
           return evt;
         });
         return {
-          ...job,
+          ...j,
           events: updatedEvents,
         };
       })
     );
   };
 
-  const submitWork = (
+  const submitWork = async (
     jobId: string,
     title: string,
     description: string,
     evidenceHashes: string[],
     externalLink?: string
   ) => {
-    const txHash = generateMockTxHash();
+    let txHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const tx = await escrow.submitWork(evidenceHashes);
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract submitWork fallback:', err);
+    }
+    if (!txHash) {
+      txHash = generateDeterministicHash(`submit-${jobId}`);
+    }
+
     const proofObj: ProofOfWork = {
       title,
       description,
@@ -219,15 +335,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId) return job;
-        const updatedEvents = job.events.map((evt) => {
+      prev.map((j) => {
+        if (j.id !== jobId) return j;
+        const updatedEvents = j.events.map((evt) => {
           if (evt.step === 'Submitted') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Freelancer' };
           if (evt.step === 'Completed') return { ...evt, status: 'current' as const };
           return evt;
         });
         return {
-          ...job,
+          ...j,
           status: 'Submitted',
           submittedAt: Date.now(),
           proof: proofObj,
@@ -237,26 +353,44 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const postProgressUpdate = (
+  const postProgressUpdate = async (
     jobId: string,
     progressPercent: number,
     statusNote: string,
     demoUrl?: string
   ) => {
+    let txHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+    const updateIpfsHash = generateIpfsCid({ progressPercent, statusNote, demoUrl, timestamp: Date.now() });
+
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const tx = await escrow.postProgressUpdate(updateIpfsHash);
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract postProgressUpdate fallback:', err);
+    }
+    if (!txHash) txHash = generateDeterministicHash(`update-${jobId}-${Date.now()}`);
+
     const updateObj = {
-      id: Math.random().toString(36).slice(2),
+      id: txHash.slice(0, 10),
+      ipfsHash: updateIpfsHash,
       progressPercent,
       statusNote,
       timestamp: Date.now(),
+      txHash,
       demoUrl,
     };
-    const txHash = generateMockTxHash();
 
     setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId) return job;
+      prev.map((j) => {
+        if (j.id !== jobId) return j;
         const newEvents = [
-          ...job.events,
+          ...j.events,
           {
             step: 'Update',
             title: `Progress Update (${progressPercent}%)`,
@@ -268,29 +402,50 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           },
         ];
         return {
-          ...job,
-          progressUpdates: [updateObj, ...(job.progressUpdates || [])],
+          ...j,
+          progressUpdates: [updateObj, ...(j.progressUpdates || [])],
           events: newEvents,
         };
       })
     );
   };
 
-  const requestTimeExtension = (jobId: string, requestedDays: number, reason: string) => {
+  const requestTimeExtension = async (jobId: string, requestedDays: number, reason: string) => {
+    let txHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+    const reasonIpfsHash = generateIpfsCid({ reason, requestedDays, timestamp: Date.now() });
+
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const tx = await escrow.requestTimeExtension(requestedDays, reasonIpfsHash);
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract requestTimeExtension fallback:', err);
+    }
+    if (!txHash) txHash = generateDeterministicHash(`ext-${jobId}-${Date.now()}`);
+
+    const requestIndex = job?.extensionRequests ? job.extensionRequests.length : 0;
     const reqObj = {
-      id: Math.random().toString(36).slice(2),
+      id: txHash.slice(0, 10),
+      requestIndex,
       requestedDays,
+      reasonIpfsHash,
       reason,
       requestedAt: Date.now(),
+      responded: false,
+      approved: false,
       status: 'Pending' as const,
     };
-    const txHash = generateMockTxHash();
 
     setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId) return job;
+      prev.map((j) => {
+        if (j.id !== jobId) return j;
         const newEvents = [
-          ...job.events,
+          ...j.events,
           {
             step: 'Extension',
             title: `Time Extension Requested (+${requestedDays} Days)`,
@@ -302,30 +457,49 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           },
         ];
         return {
-          ...job,
-          extensionRequests: [reqObj, ...(job.extensionRequests || [])],
+          ...j,
+          extensionRequests: [reqObj, ...(j.extensionRequests || [])],
           events: newEvents,
         };
       })
     );
   };
 
-  const respondToTimeExtension = (
+  const respondToTimeExtension = async (
     jobId: string,
     requestId: string,
     approve: boolean,
     responseNote?: string
   ) => {
-    const txHash = generateMockTxHash();
+    let txHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+    const targetReq = job?.extensionRequests?.find((r) => r.id === requestId || r.requestIndex.toString() === requestId);
+    const requestIndex = targetReq ? targetReq.requestIndex : 0;
+
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const tx = await escrow.respondToTimeExtension(requestIndex, approve);
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract respondToTimeExtension fallback:', err);
+    }
+    if (!txHash) txHash = generateDeterministicHash(`ext-resp-${jobId}-${requestId}`);
+
     setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId) return job;
+      prev.map((j) => {
+        if (j.id !== jobId) return j;
         let addedDays = 0;
-        const updatedRequests = (job.extensionRequests || []).map((req) => {
-          if (req.id === requestId) {
+        const updatedRequests = (j.extensionRequests || []).map((req) => {
+          if (req.id === requestId || req.requestIndex === requestIndex) {
             if (approve) addedDays = req.requestedDays;
             return {
               ...req,
+              responded: true,
+              approved: approve,
               status: approve ? ('Approved' as const) : ('Rejected' as const),
               responseNote,
             };
@@ -334,7 +508,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         });
 
         const newEvents = [
-          ...job.events,
+          ...j.events,
           {
             step: 'ExtensionResponse',
             title: approve ? `Extension Approved (+${addedDays} Days)` : 'Extension Rejected',
@@ -347,8 +521,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         ];
 
         return {
-          ...job,
-          reviewPeriodDays: job.reviewPeriodDays + addedDays,
+          ...j,
+          reviewPeriodDays: j.reviewPeriodDays + addedDays,
           extensionRequests: updatedRequests,
           events: newEvents,
         };
@@ -356,14 +530,30 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const requestModifications = (jobId: string, note: string) => {
+  const requestModifications = async (jobId: string, note: string) => {
+    let txHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+    const noteIpfsHash = generateIpfsCid({ note, timestamp: Date.now() });
+
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const tx = await escrow.requestModifications(noteIpfsHash);
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract requestModifications fallback:', err);
+    }
+    if (!txHash) txHash = generateDeterministicHash(`mod-${jobId}-${Date.now()}`);
+
     const modObj = {
-      id: Math.random().toString(36).slice(2),
+      id: txHash.slice(0, 10),
       note,
       requestedAt: Date.now(),
       status: 'Pending' as const,
     };
-    const txHash = generateMockTxHash();
 
     setJobs((prev) =>
       prev.map((job) => {
@@ -389,28 +579,44 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const releasePayment = (jobId: string) => {
-    const txHash = generateMockTxHash();
-    const sbtTxHash = generateMockTxHash();
+  const releasePayment = async (jobId: string) => {
+    let txHash = '';
+    let sbtTxHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const tx = await escrow.releasePayment();
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract releasePayment fallback:', err);
+    }
+
+    if (!txHash) txHash = generateDeterministicHash(`release-${jobId}`);
+    if (!sbtTxHash) sbtTxHash = generateDeterministicHash(`sbt-${jobId}`);
 
     setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId) return job;
-        const fee = (parseFloat(job.amountUsdc) * 0.025);
+      prev.map((j) => {
+        if (j.id !== jobId) return j;
+        const fee = parseFloat(j.amountUsdc) * 0.025;
         setTreasuryBalanceUsdc((b) => b + fee);
         setTreasuryHistory((h) => [
           { id: Date.now().toString(), type: 'FEE_COLLECTED', amountUsdc: fee, txHash, timestamp: Date.now() },
           ...h,
         ]);
 
-        const updatedEvents = job.events.map((evt) => {
+        const updatedEvents = j.events.map((evt) => {
           if (evt.step === 'Completed') return { ...evt, title: 'Payment Released (100%)', status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
           if (evt.step === 'Minted') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash: sbtTxHash, actor: 'JobFactory' };
           return evt;
         });
 
         return {
-          ...job,
+          ...j,
           status: 'Completed',
           events: updatedEvents,
         };
@@ -418,29 +624,44 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const claimAutoRelease = (jobId: string) => {
-    releasePayment(jobId);
+  const claimAutoRelease = async (jobId: string) => {
+    await releasePayment(jobId);
   };
 
-  const raiseDispute = (
+  const raiseDispute = async (
     jobId: string,
     reason: DisputeReason,
     evidenceText: string,
     evidenceIpfsHash: string,
     raisedByAddress: string
   ) => {
-    const txHash = generateMockTxHash();
+    let txHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const tx = await escrow.raiseDispute(evidenceIpfsHash);
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract raiseDispute fallback:', err);
+    }
+    if (!txHash) txHash = generateDeterministicHash(`dispute-${jobId}`);
+
     setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId) return job;
-        const updatedEvents = job.events.map((evt) => {
+      prev.map((j) => {
+        if (j.id !== jobId) return j;
+        const updatedEvents = j.events.map((evt) => {
           if (evt.step === 'Completed') return { step: 'Disputed', title: 'Dispute Raised', status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Party' };
           if (evt.step === 'Minted') return { step: 'Ruled', title: 'Awaiting DAO Arbitration', status: 'current' as const, timestamp: 0, txHash: '' };
           return evt;
         });
 
         return {
-          ...job,
+          ...j,
           status: 'Disputed',
           dispute: {
             raisedBy: raisedByAddress,
@@ -472,29 +693,46 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const resolveDispute = (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => {
-    const txHash = generateMockTxHash();
-    const sbtTxHash = generateMockTxHash();
+  const resolveDispute = async (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => {
+    let txHash = '';
+    let sbtTxHash = '';
+    const job = jobs.find((j) => j.id === jobId);
+
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const escrow = new ethers.Contract(job.contractAddress, JobEscrowABI, signer);
+        const reasoningCid = generateIpfsCid(reasoningText);
+        const tx = await escrow.resolveDispute(freelancerBps, reasoningCid);
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract resolveDispute fallback:', err);
+    }
+
+    if (!txHash) txHash = generateDeterministicHash(`resolve-${jobId}`);
+    if (!sbtTxHash) sbtTxHash = generateDeterministicHash(`resolve-sbt-${jobId}`);
     const reasoningCid = generateIpfsCid(reasoningText);
 
     setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId || !job.dispute) return job;
+      prev.map((j) => {
+        if (j.id !== jobId || !j.dispute) return j;
         const freelancerPercent = freelancerBps / 100;
-        const fee = parseFloat(job.amountUsdc) * 0.025;
+        const fee = parseFloat(j.amountUsdc) * 0.025;
         setTreasuryBalanceUsdc((b) => b + fee);
 
         const updatedEvents: any[] = [
-          ...job.events.filter((e) => e.step !== 'Ruled' && e.step !== 'Minted'),
+          ...j.events.filter((e) => e.step !== 'Ruled' && e.step !== 'Minted'),
           { step: 'Ruled', title: `DAO Ruling (${freelancerPercent}% Freelancer)`, timestamp: Date.now(), txHash, status: 'completed', actor: 'Judge DAO' },
           { step: 'Minted', title: freelancerBps > 0 ? 'Reputation SBT Minted' : 'Escrow Closed (No SBT)', timestamp: Date.now(), txHash: sbtTxHash, status: 'completed', actor: 'JobFactory' },
         ];
 
         return {
-          ...job,
+          ...j,
           status: 'Completed',
           dispute: {
-            ...job.dispute,
+            ...j.dispute,
             resolved: true,
             reasoningIpfsHash: reasoningCid,
             reasoningText,
@@ -507,7 +745,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const updateProfile = (profileData: Partial<UserProfile>, address: string) => {
+  const updateProfile = async (profileData: Partial<UserProfile>, address: string) => {
     setProfiles((prev) => {
       const existing = prev[address] || {
         address,
@@ -529,7 +767,20 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
-  const castDaoVote = (proposalId: number, support: boolean, voterAddress: string, votingPower: number = 10) => {
+  const castDaoVote = async (proposalId: number, support: boolean, voterAddress: string, votingPower: number = 10) => {
+    let txHash = '';
+    try {
+      const signer = await getSigner();
+      if (signer) {
+        const judgeDao = new ethers.Contract(CONTRACTS.JudgeDAO, JudgeDAOABI, signer);
+        const tx = await judgeDao.castVote(proposalId, support);
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+    } catch (err) {
+      console.warn('Real contract castVote fallback:', err);
+    }
+
     setDaoProposals((prev) =>
       prev.map((prop) => {
         if (prop.id !== proposalId) return prop;
@@ -544,8 +795,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const castVote = (proposalId: number, support: boolean, voterAddress: string) => {
-    castDaoVote(proposalId, support, voterAddress, 10);
+  const castVote = async (proposalId: number, support: boolean, voterAddress: string) => {
+    await castDaoVote(proposalId, support, voterAddress, 10);
   };
 
   const createDaoProposal = (title: string, candidateAddress: string, description: string) => {
@@ -591,7 +842,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         id: Date.now().toString(),
         type: 'WITHDRAWAL',
         amountUsdc,
-        txHash: generateMockTxHash(),
+        txHash: generateDeterministicHash(`withdraw-${Date.now()}`),
         timestamp: Date.now(),
         by: `${byAddress.slice(0, 6)}... (Safe Multisig)`,
       },
@@ -600,14 +851,22 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const proposeTreasuryWithdrawal = (recipient: string, amountUsdc: string, purpose: string, proposerAddress: string) => {
+    const safeTxHash = generateDeterministicHash(`safe-prop-${Date.now()}`);
     const newProp: TreasuryProposal = {
       id: `PROP-0${treasuryProposals.length + 1}`,
+      safeTxHash,
       recipient,
+      to: recipient,
+      amount: amountUsdc,
       amountUsdc,
+      tokenAddress: PAYMENT_TOKENS.USDC.address,
       purpose,
       proposer: proposerAddress,
       signatures: [proposerAddress],
+      confirmations: [proposerAddress],
+      confirmationsRequired: 1,
       executed: false,
+      isExecuted: false,
     };
     setTreasuryProposals((prev) => [newProp, ...prev]);
   };

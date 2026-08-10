@@ -31,13 +31,14 @@ export const PostJob: React.FC = () => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<SkillCategory>('web3');
   const [amountUsdc, setAmountUsdc] = useState('2500');
+  const [selectedToken, setSelectedToken] = useState<'USDC' | 'MATIC'>('USDC');
   const [reviewPeriodDays, setReviewPeriodDays] = useState(7);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) {
-      alert('Please fill in title and description.');
+    if (!title.trim() || !description.trim() || !amountUsdc.trim()) {
+      alert('Please fill out all required fields.');
       return;
     }
     if (!isConnected) {
@@ -45,21 +46,24 @@ export const PostJob: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const descriptionCid = generateIpfsCid({ title, description, category, timestamp: Date.now() });
-      const newJob = postJob(
+    try {
+      const newJob = await postJob(
         {
           title,
           description,
           category,
           amountUsdc,
+          paymentTokenSymbol: selectedToken,
           reviewPeriodDays,
         },
         address
       );
       setIsSubmitting(false);
       navigate(`/jobs/${newJob.id}`);
-    }, 600);
+    } catch (err) {
+      console.error(err);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -186,7 +190,7 @@ export const PostJob: React.FC = () => {
             </div>
             <div className="flex-1 space-y-2">
               <label className="block text-sm font-bold text-slate-800 font-heading">
-                Escrow Budget (USDC) <span className="text-red-500">*</span>
+                Escrow Budget & Payment Token <span className="text-red-500">*</span>
               </label>
               
               <div className="flex items-center gap-3 border border-slate-200/80 rounded-2xl px-4 py-3 bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-50/50 transition-all duration-200 shadow-sm">
@@ -196,15 +200,20 @@ export const PostJob: React.FC = () => {
                 <input
                   type="number"
                   required
-                  min="100"
-                  step="50"
+                  min="1"
+                  step="10"
                   value={amountUsdc}
                   onChange={(e) => setAmountUsdc(e.target.value)}
                   className="w-full bg-transparent border-none text-slate-900 font-mono font-bold outline-none text-base focus:ring-0"
                 />
-                <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold font-mono">
-                  USDC
-                </span>
+                <select
+                  value={selectedToken}
+                  onChange={(e) => setSelectedToken(e.target.value as 'USDC' | 'MATIC')}
+                  className="px-3 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-bold font-mono outline-none border border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors"
+                >
+                  <option value="USDC">USDC (6 dec)</option>
+                  <option value="MATIC">MATIC (18 dec)</option>
+                </select>
               </div>
             </div>
           </div>

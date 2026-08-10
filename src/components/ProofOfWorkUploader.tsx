@@ -24,8 +24,8 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
 
   const simulateFileUpload = (fileList: FileList) => {
     setIsUploading(true);
-    const newUploadingFiles: UploadingFile[] = Array.from(fileList).map((f) => ({
-      id: Math.random().toString(36).slice(2),
+    const newUploadingFiles: UploadingFile[] = Array.from(fileList).map((f, idx) => ({
+      id: `FILE-${Date.now()}-${idx}`,
       name: f.name,
       size: (f.size / (1024 * 1024)).toFixed(2) + ' MB',
       progress: 0,
@@ -37,7 +37,7 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
     newUploadingFiles.forEach((fileObj) => {
       let currentProgress = 0;
       const interval = setInterval(() => {
-        currentProgress += Math.floor(Math.random() * 25) + 15;
+        currentProgress += 25;
         if (currentProgress >= 100) {
           currentProgress = 100;
           clearInterval(interval);

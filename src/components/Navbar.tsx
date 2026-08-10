@@ -7,7 +7,7 @@ import { Briefcase, PlusCircle, LayoutDashboard, Scale, Lock, BarChart3, User, A
 import { truncateAddress } from '../utils/formatters';
 
 export const Navbar: React.FC = () => {
-  const { isConnected, address, currentRole, isArbitrator, isTreasuryAdmin, disconnectWallet } = useWeb3();
+  const { isConnected, address, currentRole, isArbitrator, isTreasuryAdmin, connectWallet, disconnectWallet } = useWeb3();
   const location = useLocation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
@@ -204,13 +204,19 @@ export const Navbar: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link
-                  to="/login"
+                <button
+                  onClick={async () => {
+                    if (typeof window !== 'undefined' && (window as any).ethereum) {
+                      await connectWallet();
+                    } else {
+                      setIsLoginModalOpen(true);
+                    }
+                  }}
                   className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <LogIn size={14} />
                   Connect Wallet
-                </Link>
+                </button>
               </div>
             )}
           </div>

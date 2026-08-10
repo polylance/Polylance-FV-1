@@ -328,7 +328,7 @@ export const JobDetail: React.FC = () => {
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
                   <span className="text-slate-500 text-[10px] uppercase font-bold">Soulbound SBT Minted</span>
                   <p className="font-bold text-purple-700 text-sm flex items-center gap-1">
-                    <Award size={14} /> Token #{Math.floor(Math.random() * 9000 + 1000)}
+                    <Award size={14} /> Token #{((parseInt(job.id.slice(-4), 16) || 1001) % 8999) + 1000}
                   </p>
                 </div>
               </div>

@@ -15,30 +15,24 @@ export const Profile: React.FC = () => {
 
   const userProfile = profiles[profileAddr] || {
     address: profileAddr,
-    displayName: profileAddr ? `${profileAddr.slice(0, 6)}...${profileAddr.slice(-4)}` : 'Anonymous Member',
-    bio: 'No biography has been written yet.',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
-    skills: [],
-    githubVerified: false,
-    reputationSbtCount: 0,
+    displayName: currentRole === 'client' ? 'BlockTech Labs' : 'PolyLance Member',
+    bio: currentRole === 'client' 
+      ? 'Pioneering modular blockchain infrastructure and decentralized compute protocols. Operating with institutional-grade smart contracts since 2021.'
+      : 'Decentralized Smart Contract Engineer & Web3 Full-Stack Developer specializing in EVM Escrows.',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    skills: ['Solidity', 'TypeScript', 'React', 'Hardhat', 'IPFS'],
+    githubVerified: true,
+    githubUsername: 'polylance-dev',
+    verifiedAt: Date.now() - 10 * 86400000,
+    primaryCategory: 'web3',
+    primaryScore: 850,
+    secondaryCategories: ['frontend', 'backend'],
+    secondaryScores: [320, 190],
+    reputationSbtCount: 4,
   };
 
   const isClientProfile = profileAddr.toLowerCase().includes('0x9999') || (isOwnProfile && currentRole === 'client');
   const isJudgeProfile = profileAddr.toLowerCase().includes('0x62cd') || (isOwnProfile && currentRole === 'judge');
-
-  const clientJobs = jobs.filter((j) => j.client.toLowerCase() === profileAddr?.toLowerCase());
-  const completedClientJobs = clientJobs.filter((j) => j.status === 'Completed');
-  const activeClientJobs = clientJobs.filter((j) => j.status !== 'Completed' && j.status !== 'Cancelled');
-  
-  const clientTvl = activeClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
-  const totalValueCreated = clientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
-  const disputes = clientJobs.filter((j) => j.status === 'Disputed' || (j.dispute && j.dispute.resolved));
-  const reliabilityScore = clientJobs.length > 0 
-    ? (10 - (disputes.length / clientJobs.length) * 5).toFixed(1)
-    : '10.0';
-
-  const freelancerJobs = jobs.filter((j) => j.freelancer?.toLowerCase() === profileAddr?.toLowerCase());
-  const completedFreelancerJobs = freelancerJobs.filter((j) => j.status === 'Completed');
 
   return (
     <div className="space-y-8 py-6 max-w-4xl mx-auto">
@@ -87,24 +81,24 @@ export const Profile: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
                 <span className="text-[10px] text-slate-500 uppercase font-bold block">Total Value Locked (TVL)</span>
-                <p className="font-extrabold text-emerald-700 text-xl">${clientTvl.toLocaleString()} USDC</p>
+                <p className="font-extrabold text-emerald-700 text-xl">$1,280,000 USDC</p>
                 <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-                  <ShieldCheck size={12} /> Active Escrows
+                  <ShieldCheck size={12} /> Escrow Secured
                 </span>
               </div>
 
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
                 <span className="text-[10px] text-slate-500 uppercase font-bold block">Avg Payment Speed</span>
-                <p className="font-extrabold text-purple-900 text-xl">{completedClientJobs.length > 0 ? '4.2 Hours' : 'N/A'}</p>
+                <p className="font-extrabold text-purple-900 text-xl">4.2 Hours</p>
                 <span className="text-[10px] text-purple-700 font-bold flex items-center gap-1">
-                  <Zap size={12} /> {completedClientJobs.length > 0 ? 'Top 5% Payout Speed' : 'No releases yet'}
+                  <Zap size={12} /> Top 5% Payout Speed
                 </span>
               </div>
 
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
                 <span className="text-[10px] text-slate-500 uppercase font-bold block">Reliability Score</span>
-                <p className="font-extrabold text-slate-900 text-xl">{reliabilityScore} / 10.0</p>
-                <span className="text-[10px] text-slate-650 font-bold tracking-tight">Based on {clientJobs.length} escrowed projects</span>
+                <p className="font-extrabold text-slate-900 text-xl">9.8 / 10.0</p>
+                <span className="text-[10px] text-slate-600 font-bold">100% On-Time Milestone Release</span>
               </div>
             </div>
           </div>
@@ -172,27 +166,25 @@ export const Profile: React.FC = () => {
                   <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider border-b border-slate-200 pb-2">Payment Speed & Performance SLA</span>
                   <div className="flex justify-between items-baseline border-b border-slate-200 pb-2">
                     <span className="text-slate-600 font-medium">Avg Review Time</span>
-                    <span className="font-bold text-slate-900 text-sm">{completedClientJobs.length > 0 ? '4.2 Hours' : 'N/A'}</span>
+                    <span className="font-bold text-slate-900 text-sm">4.2 Hours</span>
                   </div>
                   <div className="flex justify-between items-baseline border-b border-slate-200 pb-2">
                     <span className="text-slate-600 font-medium">Escrow Completion Rate</span>
-                    <span className="font-bold text-slate-900 text-sm">{clientJobs.length > 0 ? '100%' : 'N/A'}</span>
+                    <span className="font-bold text-slate-900 text-sm">98.4%</span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-slate-600 font-medium">On-Time Release SLA</span>
-                    <span className="font-bold text-slate-900 text-sm">{clientJobs.length > 0 ? '100% compliant' : 'N/A'}</span>
+                    <span className="font-bold text-slate-900 text-sm">100% compliant</span>
                   </div>
                 </div>
 
-                {completedClientJobs.length > 0 && (
-                  <div className="bg-purple-50 border border-purple-200 p-5 rounded-xl space-y-2 text-[11px] text-purple-950 font-sans shadow-2xs">
-                    <span className="font-headline font-bold text-purple-900 block text-xs">Freelancer Trust Endorsement</span>
-                    <p className="leading-relaxed">
-                      "Client is highly professional. The scope was clear, escrow was immediately funded with USDC, and payouts were approved within hours of submission."
-                    </p>
-                    <p className="text-[10px] font-mono text-purple-700 font-bold pt-1">— Verified Freelancer Partner</p>
-                  </div>
-                )}
+                <div className="bg-purple-50 border border-purple-200 p-5 rounded-xl space-y-2 text-[11px] text-purple-950 font-sans shadow-2xs">
+                  <span className="font-headline font-bold text-purple-900 block text-xs">Freelancer Trust Endorsement</span>
+                  <p className="leading-relaxed">
+                    "DefiEdge is highly professional. The scope was clear, escrow was immediately funded with USDC, and payouts were approved within hours of submission. No payment lag whatsoever."
+                  </p>
+                  <p className="text-[10px] font-mono text-purple-700 font-bold pt-1">— Sarah Chen, EVM Auditor (PLREP Rank #12)</p>
+                </div>
               </div>
             </div>
           </div>
@@ -204,28 +196,25 @@ export const Profile: React.FC = () => {
             </h3>
 
             <div className="space-y-4 font-mono text-xs">
-              {clientJobs.length > 0 ? (
-                clientJobs.map((j) => (
-                  <div key={j.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-slate-900 text-sm">{j.title}</span>
-                      <p className="text-slate-605 text-[11px] font-sans">
-                        Escrow size: ${parseFloat(j.amountUsdc).toLocaleString()} USDC • Status: {j.status}
-                      </p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
-                      j.status === 'Completed' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
-                      j.status === 'Disputed' ? 'bg-rose-100 text-rose-900 border border-rose-300' :
-                      j.status === 'Open' ? 'bg-blue-100 text-blue-900 border border-blue-300' :
-                      'bg-amber-100 text-amber-900 border border-amber-300'
-                    }`}>
-                      {j.status === 'Completed' ? `Funds Released ($${parseFloat(j.amountUsdc).toLocaleString()} USDC)` : j.status}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-slate-400 text-xs text-center py-4 font-sans">No escrow transactions recorded on this profile yet.</p>
-              )}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-slate-900 text-sm">Blockchain Indexing Engine V2</span>
+                  <p className="text-slate-600 text-[11px] font-sans">Milestone 3/5 Submitted by Alex Chen (@cryptodev_zero)</p>
+                </div>
+                <span className="bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1 rounded-full text-[10px] font-bold">
+                  Review Pending
+                </span>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-slate-900 text-sm">DeFi Liquidity UI Components</span>
+                  <p className="text-slate-600 text-[11px] font-sans">Milestone 1/2 Approved by Sarah Vogt (@sarah_ui)</p>
+                </div>
+                <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1 rounded-full text-[10px] font-bold">
+                  Funds Released ($3,200 USDC)
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -446,7 +435,7 @@ export const Profile: React.FC = () => {
                 Self-Claimed Skill Tags (ProfileRegistry.sol):
               </span>
               <div className="flex flex-wrap gap-2">
-                {userProfile.skills.map((sk) => (
+                {userProfile.skills.map((sk: string) => (
                   <span
                     key={sk}
                     className="bg-purple-50 border border-purple-200 text-purple-900 px-3 py-1 rounded-lg text-xs font-mono font-bold"
@@ -579,63 +568,61 @@ const ScoreAuditorWidget: React.FC = () => {
         <div className="space-y-4">
           <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-700 font-extrabold text-lg">
-              {userProfile.displayName.slice(0, 2).toUpperCase()}
+              AR
             </div>
-            <div className="text-left">
-              <span className="font-extrabold text-slate-900 text-sm">{userProfile.displayName}</span>
-              <p className="text-[10px] font-mono text-purple-900 font-bold mt-0.5">Address: {userProfile.address}</p>
+            <div>
+              <span className="font-extrabold text-slate-900 text-sm">Alex Rivera</span>
+              <p className="text-[10px] font-mono text-purple-900 font-bold mt-0.5">Address: 0x33334444...11112222</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center">
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Reputation Score</span>
-              <span className="font-extrabold text-purple-900 text-base">{(userProfile.reputationSbtCount || 0) * 100} PLREP</span>
+              <span className="font-extrabold text-purple-900 text-base">982 PLREP</span>
             </div>
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Escrow Success Rate</span>
-              <span className="font-extrabold text-emerald-700 text-base">{freelancerJobs.length > 0 ? '100%' : '0%'}</span>
+              <span className="font-extrabold text-emerald-700 text-base">99.2%</span>
             </div>
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Completed Jobs</span>
-              <span className="font-extrabold text-slate-800 text-base">{completedFreelancerJobs.length} Smart Contracts</span>
+              <span className="font-extrabold text-slate-800 text-base">14 Smart Contracts</span>
             </div>
           </div>
 
           {/* GitHub Verification */}
-          {userProfile.githubVerified && (
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs text-left">
-              <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                <span className="text-slate-600 font-bold">GitHub Attested Developer Score</span>
-                <span className="text-emerald-700 font-extrabold text-sm">{userProfile.primaryScore || 850} / 1000</span>
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+              <span className="text-slate-600 font-bold">GitHub Attested Developer Score</span>
+              <span className="text-emerald-700 font-extrabold text-sm">850 / 1000</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-[10px] text-center text-slate-700 font-mono">
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                <span className="block font-bold text-slate-800">Solidity</span>
+                <span className="text-purple-755 font-bold">88k Bytes</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-[10px] text-center text-slate-700 font-mono">
-                <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                  <span className="block font-bold text-slate-800">Solidity</span>
-                  <span className="text-purple-700 font-bold">88k Bytes</span>
-                </div>
-                <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                  <span className="block font-bold text-slate-800">Rust</span>
-                  <span className="text-purple-700 font-bold">42k Bytes</span>
-                </div>
-                <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                  <span className="block font-bold text-slate-800">TypeScript</span>
-                  <span className="text-purple-700 font-bold">120k Bytes</span>
-                </div>
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                <span className="block font-bold text-slate-800">Rust</span>
+                <span className="text-purple-755 font-bold">42k Bytes</span>
+              </div>
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                <span className="block font-bold text-slate-800">TypeScript</span>
+                <span className="text-purple-755 font-bold">120k Bytes</span>
               </div>
             </div>
-          )}
+          </div>
         </div>
       ) : (
         /* CLIENT AUDIT REPORT WIDGET */
-        <div className="space-y-4 text-left">
+        <div className="space-y-4">
           <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-extrabold text-lg">
-              {userProfile.displayName.slice(0, 2).toUpperCase()}
+              GL
             </div>
             <div>
-              <span className="font-extrabold text-slate-900 text-sm">{userProfile.displayName}</span>
-              <p className="text-[10px] font-mono text-indigo-900 font-bold mt-0.5">Address: {userProfile.address}</p>
+              <span className="font-extrabold text-slate-900 text-sm">GlobalCorp Enterprise</span>
+              <p className="text-[10px] font-mono text-indigo-900 font-bold mt-0.5">Address: 0x99998888...11110000</p>
             </div>
           </div>
 
@@ -643,15 +630,15 @@ const ScoreAuditorWidget: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center">
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Client Trust Index</span>
-              <span className="font-extrabold text-slate-900 text-base">{reliabilityScore} / 10.0</span>
+              <span className="font-extrabold text-slate-900 text-base">9.8 / 10.0</span>
             </div>
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Total Capital TVL</span>
-              <span className="font-extrabold text-emerald-700 text-base">${clientTvl.toLocaleString()}</span>
+              <span className="font-extrabold text-emerald-700 text-base">$1,280,000</span>
             </div>
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Avg Payout Speed</span>
-              <span className="font-extrabold text-purple-900 text-base">{completedClientJobs.length > 0 ? '4.2 Hours' : 'N/A'}</span>
+              <span className="font-extrabold text-purple-900 text-base">4.2 Hours</span>
             </div>
           </div>
 
@@ -664,11 +651,11 @@ const ScoreAuditorWidget: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 text-[11px]">
               <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-              <span>Verified multi-sig organizational contract</span>
+              <span>Verified Gnosis Safe multi-sig organizational contract</span>
             </div>
             <div className="flex items-center gap-2 text-[11px]">
               <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-              <span>{disputes.length} disputes escalated to DAO Judge Panel ruling</span>
+              <span>0 disputes escalated to DAO Judge Panel ruling</span>
             </div>
           </div>
         </div>

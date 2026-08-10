@@ -3,14 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
-import { ArrowRight, Wallet, Lock, History, Network, Activity, PlusCircle, Search, FileText, Cpu, CheckCircle2, ShieldCheck, ChevronDown, Sparkles, HelpCircle, User, XCircle, Percent, Shield, Scale, Zap, LayoutGrid, Box, Briefcase, Crown } from 'lucide-react';
+import { ArrowRight, Wallet, Lock, History, Network, Activity, PlusCircle, Search, FileText, Cpu, CheckCircle2, ShieldCheck, ChevronDown, Sparkles, HelpCircle, User, XCircle, Percent, Shield, Scale, Zap, LayoutGrid, Box } from 'lucide-react';
 
 export const Landing: React.FC = () => {
   const { isConnected, address, currentRole } = useWeb3();
   const { jobs, profiles } = usePolyLanceData();
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-
 
   const handleGetStarted = () => {
     if (!isConnected) {
@@ -54,11 +53,10 @@ export const Landing: React.FC = () => {
 
   return (
     <div className="space-y-16 py-6 max-w-6xl mx-auto">
-      {/* Hero Section */}
+      {/* Hero Section matching landing_connect_wallet/code.html */}
       <section className="hero-gradient pt-8 pb-12">
         <div className="grid md:grid-cols-12 gap-8 items-center">
-          {/* Left Column: Text and CTAs */}
-          <div className="md:col-span-7 space-y-6 text-left">
+          <div className="md:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-900 rounded-full border border-purple-200">
               <ShieldCheck size={16} className="text-purple-700" />
               <span className="font-label-mono uppercase tracking-wider text-xs font-bold">
@@ -106,149 +104,41 @@ export const Landing: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Compact Mockup Card matching 2nd image */}
+          {/* Right Column: Reputation Card Mockup from reference HTML */}
           <div className="md:col-span-5 relative">
-            <div className="glass-panel p-4 sm:p-4.5 border-purple-200 bg-white hard-shadow space-y-3.5 text-left">
-              {/* Card Header */}
+            <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-5">
               <div className="flex justify-between items-start">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-750 relative overflow-hidden border border-purple-100/80 shrink-0 shadow-3xs">
-                    <img 
-                      src="/akhil_avatar.png" 
-                      alt="Akhil Muvva" 
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80";
-                      }}
-                    />
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-700">
+                    <User size={24} />
                   </div>
-                  
                   <div>
-                    <h3 className="font-headline text-sm font-black text-slate-900 leading-tight">Akhil Muvva</h3>
-                    <p className="font-mono text-[9px] text-purple-700 font-bold leading-tight mt-0.5">0x71C...3921</p>
-                    
-                    <div className="inline-flex items-center gap-1 px-1.5 py-0.2 bg-purple-50/70 text-purple-700 rounded-full border border-purple-100/25 text-[8.5px] font-bold mt-0.5 font-sans">
-                      <ShieldCheck size={9} className="text-purple-700" />
-                      Verified by PolyLance
-                    </div>
+                    <h3 className="font-headline text-lg font-bold text-slate-900">Alex Rivera</h3>
+                    <p className="font-label-mono text-xs text-purple-700 font-semibold">0x71C...3921</p>
                   </div>
                 </div>
-                
-                <span className="bg-purple-900 text-white px-2 py-0.5 rounded-full text-[8px] font-mono font-bold uppercase flex items-center gap-1 select-none shadow-3xs">
-                  <Crown size={9} className="text-amber-400 fill-amber-400" />
+                <span className="bg-purple-900 text-white px-2.5 py-1 rounded text-[11px] font-mono font-bold uppercase">
                   TOP RATED
                 </span>
               </div>
 
-              {/* Grid split for title/desc on left and star on right */}
-              <div className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-8 space-y-1">
-                  <h4 className="font-headline text-base font-black text-slate-900 leading-tight">
-                    Become the <br />
-                    <span className="text-purple-600">Top Rated Freelancer</span> <br />
-                    on PolyLance
-                  </h4>
-                  <div className="w-10 h-0.5 bg-purple-500 rounded-full" />
+              <div className="space-y-3 font-mono text-xs">
+                <div className="flex justify-between border-b border-slate-100 pb-2">
+                  <span className="text-slate-500">Success Rate</span>
+                  <span className="font-bold text-emerald-600">99.2%</span>
                 </div>
-                <div className="col-span-4 flex justify-end">
-                  {/* Star 3D SVG */}
-                  <div className="relative select-none pointer-events-none w-16 h-16">
-                    <svg className="w-full h-full animate-bounce-slow" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <ellipse cx="60" cy="95" rx="35" ry="8" fill="#F3E8FF" opacity="0.6" />
-                      <ellipse cx="60" cy="92" rx="35" ry="8" fill="#EEF2F6" />
-                      <path d="M60 25 L68 48 L92 48 L73 63 L80 86 L60 72 L40 86 L47 63 L28 48 L52 48 Z" fill="url(#starGradHero)" filter="drop-shadow(0px 8px 16px rgba(139, 92, 246, 0.25))" />
-                      <defs>
-                        <linearGradient id="starGradHero" x1="28" y1="25" x2="92" y2="86" gradientUnits="userSpaceOnUse">
-                          <stop offset="0%" stopColor="#C084FC" />
-                          <stop offset="50%" stopColor="#8B5CF6" />
-                          <stop offset="100%" stopColor="#5B21B6" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                  </div>
+                <div className="flex justify-between border-b border-slate-100 pb-2">
+                  <span className="text-slate-500">Jobs Completed</span>
+                  <span className="font-bold text-purple-700">142</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 pb-2">
+                  <span className="text-slate-500">Volume Handled</span>
+                  <span className="font-bold text-purple-900">$42,500 USDC</span>
                 </div>
               </div>
 
-              {/* Description */}
-              <p className="text-[10px] text-slate-500 leading-normal font-sans font-medium">
-                Build your reputation, earn trust, and unlock high-value opportunities in a transparent decentralized ecosystem.
-              </p>
-
-              {/* Feature bullet list */}
-              <div className="space-y-2 pt-0.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0 shadow-4xs">
-                    <Activity size={10} className="text-purple-600" />
-                  </div>
-                  <div className="text-[9.5px] font-sans">
-                    <span className="font-bold text-slate-800">Build Your Reputation</span>
-                    <span className="text-slate-400 mx-1">•</span>
-                    <span className="text-slate-505 font-medium">Deliver quality, earn trust.</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-705 shrink-0 shadow-4xs">
-                    <Zap size={10} className="text-indigo-650" />
-                  </div>
-                  <div className="text-[9.5px] font-sans">
-                    <span className="font-bold text-slate-800">Unlock Better Opportunities</span>
-                    <span className="text-slate-400 mx-1">•</span>
-                    <span className="text-slate-550 font-medium">Top rated pros get top tier projects.</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0 shadow-4xs">
-                    <ShieldCheck size={10} className="text-purple-600" />
-                  </div>
-                  <div className="text-[9.5px] font-sans">
-                    <span className="font-bold text-slate-800">Stand Out On-Chain</span>
-                    <span className="text-slate-400 mx-1">•</span>
-                    <span className="text-slate-505 font-medium">Your reputation is your biggest asset.</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Banner */}
-              <div className="bg-purple-50/40 border border-purple-100/30 p-2.5 rounded-xl flex items-center justify-between gap-2 text-left">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 shrink-0">
-                    <Crown size={12} className="text-purple-700 fill-purple-700/10" />
-                  </div>
-                  <div className="space-y-0.2">
-                    <p className="text-[9.5px] font-bold text-purple-900 font-satoshi">
-                      Top Rated Pros earn more.
-                    </p>
-                    <p className="text-[8.5px] text-slate-450 font-sans font-medium leading-none">Higher trust. Higher rewards.</p>
-                  </div>
-                </div>
-                
-                <button
-                  type="button"
-                  onClick={handleGetStarted}
-                  className="gradient-btn-primary px-2.5 py-1.5 rounded-lg font-headline font-bold text-[8.5px] flex items-center gap-1 select-none shadow-xs text-white cursor-pointer shrink-0 text-right leading-none"
-                >
-                  <Sparkles size={9} />
-                  <span>Start Building<br />Reputation</span>
-                  <ArrowRight size={8} />
-                </button>
-              </div>
-
-              {/* Footer Row */}
-              <div className="pt-2.5 border-t border-slate-100 grid grid-cols-3 gap-1.5 font-mono text-[7.5px] text-slate-500 font-bold uppercase tracking-wider text-center select-none">
-                <div className="flex items-center justify-center gap-1">
-                  <ShieldCheck size={9} className="text-purple-600" />
-                  <span>100% On-Chain</span>
-                </div>
-                <div className="flex items-center justify-center gap-1 border-l border-slate-200">
-                  <Lock size={9} className="text-purple-600" />
-                  <span>Secure Escrow</span>
-                </div>
-                <div className="flex items-center justify-center gap-1 border-l border-slate-200">
-                  <Cpu size={9} className="text-purple-600" />
-                  <span>Verified Code</span>
-                </div>
+              <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 font-data-hash text-[11px] text-purple-900">
+                <span className="text-purple-700 font-bold">sig:</span> 0xf82a...9b2c (Verified by PolyLance Protocol)
               </div>
             </div>
           </div>
@@ -727,214 +617,102 @@ export const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Real-Time Protocol Stats Section */}
-      <section className="grid md:grid-cols-2 gap-8 items-start py-8">
+      {/* Real-Time Protocol Stats matching landing_connect_wallet/code.html */}
+      <section className="grid md:grid-cols-2 gap-8 items-center">
         <div className="space-y-6">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100/50 text-[10px] uppercase font-bold tracking-widest w-fit shadow-4xs">
-            <ShieldCheck size={13} className="text-blue-700" />
-            Trusted by Builders. Powered by Blockchain.
-          </div>
-
-          <h2 className="font-headline text-3xl font-black text-slate-900 leading-tight text-left">
-            Institutional Trust <br />
-            for the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-black" style={{ WebkitBackgroundClip: 'text', backgroundClip: 'text' }}>Decentralized <br />Workforce</span>.
+          <h2 className="font-headline text-3xl font-extrabold text-slate-900 leading-tight">
+            Institutional Trust for the <span className="gradient-text-purple-pink">Decentralized Workforce</span>.
           </h2>
-          <p className="text-sm text-slate-600 leading-relaxed text-left">
+          <p className="text-sm text-slate-600 leading-relaxed">
             PolyLance isn't just another job board. It's a financial terminal for talent. By removing middlemen and replacing them with smart contract code, we ensure that top engineers get paid fastest.
           </p>
+
+          <div className="flex items-center gap-4 pt-2">
+            <div className="flex -space-x-3">
+              <img
+                className="w-10 h-10 rounded-full border-2 border-white object-cover shadow-xs"
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                alt="Developer Avatar"
+              />
+              <img
+                className="w-10 h-10 rounded-full border-2 border-white object-cover shadow-xs"
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80"
+                alt="Developer Avatar"
+              />
+              <img
+                className="w-10 h-10 rounded-full border-2 border-white object-cover shadow-xs"
+                src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80"
+                alt="Developer Avatar"
+              />
+            </div>
+            <span className="font-label-mono text-xs text-purple-900 font-bold">
+              +1,200 Verified Pros On-Chain
+            </span>
+          </div>
         </div>
 
-        <div className="bg-white border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm">
-          {/* Card Header with Glowing Wave */}
-          <div className="bg-slate-950 p-4 flex items-center justify-between text-white relative overflow-hidden">
-            <div className="space-y-1 relative z-10 text-left">
-              <h4 className="font-mono text-[10px] font-bold uppercase tracking-widest" style={{ color: '#f8fafc' }}>
-                REAL-TIME PROTOCOL STATS
-              </h4>
-              <span className="flex items-center gap-1.5 text-[9px] font-mono text-emerald-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full select-none w-fit">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live Mainnet Ledger
-              </span>
-            </div>
-            
-            <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-24 h-6 text-purple-400 opacity-30 select-none pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 100 30">
-              <path d="M0,15 L30,15 L35,5 L40,25 L45,15 L50,15 L55,0 L60,30 L65,15 L100,15" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+        <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h4 className="font-label-mono text-xs uppercase tracking-wider text-slate-500 flex items-center gap-2 font-bold">
+              <Activity size={16} className="text-purple-700" /> Real-Time Protocol Stats
+            </h4>
+            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">
+              Live Mainnet Ledger
+            </span>
           </div>
 
-          <div className="p-5 space-y-4">
-            {/* Stat Row 1 */}
-            <div className="flex items-start gap-3 text-left">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0 shadow-3xs">
-                <Briefcase size={16} />
+          <div className="space-y-4 font-mono">
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-600">Total Jobs Created</span>
+                <span className="font-bold text-purple-900">{totalJobs} Jobs</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between text-xs font-bold text-slate-800 mb-1">
-                  <span>Total Jobs Created</span>
-                  <span className="text-purple-700 font-mono font-bold">{totalJobs} Jobs</span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden border border-slate-200/50">
-                  <div className="bg-gradient-to-r from-purple-600 to-indigo-600 h-full transition-all duration-500" style={{ width: totalJobs > 0 ? '40%' : '0%' }} />
-                </div>
+              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
+                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 h-full" style={{ width: '85%' }} />
               </div>
             </div>
 
-            {/* Stat Row 2 */}
-            <div className="flex items-start gap-3 text-left">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 shadow-3xs">
-                <Lock size={16} />
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-600">Total Escrow Value Locked</span>
+                <span className="font-bold text-emerald-700">${totalEscrowUsdc.toLocaleString()} USDC</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between text-xs font-bold text-slate-800 mb-1">
-                  <span>Total Escrow Value Locked</span>
-                  <span className="text-emerald-700 font-mono font-bold">${totalEscrowUsdc.toLocaleString()} USDC</span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden border border-slate-200/50">
-                  <div className="bg-gradient-to-r from-emerald-500 to-cyan-500 h-full transition-all duration-500" style={{ width: totalEscrowUsdc > 0 ? '50%' : '0%' }} />
-                </div>
+              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
+                <div className="bg-gradient-to-r from-emerald-500 to-cyan-500 h-full" style={{ width: '70%' }} />
               </div>
             </div>
 
-            {/* Stat Row 3 */}
-            <div className="flex items-start gap-3 text-left">
-              <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 shrink-0 shadow-3xs">
-                <CheckCircle2 size={16} />
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-600">Jobs Completed (SBTs Minted)</span>
+                <span className="font-bold text-purple-700">{completedJobs}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between text-xs font-bold text-slate-800 mb-1">
-                  <span>Jobs Completed (SBTs Minted)</span>
-                  <span className="text-blue-700 font-mono font-bold">{completedJobs}</span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden border border-slate-200/50">
-                  <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-500" style={{ width: completedJobs > 0 ? '40%' : '0%' }} />
-                </div>
+              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
+                <div className="bg-gradient-to-r from-purple-500 to-indigo-500 h-full" style={{ width: '60%' }} />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Platform Stats Grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Card 1 - Total Jobs */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between group hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1.5 text-left">
-              <span className="text-[10px] text-slate-450 font-bold uppercase font-mono tracking-wider">Total Jobs</span>
-              <p className="text-3xl font-black text-slate-805 font-sans">{totalJobs}</p>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shadow-3xs">
-              <Briefcase size={16} />
-            </div>
+      {/* Platform Stats Footer Bar matching reference HTML */}
+      <section className="glass-panel p-6 border-slate-200 bg-white">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 font-mono text-center">
+          <div className="space-y-1">
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold font-mono">Total Jobs</p>
+            <p className="stat-number text-slate-900">{totalJobs}</p>
           </div>
-          <div className="mt-4 pt-2">
-            <svg className="w-24 h-24 mx-auto opacity-80 group-hover:scale-105 transition-transform" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="60" cy="90" rx="40" ry="12" fill="#E0E7FF" opacity="0.6" />
-              <ellipse cx="60" cy="87" rx="40" ry="12" fill="#EEF2F6" />
-              <path d="M35 50 C35 48, 37 46, 40 46 L80 46 C83 46, 85 48, 85 50 L85 76 C85 79, 83 81, 80 81 L40 81 C37 81, 35 79, 35 76 Z" fill="url(#purpleGrad)" filter="drop-shadow(0px 8px 12px rgba(124, 58, 237, 0.15))" />
-              <path d="M50 46 V41 C50 39, 52 37, 55 37 H65 C68 37, 70 39, 70 41 V46" stroke="url(#purpleGrad)" strokeWidth="3" fill="none" />
-              <rect x="56" y="58" width="8" height="8" rx="2" fill="#A78BFA" />
-              <line x1="60" y1="62" x2="60" y2="66" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
-              <defs>
-                <linearGradient id="purpleGrad" x1="35" y1="37" x2="85" y2="81" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#C084FC" />
-                  <stop offset="100%" stopColor="#7C3AED" />
-                </linearGradient>
-              </defs>
-            </svg>
+          <div className="space-y-1">
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold font-mono">Total in Escrow</p>
+            <p className="stat-number text-emerald-600">${totalEscrowUsdc.toLocaleString()}</p>
           </div>
-        </div>
-
-        {/* Card 2 - Total in Escrow */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between group hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1.5 text-left">
-              <span className="text-[10px] text-slate-455 font-bold uppercase font-mono tracking-wider">Total in Escrow</span>
-              <p className="text-3xl font-black text-emerald-600 font-sans">${totalEscrowUsdc.toLocaleString()}</p>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 shadow-3xs">
-              <Lock size={16} />
-            </div>
+          <div className="space-y-1">
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold font-mono">Dispute Rate</p>
+            <p className="stat-number text-amber-600">0.02%</p>
           </div>
-          <div className="mt-4 pt-2">
-            <svg className="w-24 h-24 mx-auto opacity-85 group-hover:scale-105 transition-transform" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="60" cy="90" rx="40" ry="12" fill="#DCFCE7" opacity="0.6" />
-              <ellipse cx="60" cy="87" rx="40" ry="12" fill="#EEF2F6" />
-              <rect x="42" y="52" width="36" height="28" rx="6" fill="url(#greenGrad)" filter="drop-shadow(0px 8px 12px rgba(16, 185, 129, 0.15))" />
-              <path d="M49 52 V44 C49 38, 54 33, 60 33 C66 33, 71 38, 71 44 V52" stroke="url(#greenGrad)" strokeWidth="4" fill="none" />
-              <circle cx="60" cy="62" r="3.5" fill="#34D399" />
-              <path d="M60 65 L60 72" stroke="#34D399" strokeWidth="2" strokeLinecap="round" />
-              <defs>
-                <linearGradient id="greenGrad" x1="42" y1="33" x2="78" y2="80" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#34D399" />
-                  <stop offset="100%" stopColor="#059669" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-        </div>
-
-        {/* Card 3 - Dispute Rate */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between group hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1.5 text-left">
-              <span className="text-[10px] text-slate-455 font-bold uppercase font-mono tracking-wider">Dispute Rate</span>
-              <p className="text-3xl font-black text-amber-600 font-sans">0.02%</p>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-700 shadow-3xs">
-              <Scale size={16} />
-            </div>
-          </div>
-          <div className="mt-4 pt-2">
-            <svg className="w-24 h-24 mx-auto opacity-85 group-hover:scale-105 transition-transform" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="60" cy="90" rx="40" ry="12" fill="#FEF3C7" opacity="0.6" />
-              <ellipse cx="60" cy="87" rx="40" ry="12" fill="#EEF2F6" />
-              <path d="M42 42 C42 42, 60 36, 60 36 C60 36, 78 42, 78 42 V60 C78 72, 60 81, 60 81 C60 81, 42 72, 42 60 Z" fill="url(#goldGrad)" filter="drop-shadow(0px 8px 12px rgba(245, 158, 11, 0.15))" />
-              <path d="M53 58 L58 63 L67 52" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-              <defs>
-                <linearGradient id="goldGrad" x1="42" y1="36" x2="78" y2="81" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#FBBF24" />
-                  <stop offset="100%" stopColor="#D97706" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-        </div>
-
-        {/* Card 4 - Verified Pros */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between group hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1.5 text-left">
-              <span className="text-[10px] text-slate-455 font-bold uppercase font-mono tracking-wider">Verified Pros</span>
-              <p className="text-3xl font-black text-purple-600 font-sans">{Object.keys(profiles).length}</p>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shadow-3xs">
-              <User size={16} />
-            </div>
-          </div>
-          <div className="mt-4 pt-2">
-            <svg className="w-24 h-24 mx-auto opacity-85 group-hover:scale-105 transition-transform" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="60" cy="90" rx="40" ry="12" fill="#F3E8FF" opacity="0.6" />
-              <ellipse cx="60" cy="87" rx="40" ry="12" fill="#EEF2F6" />
-              <circle cx="48" cy="53" r="8" fill="url(#userPurpleGrad)" />
-              <path d="M36 73 C36 66, 41 62, 48 62 C52.5 62, 56.5 64.5, 58.5 68" stroke="#EEF2F6" strokeWidth="1.5" fill="url(#userPurpleGrad)" />
-              <circle cx="72" cy="53" r="8" fill="url(#userPurpleGrad)" />
-              <path d="M84 73 C84 66, 79 62, 72 62 C67.5 62, 63.5 64.5, 61.5 68" stroke="#EEF2F6" strokeWidth="1.5" fill="url(#userPurpleGrad)" />
-              <circle cx="60" cy="48" r="9" fill="url(#userPurpleGradMain)" />
-              <path d="M46 70 C46 62, 52 58, 60 58 C68 58, 74 62, 74 70 Z" stroke="#EEF2F6" strokeWidth="1.5" fill="url(#userPurpleGradMain)" />
-              <circle cx="74" cy="70" r="5" fill="#10B981" />
-              <path d="M72 70 L73.5 71.5 L76 68.5" stroke="#FFFFFF" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-              <defs>
-                <linearGradient id="userPurpleGrad" x1="36" y1="45" x2="84" y2="73" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#DDD6FE" />
-                  <stop offset="100%" stopColor="#8B5CF6" />
-                </linearGradient>
-                <linearGradient id="userPurpleGradMain" x1="46" y1="39" x2="74" y2="70" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#C084FC" />
-                  <stop offset="100%" stopColor="#6D28D9" />
-                </linearGradient>
-              </defs>
-            </svg>
+          <div className="space-y-1">
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold font-mono">Verified Pros</p>
+            <p className="stat-number text-purple-700">1,200+</p>
           </div>
         </div>
       </section>

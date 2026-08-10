@@ -24,12 +24,12 @@ export const Treasury: React.FC = () => {
     setPurpose('');
   };
 
-  const handleSign = (proposalId: string) => {
-    signTreasuryWithdrawal(proposalId, address);
+  const handleSign = (safeTxHash: string) => {
+    signTreasuryWithdrawal(safeTxHash, address);
   };
 
-  const handleExecute = (proposalId: string) => {
-    executeTreasuryWithdrawal(proposalId);
+  const handleExecute = (safeTxHash: string) => {
+    executeTreasuryWithdrawal(safeTxHash);
     confetti({ particleCount: 100, spread: 70 });
   };
 
@@ -179,34 +179,38 @@ export const Treasury: React.FC = () => {
 
             <div className="space-y-4">
               {treasury.proposals.map((prop) => {
-                const hasSigned = prop.signatures.some((s) => s.toLowerCase() === address.toLowerCase());
+                const propId = prop.safeTxHash || prop.id;
+                const sigs = prop.confirmations || prop.signatures || [];
+                const reqCount = prop.confirmationsRequired || treasury.requiredSignatures;
+                const executed = prop.isExecuted ?? prop.executed;
+                const hasSigned = sigs.some((s) => s.toLowerCase() === address.toLowerCase());
                 return (
-                  <div key={prop.id} className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
+                  <div key={propId} className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-sm">{prop.purpose}</span>
-                        <span className="text-emerald-700 font-bold">${parseFloat(prop.amountUsdc).toLocaleString()} USDC</span>
+                        <span className="font-bold text-slate-900 text-sm">{prop.purpose || 'Disbursement'}</span>
+                        <span className="text-emerald-700 font-bold">${parseFloat(prop.amountUsdc || prop.amount || '0').toLocaleString()} USDC</span>
                       </div>
                       <p className="text-slate-600">
-                        To: <span className="text-purple-900 font-bold">{truncateAddress(prop.recipient)}</span> | Signers: {prop.signatures.length}/{treasury.requiredSignatures} Approved
+                        To: <span className="text-purple-900 font-bold">{truncateAddress(prop.to || prop.recipient)}</span> | Signers: {sigs.length}/{reqCount} Approved
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setSelectedProposalModal(prop.id)}
+                        onClick={() => setSelectedProposalModal(propId)}
                         className="bg-white hover:bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-lg text-slate-700 font-bold"
                       >
                         Inspect Payload
                       </button>
 
-                      {prop.executed ? (
+                      {executed ? (
                         <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full text-[10px] font-bold">
                           Executed On-Chain
                         </span>
-                      ) : prop.signatures.length >= treasury.requiredSignatures ? (
+                      ) : sigs.length >= reqCount ? (
                         <button
-                          onClick={() => handleExecute(prop.id)}
+                          onClick={() => handleExecute(propId)}
                           className="gradient-btn-emerald px-4 py-2 rounded-xl text-xs font-bold"
                         >
                           Execute Disbursement
@@ -217,7 +221,7 @@ export const Treasury: React.FC = () => {
                         </span>
                       ) : (
                         <button
-                          onClick={() => handleSign(prop.id)}
+                          onClick={() => handleSign(propId)}
                           className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold"
                         >
                           Sign Transaction

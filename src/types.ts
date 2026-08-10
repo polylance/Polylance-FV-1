@@ -49,17 +49,23 @@ export interface JobEvent {
 
 export interface ProgressUpdate {
   id: string;
+  ipfsHash: string;
   progressPercent: number;
   statusNote: string;
   timestamp: number;
+  txHash?: string;
   demoUrl?: string;
 }
 
 export interface TimeExtensionRequest {
   id: string;
+  requestIndex: number;
   requestedDays: number;
+  reasonIpfsHash: string;
   reason: string;
   requestedAt: number;
+  responded: boolean;
+  approved: boolean;
   status: 'Pending' | 'Approved' | 'Rejected';
   responseNote?: string;
 }
@@ -78,6 +84,9 @@ export interface Job {
   freelancer?: string;
   amountEth: string;
   amountUsdc: string;
+  paymentToken: string;
+  paymentTokenSymbol: string;
+  paymentTokenDecimals: number;
   status: JobStatus;
   title: string;
   description: string;
@@ -132,12 +141,19 @@ export interface DaoProposal {
 
 export interface TreasuryProposal {
   id: string;
+  safeTxHash: string;
   recipient: string;
+  to: string;
+  amount: string;
   amountUsdc: string;
+  tokenAddress: string;
   purpose: string;
   proposer: string;
   signatures: string[];
+  confirmations: string[];
+  confirmationsRequired: number;
   executed: boolean;
+  isExecuted: boolean;
 }
 
 export interface TreasuryState {
