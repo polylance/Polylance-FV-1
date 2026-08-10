@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { 
@@ -684,7 +685,7 @@ export const Reputation: React.FC = () => {
             </div>
             
             <div className="flex flex-col items-center space-y-2 mt-1">
-              <div className="relative">
+              <Link to={`/profile/${secondPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
                 <img
                   src={secondPlace?.avatar}
                   alt={secondPlace?.name}
@@ -693,12 +694,12 @@ export const Reputation: React.FC = () => {
                 <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-800 font-black text-[10px] border border-white shadow-xs font-mono">
                   2
                 </span>
-              </div>
+              </Link>
               
               <div>
-                <h4 className="font-extrabold text-slate-900 tracking-tight text-sm group-hover:text-purple-700 transition-colors">
+                <Link to={`/profile/${secondPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
                   {secondPlace?.name}
-                </h4>
+                </Link>
                 <p className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-slate-200/40">
                   {secondPlace?.role}
                 </p>
@@ -736,7 +737,7 @@ export const Reputation: React.FC = () => {
             </div>
 
             <div className="flex flex-col items-center space-y-2 mt-2">
-              <div className="relative">
+              <Link to={`/profile/${firstPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
                 <img
                   src={firstPlace?.avatar}
                   alt={firstPlace?.name}
@@ -745,12 +746,12 @@ export const Reputation: React.FC = () => {
                 <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5.5 h-5.5 rounded-full bg-amber-400 text-amber-955 font-black text-xs border border-white shadow-xs font-mono">
                   👑
                 </span>
-              </div>
+              </Link>
 
               <div>
-                <h4 className="font-extrabold text-slate-900 tracking-tight text-base group-hover:text-purple-700 transition-colors">
+                <Link to={`/profile/${firstPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-base hover:text-purple-700 hover:underline block leading-tight">
                   {firstPlace?.name}
-                </h4>
+                </Link>
                 <p className="text-[9px] bg-amber-100 text-amber-955 px-2 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-black mt-0.5 border border-amber-200/40">
                   {firstPlace?.role}
                 </p>
@@ -784,7 +785,7 @@ export const Reputation: React.FC = () => {
             </div>
 
             <div className="flex flex-col items-center space-y-2 mt-1">
-              <div className="relative">
+              <Link to={`/profile/${thirdPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
                 <img
                   src={thirdPlace?.avatar}
                   alt={thirdPlace?.name}
@@ -793,12 +794,12 @@ export const Reputation: React.FC = () => {
                 <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-700 text-white font-black text-[10px] border border-white shadow-xs font-mono">
                   3
                 </span>
-              </div>
+              </Link>
 
               <div>
-                <h4 className="font-extrabold text-slate-900 tracking-tight text-sm group-hover:text-purple-700 transition-colors">
+                <Link to={`/profile/${thirdPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
                   {thirdPlace?.name}
-                </h4>
+                </Link>
                 <p className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-slate-200/40">
                   {thirdPlace?.role}
                 </p>
@@ -867,7 +868,7 @@ export const Reputation: React.FC = () => {
 
                   {/* Name Column */}
                   <div className="col-span-4 flex items-center gap-3">
-                    <div className="relative">
+                    <Link to={`/profile/${item.address}`} className="relative shrink-0 block hover:opacity-90 transition-opacity">
                       <img
                         src={item.avatar}
                         alt={item.name}
@@ -880,12 +881,15 @@ export const Reputation: React.FC = () => {
                           <span className="text-[8.5px] leading-none mb-0.5">👑</span>
                         </span>
                       )}
-                    </div>
+                    </Link>
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-extrabold text-slate-800 block leading-tight ${item.isUser ? 'text-purple-950 font-black' : ''}`}>
+                        <Link 
+                          to={`/profile/${item.address}`}
+                          className={`text-sm font-extrabold text-slate-800 hover:text-purple-700 hover:underline block leading-tight ${item.isUser ? 'text-purple-950 font-black' : ''}`}
+                        >
                           {item.name}
-                        </span>
+                        </Link>
                         {item.isUser && (
                           <span className="hidden md:inline-block text-[9px] bg-purple-600 text-white font-extrabold px-2 py-0.5 rounded-full font-mono uppercase tracking-widest shadow-sm">
                             YOU

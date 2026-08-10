@@ -120,7 +120,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         setRole,
         address,
         isConnected,
-        isArbitrator: currentRole === 'judge',
+        isArbitrator: currentRole === 'judge' || currentRole === 'admin',
         isTreasuryAdmin: currentRole === 'admin',
         reputationCount: walletInfo.reputationCount,
         connectWallet,

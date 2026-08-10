@@ -163,17 +163,30 @@ export const JobDetail: React.FC = () => {
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-mono text-slate-500 border-t border-slate-100 pt-4">
               <div className="flex items-center gap-1.5">
                 <span className="text-slate-400 font-bold">CLIENT:</span>
-                <span className="text-purple-700 font-extrabold">{clientDisplayName}</span>
-                <span className="text-slate-450">({truncateAddress(job.client)})</span>
+                <Link 
+                  to={`/profile/${job.client}`}
+                  className="text-purple-700 font-extrabold hover:text-purple-900 hover:underline flex items-center gap-1"
+                >
+                  <span>{clientDisplayName}</span>
+                  <span className="text-slate-450 font-normal">({truncateAddress(job.client)})</span>
+                  <ExternalLink size={11} className="text-purple-500" />
+                </Link>
               </div>
               {job.freelancer && (
                 <div className="flex items-center gap-1.5">
                   <span className="text-slate-400 font-bold">FREELANCER:</span>
-                  <span className="text-purple-700 font-extrabold">{freelancerDisplayName}</span>
-                  <span className="text-slate-450">({truncateAddress(job.freelancer)})</span>
+                  <Link 
+                    to={`/profile/${job.freelancer}`}
+                    className="text-purple-700 font-extrabold hover:text-purple-900 hover:underline flex items-center gap-1"
+                  >
+                    <span>{freelancerDisplayName}</span>
+                    <span className="text-slate-450 font-normal">({truncateAddress(job.freelancer)})</span>
+                    <ExternalLink size={11} className="text-purple-500" />
+                  </Link>
                 </div>
               )}
             </div>
+
           </div>
 
           {/* Job Description Card with CID tag */}

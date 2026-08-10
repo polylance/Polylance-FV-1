@@ -72,32 +72,28 @@ export const Navbar: React.FC = () => {
               </div>
             ) : (
               <>
-                {/* 2. FREELANCER PERCEPTION */}
-                {currentRole === 'freelancer' && (
-                  <>
-                    <Link
-                      to="/jobs"
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/jobs') && !isActive('/jobs/post')
-                          ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                        }`}
-                    >
-                      <Briefcase size={14} />
-                      Find Jobs
-                    </Link>
+                {/* 2. COMMON SECTIONS (Marketplace & Leaderboard) */}
+                <Link
+                  to="/jobs"
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/jobs') && !isActive('/jobs/post')
+                      ? 'bg-purple-700 text-white font-extrabold shadow-sm'
+                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
+                    }`}
+                >
+                  <Briefcase size={14} />
+                  Find Jobs
+                </Link>
 
-                    <Link
-                      to="/reputation"
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/reputation')
-                          ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                        }`}
-                    >
-                      <Award size={14} />
-                      SBT Leaderboard
-                    </Link>
-                  </>
-                )}
+                <Link
+                  to="/reputation"
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/reputation')
+                      ? 'bg-purple-700 text-white font-extrabold shadow-sm'
+                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
+                    }`}
+                >
+                  <Award size={14} />
+                  SBT Leaderboard
+                </Link>
 
                 {/* 3. CLIENT PERCEPTION */}
                 {currentRole === 'client' && (
