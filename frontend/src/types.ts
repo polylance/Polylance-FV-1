@@ -97,6 +97,7 @@ export interface Job {
   extensionRequests?: TimeExtensionRequest[];
   modificationRequests?: ModificationRequest[];
   events: JobEvent[];
+  chatMessages?: { sender: 'Client' | 'Freelancer' | 'Judge'; text: string; timestamp: number }[];
 }
 
 export interface UserProfile {

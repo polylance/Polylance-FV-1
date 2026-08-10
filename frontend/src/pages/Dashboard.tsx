@@ -59,10 +59,16 @@ export const Dashboard: React.FC = () => {
   );
 
   const completedFreelanceJobs = myFreelancerJobs.filter((j) => j.status === 'Completed');
-  const totalEarnedUsdc = completedFreelanceJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
+  const totalEarnedUsdc = completedFreelanceJobs.reduce((sum, j) => {
+    const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
+    return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
+  }, 0);
   const clientTotalEscrow = myClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
   const completedClientJobs = myClientJobs.filter((j) => j.status === 'Completed');
-  const clientTotalSpent = completedClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
+  const clientTotalSpent = completedClientJobs.reduce((sum, j) => {
+    const paidFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
+    return sum + (parseFloat(j.amountUsdc || '0') * paidFraction);
+  }, 0);
   const clientPendingReviewJobs = myClientJobs.filter((j) => j.status === 'Submitted');
 
   // Dynamic ranking calculation
@@ -372,7 +378,10 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <button className="w-full glass-panel py-2 text-xs font-bold text-slate-700 border-slate-200 hover:bg-slate-50 rounded-xl">
+                <button 
+                  onClick={() => navigate(`/audit/${address}`)}
+                  className="w-full glass-panel py-2 text-xs font-bold text-slate-700 border-slate-200 hover:bg-slate-50 rounded-xl cursor-pointer"
+                >
                   Download Audit Report
                 </button>
               </div>
@@ -502,12 +511,13 @@ export const Dashboard: React.FC = () => {
                             <MessageSquare size={15} className="text-purple-700" />
                             <span>XMTP Encrypted Chat Connected</span>
                           </div>
-                          <div
-                            className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
+                          <button
+                            onClick={() => navigate(`/chat/${job.id}`)}
+                            className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                           >
                             Open Collaboration Hub
                             <ArrowUpRight size={14} />
-                          </div>
+                          </button>
                         </div>
                       </div>
                     ))
@@ -550,6 +560,12 @@ export const Dashboard: React.FC = () => {
                   className="w-full glass-panel py-2 text-xs font-bold text-slate-700 border-slate-200 hover:bg-slate-50 rounded-xl text-center block"
                 >
                   View Global Leaderboard Rank (#{myRank})
+                </Link>
+                <Link
+                  to={`/audit/${address}`}
+                  className="w-full mt-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900 py-2 text-xs font-bold rounded-xl text-center block cursor-pointer font-sans"
+                >
+                  Download Certified Audit
                 </Link>
               </div>
 

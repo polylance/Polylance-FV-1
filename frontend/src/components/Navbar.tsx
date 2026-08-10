@@ -3,13 +3,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { PolyLanceLogo } from './PolyLanceLogo';
 import { LoginModal } from './LoginModal';
-import { Briefcase, PlusCircle, LayoutDashboard, Scale, Lock, BarChart3, User, Award, LogIn, Shield } from 'lucide-react';
+import { Briefcase, PlusCircle, LayoutDashboard, Scale, Lock, BarChart3, User, Award, LogIn, Shield, ChevronDown, MessageSquare } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
 
 export const Navbar: React.FC = () => {
   const { isConnected, address, currentRole, isArbitrator, isTreasuryAdmin, disconnectWallet } = useWeb3();
   const location = useLocation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
 
@@ -73,27 +74,31 @@ export const Navbar: React.FC = () => {
             ) : (
               <>
                 {/* 2. COMMON SECTIONS (Marketplace & Leaderboard) */}
-                <Link
-                  to="/jobs"
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/jobs') && !isActive('/jobs/post')
-                      ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                    }`}
-                >
-                  <Briefcase size={14} />
-                  Find Jobs
-                </Link>
+                {currentRole !== 'client' && (
+                  <>
+                    <Link
+                      to="/jobs"
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/jobs') && !isActive('/jobs/post')
+                          ? 'bg-purple-700 text-white font-extrabold shadow-sm'
+                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
+                        }`}
+                    >
+                      <Briefcase size={14} />
+                      Find Jobs
+                    </Link>
 
-                <Link
-                  to="/reputation"
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/reputation')
-                      ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                    }`}
-                >
-                  <Award size={14} />
-                  SBT Leaderboard
-                </Link>
+                    <Link
+                      to="/reputation"
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/reputation')
+                          ? 'bg-purple-700 text-white font-extrabold shadow-sm'
+                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
+                        }`}
+                    >
+                      <Award size={14} />
+                      SBT Leaderboard
+                    </Link>
+                  </>
+                )}
 
                 {/* 3. CLIENT PERCEPTION */}
                 {currentRole === 'client' && (
@@ -156,12 +161,26 @@ export const Navbar: React.FC = () => {
                   to="/dao"
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/dao')
                       ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
+                      : 'text-slate-700 hover:text-slate-955 hover:bg-slate-100 font-semibold'
                     }`}
                 >
                   <Award size={14} />
                   DAO
                 </Link>
+
+                {/* 7.5 MESSAGES */}
+                {!isVisitor && (
+                  <Link
+                    to="/chat"
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/chat')
+                        ? 'bg-purple-700 text-white font-extrabold shadow-sm'
+                        : 'text-slate-700 hover:text-slate-955 hover:bg-slate-100 font-semibold'
+                      }`}
+                  >
+                    <MessageSquare size={14} />
+                    Messages
+                  </Link>
+                )}
 
                 {/* 8. ANALYTICS */}
                 {currentRole !== 'judge' && (
@@ -175,6 +194,46 @@ export const Navbar: React.FC = () => {
                     <BarChart3 size={14} />
                     Analytics
                   </Link>
+                )}
+
+                {/* 9. ADMIN SANDBOX TOGGLE */}
+                {currentRole === 'admin' && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsAdminDropdownOpen(!isAdminDropdownOpen)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-955 hover:bg-slate-100 flex items-center gap-1 cursor-pointer font-sans"
+                    >
+                      Admin Sandbox <ChevronDown size={14} />
+                    </button>
+                    {isAdminDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-1.5 text-xs font-bold text-slate-705 font-sans">
+                        <Link
+                          to="/jobs/post"
+                          onClick={() => setIsAdminDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-950"
+                        >
+                          <PlusCircle size={14} className="text-indigo-600" />
+                          Post Job Escrow
+                        </Link>
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setIsAdminDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-950"
+                        >
+                          <LayoutDashboard size={14} className="text-purple-650" />
+                          Client/Dev Dashboard
+                        </Link>
+                        <Link
+                          to="/onboarding"
+                          onClick={() => setIsAdminDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-950"
+                        >
+                          <User size={14} className="text-purple-650" />
+                          Edit Profile
+                        </Link>
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             )}

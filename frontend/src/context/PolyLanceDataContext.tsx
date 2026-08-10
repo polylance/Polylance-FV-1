@@ -36,6 +36,7 @@ interface PolyLanceDataContextType {
   raiseDispute: (jobId: string, reason: DisputeReason, evidenceText: string, evidenceIpfsHash: string, raisedByAddress: string) => void;
   submitDisputeResponse: (jobId: string, responseText: string, responseIpfsHash: string) => void;
   resolveDispute: (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => void;
+  sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => void;
   updateProfile: (profile: Partial<UserProfile>, address: string) => void;
   castDaoVote: (proposalId: number, support: boolean, voterAddress: string, votingPower: number) => void;
   castVote: (proposalId: number, support: boolean, voterAddress: string) => void;
@@ -812,8 +813,38 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       prev.map((job) => {
         if (job.id !== jobId || !job.dispute) return job;
         const freelancerPercent = freelancerBps / 100;
-        const fee = parseFloat(job.amountUsdc) * 0.025;
-        setTreasuryBalanceUsdc((b) => b + fee);
+        
+        // Payout and Fee logic
+        const freelancerAmount = parseFloat(job.amountUsdc) * (freelancerBps / 10000);
+        const fee = freelancerAmount * 0.025;
+        if (fee > 0) {
+          setTreasuryBalanceUsdc((b) => b + fee);
+          setTreasuryHistory((h) => [
+            { id: Date.now().toString(), type: 'FEE_COLLECTED', amountUsdc: fee, txHash, timestamp: Date.now() },
+            ...h,
+          ]);
+        }
+
+        // Update freelancer profile stats if present
+        if (job.freelancer) {
+          const flAddr = job.freelancer.toLowerCase();
+          setProfiles((prevProfiles) => {
+            const next = { ...prevProfiles };
+            const key = Object.keys(next).find(k => k.toLowerCase() === flAddr);
+            if (key) {
+              const reputationSbtCountInc = freelancerBps > 0 ? 1 : 0;
+              const scoreAdjustment = freelancerBps > 0 
+                ? Math.round(35 * (freelancerBps / 10000))
+                : -20; // Deduct score if 0% awarded to freelancer
+              next[key] = {
+                ...next[key],
+                reputationSbtCount: (next[key].reputationSbtCount || 0) + reputationSbtCountInc,
+                primaryScore: Math.min(Math.max((next[key].primaryScore || 700) + scoreAdjustment, 0), 1000),
+              };
+            }
+            return next;
+          });
+        }
 
         const updatedEvents: any[] = [
           ...job.events.filter((e) => e.step !== 'Ruled' && e.step !== 'Minted'),
@@ -833,6 +864,19 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             judge: judgeAddress,
           },
           events: updatedEvents,
+        };
+      })
+    );
+  };
+
+  const sendChatMessage = (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => {
+    setJobs((prev) =>
+      prev.map((job) => {
+        if (job.id !== jobId) return job;
+        const newMsg = { sender: senderRole, text, timestamp: Date.now() };
+        return {
+          ...job,
+          chatMessages: [...(job.chatMessages || []), newMsg],
         };
       })
     );
@@ -1012,6 +1056,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         raiseDispute,
         submitDisputeResponse,
         resolveDispute,
+        sendChatMessage,
         updateProfile,
         castDaoVote,
         castVote,

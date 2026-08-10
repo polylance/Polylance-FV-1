@@ -32,10 +32,16 @@ export const Reputation: React.FC = () => {
   const userProfile = userProfileKey ? profiles[userProfileKey] : null;
 
   // Compute actual completed freelance jobs count for this user
-  const userCompletedJobsCount = jobs.filter(
+  const userCompletedJobs = jobs.filter(
     (j) => j.freelancer?.toLowerCase() === address?.toLowerCase() && j.status === 'Completed'
-  ).length;
+  );
+  const userCompletedJobsCount = userCompletedJobs.length;
   const reputationCount = userCompletedJobsCount;
+
+  const userVolume = userCompletedJobs.reduce((sum, j) => {
+    const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
+    return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
+  }, 0);
 
   // Calculate dynamic points breakdown based on actual wallet reputation count
   const escrowPoints = userCompletedJobsCount * 60;
@@ -50,15 +56,24 @@ export const Reputation: React.FC = () => {
       // For other profile entries, count their completed jobs in jobs database
       const profileCompletedJobs = jobs.filter(
         (j) => j.freelancer?.toLowerCase() === profile.address.toLowerCase() && j.status === 'Completed'
-      ).length;
-      const pts = profileCompletedJobs * 100;
+      );
+      const profileCompletedJobsCount = profileCompletedJobs.length;
+      const totalVolumeHandled = profileCompletedJobs.reduce((sum, j) => {
+        const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
+        return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
+      }, 0);
+      const pts = profileCompletedJobsCount * 100;
+      const successRatePercent = profileCompletedJobsCount > 0
+        ? Math.round((profileCompletedJobs.filter(j => !j.dispute || (j.dispute.resolved && (j.dispute.rulingBps ?? 0) >= 5000)).length / profileCompletedJobsCount) * 100)
+        : 0;
+
       return {
         rank: 0,
         name: isYou ? `${profile.displayName || 'Anonymous'} (You)` : (profile.displayName || `${profile.address.slice(0, 6)}...${profile.address.slice(-4)}`),
         role: profile.primaryCategory === 'web3' ? 'Web3 Engineer' : profile.primaryCategory === 'frontend' ? 'Frontend Dev' : profile.primaryCategory === 'backend' ? 'Backend Dev' : 'Sovereign Developer',
         points: pts,
-        successRate: profileCompletedJobs > 0 ? '100%' : '0%',
-        earnings: profileCompletedJobs > 0 ? `$${(profileCompletedJobs * 25).toFixed(1)}k` : '$0.0k',
+        successRate: profileCompletedJobsCount > 0 ? `${successRatePercent}%` : '0%',
+        earnings: totalVolumeHandled > 0 ? `$${(totalVolumeHandled / 1000).toFixed(1)}k` : '$0.0k',
         isUser: isYou,
         avatar: profile.avatarUrl || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
         address: profile.address
@@ -73,7 +88,7 @@ export const Reputation: React.FC = () => {
               role: isArbitrator ? 'DAO Arbitrator' : 'Web3 Engineer',
               points: totalPoints,
               successRate: userCompletedJobsCount > 0 ? '100%' : '0%',
-              earnings: userCompletedJobsCount > 0 ? `$${(userCompletedJobsCount * 25).toFixed(1)}k` : '$0.0k',
+              earnings: userVolume > 0 ? `$${(userVolume / 1000).toFixed(1)}k` : '$0.0k',
               isUser: true,
               avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
               address: address

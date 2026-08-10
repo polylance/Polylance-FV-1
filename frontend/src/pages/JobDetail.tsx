@@ -31,23 +31,22 @@ export const JobDetail: React.FC = () => {
     raiseDispute,
     submitDisputeResponse,
     resolveDispute,
+    sendChatMessage,
     profiles,
   } = usePolyLanceData();
 
   const [applyProposalText, setApplyProposalText] = useState('');
   const [isApplyingModalOpen, setIsApplyingModalOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState<
-    { sender: string; text: string; timestamp: number }[]
-  >([
-    { sender: 'Client', text: 'Welcome! Let us finalize the project scope and deliverables before funding.', timestamp: Date.now() - 3600000 },
-  ]);
 
   const [disputeReason, setDisputeReason] = useState<DisputeReason>('QUALITY');
   const [disputeEvidenceText, setDisputeEvidenceText] = useState('');
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
 
   const job = jobs.find((j) => j.id === id || j.contractAddress.toLowerCase() === id?.toLowerCase());
+  const chatMessages = job?.chatMessages || [
+    { sender: 'Client' as const, text: 'Welcome! Let us finalize the project scope and deliverables before funding.', timestamp: job?.createdAt || Date.now() - 3600000 }
+  ];
 
   if (!job) {
     return (
@@ -97,10 +96,7 @@ export const JobDetail: React.FC = () => {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-    setChatMessages((prev) => [
-      ...prev,
-      { sender: isClient ? 'Client' : 'Freelancer', text: chatInput, timestamp: Date.now() },
-    ]);
+    sendChatMessage(job.id, chatInput, isClient ? 'Client' : 'Freelancer');
     setChatInput('');
   };
 
@@ -381,19 +377,40 @@ export const JobDetail: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
-                  <span className="text-slate-500 text-[10px] uppercase font-bold">Total Amount Released</span>
-                  <p className="font-extrabold text-emerald-700 text-lg">${parseFloat(job.amountUsdc).toLocaleString()} USDC</p>
+                  <span className="text-slate-500 text-[10px] uppercase font-bold">
+                    {job.dispute?.resolved ? "Escrow Payout Distribution" : "Total Amount Released"}
+                  </span>
+                  {job.dispute?.resolved ? (
+                    <div className="space-y-1 pt-1">
+                      <p className="font-extrabold text-emerald-700 text-[11px]">
+                        Dev: ${(parseFloat(job.amountUsdc) * (job.dispute.rulingBps ?? 0) / 10000).toLocaleString()} USDC
+                      </p>
+                      <p className="font-extrabold text-indigo-750 text-indigo-700 text-[11px]">
+                        Client: ${(parseFloat(job.amountUsdc) * (10000 - (job.dispute.rulingBps ?? 0)) / 10000).toLocaleString()} USDC
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="font-extrabold text-emerald-700 text-lg">${parseFloat(job.amountUsdc).toLocaleString()} USDC</p>
+                  )}
                 </div>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
                   <span className="text-slate-500 text-[10px] uppercase font-bold">Contractor Payout</span>
-                  <p className="font-bold text-slate-900 text-sm">{freelancerDisplayName}</p>
-                  <p className="text-[10px] font-mono text-slate-500">{truncateAddress(job.freelancer)}</p>
+                  <p className="font-bold text-slate-900 text-sm">
+                    {job.dispute?.resolved && (job.dispute.rulingBps ?? 0) === 0 ? "None (100% Refunded)" : freelancerDisplayName}
+                  </p>
+                  {!(job.dispute?.resolved && (job.dispute.rulingBps ?? 0) === 0) && (
+                    <p className="text-[10px] font-mono text-slate-500">{truncateAddress(job.freelancer)}</p>
+                  )}
                 </div>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
                   <span className="text-slate-500 text-[10px] uppercase font-bold">Soulbound SBT Minted</span>
-                  <p className="font-bold text-purple-700 text-sm flex items-center gap-1">
-                    <Award size={14} /> Token #{Math.floor(Math.random() * 9000 + 1000)}
-                  </p>
+                  {job.dispute?.resolved && (job.dispute.rulingBps ?? 0) === 0 ? (
+                    <p className="font-bold text-slate-400 text-xs">None (No SBT for 0% Payout)</p>
+                  ) : (
+                    <p className="font-bold text-purple-700 text-sm flex items-center gap-1">
+                      <Award size={14} /> Token #{Math.floor(Math.random() * 9000 + 1000)}
+                    </p>
+                  )}
                 </div>
               </div>
 

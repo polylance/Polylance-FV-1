@@ -16,6 +16,8 @@ import { Dao } from './pages/Dao';
 import { Judge } from './pages/Judge';
 import { Treasury } from './pages/Treasury';
 import { Analytics } from './pages/Analytics';
+import { AuditReport } from './pages/AuditReport';
+import { Chat } from './pages/Chat';
 
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
@@ -43,6 +45,14 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/jobs/post" element={currentRole === 'client' ? <PostJob /> : <Navigate to="/jobs" replace />} />
         <Route path="/judge" element={currentRole === 'judge' || currentRole === 'admin' ? <Judge /> : <Navigate to="/dashboard" replace />} />
         <Route path="/treasury" element={currentRole === 'admin' ? <Treasury /> : <Navigate to="/dashboard" replace />} />
+        
+        {/* Certified trust & reputation audits */}
+        <Route path="/audit/:address" element={<AuditReport />} />
+
+        {/* Chat & Negotiation messages */}
+        <Route path="/chat" element={isVisitor ? <Navigate to="/login" replace /> : <Chat />} />
+        <Route path="/chat/:jobId" element={isVisitor ? <Navigate to="/login" replace /> : <Chat />} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
