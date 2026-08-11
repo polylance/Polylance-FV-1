@@ -35,6 +35,7 @@ export const Navbar: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
   
   const [isJudgeMoreOpen, setIsJudgeMoreOpen] = useState(false);
   const [isJudgeMobileOpen, setIsJudgeMobileOpen] = useState(false);
@@ -45,11 +46,13 @@ export const Navbar: React.FC = () => {
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Desktop More dropdown
       if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
         setIsMoreOpen(false);
       }
+      // Mobile admin More dropdown (uses separate state to avoid conflict)
       if (mobileMoreRef.current && !mobileMoreRef.current.contains(event.target as Node)) {
-        setIsMoreOpen(false);
+        setIsMobileMoreOpen(false);
       }
       if (judgeMoreRef.current && !judgeMoreRef.current.contains(event.target as Node)) {
         setIsJudgeMoreOpen(false);
@@ -727,18 +730,18 @@ export const Navbar: React.FC = () => {
             {(currentRole as string) === 'admin' && (
               <div className="md:hidden relative" ref={mobileMoreRef}>
                 <button
-                  onClick={() => setIsMoreOpen(!isMoreOpen)}
+                  onClick={() => setIsMobileMoreOpen(!isMobileMoreOpen)}
                   className="p-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-all cursor-pointer flex items-center justify-center border border-slate-200 bg-slate-50 shadow-3xs"
                 >
-                  {isMoreOpen ? <X size={18} /> : <Menu size={18} />}
+                  {isMobileMoreOpen ? <X size={18} /> : <Menu size={18} />}
                 </button>
-                {isMoreOpen && (
+                {isMobileMoreOpen && (
                   <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 font-sans">
                     {/* Key Admin Links */}
                     <div className="border-b border-slate-100 pb-1.5 mb-1.5 space-y-1">
                       <Link
                         to="/judge"
-                        onClick={() => setIsMoreOpen(false)}
+                        onClick={() => setIsMobileMoreOpen(false)}
                         className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
                           isActive('/judge') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
                         }`}
@@ -755,7 +758,7 @@ export const Navbar: React.FC = () => {
 
                       <Link
                         to="/treasury"
-                        onClick={() => setIsMoreOpen(false)}
+                        onClick={() => setIsMobileMoreOpen(false)}
                         className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
                           isActive('/treasury') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
                         }`}
@@ -772,7 +775,7 @@ export const Navbar: React.FC = () => {
 
                       <Link
                         to="/dao"
-                        onClick={() => setIsMoreOpen(false)}
+                        onClick={() => setIsMobileMoreOpen(false)}
                         className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
                           isActive('/dao') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
                         }`}
@@ -789,7 +792,7 @@ export const Navbar: React.FC = () => {
 
                       <Link
                         to="/analytics"
-                        onClick={() => setIsMoreOpen(false)}
+                        onClick={() => setIsMobileMoreOpen(false)}
                         className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
                           isActive('/analytics') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
                         }`}
@@ -808,7 +811,7 @@ export const Navbar: React.FC = () => {
                     {/* Hidden Items on Mobile */}
                     <Link
                       to="/jobs"
-                      onClick={() => setIsMoreOpen(false)}
+                      onClick={() => setIsMobileMoreOpen(false)}
                       className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
                         isActive('/jobs') && !isActive('/jobs/post') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
                       }`}
@@ -825,7 +828,7 @@ export const Navbar: React.FC = () => {
 
                     <Link
                       to="/reputation"
-                      onClick={() => setIsMoreOpen(false)}
+                      onClick={() => setIsMobileMoreOpen(false)}
                       className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
                         isActive('/reputation') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
                       }`}
@@ -834,7 +837,7 @@ export const Navbar: React.FC = () => {
                         <Trophy size={16} className="text-amber-500 shrink-0 mt-0.5" />
                         <div className="text-left">
                           <p className="font-bold text-xs text-slate-900 leading-tight font-sans">SBT Leaderboard</p>
-                          <p className="text-[10px] text-slate-500 font-medium font-sans font-sans">View top performers</p>
+                          <p className="text-[10px] text-slate-500 font-medium font-sans">View top performers</p>
                         </div>
                       </div>
                       <ChevronRight size={12} className="text-slate-400" />
@@ -842,7 +845,7 @@ export const Navbar: React.FC = () => {
 
                     <Link
                       to="/chat"
-                      onClick={() => setIsMoreOpen(false)}
+                      onClick={() => setIsMobileMoreOpen(false)}
                       className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
                         isActive('/chat') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
                       }`}
@@ -859,7 +862,7 @@ export const Navbar: React.FC = () => {
 
                     <Link
                       to="/onboarding"
-                      onClick={() => setIsMoreOpen(false)}
+                      onClick={() => setIsMobileMoreOpen(false)}
                       className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
                         isActive('/onboarding') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
                       }`}
@@ -877,6 +880,7 @@ export const Navbar: React.FC = () => {
                 )}
               </div>
             )}
+
 
             {isConnected && address && (currentRole as string) !== 'visitor' ? (
               <div className="flex items-center gap-2 font-sans">
