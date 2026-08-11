@@ -143,29 +143,58 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsTreasuryAdmin(isActuallyAdmin);
       setReputationCount(Number(sbtBalance));
 
+      // Persist role to localStorage so page refresh doesn't lose it
+      const persistRole = (r: DemoRole) => {
+        setCurrentRole(r);
+        if (typeof window !== 'undefined') localStorage.setItem('polylance_demo_role', r);
+      };
+
       // Auto-detect role based on address re-evaluation
       if (
         lowerAddr === (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase() ||
         Boolean(arbitrator)
       ) {
-        setCurrentRole('judge');
+        persistRole('judge');
       } else if (isActuallyAdmin) {
-        setCurrentRole('admin');
+        persistRole('admin');
       } else {
         const activeRole = localStorage.getItem('polylance_demo_role') as DemoRole;
         if (!activeRole || activeRole === 'visitor' || activeRole === 'judge' || activeRole === 'admin') {
-          setCurrentRole('freelancer');
+          persistRole('freelancer');
         } else {
-          setCurrentRole(activeRole);
+          persistRole(activeRole);
         }
       }
     } catch (err) {
       console.error('Failed to load on-chain state:', err);
       setError('Could not load on-chain permissions — check network connection.');
-      // Fail closed
-      setIsArbitrator(false);
-      setIsTreasuryAdmin(false);
-      setReputationCount(0);
+      // Even on RPC failure, still detect admin/judge by wallet address
+      const lowerAddr = connectedAddress.toLowerCase();
+      const isAddressAdmin =
+        lowerAddr === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
+        lowerAddr === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A').toLowerCase() ||
+        lowerAddr === (import.meta.env.VITE_ADMIN_ADDRESS_3 || '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1').toLowerCase();
+      const isAddressJudge = lowerAddr === (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
+
+      const persistRoleCatch = (r: DemoRole) => {
+        setCurrentRole(r);
+        if (typeof window !== 'undefined') localStorage.setItem('polylance_demo_role', r);
+      };
+
+      if (isAddressJudge) {
+        persistRoleCatch('judge');
+        setIsArbitrator(true);
+        setIsTreasuryAdmin(false);
+      } else if (isAddressAdmin) {
+        persistRoleCatch('admin');
+        setIsArbitrator(false);
+        setIsTreasuryAdmin(true);
+      } else {
+        // Unknown address - fall closed
+        setIsArbitrator(false);
+        setIsTreasuryAdmin(false);
+        setReputationCount(0);
+      }
     } finally {
       setLoading(false);
     }
