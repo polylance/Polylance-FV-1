@@ -95,7 +95,7 @@ export const AuditReport: React.FC = () => {
       <div className="max-w-4xl mx-auto mb-6 flex items-center justify-between no-print">
         <Link 
           to="/dashboard"
-          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
+          className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 transition-colors"
         >
           <ArrowLeft size={14} /> Back to Dashboard
         </Link>
@@ -103,9 +103,9 @@ export const AuditReport: React.FC = () => {
         <div className="flex gap-2">
           <button
             onClick={handlePrint}
-            className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-extrabold px-5 py-2.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all hover:scale-[1.02]"
           >
-            <Printer size={14} /> Download PDF / Print
+            <Printer size={16} className="text-white shrink-0" /> Download PDF / Print
           </button>
         </div>
       </div>
@@ -124,30 +124,30 @@ export const AuditReport: React.FC = () => {
               <span className="p-1.5 bg-purple-100 rounded-lg text-purple-700 shrink-0">
                 <ShieldCheck size={20} />
               </span>
-              <span className="text-[10px] font-mono font-black tracking-widest text-purple-800 uppercase bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+              <span className="text-[10px] font-mono font-black tracking-widest text-purple-900 uppercase bg-purple-100/70 px-2 py-0.5 rounded border border-purple-200">
                 Decentralized Attestation
               </span>
             </div>
             <h1 className="font-headline text-2xl font-black text-slate-900 tracking-tight mt-1.5 uppercase">
               Trust & Reputation Certificate
             </h1>
-            <p className="text-xs text-slate-500 font-mono">
+            <p className="text-xs text-slate-700 font-mono font-medium">
               On-Chain operations verified by PolyLance Oracle Protocol
             </p>
           </div>
 
           <div className="font-mono text-xs text-left md:text-right space-y-1 border-l-2 md:border-l-0 md:border-r-2 border-purple-200 pl-4 md:pl-0 md:pr-4">
             <div>
-              <span className="text-slate-400 block text-[9px] uppercase font-bold">Certificate ID</span>
-              <span className="font-bold text-slate-800">{mockCertificateId}</span>
+              <span className="text-slate-600 block text-[9px] uppercase font-extrabold">Certificate ID</span>
+              <span className="font-bold text-slate-900">{mockCertificateId}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[9px] uppercase font-bold">Audit Timestamp</span>
-              <span className="font-bold text-slate-800">August 10, 2026 (Active)</span>
+              <span className="text-slate-600 block text-[9px] uppercase font-extrabold">Audit Timestamp</span>
+              <span className="font-bold text-slate-900">August 10, 2026 (Active)</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[9px] uppercase font-bold">Status</span>
-              <span className="font-bold text-emerald-600 flex items-center gap-0.5">
+              <span className="text-slate-600 block text-[9px] uppercase font-extrabold">Status</span>
+              <span className="font-extrabold text-emerald-700 flex items-center gap-0.5">
                 <CheckCircle2 size={12} className="inline" /> PLATINUM VERIFIED
               </span>
             </div>
@@ -157,19 +157,19 @@ export const AuditReport: React.FC = () => {
         {/* Identity Verification Summary */}
         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 font-mono">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-purple-100 border-2 border-purple-200 flex items-center justify-center text-purple-800 text-2xl font-black shadow-inner shrink-0 uppercase">
+            <div className="w-16 h-16 rounded-full bg-purple-100 border-2 border-purple-200 flex items-center justify-center text-purple-900 text-2xl font-black shadow-inner shrink-0 uppercase">
               {displayName.slice(0, 2)}
             </div>
             <div className="space-y-1">
-              <span className="text-slate-400 text-[10px] uppercase font-bold block">Audited Participant</span>
+              <span className="text-slate-600 text-[10px] uppercase font-extrabold block">Audited Participant</span>
               <h2 className="font-extrabold text-slate-900 text-lg leading-none">{displayName}</h2>
-              <span className="text-slate-500 text-xs block break-all">{targetAddress}</span>
+              <span className="text-slate-700 text-xs block font-bold break-all">{targetAddress}</span>
             </div>
           </div>
 
           <div className="space-y-1 sm:text-right shrink-0">
-            <span className="text-slate-400 text-[10px] uppercase font-bold block">Assigned Role Profile</span>
-            <span className="badge-role bg-purple-100 text-purple-950 font-bold border border-purple-200 px-3 py-1 rounded-xl text-xs uppercase inline-block">
+            <span className="text-slate-600 text-[10px] uppercase font-extrabold block">Assigned Role Profile</span>
+            <span className="badge-role bg-purple-100 text-purple-950 font-extrabold border border-purple-200 px-3 py-1 rounded-xl text-xs uppercase inline-block">
               {isFreelancer ? 'Sovereign Developer' : 'Enterprise Client'}
             </span>
           </div>
@@ -179,43 +179,43 @@ export const AuditReport: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono">
           
           <div className="bg-white p-4 rounded-xl border border-slate-200 text-center space-y-1 shadow-sm">
-            <span className="text-slate-400 text-[9px] uppercase font-bold block">
+            <span className="text-slate-700 text-[9px] uppercase font-extrabold block">
               {isFreelancer ? 'Reputation Score' : 'Client Trust Index'}
             </span>
-            <p className="text-xl font-black text-purple-800">
+            <p className="text-xl font-black text-purple-900">
               {isFreelancer ? `${devReputationScore} PLREP` : `${clientReliabilityScore} / 10.0`}
             </p>
-            <span className="text-[10px] text-slate-400 font-semibold block">SBT Attested</span>
+            <span className="text-[10px] text-slate-600 font-bold block">SBT Attested</span>
           </div>
 
           <div className="bg-white p-4 rounded-xl border border-slate-200 text-center space-y-1 shadow-sm">
-            <span className="text-slate-400 text-[9px] uppercase font-bold block">
+            <span className="text-slate-700 text-[9px] uppercase font-extrabold block">
               {isFreelancer ? 'Volume Handled' : 'Volume Spent'}
             </span>
             <p className="text-xl font-black text-emerald-700">
               ${(isFreelancer ? devVolumeHandled : clientVolumeDistributed).toLocaleString()} USDC
             </p>
-            <span className="text-[10px] text-slate-400 font-semibold block">Smart Escrows</span>
+            <span className="text-[10px] text-slate-600 font-bold block">Smart Escrows</span>
           </div>
 
           <div className="bg-white p-4 rounded-xl border border-slate-200 text-center space-y-1 shadow-sm">
-            <span className="text-slate-400 text-[9px] uppercase font-bold block">
+            <span className="text-slate-700 text-[9px] uppercase font-extrabold block">
               {isFreelancer ? 'Escrow Success Rate' : 'Contract Rehire Rate'}
             </span>
             <p className="text-xl font-black text-slate-900">
               {isFreelancer ? `${devSuccessRate}%` : clientRehireRate}
             </p>
-            <span className="text-[10px] text-slate-400 font-semibold block">Completed Milestones</span>
+            <span className="text-[10px] text-slate-600 font-bold block">Completed Milestones</span>
           </div>
 
           <div className="bg-white p-4 rounded-xl border border-slate-200 text-center space-y-1 shadow-sm">
-            <span className="text-slate-400 text-[9px] uppercase font-bold block">
+            <span className="text-slate-700 text-[9px] uppercase font-extrabold block">
               {isFreelancer ? 'Completed Contracts' : 'Total Posted Escrows'}
             </span>
-            <p className="text-xl font-black text-indigo-700">
+            <p className="text-xl font-black text-indigo-900">
               {isFreelancer ? completedFreelancerJobs.length : clientJobs.length} Escrows
             </p>
-            <span className="text-[10px] text-slate-400 font-semibold block">Polygon Index</span>
+            <span className="text-[10px] text-slate-600 font-bold block">Polygon Index</span>
           </div>
         </div>
 
@@ -224,7 +224,7 @@ export const AuditReport: React.FC = () => {
           
           {/* Column A: Attestations Checklist */}
           <div className="space-y-4">
-            <h3 className="font-headline text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
+            <h3 className="font-headline text-xs font-extrabold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-2">
               Attestation Protocol Checklist
             </h3>
 
@@ -305,66 +305,66 @@ export const AuditReport: React.FC = () => {
 
           {/* Column B: Git Portfolio Matrix or Client Trust Stats */}
           <div className="space-y-4">
-            <h3 className="font-headline text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
+            <h3 className="font-headline text-xs font-extrabold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-2">
               {isFreelancer ? 'GitHub Verified Code Matrix' : 'Enterprise Trust Checklist'}
             </h3>
 
             {isFreelancer ? (
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs">
                 <div className="flex justify-between items-center text-[10px] pb-1 border-b border-slate-200">
-                  <span className="text-slate-400 uppercase font-bold">Language Index</span>
-                  <span className="text-slate-400 uppercase font-bold">Byte share</span>
+                  <span className="text-slate-700 uppercase font-extrabold">Language Index</span>
+                  <span className="text-slate-700 uppercase font-extrabold">Byte share</span>
                 </div>
                 
                 {profile?.languageBytes && Object.keys(profile.languageBytes).length > 0 ? (
                   Object.entries(profile.languageBytes).map(([lang, bytes]) => (
                     <div key={lang} className="flex justify-between items-center">
-                      <span className="font-bold text-slate-800 capitalize">{lang}</span>
-                      <span className="font-bold text-purple-700">{(bytes / 1024).toFixed(1)} KB</span>
+                      <span className="font-bold text-slate-900 capitalize">{lang}</span>
+                      <span className="font-bold text-purple-900">{(bytes / 1024).toFixed(1)} KB</span>
                     </div>
                   ))
                 ) : (
                   <>
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-800">TypeScript</span>
-                      <span className="font-bold text-purple-700">842 KB</span>
+                      <span className="font-bold text-slate-900">TypeScript</span>
+                      <span className="font-bold text-purple-900">842 KB</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-800">Rust</span>
-                      <span className="font-bold text-purple-700">312 KB</span>
+                      <span className="font-bold text-slate-900">Rust</span>
+                      <span className="font-bold text-purple-900">312 KB</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-800">Solidity</span>
-                      <span className="font-bold text-purple-700">148 KB</span>
+                      <span className="font-bold text-slate-900">Solidity</span>
+                      <span className="font-bold text-purple-900">148 KB</span>
                     </div>
                   </>
                 )}
                 
-                <div className="flex items-center gap-1.5 text-[10px] text-purple-800 bg-purple-50 px-2 py-1 rounded border border-purple-200 mt-2 font-bold justify-center font-sans">
+                <div className="flex items-center gap-1.5 text-[10px] text-purple-900 bg-purple-100/70 px-2 py-1 rounded border border-purple-200 mt-2 font-bold justify-center font-sans">
                   <Sparkles size={11} /> Sybil Resistant GitHub verification Active
                 </div>
               </div>
             ) : (
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs">
                 <div className="flex justify-between pb-1 border-b border-slate-200">
-                  <span className="text-slate-400 uppercase text-[10px] font-bold">SLA Category</span>
-                  <span className="text-slate-400 uppercase text-[10px] font-bold">Status Rating</span>
+                  <span className="text-slate-700 uppercase text-[10px] font-extrabold">SLA Category</span>
+                  <span className="text-slate-700 uppercase text-[10px] font-extrabold">Status Rating</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-bold text-slate-800">On-Time Milestones</span>
-                  <span className="font-bold text-emerald-700">96.8%</span>
+                  <span className="font-bold text-slate-900">On-Time Milestones</span>
+                  <span className="font-extrabold text-emerald-700">96.8%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-bold text-slate-800">Dispute Escalation Rate</span>
-                  <span className="font-bold text-emerald-700">0.00%</span>
+                  <span className="font-bold text-slate-900">Dispute Escalation Rate</span>
+                  <span className="font-extrabold text-emerald-700">0.00%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-bold text-slate-800">Funds Locked Escrow TVL</span>
-                  <span className="font-bold text-indigo-700">${clientVolumeDistributed.toLocaleString()} USDC</span>
+                  <span className="font-bold text-slate-900">Funds Locked Escrow TVL</span>
+                  <span className="font-extrabold text-indigo-900">${clientVolumeDistributed.toLocaleString()} USDC</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-bold text-slate-800">Platform Longevity</span>
-                  <span className="font-bold text-slate-900">142 Days Active</span>
+                  <span className="font-bold text-slate-900">Platform Longevity</span>
+                  <span className="font-extrabold text-slate-900">142 Days Active</span>
                 </div>
               </div>
             )}
@@ -373,14 +373,14 @@ export const AuditReport: React.FC = () => {
 
         {/* Verifiable Job History Ledger Table */}
         <div className="space-y-4">
-          <h3 className="font-headline text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
+          <h3 className="font-headline text-xs font-extrabold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-2">
             Verifiable Completed Job Escrows Ledger
           </h3>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left font-mono text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[9px]">
+                <tr className="border-b border-slate-200 text-slate-700 font-extrabold uppercase text-[9px]">
                   <th className="py-2.5">Job Escrow Title</th>
                   <th className="py-2.5">Counterpart Address</th>
                   <th className="py-2.5">Escrow Contract</th>
@@ -396,15 +396,15 @@ export const AuditReport: React.FC = () => {
                       return (
                         <tr key={j.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="py-3 font-sans font-bold text-slate-900">{j.title}</td>
-                          <td className="py-3 text-slate-600 text-[11px]">{truncateAddress(j.client)}</td>
-                          <td className="py-3 text-purple-750 text-purple-700 text-[11px]">{truncateAddress(j.contractAddress)}</td>
-                          <td className="py-3 text-right font-bold text-emerald-700">${flAmount.toLocaleString()} USDC</td>
+                          <td className="py-3 text-slate-700 font-bold text-[11px]">{truncateAddress(j.client)}</td>
+                          <td className="py-3 text-purple-900 font-bold text-[11px]">{truncateAddress(j.contractAddress)}</td>
+                          <td className="py-3 text-right font-black text-emerald-700">${flAmount.toLocaleString()} USDC</td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={4} className="py-6 text-center text-slate-400 font-sans border-b border-slate-100">
+                      <td colSpan={4} className="py-6 text-center text-slate-600 font-bold font-sans border-b border-slate-100">
                         No completed smart contract escrows recorded on Polygon ledger.
                       </td>
                     </tr>
@@ -417,15 +417,15 @@ export const AuditReport: React.FC = () => {
                       return (
                         <tr key={j.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="py-3 font-sans font-bold text-slate-900">{j.title}</td>
-                          <td className="py-3 text-slate-600 text-[11px]">{truncateAddress(j.freelancer || '')}</td>
-                          <td className="py-3 text-purple-750 text-purple-700 text-[11px]">{truncateAddress(j.contractAddress)}</td>
-                          <td className="py-3 text-right font-bold text-emerald-700">${clSpent.toLocaleString()} USDC</td>
+                          <td className="py-3 text-slate-700 font-bold text-[11px]">{truncateAddress(j.freelancer || '')}</td>
+                          <td className="py-3 text-purple-900 font-bold text-[11px]">{truncateAddress(j.contractAddress)}</td>
+                          <td className="py-3 text-right font-black text-emerald-700">${clSpent.toLocaleString()} USDC</td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={4} className="py-6 text-center text-slate-400 font-sans border-b border-slate-100">
+                      <td colSpan={4} className="py-6 text-center text-slate-600 font-bold font-sans border-b border-slate-100">
                         No completed smart contract escrows recorded on Polygon ledger.
                       </td>
                     </tr>
@@ -437,28 +437,28 @@ export const AuditReport: React.FC = () => {
         </div>
 
         {/* Cryptographic Disclaimers & Signature Blocks */}
-        <div className="border-t-2 border-slate-150 pt-8 grid grid-cols-1 md:grid-cols-2 gap-8 font-mono text-[10px]">
+        <div className="border-t-2 border-slate-300 pt-8 grid grid-cols-1 md:grid-cols-2 gap-8 font-mono text-xs">
           
-          <div className="space-y-2">
-            <span className="text-slate-400 uppercase font-bold block">Cryptographic Proof Integrity</span>
-            <p className="text-slate-500 leading-relaxed font-sans">
+          <div className="space-y-2.5">
+            <span className="text-slate-900 uppercase font-black block text-xs tracking-wider">Cryptographic Proof Integrity</span>
+            <p className="text-slate-900 font-bold leading-relaxed font-sans text-xs">
               This document serves as an immutable certificate of participants' trust indices and platform performance. 
               The verified details are secured decentralized, and hashes are synced to Pinata IPFS networks.
             </p>
-            <div className="text-[9px] break-all text-purple-800 bg-purple-50 p-2.5 rounded border border-purple-200/50 mt-1 font-bold">
+            <div className="text-xs break-all text-purple-950 bg-purple-100 p-3 rounded-xl border border-purple-300 mt-2 font-mono font-extrabold shadow-xs">
               IPFS CID: {mockIpfsHash}
             </div>
           </div>
 
           <div className="flex flex-col justify-end items-start md:items-end gap-3 md:text-right">
             <div>
-              <span className="text-slate-400 uppercase font-bold block">PolyLance Ledger Oracle Signature</span>
-              <p className="font-bold text-slate-800 break-all text-[9px] mt-1">{mockAuditHash}</p>
+              <span className="text-slate-900 uppercase font-black block text-xs tracking-wider">PolyLance Ledger Oracle Signature</span>
+              <p className="font-extrabold text-slate-950 break-all text-[11px] mt-1.5 font-mono">{mockAuditHash}</p>
             </div>
             
-            <div className="flex items-center gap-1.5 border-t border-slate-200 pt-2 w-full justify-start md:justify-end">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-bold text-slate-800 text-[9px]">Decentralized Validator Signed</span>
+            <div className="flex items-center gap-2 border-t border-slate-300 pt-2.5 w-full justify-start md:justify-end">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+              <span className="font-extrabold text-slate-950 text-xs">Decentralized Validator Signed</span>
             </div>
           </div>
         </div>

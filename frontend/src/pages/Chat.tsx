@@ -5,21 +5,28 @@ import { useWeb3 } from '../context/Web3Context';
 import { 
   MessageSquare, Send, ShieldCheck, Award, Scale, Building2, Briefcase, 
   ExternalLink, Lock, PlusCircle, DollarSign, CheckCircle2, ArrowUpRight, 
-  User, Clock, Search, Sparkles, AlertCircle, FileCheck, CheckCircle 
+  User, Clock, Search, Sparkles, AlertCircle, FileCheck, CheckCircle, Gavel, UserCheck
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
+import { JudgeRecord, JudgeMessage } from '../types';
 import confetti from 'canvas-confetti';
 
 export const Chat: React.FC = () => {
   const { jobId: urlJobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
-  const { address, currentRole, isConnected, isArbitrator } = useWeb3();
+  const { address, currentRole, isConnected } = useWeb3();
   const { 
-    jobs, profiles, sendChatMessage, proposeTerms, fundJob, 
+    jobs, profiles, judges, judgeMessages, sendChatMessage, sendJudgeChatMessage, proposeTerms, fundJob, 
     releasePayment, submitWork, requestModifications 
   } = usePolyLanceData();
 
+  const isAdmin = currentRole === 'admin';
+  const [chatTab, setChatTab] = useState<'jobs' | 'judges'>(isAdmin && !urlJobId ? 'judges' : 'jobs');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(urlJobId || null);
+  const [selectedJudgeAddr, setSelectedJudgeAddr] = useState<string | null>(
+    judges.length > 0 ? judges[0].address : null
+  );
+
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -31,19 +38,32 @@ export const Chat: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Filter jobs where the active user is a participant or has admin/judge sandbox permission
+  // Auto select initial judge if admin
+  useEffect(() => {
+    if (isAdmin && !selectedJudgeAddr && judges.length > 0) {
+      setSelectedJudgeAddr(judges[0].address);
+    }
+  }, [isAdmin, judges, selectedJudgeAddr]);
+
+  // If URL contains a jobId, auto select it and switch tab to jobs
+  useEffect(() => {
+    if (urlJobId) {
+      setSelectedJobId(urlJobId);
+      setChatTab('jobs');
+    }
+  }, [urlJobId]);
+
+  // Filter jobs for conversation sidebar
   const myChats = jobs.filter(j => {
-    const lowerAddr = address.toLowerCase();
+    if (isAdmin) return true; // Admin has visibility across all active negotiation channels
+    const lowerAddr = (address || '').toLowerCase();
     const isClient = j.client.toLowerCase() === lowerAddr;
     const isFreelancer = j.freelancer?.toLowerCase() === lowerAddr;
-    const isApplicant = j.applications.some(app => app.applicant.toLowerCase() === lowerAddr);
-    
-    // Admins see all chats; Judges see all disputed chats to arbitrate
-    const isAdmin = currentRole === 'admin';
+    const isApplicant = (j.applications || []).some(app => app.applicant.toLowerCase() === lowerAddr);
     const isJudge = currentRole === 'judge';
     const isDisputed = j.status === 'Disputed';
 
-    return isClient || isFreelancer || isApplicant || isAdmin || (isJudge && isDisputed);
+    return isClient || isFreelancer || isApplicant || (isJudge && isDisputed);
   });
 
   // Default to the first conversation if none selected
@@ -54,6 +74,7 @@ export const Chat: React.FC = () => {
   }, [myChats, selectedJobId]);
 
   const activeJob = jobs.find(j => j.id === selectedJobId);
+  const activeJudge = judges.find(j => j.address.toLowerCase() === (selectedJudgeAddr || '').toLowerCase());
 
   // Scroll to bottom helper
   const scrollToBottom = () => {
@@ -62,7 +83,7 @@ export const Chat: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [activeJob?.chatMessages]);
+  }, [activeJob?.chatMessages, selectedJudgeAddr, judgeMessages, chatTab]);
 
   if (!isConnected) {
     return (
@@ -76,39 +97,26 @@ export const Chat: React.FC = () => {
     );
   }
 
-  // Determine chat counterparts
-  const isClient = activeJob ? activeJob.client.toLowerCase() === address.toLowerCase() : false;
-  
-  let counterpartAddress = '';
-  if (activeJob) {
-    if (isClient) {
-      counterpartAddress = activeJob.freelancer || (activeJob.applications[0]?.applicant || '');
-    } else {
-      counterpartAddress = activeJob.client;
-    }
-  }
-
-  const counterpartKey = counterpartAddress 
-    ? Object.keys(profiles).find(k => k.toLowerCase() === counterpartAddress.toLowerCase()) 
-    : null;
-  const counterpartProfile = counterpartKey ? profiles[counterpartKey] : null;
-  const counterpartName = counterpartProfile?.displayName || (counterpartAddress ? truncateAddress(counterpartAddress) : 'Anonymous user');
-
-  const messages = activeJob?.chatMessages || [
-    { sender: 'Client' as const, text: 'Welcome! Let us coordinate milestone specifications and delivery targets.', timestamp: activeJob?.createdAt || Date.now() - 3600000 }
-  ];
-
+  // Handle message submission
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || !activeJob) return;
-    
-    sendChatMessage(activeJob.id, inputText, isClient ? 'Client' : 'Freelancer');
-    setInputText('');
+    if (!inputText.trim()) return;
+
+    if (isAdmin && chatTab === 'judges' && selectedJudgeAddr) {
+      sendJudgeChatMessage(selectedJudgeAddr, inputText, 'Admin', address);
+      setInputText('');
+    } else if (activeJob) {
+      const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase();
+      const senderRole = isAdmin ? 'Judge' : (isClient ? 'Client' : 'Freelancer');
+      sendChatMessage(activeJob.id, inputText, senderRole);
+      setInputText('');
+    }
   };
 
   // Escrow direct actions
   const handleProposeTerms = () => {
     if (!activeJob) return;
+    const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase();
     proposeTerms(activeJob.id, address);
     confetti({ particleCount: 50, spread: 60 });
     sendChatMessage(activeJob.id, `🔒 Terms signature hash submitted cryptographically by ${isClient ? 'Client' : 'Developer'}.`, 'Judge');
@@ -146,6 +154,12 @@ export const Chat: React.FC = () => {
     sendChatMessage(activeJob.id, `⚠️ Revision Request: Client requested code changes. Note: "${note}"`, 'Client');
   };
 
+  // Filters
+  const filteredJudges = judges.filter((j: JudgeRecord) =>
+    j.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    j.address.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const filteredChats = myChats.filter(j => 
     j.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     j.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -155,17 +169,43 @@ export const Chat: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 font-sans">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[80vh] border border-slate-200 bg-white rounded-3xl overflow-hidden shadow-xl">
         
-        {/* Left Side: Active Negotiation Channels (3 Cols) */}
+        {/* Left Side: Conversation Sidebar (3 Cols) */}
         <div className="lg:col-span-3 border-r border-slate-200 flex flex-col h-full bg-slate-50">
           <div className="p-4 border-b border-slate-200 bg-white space-y-3 shrink-0">
-            <h3 className="font-headline text-sm font-black text-slate-800 flex items-center gap-1.5">
-              <MessageSquare size={16} className="text-purple-700 text-purple-700" /> Negotiation Channels
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-headline text-sm font-black text-slate-800 flex items-center gap-1.5">
+                <MessageSquare size={16} className="text-purple-700" /> Channels
+              </h3>
+            </div>
+
+            {/* Admin Channel Mode Selector */}
+            {isAdmin && (
+              <div className="flex bg-slate-100 p-1 rounded-xl gap-1 border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setChatTab('judges')}
+                  className={`flex-1 py-1 text-center text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
+                    chatTab === 'judges' ? 'bg-white text-purple-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Judges
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChatTab('jobs')}
+                  className={`flex-1 py-1 text-center text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
+                    chatTab === 'jobs' ? 'bg-white text-purple-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Job Escrows
+                </button>
+              </div>
+            )}
             
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search channels..."
+                placeholder={chatTab === 'judges' ? "Search judges..." : "Search channels..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full !pl-8 !pr-3 !py-1.5 text-xs glass-input font-medium"
@@ -175,343 +215,478 @@ export const Chat: React.FC = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-            {filteredChats.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 text-xs font-medium">
-                No negotiation channels active.
-              </div>
-            ) : (
-              filteredChats.map((job) => {
-                const jobIsSelected = job.id === selectedJobId;
-                const activeRoleIsClient = job.client.toLowerCase() === address.toLowerCase();
-                const activeCounterpartAddress = activeRoleIsClient ? (job.freelancer || job.applications[0]?.applicant || '') : job.client;
-                const activeCounterpartKey = activeCounterpartAddress 
-                  ? Object.keys(profiles).find(k => k.toLowerCase() === activeCounterpartAddress.toLowerCase()) 
-                  : null;
-                const activeCounterpartProfile = activeCounterpartKey ? profiles[activeCounterpartKey] : null;
-                const activeCounterpartName = activeCounterpartProfile?.displayName || truncateAddress(activeCounterpartAddress || '');
-                const lastMsg = job.chatMessages?.[job.chatMessages.length - 1];
+            {chatTab === 'judges' && isAdmin ? (
+              /* Admin View: Show List of Registered Judges ONLY */
+              filteredJudges.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                  No judge accounts registered.
+                </div>
+              ) : (
+                filteredJudges.map((j: JudgeRecord) => {
+                  const isSelected = j.address.toLowerCase() === (selectedJudgeAddr || '').toLowerCase();
+                  const msgs = judgeMessages[j.address.toLowerCase()] || [];
+                  const lastMsg = msgs[msgs.length - 1];
 
-                return (
-                  <button
-                    key={job.id}
-                    onClick={() => setSelectedJobId(job.id)}
-                    className={`w-full p-3 rounded-2xl text-left transition-all border flex items-start gap-3 cursor-pointer ${
-                      jobIsSelected 
-                        ? 'bg-purple-700 text-white border-purple-800 shadow-md font-bold' 
-                        : 'bg-white text-slate-700 border-slate-150 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${
-                      jobIsSelected ? 'bg-purple-100 text-purple-900' : 'bg-slate-100 text-slate-700 border border-slate-200'
-                    }`}>
-                      {activeCounterpartName.slice(0, 2)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex justify-between items-start">
-                        <span className="font-extrabold text-xs truncate max-w-[120px]">
-                          {activeCounterpartName}
-                        </span>
-                        <span className={`text-[9px] font-mono shrink-0 ${jobIsSelected ? 'text-purple-200' : 'text-slate-400'}`}>
-                          ${parseFloat(job.amountUsdc).toLocaleString()}
-                        </span>
+                  return (
+                    <button
+                      key={j.address}
+                      onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); }}
+                      className={`w-full p-3 rounded-2xl text-left transition-all border flex items-start gap-3 cursor-pointer ${
+                        isSelected 
+                          ? 'bg-purple-700 text-white border-purple-800 shadow-md font-bold' 
+                          : 'bg-white text-slate-700 border-slate-150 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${
+                        isSelected ? 'bg-purple-100 text-purple-900' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}>
+                        {j.name.slice(0, 2)}
                       </div>
-                      <p className={`text-[10px] truncate font-sans mt-0.5 ${jobIsSelected ? 'text-purple-100' : 'text-slate-500'}`}>
-                        {job.title}
-                      </p>
-                      <p className={`text-[9px] truncate font-mono mt-1 ${jobIsSelected ? 'text-purple-200' : 'text-slate-400'}`}>
-                        {lastMsg ? `${lastMsg.sender}: ${lastMsg.text}` : 'No messages yet'}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })
+                      <div className="min-w-0 flex-1">
+                        <div className="flex justify-between items-start">
+                          <span className={`font-extrabold text-xs truncate max-w-[130px] ${isSelected ? 'text-white' : 'text-slate-900'}`} style={isSelected ? { color: '#FFFFFF' } : undefined}>
+                            {j.name}
+                          </span>
+                          <span className={`text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded ${
+                            isSelected 
+                              ? 'bg-purple-900 text-white font-bold' 
+                              : j.status === 'Active' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
+                          }`}>
+                            {j.status}
+                          </span>
+                        </div>
+                        <p className={`text-[10px] truncate font-mono mt-0.5 ${isSelected ? 'text-purple-100' : 'text-slate-500'}`} style={isSelected ? { color: '#F3E8FF' } : undefined}>
+                          {truncateAddress(j.address)}
+                        </p>
+                        <p className={`text-[9px] truncate font-mono mt-1 ${isSelected ? 'text-white font-bold' : 'text-slate-400'}`} style={isSelected ? { color: '#FFFFFF' } : undefined}>
+                          {lastMsg ? `${lastMsg.senderRole}: ${lastMsg.text}` : 'No messages yet'}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              )
+            ) : (
+              /* Job Escrow Channels List */
+              filteredChats.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                  No active negotiation channels.
+                </div>
+              ) : (
+                filteredChats.map((job) => {
+                  const jobIsSelected = job.id === selectedJobId && chatTab === 'jobs';
+                  const activeRoleIsClient = job.client.toLowerCase() === (address || '').toLowerCase();
+                  const activeCounterpartAddress = activeRoleIsClient ? (job.freelancer || job.applications?.[0]?.applicant || '') : job.client;
+                  const activeCounterpartKey = activeCounterpartAddress 
+                    ? Object.keys(profiles).find(k => k.toLowerCase() === activeCounterpartAddress.toLowerCase()) 
+                    : null;
+                  const activeCounterpartProfile = activeCounterpartKey ? profiles[activeCounterpartKey] : null;
+                  const activeCounterpartName = activeCounterpartProfile?.displayName || truncateAddress(activeCounterpartAddress || '');
+                  const lastMsg = job.chatMessages?.[job.chatMessages.length - 1];
+
+                  return (
+                    <button
+                      key={job.id}
+                      onClick={() => { setSelectedJobId(job.id); setChatTab('jobs'); }}
+                      className={`w-full p-3 rounded-2xl text-left transition-all border flex items-start gap-3 cursor-pointer ${
+                        jobIsSelected 
+                          ? 'bg-purple-700 text-white border-purple-800 shadow-md font-bold' 
+                          : 'bg-white text-slate-700 border-slate-150 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${
+                        jobIsSelected ? 'bg-purple-100 text-purple-900' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}>
+                        {activeCounterpartName.slice(0, 2)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex justify-between items-start">
+                          <span className={`font-extrabold text-xs truncate max-w-[120px] ${jobIsSelected ? 'text-white' : 'text-slate-900'}`} style={jobIsSelected ? { color: '#FFFFFF' } : undefined}>
+                            {activeCounterpartName}
+                          </span>
+                          <span className={`text-[9px] font-mono shrink-0 ${jobIsSelected ? 'text-purple-100 font-bold' : 'text-slate-500'}`} style={jobIsSelected ? { color: '#F3E8FF' } : undefined}>
+                            ${parseFloat(job.amountUsdc || '0').toLocaleString()}
+                          </span>
+                        </div>
+                        <p className={`text-[10px] truncate font-sans mt-0.5 ${jobIsSelected ? 'text-white font-bold' : 'text-slate-700'}`} style={jobIsSelected ? { color: '#FFFFFF' } : undefined}>
+                          {job.title}
+                        </p>
+                        <p className={`text-[9px] truncate font-mono mt-1 ${jobIsSelected ? 'text-purple-100 font-medium' : 'text-slate-500'}`} style={jobIsSelected ? { color: '#E9D5FF' } : undefined}>
+                          {lastMsg ? `${lastMsg.sender}: ${lastMsg.text}` : 'No messages yet'}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              )
             )}
           </div>
         </div>
 
         {/* Center: Live Messenger Feed (6 Cols) */}
         <div className="lg:col-span-6 flex flex-col h-full bg-slate-50/50">
-          {activeJob ? (
-            <>
-              {/* Chat Header */}
-              <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-700 font-extrabold uppercase">
-                    {counterpartName.slice(0, 2)}
+          {chatTab === 'judges' && isAdmin ? (
+            /* Admin Chat Window with Selected Judge */
+            activeJudge ? (
+              <>
+                <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-700 font-extrabold uppercase">
+                      {activeJudge.name.slice(0, 2)}
+                    </div>
+                    <div>
+                      <h4 className="font-headline font-bold text-slate-900 text-sm flex items-center gap-2">
+                        {activeJudge.name}
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                          activeJudge.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {activeJudge.status}
+                        </span>
+                      </h4>
+                      <p className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        XMTP Admin Direct Channel ({truncateAddress(activeJudge.address)})
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-headline font-bold text-slate-900 text-sm">{counterpartName}</h4>
-                    <p className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      XMTP Encrypted Connected ({truncateAddress(counterpartAddress)})
-                    </p>
-                  </div>
+
+                  <Link
+                    to="/judge"
+                    className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 font-mono"
+                  >
+                    Manage Judges <ArrowUpRight size={14} />
+                  </Link>
                 </div>
 
-                <Link
-                  to={`/jobs/${activeJob.id}`}
-                  className="no-print text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1"
-                >
-                  View Details <ArrowUpRight size={14} />
-                </Link>
+                {/* Admin-Judge Messages List */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/20">
+                  {((selectedJudgeAddr && judgeMessages[selectedJudgeAddr.toLowerCase()]) || []).length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 text-xs font-mono space-y-2">
+                      <Lock className="w-8 h-8 text-purple-600 mx-auto opacity-80" />
+                      <p className="font-bold text-slate-800">End-to-End Encrypted Admin ↔ Judge Direct Channel</p>
+                      <p>Send a message below to coordinate dispute arbitrations with {activeJudge.name}.</p>
+                    </div>
+                  ) : (
+                    ((selectedJudgeAddr && judgeMessages[selectedJudgeAddr.toLowerCase()]) || []).map((msg: JudgeMessage) => {
+                      const isMe = msg.senderRole === 'Admin';
+
+                      return (
+                        <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-md p-3.5 rounded-2xl border text-xs shadow-xs space-y-1.5 ${
+                            isMe 
+                              ? 'bg-purple-700 text-white border-purple-800 rounded-tr-none font-bold' 
+                              : 'bg-white text-slate-800 border-slate-200 rounded-tl-none font-medium'
+                          }`}>
+                            <div className={`font-mono text-[9px] font-bold ${isMe ? 'text-purple-200' : 'text-purple-700'}`}>
+                              {msg.senderRole === 'Admin' ? 'Admin Governance' : `${activeJudge.name} (Arbitrator)`}
+                            </div>
+                            <p className={`leading-relaxed whitespace-pre-wrap ${isMe ? 'text-white font-medium' : 'text-slate-800'}`}>{msg.text}</p>
+                            <div className={`text-right text-[8px] font-mono ${isMe ? 'text-purple-200' : 'text-slate-400'}`}>
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Admin Input Panel */}
+                <form onSubmit={handleSend} className="p-4 border-t border-slate-200 bg-white flex gap-2 shrink-0">
+                  <input
+                    type="text"
+                    placeholder={`Message ${activeJudge.name}...`}
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    className="w-full glass-input text-xs font-semibold py-3"
+                  />
+                  <button
+                    type="submit"
+                    className="gradient-btn-primary px-5 rounded-xl flex items-center justify-center cursor-pointer shadow-md"
+                  >
+                    <Send size={15} />
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col justify-center items-center text-center p-8 text-slate-400 space-y-3">
+                <UserCheck size={48} className="text-purple-600 stroke-1" />
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">Select a Judge Account</h4>
+                  <p className="text-xs text-slate-500 mt-1 font-mono">Choose an arbitrator from the left panel to open direct encrypted communications.</p>
+                </div>
               </div>
+            )
+          ) : (
+            /* Job Escrow Chat Window */
+            activeJob ? (
+              <>
+                <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-700 font-extrabold uppercase">
+                      {(activeJob.client.toLowerCase() === (address || '').toLowerCase() ? (activeJob.freelancer || 'Dev') : 'Client').slice(0, 2)}
+                    </div>
+                    <div>
+                      <h4 className="font-headline font-bold text-slate-900 text-sm">{activeJob.title}</h4>
+                      <p className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        XMTP Encrypted Escrow Channel
+                      </p>
+                    </div>
+                  </div>
 
-              {/* Chat Messages List */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/20">
-                {messages.map((msg, index) => {
-                  const isUser = msg.sender === (isClient ? 'Client' : 'Freelancer');
-                  const isSystem = msg.sender === 'Judge';
+                  <Link
+                    to={`/jobs/${activeJob.id}`}
+                    className="no-print text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1"
+                  >
+                    View Details <ArrowUpRight size={14} />
+                  </Link>
+                </div>
 
-                  if (isSystem) {
+                {/* Messages List */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/20">
+                  {(activeJob.chatMessages || [
+                    { sender: 'Client' as const, text: 'Welcome! Let us coordinate milestone specifications and delivery targets.', timestamp: activeJob.createdAt || Date.now() - 3600000 }
+                  ]).map((msg, index) => {
+                    const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase();
+                    const isUser = msg.sender === (isClient ? 'Client' : 'Freelancer') || (isAdmin && msg.sender === 'Judge');
+                    const isSystem = msg.sender === 'Judge' && !isAdmin;
+
+                    if (isSystem) {
+                      return (
+                        <div key={index} className="flex justify-center my-3">
+                          <div className="bg-slate-100 border border-slate-200 text-slate-600 rounded-xl px-4 py-1.5 text-[10px] font-mono font-bold flex items-center gap-1.5">
+                            <Lock size={12} className="text-purple-700" />
+                            {msg.text}
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
-                      <div key={index} className="flex justify-center my-3">
-                        <div className="bg-slate-100 border border-slate-200 text-slate-600 rounded-xl px-4 py-1.5 text-[10px] font-mono font-bold flex items-center gap-1.5">
-                          <Lock size={12} className="text-purple-700" />
-                          {msg.text}
+                      <div 
+                        key={index}
+                        className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className={`max-w-md p-3.5 rounded-2xl border text-xs shadow-xs space-y-1.5 ${
+                          isUser 
+                            ? 'bg-purple-700 text-white border-purple-800 rounded-tr-none' 
+                            : 'bg-white text-slate-800 border-slate-200 rounded-tl-none font-sans font-medium'
+                        }`}>
+                          <div className={`font-mono text-[9px] font-bold ${isUser ? 'text-purple-200' : 'text-slate-400'}`}>
+                            {msg.sender}
+                          </div>
+                          <p className={`leading-relaxed whitespace-pre-wrap ${isUser ? 'text-white font-medium' : 'text-slate-800'}`}>{msg.text}</p>
+                          <div className={`text-right text-[8px] font-mono ${isUser ? 'text-purple-200' : 'text-slate-400'}`}>
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
                         </div>
                       </div>
                     );
-                  }
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
 
-                  return (
-                    <div 
-                      key={index}
-                      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className={`max-w-md p-3.5 rounded-2xl border text-xs shadow-xs space-y-1.5 ${
-                        isUser 
-                          ? 'bg-purple-700 bg-purple-700 text-white border-purple-800 rounded-tr-none' 
-                          : 'bg-white text-slate-800 border-slate-200 rounded-tl-none font-sans font-medium'
-                      }`}>
-                        <div className={`font-mono text-[9px] font-bold ${isUser ? 'text-purple-200' : 'text-slate-400'}`}>
-                          {msg.sender === 'Client' ? 'Client (Buyer)' : 'Developer (Contractor)'}
-                        </div>
-                        <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                        <div className="text-right text-[8px] font-mono opacity-60">
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
+                {/* Input Panel */}
+                <form onSubmit={handleSend} className="p-4 border-t border-slate-200 bg-white flex gap-2 shrink-0">
+                  <input
+                    type="text"
+                    placeholder="Type encrypted message..."
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    className="w-full glass-input text-xs font-semibold py-3"
+                  />
+                  <button
+                    type="submit"
+                    className="gradient-btn-primary px-5 rounded-xl flex items-center justify-center cursor-pointer shadow-md"
+                  >
+                    <Send size={15} />
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col justify-center items-center text-center p-8 text-slate-400 space-y-3">
+                <MessageSquare size={48} className="text-purple-600 stroke-1" />
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">Select a Conversation</h4>
+                  <p className="text-xs text-slate-500 mt-1 font-mono">Choose a channel from the left panel to begin encrypted chatting.</p>
+                </div>
               </div>
-
-              {/* Message Input Panel */}
-              <form onSubmit={handleSend} className="p-4 border-t border-slate-200 bg-white flex gap-2 shrink-0">
-                <input
-                  type="text"
-                  placeholder="Type end-to-end encrypted message..."
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  className="w-full glass-input text-xs font-semibold py-3"
-                />
-                <button
-                  type="submit"
-                  className="gradient-btn-primary px-5 rounded-xl flex items-center justify-center cursor-pointer shadow-md"
-                >
-                  <Send size={15} />
-                </button>
-              </form>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col justify-center items-center text-center p-8 text-slate-400 space-y-3">
-              <MessageSquare size={48} className="text-slate-300 stroke-1" />
-              <div>
-                <h4 className="font-bold text-slate-800 text-sm">Select a Conversation</h4>
-                <p className="text-xs text-slate-500 mt-1 font-mono">Choose a channel from the sidebar to start securely negotiating terms.</p>
-              </div>
-            </div>
+            )
           )}
         </div>
 
-        {/* Right Side: Contract & Actions Dashboard (3 Cols) */}
-        <div className="lg:col-span-3 border-l border-slate-200 p-5 space-y-6 overflow-y-auto bg-slate-50/30">
+        {/* Right Side: Contract & Milestone Summary Panel (3 Cols) */}
+        <div className="lg:col-span-3 border-l border-slate-200 flex flex-col h-full bg-white p-5 overflow-y-auto space-y-6">
           {activeJob ? (
             <>
-              {/* Job Info Header */}
-              <div className="space-y-3">
-                <span className="font-mono text-[9px] font-black uppercase text-purple-800 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200">
-                  Active Escrow Contract
+              <div>
+                <span className="text-[9.5px] uppercase font-mono font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded">
+                  {activeJob.status} Escrow
                 </span>
-                <div>
-                  <h3 className="font-headline font-bold text-slate-900 text-sm line-clamp-2">{activeJob.title}</h3>
-                  <p className="text-[10px] font-mono text-slate-400 mt-1 capitalize">Category: {activeJob.category}</p>
+                <h3 className="font-headline font-bold text-slate-900 text-sm mt-2 leading-snug">
+                  {activeJob.title}
+                </h3>
+                <p className="text-[11px] text-slate-500 font-sans mt-1 line-clamp-3 leading-relaxed">
+                  {activeJob.description}
+                </p>
+              </div>
+
+              {/* Escrow Value Card */}
+              <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl space-y-1">
+                <span className="text-[9px] uppercase font-mono text-slate-500 font-bold block">Locked Vault Deposit</span>
+                <div className="font-mono font-extrabold text-slate-900 text-lg flex items-baseline gap-1">
+                  <span>${parseFloat(activeJob.amountUsdc || '0').toLocaleString()}</span>
+                  <span className="text-xs font-normal text-slate-500">USDC</span>
                 </div>
               </div>
 
-              {/* Escrow Parameters Table */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-3 font-mono text-xs shadow-xs">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                  <span className="text-slate-400 text-[10px] uppercase font-bold">Safe Deposit</span>
-                  <span className="font-extrabold text-emerald-700">${parseFloat(activeJob.amountUsdc).toLocaleString()} USDC</span>
+              {/* Workflow Actions */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <span className="text-[10px] uppercase font-mono text-slate-400 font-bold block mb-2">Smart Contract Actions</span>
+
+                {/* Propose / Agree Terms */}
+                {activeJob.status === 'Open' && (
+                  <button
+                    onClick={handleProposeTerms}
+                    className="w-full gradient-btn-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <FileCheck size={14} /> Sign Terms Hash
+                  </button>
+                )}
+
+                {/* Fund Escrow Vault (Client) */}
+                {((activeJob.status as string) === 'TermsAgreed' || activeJob.status === 'Selected') && (activeJob.client.toLowerCase() === (address || '').toLowerCase() || isAdmin) && (
+                  <button
+                    onClick={handleFund}
+                    className="w-full gradient-btn-emerald py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <DollarSign size={14} /> Fund Vault Deposit
+                  </button>
+                )}
+
+                {/* Submit Deliverable (Freelancer) */}
+                {((activeJob.status as string) === 'Funded' || activeJob.status === 'Selected') && (activeJob.freelancer?.toLowerCase() === (address || '').toLowerCase() || isAdmin) && (
+                  <button
+                    onClick={() => setIsSubmitModalOpen(true)}
+                    className="w-full gradient-btn-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <PlusCircle size={14} /> Submit Deliverable
+                  </button>
+                )}
+
+                {/* Approve Deliverable & Release (Client) */}
+                {(activeJob.status === 'Submitted' || (activeJob.status as string) === 'Funded') && (activeJob.client.toLowerCase() === (address || '').toLowerCase() || isAdmin) && (
+                  <button
+                    onClick={handleRelease}
+                    className="w-full gradient-btn-emerald py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <CheckCircle size={14} /> Approve & Release Payout
+                  </button>
+                )}
+
+                {/* Request Revisions (Client) */}
+                {activeJob.status === 'Submitted' && (activeJob.client.toLowerCase() === (address || '').toLowerCase() || isAdmin) && (
+                  <button
+                    onClick={handleRequestRevision}
+                    className="w-full btn-secondary py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <Clock size={14} /> Request Revision
+                  </button>
+                )}
+              </div>
+
+              {/* Security Badge */}
+              <div className="bg-purple-50/60 border border-purple-100 p-3 rounded-2xl text-[10px] text-purple-900 font-mono space-y-1">
+                <div className="flex items-center gap-1 font-bold">
+                  <ShieldCheck size={13} className="text-purple-700" /> Polygon Smart Escrow
                 </div>
-                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                  <span className="text-slate-400 text-[10px] uppercase font-bold">Review Period</span>
-                  <span className="font-bold text-slate-800">{activeJob.reviewPeriodDays} Days</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-[10px] uppercase font-bold">Contract Status</span>
-                  <span className={`badge-status badge-${activeJob.status.toLowerCase()}`}>
-                    {activeJob.status}
+                <p className="text-slate-600 text-[9.5px]">Non-custodial EIP-5192 vault protection.</p>
+              </div>
+            </>
+          ) : activeJudge ? (
+            <div className="space-y-4">
+              <div className="bg-purple-50 border border-purple-200 p-4 rounded-2xl space-y-2">
+                <span className="text-[10px] font-mono font-bold uppercase text-purple-800">Arbitrator Profile</span>
+                <h4 className="font-bold text-slate-900 text-sm">{activeJudge.name}</h4>
+                <p className="text-xs text-slate-600 font-mono">{truncateAddress(activeJudge.address)}</p>
+                <div className="pt-2">
+                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-mono font-bold px-2 py-0.5 rounded uppercase">
+                    {activeJudge.status}
                   </span>
                 </div>
               </div>
-
-              {/* Cryptographic Signature States */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs space-y-2">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Terms Signature Status</span>
-                <div className="space-y-1.5 text-[11px]">
-                  <div className="flex justify-between items-center">
-                    <span>Client Signature</span>
-                    <span className={activeJob.clientAgreedTerms ? "text-emerald-600 font-extrabold" : "text-slate-400"}>
-                      {activeJob.clientAgreedTerms ? "Signed ✓" : "Pending Signature"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Developer Signature</span>
-                    <span className={activeJob.freelancerAgreedTerms ? "text-emerald-600 font-extrabold" : "text-slate-400"}>
-                      {activeJob.freelancerAgreedTerms ? "Signed ✓" : "Pending Signature"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Escrow Direct Actions Area */}
-              <div className="space-y-3 pt-3 border-t border-slate-200">
-                <span className="font-headline text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Interactive Escrow Actions
-                </span>
-
-                {/* 1. AGREE TO TERMS */}
-                {activeJob.status === 'Selected' && (!activeJob.clientAgreedTerms || !activeJob.freelancerAgreedTerms) && (
-                  <button
-                    onClick={handleProposeTerms}
-                    className="w-full gradient-btn-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
-                  >
-                    <FileCheck size={14} /> Agree & Sign Terms Hash
-                  </button>
-                )}
-
-                {/* 2. FUND ESCROW (CLIENT ONLY) */}
-                {activeJob.status === 'Selected' && activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms && isClient && (
-                  <button
-                    onClick={handleFund}
-                    className="w-full gradient-btn-emerald py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
-                  >
-                    <DollarSign size={14} /> Fund Smart Escrow Vault
-                  </button>
-                )}
-
-                {/* 3. SUBMIT DELIVERABLES (FREELANCER ONLY) */}
-                {(activeJob.status === 'Selected' && activeJob.freelancerAgreedTerms && !isClient) && (
-                  <button
-                    onClick={() => setIsSubmitModalOpen(true)}
-                    className="w-full gradient-btn-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
-                  >
-                    <PlusCircle size={14} /> Submit Milestone Work
-                  </button>
-                )}
-
-                {/* 4. RELEASE MILESTONE / PAYOUT (CLIENT ONLY) */}
-                {activeJob.status === 'Submitted' && isClient && (
-                  <div className="space-y-2">
-                    <button
-                      onClick={handleRelease}
-                      className="w-full gradient-btn-emerald py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
-                    >
-                      <CheckCircle2 size={14} /> Release Payout (100%)
-                    </button>
-                    <button
-                      onClick={handleRequestRevision}
-                      className="w-full border border-slate-300 hover:bg-slate-50 text-slate-700 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-white"
-                    >
-                      Request Code Revision
-                    </button>
-                  </div>
-                )}
-
-                {/* NO PENDING ACTIONS DISPLAY */}
-                {activeJob.status === 'Completed' && (
-                  <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 p-3.5 rounded-xl text-center font-mono text-[11px] space-y-1 font-bold">
-                    <CheckCircle className="text-emerald-600 mx-auto" size={16} />
-                    <p>Contract Closed & Settled</p>
-                    <span className="text-[10px] text-slate-500 font-normal">All funds released dynamically.</span>
-                  </div>
-                )}
-              </div>
-            </>
+              <p className="text-xs text-slate-500 font-mono leading-relaxed">{activeJudge.notes}</p>
+            </div>
           ) : (
             <div className="text-center py-12 text-slate-400 text-xs font-mono">
-              No conversation parameters loaded.
+              No active channel selected.
             </div>
           )}
         </div>
       </div>
 
-      {/* Submission Modal inside Chat */}
+      {/* Deliverable Submission Modal */}
       {isSubmitModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 max-w-md w-full shadow-2xl space-y-4 font-sans text-left">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h4 className="font-headline font-black text-slate-900 text-sm">Submit Work Deliverables</h4>
-              <button 
-                onClick={() => setIsSubmitModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitDeliverable} className="space-y-4 text-xs font-semibold">
-              <div className="space-y-1">
-                <label className="text-slate-500 block">Deliverable Title</label>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+          <div className="glass-panel max-w-md w-full p-6 space-y-4 border-purple-200 bg-white shadow-xl">
+            <h3 className="font-headline text-base font-bold text-slate-900">Submit Deliverable Work</h3>
+            <form onSubmit={handleSubmitDeliverable} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
+                  Deliverable Title *
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Completed smart contracts & unit tests"
+                  placeholder="e.g. Smart Contract V1 Audit & Frontend Integration"
                   value={submitTitle}
                   onChange={(e) => setSubmitTitle(e.target.value)}
-                  className="w-full glass-input"
+                  className="w-full glass-input text-xs"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-slate-500 block">Description of Work</label>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
+                  Description / Notes *
+                </label>
                 <textarea
-                  required
                   rows={3}
-                  placeholder="Summarize the changes and files implemented..."
+                  required
+                  placeholder="Provide summary of completed milestones..."
                   value={submitDesc}
                   onChange={(e) => setSubmitDesc(e.target.value)}
-                  className="w-full glass-input"
+                  className="w-full glass-input text-xs"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-slate-500 block">Evidence Link (e.g. GitHub Pull Request)</label>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
+                  External Link (GitHub PR / Figma / IPFS)
+                </label>
                 <input
                   type="url"
-                  placeholder="https://github.com/org/repo/pull/..."
+                  placeholder="https://github.com/..."
                   value={submitLink}
                   onChange={(e) => setSubmitLink(e.target.value)}
-                  className="w-full glass-input"
+                  className="w-full glass-input text-xs"
                 />
               </div>
 
-              <div className="flex gap-2 justify-end pt-2 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsSubmitModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 cursor-pointer bg-white"
+                  className="btn-secondary px-4 py-2 text-xs font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="gradient-btn-primary px-5 py-2 rounded-xl text-white shadow-md cursor-pointer"
+                  className="gradient-btn-primary px-5 py-2 text-xs font-bold"
                 >
-                  Submit for Client Approval
+                  Submit Milestone
                 </button>
               </div>
             </form>

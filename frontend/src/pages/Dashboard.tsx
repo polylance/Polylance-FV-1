@@ -1,31 +1,21 @@
 import React, { useEffect } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { scoreGithubUser } from '../utils/githubOracle';
 import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, TrendingUp, ShieldCheck, CheckCircle2, FileText, MessageSquare, Clock } from 'lucide-react';
+import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 
 export const Dashboard: React.FC = () => {
   const { address, currentRole } = useWeb3();
   const { jobs, profiles, updateProfile } = usePolyLanceData();
   const navigate = useNavigate();
-  
-  // Add local state to toggle simulated sandbox role for Admin and Judge roles
-  const isAdminOrJudge = currentRole === 'admin' || currentRole === 'judge';
-  const [simulatedRole, setSimulatedRole] = React.useState<'client' | 'freelancer'>(
-    currentRole === 'client' ? 'client' : 'freelancer'
-  );
 
-  // Resolve simulated address for filtering statistics and jobs
-  const activeAddress = isAdminOrJudge
-    ? (simulatedRole === 'client'
-      ? (import.meta.env.VITE_CLIENT_ADDRESS || '0x9999888877776666555544443333222211110000')
-      : (import.meta.env.VITE_TESTER_ADDRESS || '0x3333444455556666777788889999000011112222'))
-    : address;
-
-  const isClientRole = isAdminOrJudge ? (simulatedRole === 'client') : (currentRole === 'client');
+  const activeAddress = address;
+  const isClientRole = currentRole === 'client';
 
   const userProfileKey = activeAddress ? Object.keys(profiles).find(k => k.toLowerCase() === activeAddress.toLowerCase()) : null;
   const userProfile = ((userProfileKey ? profiles[userProfileKey] : null) || {
@@ -86,7 +76,7 @@ export const Dashboard: React.FC = () => {
       return { address: p.address, points: profileCompletedJobs * 100 };
     })
     .sort((a, b) => b.points - a.points);
-  
+
   const myRankIdx = sortedProfiles.findIndex((p) => p.address.toLowerCase() === activeAddress.toLowerCase());
   const myRank = myRankIdx !== -1 ? myRankIdx + 1 : sortedProfiles.length + 1;
 
@@ -123,43 +113,6 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
-      {/* Sandbox Simulation Bar for Admin/Judge */}
-      {isAdminOrJudge && (
-        <div className="bg-purple-900 text-white p-4 rounded-3xl border border-purple-800 flex flex-wrap items-center justify-between gap-4 shadow-lg font-sans">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping shrink-0" />
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider">Admin Sandbox Mode</p>
-              <p className="text-[10px] text-purple-200">Simulate client or developer perspective on this dashboard.</p>
-            </div>
-          </div>
-          <div className="flex bg-purple-950 p-1 rounded-xl border border-purple-800/80">
-            <button
-              type="button"
-              onClick={() => setSimulatedRole('client')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                simulatedRole === 'client'
-                  ? 'bg-purple-700 text-white shadow'
-                  : 'text-purple-300 hover:text-white'
-              }`}
-            >
-              Simulate Client
-            </button>
-            <button
-              type="button"
-              onClick={() => setSimulatedRole('freelancer')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                simulatedRole === 'freelancer'
-                  ? 'bg-purple-700 text-white shadow'
-                  : 'text-purple-300 hover:text-white'
-              }`}
-            >
-              Simulate Developer
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Top Banner with Role Context */}
       <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -172,10 +125,10 @@ export const Dashboard: React.FC = () => {
             <h1 className="text-2xl font-extrabold text-slate-900 font-heading flex items-center gap-2">
               {userProfile.displayName}
               <span className="text-xs bg-purple-100 text-purple-900 border border-purple-200 px-2.5 py-0.5 rounded-full font-mono font-bold capitalize">
-                {isClientRole ? 'Verified Enterprise Client' : 
-                 (userProfile.reputationSbtCount >= 10 ? 'Diamond Freelancer' : 
-                  userProfile.reputationSbtCount >= 5 ? 'Gold Freelancer' : 
-                  userProfile.reputationSbtCount >= 1 ? 'Silver Freelancer' : 'New Freelancer')}
+                {isClientRole ? 'Verified Enterprise Client' :
+                  (userProfile.reputationSbtCount >= 10 ? 'Diamond Freelancer' :
+                    userProfile.reputationSbtCount >= 5 ? 'Gold Freelancer' :
+                      userProfile.reputationSbtCount >= 1 ? 'Silver Freelancer' : 'New Freelancer')}
               </span>
               <span className="text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1">
                 <CheckCircle2 size={12} /> On-Chain Verified
@@ -220,8 +173,8 @@ export const Dashboard: React.FC = () => {
       {isClientRole ? (
         <div className="space-y-8">
           {/* Financial Overview Cards (High-Integrity Ledger Style from client_dashboard_enterprise_overview) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2">
+          <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.div variants={staggerItem} className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 premium-card">
               <span className="font-label-mono text-xs uppercase tracking-wider text-slate-500 font-bold">
                 Total Value Locked (TVL)
               </span>
@@ -234,9 +187,9 @@ export const Dashboard: React.FC = () => {
               <div className="pt-2 flex items-center gap-1.5 text-xs text-purple-700 font-bold font-mono">
                 <Lock size={14} /> {myClientJobs.length} Active Smart Contract Escrows
               </div>
-            </div>
+            </motion.div>
 
-            <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2">
+            <motion.div variants={staggerItem} className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-2 premium-card">
               <span className="font-label-mono text-xs uppercase tracking-wider text-slate-500 font-bold">
                 Total Spent (YTD)
               </span>
@@ -249,9 +202,9 @@ export const Dashboard: React.FC = () => {
               <div className="pt-2 flex items-center gap-1.5 text-xs text-emerald-700 font-bold font-mono">
                 <TrendingUp size={14} /> {clientTotalSpent > 0 ? 'Active payouts settled' : 'No payouts settled yet'}
               </div>
-            </div>
+            </motion.div>
 
-            <div className="glass-panel p-6 border-purple-200 bg-purple-50 hard-shadow space-y-2">
+            <motion.div variants={staggerItem} className="glass-panel p-6 border-purple-200 bg-purple-50 hard-shadow space-y-2 premium-card">
               <span className="font-label-mono text-xs uppercase tracking-wider text-purple-900 font-bold">
                 Avg Milestone Approval
               </span>
@@ -266,8 +219,8 @@ export const Dashboard: React.FC = () => {
                   {completedClientJobs.length > 0 ? 'Top Response Rate' : 'No Milestones Reviewed'}
                 </span>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Main Column (8 Cols): Milestone Approvals + Active Contracts */}
@@ -421,7 +374,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <button 
+                <button
                   onClick={() => navigate(`/audit/${address}`)}
                   className="w-full glass-panel py-2 text-xs font-bold text-slate-700 border-slate-200 hover:bg-slate-50 rounded-xl cursor-pointer"
                 >
@@ -430,11 +383,11 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* Escrow Guarantee Security Box */}
-              <div className="gradient-btn-primary p-6 rounded-2xl hard-shadow text-white space-y-3">
-                <ShieldCheck size={28} />
+              <div className="bg-[#2563EB] p-6 rounded-2xl hard-shadow text-white space-y-3">
+                <ShieldCheck size={28} className="text-white" />
                 <div>
-                  <h4 className="font-bold text-base">Escrow Protection Active</h4>
-                  <p className="text-xs text-purple-100 leading-relaxed mt-1">
+                  <h4 className="font-bold text-base text-white">Escrow Protection Active</h4>
+                  <p className="text-xs text-white leading-relaxed mt-1 opacity-95">
                     Your funds are locked in the PolyLance Immutable Vault. Milestones can only be released upon your cryptographic signature.
                   </p>
                 </div>

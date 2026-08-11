@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
 import { ArrowRight, Wallet, Lock, History, Network, Activity, PlusCircle, Search, FileText, Cpu, CheckCircle2, ShieldCheck, ChevronDown, Sparkles, HelpCircle, User, XCircle, Percent, Shield, Scale, Zap, LayoutGrid, Box, Briefcase, Crown } from 'lucide-react';
+import { scrollReveal, staggerContainer, staggerItem, transition } from '../lib/motion';
 
 export const Landing: React.FC = () => {
   const { isConnected, address, currentRole } = useWeb3();
@@ -56,7 +58,12 @@ export const Landing: React.FC = () => {
   return (
     <div className="space-y-16 py-6 max-w-6xl mx-auto">
       {/* Hero Section */}
-      <section className="hero-gradient pt-8 pb-12 text-center max-w-3xl mx-auto space-y-6">
+      <motion.section
+        initial={{ opacity: 0, y: 24, filter: 'blur(12px)' }}
+        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        className="hero-gradient pt-8 pb-12 text-center max-w-3xl mx-auto space-y-6"
+      >
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-900 rounded-full border border-purple-200 justify-center">
           <ShieldCheck size={16} className="text-purple-700" />
           <span className="font-label-mono uppercase tracking-wider text-xs font-bold">
@@ -102,10 +109,13 @@ export const Landing: React.FC = () => {
             </Link>
           )}
         </div>
-      </section>
+      </motion.section>
 
       {/* WHY POLYLANCE COMPARISON MATRIX SECTION */}
-      <section className="space-y-12 py-10 border-t border-b border-slate-100">
+      <motion.section
+        {...scrollReveal}
+        className="space-y-12 py-10 border-t border-b border-slate-100"
+      >
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <span className="font-mono text-[10px] text-purple-800 bg-purple-100 border border-purple-200 px-3 py-1 rounded-full font-bold uppercase tracking-wider inline-flex items-center gap-1.5 shadow-2xs">
             <Sparkles size={12} className="text-purple-700" /> Web3 Freelancing
@@ -271,7 +281,7 @@ export const Landing: React.FC = () => {
             <span>Proof-of-Work</span>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* TECHNICAL SPECIFICATION & WHITEPAPER VARIANT SECTION matching landing_whitepaper_aesthetic_variant */}
       <section className="glass-panel p-8 sm:p-10 border-slate-200 bg-white hard-shadow relative overflow-hidden space-y-8">

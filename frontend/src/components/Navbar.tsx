@@ -1,921 +1,481 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { useWeb3 } from '../context/Web3Context';
 import { PolyLanceLogo } from './PolyLanceLogo';
 import { LoginModal } from './LoginModal';
-import { 
-  Briefcase, 
-  PlusCircle, 
-  LayoutDashboard, 
-  Scale, 
-  Lock, 
-  BarChart3, 
-  User, 
-  Users, 
-  Award, 
-  LogIn, 
-  Shield, 
-  ChevronDown, 
+import {
+  Briefcase,
+  PlusCircle,
+  LayoutDashboard,
+  Scale,
+  BarChart3,
+  User,
+  Users,
+  LogIn,
+  Shield,
+  ChevronDown,
   MessageSquare,
   Menu,
   X,
   Landmark,
   Trophy,
   Settings,
-  Beaker,
   Grid,
-  ChevronRight,
   Power
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
+import { dropdownVariants, transition, spring } from '../lib/motion';
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Nav Link with layoutId sliding pill
+// ──────────────────────────────────────────────────────────────────────────────
+interface NavLinkProps {
+  to: string;
+  active: boolean;
+  children: React.ReactNode;
+  accent?: 'purple' | 'amber';
+}
+
+const NavLink: React.FC<NavLinkProps> = ({ to, active, children, accent = 'purple' }) => {
+  const activeTextClass = accent === 'amber' ? 'text-amber-800 font-bold' : 'text-purple-700 font-bold';
+  const hoverClass = accent === 'amber'
+    ? 'hover:text-amber-700 hover:bg-amber-50/60'
+    : 'hover:text-slate-900 hover:bg-white/50';
+
+  return (
+    <Link
+      to={to}
+      className={`
+        relative px-3.5 py-1.5 rounded-full text-[13px] font-semibold
+        flex items-center gap-1.5 select-none z-10
+        transition-colors duration-200
+        nav-pill-item
+        ${active ? activeTextClass : `text-slate-600 ${hoverClass}`}
+      `}
+    >
+      {/* Sliding active background */}
+      {active && (
+        <motion.span
+          layoutId="activeNav"
+          className={`absolute inset-0 rounded-full ${
+            accent === 'amber'
+              ? 'bg-amber-100/80'
+              : 'bg-white/70'
+          }`}
+          style={{
+            boxShadow: accent === 'amber'
+              ? 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.06)'
+              : 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(37,99,235,0.08)',
+          }}
+          transition={spring.default}
+        />
+      )}
+      <span className="relative z-10 flex items-center gap-1.5">{children}</span>
+    </Link>
+  );
+};
+
+const DropdownLink: React.FC<{ to: string; icon: React.ReactNode; label: string; onClick: () => void }> = ({ to, icon, label, onClick }) => (
+  <Link
+    to={to}
+    onClick={onClick}
+    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-slate-700 hover:bg-purple-50/80 hover:text-purple-700 transition-all duration-150 group"
+  >
+    <span className="text-slate-400 group-hover:text-purple-500 transition-colors">{icon}</span>
+    {label}
+  </Link>
+);
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Main Navbar
+// ──────────────────────────────────────────────────────────────────────────────
 export const Navbar: React.FC = () => {
-  const { isConnected, address, currentRole, isArbitrator, isTreasuryAdmin, disconnectWallet } = useWeb3();
+  const { isConnected, address, currentRole, disconnectWallet } = useWeb3();
   const location = useLocation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
-  
-  const [isJudgeMoreOpen, setIsJudgeMoreOpen] = useState(false);
-  const [isJudgeMobileOpen, setIsJudgeMobileOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  const moreRef = React.useRef<HTMLDivElement>(null);
-  const mobileMoreRef = React.useRef<HTMLDivElement>(null);
-  const judgeMoreRef = React.useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      // Desktop More dropdown
-      if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
-        setIsMoreOpen(false);
-      }
-      // Mobile admin More dropdown (uses separate state to avoid conflict)
-      if (mobileMoreRef.current && !mobileMoreRef.current.contains(event.target as Node)) {
-        setIsMobileMoreOpen(false);
-      }
-      if (judgeMoreRef.current && !judgeMoreRef.current.contains(event.target as Node)) {
-        setIsJudgeMoreOpen(false);
-      }
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setIsMoreOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isActive = (path: string) => location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
+  // Close mobile menu on route change
+  useEffect(() => { setIsMobileOpen(false); setIsMoreOpen(false); }, [location.pathname]);
+
+  const isActive = (path: string) =>
+    location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
   const isVisitor = !isConnected || currentRole === 'visitor';
-
-  if (currentRole === 'judge') {
-    return (
-      <>
-        {/* REDESIGNED JUDGE ENVIRONMENT NAVBAR */}
-        <nav className="mx-4 md:mx-8 my-4 max-w-7xl md:mx-auto bg-white border border-[#E9D5FF] rounded-3xl shadow-xs px-6 py-3 flex items-center justify-between sticky top-4 z-40">
-          <div className="flex items-center justify-between w-full">
-            {/* LEFT: Logo & Badge */}
-            <div className="flex items-center gap-3.5 shrink-0">
-              <Link to="/" className="flex items-center gap-3 group shrink-0">
-                <PolyLanceLogo size={36} className="group-hover:scale-105 transition-transform duration-200" />
-                <span className="font-extrabold text-xl tracking-tight text-[#111827] font-heading">
-                  Poly<span className="text-[#7C3AED]">Lance</span>
-                </span>
-              </Link>
-              <span className="text-[9px] font-mono text-[#7C3AED] font-extrabold bg-[#F3E8FF] px-2 py-0.5 rounded-md border border-[#E9D5FF] tracking-wider uppercase shadow-2xs select-none">
-                MVP ON-CHAIN
-              </span>
-            </div>
-
-            {/* CENTER: Navigation (Desktop) */}
-            <div className="hidden md:flex items-center gap-1">
-              {/* 1. Find Jobs */}
-              <Link
-                to="/jobs"
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 ${
-                  isActive('/jobs') && !isActive('/jobs/post')
-                    ? 'bg-[#F3E8FF] text-[#7C3AED]'
-                    : 'text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
-                }`}
-              >
-                <Briefcase size={14} className="opacity-80" />
-                Find Jobs
-              </Link>
-
-              {/* 2. SBT Leaderboard */}
-              <Link
-                to="/reputation"
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 ${
-                  isActive('/reputation')
-                    ? 'bg-[#F3E8FF] text-[#7C3AED]'
-                    : 'text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
-                }`}
-              >
-                <Trophy size={14} className="opacity-80" />
-                SBT Leaderboard
-              </Link>
-
-              {/* 3. Judge Panel (Orange Active State) */}
-              <Link
-                to="/judge"
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 border ${
-                  isActive('/judge')
-                    ? 'bg-[#FFF7ED] text-[#F97316] border-[#FFEDD5] font-extrabold shadow-sm'
-                    : 'border-transparent text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
-                }`}
-              >
-                <Scale size={14} className={isActive('/judge') ? 'text-[#F97316]' : 'opacity-80'} />
-                Judge Panel
-              </Link>
-
-              {/* 4. DAO */}
-              <Link
-                to="/dao"
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 ${
-                  isActive('/dao')
-                    ? 'bg-[#F3E8FF] text-[#7C3AED]'
-                    : 'text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
-                }`}
-              >
-                <Users size={14} className="opacity-80" />
-                DAO
-              </Link>
-
-              {/* 5. Messages */}
-              <Link
-                to="/chat"
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 ${
-                  isActive('/chat')
-                    ? 'bg-[#F3E8FF] text-[#7C3AED]'
-                    : 'text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
-                }`}
-              >
-                <MessageSquare size={14} className="opacity-80" />
-                Messages
-              </Link>
-
-              {/* 6. More button */}
-              <div className="relative" ref={judgeMoreRef}>
-                <button
-                  onClick={() => setIsJudgeMoreOpen(!isJudgeMoreOpen)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${
-                    isJudgeMoreOpen
-                      ? 'bg-[#F3E8FF] text-[#7C3AED]'
-                      : 'text-[#64748B] hover:text-[#7C3AED] hover:bg-[#FAF9FF]'
-                  }`}
-                >
-                  <Grid size={14} />
-                  More
-                  <ChevronDown size={12} className={`transition-transform duration-200 ${isJudgeMoreOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {isJudgeMoreOpen && (
-                  <div className="absolute right-0 top-full mt-2.5 w-64 bg-white border border-[#E9D5FF] rounded-2xl shadow-lg z-50 p-2 space-y-0.5 animate-fade-in font-sans">
-                    <Link
-                      to="/analytics"
-                      onClick={() => setIsJudgeMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-[#FAF9FF] transition-all duration-150 ${
-                        isActive('/analytics') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#111827]'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <BarChart3 size={15} className="text-[#7C3AED] shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-[#111827]">Analytics</p>
-                          <p className="text-[10px] text-[#64748B]">View platform insights</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-[#64748B] opacity-60" />
-                    </Link>
-
-                    <Link
-                      to="/onboarding"
-                      onClick={() => setIsJudgeMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-[#FAF9FF] transition-all duration-150 ${
-                        isActive('/onboarding') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#111827]'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <Settings size={15} className="text-[#64748B] shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-[#111827]">Settings</p>
-                          <p className="text-[10px] text-[#64748B]">Manage preferences</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-[#64748B] opacity-60" />
-                    </Link>
-
-                    {/* Network Status indicator */}
-                    <div className="border-t border-[#E9D5FF] mt-1.5 pt-1.5 px-2.5 pb-1 flex items-center justify-between text-[11px] font-semibold text-[#64748B]">
-                      <span>Network Status</span>
-                      <span className="flex items-center gap-1.5 text-emerald-600">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Online
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* RIGHT: Wallet & Disconnect */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              {isConnected && address ? (
-                <div className="flex items-center gap-2">
-                  {/* Wallet address pill */}
-                  <Link
-                    to={`/profile/${address}`}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#F3E8FF] border border-[#E9D5FF] text-[#7C3AED] text-xs font-bold font-mono transition-all duration-150 hover:bg-[#FAF9FF] shadow-2xs"
-                  >
-                    <User size={13} className="text-[#7C3AED] shrink-0" />
-                    <span>{truncateAddress(address)}</span>
-                    <ChevronDown size={12} className="text-[#7C3AED] shrink-0" />
-                  </Link>
-
-                  {/* Disconnect Power Button */}
-                  <button
-                    onClick={disconnectWallet}
-                    title="Disconnect Wallet"
-                    className="w-8 h-8 rounded-full bg-white border border-[#E9D5FF] text-[#64748B] hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-all duration-150 shadow-2xs cursor-pointer shrink-0"
-                  >
-                    <Power size={14} className="stroke-[2.5]" />
-                  </button>
-                </div>
-              ) : (
-                <Link
-                  to="/login"
-                  className="bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] hover:from-purple-700 hover:to-purple-500 text-white px-4 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all duration-150 hover:scale-[1.02]"
-                >
-                  <LogIn size={13} />
-                  Connect Wallet
-                </Link>
-              )}
-
-              {/* Mobile menu trigger */}
-              <button
-                onClick={() => setIsJudgeMobileOpen(!isJudgeMobileOpen)}
-                className="md:hidden p-2 rounded-xl text-[#64748B] hover:bg-[#FAF9FF] hover:text-[#111827] border border-[#E9D5FF] transition-all duration-150 cursor-pointer"
-              >
-                {isJudgeMobileOpen ? <X size={16} /> : <Menu size={16} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Menu Panel */}
-          {isJudgeMobileOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 mx-4 bg-white border border-[#E9D5FF] rounded-2xl shadow-lg p-3 space-y-1 z-50 md:hidden animate-fade-in font-sans">
-              <Link
-                to="/jobs"
-                onClick={() => setIsJudgeMobileOpen(false)}
-                className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
-                  isActive('/jobs') && !isActive('/jobs/post') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
-                }`}
-              >
-                <Briefcase size={15} />
-                Find Jobs
-              </Link>
-
-              <Link
-                to="/reputation"
-                onClick={() => setIsJudgeMobileOpen(false)}
-                className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
-                  isActive('/reputation') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
-                }`}
-              >
-                <Trophy size={15} />
-                SBT Leaderboard
-              </Link>
-
-              <Link
-                to="/judge"
-                onClick={() => setIsJudgeMobileOpen(false)}
-                className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs border ${
-                  isActive('/judge') ? 'bg-[#FFF7ED] text-[#F97316] border-[#FFEDD5]' : 'border-transparent text-[#64748B]'
-                }`}
-              >
-                <Scale size={15} />
-                Judge Panel
-              </Link>
-
-              <Link
-                to="/dao"
-                onClick={() => setIsJudgeMobileOpen(false)}
-                className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
-                  isActive('/dao') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
-                }`}
-              >
-                <Users size={15} />
-                DAO
-              </Link>
-
-              <Link
-                to="/chat"
-                onClick={() => setIsJudgeMobileOpen(false)}
-                className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
-                  isActive('/chat') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
-                }`}
-              >
-                <MessageSquare size={15} />
-                Messages
-              </Link>
-
-              <div className="border-t border-[#E9D5FF] my-2 pt-2 space-y-1">
-                <Link
-                  to="/analytics"
-                  onClick={() => setIsJudgeMobileOpen(false)}
-                  className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
-                    isActive('/analytics') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
-                  }`}
-                >
-                  <BarChart3 size={15} />
-                  Analytics
-                </Link>
-
-                <Link
-                  to="/onboarding"
-                  onClick={() => setIsJudgeMobileOpen(false)}
-                  className={`flex items-center gap-2.5 p-2.5 rounded-xl font-bold text-xs ${
-                    isActive('/onboarding') ? 'bg-[#F3E8FF] text-[#7C3AED]' : 'text-[#64748B]'
-                  }`}
-                >
-                  <Settings size={15} />
-                  Settings
-                </Link>
-              </div>
-
-              <div className="px-2.5 py-1.5 flex items-center justify-between text-[11px] font-semibold text-[#64748B]">
-                <span>Network Status</span>
-                <span className="flex items-center gap-1.5 text-emerald-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  Online
-                </span>
-              </div>
-            </div>
-          )}
-        </nav>
-        <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
-      </>
-    );
-  }
 
   return (
     <>
-      <nav className="glass-panel sticky top-0 z-40 border-x-0 rounded-none border-t-0 bg-white/95 border-b border-slate-200 shadow-xs px-4 md:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Brand Logo with 3D Hexagon P Icon */}
-          <Link to="/" className="flex items-center gap-3.5 group shrink-0">
-            <PolyLanceLogo size={40} className="group-hover:scale-105 transition-transform" />
-            <div className="flex items-center">
-              <span className="font-black text-2xl sm:text-3xl tracking-tight text-slate-900 font-heading">
-                Poly<span className="text-purple-700">Lance</span>
+      {/* ── Scroll-aware Liquid Glass Bar ─────────────────────────────────── */}
+      <motion.nav
+        animate={{
+          scale: scrolled ? 0.987 : 1,
+          boxShadow: scrolled
+            ? '0 12px 40px rgba(31,38,135,0.12), 0 2px 8px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)'
+            : '0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.9)',
+        }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="mx-3 md:mx-auto my-3 max-w-7xl sticky top-3 z-40
+          flex items-center justify-between
+          px-4 py-2 rounded-[28px]"
+        style={{
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(248,246,255,0.80) 100%)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          border: '1px solid rgba(255,255,255,0.70)',
+        }}
+      >
+        {/* ── LEFT: Brand ─────────────────────────────────────────────── */}
+        <div className="flex items-center shrink-0">
+          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-xl bg-purple-400/20 blur-md group-hover:bg-purple-400/30 transition-all duration-300" />
+              <PolyLanceLogo size={36} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
+            </div>
+            <div className="flex flex-col leading-none">
+              <span className="font-black text-[22px] tracking-tight text-slate-900 leading-none">
+                Poly<span className="text-purple-600">Lance</span>
               </span>
-              <span className="ml-2.5 text-[10px] font-mono text-purple-900 font-extrabold bg-purple-100 px-2 py-0.5 rounded-md border border-purple-300 whitespace-nowrap inline-block shrink-0 shadow-2xs">
-                MVP ON-CHAIN
+              <span className="text-[7px] font-mono text-slate-400/60 font-medium tracking-[0.15em] uppercase mt-0.5 leading-none select-none">
+                mvp on-chain
               </span>
             </div>
           </Link>
+        </div>
 
-          {/* DYNAMIC ROLE-PERCEPTION NAVIGATION LINKS */}
-          {(currentRole as string) !== 'admin' ? (
-            <div className="hidden md:flex items-center gap-1.5 font-sans">
-              {/* 1. PUBLIC VISITOR PERCEPTION */}
-              {isVisitor ? (
-                <div className="flex items-center gap-2">
-                  <Link
-                    to="/"
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/') && location.pathname === '/'
-                        ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                      }`}
-                  >
-                    <Shield size={14} />
-                    Overview
-                  </Link>
-
-                  <Link
-                    to="/jobs"
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/jobs')
-                        ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                      }`}
-                  >
-                    <Briefcase size={14} />
-                    Marketplace
-                  </Link>
-
-                  <Link
-                    to="/reputation"
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/reputation')
-                        ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                      }`}
-                  >
-                    <Award size={14} />
-                    Leaderboard
-                  </Link>
-                </div>
-              ) : (
-                <>
-                  {/* 2. COMMON SECTIONS (Marketplace & Leaderboard) */}
-                  {currentRole !== 'client' && (
-                    <>
-                      <Link
-                        to="/jobs"
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/jobs') && !isActive('/jobs/post')
-                            ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                            : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                          }`}
-                      >
-                        <Briefcase size={14} />
-                        Find Jobs
-                      </Link>
-
-                      <Link
-                        to="/reputation"
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/reputation')
-                            ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                            : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                          }`}
-                      >
-                        <Award size={14} />
-                        SBT Leaderboard
-                      </Link>
-                    </>
-                  )}
-
-                  {/* 3. CLIENT PERCEPTION */}
-                  {currentRole === 'client' && (
-                    <Link
-                      to="/jobs/post"
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/jobs/post')
-                          ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                          : 'text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 font-bold'
-                        }`}
-                    >
-                      <PlusCircle size={14} />
-                      Post Job Escrow
-                    </Link>
-                  )}
-
-                  {/* 4. DASHBOARD (MY WORK / CLIENT ESCROWS) */}
-                  {(currentRole === 'client' || currentRole === 'freelancer') && (
-                    <Link
-                      to="/dashboard"
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/dashboard')
-                          ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                        }`}
-                    >
-                      <LayoutDashboard size={14} />
-                      {currentRole === 'client' ? 'Client Escrows' : 'My Dashboard'}
-                    </Link>
-                  )}
-
-                  {/* 5. JUDGE PANEL (JUDGE PERCEPTION) */}
-                  {(isArbitrator || (currentRole as string) === 'judge') && (
-                    <Link
-                      to="/judge"
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/judge')
-                          ? 'bg-amber-600 text-white font-extrabold shadow-sm'
-                          : 'text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 font-bold'
-                        }`}
-                    >
-                      <Scale size={14} />
-                      Judge Panel
-                    </Link>
-                  )}
-
-                  {/* 6. TREASURY ADMIN (ADMIN PERCEPTION) */}
-                  {(isTreasuryAdmin || (currentRole as string) === 'admin') && (
-                    <Link
-                      to="/treasury"
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/treasury')
-                          ? 'bg-emerald-700 text-white font-extrabold shadow-sm'
-                          : 'text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-bold'
-                        }`}
-                    >
-                      <Lock size={14} />
-                      Treasury Admin
-                    </Link>
-                  )}
-
-                  {/* 7. DAO GOVERNANCE */}
-                  <Link
-                    to="/dao"
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/dao')
-                        ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                      }`}
-                  >
-                    <Award size={14} />
-                    DAO
-                  </Link>
-
-                  {/* 7.5 MESSAGES */}
-                  {!isVisitor && (
-                    <Link
-                      to="/chat"
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/chat')
-                          ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                        }`}
-                    >
-                      <MessageSquare size={14} />
-                      Messages
-                    </Link>
-                  )}
-
-                  {/* 8. ANALYTICS */}
-                  {(currentRole as string) !== 'judge' && (
-                    <Link
-                      to="/analytics"
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/analytics')
-                          ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
-                        }`}
-                    >
-                      <BarChart3 size={14} />
-                      Analytics
-                    </Link>
-                  )}
-
-                  {/* 9. ADMIN SANDBOX TOGGLE */}
-                  {(currentRole as string) === 'admin' && (
-                    <div className="relative">
-                      <button
-                        onClick={() => setIsAdminDropdownOpen(!isAdminDropdownOpen)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-950 hover:bg-slate-100 flex items-center gap-1 cursor-pointer font-sans"
-                      >
-                        Admin Sandbox <ChevronDown size={14} />
-                      </button>
-                      {isAdminDropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-1.5 text-xs font-bold text-slate-700 font-sans">
-                          <Link
-                            to="/jobs/post"
-                            onClick={() => setIsAdminDropdownOpen(false)}
-                            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-950"
-                          >
-                            <PlusCircle size={14} className="text-indigo-600" />
-                            Post Job Escrow
-                          </Link>
-                          <Link
-                            to="/dashboard"
-                            onClick={() => setIsAdminDropdownOpen(false)}
-                            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-950"
-                          >
-                            <LayoutDashboard size={14} className="text-purple-600" />
-                            Client/Dev Dashboard
-                          </Link>
-                          <Link
-                            to="/onboarding"
-                            onClick={() => setIsAdminDropdownOpen(false)}
-                            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-950"
-                          >
-                            <User size={14} className="text-purple-600" />
-                            Edit Profile
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ) : (
-            /* ADMIN-SPECIFIC DESKTOP NAVBAR */
-            <div className="hidden md:flex items-center gap-2.5 font-sans">
-              {/* 1. Judge Panel */}
-              <Link
-                to="/judge"
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
-                  isActive('/judge')
-                    ? 'border-amber-300 bg-amber-100 text-amber-900 font-extrabold shadow-sm'
-                    : 'border-amber-200 bg-amber-50/40 text-amber-800 hover:bg-amber-100/70 font-semibold'
-                }`}
-              >
-                <Scale size={14} className="stroke-[2]" />
-                Judge Panel
-              </Link>
-
-              {/* 2. Treasury Admin */}
-              <Link
-                to="/treasury"
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
-                  isActive('/treasury')
-                    ? 'border-emerald-300 bg-emerald-100 text-emerald-900 font-extrabold shadow-sm'
-                    : 'border-emerald-200 bg-emerald-50/40 text-emerald-800 hover:bg-emerald-100/70 font-semibold'
-                }`}
-              >
-                <Landmark size={14} className="stroke-[2]" />
-                Treasury Admin
-              </Link>
-
-              {/* 3. DAO */}
-              <Link
-                to="/dao"
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  isActive('/dao')
-                    ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                    : 'text-slate-700 hover:text-purple-700 hover:bg-purple-50 font-semibold'
-                }`}
-              >
-                <Users size={14} className="stroke-[2]" />
-                DAO
-              </Link>
-
-              {/* 4. Analytics */}
-              <Link
-                to="/analytics"
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  isActive('/analytics')
-                    ? 'bg-blue-600 text-white font-extrabold shadow-sm'
-                    : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50 font-semibold'
-                }`}
-              >
-                <BarChart3 size={14} className="stroke-[2]" />
-                Analytics
-              </Link>
-
-              {/* 5. More Dropdown Trigger */}
-              <div className="relative" ref={moreRef}>
-                <button
-                  onClick={() => setIsMoreOpen(!isMoreOpen)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 cursor-pointer font-sans transition-all ${
-                    isMoreOpen
-                      ? 'border-purple-300 bg-purple-50 text-purple-900 font-extrabold'
-                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 font-semibold'
-                  }`}
-                >
-                  <Grid size={14} />
-                  <span>More</span>
-                  <ChevronDown size={13} className={`transition-transform duration-200 ${isMoreOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {isMoreOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 font-sans">
-                    <Link
-                      to="/jobs"
-                      onClick={() => setIsMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                        isActive('/jobs') && !isActive('/jobs/post') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Briefcase size={16} className="text-blue-600 shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-slate-900 leading-tight">Find Jobs</p>
-                          <p className="text-[10px] text-slate-500 font-medium">Explore and manage job listings</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-400" />
-                    </Link>
-
-                    <Link
-                      to="/reputation"
-                      onClick={() => setIsMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                        isActive('/reputation') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Trophy size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-slate-900 leading-tight">SBT Leaderboard</p>
-                          <p className="text-[10px] text-slate-500 font-medium">View top performers</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-400" />
-                    </Link>
-
-                    <Link
-                      to="/chat"
-                      onClick={() => setIsMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                        isActive('/chat') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <MessageSquare size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-slate-900 leading-tight">Messages</p>
-                          <p className="text-[10px] text-slate-500 font-medium">Communicate with community</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-400" />
-                    </Link>
-
-                    <Link
-                      to="/onboarding"
-                      onClick={() => setIsMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                        isActive('/onboarding') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Settings size={16} className="text-slate-500 shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-slate-900 leading-tight">Settings</p>
-                          <p className="text-[10px] text-slate-500 font-medium">Preferences & configuration</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-400" />
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Right side Wallet / Perception Status */}
-          <div className="flex items-center gap-3 shrink-0">
-            {/* Mobile Hamburger Menu for Admins */}
-            {(currentRole as string) === 'admin' && (
-              <div className="md:hidden relative" ref={mobileMoreRef}>
-                <button
-                  onClick={() => setIsMobileMoreOpen(!isMobileMoreOpen)}
-                  className="p-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-all cursor-pointer flex items-center justify-center border border-slate-200 bg-slate-50 shadow-3xs"
-                >
-                  {isMobileMoreOpen ? <X size={18} /> : <Menu size={18} />}
-                </button>
-                {isMobileMoreOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 font-sans">
-                    {/* Key Admin Links */}
-                    <div className="border-b border-slate-100 pb-1.5 mb-1.5 space-y-1">
-                      <Link
-                        to="/judge"
-                        onClick={() => setIsMobileMoreOpen(false)}
-                        className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                          isActive('/judge') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Scale size={16} className="text-amber-600 shrink-0" />
-                          <div className="text-left">
-                            <p className="font-bold text-xs text-slate-900 leading-tight">Judge Panel</p>
-                            <p className="text-[10px] text-slate-500 font-medium">Arbitrate and resolve disputes</p>
-                          </div>
-                        </div>
-                        <ChevronRight size={12} className="text-slate-400" />
-                      </Link>
-
-                      <Link
-                        to="/treasury"
-                        onClick={() => setIsMobileMoreOpen(false)}
-                        className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                          isActive('/treasury') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Landmark size={16} className="text-emerald-600 shrink-0" />
-                          <div className="text-left">
-                            <p className="font-bold text-xs text-slate-900 leading-tight font-sans">Treasury Admin</p>
-                            <p className="text-[10px] text-slate-500 font-medium">Safe multisig treasury status</p>
-                          </div>
-                        </div>
-                        <ChevronRight size={12} className="text-slate-400" />
-                      </Link>
-
-                      <Link
-                        to="/dao"
-                        onClick={() => setIsMobileMoreOpen(false)}
-                        className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                          isActive('/dao') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Users size={16} className="text-purple-600 shrink-0" />
-                          <div className="text-left">
-                            <p className="font-bold text-xs text-slate-900 leading-tight">DAO</p>
-                            <p className="text-[10px] text-slate-500 font-medium">Decentralized governance portal</p>
-                          </div>
-                        </div>
-                        <ChevronRight size={12} className="text-slate-400" />
-                      </Link>
-
-                      <Link
-                        to="/analytics"
-                        onClick={() => setIsMobileMoreOpen(false)}
-                        className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                          isActive('/analytics') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <BarChart3 size={16} className="text-blue-600 shrink-0" />
-                          <div className="text-left">
-                            <p className="font-bold text-xs text-slate-900 leading-tight">Analytics</p>
-                            <p className="text-[10px] text-slate-500 font-medium">Platform stats and reports</p>
-                          </div>
-                        </div>
-                        <ChevronRight size={12} className="text-slate-400" />
-                      </Link>
-                    </div>
-
-                    {/* Hidden Items on Mobile */}
-                    <Link
-                      to="/jobs"
-                      onClick={() => setIsMobileMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                        isActive('/jobs') && !isActive('/jobs/post') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Briefcase size={16} className="text-blue-600 shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-slate-900 leading-tight">Find Jobs</p>
-                          <p className="text-[10px] text-slate-500 font-medium font-sans">Explore and manage listings</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-400" />
-                    </Link>
-
-                    <Link
-                      to="/reputation"
-                      onClick={() => setIsMobileMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                        isActive('/reputation') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Trophy size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-slate-900 leading-tight font-sans">SBT Leaderboard</p>
-                          <p className="text-[10px] text-slate-500 font-medium font-sans">View top performers</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-400" />
-                    </Link>
-
-                    <Link
-                      to="/chat"
-                      onClick={() => setIsMobileMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                        isActive('/chat') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <MessageSquare size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-slate-900 leading-tight font-sans">Messages</p>
-                          <p className="text-[10px] text-slate-500 font-medium font-sans">Communicate with community</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-400" />
-                    </Link>
-
-                    <Link
-                      to="/onboarding"
-                      onClick={() => setIsMobileMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                        isActive('/onboarding') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Settings size={16} className="text-slate-500 shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-slate-900 leading-tight font-sans">Settings</p>
-                          <p className="text-[10px] text-slate-500 font-medium font-sans">Preferences & configuration</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-400" />
-                    </Link>
-                  </div>
-                )}
-              </div>
+        {/* ── CENTER: Navigation Pill ──────────────────────────────────── */}
+        <div className="hidden md:flex items-center gap-0.5 font-sans">
+          <div
+            className="flex items-center gap-0.5 rounded-full px-1.5 py-1"
+            style={{
+              background: 'rgba(255,255,255,0.40)',
+              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.8)',
+            }}
+          >
+            {/* VISITOR LINKS */}
+            {isVisitor && (
+              <>
+                <NavLink to="/" active={isActive('/') && location.pathname === '/'}>
+                  <Shield size={13} />Overview
+                </NavLink>
+                <NavLink to="/jobs" active={isActive('/jobs')}>
+                  <Briefcase size={13} />Find Jobs
+                </NavLink>
+                <NavLink to="/reputation" active={isActive('/reputation')}>
+                  <Trophy size={13} />SBT Leaderboard
+                </NavLink>
+                <NavLink to="/dao" active={isActive('/dao')}>
+                  <Users size={13} />DAO
+                </NavLink>
+              </>
             )}
 
+            {/* CONNECTED ROLE LINKS */}
+            {!isVisitor && (
+              <>
+                <NavLink to="/dashboard" active={isActive('/dashboard')}>
+                  <LayoutDashboard size={13} />Dashboard
+                </NavLink>
 
-            {isConnected && address && (currentRole as string) !== 'visitor' ? (
-              <div className="flex items-center gap-2 font-sans">
-                <Link
-                  to={`/profile/${address}`}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-xs font-extrabold transition-all hover:bg-purple-100 shadow-2xs"
-                >
-                  <User size={13} className="text-purple-700 shrink-0" />
-                  <span>{truncateAddress(address)}</span>
-                  <ChevronDown size={12} className="text-purple-700 shrink-0" />
-                </Link>
-                <button
-                  onClick={disconnectWallet}
-                  className="text-xs text-slate-500 hover:text-rose-600 transition-colors px-2 py-1 cursor-pointer font-medium font-sans"
-                >
-                  Disconnect
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/login"
-                  className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <LogIn size={14} />
-                  Connect Wallet
-                </Link>
-              </div>
+                {currentRole === 'client' && (
+                  <NavLink to="/jobs/post" active={isActive('/jobs/post')}>
+                    <PlusCircle size={13} />Post Job
+                  </NavLink>
+                )}
+
+                {/* For non-admin roles, show Find Jobs & SBT Leaderboard on top bar */}
+                {currentRole !== 'admin' && (
+                  <>
+                    <NavLink to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post')}>
+                      <Briefcase size={13} />Find Jobs
+                    </NavLink>
+                    <NavLink to="/reputation" active={isActive('/reputation')}>
+                      <Trophy size={13} />SBT Leaderboard
+                    </NavLink>
+                  </>
+                )}
+
+                {/* Judge Panel on top bar for Judge role */}
+                {currentRole === 'judge' && (
+                  <NavLink to="/judge" active={isActive('/judge')} accent="amber">
+                    <Scale size={13} />Judge Panel
+                  </NavLink>
+                )}
+
+                {/* Treasury on top bar for Admin role */}
+                {currentRole === 'admin' && (
+                  <NavLink to="/treasury" active={isActive('/treasury')}>
+                    <Landmark size={13} />Treasury
+                  </NavLink>
+                )}
+
+                <NavLink to="/dao" active={isActive('/dao')}>
+                  <Users size={13} />DAO
+                </NavLink>
+                <NavLink to="/chat" active={isActive('/chat')}>
+                  <MessageSquare size={13} />Messages
+                </NavLink>
+
+                {/* More dropdown */}
+                <div className="relative" ref={moreRef}>
+                  <button
+                    onClick={() => setIsMoreOpen(!isMoreOpen)}
+                    className={`
+                      px-3.5 py-1.5 rounded-full text-[13px] font-semibold
+                      flex items-center gap-1.5 cursor-pointer select-none
+                      nav-pill-item
+                      ${isMoreOpen ? 'text-purple-700 font-bold' : 'text-slate-600'}
+                    `}
+                    style={isMoreOpen ? {
+                      background: 'rgba(255,255,255,0.70)',
+                      boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(124,58,237,0.08)',
+                    } : {}}
+                  >
+                    <Grid size={13} />
+                    More
+                    <motion.span
+                      animate={{ rotate: isMoreOpen ? 180 : 0 }}
+                      transition={transition.fast}
+                    >
+                      <ChevronDown size={12} />
+                    </motion.span>
+                  </button>
+
+                  {/* Apple-glass dropdown */}
+                  <AnimatePresence>
+                    {isMoreOpen && (
+                      <motion.div
+                        variants={dropdownVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={transition.fast}
+                        className="absolute right-0 mt-2.5 w-52 rounded-2xl p-1.5 z-50"
+                        style={{
+                          background: 'rgba(255,255,255,0.92)',
+                          backdropFilter: 'blur(24px) saturate(180%)',
+                          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                          border: '1px solid rgba(255,255,255,0.65)',
+                          boxShadow: '0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
+                        }}
+                      >
+                        {/* Admin specific extra options in More dropdown */}
+                        {currentRole === 'admin' && (
+                          <>
+                            <DropdownLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMoreOpen(false)} />
+                            <DropdownLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMoreOpen(false)} />
+                            <DropdownLink to="/judge" icon={<Scale size={14} />} label="Judge Panel" onClick={() => setIsMoreOpen(false)} />
+                            <div className="border-t border-slate-100/80 my-1" />
+                          </>
+                        )}
+                        <DropdownLink to={`/profile/${address}`} icon={<User size={14} />} label="Profile" onClick={() => setIsMoreOpen(false)} />
+                        <DropdownLink to={`/audit/${address}`} icon={<BarChart3 size={14} />} label="Audit Report" onClick={() => setIsMoreOpen(false)} />
+                        <DropdownLink to="/settings" icon={<Settings size={14} />} label="Settings" onClick={() => setIsMoreOpen(false)} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </>
             )}
           </div>
         </div>
-      </nav>
 
-      {/* Login Options Modal */}
+        {/* ── RIGHT: Wallet + Mobile Toggle ──────────────────────────── */}
+        <div className="flex items-center gap-2 shrink-0">
+          {isConnected && address ? (
+            <div className="flex items-center gap-2">
+              <Link
+                to={`/profile/${address}`}
+                className="
+                  flex items-center gap-1.5 px-3.5 py-1.5 rounded-full
+                  text-[13px] font-semibold font-mono text-purple-700
+                  hover:bg-purple-100/80 transition-all duration-200
+                  apple-button
+                "
+                style={{
+                  background: 'rgba(246,240,255,0.85)',
+                  border: '1px solid rgba(167,139,250,0.30)',
+                  boxShadow: '0 1px 3px rgba(124,58,237,0.10), inset 0 1px 0 rgba(255,255,255,0.8)',
+                }}
+              >
+                <div className="w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center shrink-0">
+                  <User size={10} className="text-white" />
+                </div>
+                <span>{truncateAddress(address)}</span>
+                <ChevronDown size={11} className="text-purple-400" />
+              </Link>
+
+              <motion.button
+                onClick={disconnectWallet}
+                title="Disconnect Wallet"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="
+                  w-8 h-8 rounded-full flex items-center justify-center
+                  text-slate-400 hover:text-rose-500
+                  cursor-pointer transition-colors duration-200
+                "
+                style={{
+                  background: 'rgba(255,255,255,0.75)',
+                  border: '1px solid rgba(255,255,255,0.65)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+                }}
+              >
+                <Power size={13} className="stroke-[2]" />
+              </motion.button>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="
+                px-4 py-1.5 rounded-full text-[13px] font-bold text-white
+                flex items-center gap-1.5 cursor-pointer
+                apple-button glass-highlight
+                bg-gradient-to-r from-purple-600 to-purple-500
+              "
+              style={{
+                boxShadow: '0 2px 8px rgba(124,58,237,0.30), inset 0 1px 0 rgba(255,255,255,0.15)',
+              }}
+            >
+              <LogIn size={13} />
+              Connect Wallet
+            </Link>
+          )}
+
+          {/* Mobile toggle */}
+          <motion.button
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            whileTap={{ scale: 0.93 }}
+            className="
+              md:hidden p-2 rounded-full
+              text-slate-500 hover:text-purple-700
+              transition-colors duration-200 cursor-pointer
+            "
+            style={{
+              background: 'rgba(255,255,255,0.75)',
+              border: '1px solid rgba(255,255,255,0.65)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+            }}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {isMobileOpen ? (
+                <motion.span key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={transition.micro}>
+                  <X size={15} />
+                </motion.span>
+              ) : (
+                <motion.span key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={transition.micro}>
+                  <Menu size={15} />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
+        </div>
+
+        {/* ── MOBILE DRAWER ─────────────────────────────────────────── */}
+        <AnimatePresence>
+          {isMobileOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0,  scale: 1    }}
+              exit={{    opacity: 0, y: -6, scale: 0.99  }}
+              transition={transition.medium}
+              className="absolute top-full left-0 right-0 mt-2 mx-1
+                rounded-3xl p-3 space-y-0.5 z-50 md:hidden"
+              style={{
+                background: 'rgba(255,255,255,0.95)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                border: '1px solid rgba(255,255,255,0.70)',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
+              }}
+            >
+              {isVisitor ? (
+                <>
+                  <MobileLink to="/" icon={<Shield size={14} />} label="Overview" onClick={() => setIsMobileOpen(false)} />
+                  <MobileLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
+                  <MobileLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMobileOpen(false)} />
+                  <MobileLink to="/dao" icon={<Users size={14} />} label="DAO" onClick={() => setIsMobileOpen(false)} />
+                  <div className="pt-2">
+                    <Link
+                      to="/login"
+                      onClick={() => setIsMobileOpen(false)}
+                      className="flex items-center justify-center gap-2 p-3 rounded-2xl text-[13px] font-bold text-white bg-gradient-to-r from-purple-600 to-purple-500 transition-all"
+                      style={{ boxShadow: '0 2px 8px rgba(124,58,237,0.25)' }}
+                    >
+                      <LogIn size={14} /> Connect Wallet
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <MobileLink to="/dashboard" icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => setIsMobileOpen(false)} />
+                  {currentRole === 'client' && (
+                    <MobileLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMobileOpen(false)} />
+                  )}
+                  <MobileLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
+                  <MobileLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMobileOpen(false)} />
+                  {(currentRole === 'admin' || currentRole === 'judge') && (
+                    <Link
+                      to="/judge"
+                      onClick={() => setIsMobileOpen(false)}
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl text-[13px] font-semibold text-amber-800 bg-amber-50/80 transition-all"
+                    >
+                      <Scale size={14} className="text-amber-500" /> Judge Panel
+                    </Link>
+                  )}
+                  {currentRole === 'admin' && (
+                    <MobileLink to="/treasury" icon={<Landmark size={14} />} label="Treasury" onClick={() => setIsMobileOpen(false)} />
+                  )}
+                  <MobileLink to="/dao" icon={<Users size={14} />} label="DAO" onClick={() => setIsMobileOpen(false)} />
+                  <MobileLink to="/chat" icon={<MessageSquare size={14} />} label="Messages" onClick={() => setIsMobileOpen(false)} />
+                  <div className="border-t border-slate-100/80 pt-2 mt-1 space-y-0.5">
+                    <MobileLink to={`/profile/${address}`} icon={<User size={14} />} label="Profile" onClick={() => setIsMobileOpen(false)} />
+                    <MobileLink to={`/audit/${address}`} icon={<BarChart3 size={14} />} label="Audit Report" onClick={() => setIsMobileOpen(false)} />
+                    <MobileLink to="/settings" icon={<Settings size={14} />} label="Settings" onClick={() => setIsMobileOpen(false)} />
+                    <button
+                      onClick={() => { disconnectWallet(); setIsMobileOpen(false); }}
+                      className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-[13px] font-semibold text-rose-600 hover:bg-rose-50 transition-all text-left"
+                    >
+                      <Power size={14} /> Disconnect
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.nav>
+
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
     </>
   );
 };
+
+// Helper for mobile nav items
+const MobileLink: React.FC<{ to: string; icon: React.ReactNode; label: string; onClick: () => void }> = ({ to, icon, label, onClick }) => (
+  <Link
+    to={to}
+    onClick={onClick}
+    className="flex items-center gap-2.5 p-2.5 rounded-xl text-[13px] font-semibold text-slate-700 hover:bg-purple-50/80 hover:text-purple-700 transition-all"
+  >
+    <span className="text-slate-400">{icon}</span>
+    {label}
+  </Link>
+);

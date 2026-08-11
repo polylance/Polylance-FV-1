@@ -21,7 +21,7 @@ export const DEMO_WALLETS = {
     reputationCount: 4,
   },
   judge: {
-    address: '0x62cD88889999000011112222333344445555dCba',
+    address: '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd',
     label: 'Judge / Arbitrator',
     isArbitrator: true,
     isTreasuryAdmin: false,

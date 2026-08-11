@@ -123,9 +123,8 @@ export const Judge: React.FC = () => {
                   <tr
                     key={j.id}
                     onClick={() => setSelectedJobId(j.id)}
-                    className={`cursor-pointer hover:bg-purple-50/50 transition-colors ${
-                      selectedJobId === j.id ? 'bg-purple-50 border-l-4 border-purple-700' : ''
-                    }`}
+                    className={`cursor-pointer hover:bg-purple-50/50 transition-colors ${selectedJobId === j.id ? 'bg-purple-50 border-l-4 border-purple-700' : ''
+                      }`}
                   >
                     <td className="p-4 font-bold text-purple-900">{j.id}</td>
                     <td className="p-4 text-slate-700">{j.dispute?.reason || 'QUALITY'}</td>
@@ -199,9 +198,8 @@ export const Judge: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleApplyPreset(0)}
-                className={`p-4 border rounded-xl font-mono text-xs text-center transition-all cursor-pointer ${
-                  freelancerBps === 0 ? 'bg-rose-100 border-rose-400 text-rose-900 font-bold' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                }`}
+                className={`p-4 border rounded-xl font-mono text-xs text-center transition-all cursor-pointer ${freelancerBps === 0 ? 'bg-rose-100 border-rose-400 text-rose-900 font-bold' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}
               >
                 <div className="font-bold text-rose-700 mb-1">100% Client</div>
                 <div className="text-[10px]">Full Refund to Client</div>
@@ -210,9 +208,8 @@ export const Judge: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleApplyPreset(5000)}
-                className={`p-4 border rounded-xl font-mono text-xs text-center transition-all cursor-pointer ${
-                  freelancerBps === 5000 ? 'bg-amber-100 border-amber-400 text-amber-900 font-bold' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                }`}
+                className={`p-4 border rounded-xl font-mono text-xs text-center transition-all cursor-pointer ${freelancerBps === 5000 ? 'bg-amber-100 border-amber-400 text-amber-900 font-bold' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}
               >
                 <div className="font-bold text-amber-700 mb-1">50 / 50 Split</div>
                 <div className="text-[10px]">Equal Distribution</div>
@@ -221,9 +218,8 @@ export const Judge: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleApplyPreset(10000)}
-                className={`p-4 border rounded-xl font-mono text-xs text-center transition-all cursor-pointer ${
-                  freelancerBps === 10000 ? 'bg-emerald-100 border-emerald-400 text-emerald-900 font-bold' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                }`}
+                className={`p-4 border rounded-xl font-mono text-xs text-center transition-all cursor-pointer ${freelancerBps === 10000 ? 'bg-emerald-100 border-emerald-400 text-emerald-900 font-bold' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}
               >
                 <div className="font-bold text-emerald-700 mb-1">100% Freelancer</div>
                 <div className="text-[10px]">Full Release to Freelancer</div>
@@ -232,9 +228,8 @@ export const Judge: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleApplyPreset(7500)}
-                className={`p-4 border rounded-xl font-mono text-xs text-center transition-all cursor-pointer ${
-                  freelancerBps === 7500 ? 'bg-purple-100 border-purple-400 text-purple-900 font-bold' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                }`}
+                className={`p-4 border rounded-xl font-mono text-xs text-center transition-all cursor-pointer ${freelancerBps === 7500 ? 'bg-purple-100 border-purple-400 text-purple-900 font-bold' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}
               >
                 <div className="font-bold text-purple-700 mb-1">75% Freelancer</div>
                 <div className="text-[10px]">Custom Split Ratio</div>

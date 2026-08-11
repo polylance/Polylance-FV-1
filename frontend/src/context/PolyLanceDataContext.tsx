@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, TreasuryProposal, TreasuryState } from '../types';
+import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage } from '../types';
 import { generateMockTxHash, generateDeterministicHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { fetchLiveExchangeRates } from '../utils/currency';
@@ -13,7 +13,28 @@ import JudgeDAOABI from '../config/abis/JudgeDAO.json';
 import { useWeb3 } from './Web3Context';
 
 const INITIAL_JOBS: Job[] = [];
-const INITIAL_PROPOSALS: DaoProposal[] = [];
+const INITIAL_PROPOSALS: DaoProposal[] = [
+  {
+    id: 'prop-101',
+    candidate: '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd',
+    proposer: '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
+    rationale: 'Nominate Lead Arbitrator for decentralized dispute resolution and circuit court quorum.',
+    status: 'Active',
+    votesFor: 14500,
+    votesAgainst: 3200,
+    createdAt: Date.now() - 86400000 * 3,
+  },
+  {
+    id: 'prop-102',
+    candidate: '0x62cdfc0692cc675c95304bace2c834d8f901dcba',
+    proposer: '0x9999888877776666555544443333222211110000',
+    rationale: 'Appoint Security Auditor as secondary Judge for technical code disputes.',
+    status: 'Active',
+    votesFor: 9800,
+    votesAgainst: 1400,
+    createdAt: Date.now() - 86400000 * 1,
+  }
+];
 const INITIAL_PROFILES: Record<string, UserProfile> = {};
 
 interface PolyLanceDataContextType {
@@ -25,6 +46,12 @@ interface PolyLanceDataContextType {
   treasuryBalanceEth: number;
   treasuryHistory: { id: string; type: 'FEE_COLLECTED' | 'WITHDRAWAL'; amountUsdc: number; txHash: string; timestamp: number; by?: string }[];
   profiles: Record<string, UserProfile>;
+  judges: JudgeRecord[];
+  judgeMessages: Record<string, JudgeMessage[]>;
+  addJudge: (address: string, name: string, notes?: string, addedBy?: string) => void;
+  removeJudge: (address: string) => void;
+  toggleJudgeStatus: (address: string) => void;
+  sendJudgeChatMessage: (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => void;
   postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
   applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => Promise<void>;
   selectFreelancer: (jobId: string, freelancerAddress: string) => Promise<void>;
@@ -42,10 +69,10 @@ interface PolyLanceDataContextType {
   resolveDispute: (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => Promise<void>;
   sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => void;
   updateProfile: (profile: Partial<UserProfile>, address: string) => Promise<void>;
-  castDaoVote: (proposalId: number, support: boolean, voterAddress: string, votingPower?: number) => Promise<void>;
-  castVote: (proposalId: number, support: boolean, voterAddress: string) => Promise<void>;
+  castDaoVote: (proposalId: string | number, support: boolean, voterAddress?: string, votingPower?: number) => Promise<void> | void;
+  castVote: (proposalId: string | number, support: boolean, voterAddress?: string) => Promise<void> | void;
   createDaoProposal: (title: string, candidateAddress: string, description: string) => void;
-  proposeJudgeCandidate: (candidateAddress: string, description: string, proposerAddress: string) => void;
+  proposeJudgeCandidate: (candidateAddress: string, description: string, proposerAddress?: string) => void;
   withdrawTreasury: (to: string, amountUsdc: number, byAddress: string) => void;
   proposeTreasuryWithdrawal: (recipient: string, amountUsdc: string, purpose: string, proposerAddress: string) => void;
   signTreasuryWithdrawal: (proposalId: string, signerAddress: string) => void;
@@ -56,24 +83,58 @@ const PolyLanceDataContext = createContext<PolyLanceDataContextType | undefined>
 
 const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<string, UserProfile> => {
   const normalized: Record<string, UserProfile> = {};
+  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
+  const judgeGithub = import.meta.env.VITE_JUDGE_GITHUB_USERNAME || 'sunny200551';
+
   for (const [addr, profile] of Object.entries(rawProfiles)) {
     if (!addr) continue;
     const lowerAddr = addr.toLowerCase();
+
+    // Copy profile data, but if this is NOT the judge address and it has the judge's GitHub username, unbind it
+    let cleanedProfile = { ...profile };
+    if (lowerAddr !== judgeAddr && cleanedProfile.githubUsername?.toLowerCase() === judgeGithub.toLowerCase()) {
+      delete cleanedProfile.githubUsername;
+      cleanedProfile.githubVerified = false;
+    }
+
     const existing = normalized[lowerAddr];
-    
     if (!existing) {
-      normalized[lowerAddr] = { ...profile, address: lowerAddr };
+      normalized[lowerAddr] = { ...cleanedProfile, address: lowerAddr };
     } else {
-      const selectNewer = (!existing.displayName && profile.displayName) || 
-                          (!existing.githubVerified && profile.githubVerified) || 
-                          (profile.displayName && existing.displayName && profile.displayName !== 'Anonymous PolyLancer' && existing.displayName === 'Anonymous PolyLancer');
+      const selectNewer = (!existing.displayName && cleanedProfile.displayName) ||
+        (!existing.githubVerified && cleanedProfile.githubVerified) ||
+        (cleanedProfile.displayName && existing.displayName && cleanedProfile.displayName !== 'Anonymous PolyLancer' && existing.displayName === 'Anonymous PolyLancer');
       if (selectNewer) {
-        normalized[lowerAddr] = { ...profile, address: lowerAddr };
+        normalized[lowerAddr] = { ...cleanedProfile, address: lowerAddr };
       }
     }
   }
+
+  // Ensure judge profile is initialized and linked with the target GitHub username
+  if (!normalized[judgeAddr]) {
+    normalized[judgeAddr] = {
+      address: judgeAddr,
+      displayName: 'Protocol Judge',
+      bio: 'Official PolyLance Lead Arbitrator & DAO Verifier.',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      ipfsHash: 'QmJudgeProfileDataHashPlaceholder',
+      skills: ['Arbitration', 'Smart Contracts', 'Security Audit', 'Solidity'],
+      githubUsername: judgeGithub,
+      githubVerified: true,
+      primaryScore: 850,
+      reputationSbtCount: 12,
+    };
+  } else {
+    normalized[judgeAddr] = {
+      ...normalized[judgeAddr],
+      githubUsername: judgeGithub,
+      githubVerified: true,
+    };
+  }
+
   return normalized;
 };
+
 
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { provider, getSigner } = useWeb3();
@@ -195,6 +256,56 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setProfilesRaw(val);
   };
 
+  const [judges, setJudgesRaw] = useState<JudgeRecord[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('polylance_judges');
+      if (saved) return JSON.parse(saved);
+    }
+    const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
+    return [
+      {
+        address: defaultJudgeAddr,
+        name: 'Primary Protocol Arbitrator',
+        status: 'Active',
+        addedAt: 1700000000000,
+        addedBy: 'Protocol Governance',
+        notes: 'Lead Arbitrator for decentralized dispute resolution.'
+      }
+    ];
+  });
+  const setJudges = (val: React.SetStateAction<JudgeRecord[]>) => {
+    if (!isRestoringRef.current) {
+      hasUnsyncedChangesRef.current = true;
+      touchLocalTimestamp();
+    }
+    setJudgesRaw(val);
+  };
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('polylance_judges', JSON.stringify(judges));
+    }
+  }, [judges]);
+
+  const [judgeMessages, setJudgeMessagesRaw] = useState<Record<string, JudgeMessage[]>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('polylance_judge_messages');
+      if (saved) return JSON.parse(saved);
+    }
+    return {};
+  });
+  const setJudgeMessages = (val: React.SetStateAction<Record<string, JudgeMessage[]>>) => {
+    if (!isRestoringRef.current) {
+      hasUnsyncedChangesRef.current = true;
+      touchLocalTimestamp();
+    }
+    setJudgeMessagesRaw(val);
+  };
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('polylance_judge_messages', JSON.stringify(judgeMessages));
+    }
+  }, [judgeMessages]);
+
   const [loading, setLoading] = useState(true);
   const pinataJwt = import.meta.env.VITE_PINATA_JWT;
 
@@ -300,7 +411,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           if (rows.length > 0) {
             const newest = rows.sort((a: any, b: any) => new Date(b.date_pinned).getTime() - new Date(a.date_pinned).getTime())[0];
             const cid = newest.ipfs_pin_hash;
-            
+
             const gateways = [
               `https://ipfs.io/ipfs/${cid}`,
               `https://gateway.pinata.cloud/ipfs/${cid}`,
@@ -331,7 +442,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
               if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
               if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
-              
+
               lastLoadedCidRef.current = cid;
               isRestoringRef.current = false;
             }
@@ -366,7 +477,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           if (rows.length > 0) {
             const newest = rows.sort((a: any, b: any) => new Date(b.date_pinned).getTime() - new Date(a.date_pinned).getTime())[0];
             const cid = newest.ipfs_pin_hash;
-            
+
             if (cid === lastLoadedCidRef.current) return;
 
             const response = await fetch(`https://gateway.pinata.cloud/ipfs/${cid}`);
@@ -449,12 +560,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             pinataContent: statePayload
           })
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           const newCid = data.IpfsHash;
           console.log('Synced live cloud state to Pinata IPFS CID:', newCid);
-          
+
           lastLoadedCidRef.current = newCid;
           hasUnsyncedChangesRef.current = false;
 
@@ -475,7 +586,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                 headers: {
                   Authorization: `Bearer ${pinataJwt}`,
                 }
-              }).catch(() => {});
+              }).catch(() => { });
             }
           }
         }
@@ -1210,7 +1321,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const key = Object.keys(next).find(k => k.toLowerCase() === flAddr);
             if (key) {
               const reputationSbtCountInc = freelancerBps > 0 ? 1 : 0;
-              const scoreAdjustment = freelancerBps > 0 
+              const scoreAdjustment = freelancerBps > 0
                 ? Math.round(35 * (freelancerBps / 10000))
                 : -20;
               next[key] = {
@@ -1297,11 +1408,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
-  const castDaoVote = async (proposalId: number, support: boolean, voterAddress: string, votingPower: number = 10) => {
+  const castDaoVote = async (proposalId: string | number, support: boolean, voterAddress?: string, votingPower: number = 10) => {
     let txHash = '';
     try {
       const signer = await getSigner();
-      if (signer) {
+      if (signer && typeof proposalId === 'number') {
         const judgeDao = new ethers.Contract(CONTRACTS.JudgeDAO, getAbi(JudgeDAOABI), signer);
         const tx = await judgeDao.castVote(proposalId, support);
         const receipt = await tx.wait();
@@ -1313,7 +1424,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setDaoProposals((prev) =>
       prev.map((prop) => {
-        if (prop.id !== proposalId) return prop;
+        if (String(prop.id) !== String(proposalId)) return prop;
         if (prop.userVoted) return prop;
         return {
           ...prop,
@@ -1325,13 +1436,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const castVote = async (proposalId: number, support: boolean, voterAddress: string) => {
-    await castDaoVote(proposalId, support, voterAddress, 10);
+  const castVote = async (proposalId: string | number, support: boolean, voterAddress?: string) => {
+    await castDaoVote(proposalId, support, voterAddress || '', 10);
   };
 
   const createDaoProposal = (title: string, candidateAddress: string, description: string) => {
     const newProp: DaoProposal = {
-      id: daoProposals.length + 1,
+      id: `prop-${Date.now()}`,
       title,
       candidateAddress,
       candidate: candidateAddress,
@@ -1347,13 +1458,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setDaoProposals((prev) => [newProp, ...prev]);
   };
 
-  const proposeJudgeCandidate = (candidateAddress: string, description: string, proposerAddress: string) => {
+  const proposeJudgeCandidate = (candidateAddress: string, description: string, proposerAddress?: string) => {
     const newProp: DaoProposal = {
-      id: daoProposals.length + 1,
+      id: `prop-${Date.now()}`,
       title: `Nominate ${candidateAddress.slice(0, 8)}... as Arbitrator`,
       candidateAddress,
       candidate: candidateAddress,
-      proposer: proposerAddress,
+      proposer: proposerAddress || '0x1111222233334444555566667777888899990000',
       description,
       rationale: description,
       votesFor: 10,
@@ -1429,6 +1540,60 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
+  const addJudge = (address: string, name: string, notes?: string, addedBy?: string) => {
+    if (!address || !address.startsWith('0x')) return;
+    const lower = address.toLowerCase();
+    setJudges(prev => {
+      if (prev.some(j => j.address.toLowerCase() === lower)) return prev;
+      return [
+        ...prev,
+        {
+          address: lower,
+          name: name || `Judge ${lower.slice(0, 6)}...`,
+          status: 'Active',
+          addedAt: Date.now(),
+          addedBy: addedBy || 'Admin Governance',
+          notes: notes || 'Registered by platform administrator.'
+        }
+      ];
+    });
+  };
+
+  const removeJudge = (address: string) => {
+    const lower = address.toLowerCase();
+    setJudges(prev => prev.filter(j => j.address.toLowerCase() !== lower));
+  };
+
+  const toggleJudgeStatus = (address: string) => {
+    const lower = address.toLowerCase();
+    setJudges(prev => prev.map(j => {
+      if (j.address.toLowerCase() === lower) {
+        return { ...j, status: j.status === 'Active' ? 'Suspended' : 'Active' };
+      }
+      return j;
+    }));
+  };
+
+  const sendJudgeChatMessage = (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => {
+    if (!judgeAddress || !text.trim()) return;
+    const lower = judgeAddress.toLowerCase();
+    const msg: JudgeMessage = {
+      id: `jmsg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      judgeAddress: lower,
+      sender: senderAddress || (senderRole === 'Admin' ? 'Admin' : lower),
+      senderRole,
+      text: text.trim(),
+      timestamp: Date.now()
+    };
+    setJudgeMessages(prev => {
+      const existing = prev[lower] || [];
+      return {
+        ...prev,
+        [lower]: [...existing, msg]
+      };
+    });
+  };
+
   return (
     <PolyLanceDataContext.Provider
       value={{
@@ -1440,6 +1605,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         treasuryBalanceEth,
         treasuryHistory,
         profiles,
+        judges,
+        judgeMessages,
+        addJudge,
+        removeJudge,
+        toggleJudgeStatus,
+        sendJudgeChatMessage,
         postJob,
         applyToJob,
         selectFreelancer,
@@ -1467,6 +1638,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         executeTreasuryWithdrawal,
       }}
     >
+
       {children}
     </PolyLanceDataContext.Provider>
   );

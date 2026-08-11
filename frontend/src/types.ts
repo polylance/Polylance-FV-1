@@ -132,16 +132,17 @@ export interface UserProfile {
 }
 
 export interface DaoProposal {
-  id: number;
-  title: string;
-  candidateAddress: string;
+  id: number | string;
+  title?: string;
+  candidateAddress?: string;
   candidate?: string;
   proposer?: string;
-  description: string;
+  description?: string;
   rationale?: string;
   votesFor: number;
   votesAgainst: number;
-  endsAt: number;
+  endsAt?: number;
+  createdAt?: number;
   status: 'Active' | 'Executed' | 'Defeated';
   userVoted?: 'FOR' | 'AGAINST';
 }
@@ -181,3 +182,22 @@ export interface WalletRoleInfo {
   isTreasuryAdmin: boolean;
   reputationCount: number;
 }
+
+export interface JudgeRecord {
+  address: string;
+  name: string;
+  status: 'Active' | 'Suspended';
+  addedAt: number;
+  addedBy: string;
+  notes?: string;
+}
+
+export interface JudgeMessage {
+  id: string;
+  judgeAddress: string;
+  sender: string;
+  senderRole: 'Admin' | 'Judge';
+  text: string;
+  timestamp: number;
+}
+

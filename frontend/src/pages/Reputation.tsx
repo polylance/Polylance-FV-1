@@ -20,7 +20,8 @@ import {
   Check,
   Shield
 } from 'lucide-react';
-import { motion, Variants } from 'framer-motion';
+import { motion, Variants } from 'motion/react';
+import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 
 export const Reputation: React.FC = () => {
   const { address, isArbitrator, currentRole, reputationCount: onChainReputationCount } = useWeb3();
@@ -223,29 +224,73 @@ export const Reputation: React.FC = () => {
       {/* Top Hero Section */}
       <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Diamond Level Card */}
-        <div className="md:col-span-2 relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 p-5 rounded-2xl text-white shadow-[0_10px_30px_-10px_rgba(98,35,220,0.3)] border border-purple-500/10 flex flex-col justify-between min-h-[150px] group">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.15),transparent_60%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
+        <div className="md:col-span-2 relative overflow-hidden bg-gradient-to-br from-[#0F172A] via-[#1E1B4B] to-[#311042] p-7 sm:p-8 rounded-3xl text-white shadow-[0_15px_40px_-10px_rgba(37,99,235,0.35)] border border-cyan-500/30 flex flex-col justify-between min-h-[220px] group">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(6,207,238,0.2),transparent_60%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(168,230,58,0.1),transparent_60%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:18px_18px] pointer-events-none" />
           
-          <div className="relative z-10 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="font-mono text-[9px] uppercase tracking-widest text-cyan-300 font-bold">
-                Global Standing • Soulbound Reputation
-              </span>
+          <div className="relative z-10 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 bg-cyan-950/80 px-3.5 py-1 rounded-full border border-cyan-500/40 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="font-mono text-xs uppercase tracking-widest text-cyan-300 font-extrabold">
+                  Global Standing • Soulbound Reputation
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-purple-900/60 border border-purple-400/40 px-3 py-1 rounded-full text-xs font-mono font-bold text-purple-200">
+                <Sparkles size={13} className="text-cyan-300" />
+                <span>Ranked Verified Builder</span>
+              </div>
             </div>
-            <h1 className="font-headline text-2xl md:text-3xl font-extrabold !text-white leading-tight">
-              Verified Tier: <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-purple-300 to-indigo-300">{activeTier === 'None' ? 'Starter League' : activeTier + ' League'}</span>
+
+            <h1 className="font-headline text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight pt-1">
+              <span className="text-white drop-shadow-md" style={{ color: '#FFFFFF' }}>Verified Tier: </span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-purple-300 to-lime-300 drop-shadow-[0_2px_12px_rgba(6,207,238,0.4)]">
+                {activeTier === 'None' ? 'Starter League' : activeTier + ' League'}
+              </span>
             </h1>
           </div>
 
-          <div className="relative z-10 flex items-baseline gap-3 mt-4">
-            <span className="text-5xl font-black tracking-tight text-white drop-shadow-[0_4px_10px_rgba(56,189,248,0.3)]">
-              {rankLabel}
-            </span>
-            <span className="text-xs font-semibold text-cyan-200 opacity-90">
-              {totalPoints > 0 ? `of ${leaderboardData.length} Verified On-Chain Freelancers` : 'Connect wallet to rank on the leaderboard'}
-            </span>
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t border-white/10">
+            {Boolean(address) && totalPoints > 0 ? (
+              <div className="flex items-baseline gap-4">
+                <span className="text-6xl sm:text-7xl font-black tracking-tight text-[#FFFFFF] drop-shadow-[0_6px_20px_rgba(6,207,238,0.6)] font-space" style={{ color: '#FFFFFF' }}>
+                  {rankLabel}
+                </span>
+                <div className="space-y-0.5">
+                  <span className="text-base sm:text-lg font-black text-cyan-100 tracking-tight block">
+                    of {leaderboardData.length} Verified On-Chain Freelancers
+                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider block">
+                    SBT Reputation Index • Polygon Mainnet
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-xs font-extrabold text-cyan-300 bg-cyan-950/80 border border-cyan-500/40 px-3.5 py-1 rounded-xl">
+                    Status: Unranked
+                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">
+                    SBT Reputation Index • Polygon Mainnet
+                  </span>
+                </div>
+                <p className="text-sm sm:text-base font-bold text-slate-200">
+                  Connect wallet to calculate your Soulbound reputation rank on the leaderboard
+                </p>
+              </div>
+            )}
+
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl flex items-center gap-3 shrink-0 shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+                <Trophy size={18} />
+              </div>
+              <div>
+                <span className="text-xs font-mono font-black text-white block">{totalPoints} PLREP</span>
+                <span className="text-[10px] font-mono text-cyan-200 font-bold block">Soulbound Score</span>
+              </div>
+            </div>
           </div>
         </div>
 

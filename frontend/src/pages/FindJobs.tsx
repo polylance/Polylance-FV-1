@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { SkillCategory } from '../types';
 import { Search, Filter, Briefcase, ArrowRight, ShieldCheck, Award, CheckCircle2, Globe } from 'lucide-react';
 import { SUPPORTED_FIAT, convertCryptoToFiat } from '../utils/currency';
+import { staggerContainer, staggerItem, scrollReveal, transition } from '../lib/motion';
 
 export const FindJobs: React.FC = () => {
   const { currentRole } = useWeb3();
@@ -33,7 +35,10 @@ export const FindJobs: React.FC = () => {
   });
 
   return (
-    <div className="space-y-8 py-6 max-w-6xl mx-auto">
+    <motion.div
+      {...scrollReveal}
+      className="space-y-8 py-6 max-w-6xl mx-auto"
+    >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -116,8 +121,13 @@ export const FindJobs: React.FC = () => {
         </div>
       </div>
 
-      {/* CREDENTIAL-FIRST JOB CARDS GRID matching browse_marketplace_credential_first_variant */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* CREDENTIAL-FIRST JOB CARDS GRID */}
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+      >
         {filteredJobs.length === 0 ? (
           <div className="col-span-2 glass-panel p-12 text-center border-slate-200 bg-white space-y-2">
             <Filter className="w-10 h-10 text-slate-400 mx-auto" />
@@ -130,10 +140,11 @@ export const FindJobs: React.FC = () => {
             const payAmount = job.amountUsdc;
             const converted = convertCryptoToFiat(parseFloat(payAmount), payToken, selectedFiat);
             return (
-              <div
+              <motion.div
                 key={job.id}
+                variants={staggerItem}
                 onClick={() => navigate(`/jobs/${job.id}`)}
-                className="glass-panel p-6 border-slate-200 hover:border-purple-300 bg-white flex flex-col justify-between space-y-4 group transition-all hard-shadow cursor-pointer"
+                className="glass-panel p-6 border-slate-200 hover:border-purple-300 bg-white flex flex-col justify-between space-y-4 group transition-all hard-shadow cursor-pointer premium-card"
               >
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
@@ -191,11 +202,11 @@ export const FindJobs: React.FC = () => {
                   <ArrowRight size={16} />
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })
       )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

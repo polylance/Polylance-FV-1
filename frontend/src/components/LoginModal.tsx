@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useWeb3 } from '../context/Web3Context';
 import { DemoRole } from '../types';
 import { PolyLanceLogo } from './PolyLanceLogo';
 import { X, Check, ArrowRight, User, Briefcase, ShieldCheck, CheckCircle2, Zap, Sparkles, Lock } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { modalOverlayVariants, modalContentVariants, transition } from '../lib/motion';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -16,7 +18,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [email, setEmail] = useState('');
 
-  if (!isOpen) return null;
 
   const walletProviders = [
     {
@@ -55,8 +56,24 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-fade-in">
-      <div className="glass-panel max-w-lg w-full p-6 sm:p-8 border-purple-200 bg-white hard-shadow relative space-y-5">
+    <AnimatePresence>
+      {isOpen && (
+    <motion.div
+      variants={modalOverlayVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={transition.fast}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md"
+    >
+      <motion.div
+        variants={modalContentVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={transition.medium}
+        className="glass-panel max-w-lg w-full p-6 sm:p-8 border-purple-200 bg-white hard-shadow relative space-y-5"
+      >
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -225,7 +242,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             <span className="text-[7.5px] text-slate-500 block leading-tight font-sans mt-0.5">No Middlemen</span>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
