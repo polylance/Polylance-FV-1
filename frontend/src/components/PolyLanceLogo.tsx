@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LOGO_CONFIG } from '../config/logoConfig';
+import defaultLogo from '../assets/polylance_logo.png';
 
 interface PolyLanceLogoProps {
   size?: number;
@@ -9,7 +10,7 @@ interface PolyLanceLogoProps {
 
 export const PolyLanceLogo: React.FC<PolyLanceLogoProps> = ({ size = 92, className = '', src }) => {
   const [imageError, setImageError] = useState(false);
-  const logoSrc = src || LOGO_CONFIG.customImagePath;
+  const logoSrc = src || defaultLogo;
   const shouldUseImage = LOGO_CONFIG.useCustomImage && logoSrc && !imageError;
 
   return (
