@@ -142,15 +142,28 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const isRestoringRef = useRef(false);
   const lastLoadedCidRef = useRef<string | null>(null);
 
+  // Automatically purge legacy pre-beta dev keys on boot
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const legacyKeys = [
+        'polylance_jobs', 'polylance_profiles', 'polylance_dao_proposals', 
+        'polylance_treasury_history', 'polylance_treasury_proposals', 
+        'polylance_judge_messages', 'polylance_treasury_balance_usdc', 
+        'polylance_treasury_balance_eth', 'polylance_judges', 'polylance_last_updated'
+      ];
+      legacyKeys.forEach(k => localStorage.removeItem(k));
+    }
+  }, []);
+
   const touchLocalTimestamp = () => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_last_updated', Date.now().toString());
+      localStorage.setItem('polylance_v1_beta_last_updated', Date.now().toString());
     }
   };
 
   const [jobs, setJobsRaw] = useState<Job[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('polylance_jobs');
+      const saved = localStorage.getItem('polylance_v1_beta_jobs');
       return saved ? JSON.parse(saved) : INITIAL_JOBS;
     }
     return INITIAL_JOBS;
@@ -165,7 +178,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [daoProposals, setDaoProposalsRaw] = useState<DaoProposal[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('polylance_dao_proposals');
+      const saved = localStorage.getItem('polylance_v1_beta_dao_proposals');
       return saved ? JSON.parse(saved) : INITIAL_PROPOSALS;
     }
     return INITIAL_PROPOSALS;
@@ -180,7 +193,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [treasuryBalanceUsdc, setTreasuryBalanceUsdcRaw] = useState<number>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('polylance_treasury_balance_usdc');
+      const saved = localStorage.getItem('polylance_v1_beta_treasury_balance_usdc');
       if (saved === '10000' || !saved) return 0;
       return parseFloat(saved);
     }
@@ -196,7 +209,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [treasuryBalanceEth, setTreasuryBalanceEthRaw] = useState<number>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('polylance_treasury_balance_eth');
+      const saved = localStorage.getItem('polylance_v1_beta_treasury_balance_eth');
       if (saved === '4.5' || !saved) return 0.0;
       return parseFloat(saved);
     }
@@ -212,7 +225,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [treasuryProposals, setTreasuryProposalsRaw] = useState<TreasuryProposal[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('polylance_treasury_proposals');
+      const saved = localStorage.getItem('polylance_v1_beta_treasury_proposals');
       return saved ? JSON.parse(saved) : [];
     }
     return [];
@@ -227,7 +240,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [treasuryHistory, setTreasuryHistoryRaw] = useState<any[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('polylance_treasury_history');
+      const saved = localStorage.getItem('polylance_v1_beta_treasury_history');
       return saved ? JSON.parse(saved) : [];
     }
     return [];
@@ -242,7 +255,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [profiles, setProfilesRaw] = useState<Record<string, UserProfile>>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('polylance_profiles');
+      const saved = localStorage.getItem('polylance_v1_beta_profiles');
       const raw = saved ? JSON.parse(saved) : INITIAL_PROFILES;
       return normalizeProfiles(raw);
     }
@@ -601,31 +614,31 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Local Cache storage triggers
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_jobs', JSON.stringify(jobs));
+    if (typeof window !== 'undefined') localStorage.setItem('polylance_v1_beta_jobs', JSON.stringify(jobs));
   }, [jobs]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_dao_proposals', JSON.stringify(daoProposals));
+    if (typeof window !== 'undefined') localStorage.setItem('polylance_v1_beta_dao_proposals', JSON.stringify(daoProposals));
   }, [daoProposals]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_balance_usdc', treasuryBalanceUsdc.toString());
+    if (typeof window !== 'undefined') localStorage.setItem('polylance_v1_beta_treasury_balance_usdc', treasuryBalanceUsdc.toString());
   }, [treasuryBalanceUsdc]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_balance_eth', treasuryBalanceEth.toString());
+    if (typeof window !== 'undefined') localStorage.setItem('polylance_v1_beta_treasury_balance_eth', treasuryBalanceEth.toString());
   }, [treasuryBalanceEth]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_proposals', JSON.stringify(treasuryProposals));
+    if (typeof window !== 'undefined') localStorage.setItem('polylance_v1_beta_treasury_proposals', JSON.stringify(treasuryProposals));
   }, [treasuryProposals]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_history', JSON.stringify(treasuryHistory));
+    if (typeof window !== 'undefined') localStorage.setItem('polylance_v1_beta_treasury_history', JSON.stringify(treasuryHistory));
   }, [treasuryHistory]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_profiles', JSON.stringify(profiles));
+    if (typeof window !== 'undefined') localStorage.setItem('polylance_v1_beta_profiles', JSON.stringify(profiles));
   }, [profiles]);
 
   const treasuryState: TreasuryState = {
