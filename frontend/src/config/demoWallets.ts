@@ -34,4 +34,11 @@ export const DEMO_WALLETS = {
     isTreasuryAdmin: true,
     reputationCount: 1,
   },
+  admin3: {
+    address: '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1',
+    label: '3rd Admin & Arbitrator (0xb30F2e...)',
+    isArbitrator: true,
+    isTreasuryAdmin: true,
+    reputationCount: 15,
+  },
 } as const;
