@@ -81,6 +81,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const isRestoringRef = useRef(false);
   const lastLoadedCidRef = useRef<string | null>(null);
 
+  const touchLocalTimestamp = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('polylance_last_updated', Date.now().toString());
+    }
+  };
+
   const [jobs, setJobsRaw] = useState<Job[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_jobs');
@@ -89,7 +95,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return INITIAL_JOBS;
   });
   const setJobs = (val: React.SetStateAction<Job[]>) => {
-    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    if (!isRestoringRef.current) {
+      hasUnsyncedChangesRef.current = true;
+      touchLocalTimestamp();
+    }
     setJobsRaw(val);
   };
 
@@ -101,7 +110,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return INITIAL_PROPOSALS;
   });
   const setDaoProposals = (val: React.SetStateAction<DaoProposal[]>) => {
-    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    if (!isRestoringRef.current) {
+      hasUnsyncedChangesRef.current = true;
+      touchLocalTimestamp();
+    }
     setDaoProposalsRaw(val);
   };
 
@@ -114,7 +126,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return 0;
   });
   const setTreasuryBalanceUsdc = (val: React.SetStateAction<number>) => {
-    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    if (!isRestoringRef.current) {
+      hasUnsyncedChangesRef.current = true;
+      touchLocalTimestamp();
+    }
     setTreasuryBalanceUsdcRaw(val);
   };
 
@@ -127,7 +142,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return 0.0;
   });
   const setTreasuryBalanceEth = (val: React.SetStateAction<number>) => {
-    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    if (!isRestoringRef.current) {
+      hasUnsyncedChangesRef.current = true;
+      touchLocalTimestamp();
+    }
     setTreasuryBalanceEthRaw(val);
   };
 
@@ -139,7 +157,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return [];
   });
   const setTreasuryProposals = (val: React.SetStateAction<TreasuryProposal[]>) => {
-    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    if (!isRestoringRef.current) {
+      hasUnsyncedChangesRef.current = true;
+      touchLocalTimestamp();
+    }
     setTreasuryProposalsRaw(val);
   };
 
@@ -151,7 +172,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return [];
   });
   const setTreasuryHistory = (val: React.SetStateAction<any[]>) => {
-    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    if (!isRestoringRef.current) {
+      hasUnsyncedChangesRef.current = true;
+      touchLocalTimestamp();
+    }
     setTreasuryHistoryRaw(val);
   };
 
@@ -164,7 +188,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return INITIAL_PROFILES;
   });
   const setProfiles = (val: React.SetStateAction<Record<string, UserProfile>>) => {
-    if (!isRestoringRef.current) hasUnsyncedChangesRef.current = true;
+    if (!isRestoringRef.current) {
+      hasUnsyncedChangesRef.current = true;
+      touchLocalTimestamp();
+    }
     setProfilesRaw(val);
   };
 
@@ -324,8 +351,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!pinataJwt) return;
 
     const pollInterval = setInterval(async () => {
-      if (hasUnsyncedChangesRef.current) return;
-
+      // Always poll for fresh treasury proposals from other admins
+      // but skip all other state refresh if we have local pending changes
       try {
         const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
         const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
@@ -345,18 +372,36 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const response = await fetch(`https://gateway.pinata.cloud/ipfs/${cid}`);
             if (response.ok) {
               const data = await response.json();
-              if (data && !hasUnsyncedChangesRef.current) {
+              if (data) {
                 isRestoringRef.current = true;
-                if (data.jobs) setJobs(data.jobs);
-                if (data.daoProposals) setDaoProposals(data.daoProposals);
-                if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
-                if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
-                if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
-                if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
-                if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
-                
-                lastLoadedCidRef.current = cid;
+                if (!hasUnsyncedChangesRef.current) {
+                  // Full state restore only when no local changes pending
+                  if (data.jobs) setJobs(data.jobs);
+                  if (data.daoProposals) setDaoProposals(data.daoProposals);
+                  if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
+                  if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
+                  if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
+                  if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
+                }
+                // ALWAYS merge treasury proposals from cloud so cross-admin signing works
+                if (data.treasuryProposals && data.treasuryProposals.length > 0) {
+                  setTreasuryProposals((local: TreasuryProposal[]) => {
+                    const cloudProposals = data.treasuryProposals as TreasuryProposal[];
+                    const cloudMap = new Map<string, TreasuryProposal>(cloudProposals.map((p) => [p.id, p]));
+                    const merged: TreasuryProposal[] = local.map((lp) => {
+                      const cp = cloudMap.get(lp.id);
+                      if (!cp) return lp;
+                      const sigs = Array.from(new Set([...lp.signatures, ...cp.signatures]));
+                      return { ...lp, signatures: sigs, executed: lp.executed || cp.executed } as TreasuryProposal;
+                    });
+                    cloudProposals.forEach((cp) => {
+                      if (!merged.find((p) => p.id === cp.id)) merged.push(cp);
+                    });
+                    return merged;
+                  });
+                }
                 isRestoringRef.current = false;
+                lastLoadedCidRef.current = cid;
                 console.log('Background updated state to latest cloud CID:', cid);
               }
             }
@@ -479,7 +524,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     signers: [
       import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cDfc0692cC675c95304BaCE2C834D8F901dCba',
       import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
-      '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1'
+      import.meta.env.VITE_ADMIN_ADDRESS_3 || '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1',
     ],
     proposals: treasuryProposals,
   };
@@ -1360,7 +1405,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setTreasuryProposals((prev) =>
       prev.map((p) => {
         if (p.id !== proposalId) return p;
-        if (p.signatures.includes(signerAddress)) return p;
+        // Case-insensitive duplicate check so different admin addresses work correctly
+        if (p.signatures.some((s) => s.toLowerCase() === signerAddress.toLowerCase())) return p;
         return {
           ...p,
           signatures: [...p.signatures, signerAddress],

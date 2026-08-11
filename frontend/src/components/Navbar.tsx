@@ -700,23 +700,6 @@ export const Navbar: React.FC = () => {
                     </Link>
 
                     <Link
-                      to="/dashboard"
-                      onClick={() => setIsMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                        isActive('/dashboard') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Beaker size={16} className="text-purple-600 shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-slate-900 leading-tight">Admin Sandbox</p>
-                          <p className="text-[10px] text-slate-500 font-medium">Test and simulate features</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-400" />
-                    </Link>
-
-                    <Link
                       to="/onboarding"
                       onClick={() => setIsMoreOpen(false)}
                       className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
@@ -869,23 +852,6 @@ export const Navbar: React.FC = () => {
                         <div className="text-left">
                           <p className="font-bold text-xs text-slate-900 leading-tight font-sans">Messages</p>
                           <p className="text-[10px] text-slate-500 font-medium font-sans">Communicate with community</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-400" />
-                    </Link>
-
-                    <Link
-                      to="/dashboard"
-                      onClick={() => setIsMoreOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-all ${
-                        isActive('/dashboard') ? 'bg-purple-50/70 text-purple-950 font-bold border border-purple-100/50' : 'text-slate-700 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Beaker size={16} className="text-purple-600 shrink-0 mt-0.5" />
-                        <div className="text-left">
-                          <p className="font-bold text-xs text-slate-900 leading-tight font-sans font-sans font-sans">Admin Sandbox</p>
-                          <p className="text-[10px] text-slate-500 font-medium font-sans">Test and simulate features</p>
                         </div>
                       </div>
                       <ChevronRight size={12} className="text-slate-400" />

@@ -298,7 +298,9 @@ export const Treasury: React.FC = () => {
 
             <div className="space-y-4">
               {treasury.proposals.map((prop) => {
-                const hasSigned = prop.signatures.some((s) => s.toLowerCase() === address.toLowerCase());
+                const hasSigned = address
+                  ? prop.signatures.some((s) => s.toLowerCase() === address.toLowerCase())
+                  : false;
                 return (
                   <div key={prop.id} className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
                     <div className="space-y-1">
