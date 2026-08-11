@@ -132,22 +132,24 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         sbt.balanceOf(connectedAddress),
       ]);
 
+      const lowerAddr = connectedAddress.toLowerCase();
+      const isActuallyAdmin = 
+        lowerAddr === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
+        lowerAddr === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A').toLowerCase() ||
+        lowerAddr === '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1'.toLowerCase() ||
+        Boolean(treasuryAdmin);
+
       setIsArbitrator(Boolean(arbitrator));
-      setIsTreasuryAdmin(Boolean(treasuryAdmin));
+      setIsTreasuryAdmin(isActuallyAdmin);
       setReputationCount(Number(sbtBalance));
 
       // Auto-detect role based on address re-evaluation
-      const lowerAddr = connectedAddress.toLowerCase();
       if (
         lowerAddr === (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase() ||
         Boolean(arbitrator)
       ) {
         setCurrentRole('judge');
-      } else if (
-        lowerAddr === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
-        lowerAddr === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A').toLowerCase() ||
-        Boolean(treasuryAdmin)
-      ) {
+      } else if (isActuallyAdmin) {
         setCurrentRole('admin');
       } else {
         const activeRole = localStorage.getItem('polylance_demo_role') as DemoRole;

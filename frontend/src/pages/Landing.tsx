@@ -344,7 +344,10 @@ export const Landing: React.FC = () => {
               </div>
 
               {/* Card 2 */}
-              <div className="rounded-2xl bg-white border border-slate-150 p-4 flex items-center justify-between shadow-3xs hover:shadow-sm transition-all duration-300 group cursor-pointer hover:-translate-y-0.5 relative">
+              <Link
+                to="/chat"
+                className="rounded-2xl bg-white border border-slate-150 p-4 flex items-center justify-between shadow-3xs hover:shadow-sm transition-all duration-300 group cursor-pointer hover:-translate-y-0.5 relative block"
+              >
                 <div className="absolute inset-0 border border-transparent group-hover:border-purple-500/10 rounded-2xl pointer-events-none transition-colors" />
                 <div className="flex items-center gap-3 relative z-10">
                   <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100/50 flex items-center justify-center text-purple-600 shrink-0">
@@ -358,7 +361,7 @@ export const Landing: React.FC = () => {
                 <div className="w-6 h-6 rounded-full border border-slate-200 group-hover:border-blue-500 group-hover:bg-blue-600 text-slate-400 group-hover:text-white flex items-center justify-center transition-all duration-300 shadow-3xs shrink-0">
                   <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
 
