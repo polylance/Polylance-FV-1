@@ -582,25 +582,29 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           lastLoadedCidRef.current = newCid;
           hasUnsyncedChangesRef.current = false;
 
-          const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
-          const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
-            headers: {
-              Authorization: `Bearer ${pinataJwt}`,
+          try {
+            const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
+            const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
+              headers: {
+                Authorization: `Bearer ${pinataJwt}`,
+              }
+            });
+            if (listResponse.ok) {
+              const listData = await listResponse.json();
+              const rows = listData.rows || [];
+              const oldPins = rows.filter((r: any) => r.ipfs_pin_hash !== newCid);
+              if (oldPins.length > 2) {
+                const oldest = oldPins.sort((a: any, b: any) => new Date(a.date_pinned).getTime() - new Date(b.date_pinned).getTime())[0];
+                fetch(`https://api.pinata.cloud/pinning/unpin/${oldest.ipfs_pin_hash}`, {
+                  method: 'DELETE',
+                  headers: {
+                    Authorization: `Bearer ${pinataJwt}`,
+                  }
+                }).catch(() => { });
+              }
             }
-          });
-          if (listResponse.ok) {
-            const listData = await listResponse.json();
-            const rows = listData.rows || [];
-            const oldPins = rows.filter((r: any) => r.ipfs_pin_hash !== newCid);
-            if (oldPins.length > 2) {
-              const oldest = oldPins.sort((a: any, b: any) => new Date(a.date_pinned).getTime() - new Date(b.date_pinned).getTime())[0];
-              fetch(`https://api.pinata.cloud/pinning/unpin/${oldest.ipfs_pin_hash}`, {
-                method: 'DELETE',
-                headers: {
-                  Authorization: `Bearer ${pinataJwt}`,
-                }
-              }).catch(() => { });
-            }
+          } catch (pinListErr) {
+            // Silently catch client-side CORS restriction on Pinata management endpoint
           }
         }
       } catch (error) {
