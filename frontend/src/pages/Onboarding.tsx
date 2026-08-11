@@ -5,18 +5,18 @@ import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
 import { scoreGithubUser, GithubScoreResult } from '../utils/githubOracle';
 import { generateIpfsCid } from '../utils/ipfs';
+import { generateDeterministicHash } from '../utils/formatters';
 import { ArrowRight, ArrowLeft, X, Sparkles, Loader2, ShieldCheck, Terminal, CheckCircle2 } from 'lucide-react';
 
 export const Onboarding: React.FC = () => {
-  const { address, currentRole } = useWeb3();
+  const { address, currentRole, isConnected, connectWallet } = useWeb3();
   const { profiles, updateProfile } = usePolyLanceData();
   const navigate = useNavigate();
 
+  // Retrieve user profile case-insensitively
   const existingKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
   const existing = (existingKey ? profiles[existingKey] : {}) as UserProfile;
   const isClient = currentRole === 'client';
-
-
 
   const [step, setStep] = useState<1 | 2>(1);
   const [displayName, setDisplayName] = useState(existing.displayName || '');
@@ -56,7 +56,7 @@ export const Onboarding: React.FC = () => {
       if (e.key === 'Enter') {
         e.preventDefault();
       } else {
-        return; // Only proceed if Enter is pressed
+        return;
       }
     }
     const toAdd = skillName || tagInput.trim();
@@ -78,7 +78,7 @@ export const Onboarding: React.FC = () => {
     const lowerUsername = githubUsername.toLowerCase().trim();
     const duplicateAddress = Object.keys(profiles).find(
       (addr) =>
-        addr.toLowerCase() !== address.toLowerCase() &&
+        addr.toLowerCase() !== address?.toLowerCase() &&
         profiles[addr].githubVerified &&
         profiles[addr].githubUsername?.toLowerCase().trim() === lowerUsername
     );
@@ -93,7 +93,7 @@ export const Onboarding: React.FC = () => {
     setGithubResult(null);
 
     try {
-      const res = await scoreGithubUser(githubUsername.trim(), address);
+      const res = await scoreGithubUser(githubUsername.trim(), address || '');
       setTimeout(() => {
         setGithubResult(res);
         setIsScanningGithub(false);
@@ -108,7 +108,7 @@ export const Onboarding: React.FC = () => {
     }
   };
 
-  const handleFinalizeOnboarding = (e: React.FormEvent) => {
+  const handleFinalizeOnboarding = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!displayName.trim()) {
       alert('Please enter a display name.');
@@ -120,9 +120,9 @@ export const Onboarding: React.FC = () => {
     }
 
     const profileIpfsCid = generateIpfsCid({ displayName, bio, avatarUrl, timestamp: Date.now() });
-    const txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    const txHash = generateDeterministicHash(`${address || 'anon'}-${profileIpfsCid}`);
 
-    updateProfile(
+    await updateProfile(
       {
         displayName,
         bio,
@@ -132,39 +132,56 @@ export const Onboarding: React.FC = () => {
         role: currentRole === 'client' ? 'client' : 'freelancer',
         ...(githubResult
           ? {
-            githubVerified: true,
-            githubUsername: githubResult.username,
-            verifiedAt: githubResult.verifiedAt,
-            primaryCategory: githubResult.primaryCategory,
-            primaryScore: githubResult.primaryScore,
-            secondaryCategories: githubResult.secondaryCategories,
-            secondaryScores: githubResult.secondaryScores,
-            attestationUID: githubResult.attestationUID,
-            languageBytes: githubResult.languageBytes,
-            commitsCount: githubResult.commitsCount,
-            reposCount: githubResult.reposCount,
-            prsCount: githubResult.prsCount,
-            reputationTier: githubResult.reputationTier,
-          }
+              githubVerified: true,
+              githubUsername: githubResult.username,
+              verifiedAt: githubResult.verifiedAt,
+              primaryCategory: githubResult.primaryCategory,
+              primaryScore: githubResult.primaryScore,
+              secondaryCategories: githubResult.secondaryCategories,
+              secondaryScores: githubResult.secondaryScores,
+              attestationUID: githubResult.attestationUID,
+              languageBytes: githubResult.languageBytes,
+              commitsCount: githubResult.commitsCount,
+              reposCount: githubResult.reposCount,
+              prsCount: githubResult.prsCount,
+              reputationTier: githubResult.reputationTier,
+            }
           : {}),
       },
-      address
+      address || ''
     );
 
     setMintedTxHash(txHash);
     setShowSuccessModal(true);
   };
 
+  if (!isConnected) {
+    return (
+      <div className="max-w-md mx-auto py-16 text-center space-y-6">
+        <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+          <ShieldCheck size={32} />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight">Connect Wallet Required</h1>
+          <p className="text-slate-500 text-sm">Please connect your Web3 wallet to configure your sovereign identity profile.</p>
+        </div>
+        <button onClick={connectWallet} className="gradient-btn-primary w-full py-3.5 rounded-xl font-bold">
+          Connect Wallet
+        </button>
+      </div>
+    );
+  }
+
   const stepLabels = ['Profile Basics & Verification', 'Add Skills'];
   const progressPercent = Math.round((step / 2) * 100);
 
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-8">
-      {/* Onboarding Header & Stepper matching reference HTML */}
+      {/* Onboarding Header & Stepper */}
       {isClient ? (
         <div className="space-y-4">
           <div className="flex justify-between items-center text-xs font-mono">
-            <span className="font-bold text-purple-800 uppercase tracking-widest">
+            <span className="font-bold text-purple-800 uppercase tracking-widest text-[11px] tracking-[0.18em]">
               Client Identity Profile
             </span>
             <span className="text-slate-500 font-semibold">100% Complete</span>
@@ -179,7 +196,7 @@ export const Onboarding: React.FC = () => {
       ) : (
         <div className="space-y-4">
           <div className="flex justify-between items-center text-xs font-mono">
-            <span className="font-bold text-purple-800 uppercase tracking-widest">
+            <span className="font-bold text-purple-800 uppercase tracking-widest text-[11px] tracking-[0.18em]">
               Step {step}: {stepLabels[step - 1]}
             </span>
             <span className="text-slate-500 font-semibold">{progressPercent}% Complete</span>
@@ -213,8 +230,8 @@ export const Onboarding: React.FC = () => {
             {!isClient && (
               <div className="bg-purple-50/30 p-5 sm:p-6 rounded-2xl border border-purple-100 space-y-4">
                 <div className="flex flex-col sm:flex-row gap-4 items-end">
-                  <div className="flex-grow">
-                    <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1.5 font-bold">
+                  <div className="flex-grow w-full">
+                    <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1.5 font-bold text-[11px] tracking-[0.18em]">
                       GitHub Handle / Username *
                     </label>
                     <input
@@ -233,7 +250,7 @@ export const Onboarding: React.FC = () => {
                     type="button"
                     onClick={handleSimulateGithubSync}
                     disabled={isScanningGithub}
-                    className="gradient-btn-primary px-6 py-3 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-md h-[42px]"
+                    className="gradient-btn-primary px-6 py-3 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-md h-[42px] w-full sm:w-auto justify-center"
                   >
                     {isScanningGithub ? (
                       <>
@@ -331,7 +348,7 @@ export const Onboarding: React.FC = () => {
 
                       {/* Dynamic Aggregated Reputation Tier Card */}
                       <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col justify-center text-center shadow-2xs">
-                        <span className="font-label-mono text-[9px] text-slate-500 uppercase tracking-widest mb-1 font-bold">
+                        <span className="font-label-mono text-[9px] text-slate-500 uppercase tracking-widest mb-1 font-bold text-[11px] tracking-[0.18em]">
                           AGGREGATED REPUTATION
                         </span>
                         <div className="font-headline text-2xl font-black gradient-text-purple-pink">
@@ -372,12 +389,12 @@ export const Onboarding: React.FC = () => {
                 <div className="w-28 h-28 rounded-2xl bg-purple-50 border-2 border-dashed border-purple-300 flex items-center justify-center overflow-hidden relative shadow-xs">
                   <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 </div>
-                <span className="font-label-mono text-[10px] text-slate-500 font-bold mt-2">AVATAR (IPFS)</span>
+                <span className="font-label-mono text-[10px] text-slate-500 font-bold mt-2 text-[11px] tracking-[0.18em]">AVATAR (IPFS)</span>
               </div>
 
               <div className="md:col-span-3 space-y-4">
                 <div>
-                  <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
+                  <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold text-[11px] tracking-[0.18em]">
                     Avatar / Logo Image URL
                   </label>
                   <input
@@ -389,7 +406,7 @@ export const Onboarding: React.FC = () => {
                   />
                   {/* Preset Avatar Selection Grid */}
                   <div className="mt-2.5 space-y-1.5">
-                    <span className="text-[10px] font-label-mono text-slate-500 uppercase tracking-wider font-bold block">
+                    <span className="text-[10px] font-label-mono text-slate-500 uppercase tracking-wider font-bold block text-[11px] tracking-[0.18em]">
                       Or Choose a Preset Logo/Avatar:
                     </span>
                     <div className="flex gap-2">
@@ -447,7 +464,7 @@ export const Onboarding: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
+                  <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold text-[11px] tracking-[0.18em]">
                     Professional Display Name *
                   </label>
                   <input
@@ -461,7 +478,7 @@ export const Onboarding: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
+                  <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold text-[11px] tracking-[0.18em]">
                     Professional Bio & Expertise
                   </label>
                   <textarea
@@ -483,7 +500,7 @@ export const Onboarding: React.FC = () => {
               {isClient ? (
                 <button
                   type="submit"
-                  className="gradient-btn-emerald px-10 py-3.5 rounded-xl font-headline font-bold text-sm flex items-center gap-2 shadow-md"
+                  className="gradient-btn-emerald px-10 py-3.5 rounded-xl font-headline font-bold text-sm flex items-center gap-2 shadow-md cursor-pointer"
                 >
                   <Sparkles size={16} /> Finalize & Save Client Profile
                 </button>
@@ -491,7 +508,7 @@ export const Onboarding: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="gradient-btn-primary px-8 py-3 rounded-xl font-headline font-bold text-sm flex items-center gap-2"
+                  className="gradient-btn-primary px-8 py-3 rounded-xl font-headline font-bold text-sm flex items-center gap-2 cursor-pointer"
                 >
                   Next Stage <ArrowRight size={16} />
                 </button>
@@ -514,7 +531,7 @@ export const Onboarding: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-2 font-bold">
+                <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-2 font-bold text-[11px] tracking-[0.18em]">
                   Technical Skills & Expertise
                 </label>
                 <div className="flex flex-wrap gap-2 p-3 border border-slate-200 rounded-xl bg-slate-50 min-h-[56px]">
@@ -527,7 +544,7 @@ export const Onboarding: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleRemoveSkill(sk)}
-                        className="hover:text-rose-600 transition-colors"
+                        className="hover:text-rose-600 transition-colors cursor-pointer"
                       >
                         <X size={12} />
                       </button>
@@ -544,10 +561,10 @@ export const Onboarding: React.FC = () => {
                 </div>
               </div>
 
-              {/* Suggested Skills Pills matching reference HTML */}
+              {/* Suggested Skills Pills */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div className="border border-slate-200 p-4 rounded-xl bg-slate-50">
-                  <h3 className="font-label-mono text-xs text-purple-900 font-bold mb-2 uppercase">
+                  <h3 className="font-label-mono text-xs text-purple-900 font-bold mb-2 uppercase text-[11px] tracking-[0.18em]">
                     SUGGESTED SKILLS
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
@@ -577,14 +594,14 @@ export const Onboarding: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-slate-600 hover:text-slate-900 font-mono text-xs flex items-center gap-1.5 font-bold"
+                className="text-slate-600 hover:text-slate-900 font-mono text-xs flex items-center gap-1.5 font-bold cursor-pointer"
               >
                 <ArrowLeft size={14} /> Back
               </button>
 
               <button
                 type="submit"
-                className="gradient-btn-emerald px-10 py-3.5 rounded-xl font-headline font-bold text-sm flex items-center gap-2 shadow-md"
+                className="gradient-btn-emerald px-10 py-3.5 rounded-xl font-headline font-bold text-sm flex items-center gap-2 shadow-md cursor-pointer"
               >
                 <Sparkles size={16} /> Finalize & Mint On-Chain Identity
               </button>
@@ -593,7 +610,7 @@ export const Onboarding: React.FC = () => {
         )}
       </form>
 
-      {/* Success Screen Overlay Modal matching reference HTML */}
+      {/* Success Screen Overlay Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="glass-panel p-8 sm:p-10 rounded-2xl max-w-md w-full text-center border-purple-200 bg-white hard-shadow space-y-6">
@@ -618,7 +635,7 @@ export const Onboarding: React.FC = () => {
 
             <button
               onClick={() => navigate('/dashboard')}
-              className="gradient-btn-emerald w-full py-3.5 rounded-xl font-headline font-bold text-sm shadow-md"
+              className="gradient-btn-emerald w-full py-3.5 rounded-xl font-headline font-bold text-sm shadow-md cursor-pointer"
             >
               Go to Dashboard
             </button>

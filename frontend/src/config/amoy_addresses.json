@@ -1,0 +1,9 @@
+{
+  "JobFactory": "0x8492796C544989f6F9BaEcEfD2cb8CA49E422776",
+  "ReputationSBT": "0x3CC04FA1E3cae9F831E27B2846F131cD82625Ac9",
+  "ProfileRegistry": "0x6BB41d9fbDfbe9a86647c98d1cce94fd8776709a",
+  "GithubReputationRegistry": "0x14f3b20cE067721dCccD0994b08C02a7B3ECB4e3",
+  "JudgeDAO": "0xffc2b7aba3639F28b566357A2596D407Ec03A745",
+  "TimelockController": "0x2bA85050C8F3Cf9590583c21B262Fee7f829b698",
+  "network": "amoy"
+}

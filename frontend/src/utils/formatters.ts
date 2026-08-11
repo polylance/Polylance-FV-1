@@ -1,3 +1,6 @@
+import { ethers } from 'ethers';
+import { NETWORK_CONFIG } from '../config/contracts';
+
 export function truncateAddress(addr: string | undefined): string {
   if (!addr) return '';
   if (addr.length <= 10) return addr;
@@ -36,6 +39,11 @@ export function generateMockTxHash(): string {
   return hash;
 }
 
+export function generateDeterministicHash(seed: string = Date.now().toString()): string {
+  return ethers.keccak256(ethers.toUtf8Bytes(seed));
+}
+
 export function getPolygonScanUrl(txHash: string): string {
-  return `https://polygonscan.com/tx/${txHash}`;
+  const baseUrl = NETWORK_CONFIG.blockExplorerUrl || 'https://amoy.polygonscan.com';
+  return `${baseUrl}/tx/${txHash}`;
 }

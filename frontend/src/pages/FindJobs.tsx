@@ -126,8 +126,8 @@ export const FindJobs: React.FC = () => {
           </div>
         ) : (
           filteredJobs.map((job) => {
-            const payToken = job.paymentToken || 'USDC';
-            const payAmount = job.tokenAmount || job.amountUsdc;
+            const payToken = job.paymentTokenSymbol || 'USDC';
+            const payAmount = job.amountUsdc;
             const converted = convertCryptoToFiat(parseFloat(payAmount), payToken, selectedFiat);
             return (
               <div

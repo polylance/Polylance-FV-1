@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
@@ -20,12 +20,16 @@ import {
   Check,
   Shield
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 
 export const Reputation: React.FC = () => {
-  const { address, isArbitrator, currentRole } = useWeb3();
+  const { address, isArbitrator, currentRole, reputationCount: onChainReputationCount } = useWeb3();
   const { profiles, jobs } = usePolyLanceData();
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'monthly'>('all');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // Retrieve user profile case-insensitively
   const userProfileKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
@@ -36,17 +40,19 @@ export const Reputation: React.FC = () => {
     (j) => j.freelancer?.toLowerCase() === address?.toLowerCase() && j.status === 'Completed'
   );
   const userCompletedJobsCount = userCompletedJobs.length;
-  const reputationCount = userCompletedJobsCount;
+  
+  // Combine on-chain reputation count with local completed jobs
+  const reputationCount = Math.max(Number(onChainReputationCount || 0), userCompletedJobsCount);
 
   const userVolume = userCompletedJobs.reduce((sum, j) => {
     const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
     return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
   }, 0);
 
-  // Calculate dynamic points breakdown based on actual wallet reputation count
-  const escrowPoints = userCompletedJobsCount * 60;
-  const multisigPoints = isArbitrator ? userCompletedJobsCount * 25 : 0;
-  const govPoints = userCompletedJobsCount > 0 ? (userCompletedJobsCount * 15) + 10 : 0;
+  // Calculate dynamic points breakdown based on reputation count
+  const escrowPoints = reputationCount * 60;
+  const multisigPoints = isArbitrator ? reputationCount * 25 : 0;
+  const govPoints = reputationCount > 0 ? (reputationCount * 15) + 10 : 0;
   const totalPoints = escrowPoints + multisigPoints + govPoints;
 
   // Exclude non-developer roles/addresses (judge, admins, client) from rankings
@@ -73,7 +79,9 @@ export const Reputation: React.FC = () => {
         const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
         return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
       }, 0);
-      const pts = profileCompletedJobsCount * 100;
+      
+      const combinedRep = Math.max(profile.reputationSbtCount || 0, profileCompletedJobsCount);
+      const pts = combinedRep * 100;
       const successRatePercent = profileCompletedJobsCount > 0
         ? Math.round((profileCompletedJobs.filter(j => !j.dispute || (j.dispute.resolved && (j.dispute.rulingBps ?? 0) >= 5000)).length / profileCompletedJobsCount) * 100)
         : 0;
@@ -82,7 +90,7 @@ export const Reputation: React.FC = () => {
         rank: 0,
         name: isYou ? `${profile.displayName || 'Anonymous'} (You)` : (profile.displayName || `${profile.address.slice(0, 6)}...${profile.address.slice(-4)}`),
         role: profile.primaryCategory === 'web3' ? 'Web3 Engineer' : profile.primaryCategory === 'frontend' ? 'Frontend Dev' : profile.primaryCategory === 'backend' ? 'Backend Dev' : 'Sovereign Developer',
-        points: pts,
+        points: pts || 10,
         successRate: profileCompletedJobsCount > 0 ? `${successRatePercent}%` : '0%',
         earnings: totalVolumeHandled > 0 ? `$${(totalVolumeHandled / 1000).toFixed(1)}k` : '$0.0k',
         isUser: isYou,
@@ -97,7 +105,7 @@ export const Reputation: React.FC = () => {
               rank: 0,
               name: address ? `${address.slice(0, 6)}...${address.slice(-4)} (You)` : 'You',
               role: isArbitrator ? 'DAO Arbitrator' : 'Web3 Engineer',
-              points: totalPoints,
+              points: totalPoints || 10,
               successRate: userCompletedJobsCount > 0 ? '100%' : '0%',
               earnings: userVolume > 0 ? `$${(userVolume / 1000).toFixed(1)}k` : '$0.0k',
               isUser: true,
@@ -148,38 +156,30 @@ export const Reputation: React.FC = () => {
     rankLabel = 'Unranked';
   }
 
-
-  const firstPlace = leaderboardData[0] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k' };
-  const secondPlace = leaderboardData[1] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k' };
-  const thirdPlace = leaderboardData[2] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k' };
+  const firstPlace = leaderboardData[0] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k', address: '' };
+  const secondPlace = leaderboardData[1] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k', address: '' };
+  const thirdPlace = leaderboardData[2] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k', address: '' };
 
   const getRoleBadge = (role: string) => {
     const normalized = role.toLowerCase();
-    if (normalized.includes('solidity')) {
+    if (normalized.includes('solidity') || normalized.includes('architect')) {
       return (
         <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1 bg-amber-50/50 text-amber-700 border border-amber-200/50 font-mono tracking-wide">
           <Star size={9.5} className="fill-amber-500/10 text-amber-550" /> {role}
         </span>
       );
     }
-    if (normalized.includes('auditor') || normalized.includes('cyber')) {
+    if (normalized.includes('auditor') || normalized.includes('cyber') || normalized.includes('shield')) {
       return (
         <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1 bg-blue-50/50 text-blue-700 border border-blue-200/50 font-mono tracking-wide">
           <ShieldCheck size={9.5} className="text-blue-500" /> {role}
         </span>
       );
     }
-    if (normalized.includes('devops') || normalized.includes('lead')) {
+    if (normalized.includes('devops') || normalized.includes('lead') || normalized.includes('backend')) {
       return (
         <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1.5 bg-orange-50/50 text-orange-850 border border-orange-200/50 font-mono tracking-wide">
           <span className="text-[10px] font-black font-mono text-orange-600">&gt;_</span> {role}
-        </span>
-      );
-    }
-    if (normalized.includes('zero-knowledge') || normalized.includes('zk')) {
-      return (
-        <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1 bg-slate-50 text-slate-700 border border-slate-200/50 font-mono tracking-wide">
-          <span className="text-[10px] font-black font-mono text-slate-500">&lt;/&gt;</span> {role}
         </span>
       );
     }
@@ -191,8 +191,7 @@ export const Reputation: React.FC = () => {
     );
   };
 
-  // Simple static variants
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -202,14 +201,14 @@ export const Reputation: React.FC = () => {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 25 },
     show: { 
       opacity: 1, 
       y: 0, 
       transition: { 
         duration: 0.6,
-        ease: 'easeOut' as any
+        ease: 'easeOut'
       } 
     }
   };
@@ -255,13 +254,9 @@ export const Reputation: React.FC = () => {
           whileHover={{ y: -4, scale: 1.01 }}
           className="bg-white border border-slate-100 shadow-xl p-5 rounded-2xl flex flex-col justify-center items-center text-center space-y-4 relative overflow-hidden group"
         >
-          {/* Subtle radial glow inside card */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(168,85,247,0.04),transparent_60%)] pointer-events-none" />
           
-          {/* Circular Display Area with Concentric Rings */}
           <div className="relative w-32 h-32 flex items-center justify-center mt-1">
-            
-            {/* Left Dot Grid Decoration */}
             <div className="absolute left-[-18px] top-[40%] -translate-y-1/2 opacity-20 select-none pointer-events-none">
               <svg width="18" height="30" viewBox="0 0 18 30" fill="none">
                 <circle cx="3" cy="3" r="1" fill="#8b5cf6" />
@@ -275,7 +270,6 @@ export const Reputation: React.FC = () => {
               </svg>
             </div>
             
-            {/* Right Dot Grid Decoration */}
             <div className="absolute right-[-18px] top-[40%] -translate-y-1/2 opacity-20 select-none pointer-events-none">
               <svg width="18" height="30" viewBox="0 0 18 30" fill="none">
                 <circle cx="7" cy="3" r="1" fill="#8b5cf6" />
@@ -289,7 +283,6 @@ export const Reputation: React.FC = () => {
               </svg>
             </div>
 
-            {/* Sparkles (✦) Decoration */}
             <div className="absolute left-[-8px] bottom-[20%] text-purple-400 opacity-50 animate-pulse pointer-events-none">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0L14.8 9.2L24 12L14.8 14.8L12 24L9.2 14.8L0 12L9.2 9.2Z" />
@@ -301,14 +294,9 @@ export const Reputation: React.FC = () => {
               </svg>
             </div>
 
-            {/* Outer Ring */}
             <div className="absolute w-full h-full rounded-full border border-purple-100/40 flex items-center justify-center">
-              {/* Middle Ring */}
               <div className="w-[114px] h-[114px] rounded-full border border-purple-50/60 bg-white/20 flex items-center justify-center shadow-[0_3px_12px_rgba(168,85,247,0.01)]">
-                {/* Inner Ring (Main Score Circle) */}
                 <div className="w-[98px] h-[98px] rounded-full border border-purple-100/70 bg-white flex flex-col items-center justify-center p-2.5 relative shadow-[0_4px_12px_-3px_rgba(168,85,247,0.05),inset_0_1.5px_4px_rgba(168,85,247,0.03)]">
-                  
-                  {/* Hexagonal Star Badge at Top */}
                   {totalPoints > 0 && (
                     <div 
                       className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-purple-600 text-white p-0.5 shadow-[0_1.5px_6px_rgba(98,27,203,0.25)] border border-purple-400/30 flex items-center justify-center w-5.5 h-5.5"
@@ -320,12 +308,10 @@ export const Reputation: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Reputation Points Value */}
                   <div className="text-3xl font-extrabold tracking-tight bg-gradient-to-br from-purple-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mt-1">
                     {totalPoints}
                   </div>
                   
-                  {/* Description Label inside */}
                   <div className="text-[7.5px] font-bold text-slate-400 tracking-wide uppercase mt-0.5">
                     Reputation Points
                   </div>
@@ -334,7 +320,6 @@ export const Reputation: React.FC = () => {
             </div>
           </div>
 
-          {/* Title and Description */}
           <div className="space-y-0.5 z-10">
             <h2 className="font-headline font-extrabold text-slate-800 text-lg tracking-tight">
               Reputation <span className="text-purple-600">Points</span>
@@ -342,19 +327,15 @@ export const Reputation: React.FC = () => {
             <p className="text-[10px] text-slate-400 font-medium">Soulbound ledger verified score</p>
           </div>
 
-          {/* Bottom Capsule Container */}
           <div className="w-full max-w-[220px] bg-purple-50/30 border border-purple-100/50 rounded-xl p-2 flex items-center shadow-2xs z-10">
-            {/* Diamond Icon Circle */}
             <div className="w-7 h-7 rounded-full bg-purple-100/60 flex items-center justify-center text-purple-600 shrink-0">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h12l4 6-10 12L2 9zM11 3v6M5 9h14M12 21l3-12M12 21l-3-12" />
               </svg>
             </div>
             
-            {/* Divider Line */}
             <div className="w-[1px] h-5 bg-purple-100/80 mx-2" />
 
-            {/* Trophy Icon, Percentile Text */}
             <div className="flex items-center text-purple-600 pr-0.5">
               <Trophy size={12} className="text-purple-600 mr-1.5 shrink-0" />
               <span className="font-extrabold text-[10px] uppercase tracking-wide mr-1 select-none">
@@ -373,7 +354,6 @@ export const Reputation: React.FC = () => {
           variants={itemVariants}
           className="lg:col-span-8 bg-white border border-slate-100 shadow-md rounded-2xl p-4 space-y-3.5 flex flex-col justify-start"
         >
-          {/* Header */}
           <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
             <div className="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-700 shrink-0">
               <Bookmark size={18} className="text-purple-700 fill-purple-100/50" />
@@ -480,7 +460,7 @@ export const Reputation: React.FC = () => {
               </div>
             </div>
 
-            {/* Breakdown item 4 (Total Points Card) */}
+            {/* Breakdown item 4 */}
             <div className="bg-purple-50/15 border border-purple-100/60 p-3 rounded-xl flex items-center gap-3 transition-all duration-300 hover:shadow-3xs">
               <div className="w-9 h-9 rounded-lg bg-purple-100/70 border border-purple-200 flex items-center justify-center text-purple-650 shrink-0 shadow-3xs">
                 <Star size={16} className="stroke-[2.5] fill-purple-100 text-purple-700" />
@@ -498,7 +478,6 @@ export const Reputation: React.FC = () => {
                     +{totalPoints} pts
                   </span>
                   
-                  {/* Purple glow and sparkles decoration */}
                   <div className="relative w-10 h-10 flex items-center justify-center shrink-0 overflow-hidden">
                     <div className="absolute inset-2 bg-purple-500/10 blur-sm rounded-full" />
                     <div 
@@ -522,7 +501,6 @@ export const Reputation: React.FC = () => {
           className="lg:col-span-4 bg-white border border-slate-100 shadow-md rounded-2xl p-4 space-y-3.5 flex flex-col justify-start"
         >
           <div className="space-y-3.5">
-            {/* Header */}
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
               <div className="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-700 shrink-0">
                 <Trophy size={18} className="text-purple-700 fill-purple-100/50" />
@@ -658,7 +636,6 @@ export const Reputation: React.FC = () => {
         variants={itemVariants}
         className="bg-white border border-slate-100 shadow-md rounded-2xl p-4 space-y-4"
       >
-        {/* Header and Toggle Button */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 border-b border-slate-200/60 pb-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -674,7 +651,6 @@ export const Reputation: React.FC = () => {
             </p>
           </div>
           
-          {/* Custom Pill Toggle Switch */}
           <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 w-fit">
             <button
               onClick={() => setFilterPeriod('all')}
@@ -701,7 +677,7 @@ export const Reputation: React.FC = () => {
 
         {/* TOP 3 PODIUM */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-          {/* Rank 2 (Silver) - Positioned first on desktop for symmetric display (2 - 1 - 3) */}
+          {/* Rank 2 (Silver) */}
           <motion.div 
             whileHover={{ y: -4 }}
             className="relative group bg-white border border-slate-200/60 rounded-2xl p-4.5 text-center shadow-xs hover:shadow-sm transition-all duration-300 flex flex-col justify-between order-2 md:order-1 mt-3 md:mt-4 border-t-4 border-t-slate-300"
@@ -711,587 +687,270 @@ export const Reputation: React.FC = () => {
             </div>
             
             <div className="flex flex-col items-center space-y-2 mt-1">
-              <Link to={`/profile/${secondPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
-                <img
-                  src={secondPlace?.avatar}
-                  alt={secondPlace?.name}
-                  className="w-12 h-12 rounded-full border-2 border-slate-200 object-cover shadow-inner"
-                />
-                <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-800 font-black text-[10px] border border-white shadow-xs font-mono">
-                  2
-                </span>
-              </Link>
+              {secondPlace.address ? (
+                <Link to={`/profile/${secondPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
+                  <img
+                    src={secondPlace.avatar}
+                    alt={secondPlace.name}
+                    className="w-12 h-12 rounded-full border-2 border-slate-250 object-cover shadow-inner"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-800 font-black text-[10px] border border-white shadow-xs font-mono">
+                    2
+                  </span>
+                </Link>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400">
+                  ?
+                </div>
+              )}
               
               <div>
-                <Link to={`/profile/${secondPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
-                  {secondPlace?.name}
-                </Link>
+                {secondPlace.address ? (
+                  <Link to={`/profile/${secondPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
+                    {secondPlace.name}
+                  </Link>
+                ) : (
+                  <span className="font-bold text-slate-500 block leading-tight">Open Spot</span>
+                )}
                 <p className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-slate-200/40">
-                  {secondPlace?.role}
+                  {secondPlace.role}
                 </p>
               </div>
             </div>
 
-            <div className="mt-3.5 pt-3 border-t border-slate-100 grid grid-cols-2 gap-1.5 text-left">
-              <div className="space-y-0.5">
-                <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Reputation</span>
-                <p className="text-xs font-black text-slate-800 font-mono">{secondPlace?.points} pts</p>
+            <div className="grid grid-cols-3 border-t border-slate-100 mt-4 pt-3 gap-2">
+              <div>
+                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Score</span>
+                <span className="font-mono text-xs font-black text-slate-900">{secondPlace.points}</span>
               </div>
-              <div className="space-y-0.5 text-right">
-                <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Success Rate</span>
-                <p className="text-xs font-black text-emerald-600 font-mono">{secondPlace?.successRate}</p>
+              <div>
+                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Success</span>
+                <span className="font-mono text-xs font-black text-slate-900">{secondPlace.successRate}</span>
               </div>
-            </div>
-            
-            <div className="mt-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100/50 flex items-center justify-between text-[11px]">
-              <span className="font-mono text-slate-400 text-[9.5px] font-bold uppercase">Volume</span>
-              <span className="font-black text-emerald-700 font-mono">{secondPlace?.earnings}</span>
+              <div>
+                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Earnings</span>
+                <span className="font-mono text-xs font-black text-emerald-600">{secondPlace.earnings}</span>
+              </div>
             </div>
           </motion.div>
 
-          {/* Rank 1 (Gold) - Positioned middle and larger/emphasized */}
+          {/* Rank 1 (Gold) */}
           <motion.div 
             whileHover={{ y: -4 }}
-            className="relative group bg-gradient-to-b from-amber-500/5 to-white border border-amber-200 rounded-2xl p-5 text-center shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between order-1 md:order-2 ring-2 ring-amber-400/20 border-t-8 border-t-amber-400"
+            className="relative group bg-slate-900 border border-slate-850 rounded-2xl p-5 text-center shadow-lg transition-all duration-300 flex flex-col justify-between order-1 md:order-2 border-t-4 border-t-amber-500 scale-102 z-10"
+            style={{ boxShadow: '0 15px 35px -10px rgba(245,158,11,0.2)' }}
           >
-            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-955 font-black text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1 border border-white">
-              <Sparkles size={8} className="fill-amber-900" /> Winner
-            </div>
-            
-            <div className="absolute top-3 right-3 flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 border border-amber-200 font-bold text-[11px] text-amber-600 font-mono shadow-xs">
+            <div className="absolute top-3 right-3 flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/30 font-bold text-[11px] text-amber-400 font-mono shadow-xs">
               #1
             </div>
-
-            <div className="flex flex-col items-center space-y-2 mt-2">
-              <Link to={`/profile/${firstPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
-                <img
-                  src={firstPlace?.avatar}
-                  alt={firstPlace?.name}
-                  className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shadow-inner ring-2 ring-amber-400/10"
-                />
-                <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5.5 h-5.5 rounded-full bg-amber-400 text-amber-955 font-black text-xs border border-white shadow-xs font-mono">
-                  👑
-                </span>
-              </Link>
-
-              <div>
-                <Link to={`/profile/${firstPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-base hover:text-purple-700 hover:underline block leading-tight">
-                  {firstPlace?.name}
+            
+            <div className="flex flex-col items-center space-y-2 mt-1">
+              {firstPlace.address ? (
+                <Link to={`/profile/${firstPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
+                  <img
+                    src={firstPlace.avatar}
+                    alt={firstPlace.name}
+                    className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shadow-inner"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5.5 h-5.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] border border-slate-900 shadow-xs font-mono">
+                    1
+                  </span>
                 </Link>
-                <p className="text-[9px] bg-amber-100 text-amber-955 px-2 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-black mt-0.5 border border-amber-200/40">
-                  {firstPlace?.role}
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center border-2 border-amber-400 text-amber-400">
+                  ?
+                </div>
+              )}
+              
+              <div>
+                {firstPlace.address ? (
+                  <Link to={`/profile/${firstPlace.address}`} className="font-extrabold text-white tracking-tight text-base hover:text-amber-400 hover:underline block leading-tight">
+                    {firstPlace.name}
+                  </Link>
+                ) : (
+                  <span className="font-bold text-amber-500 block leading-tight">Open Spot</span>
+                )}
+                <p className="text-[9px] bg-amber-500/10 text-amber-450 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-amber-500/20">
+                  {firstPlace.role}
                 </p>
               </div>
             </div>
 
-            <div className="mt-3.5 pt-3 border-t border-slate-100 grid grid-cols-2 gap-1.5 text-left">
-              <div className="space-y-0.5">
-                <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Reputation</span>
-                <p className="text-xs font-black text-slate-800 font-mono">{firstPlace?.points} pts</p>
+            <div className="grid grid-cols-3 border-t border-slate-800 mt-4 pt-3 gap-2">
+              <div>
+                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Score</span>
+                <span className="font-mono text-xs font-black text-white">{firstPlace.points}</span>
               </div>
-              <div className="space-y-0.5 text-right">
-                <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Success Rate</span>
-                <p className="text-xs font-black text-emerald-600 font-mono">{firstPlace?.successRate}</p>
+              <div>
+                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Success</span>
+                <span className="font-mono text-xs font-black text-white">{firstPlace.successRate}</span>
               </div>
-            </div>
-
-            <div className="mt-2.5 bg-amber-500/5 p-2 rounded-xl border border-amber-100 flex items-center justify-between text-[11px]">
-              <span className="font-mono text-amber-850/60 text-amber-850 font-bold text-[9.5px] uppercase">Volume</span>
-              <span className="font-black text-emerald-700 font-mono">{firstPlace?.earnings}</span>
+              <div>
+                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Earnings</span>
+                <span className="font-mono text-xs font-black text-amber-400">{firstPlace.earnings}</span>
+              </div>
             </div>
           </motion.div>
 
-          {/* Rank 3 (Bronze) - Positioned third */}
+          {/* Rank 3 (Bronze) */}
           <motion.div 
             whileHover={{ y: -4 }}
-            className="relative group bg-white border border-slate-200/60 rounded-2xl p-4.5 text-center shadow-xs hover:shadow-sm transition-all duration-300 flex flex-col justify-between order-3 mt-3 md:mt-4 border-t-4 border-t-amber-700/60"
+            className="relative group bg-white border border-slate-200/60 rounded-2xl p-4.5 text-center shadow-xs hover:shadow-sm transition-all duration-300 flex flex-col justify-between order-3 mt-3 md:mt-4 border-t-4 border-t-amber-700"
           >
-            <div className="absolute top-3 right-3 flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 border border-slate-200 font-bold text-[11px] text-amber-800 font-mono shadow-xs">
+            <div className="absolute top-3 right-3 flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 border border-slate-200 font-bold text-[11px] text-slate-500 font-mono shadow-xs">
               #3
             </div>
-
+            
             <div className="flex flex-col items-center space-y-2 mt-1">
-              <Link to={`/profile/${thirdPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
-                <img
-                  src={thirdPlace?.avatar}
-                  alt={thirdPlace?.name}
-                  className="w-12 h-12 rounded-full border-2 border-amber-700/40 object-cover shadow-inner"
-                />
-                <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-700 text-white font-black text-[10px] border border-white shadow-xs font-mono">
-                  3
-                </span>
-              </Link>
-
-              <div>
-                <Link to={`/profile/${thirdPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
-                  {thirdPlace?.name}
+              {thirdPlace.address ? (
+                <Link to={`/profile/${thirdPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
+                  <img
+                    src={thirdPlace.avatar}
+                    alt={thirdPlace.name}
+                    className="w-12 h-12 rounded-full border-2 border-amber-800 object-cover shadow-inner"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-800 text-white font-black text-[10px] border border-white shadow-xs font-mono">
+                    3
+                  </span>
                 </Link>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400">
+                  ?
+                </div>
+              )}
+              
+              <div>
+                {thirdPlace.address ? (
+                  <Link to={`/profile/${thirdPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
+                    {thirdPlace.name}
+                  </Link>
+                ) : (
+                  <span className="font-bold text-slate-550 block leading-tight">Open Spot</span>
+                )}
                 <p className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-slate-200/40">
-                  {thirdPlace?.role}
+                  {thirdPlace.role}
                 </p>
               </div>
             </div>
 
-            <div className="mt-3.5 pt-3 border-t border-slate-100 grid grid-cols-2 gap-1.5 text-left">
-              <div className="space-y-0.5">
-                <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Reputation</span>
-                <p className="text-xs font-black text-slate-800 font-mono">{thirdPlace?.points} pts</p>
+            <div className="grid grid-cols-3 border-t border-slate-100 mt-4 pt-3 gap-2">
+              <div>
+                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Score</span>
+                <span className="font-mono text-xs font-black text-slate-900">{thirdPlace.points}</span>
               </div>
-              <div className="space-y-0.5 text-right">
-                <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-bold font-mono">Success Rate</span>
-                <p className="text-xs font-black text-emerald-600 font-mono">{thirdPlace?.successRate}</p>
+              <div>
+                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Success</span>
+                <span className="font-mono text-xs font-black text-slate-900">{thirdPlace.successRate}</span>
               </div>
-            </div>
-
-            <div className="mt-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100/50 flex items-center justify-between text-[11px]">
-              <span className="font-mono text-slate-400 text-[9.5px] font-bold uppercase">Volume</span>
-              <span className="font-black text-emerald-700 font-mono">{thirdPlace?.earnings}</span>
+              <div>
+                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Earnings</span>
+                <span className="font-mono text-xs font-black text-emerald-600">{thirdPlace.earnings}</span>
+              </div>
             </div>
           </motion.div>
         </div>
 
-        {/* LIST VIEW */}
-        <div className="border border-slate-200/60 bg-white rounded-2xl overflow-hidden shadow-sm">
-          {/* Header Row for List */}
-          <div className="hidden md:grid grid-cols-12 gap-4 px-4.5 py-3 bg-slate-50 border-b border-slate-200/80 font-mono text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-            <div className="col-span-1 text-center">Rank</div>
-            <div className="col-span-4">Freelancer Name & Specialty</div>
-            <div className="col-span-3">Reputation Score</div>
-            <div className="col-span-2 text-center">Success Rate</div>
-            <div className="col-span-2 text-right">Volume Handled</div>
-          </div>
-
-          <div className="bg-white">
-            {leaderboardData.map((item) => {
-              // Custom layout for user row vs normal row
-              return (
-                <motion.div
-                  key={item.rank}
-                  whileHover={{ x: 4, transition: { duration: 0.15 } }}
-                  className={`grid grid-cols-1 md:grid-cols-12 gap-2.5 md:gap-4 items-center px-4.5 py-3 transition-all duration-200 ${
-                    item.isUser
-                      ? 'bg-gradient-to-r from-purple-500/[0.03] to-indigo-500/[0.03] border border-purple-300 rounded-xl mx-2.5 my-2 shadow-[0_3px_12px_rgba(147,51,234,0.04)] font-bold relative z-10'
-                      : 'hover:bg-slate-50/80 border-b border-slate-100/70 last:border-b-0'
+        {/* LEADERBOARD LIST */}
+        <div className="overflow-x-auto border border-slate-150 rounded-xl mt-6">
+          <table className="w-full border-collapse text-left text-xs text-slate-700">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-150 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                <th className="px-4 py-3 text-center w-12">Rank</th>
+                <th className="px-4 py-3">Developer</th>
+                <th className="px-4 py-3 w-40">Role Badge</th>
+                <th className="px-4 py-3 text-center w-24">Success Rate</th>
+                <th className="px-4 py-3 text-center w-24">Total Earnings</th>
+                <th className="px-4 py-3 text-right w-24">Attestation Points</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-150 font-medium">
+              {leaderboardData.map((row) => (
+                <tr 
+                  key={row.address}
+                  className={`hover:bg-slate-50/50 transition-colors ${
+                    row.isUser 
+                      ? 'bg-purple-50/20 border-y border-purple-150' 
+                      : ''
                   }`}
                 >
-                  {/* Rank Column */}
-                  <div className="col-span-1 flex items-center md:justify-center gap-2">
-                    <span className="text-[10px] font-mono font-bold uppercase md:hidden text-slate-400">Rank:</span>
-                    <span className={`flex items-center justify-center w-7 h-7 rounded-lg font-mono text-xs font-black shadow-2xs border ${
-                      item.rank === 1 ? 'bg-amber-50/70 text-amber-700 border-amber-200/50' :
-                      item.rank === 2 ? 'bg-slate-100/70 text-slate-700 border-slate-200/50' :
-                      item.rank === 3 ? 'bg-orange-50/50 text-orange-800 border-orange-200/40' :
-                      item.isUser ? 'bg-purple-600 text-white border-purple-700 shadow-sm' : 'bg-slate-50 text-slate-500 border-slate-200/50'
-                    }`}>
-                      {item.rank.toString().padStart(2, '0')}
-                    </span>
-                    {item.isUser && (
-                      <span className="md:hidden text-[9px] bg-purple-600 text-white font-extrabold px-1.5 py-0.5 rounded font-mono uppercase tracking-wider shadow-sm">
-                        YOU
+                  <td className="px-4 py-3 text-center font-mono">
+                    {row.rank === 1 ? (
+                      <span className="text-amber-500 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
+                        🥇 1
                       </span>
-                    )}
-                  </div>
-
-                  {/* Name Column */}
-                  <div className="col-span-4 flex items-center gap-3">
-                    <Link to={`/profile/${item.address}`} className="relative shrink-0 block hover:opacity-90 transition-opacity">
-                      <img
-                        src={item.avatar}
-                        alt={item.name}
-                        className={`w-8.5 h-8.5 rounded-full object-cover border shadow-sm ${
-                          item.isUser ? 'border-purple-400 ring-2 ring-purple-200' : 'border-slate-200'
-                        }`}
-                      />
-                      {item.rank === 1 && (
-                        <span className="absolute -top-1.5 -left-1.5 bg-white border border-amber-200 rounded-full w-4 h-4 flex items-center justify-center shadow-3xs">
-                          <span className="text-[8.5px] leading-none mb-0.5">👑</span>
-                        </span>
-                      )}
-                    </Link>
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <Link 
-                          to={`/profile/${item.address}`}
-                          className={`text-sm font-extrabold text-slate-800 hover:text-purple-700 hover:underline block leading-tight ${item.isUser ? 'text-purple-950 font-black' : ''}`}
-                        >
-                          {item.name}
-                        </Link>
-                        {item.isUser && (
-                          <span className="hidden md:inline-block text-[9px] bg-purple-600 text-white font-extrabold px-2 py-0.5 rounded-full font-mono uppercase tracking-widest shadow-sm">
-                            YOU
-                          </span>
-                        )}
-                      </div>
-                      {getRoleBadge(item.role)}
-                    </div>
-                  </div>
-
-                  {/* Reputation Points */}
-                  <div className="col-span-3 flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono font-bold uppercase md:hidden text-slate-400">Score:</span>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-5.5 h-5.5 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0">
-                        <Star size={11} className="fill-purple-500/10 text-purple-600" />
-                      </div>
-                      <span className={`text-xs font-mono font-black ${item.isUser ? 'text-purple-900' : 'text-slate-855'}`}>
-                        {item.points.toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">pts</span>
+                    ) : row.rank === 2 ? (
+                      <span className="text-slate-450 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
+                        🥈 2
                       </span>
-                    </div>
-                  </div>
-
-                  {/* Success Rate */}
-                  <div className="col-span-2 flex items-center md:justify-center gap-1.5">
-                    <span className="text-[10px] font-mono font-bold uppercase md:hidden text-slate-400">Success:</span>
-                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full text-xs font-mono font-black flex items-center gap-0.5 shadow-2xs">
-                      <span className="text-[10px] font-sans font-black mr-0.5">↗</span>
-                      {item.successRate}
-                    </span>
-                  </div>
-
-                  {/* Volume Handled */}
-                  <div className="col-span-2 flex items-center md:justify-end gap-1.5">
-                    <span className="text-[10px] font-mono font-bold uppercase md:hidden text-slate-400">Volume:</span>
-                    <div className="text-right">
-                      <span className="text-xs font-mono font-black text-slate-850">
-                        {item.earnings}
+                    ) : row.rank === 3 ? (
+                      <span className="text-amber-800 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
+                        🥉 3
                       </span>
-                      <div className="text-[9px] text-emerald-600 font-mono flex items-center gap-0.5 justify-end mt-0.5">
-                        <svg className="w-2.5 h-2.5 text-emerald-500 fill-emerald-500/10 mr-0.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Verified
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          <div className="p-3 bg-slate-50/50 border-t border-slate-100 text-center">
-            <button className="text-purple-700 font-extrabold text-xs hover:text-purple-800 transition-colors inline-flex items-center gap-1.5 cursor-pointer group">
-              View All {leaderboardData.length} Freelancers
-              <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-sm group-hover:bg-purple-700 transition-colors">
-                <ChevronRight size={12} className="stroke-[2.5]" />
-              </span>
-            </button>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* On-Chain Achievements / Badges Grid matching reference HTML */}
-      <motion.section variants={itemVariants} className="bg-white border border-slate-200/80 shadow-md rounded-3xl p-6 relative overflow-hidden space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3.5 pb-2 relative">
-          <div className="relative w-11 h-11 flex items-center justify-center shrink-0">
-            <svg className="absolute inset-0 w-full h-full text-indigo-50 fill-indigo-50/50 stroke-indigo-200 stroke-[1.5]" viewBox="0 0 100 100">
-              <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" />
-            </svg>
-            <ShieldCheck size={18} className="text-[#6366F1] relative z-10 stroke-[2]" />
-          </div>
-          <div>
-            <h2 className="font-headline text-lg font-extrabold text-slate-900 leading-tight">
-              On-Chain SBT <span className="text-[#6366F1]">Achievements</span>
-            </h2>
-            <p className="text-xs text-slate-500 font-sans mt-0.5">
-              Your soulbound badge milestones on-chain.
-            </p>
-          </div>
-
-          {/* Trophy Artwork + Sparkles (Right side) */}
-          <div className="hidden sm:block absolute right-4 top-[-10px] w-28 h-20 opacity-90 select-none">
-            <div className="relative w-full h-full">
-              <Sparkles className="absolute top-2 left-2 text-[#818CF8]/30 w-3 h-3 animate-pulse" />
-              <Sparkles className="absolute bottom-4 right-10 text-[#818CF8]/40 w-4 h-4" />
-              <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-tr from-purple-100 to-indigo-50 rounded-full blur-xl opacity-60" />
-              
-              <svg className="w-16 h-16 text-indigo-200 absolute right-4 top-1" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M46 16c0-4.418-3.582-8-8-8H26c-4.418 0-8 3.582-8 8v6c0 5.523 4.477 10 10 10h8c5.523 0 10-4.477 10-10v-6z" fill="#E0E7FF" stroke="#818CF8" strokeWidth="2" strokeLinejoin="round"/>
-                <path d="M18 16h-4c-2.209 0-4 1.791-4 4v4c0 2.209 1.791 4 4 4h4" stroke="#818CF8" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M46 16h4c2.209 0 4 1.791 4 4v4c0 2.209-1.791 4-4 4h-4" stroke="#818CF8" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M32 38v10M24 48h16" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="32" cy="23" r="3" fill="#818CF8"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Badge Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Badge 1 - Genesis Auditor */}
-          {(() => {
-            const isUnlocked = reputationCount >= 1;
-            return (
-              <motion.div 
-                whileHover={{ y: -6, scale: 1.01 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className={`rounded-3xl p-5 text-center flex flex-col justify-between items-center relative overflow-hidden shadow-xs h-[325px] transition-all border ${
-                  isUnlocked 
-                    ? 'bg-purple-50/20 border-purple-400/80 shadow-purple-50' 
-                    : 'bg-white border-slate-200/60 shadow-slate-50/50'
-                }`}
-              >
-                {isUnlocked && (
-                  <div className="absolute top-3.5 right-3.5 w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center text-white shadow-xs">
-                    <Check size={11} className="stroke-[3]" />
-                  </div>
-                )}
-
-                {/* Status Pill */}
-                <div className={`flex items-center gap-1.5 px-3 py-1 border rounded-full text-[9px] font-mono font-bold ${
-                  isUnlocked 
-                    ? 'bg-purple-100/60 border-purple-200 text-purple-800' 
-                    : 'bg-slate-50 border-slate-100 text-slate-500'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isUnlocked ? 'bg-purple-600' : 'bg-slate-400'}`} />
-                  <span>{isUnlocked ? 'ACHIEVED' : 'LOCKED'}</span>
-                </div>
-
-                {/* Center graphic container */}
-                <div className="relative w-28 h-28 flex items-center justify-center mt-4 mb-2">
-                  <div className={`absolute inset-0 rounded-full border border-dashed ${isUnlocked ? 'border-purple-200' : 'border-slate-100'}`} />
-                  <div className={`absolute inset-3 rounded-full border ${isUnlocked ? 'border-purple-100 bg-purple-50/40' : 'border-slate-100 bg-slate-50/50'}`} />
-                  <div className={`absolute inset-6 rounded-full flex items-center justify-center shadow-xs ${
-                    isUnlocked ? 'bg-purple-600 text-white' : 'bg-white border border-slate-200 text-slate-400'
-                  }`}>
-                    {isUnlocked ? <Award size={20} className="stroke-[2.5]" /> : <Lock size={18} className="stroke-[2.5]" />}
-                  </div>
-                </div>
-
-                {/* Info Text */}
-                <div className="space-y-1">
-                  <h4 className="font-extrabold text-sm text-slate-900">Genesis Auditor</h4>
-                  <p className="text-[10px] text-slate-500 leading-normal max-w-[160px] mx-auto">
-                    {isUnlocked ? 'Protocol pioneer credential verified' : 'Complete 1+ job to unlock this badge'}
-                  </p>
-                </div>
-
-                {/* Footer Tag */}
-                <div className={`w-full pt-4 border-t border-dashed ${isUnlocked ? 'border-purple-200/60' : 'border-slate-150'}`}>
-                  <span className={`text-[9px] font-mono font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${
-                    isUnlocked 
-                      ? 'bg-purple-100/50 border-purple-200 text-purple-800' 
-                      : 'bg-slate-50 border-slate-100 text-slate-500'
-                  }`}>
-                    1+ JOB REQUIRED
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })()}
-
-          {/* Badge 2 - Escrow Master */}
-          {(() => {
-            const isUnlocked = reputationCount >= 4;
-            return (
-              <motion.div 
-                whileHover={{ y: -6, scale: 1.01 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className={`rounded-3xl p-5 text-center flex flex-col justify-between items-center relative overflow-hidden shadow-xs h-[325px] transition-all border ${
-                  isUnlocked 
-                    ? 'bg-indigo-50/20 border-indigo-400/80 shadow-indigo-50' 
-                    : 'bg-white border-slate-200/60 shadow-slate-50/50'
-                }`}
-              >
-                {isUnlocked && (
-                  <div className="absolute top-3.5 right-3.5 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-xs">
-                    <Check size={11} className="stroke-[3]" />
-                  </div>
-                )}
-
-                {/* Status Pill */}
-                <div className={`flex items-center gap-1.5 px-3 py-1 border rounded-full text-[9px] font-mono font-bold ${
-                  isUnlocked 
-                    ? 'bg-indigo-100/60 border-indigo-200 text-indigo-800' 
-                    : 'bg-slate-50 border-slate-100 text-slate-500'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isUnlocked ? 'bg-indigo-600' : 'bg-slate-400'}`} />
-                  <span>{isUnlocked ? 'ACHIEVED' : 'LOCKED'}</span>
-                </div>
-
-                {/* Center graphic container */}
-                <div className="relative w-28 h-28 flex items-center justify-center mt-4 mb-2">
-                  <div className={`absolute inset-0 rounded-full border border-dashed ${isUnlocked ? 'border-indigo-200' : 'border-slate-100'}`} />
-                  <div className={`absolute inset-3 rounded-full border ${isUnlocked ? 'border-indigo-100 bg-indigo-50/40' : 'border-slate-100 bg-slate-50/50'}`} />
-                  <div className={`absolute inset-6 rounded-full flex items-center justify-center shadow-xs ${
-                    isUnlocked ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-400'
-                  }`}>
-                    {isUnlocked ? <ShieldCheck size={20} className="stroke-[2.5]" /> : <Lock size={18} className="stroke-[2.5]" />}
-                  </div>
-                </div>
-
-                {/* Info Text */}
-                <div className="space-y-1">
-                  <h4 className="font-extrabold text-sm text-slate-900">Escrow Master</h4>
-                  <p className="text-[10px] text-slate-500 leading-normal max-w-[160px] mx-auto">
-                    {isUnlocked ? 'Escrow expert status validated' : 'Complete 4+ jobs to unlock this badge'}
-                  </p>
-                </div>
-
-                {/* Footer Tag */}
-                <div className={`w-full pt-4 border-t border-dashed ${isUnlocked ? 'border-indigo-200/60' : 'border-slate-150'}`}>
-                  <span className={`text-[9px] font-mono font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${
-                    isUnlocked 
-                      ? 'bg-indigo-100/50 border-indigo-200 text-indigo-800' 
-                      : 'bg-slate-50 border-slate-100 text-slate-500'
-                  }`}>
-                    4+ JOBS REQUIRED
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })()}
-
-          {/* Badge 3 - Oracle Tier */}
-          {(() => {
-            const isUnlocked = userRankIndex !== -1 && (userRankIndex + 1) <= 10;
-            return (
-              <motion.div 
-                whileHover={{ y: -6, scale: 1.01 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className={`rounded-3xl p-5 text-center flex flex-col justify-between items-center relative overflow-hidden shadow-xs h-[325px] transition-all border ${
-                  isUnlocked 
-                    ? 'bg-emerald-50/20 border-emerald-400 shadow-emerald-50' 
-                    : 'bg-white border-slate-200/60 shadow-slate-50/50'
-                }`}
-              >
-                {isUnlocked && (
-                  <div className="absolute top-3.5 right-3.5 w-5 h-5 bg-emerald-600 rounded-full flex items-center justify-center text-white shadow-xs">
-                    <Check size={11} className="stroke-[3]" />
-                  </div>
-                )}
-
-                {/* Status Pill */}
-                <div className={`flex items-center gap-1.5 px-3 py-1 border rounded-full text-[9px] font-mono font-bold ${
-                  isUnlocked 
-                    ? 'bg-emerald-100 border-emerald-200 text-emerald-800' 
-                    : 'bg-slate-50 border-slate-100 text-slate-500'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isUnlocked ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                  <span>{isUnlocked ? 'ACHIEVED' : 'LOCKED'}</span>
-                </div>
-
-                {/* Center graphic container */}
-                <div className="relative w-28 h-28 flex items-center justify-center mt-4 mb-2">
-                  {isUnlocked && (
-                    <>
-                      <span className="absolute top-4 left-2 text-emerald-400/50 text-[10px] font-bold">+</span>
-                      <span className="absolute bottom-6 right-2 text-emerald-400/50 text-[10px] font-bold">+</span>
-                    </>
-                  )}
-                  <div className={`absolute inset-0 rounded-full border border-dashed ${isUnlocked ? 'border-emerald-200' : 'border-slate-100'}`} />
-                  <div className={`absolute inset-3 rounded-full border ${isUnlocked ? 'border-emerald-100 bg-emerald-50/40' : 'border-slate-100 bg-slate-50/50'}`} />
-                  <div className={`absolute inset-6 rounded-full flex items-center justify-center shadow-xs ${
-                    isUnlocked ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-400'
-                  }`}>
-                    {isUnlocked ? <Star size={20} className="text-white fill-white stroke-[2]" /> : <Lock size={18} className="stroke-[2.5]" />}
-                  </div>
-                </div>
-
-                {/* Info Text */}
-                <div className="space-y-1">
-                  <h4 className="font-extrabold text-sm text-slate-900">Oracle Tier</h4>
-                  <p className="text-[10px] text-slate-500 leading-normal max-w-[160px] mx-auto">
-                    {isUnlocked ? 'Oracle status successfully active' : 'Be in top 10 rank to unlock this badge'}
-                  </p>
-                </div>
-
-                {/* Footer Tag */}
-                <div className={`w-full pt-4 border-t border-dashed ${isUnlocked ? 'border-emerald-200/60' : 'border-slate-150'}`}>
-                  <span className={`text-[9px] font-mono font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${
-                    isUnlocked 
-                      ? 'bg-emerald-100 border-emerald-200 text-emerald-800' 
-                      : 'bg-slate-50 border-slate-100 text-slate-500'
-                  }`}>
-                    ORACLE STATUS ACTIVE
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })()}
-
-          {/* Badge 4 - Identity Verified */}
-          {(() => {
-            const isUnlocked = userProfile?.githubVerified === true;
-            return (
-              <motion.div 
-                whileHover={{ y: -6, scale: 1.01 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className={`rounded-3xl p-5 text-center flex flex-col justify-between items-center relative overflow-hidden shadow-xs h-[325px] transition-all border ${
-                  isUnlocked 
-                    ? 'bg-blue-50/20 border-blue-400 shadow-blue-50' 
-                    : 'bg-white border-slate-200/60 shadow-slate-50/50'
-                }`}
-              >
-                {isUnlocked && (
-                  <div className="absolute top-3.5 right-3.5 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xs">
-                    <Check size={11} className="stroke-[3]" />
-                  </div>
-                )}
-
-                {/* Status Pill */}
-                <div className={`flex items-center gap-1.5 px-3 py-1 border rounded-full text-[9px] font-mono font-bold ${
-                  isUnlocked 
-                    ? 'bg-blue-100 border-blue-200 text-blue-800' 
-                    : 'bg-slate-50 border-slate-100 text-slate-500'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isUnlocked ? 'bg-blue-500' : 'bg-slate-400'}`} />
-                  <span>{isUnlocked ? 'VERIFIED' : 'LOCKED'}</span>
-                </div>
-
-                {/* Center graphic container */}
-                <div className="relative w-28 h-28 flex items-center justify-center mt-4 mb-2">
-                  {isUnlocked && (
-                    <>
-                      <span className="absolute top-8 left-1 text-blue-400/50 text-[10px] font-bold">+</span>
-                      <span className="absolute bottom-8 right-1 text-blue-400/50 text-[10px] font-bold">+</span>
-                    </>
-                  )}
-                  <div className={`absolute inset-0 rounded-full border border-dashed ${isUnlocked ? 'border-blue-200' : 'border-slate-100'}`} />
-                  <div className={`absolute inset-3 rounded-full border ${isUnlocked ? 'border-blue-100 bg-blue-50/40' : 'border-slate-100 bg-slate-50/50'}`} />
-                  <div className={`absolute inset-6 rounded-full flex items-center justify-center shadow-xs ${
-                    isUnlocked ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-400'
-                  }`}>
-                    {isUnlocked ? (
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                      </svg>
                     ) : (
-                      <Lock size={18} className="stroke-[2.5]" />
+                      <span className="text-slate-400 font-bold">{row.rank}</span>
                     )}
-                  </div>
-                </div>
-
-                {/* Info Text */}
-                <div className="space-y-1">
-                  <h4 className="font-extrabold text-sm text-slate-900">Identity Verified</h4>
-                  <p className="text-[10px] text-slate-500 leading-normal max-w-[160px] mx-auto">
-                    {isUnlocked ? 'GitHub identity successfully verified' : 'Link GitHub account to verify identity'}
-                  </p>
-                </div>
-
-                {/* Footer Tag */}
-                <div className={`w-full pt-4 border-t border-dashed ${isUnlocked ? 'border-blue-200/60' : 'border-slate-150'}`}>
-                  <span className={`text-[9px] font-mono font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${
-                    isUnlocked 
-                      ? 'bg-blue-100 border-blue-200 text-blue-800' 
-                      : 'bg-slate-50 border-slate-100 text-slate-500'
-                  }`}>
-                    GITHUB ATTESTATION
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })()}
-        </div>
-
-        {/* Center Bottom Attestation Info banner */}
-        <div className="bg-indigo-50/50 border border-indigo-100/50 rounded-2xl p-3 flex items-center justify-center gap-2 text-xs font-mono font-bold text-indigo-950 mt-4">
-          <svg className="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          <span>All achievements are soulbound and verifiable on-chain.</span>
+                  </td>
+                  
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      {row.address ? (
+                        <Link to={`/profile/${row.address}`} className="relative shrink-0 hover:opacity-90 transition-opacity">
+                          <img
+                            src={row.avatar}
+                            alt={row.name}
+                            className={`w-9 h-9 rounded-full object-cover border ${
+                              row.isUser ? 'border-purple-300 ring-2 ring-purple-100' : 'border-slate-200'
+                            }`}
+                          />
+                        </Link>
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 text-slate-400 font-bold">
+                          ?
+                        </div>
+                      )}
+                      
+                      <div>
+                        {row.address ? (
+                          <Link to={`/profile/${row.address}`} className="font-bold text-slate-900 hover:text-purple-700 hover:underline">
+                            {row.name}
+                          </Link>
+                        ) : (
+                          <span className="font-bold text-slate-500">Open Spot</span>
+                        )}
+                        <span className="text-[10px] text-slate-450 font-mono block mt-0.5">
+                          {row.address ? `${row.address.slice(0, 8)}...${row.address.slice(-6)}` : '0x0000...0000'}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  
+                  <td className="px-4 py-3">
+                    {getRoleBadge(row.role)}
+                  </td>
+                  
+                  <td className="px-4 py-3 text-center font-mono font-bold text-slate-800">
+                    {row.successRate}
+                  </td>
+                  
+                  <td className="px-4 py-3 text-center font-mono font-black text-emerald-600">
+                    {row.earnings}
+                  </td>
+                  
+                  <td className="px-4 py-3 text-right font-mono font-black text-purple-650 pr-6">
+                    {row.points} pts
+                  </td>
+                </tr>
+              ))}
+              
+              {leaderboardData.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400 font-mono font-medium">
+                    No verified freelancers found on the leaderboard.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </motion.section>
     </motion.div>

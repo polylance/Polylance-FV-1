@@ -447,11 +447,11 @@ export const JobDetail: React.FC = () => {
             <div className="space-y-1">
               <div className="flex items-baseline gap-2">
                 <span className="font-headline text-3xl font-extrabold text-slate-900">
-                  {parseFloat(job.tokenAmount || job.amountUsdc).toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                  {parseFloat(job.amountUsdc).toLocaleString(undefined, { maximumFractionDigits: 6 })}
                 </span>
-                <span className="font-headline text-base font-bold text-purple-700">{job.paymentToken || 'USDC'}</span>
+                <span className="font-headline text-base font-bold text-purple-700">{job.paymentTokenSymbol || 'USDC'}</span>
               </div>
-              {job.paymentToken && job.paymentToken !== 'USDC' && (
+              {job.paymentTokenSymbol && job.paymentTokenSymbol !== 'USDC' && (
                 <span className="text-[10px] text-slate-500 font-mono block">
                   ≈ ${parseFloat(job.amountUsdc).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
                 </span>

@@ -22,7 +22,7 @@ import {
   Coins
 } from 'lucide-react';
 import { generateIpfsCid } from '../utils/ipfs';
-import { SUPPORTED_FIAT, SUPPORTED_CRYPTO, convertCryptoToFiat, getActiveRates } from '../utils/currency';
+import { SUPPORTED_FIAT, SUPPORTED_CRYPTO, getActiveRates } from '../utils/currency';
 
 export const PostJob: React.FC = () => {
   const { address, isConnected, connectWallet } = useWeb3();
@@ -82,23 +82,24 @@ export const PostJob: React.FC = () => {
     const usdEquivalent = (parseFloat(tokenAmount) * tokenPriceUsd).toFixed(2);
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const descriptionCid = generateIpfsCid({ title, description, category, timestamp: Date.now() });
-      const newJob = postJob(
+    try {
+      const newJob = await postJob(
         {
           title,
           description,
           category,
           amountUsdc: usdEquivalent,
+          paymentTokenSymbol: selectedToken === 'POL' ? 'MATIC' : (selectedToken as any),
           reviewPeriodDays,
-          paymentToken: selectedToken,
-          tokenAmount: tokenAmount,
         },
         address
       );
       setIsSubmitting(false);
       navigate(`/jobs/${newJob.id}`);
-    }, 600);
+    } catch (err) {
+      console.error(err);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -406,7 +407,6 @@ export const PostJob: React.FC = () => {
 
         {/* Review Period Setting */}
         <div className="border-t border-slate-100 pt-8">
-
           {/* Review Window Column */}
           <div className="flex gap-4 items-start">
             <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 mt-1">
