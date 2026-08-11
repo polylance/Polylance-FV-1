@@ -42,7 +42,7 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/dashboard" element={isVisitor ? <Navigate to="/login" replace /> : <Dashboard />} />
         <Route path="/dao" element={isVisitor ? <Navigate to="/login" replace /> : <Dao />} />
         <Route path="/analytics" element={isVisitor ? <Navigate to="/login" replace /> : <Analytics />} />
-        <Route path="/jobs/post" element={currentRole === 'client' ? <PostJob /> : <Navigate to="/jobs" replace />} />
+        <Route path="/jobs/post" element={currentRole === 'client' || currentRole === 'admin' ? <PostJob /> : <Navigate to="/jobs" replace />} />
         <Route path="/judge" element={currentRole === 'judge' || currentRole === 'admin' ? <Judge /> : <Navigate to="/dashboard" replace />} />
         <Route path="/treasury" element={currentRole === 'admin' ? <Treasury /> : <Navigate to="/dashboard" replace />} />
         

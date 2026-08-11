@@ -165,7 +165,7 @@ export const Reputation: React.FC = () => {
     if (normalized.includes('solidity') || normalized.includes('architect')) {
       return (
         <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1 bg-amber-50/50 text-amber-700 border border-amber-200/50 font-mono tracking-wide">
-          <Star size={9.5} className="fill-amber-500/10 text-amber-550" /> {role}
+          <Star size={9.5} className="fill-amber-500/10 text-amber-500" /> {role}
         </span>
       );
     }
@@ -178,7 +178,7 @@ export const Reputation: React.FC = () => {
     }
     if (normalized.includes('devops') || normalized.includes('lead') || normalized.includes('backend')) {
       return (
-        <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1.5 bg-orange-50/50 text-orange-850 border border-orange-200/50 font-mono tracking-wide">
+        <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1.5 bg-orange-50/50 text-orange-800 border border-orange-200/50 font-mono tracking-wide">
           <span className="text-[10px] font-black font-mono text-orange-600">&gt;_</span> {role}
         </span>
       );
@@ -462,7 +462,7 @@ export const Reputation: React.FC = () => {
 
             {/* Breakdown item 4 */}
             <div className="bg-purple-50/15 border border-purple-100/60 p-3 rounded-xl flex items-center gap-3 transition-all duration-300 hover:shadow-3xs">
-              <div className="w-9 h-9 rounded-lg bg-purple-100/70 border border-purple-200 flex items-center justify-center text-purple-650 shrink-0 shadow-3xs">
+              <div className="w-9 h-9 rounded-lg bg-purple-100/70 border border-purple-200 flex items-center justify-center text-purple-600 shrink-0 shadow-3xs">
                 <Star size={16} className="stroke-[2.5] fill-purple-100 text-purple-700" />
               </div>
               <div className="flex-1 flex items-center justify-between gap-4">
@@ -692,7 +692,7 @@ export const Reputation: React.FC = () => {
                   <img
                     src={secondPlace.avatar}
                     alt={secondPlace.name}
-                    className="w-12 h-12 rounded-full border-2 border-slate-250 object-cover shadow-inner"
+                    className="w-12 h-12 rounded-full border-2 border-slate-200 object-cover shadow-inner"
                   />
                   <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-800 font-black text-[10px] border border-white shadow-xs font-mono">
                     2
@@ -720,15 +720,15 @@ export const Reputation: React.FC = () => {
 
             <div className="grid grid-cols-3 border-t border-slate-100 mt-4 pt-3 gap-2">
               <div>
-                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Score</span>
+                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Score</span>
                 <span className="font-mono text-xs font-black text-slate-900">{secondPlace.points}</span>
               </div>
               <div>
-                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Success</span>
+                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Success</span>
                 <span className="font-mono text-xs font-black text-slate-900">{secondPlace.successRate}</span>
               </div>
               <div>
-                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Earnings</span>
+                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Earnings</span>
                 <span className="font-mono text-xs font-black text-emerald-600">{secondPlace.earnings}</span>
               </div>
             </div>
@@ -737,7 +737,7 @@ export const Reputation: React.FC = () => {
           {/* Rank 1 (Gold) */}
           <motion.div 
             whileHover={{ y: -4 }}
-            className="relative group bg-slate-900 border border-slate-850 rounded-2xl p-5 text-center shadow-lg transition-all duration-300 flex flex-col justify-between order-1 md:order-2 border-t-4 border-t-amber-500 scale-102 z-10"
+            className="relative group bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center shadow-lg transition-all duration-300 flex flex-col justify-between order-1 md:order-2 border-t-4 border-t-amber-500 scale-102 z-10"
             style={{ boxShadow: '0 15px 35px -10px rgba(245,158,11,0.2)' }}
           >
             <div className="absolute top-3 right-3 flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/30 font-bold text-[11px] text-amber-400 font-mono shadow-xs">
@@ -770,7 +770,7 @@ export const Reputation: React.FC = () => {
                 ) : (
                   <span className="font-bold text-amber-500 block leading-tight">Open Spot</span>
                 )}
-                <p className="text-[9px] bg-amber-500/10 text-amber-450 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-amber-500/20">
+                <p className="text-[9px] bg-amber-500/10 text-amber-500 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-amber-500/20">
                   {firstPlace.role}
                 </p>
               </div>
@@ -825,7 +825,7 @@ export const Reputation: React.FC = () => {
                     {thirdPlace.name}
                   </Link>
                 ) : (
-                  <span className="font-bold text-slate-550 block leading-tight">Open Spot</span>
+                  <span className="font-bold text-slate-500 block leading-tight">Open Spot</span>
                 )}
                 <p className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-slate-200/40">
                   {thirdPlace.role}
@@ -835,15 +835,15 @@ export const Reputation: React.FC = () => {
 
             <div className="grid grid-cols-3 border-t border-slate-100 mt-4 pt-3 gap-2">
               <div>
-                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Score</span>
+                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Score</span>
                 <span className="font-mono text-xs font-black text-slate-900">{thirdPlace.points}</span>
               </div>
               <div>
-                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Success</span>
+                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Success</span>
                 <span className="font-mono text-xs font-black text-slate-900">{thirdPlace.successRate}</span>
               </div>
               <div>
-                <span className="text-[7.5px] text-slate-450 uppercase font-bold font-mono tracking-wide block">Earnings</span>
+                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Earnings</span>
                 <span className="font-mono text-xs font-black text-emerald-600">{thirdPlace.earnings}</span>
               </div>
             </div>
@@ -879,7 +879,7 @@ export const Reputation: React.FC = () => {
                         🥇 1
                       </span>
                     ) : row.rank === 2 ? (
-                      <span className="text-slate-450 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
+                      <span className="text-slate-400 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
                         🥈 2
                       </span>
                     ) : row.rank === 3 ? (
@@ -917,7 +917,7 @@ export const Reputation: React.FC = () => {
                         ) : (
                           <span className="font-bold text-slate-500">Open Spot</span>
                         )}
-                        <span className="text-[10px] text-slate-450 font-mono block mt-0.5">
+                        <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
                           {row.address ? `${row.address.slice(0, 8)}...${row.address.slice(-6)}` : '0x0000...0000'}
                         </span>
                       </div>
@@ -936,7 +936,7 @@ export const Reputation: React.FC = () => {
                     {row.earnings}
                   </td>
                   
-                  <td className="px-4 py-3 text-right font-mono font-black text-purple-650 pr-6">
+                  <td className="px-4 py-3 text-right font-mono font-black text-purple-600 pr-6">
                     {row.points} pts
                   </td>
                 </tr>

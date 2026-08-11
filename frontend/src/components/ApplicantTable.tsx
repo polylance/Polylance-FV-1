@@ -97,7 +97,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
             <h3 className="text-base font-extrabold text-slate-900 font-heading">
               Applicants ({applications.length})
             </h3>
-            <p className="text-xs text-slate-650 font-mono">
+            <p className="text-xs text-slate-600 font-mono">
               Sorted by relevance to job category: <span className="text-purple-750 font-bold uppercase">{category}</span>
             </p>
           </div>
@@ -212,7 +212,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                             <span className="text-slate-400 font-bold">/ 1000</span>
                             <CheckCircle2 size={13} className="text-emerald-600 ml-0.5" />
                           </div>
-                          <div className="text-[9.5px] text-slate-550 font-mono">
+                          <div className="text-[9.5px] text-slate-500 font-mono">
                             Category Match: <strong className="text-purple-900 capitalize font-bold">{category}</strong>
                           </div>
                           {/* Green Progress Bar */}
@@ -366,7 +366,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                               </div>
                               <div className="flex items-start gap-2 bg-purple-50/50 p-2.5 rounded-xl border border-purple-100 mt-2.5">
                                 <Award size={15} className="text-purple-600 shrink-0 mt-0.5" />
-                                <p className="text-[9.5px] text-slate-650 font-mono leading-relaxed">
+                                <p className="text-[9.5px] text-slate-600 font-mono leading-relaxed">
                                   {bio}
                                 </p>
                               </div>

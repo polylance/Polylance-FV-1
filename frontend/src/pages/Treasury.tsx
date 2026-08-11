@@ -437,7 +437,7 @@ export const Treasury: React.FC = () => {
                     <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md font-bold text-[10px]">
                       [LOG {log.timestamp}]
                     </span>
-                    <span className="text-slate-650 text-slate-600 font-medium font-sans">
+                    <span className="text-slate-600 text-slate-600 font-medium font-sans">
                       {log.text}
                     </span>
                   </div>

@@ -12,13 +12,24 @@ export const Dashboard: React.FC = () => {
   const { jobs, profiles, updateProfile } = usePolyLanceData();
   const navigate = useNavigate();
   
-  if (currentRole === 'judge') {
-    return <Navigate to="/judge" replace />;
-  }
+  // Add local state to toggle simulated sandbox role for Admin and Judge roles
+  const isAdminOrJudge = currentRole === 'admin' || currentRole === 'judge';
+  const [simulatedRole, setSimulatedRole] = React.useState<'client' | 'freelancer'>(
+    currentRole === 'client' ? 'client' : 'freelancer'
+  );
 
-  const userProfileKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
+  // Resolve simulated address for filtering statistics and jobs
+  const activeAddress = isAdminOrJudge
+    ? (simulatedRole === 'client'
+      ? (import.meta.env.VITE_CLIENT_ADDRESS || '0x9999888877776666555544443333222211110000')
+      : (import.meta.env.VITE_TESTER_ADDRESS || '0x3333444455556666777788889999000011112222'))
+    : address;
+
+  const isClientRole = isAdminOrJudge ? (simulatedRole === 'client') : (currentRole === 'client');
+
+  const userProfileKey = activeAddress ? Object.keys(profiles).find(k => k.toLowerCase() === activeAddress.toLowerCase()) : null;
   const userProfile = ((userProfileKey ? profiles[userProfileKey] : null) || {
-    displayName: address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Anonymous User',
+    displayName: activeAddress ? `${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}` : 'Anonymous User',
     bio: 'No biography has been written yet.',
     avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
     skills: [],
@@ -28,7 +39,7 @@ export const Dashboard: React.FC = () => {
   // Real-time GitHub sync on dashboard mount if verified
   useEffect(() => {
     if (userProfile.githubVerified && userProfile.githubUsername) {
-      scoreGithubUser(userProfile.githubUsername, address)
+      scoreGithubUser(userProfile.githubUsername, activeAddress)
         .then((res) => {
           if (res && res.primaryScore) {
             updateProfile({
@@ -36,22 +47,20 @@ export const Dashboard: React.FC = () => {
               secondaryScores: res.secondaryScores,
               languageBytes: res.languageBytes,
               verifiedAt: res.verifiedAt,
-            }, address);
+            }, activeAddress);
           }
         })
         .catch((err) => console.warn('Real-time background GitHub sync failed on dashboard:', err));
     }
-  }, [address, userProfile.githubUsername, userProfile.githubVerified]);
+  }, [activeAddress, userProfile.githubUsername, userProfile.githubVerified]);
 
-  const isClientRole = currentRole === 'client';
-
-  const myClientJobs = jobs.filter((j) => j.client.toLowerCase() === address.toLowerCase());
-  const myFreelancerJobs = jobs.filter((j) => j.freelancer?.toLowerCase() === address.toLowerCase());
+  const myClientJobs = jobs.filter((j) => j.client.toLowerCase() === activeAddress.toLowerCase());
+  const myFreelancerJobs = jobs.filter((j) => j.freelancer?.toLowerCase() === activeAddress.toLowerCase());
 
   // Collect all applications sent by this address across all jobs
   const myApplications = jobs.flatMap((j) =>
     j.applications
-      .filter((app) => app.applicant.toLowerCase() === address.toLowerCase())
+      .filter((app) => app.applicant.toLowerCase() === activeAddress.toLowerCase())
       .map((app) => ({ ...app, job: j }))
   );
 
@@ -78,7 +87,7 @@ export const Dashboard: React.FC = () => {
     })
     .sort((a, b) => b.points - a.points);
   
-  const myRankIdx = sortedProfiles.findIndex((p) => p.address.toLowerCase() === address.toLowerCase());
+  const myRankIdx = sortedProfiles.findIndex((p) => p.address.toLowerCase() === activeAddress.toLowerCase());
   const myRank = myRankIdx !== -1 ? myRankIdx + 1 : sortedProfiles.length + 1;
 
   // Dynamic unlocked badges
@@ -114,6 +123,43 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
+      {/* Sandbox Simulation Bar for Admin/Judge */}
+      {isAdminOrJudge && (
+        <div className="bg-purple-900 text-white p-4 rounded-3xl border border-purple-800 flex flex-wrap items-center justify-between gap-4 shadow-lg font-sans">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping shrink-0" />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider">Admin Sandbox Mode</p>
+              <p className="text-[10px] text-purple-200">Simulate client or developer perspective on this dashboard.</p>
+            </div>
+          </div>
+          <div className="flex bg-purple-950 p-1 rounded-xl border border-purple-800/80">
+            <button
+              type="button"
+              onClick={() => setSimulatedRole('client')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                simulatedRole === 'client'
+                  ? 'bg-purple-700 text-white shadow'
+                  : 'text-purple-300 hover:text-white'
+              }`}
+            >
+              Simulate Client
+            </button>
+            <button
+              type="button"
+              onClick={() => setSimulatedRole('freelancer')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                simulatedRole === 'freelancer'
+                  ? 'bg-purple-700 text-white shadow'
+                  : 'text-purple-300 hover:text-white'
+              }`}
+            >
+              Simulate Developer
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner with Role Context */}
       <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -533,7 +579,7 @@ export const Dashboard: React.FC = () => {
 
                 <div className="space-y-3 font-mono text-xs">
                   {unlockedBadges.length === 0 ? (
-                    <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-slate-550 font-sans">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-slate-500 font-sans">
                       <p className="font-extrabold text-slate-800">No SBTs Minted Yet</p>
                       <p className="mt-1 text-[10px] leading-relaxed">Complete your first job or link your GitHub profile to unlock your first dynamic badge attestation.</p>
                     </div>
@@ -546,7 +592,7 @@ export const Dashboard: React.FC = () => {
                             {badge.token}
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-650 leading-relaxed font-sans">{badge.desc}</p>
+                        <p className="text-[10px] text-slate-600 leading-relaxed font-sans">{badge.desc}</p>
                       </div>
                     ))
                   )}

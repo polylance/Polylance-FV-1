@@ -31,7 +31,7 @@ export const SUPPORTED_FIAT: FiatCurrency[] = [
 export const SUPPORTED_CRYPTO: CryptoToken[] = [
   { id: 'USDC', name: 'USD Coin', symbol: 'USDC', priceUsd: 1.0, color: 'text-blue-600 border-blue-200 bg-blue-50/50', iconBg: 'bg-blue-500' },
   { id: 'USDT', name: 'Tether', symbol: 'USDT', priceUsd: 1.0, color: 'text-emerald-600 border-emerald-200 bg-emerald-50/50', iconBg: 'bg-emerald-500' },
-  { id: 'ETH', name: 'Ethereum', symbol: 'ETH', priceUsd: 2800.0, color: 'text-indigo-650 border-indigo-200 bg-indigo-50/50', iconBg: 'bg-indigo-600' },
+  { id: 'ETH', name: 'Ethereum', symbol: 'ETH', priceUsd: 2800.0, color: 'text-indigo-600 border-indigo-200 bg-indigo-50/50', iconBg: 'bg-indigo-600' },
   { id: 'POL', name: 'Polygon', symbol: 'POL', priceUsd: 0.45, color: 'text-purple-600 border-purple-200 bg-purple-50/50', iconBg: 'bg-purple-600' },
   { id: 'BTC', name: 'Bitcoin', symbol: 'BTC', priceUsd: 68000.0, color: 'text-amber-600 border-amber-200 bg-amber-50/50', iconBg: 'bg-amber-500' }
 ];

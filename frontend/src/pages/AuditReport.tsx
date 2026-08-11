@@ -67,6 +67,10 @@ export const AuditReport: React.FC = () => {
       {/* CSS print overrides targeting clean A4 formatting */}
       <style>{`
         @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           body {
             background: white !important;
             padding: 0 !important;
@@ -82,6 +86,7 @@ export const AuditReport: React.FC = () => {
             margin: 0 !important;
             max-width: 100% !important;
             width: 100% !important;
+            overflow: visible !important;
           }
         }
       `}</style>
@@ -106,7 +111,7 @@ export const AuditReport: React.FC = () => {
       </div>
 
       {/* The Printable Certificate Sheet */}
-      <div className="audit-sheet shadow-2xl rounded-3xl border border-slate-200 bg-white p-8 sm:p-12 max-w-4xl mx-auto space-y-8 relative overflow-hidden">
+      <div className="audit-sheet shadow-2xl rounded-3xl border border-slate-200 bg-white p-8 sm:p-12 max-w-4xl mx-auto space-y-8 relative">
         
         {/* Certificate Watermark Stamp Background effect */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-purple-50 rounded-full blur-3xl opacity-40 -mr-20 -mt-20 pointer-events-none" />
@@ -174,7 +179,7 @@ export const AuditReport: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono">
           
           <div className="bg-white p-4 rounded-xl border border-slate-200 text-center space-y-1 shadow-sm">
-            <span className="text-slate-450 text-[9px] uppercase font-bold block">
+            <span className="text-slate-400 text-[9px] uppercase font-bold block">
               {isFreelancer ? 'Reputation Score' : 'Client Trust Index'}
             </span>
             <p className="text-xl font-black text-purple-800">
@@ -184,7 +189,7 @@ export const AuditReport: React.FC = () => {
           </div>
 
           <div className="bg-white p-4 rounded-xl border border-slate-200 text-center space-y-1 shadow-sm">
-            <span className="text-slate-450 text-[9px] uppercase font-bold block">
+            <span className="text-slate-400 text-[9px] uppercase font-bold block">
               {isFreelancer ? 'Volume Handled' : 'Volume Spent'}
             </span>
             <p className="text-xl font-black text-emerald-700">
@@ -194,7 +199,7 @@ export const AuditReport: React.FC = () => {
           </div>
 
           <div className="bg-white p-4 rounded-xl border border-slate-200 text-center space-y-1 shadow-sm">
-            <span className="text-slate-450 text-[9px] uppercase font-bold block">
+            <span className="text-slate-400 text-[9px] uppercase font-bold block">
               {isFreelancer ? 'Escrow Success Rate' : 'Contract Rehire Rate'}
             </span>
             <p className="text-xl font-black text-slate-900">
@@ -204,7 +209,7 @@ export const AuditReport: React.FC = () => {
           </div>
 
           <div className="bg-white p-4 rounded-xl border border-slate-200 text-center space-y-1 shadow-sm">
-            <span className="text-slate-450 text-[9px] uppercase font-bold block">
+            <span className="text-slate-400 text-[9px] uppercase font-bold block">
               {isFreelancer ? 'Completed Contracts' : 'Total Posted Escrows'}
             </span>
             <p className="text-xl font-black text-indigo-700">
@@ -307,8 +312,8 @@ export const AuditReport: React.FC = () => {
             {isFreelancer ? (
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs">
                 <div className="flex justify-between items-center text-[10px] pb-1 border-b border-slate-200">
-                  <span className="text-slate-450 uppercase font-bold">Language Index</span>
-                  <span className="text-slate-450 uppercase font-bold">Byte share</span>
+                  <span className="text-slate-400 uppercase font-bold">Language Index</span>
+                  <span className="text-slate-400 uppercase font-bold">Byte share</span>
                 </div>
                 
                 {profile?.languageBytes && Object.keys(profile.languageBytes).length > 0 ? (
@@ -342,8 +347,8 @@ export const AuditReport: React.FC = () => {
             ) : (
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs">
                 <div className="flex justify-between pb-1 border-b border-slate-200">
-                  <span className="text-slate-450 uppercase text-[10px] font-bold">SLA Category</span>
-                  <span className="text-slate-450 uppercase text-[10px] font-bold">Status Rating</span>
+                  <span className="text-slate-400 uppercase text-[10px] font-bold">SLA Category</span>
+                  <span className="text-slate-400 uppercase text-[10px] font-bold">Status Rating</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-bold text-slate-800">On-Time Milestones</span>
@@ -447,7 +452,7 @@ export const AuditReport: React.FC = () => {
 
           <div className="flex flex-col justify-end items-start md:items-end gap-3 md:text-right">
             <div>
-              <span className="text-slate-450 uppercase font-bold block">PolyLance Ledger Oracle Signature</span>
+              <span className="text-slate-400 uppercase font-bold block">PolyLance Ledger Oracle Signature</span>
               <p className="font-bold text-slate-800 break-all text-[9px] mt-1">{mockAuditHash}</p>
             </div>
             

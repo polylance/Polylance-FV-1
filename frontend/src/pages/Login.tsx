@@ -441,7 +441,7 @@ export const Login: React.FC = () => {
           <div className="flex items-center justify-center gap-6 pt-10 select-none max-w-lg mx-auto">
             <LaurelLeft />
             <span className="text-[11px] sm:text-xs text-slate-500 font-sans font-bold text-center tracking-wide leading-none">
-              Your reputation. Your freedom. Your future. <span className="text-purple-650 font-black">On-Chain.</span>
+              Your reputation. Your freedom. Your future. <span className="text-purple-600 font-black">On-Chain.</span>
             </span>
             <LaurelRight />
           </div>
@@ -468,7 +468,7 @@ export const Login: React.FC = () => {
               {/* Capsule lists */}
               <div className="flex justify-center pt-1.5">
                 <div className="inline-flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 px-4.5 py-1.5 border border-slate-200/60 bg-white/70 backdrop-blur-md rounded-full shadow-4xs text-[10px] sm:text-[11px] font-black text-slate-700 select-none">
-                  <span className="flex items-center gap-1"><Sparkles size={11} className="text-purple-650" /> Verified Talent</span>
+                  <span className="flex items-center gap-1"><Sparkles size={11} className="text-purple-600" /> Verified Talent</span>
                   <span className="text-slate-350">•</span>
                   <span>Smart Contracts</span>
                   <span className="text-slate-300">•</span>
@@ -517,8 +517,8 @@ export const Login: React.FC = () => {
             {/* Identity Footer */}
             <div className="flex items-center justify-center gap-2 select-none pt-4 text-[10.5px] sm:text-xs text-slate-500 font-sans font-medium text-center">
               <div className="w-1.5 h-1.5 rounded-full bg-purple-200" />
-              <ShieldCheck size={13.5} className="text-purple-650 fill-purple-100" />
-              <span>Your wallet. Your identity. Your reputation. <span className="text-purple-650 font-black">Fully on-chain.</span></span>
+              <ShieldCheck size={13.5} className="text-purple-600 fill-purple-100" />
+              <span>Your wallet. Your identity. Your reputation. <span className="text-purple-600 font-black">Fully on-chain.</span></span>
               <div className="w-1.5 h-1.5 rounded-full bg-purple-200" />
             </div>
           </div>

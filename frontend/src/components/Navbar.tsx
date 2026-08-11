@@ -391,7 +391,7 @@ export const Navbar: React.FC = () => {
                     to="/jobs"
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/jobs')
                         ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                        : 'text-slate-700 hover:text-slate-955 hover:bg-slate-100 font-semibold'
+                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
                       }`}
                   >
                     <Briefcase size={14} />
@@ -402,7 +402,7 @@ export const Navbar: React.FC = () => {
                     to="/reputation"
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/reputation')
                         ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                        : 'text-slate-700 hover:text-slate-955 hover:bg-slate-100 font-semibold'
+                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
                       }`}
                   >
                     <Award size={14} />
@@ -418,7 +418,7 @@ export const Navbar: React.FC = () => {
                         to="/jobs"
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/jobs') && !isActive('/jobs/post')
                             ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                            : 'text-slate-700 hover:text-slate-955 hover:bg-slate-100 font-semibold'
+                            : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
                           }`}
                       >
                         <Briefcase size={14} />
@@ -429,7 +429,7 @@ export const Navbar: React.FC = () => {
                         to="/reputation"
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/reputation')
                             ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                            : 'text-slate-700 hover:text-slate-955 hover:bg-slate-100 font-semibold'
+                            : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
                           }`}
                       >
                         <Award size={14} />
@@ -458,7 +458,7 @@ export const Navbar: React.FC = () => {
                       to="/dashboard"
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/dashboard')
                           ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                          : 'text-slate-700 hover:text-slate-955 hover:bg-slate-100 font-semibold'
+                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
                         }`}
                     >
                       <LayoutDashboard size={14} />
@@ -499,7 +499,7 @@ export const Navbar: React.FC = () => {
                     to="/dao"
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/dao')
                         ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                        : 'text-slate-700 hover:text-slate-955 hover:bg-slate-100 font-semibold'
+                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
                       }`}
                   >
                     <Award size={14} />
@@ -512,7 +512,7 @@ export const Navbar: React.FC = () => {
                       to="/chat"
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/chat')
                           ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                          : 'text-slate-700 hover:text-slate-955 hover:bg-slate-100 font-semibold'
+                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
                         }`}
                     >
                       <MessageSquare size={14} />
@@ -526,7 +526,7 @@ export const Navbar: React.FC = () => {
                       to="/analytics"
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive('/analytics')
                           ? 'bg-purple-700 text-white font-extrabold shadow-sm'
-                          : 'text-slate-700 hover:text-slate-955 hover:bg-slate-100 font-semibold'
+                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold'
                         }`}
                     >
                       <BarChart3 size={14} />
@@ -539,7 +539,7 @@ export const Navbar: React.FC = () => {
                     <div className="relative">
                       <button
                         onClick={() => setIsAdminDropdownOpen(!isAdminDropdownOpen)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-955 hover:bg-slate-100 flex items-center gap-1 cursor-pointer font-sans"
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-950 hover:bg-slate-100 flex items-center gap-1 cursor-pointer font-sans"
                       >
                         Admin Sandbox <ChevronDown size={14} />
                       </button>
@@ -548,7 +548,7 @@ export const Navbar: React.FC = () => {
                           <Link
                             to="/jobs/post"
                             onClick={() => setIsAdminDropdownOpen(false)}
-                            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-955"
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-950"
                           >
                             <PlusCircle size={14} className="text-indigo-600" />
                             Post Job Escrow
@@ -556,17 +556,17 @@ export const Navbar: React.FC = () => {
                           <Link
                             to="/dashboard"
                             onClick={() => setIsAdminDropdownOpen(false)}
-                            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-955"
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-950"
                           >
-                            <LayoutDashboard size={14} className="text-purple-650" />
+                            <LayoutDashboard size={14} className="text-purple-600" />
                             Client/Dev Dashboard
                           </Link>
                           <Link
                             to="/onboarding"
                             onClick={() => setIsAdminDropdownOpen(false)}
-                            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-955"
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-slate-950"
                           >
-                            <User size={14} className="text-purple-650" />
+                            <User size={14} className="text-purple-600" />
                             Edit Profile
                           </Link>
                         </div>
@@ -882,7 +882,7 @@ export const Navbar: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <Beaker size={16} className="text-purple-650 shrink-0 mt-0.5" />
+                        <Beaker size={16} className="text-purple-600 shrink-0 mt-0.5" />
                         <div className="text-left">
                           <p className="font-bold text-xs text-slate-900 leading-tight font-sans font-sans font-sans">Admin Sandbox</p>
                           <p className="text-[10px] text-slate-500 font-medium font-sans">Test and simulate features</p>

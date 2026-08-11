@@ -101,7 +101,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           >
             <div className="flex gap-3 items-start min-w-0">
               <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shadow-inner shrink-0 relative overflow-hidden">
-                <User size={18} className="text-purple-650" />
+                <User size={18} className="text-purple-600" />
               </div>
               <div className="min-w-0">
                 <span className="font-extrabold text-slate-900 text-xs sm:text-sm font-satoshi block">Freelancer</span>
@@ -135,7 +135,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           >
             <div className="flex gap-3 items-start min-w-0">
               <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-inner shrink-0 relative overflow-hidden">
-                <Briefcase size={16} className="text-blue-650" />
+                <Briefcase size={16} className="text-blue-600" />
               </div>
               <div className="min-w-0">
                 <span className="font-extrabold text-slate-900 text-xs sm:text-sm font-satoshi block">Client</span>
@@ -196,7 +196,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     {prov.name}
                   </span>
                 </div>
-                <ArrowRight size={9} className="text-slate-400 group-hover:text-purple-650 group-hover:translate-x-0.5 transition-all shrink-0" />
+                <ArrowRight size={9} className="text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all shrink-0" />
               </button>
             ))}
           </div>
@@ -215,12 +215,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             <span className="text-[7.5px] text-slate-500 block leading-tight font-sans mt-0.5">Transparent & Secure</span>
           </div>
           <div className="border-l border-slate-200">
-            <CheckCircle2 size={13.5} className="text-purple-650 mx-auto" />
+            <CheckCircle2 size={13.5} className="text-purple-600 mx-auto" />
             <span className="text-[9px] font-black text-slate-800 block mt-1">Verified Platform</span>
             <span className="text-[7.5px] text-slate-500 block leading-tight font-sans mt-0.5">Built for Trust</span>
           </div>
           <div className="border-l border-slate-200">
-            <Zap size={13.5} className="text-purple-650 mx-auto" />
+            <Zap size={13.5} className="text-purple-600 mx-auto" />
             <span className="text-[9px] font-black text-slate-800 block mt-1">Fair & Transparent</span>
             <span className="text-[7.5px] text-slate-500 block leading-tight font-sans mt-0.5">No Middlemen</span>
           </div>

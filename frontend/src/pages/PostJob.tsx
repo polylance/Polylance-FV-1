@@ -335,7 +335,7 @@ export const PostJob: React.FC = () => {
                       onChange={(e) => setFiatInputVal(e.target.value)}
                       className="w-full bg-transparent border-none text-slate-900 font-mono font-bold outline-none text-sm focus:ring-0"
                     />
-                    <span className="px-3 py-1 bg-slate-50 text-slate-650 rounded-lg text-xs font-extrabold font-mono">
+                    <span className="px-3 py-1 bg-slate-50 text-slate-600 rounded-lg text-xs font-extrabold font-mono">
                       {selectedFiat}
                     </span>
                   </div>

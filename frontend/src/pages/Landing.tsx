@@ -188,7 +188,7 @@ export const Landing: React.FC = () => {
           {/* Right Card: PolyLance Future of Freelancing */}
           <div className="md:col-span-5 glass-panel p-6 sm:p-8 border-purple-300 bg-purple-50/50 shadow-sm space-y-6 relative overflow-hidden ring-1 ring-purple-100">
             {/* Web3 badge on top-right */}
-            <span className="absolute top-3 right-3 bg-purple-650 bg-purple-600 text-white text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded border border-purple-500 flex items-center gap-1 shadow-2xs">
+            <span className="absolute top-3 right-3 bg-purple-600 bg-purple-600 text-white text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded border border-purple-500 flex items-center gap-1 shadow-2xs">
               <Sparkles size={8} /> Web3
             </span>
 
@@ -196,7 +196,7 @@ export const Landing: React.FC = () => {
               <PolyLanceLogo size={66} className="shrink-0" />
               <div>
                 <h3 className="font-headline text-lg font-black text-slate-900 leading-tight font-heading">PolyLance</h3>
-                <span className="text-[10px] font-mono text-purple-755 text-purple-700 font-bold uppercase">Future of Freelancing</span>
+                <span className="text-[10px] font-mono text-purple-700 text-purple-700 font-bold uppercase">Future of Freelancing</span>
               </div>
             </div>
 
@@ -309,7 +309,7 @@ export const Landing: React.FC = () => {
           </div>
 
           {/* Double Pill Attestation Spec Badge */}
-          <div className="border border-slate-250 bg-white/60 p-1 rounded-full flex items-center gap-2.5 shadow-3xs shrink-0 max-w-max self-start sm:self-center">
+          <div className="border border-slate-200 bg-white/60 p-1 rounded-full flex items-center gap-2.5 shadow-3xs shrink-0 max-w-max self-start sm:self-center">
             <span className="font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100/50 text-[10px] tracking-wide font-mono">
               EIP-5192
             </span>
@@ -669,7 +669,7 @@ export const Landing: React.FC = () => {
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between group hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
             <div className="space-y-1.5 text-left">
-              <span className="text-[10px] text-slate-450 font-bold uppercase font-mono tracking-wider">Total Jobs</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase font-mono tracking-wider">Total Jobs</span>
               <p className="text-3xl font-black text-slate-805 font-sans">{totalJobs}</p>
             </div>
             <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shadow-3xs">

@@ -31,13 +31,19 @@ export const Chat: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Filter jobs where the active user is a participant
+  // Filter jobs where the active user is a participant or has admin/judge sandbox permission
   const myChats = jobs.filter(j => {
     const lowerAddr = address.toLowerCase();
     const isClient = j.client.toLowerCase() === lowerAddr;
     const isFreelancer = j.freelancer?.toLowerCase() === lowerAddr;
     const isApplicant = j.applications.some(app => app.applicant.toLowerCase() === lowerAddr);
-    return isClient || isFreelancer || isApplicant;
+    
+    // Admins see all chats; Judges see all disputed chats to arbitrate
+    const isAdmin = currentRole === 'admin';
+    const isJudge = currentRole === 'judge';
+    const isDisputed = j.status === 'Disputed';
+
+    return isClient || isFreelancer || isApplicant || isAdmin || (isJudge && isDisputed);
   });
 
   // Default to the first conversation if none selected
@@ -153,7 +159,7 @@ export const Chat: React.FC = () => {
         <div className="lg:col-span-3 border-r border-slate-200 flex flex-col h-full bg-slate-50">
           <div className="p-4 border-b border-slate-200 bg-white space-y-3 shrink-0">
             <h3 className="font-headline text-sm font-black text-slate-800 flex items-center gap-1.5">
-              <MessageSquare size={16} className="text-purple-755 text-purple-700" /> Negotiation Channels
+              <MessageSquare size={16} className="text-purple-700 text-purple-700" /> Negotiation Channels
             </h3>
             
             <div className="relative">
@@ -274,10 +280,10 @@ export const Chat: React.FC = () => {
                     >
                       <div className={`max-w-md p-3.5 rounded-2xl border text-xs shadow-xs space-y-1.5 ${
                         isUser 
-                          ? 'bg-purple-755 bg-purple-700 text-white border-purple-800 rounded-tr-none' 
+                          ? 'bg-purple-700 bg-purple-700 text-white border-purple-800 rounded-tr-none' 
                           : 'bg-white text-slate-800 border-slate-200 rounded-tl-none font-sans font-medium'
                       }`}>
-                        <div className={`font-mono text-[9px] font-bold ${isUser ? 'text-purple-200' : 'text-slate-450'}`}>
+                        <div className={`font-mono text-[9px] font-bold ${isUser ? 'text-purple-200' : 'text-slate-400'}`}>
                           {msg.sender === 'Client' ? 'Client (Buyer)' : 'Developer (Contractor)'}
                         </div>
                         <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
@@ -330,7 +336,7 @@ export const Chat: React.FC = () => {
                 </span>
                 <div>
                   <h3 className="font-headline font-bold text-slate-900 text-sm line-clamp-2">{activeJob.title}</h3>
-                  <p className="text-[10px] font-mono text-slate-450 mt-1 capitalize">Category: {activeJob.category}</p>
+                  <p className="text-[10px] font-mono text-slate-400 mt-1 capitalize">Category: {activeJob.category}</p>
                 </div>
               </div>
 
@@ -353,7 +359,7 @@ export const Chat: React.FC = () => {
               </div>
 
               {/* Cryptographic Signature States */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-250 font-mono text-xs space-y-2">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs space-y-2">
                 <span className="text-[10px] text-slate-400 uppercase font-bold block">Terms Signature Status</span>
                 <div className="space-y-1.5 text-[11px]">
                   <div className="flex justify-between items-center">
@@ -451,7 +457,7 @@ export const Chat: React.FC = () => {
               <h4 className="font-headline font-black text-slate-900 text-sm">Submit Work Deliverables</h4>
               <button 
                 onClick={() => setIsSubmitModalOpen(false)}
-                className="text-slate-450 hover:text-slate-700 text-xs font-bold cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -497,7 +503,7 @@ export const Chat: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsSubmitModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-650 cursor-pointer bg-white"
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 cursor-pointer bg-white"
                 >
                   Cancel
                 </button>

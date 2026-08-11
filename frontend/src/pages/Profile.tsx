@@ -157,7 +157,7 @@ export const Profile: React.FC = () => {
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
                 <span className="text-[10px] text-slate-500 uppercase font-bold block">Reliability Score</span>
                 <p className="font-extrabold text-slate-900 text-xl">{reliabilityScore} / 10.0</p>
-                <span className="text-[10px] text-slate-650 font-bold tracking-tight">Based on {clientJobs.length} escrowed projects</span>
+                <span className="text-[10px] text-slate-600 font-bold tracking-tight">Based on {clientJobs.length} escrowed projects</span>
               </div>
             </div>
           </div>
@@ -663,7 +663,7 @@ export const Profile: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <div className="col-span-2 text-center py-6 text-slate-550 border border-dashed border-slate-300 rounded-xl bg-slate-50 font-sans">
+                <div className="col-span-2 text-center py-6 text-slate-500 border border-dashed border-slate-300 rounded-xl bg-slate-50 font-sans">
                   No Soulbound SBT Attestations minted yet.
                 </div>
               )}
@@ -712,7 +712,7 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
           <button
             onClick={() => setAuditType('freelancer')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              auditType === 'freelancer' ? 'bg-purple-755 bg-purple-700 text-white shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              auditType === 'freelancer' ? 'bg-purple-700 bg-purple-700 text-white shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Audit Freelancer
@@ -720,7 +720,7 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
           <button
             onClick={() => setAuditType('client')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              auditType === 'client' ? 'bg-indigo-755 bg-indigo-700 text-white shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              auditType === 'client' ? 'bg-indigo-700 bg-indigo-700 text-white shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Audit Client

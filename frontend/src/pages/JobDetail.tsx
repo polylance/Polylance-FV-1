@@ -164,7 +164,7 @@ export const JobDetail: React.FC = () => {
                   className="text-purple-700 font-extrabold hover:text-purple-900 hover:underline flex items-center gap-1"
                 >
                   <span>{clientDisplayName}</span>
-                  <span className="text-slate-450 font-normal">({truncateAddress(job.client)})</span>
+                  <span className="text-slate-400 font-normal">({truncateAddress(job.client)})</span>
                   <ExternalLink size={11} className="text-purple-500" />
                 </Link>
               </div>
@@ -176,7 +176,7 @@ export const JobDetail: React.FC = () => {
                     className="text-purple-700 font-extrabold hover:text-purple-900 hover:underline flex items-center gap-1"
                   >
                     <span>{freelancerDisplayName}</span>
-                    <span className="text-slate-450 font-normal">({truncateAddress(job.freelancer)})</span>
+                    <span className="text-slate-400 font-normal">({truncateAddress(job.freelancer)})</span>
                     <ExternalLink size={11} className="text-purple-500" />
                   </Link>
                 </div>

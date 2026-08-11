@@ -181,7 +181,7 @@ export const Analytics: React.FC = () => {
               <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <FileCode size={18} className="text-emerald-700" /> Safe Withdrawal & Ledger Analytics
               </h3>
-              <p className="text-xs text-slate-650 font-mono leading-relaxed">
+              <p className="text-xs text-slate-600 font-mono leading-relaxed">
                 As per the updated security policy, any disbursement of company funds from the treasury Safe requires approval of **{treasury?.requiredSignatures || 2}-of-{treasury?.signers?.length || 2}** of the multi-sig keys.
               </p>
               <div className="space-y-3 font-mono text-[11px]">

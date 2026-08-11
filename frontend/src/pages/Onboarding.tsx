@@ -415,21 +415,21 @@ export const Onboarding: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80" alt="Preset Building 1" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=150&auto=format&fit=crop&q=80" alt="Preset Logo 2" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80" alt="Preset Office 3" className="w-full h-full object-cover" />
                           </button>
@@ -439,21 +439,21 @@ export const Onboarding: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 1" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 2" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-650 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 3" className="w-full h-full object-cover" />
                           </button>
