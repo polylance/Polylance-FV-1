@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LOGO_CONFIG } from '../config/logoConfig';
-import defaultLogo from '../assets/polylance_logo.png';
+import defaultLogo from '../assets/polylanceLogo.png';
 
 interface PolyLanceLogoProps {
   size?: number;
