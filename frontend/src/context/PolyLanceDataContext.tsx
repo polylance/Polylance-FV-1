@@ -62,53 +62,37 @@ const PolyLanceDataContext = createContext<PolyLanceDataContextType | undefined>
 
 const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<string, UserProfile> => {
   const normalized: Record<string, UserProfile> = {};
+  
   const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
-  const judgeGithub = import.meta.env.VITE_JUDGE_GITHUB_USERNAME || 'sunny200551';
+  const adminAddr1 = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase();
+  const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A').toLowerCase();
+  const adminAddr3 = '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1';
 
   for (const [addr, profile] of Object.entries(rawProfiles)) {
     if (!addr) continue;
     const lowerAddr = addr.toLowerCase();
 
-    // Copy profile data, but if this is NOT the judge address and it has the judge's GitHub username, unbind it
-    let cleanedProfile = { ...profile };
-    if (lowerAddr !== judgeAddr && cleanedProfile.githubUsername?.toLowerCase() === judgeGithub.toLowerCase()) {
+    let cleanedProfile = { ...profile, address: lowerAddr };
+    const isAdminOrJudge = lowerAddr === judgeAddr || lowerAddr === adminAddr1 || lowerAddr === adminAddr2 || lowerAddr === adminAddr3;
+    
+    if (isAdminOrJudge) {
+      // Security rule: Remove any linked github accounts from admins and judges in real-time production
       delete cleanedProfile.githubUsername;
       cleanedProfile.githubVerified = false;
+      cleanedProfile.primaryScore = 0;
     }
 
     const existing = normalized[lowerAddr];
     if (!existing) {
-      normalized[lowerAddr] = { ...cleanedProfile, address: lowerAddr };
+      normalized[lowerAddr] = cleanedProfile;
     } else {
       const selectNewer = (!existing.displayName && cleanedProfile.displayName) ||
         (!existing.githubVerified && cleanedProfile.githubVerified) ||
         (cleanedProfile.displayName && existing.displayName && cleanedProfile.displayName !== 'Anonymous PolyLancer' && existing.displayName === 'Anonymous PolyLancer');
       if (selectNewer) {
-        normalized[lowerAddr] = { ...cleanedProfile, address: lowerAddr };
+        normalized[lowerAddr] = cleanedProfile;
       }
     }
-  }
-
-  // Ensure judge profile is initialized and linked with the target GitHub username
-  if (!normalized[judgeAddr]) {
-    normalized[judgeAddr] = {
-      address: judgeAddr,
-      displayName: 'Protocol Judge',
-      bio: 'Official PolyLance Lead Arbitrator & DAO Verifier.',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      ipfsHash: 'QmJudgeProfileDataHashPlaceholder',
-      skills: ['Arbitration', 'Smart Contracts', 'Security Audit', 'Solidity'],
-      githubUsername: judgeGithub,
-      githubVerified: true,
-      primaryScore: 850,
-      reputationSbtCount: 12,
-    };
-  } else {
-    normalized[judgeAddr] = {
-      ...normalized[judgeAddr],
-      githubUsername: judgeGithub,
-      githubVerified: true,
-    };
   }
 
   return normalized;
