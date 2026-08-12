@@ -1,0 +1,29 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model ConversationKeyRegistry {
+  jobAddress                String   @id
+  clientAddress             String
+  freelancerAddress         String
+  encryptedKeyForClient     String
+  encryptedKeyForFreelancer String
+  deletionEligible          Boolean  @default(false)
+  keyShredded               Boolean  @default(false)
+  createdAt                 DateTime @default(now())
+}
+
+model MessageIndex {
+  id            String   @id @default(uuid())
+  jobAddress    String
+  messageCid    String
+  senderAddress String
+  sentAt        DateTime @default(now())
+
+  @@index([jobAddress])
+}

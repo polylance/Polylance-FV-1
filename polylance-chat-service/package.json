@@ -1,0 +1,35 @@
+{
+  "name": "polylance-chat-service",
+  "version": "1.0.0",
+  "description": "PolyLance Persistent Purge-Eligible Escrow Chat Microservice",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc && prisma generate",
+    "start": "node dist/server.js",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate dev --name init_postgres",
+    "db:generate": "prisma generate",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.3.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "eth-crypto": "^2.6.0",
+    "ethers": "^6.13.5",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.1",
+    "prisma": "^6.3.1",
+    "socket.io-client": "^4.8.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}
