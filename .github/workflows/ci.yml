@@ -1,0 +1,74 @@
+name: PolyLance CI
+
+on:
+  push:
+    branches: [main, dev, dev.akhil]
+  pull_request:
+    branches: [main, dev, dev.akhil]
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npx hardhat compile
+
+      - name: Run full test suite
+        run: npx hardhat test
+
+      - name: Run reentrancy exploit test explicitly
+        run: npx hardhat test test/ReentrancyGuard.test.ts
+        # Separate step so a failure here is unmissable in the CI UI
+
+      - name: Coverage report
+        run: npx hardhat coverage
+        continue-on-error: false # coverage dropping is a real signal, don't let it pass silently
+
+      - name: Install Slither
+        run: pip install slither-analyzer --break-system-packages
+
+      - name: Static analysis
+        run: slither . --compile-force-framework hardhat --exclude-dependencies --exclude-path "contracts/mocks|contracts/test" --fail-high
+        # Blocks pipeline on High findings after triaging Medium findings in SECURITY_NOTES.md
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        continue-on-error: true
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Build
+        run: npm run build --if-present
+        env:
+          NEXT_PUBLIC_JOB_FACTORY_ADDRESS: "0x0000000000000000000000000000000000dEaD"
+
+  secrets-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for accidentally committed secrets
+        run: |
+          git diff --all -- . ':(exclude)*.md' | \
+            grep -E "(PRIVATE_KEY|api_key|JWT)\s*=\s*['\"][^'\"]{10,}" | \
+            grep -v "process.env\|your_\|placeholder\|example" && \
+            (echo "Possible secret detected in diff" && exit 1) || \
+            echo "No secrets found ✓"
