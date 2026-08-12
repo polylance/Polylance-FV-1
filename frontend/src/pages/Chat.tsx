@@ -32,6 +32,7 @@ export const Chat: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedAddr, setCopiedAddr] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   
   // Interactive submission modal inside chat
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
@@ -111,12 +112,22 @@ export const Chat: React.FC = () => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    if (isAdmin && chatTab === 'judges' && selectedJudgeAddr) {
-      sendJudgeChatMessage(selectedJudgeAddr, inputText, 'Admin', address);
+    if (chatTab === 'judges' && selectedJudgeAddr) {
+      const senderRole = isAdmin ? 'Admin' : 'Judge';
+      sendJudgeChatMessage(selectedJudgeAddr, inputText, senderRole, address);
       setInputText('');
     } else if (activeJob) {
       const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase();
-      const senderRole = isAdmin ? 'Judge' : (isClient ? 'Client' : 'Freelancer');
+      const isFreelancer = activeJob.freelancer?.toLowerCase() === (address || '').toLowerCase();
+      
+      let senderRole: 'Client' | 'Freelancer' | 'Judge' = 'Judge';
+      if (isClient) {
+        senderRole = 'Client';
+      } else if (isFreelancer) {
+        senderRole = 'Freelancer';
+      } else if (isAdmin || isJudgeRole) {
+        senderRole = 'Judge';
+      }
       sendChatMessage(activeJob.id, inputText, senderRole);
       setInputText('');
     }
@@ -164,10 +175,15 @@ export const Chat: React.FC = () => {
   };
 
   // Filters
-  const filteredJudges = judges.filter((j: JudgeRecord) =>
-    j.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    j.address.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredJudges = judges.filter((j: JudgeRecord) => {
+    const matchesSearch = j.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          j.address.toLowerCase().includes(searchQuery.toLowerCase());
+    if (isAdmin) return matchesSearch;
+    if (isJudgeRole) {
+      return j.address.toLowerCase() === (address || '').toLowerCase() && matchesSearch;
+    }
+    return false;
+  });
 
   const filteredChats = myChats.filter(j => 
     j.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -463,13 +479,13 @@ export const Chat: React.FC = () => {
                     { id: '3', judgeAddress: activeJudge.address, sender: 'Admin', senderRole: 'Admin', text: 'Please review the escrow details.', timestamp: Date.now() - 180000 },
                     { id: '4', judgeAddress: activeJudge.address, sender: activeJudge.address, senderRole: 'Judge', text: "Sure, I'll check and get back to you.", timestamp: Date.now() - 120000 },
                   ]).map((msg: JudgeMessage) => {
-                    const isMe = msg.senderRole === 'Admin';
+                    const isMe = isAdmin ? msg.senderRole === 'Admin' : msg.senderRole === 'Judge';
 
                     return (
                       <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-start gap-2.5`}>
                         {!isMe && (
                           <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0 uppercase shadow-xs mt-1">
-                            {activeJudge.name.slice(0, 2)}
+                            {isAdmin ? activeJudge.name.slice(0, 2) : 'AD'}
                           </div>
                         )}
                         <div className="max-w-md space-y-1">
@@ -516,9 +532,32 @@ export const Chat: React.FC = () => {
                         onChange={(e) => setInputText(e.target.value)}
                         className="w-full bg-transparent border-none outline-none text-xs font-semibold px-2 py-1.5 text-slate-800 placeholder-slate-400"
                       />
-                      <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
-                        <Smile size={16} />
-                      </button>
+                      <div className="relative">
+                        <button 
+                          type="button" 
+                          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                          className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer flex items-center justify-center"
+                        >
+                          <Smile size={16} />
+                        </button>
+                        {showEmojiPicker && (
+                          <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 grid grid-cols-6 gap-1 w-48 font-sans">
+                            {['👍', '❤️', '😂', '🎉', '🔥', '🚀', '💻', '💡', '👏', '👀', '💬', '💯'].map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => {
+                                  setInputText(prev => prev + emoji);
+                                  setShowEmojiPicker(false);
+                                }}
+                                className="text-base p-1 hover:bg-slate-100 rounded-md transition-colors text-center cursor-pointer"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <button
@@ -590,8 +629,21 @@ export const Chat: React.FC = () => {
                     { sender: 'Client' as const, text: 'Welcome! Let us coordinate milestone specifications and delivery targets.', timestamp: activeJob.createdAt || Date.now() - 3600000 }
                   ]).map((msg, index) => {
                     const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase();
-                    const isUser = msg.sender === (isClient ? 'Client' : 'Freelancer') || (isAdmin && msg.sender === 'Judge');
-                    const isSystem = msg.sender === 'Judge' && !isAdmin;
+                    const isFreelancer = activeJob.freelancer?.toLowerCase() === (address || '').toLowerCase();
+                    
+                    const isSystem = msg.sender === 'Judge' && (
+                      msg.text.startsWith('🔒') || 
+                      msg.text.startsWith('💰') || 
+                      msg.text.startsWith('🎉') || 
+                      msg.text.startsWith('⚠️') || 
+                      msg.text.startsWith('🚀')
+                    );
+
+                    const isUser = !isSystem && (
+                      (isClient && msg.sender === 'Client') ||
+                      (isFreelancer && msg.sender === 'Freelancer') ||
+                      ((isAdmin || isJudgeRole) && msg.sender === 'Judge')
+                    );
 
                     if (isSystem) {
                       return (
@@ -651,9 +703,32 @@ export const Chat: React.FC = () => {
                         onChange={(e) => setInputText(e.target.value)}
                         className="w-full bg-transparent border-none outline-none text-xs font-semibold px-2 py-1.5 text-slate-800 placeholder-slate-400"
                       />
-                      <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
-                        <Smile size={16} />
-                      </button>
+                      <div className="relative">
+                        <button 
+                          type="button" 
+                          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                          className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer flex items-center justify-center"
+                        >
+                          <Smile size={16} />
+                        </button>
+                        {showEmojiPicker && (
+                          <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 grid grid-cols-6 gap-1 w-48 font-sans">
+                            {['👍', '❤️', '😂', '🎉', '🔥', '🚀', '💻', '💡', '👏', '👀', '💬', '💯'].map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => {
+                                  setInputText(prev => prev + emoji);
+                                  setShowEmojiPicker(false);
+                                }}
+                                className="text-base p-1 hover:bg-slate-100 rounded-md transition-colors text-center cursor-pointer"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <button

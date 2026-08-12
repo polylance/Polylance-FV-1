@@ -67,7 +67,8 @@ export const Reputation: React.FC = () => {
   const leaderboardData = Object.values(profiles)
     .filter((profile) => {
       const lower = profile.address.toLowerCase();
-      return lower !== judgeAddr && lower !== adminAddr1 && lower !== adminAddr2 && lower !== adminAddr3 && lower !== clientAddr;
+      // Only exclude standard clients who are not admin or judge
+      return lower !== clientAddr;
     })
     .map((profile) => {
       const isYou = profile.address.toLowerCase() === address?.toLowerCase();
@@ -114,7 +115,7 @@ export const Reputation: React.FC = () => {
       };
     })
     .concat(
-      address && currentRole === 'freelancer' && !Object.keys(profiles).some(k => k.toLowerCase() === address.toLowerCase())
+      address && (currentRole === 'freelancer' || currentRole === 'admin' || currentRole === 'judge') && !Object.keys(profiles).some(k => k.toLowerCase() === address.toLowerCase())
         ? [
             {
               rank: 0,

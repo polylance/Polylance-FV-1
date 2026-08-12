@@ -200,8 +200,8 @@ export const Navbar: React.FC = () => {
                   </NavLink>
                 )}
 
-                {/* For non-admin roles, show Find Jobs & SBT Leaderboard on top bar */}
-                {currentRole !== 'admin' && (
+                {/* For non-admin, non-client roles, show Find Jobs & SBT Leaderboard on top bar */}
+                {currentRole !== 'admin' && currentRole !== 'client' && (
                   <>
                     <NavLink to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post')}>
                       <Briefcase size={13} />Find Jobs
@@ -281,7 +281,15 @@ export const Navbar: React.FC = () => {
                           <>
                             <DropdownLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMoreOpen(false)} />
                             <DropdownLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMoreOpen(false)} />
+                            <DropdownLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMoreOpen(false)} />
                             <DropdownLink to="/judge" icon={<Scale size={14} />} label="Judge Panel" onClick={() => setIsMoreOpen(false)} />
+                            <div className="border-t border-slate-100/80 my-1" />
+                          </>
+                        )}
+                        {/* Judge specific extra options in More dropdown */}
+                        {currentRole === 'judge' && (
+                          <>
+                            <DropdownLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMoreOpen(false)} />
                             <div className="border-t border-slate-100/80 my-1" />
                           </>
                         )}
@@ -426,11 +434,17 @@ export const Navbar: React.FC = () => {
               ) : (
                 <>
                   <MobileLink to="/dashboard" icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => setIsMobileOpen(false)} />
-                  {currentRole === 'client' && (
+                  {/* Post Job for client, admin, and judge */}
+                  {(currentRole === 'client' || currentRole === 'admin' || currentRole === 'judge') && (
                     <MobileLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMobileOpen(false)} />
                   )}
-                  <MobileLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
-                  <MobileLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMobileOpen(false)} />
+                  {/* Find Jobs & Leaderboard for non-clients (and admin verification) */}
+                  {currentRole !== 'client' && (
+                    <>
+                      <MobileLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
+                      <MobileLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMobileOpen(false)} />
+                    </>
+                  )}
                   {(currentRole === 'admin' || currentRole === 'judge') && (
                     <Link
                       to="/judge"

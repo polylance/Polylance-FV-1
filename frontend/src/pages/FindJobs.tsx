@@ -16,7 +16,7 @@ export const FindJobs: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFiat, setSelectedFiat] = useState('INR');
 
-  const isClientRole = currentRole === 'client';
+  const isClientRole = currentRole === 'client' || currentRole === 'admin' || currentRole === 'judge';
 
   const categories: { id: SkillCategory | 'all'; label: string; sub: string }[] = [
     { id: 'all', label: 'All Jobs', sub: 'Everything' },
