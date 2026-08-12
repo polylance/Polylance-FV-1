@@ -180,7 +180,7 @@ io.on("connection", (socket) => {
         encryptedKeyCopy,
         deletionEligible: registry.deletionEligible,
         keyShredded: registry.keyShredded,
-        cids: index.map((i) => i.messageCid),
+        cids: index.map((i: { messageCid: string }) => i.messageCid),
       });
     } catch (err: any) {
       callback?.({ error: err.message || "Failed to join job chat" });
