@@ -166,7 +166,7 @@ export const Reputation: React.FC = () => {
     tierProgress = (totalPoints / 100) * 100;
   }
 
-  if (userRankIndex !== -1 && totalPoints > 0) {
+  if (userRankIndex !== -1) {
     rankLabel = `#${userRankIndex + 1}`;
   } else {
     rankLabel = 'Unranked';
@@ -267,7 +267,7 @@ export const Reputation: React.FC = () => {
           </div>
 
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t border-white/10">
-            {Boolean(address) && totalPoints > 0 ? (
+            {Boolean(address) ? (
               <div className="flex items-baseline gap-4">
                 <span className="text-6xl sm:text-7xl font-black tracking-tight text-[#FFFFFF] drop-shadow-[0_6px_20px_rgba(6,207,238,0.6)] font-space" style={{ color: '#FFFFFF' }}>
                   {rankLabel}
