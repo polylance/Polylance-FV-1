@@ -11,7 +11,7 @@ contract JobFactory is AccessControl {
     bytes32 public constant TREASURY_ADMIN_ROLE = keccak256("TREASURY_ADMIN_ROLE");
 
     address public immutable jobImplementation;
-    IReputationSBT public reputationSBT;
+    IReputationSBT public immutable reputationSBT;
     address[] public allJobs;
     mapping(address => bool) public isJob;
     uint256 public treasuryBalance;

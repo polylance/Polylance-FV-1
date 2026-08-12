@@ -473,12 +473,7 @@ export const Chat: React.FC = () => {
                     </span>
                   </div>
 
-                  {((selectedJudgeAddr && judgeMessages[selectedJudgeAddr.toLowerCase()]) || [
-                    { id: '1', judgeAddress: activeJudge.address, sender: 'Admin', senderRole: 'Admin', text: 'hi', timestamp: Date.now() - 300000 },
-                    { id: '2', judgeAddress: activeJudge.address, sender: activeJudge.address, senderRole: 'Judge', text: 'Hello Admin 👋', timestamp: Date.now() - 240000 },
-                    { id: '3', judgeAddress: activeJudge.address, sender: 'Admin', senderRole: 'Admin', text: 'Please review the escrow details.', timestamp: Date.now() - 180000 },
-                    { id: '4', judgeAddress: activeJudge.address, sender: activeJudge.address, senderRole: 'Judge', text: "Sure, I'll check and get back to you.", timestamp: Date.now() - 120000 },
-                  ]).map((msg: JudgeMessage) => {
+                  {((selectedJudgeAddr && judgeMessages[selectedJudgeAddr.toLowerCase()]) || []).map((msg: JudgeMessage) => {
                     const isMe = isAdmin ? msg.senderRole === 'Admin' : msg.senderRole === 'Judge';
 
                     return (

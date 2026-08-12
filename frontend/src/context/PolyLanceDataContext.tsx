@@ -13,28 +13,7 @@ import JudgeDAOABI from '../config/abis/JudgeDAO.json';
 import { useWeb3 } from './Web3Context';
 
 const INITIAL_JOBS: Job[] = [];
-const INITIAL_PROPOSALS: DaoProposal[] = [
-  {
-    id: 'prop-101',
-    candidate: '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd',
-    proposer: '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
-    rationale: 'Nominate Lead Arbitrator for decentralized dispute resolution and circuit court quorum.',
-    status: 'Active',
-    votesFor: 14500,
-    votesAgainst: 3200,
-    createdAt: Date.now() - 86400000 * 3,
-  },
-  {
-    id: 'prop-102',
-    candidate: '0x62cdfc0692cc675c95304bace2c834d8f901dcba',
-    proposer: '0x9999888877776666555544443333222211110000',
-    rationale: 'Appoint Security Auditor as secondary Judge for technical code disputes.',
-    status: 'Active',
-    votesFor: 9800,
-    votesAgainst: 1400,
-    createdAt: Date.now() - 86400000 * 1,
-  }
-];
+const INITIAL_PROPOSALS: DaoProposal[] = [];
 const INITIAL_PROFILES: Record<string, UserProfile> = {};
 
 interface PolyLanceDataContextType {
