@@ -1,0 +1,56 @@
+name: Auto Deploy PolyLance (Vercel & Railway)
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - dev.akhil
+
+jobs:
+  deploy-vercel:
+    name: Auto Deploy Frontend to Vercel Production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Production Bundle
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Deploy to Vercel Production
+        uses: amondnet/vercel-action@v25
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./frontend
+
+  deploy-railway:
+    name: Auto Deploy Chat Microservice to Railway
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI & Deploy
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
+        run: |
+          npm i -g @railway/cli
+          cd polylance-chat-service
+          railway up --service chat-service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
