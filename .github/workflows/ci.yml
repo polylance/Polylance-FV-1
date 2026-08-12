@@ -49,9 +49,13 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
+      - name: Install Root dependencies
         run: npm ci
         continue-on-error: true
+
+      - name: Install Frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
 
       - name: Lint
         run: npm run lint --if-present
