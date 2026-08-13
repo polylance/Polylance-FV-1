@@ -6,7 +6,14 @@
   "scripts": {
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx hardhat test",
+    "contracts:compile": "npx hardhat compile",
+    "contracts:test": "npx hardhat test",
+    "contracts:deploy:local": "npx hardhat run scripts/deploy.ts --network localhost",
+    "contracts:deploy:amoy": "npx hardhat run scripts/deploy.ts --network amoy",
+    "contracts:bootstrap:local": "npx hardhat run scripts/bootstrap.ts --network localhost",
+    "contracts:bootstrap:amoy": "npx hardhat run scripts/bootstrap.ts --network amoy",
+    "contracts:sync-abis": "node scripts/sync-abis.js"
   },
   "keywords": [],
   "author": "",

@@ -24,21 +24,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       id: 'metamask',
       name: 'MetaMask',
       logo: (
-        <img src="/MetaMask_logo.png" alt="MetaMask" className="w-5.5 h-5.5 object-contain shrink-0" />
+        <img src={`${import.meta.env.BASE_URL}MetaMask_logo.png`} alt="MetaMask" className="w-5.5 h-5.5 object-contain shrink-0" />
       )
     },
     {
       id: 'walletconnect',
       name: 'WalletConnect',
       logo: (
-        <img src="/WalletConnect_logo.png" alt="WalletConnect" className="w-5.5 h-5.5 object-contain shrink-0" />
+        <img src={`${import.meta.env.BASE_URL}WalletConnect_logo.png`} alt="WalletConnect" className="w-5.5 h-5.5 object-contain shrink-0" />
       )
     },
     {
       id: 'coinbase',
       name: 'Coinbase',
       logo: (
-        <img src="/CoinBase_logo.png" alt="Coinbase Wallet" className="w-5.5 h-5.5 object-contain shrink-0" />
+        <img src={`${import.meta.env.BASE_URL}CoinBase_logo.png`} alt="Coinbase Wallet" className="w-5.5 h-5.5 object-contain shrink-0" />
       )
     },
   ];
