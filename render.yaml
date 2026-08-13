@@ -16,7 +16,7 @@ services:
       - key: RPC_URL
         value: https://rpc-amoy.polygon.technology
       - key: JOB_FACTORY_ADDRESS
-        value: 0x8492796C544989f6F9BaEcEfD2cb8CA49E422776
+        value: 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
       - key: FRONTEND_URL
         value: https://polylance.codes
       - key: NODE_ENV
