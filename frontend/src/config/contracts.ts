@@ -5,12 +5,12 @@ const network = import.meta.env.VITE_NETWORK ?? "amoy";
 const manifest = network === "localhost" ? localAddresses : amoyAddresses;
 
 export const CONTRACTS = {
-  JobFactory: manifest.JobFactory,
-  ReputationSBT: manifest.ReputationSBT,
-  ProfileRegistry: manifest.ProfileRegistry,
-  GithubReputationRegistry: manifest.GithubReputationRegistry,
-  JudgeDAO: manifest.JudgeDAO,
-  TimelockController: manifest.TimelockController,
+  JobFactory: import.meta.env.VITE_JOB_FACTORY_ADDRESS ?? manifest.JobFactory,
+  ReputationSBT: import.meta.env.VITE_REPUTATION_SBT_ADDRESS ?? manifest.ReputationSBT,
+  ProfileRegistry: import.meta.env.VITE_PROFILE_REGISTRY_ADDRESS ?? manifest.ProfileRegistry,
+  GithubReputationRegistry: import.meta.env.VITE_GITHUB_REGISTRY_ADDRESS ?? manifest.GithubReputationRegistry,
+  JudgeDAO: import.meta.env.VITE_JUDGE_DAO_ADDRESS ?? manifest.JudgeDAO,
+  TimelockController: import.meta.env.VITE_TIMELOCK_ADDRESS ?? manifest.TimelockController,
 } as const;
 
 export const CONTRACT_ADDRESSES = CONTRACTS;
