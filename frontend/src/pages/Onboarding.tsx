@@ -3,7 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
-import { scoreGithubUser, GithubScoreResult } from '../utils/githubOracle';
+import { scoreGithubUser, GithubScoreResult, LANGUAGE_CATEGORY } from '../utils/githubOracle';
 import { generateIpfsCid } from '../utils/ipfs';
 import { generateDeterministicHash } from '../utils/formatters';
 import { ArrowRight, ArrowLeft, X, Sparkles, Loader2, ShieldCheck, Terminal, CheckCircle2 } from 'lucide-react';
@@ -290,14 +290,24 @@ export const Onboarding: React.FC = () => {
                       {/* Skill Bars with dynamic percentages */}
                       <div className="space-y-3 font-mono text-xs">
                         {(() => {
-                          const totalBytes = (githubResult.languageBytes.Solidity || 0) +
-                            (githubResult.languageBytes.Rust || 0) +
-                            (githubResult.languageBytes.TypeScript || 0) +
-                            (githubResult.languageBytes.Go || 0);
+                          const totalBytes = Object.values(githubResult.languageBytes || {}).reduce((a, b) => a + b, 0);
 
-                          const web3Percent = totalBytes > 0 ? Math.round(((githubResult.languageBytes.Solidity || 0) + (githubResult.languageBytes.Rust || 0)) / totalBytes * 100) : 0;
-                          const frontendPercent = totalBytes > 0 ? Math.round((githubResult.languageBytes.TypeScript || 0) / totalBytes * 100) : 0;
-                          const backendPercent = totalBytes > 0 ? Math.round((githubResult.languageBytes.Go || 0) * 0.85 / totalBytes * 100) : 0;
+                          let web3Bytes = 0;
+                          let frontendBytes = 0;
+                          let backendBytes = 0;
+                          let mobileBytes = 0;
+
+                          Object.entries(githubResult.languageBytes || {}).forEach(([lang, bytes]) => {
+                            const cat = LANGUAGE_CATEGORY[lang] || 'backend';
+                            if (cat === 'web3') web3Bytes += bytes;
+                            else if (cat === 'frontend') frontendBytes += bytes;
+                            else if (cat === 'backend') backendBytes += bytes;
+                            else if (cat === 'mobile') mobileBytes += bytes;
+                          });
+
+                          const web3Percent = totalBytes > 0 ? Math.round(web3Bytes / totalBytes * 100) : 0;
+                          const frontendPercent = totalBytes > 0 ? Math.round(frontendBytes / totalBytes * 100) : 0;
+                          const backendPercent = totalBytes > 0 ? Math.round(backendBytes / totalBytes * 100) : 0;
                           const mobilePercent = totalBytes > 0 ? Math.max(0, 100 - web3Percent - frontendPercent - backendPercent) : 0;
 
                           return (

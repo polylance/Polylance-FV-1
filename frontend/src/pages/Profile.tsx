@@ -571,6 +571,17 @@ export const Profile: React.FC = () => {
                           : '0 Bytes'}
                       </span>
                     </div>
+                    {/* Render any dynamic other languages fetched from GitHub */}
+                    {Object.entries(userProfile.languageBytes || {})
+                      .filter(([key, val]) => !['Solidity', 'Rust', 'TypeScript', 'JavaScript', 'Python', 'Go'].includes(key) && val > 0)
+                      .map(([key, val]) => (
+                        <div key={key} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                          <span className="text-[10px] text-slate-500 uppercase block font-bold">{key}</span>
+                          <span className="font-extrabold text-purple-900">
+                            {`${val.toLocaleString()} Bytes`}
+                          </span>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </div>

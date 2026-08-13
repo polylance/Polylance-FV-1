@@ -20,7 +20,7 @@ export interface GithubScoreResult {
   reputationTier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
 }
 
-const LANGUAGE_CATEGORY: Record<string, string> = {
+export const LANGUAGE_CATEGORY: Record<string, string> = {
   Solidity: 'web3',
   Vyper: 'web3',
   Cairo: 'web3',
@@ -98,13 +98,19 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
             categoryBytes[mappedCat] += bytes;
 
             if (lang === 'Solidity' || lang === 'Vyper' || lang === 'Cairo') {
-              languageBytes.Solidity += bytes;
+              languageBytes.Solidity = (languageBytes.Solidity || 0) + bytes;
             } else if (lang === 'Rust') {
-              languageBytes.Rust += bytes;
-            } else if (['TypeScript', 'JavaScript', 'CSS', 'HTML', 'Vue'].includes(lang)) {
-              languageBytes.TypeScript += bytes;
+              languageBytes.Rust = (languageBytes.Rust || 0) + bytes;
+            } else if (lang === 'TypeScript') {
+              languageBytes.TypeScript = (languageBytes.TypeScript || 0) + bytes;
+            } else if (lang === 'JavaScript') {
+              languageBytes.JavaScript = (languageBytes.JavaScript || 0) + bytes;
+            } else if (lang === 'Python') {
+              languageBytes.Python = (languageBytes.Python || 0) + bytes;
+            } else if (lang === 'Go') {
+              languageBytes.Go = (languageBytes.Go || 0) + bytes;
             } else {
-              languageBytes.Go += bytes;
+              languageBytes[lang] = (languageBytes[lang] || 0) + bytes;
             }
           }
         });
