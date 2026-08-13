@@ -69,6 +69,7 @@ contract JobEscrow is Initializable {
     }
 
     function initialize(address _client, string calldata _descriptionIpfsHash, uint256 _reviewPeriod) external initializer {
+        require(_client != address(0), "Invalid client address");
         factory = msg.sender;
         client = _client;
         descriptionIpfsHash = _descriptionIpfsHash;

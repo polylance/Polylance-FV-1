@@ -4,8 +4,9 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Votes.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "./interfaces/IReputationSBT.sol";
 
-contract ReputationSBT is ERC721Votes, AccessControl {
+contract ReputationSBT is ERC721Votes, AccessControl, IReputationSBT {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE"); // granted to JobFactory
 
     uint256 private _nextTokenId;

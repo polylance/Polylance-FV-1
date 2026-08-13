@@ -22,6 +22,8 @@ contract JobFactory is AccessControl {
     event TreasuryWithdrawal(address indexed to, uint256 amount, address indexed by);
 
     constructor(address _jobImplementation, address _reputationSBT) {
+        require(_jobImplementation != address(0), "Zero implementation address");
+        require(_reputationSBT != address(0), "Zero SBT address");
         jobImplementation = _jobImplementation;
         reputationSBT = IReputationSBT(_reputationSBT);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -51,7 +53,9 @@ contract JobFactory is AccessControl {
         reputationSBT.mint(to, jobContract);
     }
 
+    // slither-disable-next-line arbitrary-send-eth
     function withdrawTreasury(address to, uint256 amount) external onlyRole(TREASURY_ADMIN_ROLE) {
+        require(to != address(0), "Invalid address");
         require(amount <= treasuryBalance, "Insufficient treasury balance");
         treasuryBalance -= amount;
         payable(to).transfer(amount);

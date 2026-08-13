@@ -203,7 +203,9 @@ async function signAttestation(
     attestationUID,
   ];
 
-  const messageHash = ethers.solidityPackedKeccak256(types, values);
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+  const encoded = abiCoder.encode(types, values);
+  const messageHash = ethers.keccak256(encoded);
   const ethSignedHash = ethers.hashMessage(ethers.getBytes(messageHash));
   const signature = await oracleWallet.signMessage(ethers.getBytes(messageHash));
 
