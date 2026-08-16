@@ -73,13 +73,10 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
     const lowerAddr = addr.toLowerCase();
 
     let cleanedProfile = { ...profile, address: lowerAddr };
-    const isAdminOrJudge = lowerAddr === judgeAddr || lowerAddr === adminAddr1 || lowerAddr === adminAddr2 || lowerAddr === adminAddr3;
-    
-    if (isAdminOrJudge) {
-      // Security rule: Remove any linked github accounts from admins and judges in real-time production
-      delete cleanedProfile.githubUsername;
-      cleanedProfile.githubVerified = false;
-      cleanedProfile.primaryScore = 0;
+
+    // If profile has a connected GitHub username, guarantee githubVerified = true
+    if (cleanedProfile.githubUsername && cleanedProfile.githubUsername.trim().length > 0) {
+      cleanedProfile.githubVerified = true;
     }
 
     const existing = normalized[lowerAddr];
@@ -126,10 +123,32 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setJobsRaw(val);
   };
 
+const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((p) => {
+    if (!p) return false;
+    const titleLower = (p.title || '').toLowerCase();
+    const candidateLower = (p.candidate || p.candidateAddress || '').toLowerCase();
+    const proposerLower = (p.proposer || '').toLowerCase();
+    const rationaleLower = (p.rationale || p.description || '').toLowerCase();
+
+    // Filter out mock/demo proposals
+    const isDemoCandidate = candidateLower === '0xb8aa0398b91a150b041da819bc954bb356e009dd';
+    const isDemoProposer = proposerLower === '0x1111222233334444555566667777888899990000' || proposerLower === '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a' || proposerLower === '0xb8aa0398b91a150b041da819bc954bb356e009dd';
+    const isDemoRationale = rationaleLower === 'checking' || rationaleLower.includes('nominate lead arbitrator');
+    const isDemoTitle = titleLower.includes('0xb8aa');
+
+    return !(isDemoTitle || isDemoRationale || (isDemoCandidate && isDemoProposer));
+  });
+};
+
   const [daoProposals, setDaoProposalsRaw] = useState<DaoProposal[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_dao_proposals');
-      return saved ? JSON.parse(saved) : INITIAL_PROPOSALS;
+      const raw = saved ? JSON.parse(saved) : INITIAL_PROPOSALS;
+      const cleaned = cleanDaoProposals(raw);
+      localStorage.setItem('polylance_dao_proposals', JSON.stringify(cleaned));
+      return cleaned;
     }
     return INITIAL_PROPOSALS;
   });
@@ -138,7 +157,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       hasUnsyncedChangesRef.current = true;
       touchLocalTimestamp();
     }
-    setDaoProposalsRaw(val);
+    setDaoProposalsRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      return cleanDaoProposals(next);
+    });
   };
 
   const [treasuryBalanceUsdc, setTreasuryBalanceUsdcRaw] = useState<number>(() => {
@@ -218,6 +240,36 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     setProfilesRaw(val);
   };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('polylance_profiles', JSON.stringify(profiles));
+    }
+  }, [profiles]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('polylance_jobs', JSON.stringify(jobs));
+    }
+  }, [jobs]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('polylance_dao_proposals', JSON.stringify(daoProposals));
+    }
+  }, [daoProposals]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('polylance_treasury_balance_usdc', treasuryBalanceUsdc.toString());
+    }
+  }, [treasuryBalanceUsdc]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('polylance_treasury_balance_eth', treasuryBalanceEth.toString());
+    }
+  }, [treasuryBalanceEth]);
 
   const [judges, setJudgesRaw] = useState<JudgeRecord[]>(() => {
     if (typeof window !== 'undefined') {
@@ -1362,12 +1414,21 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         reputationSbtCount: 0,
       };
 
+      const finalUsername = profileData.githubUsername ?? existing.githubUsername;
+      const isVerified = (finalUsername && finalUsername.trim().length > 0)
+        ? true
+        : (profileData.githubVerified ?? existing.githubVerified ?? false);
+
+      const mergedProfile: UserProfile = {
+        ...existing,
+        ...profileData,
+        githubUsername: finalUsername,
+        githubVerified: isVerified,
+      };
+
       return {
         ...prev,
-        [lowerAddress]: {
-          ...existing,
-          ...profileData,
-        },
+        [lowerAddress]: mergedProfile,
       };
     });
   };

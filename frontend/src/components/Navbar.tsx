@@ -38,16 +38,16 @@ interface NavLinkProps {
 }
 
 const NavLink: React.FC<NavLinkProps> = ({ to, active, children, accent = 'purple' }) => {
-  const activeTextClass = accent === 'amber' ? 'text-amber-800 font-bold' : 'text-purple-700 font-bold';
+  const activeTextClass = accent === 'amber' ? 'text-amber-800 font-extrabold' : 'text-purple-700 font-extrabold';
   const hoverClass = accent === 'amber'
     ? 'hover:text-amber-700 hover:bg-amber-50/60'
-    : 'hover:text-slate-900 hover:bg-white/50';
+    : 'hover:text-slate-900 hover:bg-white/60';
 
   return (
     <Link
       to={to}
       className={`
-        relative px-3.5 py-1.5 rounded-full text-[13px] font-semibold
+        relative px-3.5 py-1.5 rounded-full text-[13px] font-bold
         flex items-center gap-1.5 select-none z-10
         transition-colors duration-200
         nav-pill-item
@@ -61,12 +61,12 @@ const NavLink: React.FC<NavLinkProps> = ({ to, active, children, accent = 'purpl
           className={`absolute inset-0 rounded-full ${
             accent === 'amber'
               ? 'bg-amber-100/80'
-              : 'bg-white/70'
+              : 'bg-white/85'
           }`}
           style={{
             boxShadow: accent === 'amber'
-              ? 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.06)'
-              : 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(37,99,235,0.08)',
+              ? 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 4px rgba(0,0,0,0.08)'
+              : 'inset 0 1px 1px rgba(255,255,255,0.9), 0 2px 6px rgba(124,58,237,0.12)',
           }}
           transition={spring.default}
         />
@@ -126,34 +126,33 @@ export const Navbar: React.FC = () => {
       {/* ── Scroll-aware Liquid Glass Bar ─────────────────────────────────── */}
       <motion.nav
         animate={{
-          scale: scrolled ? 0.987 : 1,
+          scale: scrolled ? 0.99 : 1,
           boxShadow: scrolled
-            ? '0 12px 40px rgba(31,38,135,0.12), 0 2px 8px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)'
-            : '0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.9)',
+            ? '0 12px 40px rgba(124,58,237,0.14), 0 3px 10px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95)'
+            : '0 8px 30px rgba(124,58,237,0.08), 0 2px 6px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.95)',
         }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="mx-3 md:mx-auto my-3 max-w-7xl sticky top-3 z-40
+        className="w-[calc(100%-1.5rem)] sm:w-[calc(100%-2.5rem)] max-w-[1536px] mx-auto my-2.5 sticky top-2.5 z-40
           flex items-center justify-between
-          px-4 py-2 rounded-[28px]"
+          px-5 py-2 sm:py-2.5 rounded-[28px] border border-white/80"
         style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(248,246,255,0.80) 100%)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.90) 0%, rgba(246,242,255,0.85) 100%)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: '1px solid rgba(255,255,255,0.70)',
         }}
       >
         {/* ── LEFT: Brand ─────────────────────────────────────────────── */}
         <div className="flex items-center shrink-0">
           <Link to="/" className="flex items-center gap-2.5 group shrink-0">
             <div className="relative">
-              <div className="absolute inset-0 rounded-xl bg-purple-400/20 blur-md group-hover:bg-purple-400/30 transition-all duration-300" />
+              <div className="absolute inset-0 rounded-xl bg-purple-500/20 blur-md group-hover:bg-purple-500/35 transition-all duration-300" />
               <PolyLanceLogo size={36} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
             </div>
             <div className="flex flex-col leading-none">
               <span className="font-black text-[22px] tracking-tight text-slate-900 leading-none">
                 Poly<span className="text-purple-600">Lance</span>
               </span>
-              <span className="text-[7px] font-mono text-slate-400/60 font-medium tracking-[0.15em] uppercase mt-0.5 leading-none select-none">
+              <span className="text-[7.5px] font-mono text-purple-700/80 font-bold tracking-[0.16em] uppercase mt-0.5 leading-none select-none">
                 mvp on-chain
               </span>
             </div>
@@ -161,28 +160,28 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* ── CENTER: Navigation Pill ──────────────────────────────────── */}
-        <div className="hidden md:flex items-center gap-0.5 font-sans">
+        <div className="hidden md:flex items-center gap-1 font-sans">
           <div
-            className="flex items-center gap-0.5 rounded-full px-1.5 py-1"
+            className="flex items-center gap-1 rounded-full px-2 py-1.5"
             style={{
-              background: 'rgba(255,255,255,0.40)',
-              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.8)',
+              background: 'rgba(255,255,255,0.50)',
+              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04), 0 1px 0 rgba(255,255,255,0.9)',
             }}
           >
             {/* VISITOR LINKS */}
             {isVisitor && (
               <>
                 <NavLink to="/" active={isActive('/') && location.pathname === '/'}>
-                  <Shield size={13} />Overview
+                  <Shield size={15} />Overview
                 </NavLink>
                 <NavLink to="/jobs" active={isActive('/jobs')}>
-                  <Briefcase size={13} />Find Jobs
+                  <Briefcase size={15} />Find Jobs
                 </NavLink>
                 <NavLink to="/reputation" active={isActive('/reputation')}>
-                  <Trophy size={13} />SBT Leaderboard
+                  <Trophy size={15} />SBT Leaderboard
                 </NavLink>
                 <NavLink to="/dao" active={isActive('/dao')}>
-                  <Users size={13} />DAO
+                  <Users size={15} />DAO
                 </NavLink>
               </>
             )}
@@ -191,12 +190,12 @@ export const Navbar: React.FC = () => {
             {!isVisitor && (
               <>
                 <NavLink to="/dashboard" active={isActive('/dashboard')}>
-                  <LayoutDashboard size={13} />Dashboard
+                  <LayoutDashboard size={15} />Dashboard
                 </NavLink>
 
                 {currentRole === 'client' && (
                   <NavLink to="/jobs/post" active={isActive('/jobs/post')}>
-                    <PlusCircle size={13} />Post Job
+                    <PlusCircle size={15} />Post Job
                   </NavLink>
                 )}
 
@@ -204,10 +203,10 @@ export const Navbar: React.FC = () => {
                 {currentRole !== 'admin' && currentRole !== 'client' && (
                   <>
                     <NavLink to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post')}>
-                      <Briefcase size={13} />Find Jobs
+                      <Briefcase size={15} />Find Jobs
                     </NavLink>
                     <NavLink to="/reputation" active={isActive('/reputation')}>
-                      <Trophy size={13} />SBT Leaderboard
+                      <Trophy size={15} />SBT Leaderboard
                     </NavLink>
                   </>
                 )}
@@ -215,22 +214,22 @@ export const Navbar: React.FC = () => {
                 {/* Judge Panel on top bar for Judge role */}
                 {currentRole === 'judge' && (
                   <NavLink to="/judge" active={isActive('/judge')} accent="amber">
-                    <Scale size={13} />Judge Panel
+                    <Scale size={15} />Judge Panel
                   </NavLink>
                 )}
 
                 {/* Treasury on top bar for Admin role */}
                 {currentRole === 'admin' && (
                   <NavLink to="/treasury" active={isActive('/treasury')}>
-                    <Landmark size={13} />Treasury
+                    <Landmark size={15} />Treasury
                   </NavLink>
                 )}
 
                 <NavLink to="/dao" active={isActive('/dao')}>
-                  <Users size={13} />DAO
+                  <Users size={15} />DAO
                 </NavLink>
                 <NavLink to="/chat" active={isActive('/chat')}>
-                  <MessageSquare size={13} />Messages
+                  <MessageSquare size={15} />Messages
                 </NavLink>
 
                 {/* More dropdown */}
@@ -238,8 +237,8 @@ export const Navbar: React.FC = () => {
                   <button
                     onClick={() => setIsMoreOpen(!isMoreOpen)}
                     className={`
-                      px-3.5 py-1.5 rounded-full text-[13px] font-semibold
-                      flex items-center gap-1.5 cursor-pointer select-none
+                      px-4 py-2 rounded-full text-sm font-bold
+                      flex items-center gap-2 cursor-pointer select-none
                       nav-pill-item
                       ${isMoreOpen ? 'text-purple-700 font-bold' : 'text-slate-600'}
                     `}
@@ -248,13 +247,13 @@ export const Navbar: React.FC = () => {
                       boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(124,58,237,0.08)',
                     } : {}}
                   >
-                    <Grid size={13} />
+                    <Grid size={15} />
                     More
                     <motion.span
                       animate={{ rotate: isMoreOpen ? 180 : 0 }}
                       transition={transition.fast}
                     >
-                      <ChevronDown size={12} />
+                      <ChevronDown size={14} />
                     </motion.span>
                   </button>
 

@@ -110,7 +110,9 @@ export interface Job {
 export interface UserProfile {
   address: string;
   displayName: string;
+  title?: string;
   bio: string;
+  hourlyRateUsdc?: string;
   avatarUrl: string;
   ipfsHash: string;
   skills: string[];

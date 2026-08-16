@@ -488,7 +488,7 @@ export const Profile: React.FC = () => {
             </div>
 
             {/* Section 7 GitHub Verification Skill Breakdown Card */}
-            {userProfile.githubVerified && (
+            {(userProfile.githubVerified || Boolean(userProfile.githubUsername?.trim())) && (
               <div className="glass-panel p-5 border-slate-200 bg-slate-50 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono text-emerald-800 font-bold flex items-center gap-1.5">

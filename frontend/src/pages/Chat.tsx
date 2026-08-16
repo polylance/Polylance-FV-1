@@ -6,7 +6,7 @@ import {
   MessageSquare, Send, ShieldCheck, Award, Scale, Building2, Briefcase, 
   ExternalLink, Lock, PlusCircle, DollarSign, CheckCircle2, ArrowUpRight, 
   User, Clock, Search, Sparkles, AlertCircle, FileCheck, CheckCircle, Gavel, UserCheck,
-  Paperclip, Smile, MoreVertical, Copy, Shield, Download, AlertTriangle, ChevronRight
+  Paperclip, Smile, MoreVertical, Copy, Shield, Download, AlertTriangle, ChevronRight, X
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
 import { JudgeRecord, JudgeMessage } from '../types';
@@ -190,16 +190,47 @@ export const Chat: React.FC = () => {
     j.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const [showMobileChannels, setShowMobileChannels] = useState(false);
+
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-6 font-sans">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[85vh] border border-slate-200 bg-white rounded-3xl overflow-hidden shadow-2xl">
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-6 font-sans">
+      
+      {/* Mobile Channel Switcher Header */}
+      <div className="lg:hidden mb-3 flex items-center justify-between bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setShowMobileChannels(!showMobileChannels)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-xl text-xs font-bold font-sans border border-purple-100 cursor-pointer"
+        >
+          <MessageSquare size={14} />
+          <span>{showMobileChannels ? 'Close Channels' : 'Switch Chat Channel'}</span>
+        </button>
+        <span className="text-xs text-slate-500 font-mono font-bold">
+          {activeJob ? activeJob.title : 'Chat'}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[85vh] border border-slate-200 bg-white rounded-3xl overflow-hidden shadow-2xl relative">
         
-        {/* Left Side: Channels Sidebar (3 Cols) matching Reference Image */}
-        <div className="lg:col-span-3 border-r border-slate-200 flex flex-col h-full bg-slate-50/70 p-4 space-y-4">
+        {/* Left Side: Channels Sidebar (3 Cols) */}
+        <div className={`lg:col-span-3 border-r border-slate-200 flex-col h-full bg-slate-50/70 p-4 space-y-4 ${
+          showMobileChannels ? 'flex absolute inset-0 z-30 bg-white' : 'hidden lg:flex'
+        }`}>
           <div className="space-y-3 shrink-0">
-            <h3 className="font-headline text-sm font-black text-slate-900 flex items-center gap-2">
-              <MessageSquare size={16} className="text-purple-700" /> Channels
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-headline text-sm font-black text-slate-900 flex items-center gap-2">
+                <MessageSquare size={16} className="text-purple-700" /> Channels
+              </h3>
+              {showMobileChannels && (
+                <button
+                  type="button"
+                  onClick={() => setShowMobileChannels(false)}
+                  className="lg:hidden text-slate-400 hover:text-slate-700"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
 
             {/* Icon Tab Switcher */}
             {(isAdmin || isJudgeRole) && (

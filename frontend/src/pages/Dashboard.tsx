@@ -566,7 +566,7 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* GitHub Verified Skill Score */}
-              {userProfile.githubVerified ? (
+              {(userProfile.githubVerified || Boolean(userProfile.githubUsername?.trim())) ? (
                 <div className="glass-panel p-6 border-cyan-200 bg-white hard-shadow space-y-3 font-mono text-xs">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <span className="font-bold text-slate-900 flex items-center gap-1.5">

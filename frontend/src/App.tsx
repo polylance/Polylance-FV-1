@@ -19,6 +19,7 @@ import { Treasury } from './pages/Treasury';
 import { Analytics } from './pages/Analytics';
 import { AuditReport } from './pages/AuditReport';
 import { Chat } from './pages/Chat';
+import { Settings } from './pages/Settings';
 import { pageVariants, transition } from './lib/motion';
 
 // ── Apple-style page transition wrapper ────────────────────────────────────
@@ -56,6 +57,7 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/jobs/post" element={currentRole === 'client' || currentRole === 'admin' || currentRole === 'judge' ? <PostJob /> : <Navigate to="/jobs" replace />} />
           <Route path="/judge" element={currentRole === 'judge' || currentRole === 'admin' ? <Judge /> : <Navigate to="/dashboard" replace />} />
           <Route path="/treasury" element={currentRole === 'admin' ? <Treasury /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/settings" element={isVisitor ? <Navigate to="/login" replace /> : <Settings />} />
 
           {/* Certified trust & reputation audits */}
           <Route path="/audit/:address" element={<AuditReport />} />
