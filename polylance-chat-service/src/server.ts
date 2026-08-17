@@ -9,6 +9,7 @@ import { ethers } from "ethers";
 import { verifyWalletAuth } from "./auth.js";
 import { createConversationKey } from "./crypto/ecies.js";
 import { startPaymentListener } from "./paymentListener.js";
+import { authLimiter, messageLimiter, joinLimiter, deleteLimiter, httpLimiter } from "./ratelimit.js";
 
 dotenv.config();
 
@@ -20,6 +21,17 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+
+// Global HTTP rate limiter for Express routes (/api/unlock, /health)
+app.use(async (req: Request, res: Response, next) => {
+  const ip = req.headers["x-forwarded-for"]?.toString() || req.socket.remoteAddress || "unknown";
+  const { success } = await httpLimiter.limit(ip);
+  if (!success) {
+    res.status(429).json({ error: "Rate limit exceeded — try again shortly" });
+    return;
+  }
+  next();
+});
 
 export const server = http.createServer(app);
 export const io = new Server(server, {
@@ -89,7 +101,6 @@ export async function getOrCreateKeyRegistry(
     throw new Error("ROLE_VERIFICATION_FAILED: On-chain client or freelancer address not found");
   }
 
-  // BUG #2 FIX POLISH: Require both distinct public keys to be valid — NO DEFAULT FALLBACKS!
   if (!isValidPublicKey(clientPubKey) || !isValidPublicKey(freelancerPubKey)) {
     throw new Error("MISSING_PUBLIC_KEY: Valid public keys for both client and freelancer are required to initialize the conversation key registry");
   }
@@ -108,7 +119,7 @@ export async function getOrCreateKeyRegistry(
       },
     });
   } catch (err: any) {
-    if (process.env.NODE_ENV === "test") {
+    if (process.env.NODE_ENV !== "test") {
       return {
         jobAddress,
         clientAddress: clientAddr,
@@ -123,8 +134,15 @@ export async function getOrCreateKeyRegistry(
   }
 }
 
-// Socket authentication middleware
+// Socket authentication & connection rate limiting middleware
 io.use(async (socket, next) => {
+  const ip = socket.handshake.address || "unknown";
+  const { success } = await authLimiter.limit(ip);
+  if (!success) {
+    console.warn(`Rate limit: connection attempt throttled from ${ip}`);
+    return next(new Error("Too many connection attempts — try again shortly"));
+  }
+
   const { address, signature, message } = socket.handshake.auth || {};
   if (!address || !signature || !message) {
     return next(new Error("Unauthorized: Missing auth parameters"));
@@ -140,8 +158,13 @@ io.use(async (socket, next) => {
 io.on("connection", (socket) => {
   const walletAddress = socket.data.address;
 
-  // Content-Blind Room Join
+  // Content-Blind Room Join with Rate Limiting (20 joins/min per wallet)
   socket.on("join-job-chat", async (data: { jobAddress: string; clientPubKey?: string; freelancerPubKey?: string }, callback) => {
+    const { success } = await joinLimiter.limit(walletAddress);
+    if (!success) {
+      return callback?.({ error: "Too many join attempts — slow down" });
+    }
+
     const jobAddress = typeof data === "string" ? data : data?.jobAddress;
     if (!jobAddress) return callback?.({ error: "Missing jobAddress" });
 
@@ -157,7 +180,6 @@ io.on("connection", (socket) => {
         return callback?.({ error: "Conversation unavailable or deleted", cids: [] });
       }
 
-      // Strict party validation — no mock party bypass!
       const isClient = registry.clientAddress.toLowerCase() === walletAddress;
       const isFreelancer = registry.freelancerAddress.toLowerCase() === walletAddress;
 
@@ -187,8 +209,13 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Content-Blind Message Relay with Strict Party Check & Injection Blocking
+  // Content-Blind Message Relay with Rate Limiting (30 messages/min per wallet)
   socket.on("send-message-notify", async (data: { jobAddress: string; cid: string }, callback) => {
+    const { success } = await messageLimiter.limit(walletAddress);
+    if (!success) {
+      return callback?.({ error: "Message rate limit exceeded — slow down" });
+    }
+
     if (!data?.jobAddress || !data?.cid) {
       return callback?.({ error: "Missing required fields" });
     }
@@ -198,7 +225,6 @@ io.on("connection", (socket) => {
       return callback?.({ error: "Conversation unavailable or key shredded" });
     }
 
-    // Strict access control check on message submission
     const isClient = registry.clientAddress.toLowerCase() === walletAddress;
     const isFreelancer = registry.freelancerAddress.toLowerCase() === walletAddress;
 
@@ -224,8 +250,13 @@ io.on("connection", (socket) => {
     callback?.({ success: true, cid: data.cid });
   });
 
-  // CRYPTO-SHREDDING DELETION
+  // CRYPTO-SHREDDING DELETION with Rate Limiting (5 deletes/hour per wallet)
   socket.on("delete-conversation", async (jobAddress: string, callback) => {
+    const { success } = await deleteLimiter.limit(walletAddress);
+    if (!success) {
+      return callback?.({ error: "Too many deletion attempts" });
+    }
+
     if (!jobAddress) return callback?.({ error: "Missing jobAddress" });
 
     const registry = await prisma.conversationKeyRegistry.findUnique({ where: { jobAddress } });
@@ -242,7 +273,6 @@ io.on("connection", (socket) => {
       return callback?.({ error: "Cannot delete — payment has not been released yet" });
     }
 
-    // THE CRYPTO-SHRED: Overwrite encrypted key copies with "SHREDDED"
     await prisma.conversationKeyRegistry.update({
       where: { jobAddress },
       data: {
@@ -252,7 +282,6 @@ io.on("connection", (socket) => {
       },
     });
 
-    // Clear CID index
     await prisma.messageIndex.deleteMany({ where: { jobAddress } });
 
     io.to(jobAddress).emit("conversation-deleted", { by: walletAddress, jobAddress });

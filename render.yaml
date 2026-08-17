@@ -25,6 +25,10 @@ services:
         value: "false"
       - key: PORT
         value: 10000
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
 
 databases:
   - name: polylance-chat-db
