@@ -22,8 +22,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Global HTTP rate limiter for Express routes (/api/unlock, /health)
+// Global HTTP rate limiter for Express routes (bypasses /health for Render uptime probes)
 app.use(async (req: Request, res: Response, next) => {
+  if (req.path === "/health") {
+    return next();
+  }
   const ip = req.headers["x-forwarded-for"]?.toString() || req.socket.remoteAddress || "unknown";
   const { success } = await httpLimiter.limit(ip);
   if (!success) {
