@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { authLimiter, messageLimiter, joinLimiter, deleteLimiter, httpLimiter } from "../ratelimit.js";
+import { authLimiter, messageLimiter, joinLimiter, deleteLimiter, httpLimiter, isUpstashActive } from "../ratelimit.js";
 
 describe("Chat service rate limiting", () => {
+  it("reports the active rate limiting engine", () => {
+    const active = isUpstashActive();
+    console.log(`[RATE LIMIT TEST ENGINE]: ${active ? "Real Upstash Redis" : "In-Memory Sliding Window Fallback"}`);
+    expect(typeof active).toBe("boolean");
+  });
   it("blocks the 21st join-job-chat attempt within a minute", async () => {
     const wallet = "0x1111222233334444555566667777888899990001";
     let allowedCount = 0;

@@ -36,7 +36,7 @@ function createLimiter(
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  if (url && token && !url.includes("your_") && process.env.NODE_ENV !== "test") {
+  if (url && token && url.trim() !== "" && token.trim() !== "" && !url.includes("your_")) {
     try {
       const redis = new Redis({ url, token });
       const upstashLimiter = new Ratelimit({
@@ -57,6 +57,12 @@ function createLimiter(
   }
 
   return new MemoryLimiter(maxRequests, windowMs);
+}
+
+export function isUpstashActive(): boolean {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  return Boolean(url && token && url.trim() !== "" && token.trim() !== "" && !url.includes("your_"));
 }
 
 // 1. Socket Auth Limiter: 10 attempts/min per IP
