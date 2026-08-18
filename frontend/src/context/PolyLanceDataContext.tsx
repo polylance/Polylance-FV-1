@@ -51,6 +51,7 @@ interface PolyLanceDataContextType {
   sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => void;
   archiveChatToPinata: (jobId: string) => Promise<string | null>;
   closeChatSession: (jobId: string) => Promise<string | null>;
+  deleteChatHistory: (jobId?: string, judgeAddress?: string) => void;
   updateProfile: (profile: Partial<UserProfile>, address: string) => Promise<void>;
   castDaoVote: (proposalId: string | number, support: boolean, voterAddress?: string, votingPower?: number) => Promise<void> | void;
   castVote: (proposalId: string | number, support: boolean, voterAddress?: string) => Promise<void> | void;
@@ -150,6 +151,24 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               return prev;
             }
             return { ...prev, [key]: [...existing, data.message] };
+          });
+        }
+      });
+
+      socket.on('polylance-chat-deleted', (data: { jobId?: string; judgeAddress?: string }) => {
+        if (!data) return;
+        if (data.jobId) {
+          setJobs((prev) =>
+            prev.map((job) => {
+              if (job.id.toLowerCase() !== data.jobId!.toLowerCase()) return job;
+              return { ...job, chatMessages: [] };
+            })
+          );
+        } else if (data.judgeAddress) {
+          setJudgeMessages((prev) => {
+            const next = { ...prev };
+            delete next[data.judgeAddress!.toLowerCase()];
+            return next;
           });
         }
       });
@@ -1601,6 +1620,31 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
     return cid;
   };
 
+  const deleteChatHistory = (jobId?: string, judgeAddress?: string) => {
+    if (jobId) {
+      setJobs((prev) =>
+        prev.map((j) => {
+          if (j.id.toLowerCase() !== jobId.toLowerCase() && j.contractAddress.toLowerCase() !== jobId.toLowerCase()) return j;
+          return { ...j, chatMessages: [] };
+        })
+      );
+    } else if (judgeAddress) {
+      const lower = judgeAddress.toLowerCase();
+      setJudgeMessages((prev) => {
+        const next = { ...prev };
+        delete next[lower];
+        return next;
+      });
+    }
+
+    touchLocalTimestamp();
+    hasUnsyncedChangesRef.current = true;
+
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('polylance-chat-deleted', { jobId, judgeAddress });
+    }
+  };
+
   const updateProfile = async (profileData: Partial<UserProfile>, address: string) => {
     setProfiles((prev) => {
       const lowerAddress = address.toLowerCase();
@@ -1874,6 +1918,7 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
         sendChatMessage,
         archiveChatToPinata,
         closeChatSession,
+        deleteChatHistory,
         updateProfile,
         castDaoVote,
         castVote,

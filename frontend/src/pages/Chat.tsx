@@ -6,7 +6,7 @@ import {
   MessageSquare, Send, ShieldCheck, Award, Scale, Building2, Briefcase,
   ExternalLink, Lock, PlusCircle, DollarSign, CheckCircle2, ArrowUpRight,
   User, Clock, Search, Sparkles, AlertCircle, FileCheck, CheckCircle, Gavel, UserCheck,
-  Paperclip, Smile, MoreVertical, Copy, Shield, Download, AlertTriangle, ChevronRight, X, Zap
+  Paperclip, Smile, MoreVertical, Copy, Shield, Download, AlertTriangle, ChevronRight, X, Zap, Trash2
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
 import { JudgeRecord, JudgeMessage } from '../types';
@@ -19,15 +19,25 @@ export const Chat: React.FC = () => {
   const { address, currentRole, isConnected } = useWeb3();
   const {
     jobs, profiles, judges, judgeMessages, sendChatMessage, sendJudgeChatMessage, proposeTerms, fundJob,
-    releasePayment, submitWork, requestModifications, isEnclineConnected, closeChatSession
+    releasePayment, submitWork, requestModifications, isEnclineConnected, closeChatSession, archiveChatToPinata, deleteChatHistory
   } = usePolyLanceData();
 
-  const [archiving, setArchiving] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showJudgeMoreMenu, setShowJudgeMoreMenu] = useState(false);
 
   const isAdmin = currentRole === 'admin';
   const isJudgeRole = currentRole === 'judge';
   const [chatTab, setChatTab] = useState<'jobs' | 'judges'>(isAdmin && !urlJobId ? 'judges' : 'jobs');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(urlJobId || null);
+
+  // Automatically archive chat session to Pinata IPFS & localStorage on channel switch or exit
+  useEffect(() => {
+    return () => {
+      if (selectedJobId) {
+        archiveChatToPinata(selectedJobId);
+      }
+    };
+  }, [selectedJobId]);
   const [selectedJudgeAddr, setSelectedJudgeAddr] = useState<string | null>(
     judges.length > 0 ? judges[0].address : null
   );
@@ -486,13 +496,36 @@ export const Chat: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <Link
                       to="/judge"
-                      className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 font-mono"
+                      className="px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 text-xs font-bold font-mono transition-all flex items-center gap-1 cursor-pointer"
                     >
-                      Manage Judges <ArrowUpRight size={14} />
+                      Manage Judges <ArrowUpRight size={13} />
                     </Link>
-                    <button type="button" className="text-slate-400 hover:text-slate-600 cursor-pointer">
-                      <MoreVertical size={16} />
-                    </button>
+
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowJudgeMoreMenu(!showJudgeMoreMenu)}
+                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                      {showJudgeMoreMenu && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 py-1 font-sans">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Are you sure you want to delete this judge chat history?')) {
+                                deleteChatHistory(undefined, activeJudge.address);
+                              }
+                              setShowJudgeMoreMenu(false);
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
+                          >
+                            <Trash2 size={14} /> Delete Chat History
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -634,34 +667,39 @@ export const Chat: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={archiving}
-                      onClick={async () => {
-                        if (!activeJob) return;
-                        setArchiving(true);
-                        const cid = await closeChatSession(activeJob.id);
-                        setArchiving(false);
-                        if (cid) {
-                          alert(`🔒 Encline chat session closed!\nAll messages have been archived to Pinata IPFS:\n\nCID: ${cid}`);
-                        }
-                      }}
-                      className="px-2.5 py-1 rounded-xl text-[11px] font-bold font-mono bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-all flex items-center gap-1 cursor-pointer"
-                      title="Close real-time Encline section & save chat transcript permanently to Pinata IPFS"
-                    >
-                      <Lock size={12} /> {archiving ? 'Archiving...' : 'Close & Archive'}
-                    </button>
-
+                  <div className="flex items-center gap-3">
                     <Link
                       to={`/jobs/${activeJob.id}`}
-                      className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 font-mono"
+                      className="px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 text-xs font-bold font-mono transition-all flex items-center gap-1 cursor-pointer"
                     >
-                      Details <ArrowUpRight size={14} />
+                      Job Details <ArrowUpRight size={13} />
                     </Link>
-                    <button type="button" className="text-slate-400 hover:text-slate-600 cursor-pointer">
-                      <MoreVertical size={16} />
-                    </button>
+
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                      {showMoreMenu && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 py-1 font-sans">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Are you sure you want to delete this chat history? This will remove all messages from DB and local storage.')) {
+                                deleteChatHistory(activeJob.id);
+                              }
+                              setShowMoreMenu(false);
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
+                          >
+                            <Trash2 size={14} /> Delete Chat History
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
