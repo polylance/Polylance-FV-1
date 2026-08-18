@@ -7,6 +7,7 @@ import {
   UserCheck, UserMinus, Plus, ShieldAlert, Award, AlertTriangle, Users 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { EmptyState, PermissionDeniedState } from '../components/UIStates';
 
 export const Judge: React.FC = () => {
   const { address, currentRole } = useWeb3();
@@ -53,6 +54,18 @@ export const Judge: React.FC = () => {
     setSelectedJobId(null);
     setReasoning('');
   };
+
+  if (currentRole !== 'admin' && currentRole !== 'judge') {
+    return (
+      <div className="max-w-xl mx-auto py-16">
+        <PermissionDeniedState
+          title="Access Restricted"
+          description="Only appointed Arbitrators and DAO Governors have permission to access the dispute arbitration panel."
+          onBack={() => window.history.back()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
@@ -146,10 +159,12 @@ export const Judge: React.FC = () => {
             </div>
 
             {disputedJobs.length === 0 ? (
-              <div className="p-12 text-center text-slate-500 space-y-2">
-                <CheckCircle2 size={36} className="text-emerald-600 mx-auto" />
-                <h4 className="font-bold text-slate-900">No Open Disputes</h4>
-                <p className="text-xs">All smart contract escrows are in good standing.</p>
+              <div className="py-6">
+                <EmptyState
+                  title="No Open Disputes"
+                  description="All smart contract escrows are in good standing with zero pending arbitration cases."
+                  actionText=""
+                />
               </div>
             ) : (
               <div className="overflow-x-auto">

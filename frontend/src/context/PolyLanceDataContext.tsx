@@ -430,8 +430,8 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
 
             const gateways = [
               `https://gateway.pinata.cloud/ipfs/${cid}`,
-              `https://cloudflare-ipfs.com/ipfs/${cid}`,
-              `https://dweb.link/ipfs/${cid}`,
+              `https://w3s.link/ipfs/${cid}`,
+              `https://nftstorage.link/ipfs/${cid}`,
               `https://ipfs.io/ipfs/${cid}`
             ];
 
@@ -495,10 +495,27 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
 
             if (cid === lastLoadedCidRef.current) return;
 
-            const response = await fetch(`https://gateway.pinata.cloud/ipfs/${cid}`).catch(() => null);
-            if (response && response.ok) {
-              const data = await response.json();
-              if (data) {
+            const gateways = [
+              `https://gateway.pinata.cloud/ipfs/${cid}`,
+              `https://w3s.link/ipfs/${cid}`,
+              `https://nftstorage.link/ipfs/${cid}`,
+              `https://ipfs.io/ipfs/${cid}`
+            ];
+
+            let data = null;
+            for (const gatewayUrl of gateways) {
+              try {
+                const response = await fetch(gatewayUrl);
+                if (response && response.ok) {
+                  data = await response.json();
+                  break;
+                }
+              } catch (e) {
+                // silently try next gateway
+              }
+            }
+
+            if (data) {
                 isRestoringRef.current = true;
                 if (!hasUnsyncedChangesRef.current) {
                   if (data.jobs) setJobs(data.jobs);
@@ -529,7 +546,6 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
               }
             }
           }
-        }
       } catch (error) {
         // Quiet background polling error
       }

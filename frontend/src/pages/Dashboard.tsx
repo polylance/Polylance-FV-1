@@ -8,6 +8,7 @@ import { truncateAddress } from '../utils/formatters';
 import { scoreGithubUser } from '../utils/githubOracle';
 import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, TrendingUp, ShieldCheck, CheckCircle2, FileText, MessageSquare, Clock } from 'lucide-react';
 import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
+import { EmptyState } from '../components/UIStates';
 
 export const Dashboard: React.FC = () => {
   const { address, currentRole } = useWeb3();
@@ -462,9 +463,13 @@ export const Dashboard: React.FC = () => {
 
                 <div className="space-y-4">
                   {myFreelancerJobs.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500 bg-slate-50 border border-dashed border-slate-200 rounded-2xl space-y-1">
-                      <p className="font-bold text-sm">No Active Freelance Contracts</p>
-                      <p className="text-xs">Browse the marketplace and apply to escrow jobs to get started.</p>
+                    <div className="py-2">
+                      <EmptyState
+                        title="No Active Freelance Contracts"
+                        description="Browse the marketplace and submit verified proposals to get started."
+                        actionText="Explore Opportunities"
+                        onAction={() => navigate('/jobs')}
+                      />
                     </div>
                   ) : (
                     myFreelancerJobs.map((job) => (

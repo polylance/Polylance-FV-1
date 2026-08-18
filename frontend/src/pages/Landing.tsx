@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion, useScroll, useTransform, useInView, useSpring, animate } from 'motion/react';
+import { motion, AnimatePresence, useScroll, useTransform, useInView, useSpring, animate } from 'motion/react';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
@@ -31,7 +31,9 @@ import {
   CheckCircle2,
   Network,
   Activity,
-  ArrowDown
+  ArrowDown,
+  Trophy,
+  BarChart3
 } from 'lucide-react';
 import { scrollReveal } from '../lib/motion';
 
@@ -305,8 +307,7 @@ export const Landing: React.FC = () => {
                   className="p-4 sm:p-6 rounded-3xl bg-white/85 backdrop-blur-md border border-white/90 shadow-[0_20px_50px_rgba(37,99,235,0.22)] flex items-center justify-center group transform-gpu"
                 >
                   <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-cyan-400/20 via-blue-500/20 to-purple-600/20 filter blur-md -z-10 group-hover:blur-lg transition-all" />
-                  <PolyLanceLogo size={110} className="filter drop-shadow-[0_10px_25px_rgba(37,99,235,0.4)] hidden sm:block" />
-                  <PolyLanceLogo size={85} className="filter drop-shadow-[0_10px_25px_rgba(37,99,235,0.4)] sm:hidden" />
+                  <PolyLanceLogo size={100} className="filter drop-shadow-[0_10px_25px_rgba(37,99,235,0.4)]" />
                 </motion.div>
               </motion.div>
             </div>
@@ -1084,45 +1085,87 @@ export const Landing: React.FC = () => {
           </h2>
         </div>
 
-        <div className="space-y-4 relative z-10 text-left">
+        <div className="space-y-4 relative z-10 text-left max-w-4xl mx-auto">
           {faqs.map((faq, idx) => {
             const isOpen = openFaq === idx;
             return (
-              <div
+              <motion.div
                 key={idx}
-                className={`border rounded-2xl overflow-hidden transition-all duration-300 ${isOpen
-                  ? 'border-purple-500 bg-purple-50/15 shadow-sm'
-                  : 'border-slate-200 bg-white hover:border-slate-300 shadow-3xs'
-                  }`}
+                initial={false}
+                animate={{
+                  borderColor: isOpen ? '#9333EA' : '#E2E8F0',
+                  backgroundColor: isOpen ? '#FAF5FF' : '#FFFFFF',
+                }}
+                transition={{ duration: 0.3 }}
+                className={`border rounded-2xl overflow-hidden transition-shadow duration-300 ${
+                  isOpen
+                    ? 'shadow-md shadow-purple-500/10 ring-1 ring-purple-500/20'
+                    : 'hover:border-purple-200 hover:shadow-xs'
+                }`}
               >
                 <button
                   type="button"
                   onClick={() => setOpenFaq(isOpen ? null : idx)}
-                  className="w-full p-4.5 text-left flex items-center justify-between gap-4 cursor-pointer group"
+                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 cursor-pointer group"
                 >
                   <div className="flex items-center gap-3.5">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-xs shrink-0 ${isOpen ? 'bg-purple-100 text-purple-700' : 'bg-purple-50/50 text-purple-600/80 border border-purple-100/30'
-                      }`}>
+                    <motion.div
+                      animate={{
+                        scale: isOpen ? 1.08 : 1,
+                      }}
+                      transition={{ duration: 0.2 }}
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center font-mono font-bold text-xs shrink-0 transition-colors duration-300 ${
+                        isOpen
+                          ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-sm shadow-purple-500/30'
+                          : 'bg-purple-50/60 text-purple-700 border border-purple-100/60'
+                      }`}
+                    >
                       {String(idx + 1).padStart(2, '0')}
-                    </div>
-                    <span className="font-satoshi font-bold text-slate-900 text-sm leading-tight">
+                    </motion.div>
+                    <span className="font-satoshi font-bold text-slate-900 text-sm sm:text-base leading-snug">
                       {faq.q}
                     </span>
                   </div>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${isOpen ? 'bg-purple-600 text-white shadow-sm scale-105' : 'bg-slate-50 border border-slate-100 text-slate-400 group-hover:text-slate-600'
-                    }`}>
-                    <ChevronDown size={15} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-                  </div>
+
+                  <motion.div
+                    animate={{
+                      rotate: isOpen ? 180 : 0,
+                      scale: isOpen ? 1.1 : 1,
+                      backgroundColor: isOpen ? '#7C3AED' : '#F8FAFC',
+                      color: isOpen ? '#FFFFFF' : '#94A3B8',
+                    }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-slate-200/80 shadow-2xs"
+                  >
+                    <ChevronDown size={16} />
+                  </motion.div>
                 </button>
 
-                {isOpen && (
-                  <div className="px-6 pb-6 pt-2 border-t border-slate-100 bg-white/60">
-                    <p className="text-slate-600 text-xs sm:text-[13px] leading-relaxed font-sans font-medium">
-                      {faq.a}
-                    </p>
-                  </div>
-                )}
-              </div>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      key="content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <motion.div
+                        initial={{ y: -10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -8, opacity: 0 }}
+                        transition={{ duration: 0.25, delay: 0.05 }}
+                        className="px-6 pb-6 pt-2 border-t border-purple-100/60 bg-gradient-to-b from-purple-50/30 to-white/80"
+                      >
+                        <p className="text-slate-600 text-xs sm:text-sm leading-relaxed font-sans font-medium">
+                          {faq.a}
+                        </p>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             );
           })}
         </div>

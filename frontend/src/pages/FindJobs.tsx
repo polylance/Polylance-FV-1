@@ -7,6 +7,7 @@ import { SkillCategory } from '../types';
 import { Search, Filter, Briefcase, ArrowRight, ShieldCheck, Award, CheckCircle2, Globe } from 'lucide-react';
 import { SUPPORTED_FIAT, convertCryptoToFiat } from '../utils/currency';
 import { staggerContainer, staggerItem, scrollReveal, transition } from '../lib/motion';
+import { NoSearchResultState } from '../components/UIStates';
 
 export const FindJobs: React.FC = () => {
   const { currentRole } = useWeb3();
@@ -129,10 +130,15 @@ export const FindJobs: React.FC = () => {
         className="grid grid-cols-1 md:grid-cols-2 gap-6"
       >
         {filteredJobs.length === 0 ? (
-          <div className="col-span-2 glass-panel p-12 text-center border-slate-200 bg-white space-y-2">
-            <Filter className="w-10 h-10 text-slate-400 mx-auto" />
-            <h3 className="text-base font-bold text-slate-700">No jobs match your filter</h3>
-            <p className="text-xs text-slate-500">Try selecting another category or resetting search query.</p>
+          <div className="col-span-2 py-6">
+            <NoSearchResultState
+              title={searchQuery ? 'No matching jobs found' : 'No jobs in this category'}
+              description={searchQuery ? `We couldn't find any opportunities matching "${searchQuery}". Try a different keyword or clear your filters.` : 'No active escrow jobs in this skill category right now. Check back soon or browse other categories.'}
+              onClear={() => {
+                setSelectedCategory('all');
+                setSearchQuery('');
+              }}
+            />
           </div>
         ) : (
           filteredJobs.map((job) => {

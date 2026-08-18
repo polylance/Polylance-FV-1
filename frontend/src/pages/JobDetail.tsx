@@ -12,6 +12,7 @@ import { truncateAddress, formatDaysRemaining } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
 import { Shield, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { ErrorState } from '../components/UIStates';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,13 +51,13 @@ export const JobDetail: React.FC = () => {
 
   if (!job) {
     return (
-      <div className="max-w-xl mx-auto py-16 text-center space-y-4">
-        <AlertTriangle className="w-12 h-12 text-amber-600 mx-auto" />
-        <h2 className="text-xl font-bold text-slate-900 font-headline">Job Contract Not Found</h2>
-        <p className="text-xs text-slate-500 font-mono">Address or ID: {id}</p>
-        <Link to="/jobs" className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold inline-block">
-          Return to Find Jobs
-        </Link>
+      <div className="max-w-xl mx-auto py-16">
+        <ErrorState
+          title="Job Contract Not Found"
+          description={`We couldn't locate an active smart contract escrow for ID: ${id}. It may have expired or been removed.`}
+          onRetry={() => window.location.reload()}
+          onDashboard={() => window.location.hash = '#/jobs'}
+        />
       </div>
     );
   }

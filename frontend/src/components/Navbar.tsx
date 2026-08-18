@@ -14,6 +14,7 @@ import {
   Users,
   LogIn,
   Shield,
+  ShieldCheck,
   ChevronDown,
   MessageSquare,
   Menu,
@@ -121,26 +122,56 @@ export const Navbar: React.FC = () => {
     location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
   const isVisitor = !isConnected || currentRole === 'visitor';
 
+  const isAuditPage = location.pathname.startsWith('/audit/');
+
+  if (isAuditPage) {
+    return (
+      <header className="sticky top-0 z-50 w-full py-3.5 backdrop-blur-xl bg-[#F6F9FC]/95 border-b border-slate-200/60 shadow-xs no-print">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-8">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-xl bg-purple-500/20 blur-md group-hover:bg-purple-500/35 transition-all duration-300" />
+              <PolyLanceLogo size={36} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
+            </div>
+            <div className="flex flex-col leading-none">
+              <span className="font-black text-[22px] tracking-tight text-slate-900 leading-none">
+                Poly<span className="text-purple-600">Lance</span>
+              </span>
+              <span className="text-[7.5px] font-mono text-purple-700/80 font-bold tracking-[0.16em] uppercase mt-0.5 leading-none select-none">
+                mvp on-chain
+              </span>
+            </div>
+          </Link>
+
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-purple-50 text-purple-800 rounded-full border border-purple-200 text-xs font-mono font-bold shadow-2xs">
+            <ShieldCheck size={14} className="text-purple-600" />
+            <span>OFFICIAL AUDIT REPORT</span>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <>
-      {/* ── Scroll-aware Liquid Glass Bar ─────────────────────────────────── */}
-      <motion.nav
-        animate={{
-          scale: scrolled ? 0.99 : 1,
-          boxShadow: scrolled
-            ? '0 12px 40px rgba(124,58,237,0.14), 0 3px 10px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95)'
-            : '0 8px 30px rgba(124,58,237,0.08), 0 2px 6px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.95)',
-        }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="w-[calc(100%-1.5rem)] sm:w-[calc(100%-2.5rem)] max-w-[1536px] mx-auto my-2.5 sticky top-2.5 z-40
-          flex items-center justify-between
-          px-5 py-2 sm:py-2.5 rounded-[28px] border border-white/80"
-        style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.90) 0%, rgba(246,242,255,0.85) 100%)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        }}
-      >
+      {/* ── Scroll-aware Liquid Glass Header with Full Backdrop Blur ───────── */}
+      <header className="sticky top-0 z-50 w-full py-1.5 backdrop-blur-xl bg-[#F6F9FC]/80 border-b border-slate-200/50 shadow-3xs transition-all duration-300">
+        <motion.nav
+          animate={{
+            scale: scrolled ? 0.99 : 1,
+            boxShadow: scrolled
+              ? '0 12px 40px rgba(124,58,237,0.14), 0 3px 10px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95)'
+              : '0 8px 30px rgba(124,58,237,0.08), 0 2px 6px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.95)',
+          }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="w-[calc(100%-1.5rem)] sm:w-[calc(100%-2.5rem)] max-w-[1536px] mx-auto
+            flex items-center justify-between
+            px-5 py-2 sm:py-2.5 rounded-[28px] bg-white/85 border border-white/90 shadow-2xs"
+          style={{
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          }}
+        >
         {/* ── LEFT: Brand ─────────────────────────────────────────────── */}
         <div className="flex items-center shrink-0">
           <Link to="/" className="flex items-center gap-2.5 group shrink-0">
@@ -475,6 +506,7 @@ export const Navbar: React.FC = () => {
           )}
         </AnimatePresence>
       </motion.nav>
+      </header>
 
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
     </>

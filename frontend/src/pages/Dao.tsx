@@ -3,6 +3,7 @@ import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { truncateAddress } from '../utils/formatters';
 import { Gavel, Vote, Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { EmptyState } from '../components/UIStates';
 
 export const Dao: React.FC = () => {
   const { address, isConnected, connectWallet } = useWeb3();
@@ -71,12 +72,13 @@ export const Dao: React.FC = () => {
 
         <div className="space-y-4">
           {daoProposals.length === 0 ? (
-            <div className="glass-panel p-10 border-slate-200 bg-white text-center space-y-3 hard-shadow">
-              <Gavel size={36} className="text-purple-600 mx-auto opacity-80" />
-              <h4 className="font-headline font-extrabold text-slate-900 text-base">No Active Judge Election Proposals</h4>
-              <p className="text-xs text-slate-500 font-sans max-w-md mx-auto leading-relaxed">
-                There are currently no active arbitrator nomination proposals. Connect your wallet and click <strong className="text-purple-900 font-semibold">Propose Arbitrator Candidate</strong> above to nominate a candidate for decentralized dispute resolution voting.
-              </p>
+            <div className="py-2">
+              <EmptyState
+                title="No Active Judge Election Proposals"
+                description="There are currently no active arbitrator nomination proposals. Nominate a candidate to initiate decentralized dispute resolution voting."
+                actionText={isConnected ? "Propose Arbitrator Candidate" : "Connect Wallet to Vote"}
+                onAction={isConnected ? () => setIsModalOpen(true) : connectWallet}
+              />
             </div>
           ) : (
             daoProposals.map((prop) => {

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Web3Provider, useWeb3 } from './context/Web3Context';
 import { PolyLanceDataProvider } from './context/PolyLanceDataContext';
 import { Navbar } from './components/Navbar';
+import { Footer } from './components/Footer';
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
@@ -20,6 +21,11 @@ import { Analytics } from './pages/Analytics';
 import { AuditReport } from './pages/AuditReport';
 import { Chat } from './pages/Chat';
 import { Settings } from './pages/Settings';
+import { Terms } from './pages/Terms';
+import { Privacy } from './pages/Privacy';
+import { Security } from './pages/Security';
+import { Disclaimer } from './pages/Disclaimer';
+import { Manifesto } from './pages/Manifesto';
 import { pageVariants, transition } from './lib/motion';
 
 // ── Apple-style page transition wrapper ────────────────────────────────────
@@ -37,7 +43,8 @@ const AnimatedRoutes: React.FC = () => {
         animate="animate"
         exit="exit"
         transition={transition.page}
-        style={{ willChange: 'transform, opacity, filter' }}
+        className="w-full"
+        style={{ willChange: 'transform, opacity' }}
       >
         <Routes location={location}>
           {/* PUBLIC & PERCEPTION ACCESS ROUTES */}
@@ -48,6 +55,11 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/reputation" element={<Reputation />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:address" element={<Profile />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/security" element={<Security />} />
+          <Route path="/disclaimer" element={<Disclaimer />} />
+          <Route path="/manifesto" element={<Manifesto />} />
 
           {/* ROLE PROTECTED OR PERCEPTION-GUIDED ROUTES */}
           <Route path="/onboarding" element={isVisitor ? <Navigate to="/login" replace /> : <Onboarding />} />
@@ -84,12 +96,8 @@ const AppContent: React.FC = () => {
         <AnimatedRoutes />
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 bg-white/60 backdrop-blur-sm py-6 px-4 md:px-8 text-center text-xs text-slate-500 font-mono">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <span>PolyLance MVP © 2026 — Permanent Blockchain Freelance Reputation</span>
-        </div>
-      </footer>
+      {/* Global Unified Footer */}
+      <Footer />
     </div>
   );
 };

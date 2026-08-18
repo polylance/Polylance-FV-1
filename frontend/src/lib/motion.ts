@@ -45,26 +45,23 @@ export const transition = {
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// PAGE TRANSITION — fade + slide + blur (Apple-style route change)
+// PAGE TRANSITION — fluid GPU fade + slide (Butter smooth 60fps)
 // ─────────────────────────────────────────────────────────────────
 export const pageVariants = {
   initial: {
     opacity: 0,
-    x: 18,
-    scale: 0.985,
-    filter: 'blur(10px)',
+    y: 8,
+    scale: 0.995,
   },
   animate: {
     opacity: 1,
-    x: 0,
+    y: 0,
     scale: 1,
-    filter: 'blur(0px)',
   },
   exit: {
     opacity: 0,
-    x: -12,
-    scale: 0.99,
-    filter: 'blur(8px)',
+    y: -6,
+    scale: 0.998,
   },
 } as const;
 
@@ -72,19 +69,19 @@ export const pageVariants = {
 // SECTION TRANSITION — switching content within same page
 // ─────────────────────────────────────────────────────────────────
 export const sectionVariants = {
-  initial: { opacity: 0, y: 12, filter: 'blur(8px)' },
-  animate: { opacity: 1, y: 0,  filter: 'blur(0px)' },
-  exit:    { opacity: 0, y: -8, filter: 'blur(4px)' },
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit:    { opacity: 0, y: -6 },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
 // SCROLL REVEAL — section entering the viewport
 // ─────────────────────────────────────────────────────────────────
 export const scrollReveal = {
-  initial: { opacity: 0, y: 20, filter: 'blur(6px)' },
-  whileInView: { opacity: 1, y: 0, filter: 'blur(0px)' },
-  viewport: { once: true, amount: 0.18 },
-  transition: { duration: duration.slow, ease: appleEase },
+  initial: { opacity: 0, y: 16 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.12 },
+  transition: { duration: duration.normal, ease: appleEase },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
@@ -93,31 +90,30 @@ export const scrollReveal = {
 export const staggerContainer = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.07 },
+    transition: { staggerChildren: 0.05 },
   },
 } as const;
 
 export const staggerItem = {
-  hidden: { opacity: 0, y: 14, filter: 'blur(5px)' },
+  hidden: { opacity: 0, y: 10 },
   show: {
     opacity: 1,
     y: 0,
-    filter: 'blur(0px)',
-    transition: { duration: duration.slow, ease: appleEase },
+    transition: { duration: duration.normal, ease: appleEase },
   },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// DROPDOWN — fast blur-fade scale-in
+// DROPDOWN — fast scale-fade entrance
 // ─────────────────────────────────────────────────────────────────
 export const dropdownVariants = {
-  initial: { opacity: 0, y: -6, scale: 0.98, filter: 'blur(4px)' },
-  animate: { opacity: 1, y: 0,  scale: 1,    filter: 'blur(0px)' },
-  exit:    { opacity: 0, y: -4, scale: 0.99, filter: 'blur(2px)' },
+  initial: { opacity: 0, y: -4, scale: 0.98 },
+  animate: { opacity: 1, y: 0,  scale: 1 },
+  exit:    { opacity: 0, y: -3, scale: 0.99 },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// MODAL — scale + blur entrance
+// MODAL — crisp scale entrance
 // ─────────────────────────────────────────────────────────────────
 export const modalOverlayVariants = {
   initial: { opacity: 0 },
@@ -126,9 +122,9 @@ export const modalOverlayVariants = {
 } as const;
 
 export const modalContentVariants = {
-  initial: { opacity: 0, scale: 0.96, y: 12, filter: 'blur(8px)' },
-  animate: { opacity: 1, scale: 1,    y: 0,  filter: 'blur(0px)' },
-  exit:    { opacity: 0, scale: 0.97, y: 8,  filter: 'blur(6px)' },
+  initial: { opacity: 0, scale: 0.97, y: 10 },
+  animate: { opacity: 1, scale: 1,    y: 0 },
+  exit:    { opacity: 0, scale: 0.98, y: 6 },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────

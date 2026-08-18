@@ -11,6 +11,7 @@ import {
 import { truncateAddress } from '../utils/formatters';
 import { JudgeRecord, JudgeMessage } from '../types';
 import confetti from 'canvas-confetti';
+import { EmptyState } from '../components/UIStates';
 
 export const Chat: React.FC = () => {
   const { jobId: urlJobId } = useParams<{ jobId: string }>();
@@ -39,6 +40,7 @@ export const Chat: React.FC = () => {
   const [submitTitle, setSubmitTitle] = useState('');
   const [submitDesc, setSubmitDesc] = useState('');
   const [submitLink, setSubmitLink] = useState('');
+  const [showMobileChannels, setShowMobileChannels] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -190,7 +192,7 @@ export const Chat: React.FC = () => {
     j.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const [showMobileChannels, setShowMobileChannels] = useState(false);
+
 
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-6 font-sans">
@@ -773,12 +775,12 @@ export const Chat: React.FC = () => {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col justify-center items-center text-center p-8 text-slate-400 space-y-3">
-                <MessageSquare size={48} className="text-purple-600 stroke-1" />
-                <div>
-                  <h4 className="font-bold text-slate-800 text-sm">Select an Escrow Channel</h4>
-                  <p className="text-xs text-slate-500 mt-1 font-mono">Choose an active channel from the left sidebar to communicate.</p>
-                </div>
+              <div className="flex-1 flex flex-col justify-center items-center p-8">
+                <EmptyState
+                  title="Select an Escrow Channel"
+                  description="Choose an active escrow contract from the left sidebar to communicate in encrypted XMTP chat."
+                  actionText=""
+                />
               </div>
             )
           )}
