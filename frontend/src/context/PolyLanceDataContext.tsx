@@ -111,19 +111,25 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
+    const socketUrl = import.meta.env.VITE_ENCLINE_SOCKET_URL;
+    if (!socketUrl) return;
+
     try {
-      const socket = io('https://encline.vercel.app', {
-        transports: ['websocket', 'polling'],
+      const socket = io(socketUrl, {
+        transports: ['polling', 'websocket'],
         autoConnect: true,
-        reconnection: true,
-        reconnectionAttempts: 5,
-        timeout: 5000,
+        reconnection: false,
+        reconnectionAttempts: 1,
+        timeout: 3000,
       });
       socketRef.current = socket;
 
       socket.on('connect', () => {
-        console.log('⚡ Encline Realtime Messaging Engine Connected');
         setIsEnclineConnected(true);
+      });
+
+      socket.on('connect_error', () => {
+        setIsEnclineConnected(false);
       });
 
       socket.on('disconnect', () => {
@@ -177,7 +183,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         socket.disconnect();
       };
     } catch (err) {
-      console.warn('Encline socket initialization warning:', err);
+      // Quiet background handling
     }
   }, []);
 
