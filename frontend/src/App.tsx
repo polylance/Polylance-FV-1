@@ -86,6 +86,9 @@ const AnimatedRoutes: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
+  const location = useLocation();
+  const showFooter = location.pathname === '/' || location.pathname === '/dashboard';
+
   return (
     <div className="min-h-screen bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white">
       {/* Production Navbar with Role-Aware Perception Navigation */}
@@ -96,8 +99,8 @@ const AppContent: React.FC = () => {
         <AnimatedRoutes />
       </main>
 
-      {/* Global Unified Footer */}
-      <Footer />
+      {/* Footer ONLY on Dashboard and Landing Page */}
+      {showFooter && <Footer />}
     </div>
   );
 };

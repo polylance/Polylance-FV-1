@@ -51,11 +51,11 @@ export const Profile: React.FC = () => {
   const clientJobs = jobs.filter((j) => j.client.toLowerCase() === profileAddr?.toLowerCase());
   const completedClientJobs = clientJobs.filter((j) => j.status === 'Completed');
   const activeClientJobs = clientJobs.filter((j) => j.status !== 'Completed' && j.status !== 'Cancelled');
-  
+
   const clientTvl = activeClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
   const totalValueCreated = clientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
   const disputes = clientJobs.filter((j) => j.status === 'Disputed' || (j.dispute && j.dispute.resolved));
-  const reliabilityScore = clientJobs.length > 0 
+  const reliabilityScore = clientJobs.length > 0
     ? (10 - (disputes.length / clientJobs.length) * 5).toFixed(1)
     : '10.0';
 
@@ -144,8 +144,8 @@ export const Profile: React.FC = () => {
                         return null;
                       })
                       .filter((v): v is number => v !== null && v > 0);
-                    return releaseSpeeds.length > 0 
-                      ? `${(releaseSpeeds.reduce((a,b)=>a+b,0)/releaseSpeeds.length).toFixed(1)} Hours` 
+                    return releaseSpeeds.length > 0
+                      ? `${(releaseSpeeds.reduce((a, b) => a + b, 0) / releaseSpeeds.length).toFixed(1)} Hours`
                       : 'N/A';
                   })()}
                 </p>
@@ -176,7 +176,7 @@ export const Profile: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-xs">
               <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
                 <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider border-b border-slate-200 pb-2">Legitimacy Verification Checklist</span>
-                
+
                 <div className="space-y-3.5">
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
@@ -194,17 +194,17 @@ export const Profile: React.FC = () => {
                       <span className="text-slate-800 font-bold block text-xs">
                         {(() => {
                           const isMultisig = profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
-                                             profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase() ||
-                                             profileAddr?.toLowerCase() === '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1';
+                            profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase() ||
+                            profileAddr?.toLowerCase() === '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1';
                           return isMultisig ? 'Verified Multi-Sig Safe Wallet' : 'Standard Web3 EOA Wallet';
                         })()}
                       </span>
                       <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
                         {(() => {
                           const isMultisig = profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase() ||
-                                             profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase() ||
-                                             profileAddr?.toLowerCase() === '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1';
-                          return isMultisig 
+                            profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase() ||
+                            profileAddr?.toLowerCase() === '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1';
+                          return isMultisig
                             ? `The client's wallet ${truncateAddress(profileAddr)} is a Gnosis Safe smart contract with 2-of-3 key holders verified as organizational representatives.`
                             : `The client's wallet ${truncateAddress(profileAddr)} is a verified standard externally owned account (EOA) active on-chain.`;
                         })()}
@@ -219,8 +219,8 @@ export const Profile: React.FC = () => {
                         {disputes.length === 0 ? '0% Dispute History Rate' : `${Math.round((disputes.length / (clientJobs.length || 1)) * 100)}% Dispute Rate`}
                       </span>
                       <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
-                        {disputes.length === 0 
-                          ? 'No disputes have ever escalated to DAO Judge Panel arbitration. All escrows were completed amicably with on-time payouts.' 
+                        {disputes.length === 0
+                          ? 'No disputes have ever escalated to DAO Judge Panel arbitration. All escrows were completed amicably with on-time payouts.'
                           : `${disputes.length} dispute${disputes.length === 1 ? '' : 's'} required arbitrator intervention out of ${clientJobs.length} total escrow contracts.`}
                       </span>
                     </div>
@@ -239,7 +239,7 @@ export const Profile: React.FC = () => {
                             }
                             return old;
                           }, 0);
-                          return oldest > 0 
+                          return oldest > 0
                             ? `Active member since ${new Date(oldest).toLocaleDateString()}. Consistent escrow funding history verified.`
                             : 'Newly registered client on PolyLance. Wallet successfully connected.';
                         })()}
@@ -267,8 +267,8 @@ export const Profile: React.FC = () => {
                             return null;
                           })
                           .filter((v): v is number => v !== null && v > 0);
-                        return releaseSpeeds.length > 0 
-                          ? `${(releaseSpeeds.reduce((a,b)=>a+b,0)/releaseSpeeds.length).toFixed(1)} Hours` 
+                        return releaseSpeeds.length > 0
+                          ? `${(releaseSpeeds.reduce((a, b) => a + b, 0) / releaseSpeeds.length).toFixed(1)} Hours`
                           : 'N/A';
                       })()}
                     </span>
@@ -276,8 +276,8 @@ export const Profile: React.FC = () => {
                   <div className="flex justify-between items-baseline border-b border-slate-200 pb-2">
                     <span className="text-slate-600 font-medium">Escrow Completion Rate</span>
                     <span className="font-bold text-slate-900 text-sm">
-                      {clientJobs.length > 0 
-                        ? `${Math.round((completedClientJobs.length / clientJobs.length) * 100)}%` 
+                      {clientJobs.length > 0
+                        ? `${Math.round((completedClientJobs.length / clientJobs.length) * 100)}%`
                         : 'N/A'}
                     </span>
                   </div>
@@ -318,12 +318,11 @@ export const Profile: React.FC = () => {
                         Escrow size: ${parseFloat(j.amountUsdc).toLocaleString()} USDC • Status: {j.status}
                       </p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
-                      j.status === 'Completed' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
-                      j.status === 'Disputed' ? 'bg-rose-100 text-rose-900 border border-rose-300' :
-                      j.status === 'Open' ? 'bg-blue-100 text-blue-900 border border-blue-300' :
-                      'bg-amber-100 text-amber-900 border border-amber-300'
-                    }`}>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${j.status === 'Completed' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
+                        j.status === 'Disputed' ? 'bg-rose-100 text-rose-900 border border-rose-300' :
+                          j.status === 'Open' ? 'bg-blue-100 text-blue-900 border border-blue-300' :
+                            'bg-amber-100 text-amber-900 border border-amber-300'
+                      }`}>
                       {j.status === 'Completed' ? `Funds Released ($${parseFloat(j.amountUsdc).toLocaleString()} USDC)` : j.status}
                     </span>
                   </div>
@@ -374,7 +373,7 @@ export const Profile: React.FC = () => {
             <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2 border-b border-slate-100 pb-3">
               <Scale size={20} className="text-amber-600" /> Active Dispute Cases Assigned
             </h3>
-            
+
             {jobs.filter((j) => j.status === 'Disputed').length === 0 ? (
               <p className="text-xs text-slate-500 font-mono p-4 bg-slate-50 rounded-xl text-center border border-dashed border-slate-300">
                 No active dispute cases awaiting review.
@@ -706,7 +705,7 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
   disputes
 }) => {
   const [auditType, setAuditType] = useState<'freelancer' | 'client'>('freelancer');
-  
+
   return (
     <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-5">
       <div className="border-b border-slate-100 pb-3 flex flex-wrap justify-between items-center gap-4">
@@ -722,17 +721,15 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button
             onClick={() => setAuditType('freelancer')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              auditType === 'freelancer' ? 'bg-purple-700 bg-purple-700 text-white shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${auditType === 'freelancer' ? 'bg-purple-700 bg-purple-700 text-white shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             Audit Freelancer
           </button>
           <button
             onClick={() => setAuditType('client')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              auditType === 'client' ? 'bg-indigo-700 bg-indigo-700 text-white shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${auditType === 'client' ? 'bg-indigo-700 bg-indigo-700 text-white shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             Audit Client
           </button>

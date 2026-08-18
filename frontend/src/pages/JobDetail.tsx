@@ -10,7 +10,7 @@ import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSub
 import { DisputeReason, UserProfile } from '../types';
 import { truncateAddress, formatDaysRemaining } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
-import { Shield, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award } from 'lucide-react';
+import { Shield, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ErrorState } from '../components/UIStates';
 
@@ -71,6 +71,10 @@ export const JobDetail: React.FC = () => {
   const freelancerProfile = freelancerProfileKey ? profiles[freelancerProfileKey] : null;
   const freelancerDisplayName = freelancerProfile?.displayName || (freelancerAddr ? 'Anonymous Freelancer' : 'Unassigned');
 
+  const currentUserProfKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
+  const currentUserProf = currentUserProfKey ? profiles[currentUserProfKey] : null;
+  const isUserVerified = Boolean(currentUserProf?.githubVerified);
+
   const isClient = Boolean(isConnected && address && address.toLowerCase() === job.client.toLowerCase());
   const isFreelancer = Boolean(isConnected && address && job.freelancer && address.toLowerCase() === job.freelancer.toLowerCase());
   const isParty = isClient || isFreelancer;
@@ -79,15 +83,17 @@ export const JobDetail: React.FC = () => {
   const handleApplySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!applyProposalText.trim()) return;
-    const userProfKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
-    const userProf = ((userProfKey ? profiles[userProfKey] : null) || {}) as UserProfile;
+    if (!isUserVerified) {
+      alert('GitHub verification is required before applying for jobs! Please verify your GitHub account on your profile page.');
+      return;
+    }
     applyToJob(
       job.id,
       applyProposalText,
       address,
-      userProf.skills || ['Developer'],
-      Boolean(userProf.githubVerified),
-      userProf.primaryScore || 750
+      currentUserProf?.skills || ['Developer'],
+      Boolean(currentUserProf?.githubVerified),
+      currentUserProf?.primaryScore || 750
     );
     setIsApplyingModalOpen(false);
     setApplyProposalText('');
@@ -238,6 +244,18 @@ export const JobDetail: React.FC = () => {
                       <button onClick={connectWallet} className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold">
                         Connect Wallet to Apply
                       </button>
+                    ) : !isUserVerified ? (
+                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <span className="text-xs text-amber-800 bg-amber-50 border border-amber-200 px-3.5 py-2.5 rounded-xl font-semibold flex items-center gap-1.5 shadow-2xs">
+                          <AlertTriangle size={15} className="text-amber-600 shrink-0" /> GitHub verification required to apply for jobs
+                        </span>
+                        <Link
+                          to="/profile"
+                          className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all shrink-0"
+                        >
+                          <Github size={15} /> Verify GitHub Account
+                        </Link>
+                      </div>
                     ) : hasApplied ? (
                       <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5">
                         <CheckCircle2 size={14} /> Proposal Submitted

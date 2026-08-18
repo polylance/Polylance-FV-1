@@ -22,9 +22,11 @@ import {
   Briefcase,
   TrendingUp,
   GitCommit,
-  GitPullRequest
+  GitPullRequest,
+  AlertCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 
 interface ApplicantTableProps {
@@ -141,18 +143,23 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
             (j) => j.freelancer?.toLowerCase() === freelancerAddr && ((j.status as string) === 'Funded' || j.status === 'Selected' || j.status === 'Submitted')
           );
 
-          const name = profile?.displayName || 'Pasumarthi Sunny';
-          const githubUsername = profile?.githubUsername || 'sunny200551';
-          const completedCount = profile?.jobsCompletedCount !== undefined ? profile.jobsCompletedCount : completedJobs.length;
-          const rating = profile?.rating !== undefined ? profile.rating : (completedCount > 0 ? 5.0 : 0);
-          const onTimeRate = profile?.onTimeRate || (completedCount > 0 ? '100%' : 'N/A');
-          const progressAvg = profile?.progressAvg || (activeJobs.length > 0 ? '75%' : (completedCount > 0 ? '100%' : 'N/A Completion'));
-          const soulboundCount = profile?.reputationSbtCount !== undefined ? profile.reputationSbtCount : completedCount;
-          const commitsCount = profile?.commitsCount !== undefined ? profile.commitsCount : 72;
-          const prsCount = profile?.prsCount !== undefined ? profile.prsCount : 9;
-          const bio = profile?.bio || 'Frontend developer for PolyLance | Web Development | Blockchain Enthusiast.';
+          const isVerified = Boolean(profile?.githubVerified);
+          const shortAddr = `${app.applicant.slice(0, 6)}...${app.applicant.slice(-4)}`;
+          const name = profile?.displayName || `User ${shortAddr}`;
+          const githubUsername = isVerified ? (profile?.githubUsername || '') : '';
+          const completedCount = (profile as any)?.jobsCompletedCount !== undefined ? (profile as any).jobsCompletedCount : completedJobs.length;
+          const rating = (profile as any)?.rating !== undefined ? (profile as any).rating : (completedCount > 0 ? 5.0 : 0);
+          const onTimeRate = (profile as any)?.onTimeRate || (completedCount > 0 ? '100%' : 'N/A');
+          const progressAvg = (profile as any)?.progressAvg || (activeJobs.length > 0 ? '75%' : (completedCount > 0 ? '100%' : 'N/A Completion'));
+          const soulboundCount = (profile as any)?.reputationSbtCount !== undefined ? (profile as any).reputationSbtCount : completedCount;
 
-          const avatarUrl = profile?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
+          // Real user data only — 0 for unverified accounts
+          const commitsCount = isVerified ? (profile?.commitsCount ?? 0) : 0;
+          const prsCount = isVerified ? (profile?.prsCount ?? 0) : 0;
+
+          const bio = profile?.bio || 'No bio provided.';
+
+          const avatarUrl = profile?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${app.applicant.toLowerCase()}`;
 
           const isExpanded = expandedApplicant === app.applicant;
 
@@ -283,263 +290,233 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                 </span>
               </div>
 
-              {/* Expandable Talent Audit Drawer matching Image 2 perfectly */}
-              {isExpanded && (
-                <div className="pt-4 border-t border-slate-200/80">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 font-sans text-xs">
-                    
-                    {/* ─────────────────────────────────────────────────────────────
-                        COL 1: TIMELINE & SPEED METRICS (IMAGE 2 MATCH)
-                        ───────────────────────────────────────────────────────────── */}
-                    <div className="bg-white p-5 rounded-3xl border border-slate-200/80 space-y-4 shadow-2xs">
-                      {/* Header */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-2xl bg-purple-100/80 text-purple-600 flex items-center justify-center shrink-0">
-                          <Clock size={18} />
-                        </div>
-                        <div>
-                          <h4 className="font-headline font-bold text-slate-900 text-sm">Timeline & Speed Metrics</h4>
-                          <p className="text-xs text-slate-500 font-sans">Performance at a glance</p>
-                        </div>
-                      </div>
-
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-2 gap-3 text-[10px]">
-                        {/* Jobs Completed Card */}
-                        <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/60 flex flex-col justify-between space-y-2">
-                          <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                            <Briefcase size={14} />
+              {/* Expandable Talent Audit Drawer with Smooth Premium Animation */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden border-t border-slate-200/80 pt-3"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-sans text-xs">
+                      
+                      {/* COL 1: TIMELINE & SPEED METRICS */}
+                      <div className="bg-white p-3 rounded-xl border border-slate-200/80 space-y-2 shadow-2xs flex flex-col justify-start">
+                        {/* Header */}
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-purple-100/80 text-purple-700 flex items-center justify-center shrink-0">
+                            <Clock size={14} />
                           </div>
                           <div>
-                            <span className="text-[9px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
+                            <h4 className="font-headline font-extrabold text-slate-900 text-xs">Timeline & Speed Metrics</h4>
+                            <p className="text-[10px] text-slate-500 font-sans">Performance at a glance</p>
+                          </div>
+                        </div>
+
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                        <div className="bg-slate-50/80 p-1.5 px-2 rounded-lg border border-slate-200/60 flex flex-col justify-between space-y-0.5">
+                          <div className="w-5 h-5 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Briefcase size={11} />
+                          </div>
+                          <div>
+                            <span className="text-[8px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
                               JOBS COMPLETED
                             </span>
-                            <div className="flex items-center gap-1.5 mt-1 font-mono font-black text-slate-900 text-base">
+                            <div className="flex items-center gap-1 mt-0.5 font-mono font-black text-slate-900 text-[11px]">
                               <span>{completedCount}</span>
-                              <span className="w-4 h-4 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[9px] font-bold">★</span>
+                              <span className="w-3 h-3 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[7.5px] font-bold">★</span>
                             </div>
                           </div>
                         </div>
 
-                        {/* On-Time Rate Card */}
-                        <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/60 flex flex-col justify-between space-y-2">
-                          <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                            <Clock size={14} />
+                        <div className="bg-slate-50/80 p-1.5 px-2 rounded-lg border border-slate-200/60 flex flex-col justify-between space-y-0.5">
+                          <div className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <Clock size={11} />
                           </div>
                           <div>
-                            <span className="text-[9px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
+                            <span className="text-[8px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
                               ON-TIME RATE
                             </span>
-                            <span className="font-mono font-extrabold text-emerald-600 text-sm block mt-1">
+                            <span className="font-mono font-extrabold text-emerald-600 text-[11px] block mt-0.5">
                               {onTimeRate}
                             </span>
                           </div>
                         </div>
 
-                        {/* Milestones Progress Avg Card */}
-                        <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/60 col-span-2 space-y-2">
+                        <div className="bg-slate-50/80 p-1.5 px-2 rounded-lg border border-slate-200/60 col-span-2 space-y-0.5">
                           <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-mono uppercase font-bold text-slate-400 tracking-wider">
+                            <span className="text-[8px] font-mono uppercase font-bold text-slate-400 tracking-wider">
                               MILESTONES PROGRESS AVG.
                             </span>
-                            <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                              <TrendingUp size={14} />
+                            <div className="w-4 h-4 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
+                              <TrendingUp size={10} />
                             </div>
                           </div>
-                          <span className="font-mono font-extrabold text-purple-700 text-sm block">
-                            {progressAvg}
-                          </span>
-                          <div className="flex items-center gap-3 pt-1">
-                            <div className="w-full bg-slate-200/80 rounded-full h-2">
+                          <div className="flex items-center justify-between pt-0.5">
+                            <span className="font-mono font-extrabold text-purple-700 text-[11px]">
+                              {progressAvg}
+                            </span>
+                            <div className="w-20 bg-slate-200/80 rounded-full h-1.5 flex items-center">
                               <div 
-                                className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                                className="bg-purple-600 h-1.5 rounded-full transition-all duration-300" 
                                 style={{ width: progressAvg.includes('N/A') ? '0%' : (progressAvg.includes('%') ? progressAvg : '0%') }}
                               />
                             </div>
-                            <span className="text-[10px] font-mono font-bold text-slate-500 shrink-0">
-                              {progressAvg.includes('N/A') ? '0%' : progressAvg}
-                            </span>
                           </div>
-                        </div>
-                      </div>
-
-                      {/* Bottom Motto Banner A */}
-                      <div className="bg-[#FAF5FF] border border-purple-100 rounded-2xl p-3 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                          <Zap size={16} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-xs">Speed is earned.</p>
-                          <p className="text-[10px] text-slate-500 font-sans">Consistency is verified on-chain.</p>
                         </div>
                       </div>
                     </div>
 
-                    {/* ─────────────────────────────────────────────────────────────
-                        COL 2: RATING & CREDENTIALS (IMAGE 2 MATCH)
-                        ───────────────────────────────────────────────────────────── */}
-                    <div className="bg-white p-5 rounded-3xl border border-slate-200/80 space-y-4 shadow-2xs">
+                    {/* COL 2: RATING & CREDENTIALS */}
+                    <div className="bg-white p-3 rounded-xl border border-slate-200/80 space-y-2 shadow-2xs flex flex-col justify-start">
                       {/* Header */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-2xl bg-amber-100/80 text-amber-600 flex items-center justify-center shrink-0">
-                          <Star size={18} className="fill-amber-500" />
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-amber-100/80 text-amber-600 flex items-center justify-center shrink-0">
+                          <Star size={13} className="fill-amber-500" />
                         </div>
                         <div>
-                          <h4 className="font-headline font-bold text-slate-900 text-sm">Rating & Credentials</h4>
-                          <p className="text-xs text-slate-500 font-sans">Reputation that's provable</p>
+                          <h4 className="font-headline font-extrabold text-slate-900 text-xs">Rating & Credentials</h4>
+                          <p className="text-[9.5px] text-slate-500 font-sans">Reputation that's provable</p>
                         </div>
                       </div>
 
-                      {/* Credentials List */}
-                      <div className="space-y-3">
-                        {/* Client Satisfaction Row */}
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                          <div className="flex items-center gap-2">
-                            <Smile size={16} className="text-slate-400" />
-                            <span className="text-xs text-slate-700 font-medium">Client Satisfaction</span>
+                      {/* Credentials List with compact spacing */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-1">
+                          <div className="flex items-center gap-1">
+                            <Smile size={12} className="text-slate-400" />
+                            <span className="text-[10.5px] text-slate-700 font-medium">Client Satisfaction</span>
                           </div>
                           {rating > 0 ? (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1">
                               {renderStars(rating)}
-                              <span className="font-mono font-extrabold text-slate-900 text-xs">{rating.toFixed(1)}</span>
+                              <span className="font-mono font-extrabold text-slate-900 text-[10.5px]">{rating.toFixed(1)}</span>
                             </div>
                           ) : (
-                            <span className="font-mono font-extrabold text-slate-400 text-xs">N/A</span>
+                            <span className="font-mono font-extrabold text-slate-400 text-[10.5px]">N/A</span>
                           )}
                         </div>
 
-                        {/* Soulbound Badges Row */}
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                          <div className="flex items-center gap-2">
-                            <Shield size={16} className="text-purple-600" />
-                            <span className="text-xs text-slate-700 font-medium">Soulbound Badges</span>
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-1">
+                          <div className="flex items-center gap-1">
+                            <Shield size={12} className="text-purple-600" />
+                            <span className="text-[10.5px] text-slate-700 font-medium">Soulbound Badges</span>
                           </div>
-                          <span className="font-mono font-extrabold text-purple-700 text-xs">
+                          <span className="font-mono font-extrabold text-purple-700 text-[10.5px]">
                             {soulboundCount} Attested
                           </span>
                         </div>
 
-                        {/* Bio Box */}
-                        <div className="bg-[#FAF5FF] border border-purple-100 rounded-2xl p-4 space-y-2">
-                          <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
-                            <Award size={16} />
+                        {/* Full Visible Bio Box */}
+                        <div className="bg-[#FAF5FF] border border-purple-100/80 rounded-lg p-1.5 space-y-0.5 mt-1">
+                          <div className="flex items-center gap-1 text-purple-700 font-bold">
+                            <Award size={11} />
+                            <span className="text-[8.5px] uppercase font-mono tracking-wider">BIO & ATTESTATIONS</span>
                           </div>
-                          <p className="font-mono text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">
+                          <p className="font-sans text-[10.5px] text-slate-800 leading-tight whitespace-pre-wrap">
                             {bio}
                           </p>
                         </div>
                       </div>
-
-                      {/* Bottom Motto Banner B */}
-                      <div className="bg-[#FAF5FF] border border-purple-100 rounded-2xl p-3 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                          <ShieldCheck size={16} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-xs">Credentials are soulbound.</p>
-                          <p className="text-[10px] text-slate-500 font-sans">They can't be faked or removed.</p>
-                        </div>
-                      </div>
                     </div>
 
-                    {/* ─────────────────────────────────────────────────────────────
-                        COL 3: VERIFIED GITHUB ACTIVITY & RECENT ACTIVITY SUMMARY (IMAGE 2 MATCH)
-                        ───────────────────────────────────────────────────────────── */}
-                    <div className="bg-white p-5 rounded-3xl border border-slate-200/80 space-y-4 shadow-2xs">
+                    {/* COL 3: VERIFIED GITHUB ACTIVITY */}
+                    <div className="bg-white p-3 rounded-xl border border-slate-200/80 space-y-2 shadow-2xs flex flex-col justify-start">
                       {/* Header */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-2xl bg-purple-100/80 text-purple-600 flex items-center justify-center shrink-0">
-                          <Code2 size={18} />
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-purple-100/80 text-purple-700 flex items-center justify-center shrink-0">
+                          <Code2 size={13} />
                         </div>
                         <div>
-                          <h4 className="font-headline font-bold text-slate-900 text-sm">Verified GitHub Activity</h4>
-                          <p className="text-xs text-slate-500 font-sans">On-chain code contributions</p>
+                          <h4 className="font-headline font-extrabold text-slate-900 text-xs">Verified GitHub Activity</h4>
+                          <p className="text-[9.5px] text-slate-500 font-sans">On-chain code contributions</p>
                         </div>
                       </div>
 
                       {/* Stats Grid */}
-                      <div className="grid grid-cols-2 gap-3 text-[10px]">
-                        {/* Total Commits Card */}
-                        <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/60 flex flex-col justify-between space-y-2">
-                          <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                            <GitCommit size={14} />
+                      <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                        <div className="bg-slate-50/80 p-1.5 px-2 rounded-lg border border-slate-200/60 flex flex-col justify-between space-y-0.5">
+                          <div className="w-5 h-5 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
+                            <GitCommit size={11} />
                           </div>
                           <div>
-                            <span className="text-[9px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
+                            <span className="text-[8px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
                               TOTAL COMMITS
                             </span>
-                            <span className="font-mono font-black text-slate-900 text-base block mt-0.5">
+                            <span className="font-mono font-black text-slate-900 text-[11px] block mt-0.5">
                               {commitsCount}
                             </span>
                           </div>
                         </div>
 
-                        {/* PRs Merged Card */}
-                        <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/60 flex flex-col justify-between space-y-2">
-                          <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                            <GitPullRequest size={14} />
+                        <div className="bg-slate-50/80 p-1.5 px-2 rounded-lg border border-slate-200/60 flex flex-col justify-between space-y-0.5">
+                          <div className="w-5 h-5 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
+                            <GitPullRequest size={11} />
                           </div>
                           <div>
-                            <span className="text-[9px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
+                            <span className="text-[8px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
                               PRS MERGED
                             </span>
-                            <span className="font-mono font-black text-slate-900 text-base block mt-0.5">
+                            <span className="font-mono font-black text-slate-900 text-[11px] block mt-0.5">
                               {prsCount}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Linked Handle Card */}
-                      <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <Github size={20} className="text-slate-900 shrink-0" />
-                          <div>
-                            <span className="text-[8px] font-mono uppercase font-extrabold text-slate-400 block tracking-wider">
-                              LINKED HANDLE
-                            </span>
-                            <a 
-                              href={`https://github.com/${githubUsername}`}
-                              target="_blank" 
-                              rel="noreferrer"
-                              className="font-bold text-slate-900 text-xs hover:underline flex items-center gap-1 text-purple-700"
-                            >
-                              <span>@{githubUsername}</span>
-                            </a>
+                      {/* Clean Linked Handle Card with Verified / Unverified Badge Position */}
+                      {isVerified ? (
+                        <div className="bg-slate-50/80 border border-slate-200/80 rounded-lg p-1.5 px-2 flex items-center justify-between gap-1 overflow-hidden">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Github size={15} className="text-slate-900 shrink-0" />
+                            <div className="min-w-0">
+                              <span className="text-[7.5px] font-mono uppercase font-bold text-slate-400 block tracking-wider truncate">
+                                LINKED HANDLE
+                              </span>
+                              <a 
+                                href={`https://github.com/${githubUsername}`}
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="font-bold text-purple-700 text-[10.5px] hover:underline flex items-center gap-0.5 truncate"
+                              >
+                                <span className="truncate">@{githubUsername}</span>
+                                <ExternalLink size={9} className="text-purple-400 shrink-0" />
+                              </a>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 text-[9.5px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0 shadow-2xs whitespace-nowrap">
+                            <CheckCircle2 size={11} className="text-emerald-600 shrink-0" />
+                            <span className="whitespace-nowrap">Verified</span>
                           </div>
                         </div>
-                        <ExternalLink size={14} className="text-slate-400 shrink-0" />
-                      </div>
-
-                      {/* Verified Green Banner */}
-                      <div className="bg-[#ECFDF5] border border-emerald-100 rounded-2xl p-3 flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                          <CheckCircle2 size={16} />
+                      ) : (
+                        <div className="bg-amber-50/70 border border-amber-200/80 rounded-lg p-1.5 px-2 flex items-center justify-between gap-1 overflow-hidden">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Github size={15} className="text-amber-800 shrink-0" />
+                            <div className="min-w-0">
+                              <span className="text-[7.5px] font-mono uppercase font-bold text-amber-600 block tracking-wider truncate">
+                                GITHUB STATUS
+                              </span>
+                              <span className="font-bold text-amber-900 text-[10.5px] block truncate">
+                                Unlinked Account
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 text-[9.5px] font-extrabold text-amber-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full shrink-0 shadow-2xs whitespace-nowrap">
+                            <AlertCircle size={11} className="text-amber-600 shrink-0" />
+                            <span className="whitespace-nowrap">Unverified</span>
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-700 font-medium leading-tight">
-                          All activity is verified directly from GitHub.
-                        </p>
-                      </div>
-
-                      {/* NEW Feature: Recent Activity Summary (Matches Image 2 & User Request) */}
-                      <div className="bg-[#F8FAFC] border border-slate-200/80 rounded-2xl p-4 space-y-2.5">
-                        <h5 className="font-headline font-bold text-slate-900 text-xs">
-                          Recent Activity Summary
-                        </h5>
-                        <ul className="space-y-1.5 text-xs text-slate-600 font-sans">
-                          {recentActivities.map((act, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <span className="text-purple-600 font-bold">•</span>
-                              <span className="leading-snug">{act}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      )}
 
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
+            </AnimatePresence>
             </div>
           );
         })}

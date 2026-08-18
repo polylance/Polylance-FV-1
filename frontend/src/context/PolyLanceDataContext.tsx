@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { ethers } from 'ethers';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage } from '../types';
 import { generateMockTxHash, generateDeterministicHash } from '../utils/formatters';
@@ -18,6 +19,7 @@ const INITIAL_PROFILES: Record<string, UserProfile> = {};
 
 interface PolyLanceDataContextType {
   loading: boolean;
+  isEnclineConnected: boolean;
   jobs: Job[];
   daoProposals: DaoProposal[];
   treasury: TreasuryState;
@@ -47,6 +49,8 @@ interface PolyLanceDataContextType {
   submitDisputeResponse: (jobId: string, responseText: string, responseIpfsHash: string) => void;
   resolveDispute: (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => Promise<void>;
   sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => void;
+  archiveChatToPinata: (jobId: string) => Promise<string | null>;
+  closeChatSession: (jobId: string) => Promise<string | null>;
   updateProfile: (profile: Partial<UserProfile>, address: string) => Promise<void>;
   castDaoVote: (proposalId: string | number, support: boolean, voterAddress?: string, votingPower?: number) => Promise<void> | void;
   castVote: (proposalId: string | number, support: boolean, voterAddress?: string) => Promise<void> | void;
@@ -102,18 +106,87 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const isRestoringRef = useRef(false);
   const lastLoadedCidRef = useRef<string | null>(null);
 
+  const [isEnclineConnected, setIsEnclineConnected] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    try {
+      const socket = io('https://encline.vercel.app', {
+        transports: ['websocket', 'polling'],
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        timeout: 5000,
+      });
+      socketRef.current = socket;
+
+      socket.on('connect', () => {
+        console.log('⚡ Encline Realtime Messaging Engine Connected');
+        setIsEnclineConnected(true);
+      });
+
+      socket.on('disconnect', () => {
+        setIsEnclineConnected(false);
+      });
+
+      socket.on('polylance-chat-message', (data: { jobId?: string; judgeAddress?: string; message: any }) => {
+        if (!data || !data.message) return;
+        if (data.jobId) {
+          setJobs((prev) =>
+            prev.map((job) => {
+              if (job.id.toLowerCase() !== data.jobId!.toLowerCase()) return job;
+              const existingMsgs = job.chatMessages || [];
+              if (existingMsgs.some((m) => m.text === data.message.text && m.timestamp === data.message.timestamp)) {
+                return job;
+              }
+              return { ...job, chatMessages: [...existingMsgs, data.message] };
+            })
+          );
+        } else if (data.judgeAddress) {
+          setJudgeMessages((prev) => {
+            const key = data.judgeAddress!.toLowerCase();
+            const existing = prev[key] || [];
+            if (existing.some((m) => m.text === data.message.text && m.timestamp === data.message.timestamp)) {
+              return prev;
+            }
+            return { ...prev, [key]: [...existing, data.message] };
+          });
+        }
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    } catch (err) {
+      console.warn('Encline socket initialization warning:', err);
+    }
+  }, []);
+
   const touchLocalTimestamp = () => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('polylance_last_updated', Date.now().toString());
     }
   };
 
+  const deduplicateJobs = (jobList: Job[]): Job[] => {
+    if (!Array.isArray(jobList)) return [];
+    const seen = new Set<string>();
+    return jobList.filter((j) => {
+      if (!j || !j.id) return false;
+      const key = j.id.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
   const [jobs, setJobsRaw] = useState<Job[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_jobs');
-      return saved ? JSON.parse(saved) : INITIAL_JOBS;
+      const loaded = saved ? JSON.parse(saved) : INITIAL_JOBS;
+      return deduplicateJobs(loaded);
     }
-    return INITIAL_JOBS;
+    return deduplicateJobs(INITIAL_JOBS);
   });
   const setJobs = (val: React.SetStateAction<Job[]>) => {
     if (!isRestoringRef.current) {
@@ -121,7 +194,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       touchLocalTimestamp();
     }
     setJobsRaw((prev) => {
-      const next = typeof val === 'function' ? val(prev) : val;
+      const nextRaw = typeof val === 'function' ? val(prev) : val;
+      const next = deduplicateJobs(nextRaw);
       if (typeof window !== 'undefined' && !isRestoringRef.current) {
         localStorage.setItem('polylance_jobs', JSON.stringify(next));
         window.dispatchEvent(new CustomEvent('polylance_update', { detail: { jobs: next } }));
@@ -393,9 +467,25 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
 
       if (parsedJobs.length > 0) {
         setJobs((prev) => {
-          const merged = [...parsedJobs];
+          const merged = parsedJobs.map((onChainJob) => {
+            const existing = prev.find(
+              (p) =>
+                p.id.toLowerCase() === onChainJob.id.toLowerCase() ||
+                p.contractAddress.toLowerCase() === onChainJob.contractAddress.toLowerCase()
+            );
+            if (existing) {
+              return {
+                ...onChainJob,
+                applications: existing.applications && existing.applications.length > 0 ? existing.applications : onChainJob.applications,
+                chatMessages: existing.chatMessages && existing.chatMessages.length > 0 ? existing.chatMessages : (onChainJob.chatMessages || []),
+                dispute: existing.dispute || onChainJob.dispute,
+              };
+            }
+            return onChainJob;
+          });
+
           prev.forEach((p) => {
-            if (!merged.some((m) => m.contractAddress.toLowerCase() === p.contractAddress.toLowerCase())) {
+            if (!merged.some((m) => m.id.toLowerCase() === p.id.toLowerCase() || m.contractAddress.toLowerCase() === p.contractAddress.toLowerCase())) {
               merged.push(p);
             }
           });
@@ -413,25 +503,40 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
     return () => clearInterval(interval);
   }, [syncOnChainJobs]);
 
-  // Helper function to safely fetch JSON from IPFS without CORS or timeout errors
+  // Helper function to safely fetch JSON from IPFS without CORS or DNS timeout errors
   const fetchIpfsData = async (cid: string) => {
+    if (!cid) return null;
+
+    // Check localStorage cache first to avoid unneeded network calls
+    try {
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem(`ipfs_cache_${cid}`);
+        if (cached) return JSON.parse(cached);
+      }
+    } catch (_) {}
+
     const gateways = [
       `https://gateway.pinata.cloud/ipfs/${cid}`,
-      `https://cloudflare-ipfs.com/ipfs/${cid}`,
-      `https://dweb.link/ipfs/${cid}`,
       `https://ipfs.io/ipfs/${cid}`
     ];
 
     for (const gatewayUrl of gateways) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-        const response = await fetch(gatewayUrl, { signal: controller.signal }).catch(() => null);
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const response = await fetch(gatewayUrl, { signal: controller.signal, mode: 'cors' }).catch(() => null);
         clearTimeout(timeoutId);
 
         if (response && response.ok) {
           const data = await response.json().catch(() => null);
-          if (data) return data;
+          if (data) {
+            try {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem(`ipfs_cache_${cid}`, JSON.stringify(data));
+              }
+            } catch (_) {}
+            return data;
+          }
         }
       } catch (e) {
         // Silently try next gateway
@@ -1419,16 +1524,81 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
   };
 
   const sendChatMessage = (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => {
+    if (!jobId || !text) return;
     setJobs((prev) =>
       prev.map((job) => {
-        if (job.id !== jobId) return job;
-        const newMsg = { sender: senderRole, text, timestamp: Date.now() };
+        if (job.id.toLowerCase() !== jobId.toLowerCase() && job.contractAddress.toLowerCase() !== jobId.toLowerCase()) return job;
+        
+        const existingMsgs = job.chatMessages || [];
+        const lastMsg = existingMsgs[existingMsgs.length - 1];
+        // Prevent duplicate message pushes within 1500ms
+        if (lastMsg && lastMsg.text.trim() === text.trim() && lastMsg.sender === senderRole && (Date.now() - lastMsg.timestamp) < 1500) {
+          return job;
+        }
+
+        const newMsg = { sender: senderRole, text: text.trim(), timestamp: Date.now() };
+        
+        if (socketRef.current && socketRef.current.connected) {
+          socketRef.current.emit('polylance-chat-message', { jobId, message: newMsg });
+        }
+
         return {
           ...job,
-          chatMessages: [...(job.chatMessages || []), newMsg],
+          chatMessages: [...existingMsgs, newMsg],
         };
       })
     );
+  };
+
+  const archiveChatToPinata = async (jobId: string): Promise<string | null> => {
+    const job = jobs.find(j => j.id.toLowerCase() === jobId.toLowerCase() || j.contractAddress.toLowerCase() === jobId.toLowerCase());
+    if (!job || !job.chatMessages || job.chatMessages.length === 0) return null;
+
+    try {
+      const payload = {
+        jobId: job.id,
+        contractAddress: job.contractAddress,
+        title: job.title,
+        client: job.client,
+        freelancer: job.freelancer,
+        chatMessages: job.chatMessages,
+        archivedAt: Date.now(),
+        engine: 'Encline Protocol v2.4'
+      };
+
+      const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${pinataJwt}`,
+        },
+        body: JSON.stringify({
+          pinataOptions: { cidVersion: 1 },
+          pinataMetadata: {
+            name: `polylance_chat_archive_${job.id}`,
+            keyvalues: { app: 'polylance', type: 'chat_archive', jobId: job.id }
+          },
+          pinataContent: payload
+        })
+      }).catch(() => null);
+
+      if (response && response.ok) {
+        const data = await response.json();
+        console.log(`🔒 Encline chat session archived to Pinata IPFS. CID: ${data.IpfsHash}`);
+        return data.IpfsHash;
+      }
+    } catch (err) {
+      console.warn('Pinata chat archiving notice:', err);
+    }
+    return null;
+  };
+
+  const closeChatSession = async (jobId: string): Promise<string | null> => {
+    const cid = await archiveChatToPinata(jobId);
+    if (cid) {
+      sendChatMessage(jobId, `🔒 Chat session closed. Full transcript permanently archived to Pinata IPFS (CID: ${cid}).`, 'Judge');
+    }
+    return cid;
   };
 
   const updateProfile = async (profileData: Partial<UserProfile>, address: string) => {
@@ -1662,12 +1832,17 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
         [lower]: [...existing, msg]
       };
     });
+
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('polylance-chat-message', { judgeAddress: lower, message: msg });
+    }
   };
 
   return (
     <PolyLanceDataContext.Provider
       value={{
         loading,
+        isEnclineConnected,
         jobs,
         daoProposals,
         treasury: treasuryState,
@@ -1697,6 +1872,8 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
         submitDisputeResponse,
         resolveDispute,
         sendChatMessage,
+        archiveChatToPinata,
+        closeChatSession,
         updateProfile,
         castDaoVote,
         castVote,

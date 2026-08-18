@@ -108,11 +108,10 @@ export const FindJobs: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-medium border whitespace-nowrap transition-all text-left cursor-pointer ${
-                  isSelected
+                className={`px-4 py-2 rounded-xl text-xs font-medium border whitespace-nowrap transition-all text-left cursor-pointer ${isSelected
                     ? 'bg-purple-100 border-purple-300 text-purple-950 font-bold shadow-xs'
                     : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
-                }`}
+                  }`}
               >
                 <div className="font-bold">{cat.label}</div>
                 <div className="text-[10px] text-slate-500 font-mono">{cat.sub}</div>
@@ -152,66 +151,66 @@ export const FindJobs: React.FC = () => {
                 onClick={() => navigate(`/jobs/${job.id}`)}
                 className="glass-panel p-6 border-slate-200 hover:border-purple-300 bg-white flex flex-col justify-between space-y-4 group transition-all hard-shadow cursor-pointer premium-card"
               >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-50 px-2.5 py-1 rounded border border-purple-200">
-                    {job.category}
-                  </span>
-                  <span className={`badge-status badge-${job.status.toLowerCase()}`}>
-                    {job.status}
-                  </span>
-                </div>
-
-                <div>
-                  <h3
-                    className="text-lg font-bold text-slate-900 group-hover:text-purple-700 font-heading transition-colors line-clamp-1"
-                  >
-                    {job.title}
-                  </h3>
-                  <p className="text-xs text-slate-600 line-clamp-2 mt-1.5 leading-relaxed">
-                    {job.description}
-                  </p>
-                </div>
-
-                {/* Credential First Badges matching reference HTML */}
-                <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-[11px]">
-                  <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
-                    <CheckCircle2 size={12} /> Verified Client
-                  </span>
-                  <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
-                    <Award size={12} className="text-purple-700" /> Req Score &gt; 700
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] uppercase font-mono text-slate-500 font-bold block">Budget / Escrow</span>
-                  <div className="font-mono text-slate-800 font-extrabold text-sm flex flex-col">
-                    <span className="text-emerald-700">
-                      {parseFloat(payAmount).toLocaleString(undefined, { maximumFractionDigits: 6 })} <span className="text-xs font-normal text-slate-500">{payToken}</span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-50 px-2.5 py-1 rounded border border-purple-200">
+                      {job.category}
                     </span>
-                    <span className="text-[10px] text-purple-600 font-bold font-sans mt-0.5 whitespace-nowrap block">
-                      ≈ {converted.formatted}
+                    <span className={`badge-status badge-${job.status.toLowerCase()}`}>
+                      {job.status}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3
+                      className="text-lg font-bold text-slate-900 group-hover:text-purple-700 font-heading transition-colors line-clamp-1"
+                    >
+                      {job.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 line-clamp-2 mt-1.5 leading-relaxed">
+                      {job.description}
+                    </p>
+                  </div>
+
+                  {/* Credential First Badges matching reference HTML */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-[11px]">
+                    <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                      <CheckCircle2 size={12} /> Verified Client
+                    </span>
+                    <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                      <Award size={12} className="text-purple-700" /> Req Score &gt; 700
                     </span>
                   </div>
                 </div>
 
-                <div className="text-right space-y-0.5">
-                  <span className="text-[10px] uppercase font-mono text-slate-500 font-bold block">Applicants</span>
-                  <span className="font-mono text-slate-700 font-bold">{job.applications.length} submitted</span>
-                </div>
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] uppercase font-mono text-slate-500 font-bold block">Budget / Escrow</span>
+                    <div className="font-mono text-slate-800 font-extrabold text-sm flex flex-col">
+                      <span className="text-emerald-700">
+                        {parseFloat(payAmount).toLocaleString(undefined, { maximumFractionDigits: 6 })} <span className="text-xs font-normal text-slate-500">{payToken}</span>
+                      </span>
+                      <span className="text-[10px] text-purple-600 font-bold font-sans mt-0.5 whitespace-nowrap block">
+                        ≈ {converted.formatted}
+                      </span>
+                    </div>
+                  </div>
 
-                <div
-                  className="p-2.5 rounded-xl bg-purple-50 group-hover:bg-purple-600 text-purple-900 group-hover:text-white transition-all shadow-xs"
-                >
-                  <ArrowRight size={16} />
+                  <div className="text-right space-y-0.5">
+                    <span className="text-[10px] uppercase font-mono text-slate-500 font-bold block">Applicants</span>
+                    <span className="font-mono text-slate-700 font-bold">{job.applications.length} submitted</span>
+                  </div>
+
+                  <div
+                    className="p-2.5 rounded-xl bg-purple-50 group-hover:bg-purple-600 text-purple-900 group-hover:text-white transition-all shadow-xs"
+                  >
+                    <ArrowRight size={16} />
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          );
-        })
-      )}
+              </motion.div>
+            );
+          })
+        )}
       </motion.div>
     </motion.div>
   );

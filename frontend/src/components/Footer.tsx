@@ -5,8 +5,7 @@ import { ShieldCheck, Lock, FileText, Scale, ExternalLink, Sparkles } from 'luci
 
 export const Footer: React.FC = () => {
   const location = useLocation();
-  const showFooter = location.pathname === '/' || location.pathname === '/dashboard';
-  if (!showFooter) {
+  if (location.pathname.startsWith('/audit/')) {
     return null;
   }
   const currentYear = new Date().getFullYear();
@@ -14,10 +13,10 @@ export const Footer: React.FC = () => {
   return (
     <footer className="border-t border-slate-200/80 bg-white/70 backdrop-blur-md pt-12 pb-8 px-4 md:px-8 font-sans text-slate-600 select-none relative z-10">
       <div className="max-w-7xl mx-auto space-y-10">
-        
+
         {/* Top Main Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
-          
+
           {/* Brand Column (Col 1-5) */}
           <div className="md:col-span-5 space-y-4 text-left">
             <Link to="/" className="inline-flex items-center gap-3 group">
