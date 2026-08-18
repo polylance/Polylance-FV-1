@@ -5,7 +5,8 @@ import { ShieldCheck, Lock, FileText, Scale, ExternalLink, Sparkles } from 'luci
 
 export const Footer: React.FC = () => {
   const location = useLocation();
-  if (location.pathname.startsWith('/audit/')) {
+  const showFooter = location.pathname === '/' || location.pathname === '/dashboard';
+  if (!showFooter) {
     return null;
   }
   const currentYear = new Date().getFullYear();
