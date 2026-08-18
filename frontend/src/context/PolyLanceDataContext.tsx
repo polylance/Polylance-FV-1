@@ -120,7 +120,14 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       hasUnsyncedChangesRef.current = true;
       touchLocalTimestamp();
     }
-    setJobsRaw(val);
+    setJobsRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined' && !isRestoringRef.current) {
+        localStorage.setItem('polylance_jobs', JSON.stringify(next));
+        window.dispatchEvent(new CustomEvent('polylance_update', { detail: { jobs: next } }));
+      }
+      return next;
+    });
   };
 
 const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
@@ -406,6 +413,65 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
     return () => clearInterval(interval);
   }, [syncOnChainJobs]);
 
+  // Helper function to safely fetch JSON from IPFS without CORS or timeout errors
+  const fetchIpfsData = async (cid: string) => {
+    const gateways = [
+      `https://gateway.pinata.cloud/ipfs/${cid}`,
+      `https://cloudflare-ipfs.com/ipfs/${cid}`,
+      `https://dweb.link/ipfs/${cid}`,
+      `https://ipfs.io/ipfs/${cid}`
+    ];
+
+    for (const gatewayUrl of gateways) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const response = await fetch(gatewayUrl, { signal: controller.signal }).catch(() => null);
+        clearTimeout(timeoutId);
+
+        if (response && response.ok) {
+          const data = await response.json().catch(() => null);
+          if (data) return data;
+        }
+      } catch (e) {
+        // Silently try next gateway
+      }
+    }
+    return null;
+  };
+
+  // Real-time cross-tab and event synchronization
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (isRestoringRef.current) return;
+      if (e.key === 'polylance_jobs' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setJobsRaw(parsed);
+          }
+        } catch (err) {}
+      }
+    };
+
+    const handleCustomBroadcast = (e: any) => {
+      if (isRestoringRef.current) return;
+      if (e.detail?.jobs && Array.isArray(e.detail.jobs)) {
+        setJobsRaw(e.detail.jobs);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('polylance_update', handleCustomBroadcast as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('polylance_update', handleCustomBroadcast as EventListener);
+    };
+  }, []);
+
   // 2. Background Pinata IPFS State Sync (Load)
   useEffect(() => {
     const loadStateFromPinata = async () => {
@@ -428,26 +494,7 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
             const newest = rows.sort((a: any, b: any) => new Date(b.date_pinned).getTime() - new Date(a.date_pinned).getTime())[0];
             const cid = newest.ipfs_pin_hash;
 
-            const gateways = [
-              `https://gateway.pinata.cloud/ipfs/${cid}`,
-              `https://w3s.link/ipfs/${cid}`,
-              `https://nftstorage.link/ipfs/${cid}`,
-              `https://ipfs.io/ipfs/${cid}`
-            ];
-
-            let data = null;
-            for (const gatewayUrl of gateways) {
-              try {
-                const getResponse = await fetch(gatewayUrl);
-                if (getResponse.ok) {
-                  data = await getResponse.json();
-                  console.log('Restored live cloud state from IPFS via:', gatewayUrl);
-                  break;
-                }
-              } catch (e) {
-                // Gateway failed, try next gateway silently
-              }
-            }
+            const data = await fetchIpfsData(cid);
 
             if (data) {
               isRestoringRef.current = true;
@@ -495,25 +542,7 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
 
             if (cid === lastLoadedCidRef.current) return;
 
-            const gateways = [
-              `https://gateway.pinata.cloud/ipfs/${cid}`,
-              `https://w3s.link/ipfs/${cid}`,
-              `https://nftstorage.link/ipfs/${cid}`,
-              `https://ipfs.io/ipfs/${cid}`
-            ];
-
-            let data = null;
-            for (const gatewayUrl of gateways) {
-              try {
-                const response = await fetch(gatewayUrl);
-                if (response && response.ok) {
-                  data = await response.json();
-                  break;
-                }
-              } catch (e) {
-                // silently try next gateway
-              }
-            }
+            const data = await fetchIpfsData(cid);
 
             if (data) {
                 isRestoringRef.current = true;
