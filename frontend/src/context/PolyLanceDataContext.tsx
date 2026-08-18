@@ -111,16 +111,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_ENCLINE_SOCKET_URL;
-    if (!socketUrl) return;
+    const socketUrl = import.meta.env.VITE_ENCLINE_SOCKET_URL || 'https://encline.vercel.app';
 
     try {
       const socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
         autoConnect: true,
-        reconnection: false,
-        reconnectionAttempts: 1,
-        timeout: 3000,
+        reconnection: true,
+        reconnectionAttempts: 3,
+        timeout: 4000,
       });
       socketRef.current = socket;
 
