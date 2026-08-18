@@ -739,7 +739,7 @@ export const Chat: React.FC = () => {
         {/* ──────────────────────────────────────────────────────────────────────────
             RIGHT COLUMN: ESCROW DETAILS & SMART CONTRACT ACTIONS (3 COLS)
             ────────────────────────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-3 border-l border-slate-200/80 flex flex-col h-full bg-white p-5 overflow-y-auto space-y-5">
+        <div className="lg:col-span-3 border-l border-slate-200/80 flex flex-col h-full bg-white p-4 sm:p-5 space-y-4 overflow-y-visible justify-between">
           {activeJob ? (
             <>
               {/* Top Status Badge */}
