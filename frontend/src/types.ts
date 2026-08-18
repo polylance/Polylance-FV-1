@@ -131,6 +131,10 @@ export interface UserProfile {
   prsCount?: number;
   reputationTier?: string;
   role?: 'freelancer' | 'client';
+  jobsCompletedCount?: number;
+  rating?: number;
+  onTimeRate?: string;
+  progressAvg?: string;
 }
 
 export interface DaoProposal {
