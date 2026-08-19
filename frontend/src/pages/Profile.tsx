@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
-import { truncateAddress } from '../utils/formatters';
+import { truncateAddress, getDeterministicSbtId } from '../utils/formatters';
 import { scoreGithubUser } from '../utils/githubOracle';
 import { Award, CheckCircle2, ShieldCheck, FolderGit2, ExternalLink, Building2, Star, Zap, Activity, Scale, Search, History } from 'lucide-react';
 
@@ -660,7 +660,7 @@ export const Profile: React.FC = () => {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-mono font-bold text-purple-900">
-                        PLREP Token #{1000 + idx}
+                        PLREP Token #{j.sbtTokenId || getDeterministicSbtId(j.id)}
                       </span>
                       <ShieldCheck size={16} className="text-emerald-600" />
                     </div>

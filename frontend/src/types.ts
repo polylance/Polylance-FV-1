@@ -105,6 +105,7 @@ export interface Job {
   modificationRequests?: ModificationRequest[];
   events: JobEvent[];
   chatMessages?: { sender: 'Client' | 'Freelancer' | 'Judge'; text: string; timestamp: number }[];
+  sbtTokenId?: number;
 }
 
 export interface UserProfile {

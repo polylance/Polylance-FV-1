@@ -8,7 +8,7 @@ import { ApplicantTable } from '../components/ApplicantTable';
 import { DisputePanel } from '../components/DisputePanel';
 import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSubmissionPanel';
 import { DisputeReason, UserProfile } from '../types';
-import { truncateAddress, formatDaysRemaining } from '../utils/formatters';
+import { truncateAddress, formatDaysRemaining, getDeterministicSbtId } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
 import { Shield, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -427,7 +427,7 @@ export const JobDetail: React.FC = () => {
                     <p className="font-bold text-slate-400 text-xs">None (No SBT for 0% Payout)</p>
                   ) : (
                     <p className="font-bold text-purple-700 text-sm flex items-center gap-1">
-                      <Award size={14} /> Token #{Math.floor(Math.random() * 9000 + 1000)}
+                      <Award size={14} /> Token #{job.sbtTokenId || getDeterministicSbtId(job.id)}
                     </p>
                   )}
                 </div>

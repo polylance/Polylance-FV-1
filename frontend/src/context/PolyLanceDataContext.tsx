@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { io, Socket } from 'socket.io-client';
 import { ethers } from 'ethers';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage } from '../types';
-import { generateMockTxHash, generateDeterministicHash } from '../utils/formatters';
+import { generateMockTxHash, generateDeterministicHash, getDeterministicSbtId } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { fetchLiveExchangeRates } from '../utils/currency';
 import { CONTRACTS } from '../config/contracts';
@@ -1390,18 +1390,28 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
           ...h,
         ]);
 
+        const sbtId = j.sbtTokenId || getDeterministicSbtId(j.id);
+
         if (j.freelancer) {
           const flAddr = j.freelancer.toLowerCase();
           setProfiles((prevProfiles) => {
             const next = { ...prevProfiles };
-            const key = Object.keys(next).find(k => k.toLowerCase() === flAddr);
-            if (key) {
-              next[key] = {
-                ...next[key],
-                reputationSbtCount: (next[key].reputationSbtCount || 0) + 1,
-                primaryScore: Math.min((next[key].primaryScore || 700) + 35, 1000),
-              };
-            }
+            const key = Object.keys(next).find(k => k.toLowerCase() === flAddr) || flAddr;
+            const existing = next[key] || {
+              address: flAddr,
+              displayName: 'Freelancer',
+              bio: '',
+              avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+              ipfsHash: '',
+              skills: [],
+              githubVerified: false,
+              reputationSbtCount: 0,
+            };
+            next[key] = {
+              ...existing,
+              reputationSbtCount: (existing.reputationSbtCount || 0) + 1,
+              primaryScore: Math.min((existing.primaryScore || 750) + 35, 1000),
+            };
             return next;
           });
         }
@@ -1415,6 +1425,7 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         return {
           ...j,
           status: 'Completed',
+          sbtTokenId: sbtId,
           events: updatedEvents,
         };
       })
@@ -1523,22 +1534,32 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
           ...h,
         ]);
 
+        const sbtId = freelancerBps > 0 ? (j.sbtTokenId || getDeterministicSbtId(j.id)) : undefined;
+
         if (j.freelancer) {
           const flAddr = j.freelancer.toLowerCase();
           setProfiles((prevProfiles) => {
             const next = { ...prevProfiles };
-            const key = Object.keys(next).find(k => k.toLowerCase() === flAddr);
-            if (key) {
-              const reputationSbtCountInc = freelancerBps > 0 ? 1 : 0;
-              const scoreAdjustment = freelancerBps > 0
-                ? Math.round(35 * (freelancerBps / 10000))
-                : -20;
-              next[key] = {
-                ...next[key],
-                reputationSbtCount: (next[key].reputationSbtCount || 0) + reputationSbtCountInc,
-                primaryScore: Math.min(Math.max((next[key].primaryScore || 700) + scoreAdjustment, 0), 1000),
-              };
-            }
+            const key = Object.keys(next).find(k => k.toLowerCase() === flAddr) || flAddr;
+            const existing = next[key] || {
+              address: flAddr,
+              displayName: 'Freelancer',
+              bio: '',
+              avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+              ipfsHash: '',
+              skills: [],
+              githubVerified: false,
+              reputationSbtCount: 0,
+            };
+            const reputationSbtCountInc = freelancerBps > 0 ? 1 : 0;
+            const scoreAdjustment = freelancerBps > 0
+              ? Math.round(35 * (freelancerBps / 10000))
+              : -20;
+            next[key] = {
+              ...existing,
+              reputationSbtCount: (existing.reputationSbtCount || 0) + reputationSbtCountInc,
+              primaryScore: Math.min(Math.max((existing.primaryScore || 750) + scoreAdjustment, 0), 1000),
+            };
             return next;
           });
         }
@@ -1552,6 +1573,7 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         return {
           ...j,
           status: 'Completed',
+          sbtTokenId: sbtId,
           dispute: {
             ...j.dispute,
             resolved: true,

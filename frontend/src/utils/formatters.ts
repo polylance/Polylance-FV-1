@@ -47,3 +47,14 @@ export function getPolygonScanUrl(txHash: string): string {
   const baseUrl = NETWORK_CONFIG.blockExplorerUrl || 'https://amoy.polygonscan.com';
   return `${baseUrl}/tx/${txHash}`;
 }
+
+export function getDeterministicSbtId(jobId: string | undefined): number {
+  if (!jobId) return 1001;
+  let hash = 0;
+  for (let i = 0; i < jobId.length; i++) {
+    const char = jobId.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return (Math.abs(hash) % 8999) + 1000;
+}
