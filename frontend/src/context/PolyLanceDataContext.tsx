@@ -300,10 +300,26 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
     setTreasuryBalanceEthRaw(val);
   };
 
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryProposal[] => {
+  if (!Array.isArray(rawProposals)) return [];
+  const now = Date.now();
+  return rawProposals.filter((p) => {
+    if (!p) return false;
+    const propTime = p.timestamp || (p as any).createdAt || (p as any).timeMs;
+    if (!propTime) return true;
+    return now - propTime <= ONE_WEEK_MS;
+  });
+};
+
   const [treasuryProposals, setTreasuryProposalsRaw] = useState<TreasuryProposal[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_treasury_proposals');
-      return saved ? JSON.parse(saved) : [];
+      const raw = saved ? JSON.parse(saved) : [];
+      const pruned = pruneOldTreasuryProposals(raw);
+      localStorage.setItem('polylance_treasury_proposals', JSON.stringify(pruned));
+      return pruned;
     }
     return [];
   });
@@ -312,7 +328,10 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
       hasUnsyncedChangesRef.current = true;
       touchLocalTimestamp();
     }
-    setTreasuryProposalsRaw(val);
+    setTreasuryProposalsRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      return pruneOldTreasuryProposals(next);
+    });
   };
 
   const [treasuryHistory, setTreasuryHistoryRaw] = useState<any[]>(() => {
@@ -1797,6 +1816,7 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
       confirmationsRequired: 2,
       executed: false,
       isExecuted: false,
+      timestamp: Date.now(),
     };
     setTreasuryProposals((prev) => [newProp, ...prev]);
   };

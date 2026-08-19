@@ -28,11 +28,12 @@ export const FindJobs: React.FC = () => {
   ];
 
   const filteredJobs = jobs.filter((job) => {
+    const isNotCompleted = job.status !== 'Completed' && job.status !== 'Cancelled';
     const matchesCategory = selectedCategory === 'all' || job.category === selectedCategory;
     const matchesSearch =
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return isNotCompleted && matchesCategory && matchesSearch;
   });
 
   return (

@@ -164,6 +164,7 @@ export interface TreasuryProposal {
   confirmationsRequired?: number;
   executed: boolean;
   isExecuted?: boolean;
+  timestamp?: number;
 }
 
 export interface TreasuryState {

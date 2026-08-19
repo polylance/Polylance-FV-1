@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import confetti from 'canvas-confetti';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { SkillCategory } from '../types';
+import { SuccessState } from '../components/UIStates';
 import { 
   DollarSign, 
   Clock, 
@@ -19,8 +21,13 @@ import {
   Lock, 
   Zap,
   Wallet,
-  Coins
+  Coins,
+  CreditCard,
+  Check,
+  RefreshCw,
+  ArrowRight
 } from 'lucide-react';
+import { RocketIcon, RocketIconHandle } from '../components/RocketIcon';
 import { generateIpfsCid } from '../utils/ipfs';
 import { SUPPORTED_FIAT, SUPPORTED_CRYPTO, getActiveRates } from '../utils/currency';
 
@@ -28,6 +35,7 @@ export const PostJob: React.FC = () => {
   const { address, isConnected, connectWallet } = useWeb3();
   const { postJob } = usePolyLanceData();
   const navigate = useNavigate();
+  const rocketRef = useRef<RocketIconHandle>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -36,8 +44,15 @@ export const PostJob: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<SkillCategory>('web3');
-  const [reviewPeriodDays, setReviewPeriodDays] = useState(7);
+  const [reviewPeriodDays, setReviewPeriodDays] = useState<number | string>(7);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdJobId, setCreatedJobId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (createdJobId) {
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
+    }
+  }, [createdJobId]);
 
   // Advanced Multi-Currency & Interactive 3D Conversion State
   const [selectedToken, setSelectedToken] = useState<'USDC' | 'USDT' | 'BTC' | 'ETH' | 'POL'>('USDC');
@@ -45,6 +60,14 @@ export const PostJob: React.FC = () => {
   const [selectedFiat, setSelectedFiat] = useState('INR');
   const [activeTab, setActiveTab] = useState<'crypto' | 'fiat'>('crypto');
   const [fiatInputVal, setFiatInputVal] = useState('208750');
+
+  const isFormValid = Boolean(
+    title.trim() &&
+    description.trim() &&
+    (parseFloat(tokenAmount) > 0 || parseFloat(fiatInputVal) > 0) &&
+    reviewPeriodDays !== '' &&
+    Number(reviewPeriodDays) > 0
+  );
 
   const rates = getActiveRates();
   const tokenPriceUsd = rates.cryptoPrices[selectedToken] || 1.0;
@@ -80,6 +103,7 @@ export const PostJob: React.FC = () => {
     }
 
     const usdEquivalent = (parseFloat(tokenAmount) * tokenPriceUsd).toFixed(2);
+    const parsedReviewPeriod = typeof reviewPeriodDays === 'number' ? reviewPeriodDays : (parseInt(reviewPeriodDays) || 7);
 
     setIsSubmitting(true);
     try {
@@ -90,17 +114,30 @@ export const PostJob: React.FC = () => {
           category,
           amountUsdc: usdEquivalent,
           paymentTokenSymbol: selectedToken === 'POL' ? 'MATIC' : (selectedToken as any),
-          reviewPeriodDays,
+          reviewPeriodDays: parsedReviewPeriod,
         },
         address
       );
       setIsSubmitting(false);
-      navigate(`/jobs/${newJob.id}`);
+      setCreatedJobId(newJob.id);
     } catch (err) {
       console.error(err);
       setIsSubmitting(false);
     }
   };
+
+  if (createdJobId) {
+    return (
+      <div className="min-h-[80vh] py-16 px-4 bg-slate-50 flex items-center justify-center">
+        <SuccessState
+          title="Job Escrow Deployed On-Chain!"
+          description="Your job escrow contract has been successfully cloned and deployed on-chain with sovereign oracle pricing."
+          actionText="View Deployed Job"
+          onAction={() => navigate(`/jobs/${createdJobId}`)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 space-y-8">
@@ -341,102 +378,230 @@ export const PostJob: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* 4. Review Window Setting (Days) */}
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 font-heading flex items-center gap-1.5">
+                    <Clock size={13} className="text-purple-600" />
+                    Review Window (Days) <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-sans">
+                    Auto-release in <span className="font-bold text-blue-600">{reviewPeriodDays || 7}</span> days
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-3 border border-slate-200/80 rounded-2xl px-4 py-2.5 bg-white focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-50/50 transition-all duration-200 shadow-sm">
+                  <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                    <Clock size={13} className="stroke-[2.5]" />
+                  </div>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    max="30"
+                    value={reviewPeriodDays}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setReviewPeriodDays('');
+                      } else {
+                        const parsed = parseInt(val);
+                        setReviewPeriodDays(isNaN(parsed) ? '' : parsed);
+                      }
+                    }}
+                    className="w-full bg-transparent border-none text-slate-900 font-mono font-bold outline-none text-sm focus:ring-0"
+                  />
+                  <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded-md text-xs font-bold font-mono shrink-0">
+                    Days
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Right Column: 3D interactive Attestation Card */}
-            <div className="md:col-span-5 [perspective:1000px] flex items-center justify-center">
+            {/* Right Column: Interactive Attestation Card */}
+            <div className="md:col-span-5 flex items-center justify-center">
               <div 
-                className="w-full p-6 rounded-3xl text-white relative overflow-hidden transition-all duration-500 ease-out transform hover:[transform:rotateY(8deg)_rotateX(8deg)_scale(1.02)] hover:shadow-2xl shadow-xl border border-white/20 select-none font-mono"
-                style={{
-                  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%)',
-                  boxShadow: '0 20px 40px -15px rgba(124, 58, 237, 0.4)'
-                }}
+                className="w-full p-4 sm:p-5 rounded-2xl bg-white text-slate-900 relative overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg shadow-sm shadow-slate-200/50 border border-slate-200/80 select-none font-sans"
               >
                 {/* Glow Overlay */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute top-0 right-0 w-28 h-28 bg-indigo-50/40 rounded-full blur-2xl pointer-events-none" />
                 
                 {/* Card Header */}
-                <div className="flex justify-between items-start mb-6">
-                  <div className="space-y-1">
-                    <span className="text-[7px] tracking-widest text-indigo-200 uppercase font-bold block">SOVEREIGN PRICE ATTESTATION</span>
-                    <div className="text-[10px] font-bold flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>LIVE ORACLE SYNCED</span>
+                <div className="flex justify-between items-center mb-3 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100/80 flex items-center justify-center text-indigo-600 shrink-0 shadow-xs">
+                      <ShieldCheck size={16} className="stroke-[2.2]" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide block leading-tight">
+                        SOVEREIGN PRICE ATTESTATION
+                      </span>
+                      <div className="text-[10.5px] font-black text-slate-900 flex items-center gap-1.5 mt-0.5 leading-none">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block shrink-0" />
+                        <span>LIVE ORACLE SYNCED</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="px-2 py-0.5 bg-white/10 border border-white/20 rounded-md text-[8px] font-bold">
-                    {selectedToken} Card
+                  <div className="px-2.5 py-1 bg-white border border-indigo-200/80 rounded-xl text-[10px] font-extrabold text-indigo-700 shadow-xs flex items-center gap-1 shrink-0">
+                    <CreditCard size={12} className="text-indigo-600" />
+                    <span>{selectedToken} Card</span>
                   </div>
                 </div>
 
-                {/* Big Converted Values */}
-                <div className="space-y-4 my-8">
-                  <div>
-                    <span className="text-[9px] text-indigo-100 block">Crypto Escrow Locked</span>
-                    <span className="text-xl font-extrabold tracking-tight">
-                      {parseFloat(tokenAmount || '0').toLocaleString(undefined, { maximumFractionDigits: 6 })} {selectedToken}
-                    </span>
+                {/* Crypto Escrow Locked */}
+                <div className="my-3">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide block mb-1">
+                    CRYPTO ESCROW LOCKED
+                  </span>
+                  <div className="flex justify-between items-center gap-2">
+                    <div className="flex items-baseline flex-wrap gap-1.5 min-w-0">
+                      <span className="text-2xl font-black tracking-tight text-slate-900 font-mono">
+                        {parseFloat(tokenAmount || '0').toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                      </span>
+                      <span className="text-lg font-black text-indigo-600 font-mono">
+                        {selectedToken}
+                      </span>
+                    </div>
+                    
+                    {/* Dynamic Token Circular Icon */}
+                    {selectedToken === 'USDC' && (
+                      <div className="w-9 h-9 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center p-0.5 shadow-xs shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-[#2775CA] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                          <DollarSign size={14} className="stroke-[3]" />
+                        </div>
+                      </div>
+                    )}
+                    {selectedToken === 'USDT' && (
+                      <div className="w-9 h-9 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center p-0.5 shadow-xs shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-[#26A17B] text-white flex items-center justify-center font-extrabold text-xs shadow-xs">
+                          ₮
+                        </div>
+                      </div>
+                    )}
+                    {selectedToken === 'ETH' && (
+                      <div className="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center p-0.5 shadow-xs shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-[#627EEA] text-white flex items-center justify-center font-extrabold text-sm shadow-xs font-mono">
+                          Ξ
+                        </div>
+                      </div>
+                    )}
+                    {selectedToken === 'BTC' && (
+                      <div className="w-9 h-9 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center p-0.5 shadow-xs shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-[#F7931A] text-white flex items-center justify-center font-extrabold text-xs shadow-xs font-mono">
+                          ₿
+                        </div>
+                      </div>
+                    )}
+                    {selectedToken === 'POL' && (
+                      <div className="w-9 h-9 rounded-full bg-purple-50 border border-purple-200 flex items-center justify-center p-0.5 shadow-xs shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-[#8247E5] text-white flex items-center justify-center font-extrabold text-xs shadow-xs font-mono">
+                          ⬡
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
-                  <div className="border-t border-white/10 pt-4">
-                    <span className="text-[9px] text-indigo-100 block">Freelancer Local Pay equivalent</span>
-                    <span className="text-lg font-bold tracking-tight text-emerald-300">
-                      {SUPPORTED_FIAT.find(f => f.code === selectedFiat)?.flag}{' '}
+                  <div className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50/80 border border-indigo-100/80 rounded-lg text-[10px] font-semibold text-indigo-900">
+                    <Lock size={10} className="text-indigo-600 shrink-0" />
+                    <span>Funds locked in smart escrow</span>
+                  </div>
+                </div>
+
+                {/* Divider Line */}
+                <div className="border-t border-slate-100 my-2.5" />
+
+                {/* Freelancer Local Pay Equivalent */}
+                <div className="my-3">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide block mb-1">
+                    FREELANCER LOCAL PAY EQUIVALENT
+                  </span>
+                  
+                  <div className="flex items-baseline flex-wrap gap-1">
+                    <span className="text-2xl font-black tracking-tight text-emerald-600 font-mono">
                       {SUPPORTED_FIAT.find(f => f.code === selectedFiat)?.symbol}
-                      {parseFloat(fiatInputVal || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+                      {parseFloat(fiatInputVal || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-sm font-extrabold text-emerald-600 font-mono">
+                      {selectedFiat}
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-normal italic tracking-tight ml-1.5">
+                      (Present spot value • Excludes fees)
+                    </span>
+                  </div>
+
+                  {/* Auto-converted Pill Banner */}
+                  <div className="p-1.5 px-2 bg-emerald-50/70 border border-emerald-100/80 rounded-lg flex items-center justify-between mt-1.5 gap-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-3.5 h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                        <Check size={9} className="stroke-[3]" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-bold text-slate-800 block leading-none whitespace-nowrap">
+                          Auto-converted via Live Oracle
+                        </span>
+                        <span className="text-[7.5px] text-emerald-700 font-medium block leading-none mt-0.5 whitespace-nowrap">
+                          Spot value • Excludes fees
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-1.5 py-0.5 bg-emerald-100/80 text-emerald-800 text-[8.5px] font-extrabold rounded font-mono shrink-0">
                       {selectedFiat}
                     </span>
                   </div>
                 </div>
 
-                {/* Card Footer */}
-                <div className="flex justify-between items-center text-[7px] text-indigo-200 border-t border-white/10 pt-4">
-                  <div>
-                    <span>Live Rate: </span>
-                    <span className="font-bold text-white block">1 {selectedToken} = {SUPPORTED_FIAT.find(f => f.code === selectedFiat)?.symbol}{(tokenPriceUsd * fiatRateVsUsd).toFixed(2)} {selectedFiat}</span>
+                {/* Live Rate Box */}
+                <div className="p-2 px-2.5 bg-slate-50/80 border border-dashed border-indigo-200/80 rounded-xl flex items-center justify-between gap-1.5 my-2">
+                  <div className="min-w-0">
+                    <span className="text-[7px] font-bold text-indigo-600 uppercase tracking-normal block font-mono flex items-center gap-1 leading-none mb-0.5">
+                      <span className="w-1 h-1 rounded-full bg-indigo-600 inline-block shrink-0" />
+                      LIVE RATE
+                    </span>
+                    <span className="text-[9px] sm:text-[9.5px] font-extrabold text-slate-900 font-mono block leading-none whitespace-nowrap">
+                      1 {selectedToken} = {SUPPORTED_FIAT.find(f => f.code === selectedFiat)?.symbol}{(tokenPriceUsd * fiatRateVsUsd).toFixed(2)} {selectedFiat}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <span>Powered by</span>
-                    <span className="block font-bold text-white">PolyLance Oracle</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Review Period Setting */}
-        <div className="border-t border-slate-100 pt-8">
-          {/* Review Window Column */}
-          <div className="flex gap-4 items-start">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 mt-1">
-              <Clock size={20} />
-            </div>
-            <div className="flex-1 space-y-2">
-              <label className="block text-sm font-bold text-slate-800 font-heading">
-                Review Window (Days) <span className="text-red-500">*</span>
-              </label>
-              
-              <div className="flex items-center gap-3 border border-slate-200/80 rounded-2xl px-4 py-3 bg-white focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50/50 transition-all duration-200 shadow-sm">
-                <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                  <Clock size={15} className="stroke-[2.5]" />
+                  <div className="w-4.5 h-4.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200/80 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-xs shrink-0">
+                    <RefreshCw size={8} className="text-indigo-600" />
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-[7px] font-bold text-indigo-600 uppercase tracking-normal block font-mono leading-none mb-0.5 text-right">
+                      UPDATED
+                    </span>
+                    <div className="text-[8.5px] font-extrabold text-slate-800 flex items-center gap-1 justify-end font-mono leading-none">
+                      <span>Just now</span>
+                      <span className="w-1 h-1 rounded-full bg-emerald-500 inline-block shrink-0" />
+                    </div>
+                  </div>
                 </div>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  max="30"
-                  value={reviewPeriodDays}
-                  onChange={(e) => setReviewPeriodDays(parseInt(e.target.value) || 7)}
-                  className="w-full bg-transparent border-none text-slate-900 font-mono font-bold outline-none text-base focus:ring-0"
-                />
-                <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold font-mono">
-                  Days
-                </span>
+
+                {/* Bottom Dark Navy Bar */}
+                <div className="p-2 px-2.5 bg-[#0c1033] rounded-xl text-white flex items-center justify-between gap-1.5 shadow-xs shadow-indigo-950/20 mt-2">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="w-6 h-6 rounded-md bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
+                      <ShieldCheck size={12} />
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-indigo-300/80 font-medium block leading-none">Powered by</span>
+                      <span className="text-[9.5px] font-bold text-white block leading-tight mt-0.5">PolyLance Oracle</span>
+                    </div>
+                  </div>
+
+                  <div className="w-[1px] h-4.5 bg-indigo-800/50 shrink-0 mx-1" />
+
+                  <div className="text-right shrink-0">
+                    <span className="text-[7px] font-bold text-indigo-300/70 tracking-normal font-sans uppercase block leading-none mb-0.5">
+                      TX CURRENCY
+                    </span>
+                    <span className="text-[9.5px] font-extrabold font-mono text-right block text-indigo-200 leading-none">
+                      {selectedToken} <span className="text-indigo-400 font-normal mx-0.5">➔</span> <span className="text-emerald-400">{selectedFiat}</span>
+                    </span>
+                  </div>
+                </div>
               </div>
-              <span className="text-[10px] text-slate-400 font-sans block mt-1 leading-normal">
-                Auto-release triggers if client does not review in <span className="font-bold text-blue-600">{reviewPeriodDays}</span> days.
-              </span>
             </div>
           </div>
         </div>
@@ -467,14 +632,53 @@ export const PostJob: React.FC = () => {
           </div>
         </div>
 
-        {/* Deploy Button */}
+        {/* Dynamic Validation Submit Button (Red when incomplete, Green when ready) */}
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-4 rounded-2xl font-heading font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-purple-500/10 hover:shadow-purple-500/20 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+          onMouseEnter={() => rocketRef.current?.startAnimation()}
+          onMouseLeave={() => rocketRef.current?.stopAnimation()}
+          className={`w-full relative group p-3 px-5 rounded-2xl shadow-md transition-all duration-300 cursor-pointer text-left overflow-hidden ${
+            isFormValid
+              ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 hover:-translate-y-0.5'
+              : 'bg-gradient-to-r from-rose-600 via-red-600 to-pink-600 hover:from-rose-500 hover:to-red-500 shadow-rose-600/20 hover:shadow-lg hover:shadow-rose-600/30'
+          }`}
         >
-          <Rocket size={18} className="transform -rotate-45" />
-          {isSubmitting ? 'Deploying Clone Contract...' : 'Deploy Job Escrow Clone On-Chain'}
+          <div className="flex items-center justify-between gap-3">
+            {/* Left Rocket & Status */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8.5 h-8.5 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white shrink-0 shadow-xs group-hover:scale-105 transition-transform duration-300 backdrop-blur-xs">
+                <RocketIcon ref={rocketRef} size={17} color="#ffffff" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs sm:text-sm font-extrabold text-white font-heading tracking-tight leading-none flex items-center gap-2 flex-wrap">
+                  <span>
+                    {isSubmitting
+                      ? 'Deploying Escrow Clone...'
+                      : isFormValid
+                      ? 'Deploy Job Escrow Clone'
+                      : 'Fill Required Job Details'}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase tracking-wider font-mono ${
+                    isFormValid ? 'bg-white/25 text-white border border-white/30' : 'bg-white/20 text-white border border-white/30'
+                  }`}>
+                    {isFormValid ? 'Ready On-Chain' : 'Incomplete'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Arrow Circular Button */}
+            <div className="flex items-center shrink-0">
+              <div className="w-7.5 h-7.5 rounded-full bg-white/20 border border-white/30 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-all duration-300 shrink-0">
+                {isFormValid ? (
+                  <ArrowRight size={13} className="stroke-[2.5] group-hover:translate-x-0.5 transition-transform" />
+                ) : (
+                  <Check size={13} className="stroke-[2.5] opacity-70" />
+                )}
+              </div>
+            </div>
+          </div>
         </button>
 
         {/* Security / Features Footer */}
