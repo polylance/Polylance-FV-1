@@ -16,7 +16,7 @@ export const LoadingScreen: React.FC = () => {
         {/* Loading details */}
         <div className="text-center space-y-2">
           <h3 className="font-headline text-lg font-bold text-slate-900 tracking-tight">Syncing Sovereign Protocol</h3>
-          <p className="text-xs text-slate-500 font-mono">Connecting to Pinata IPFS Database...</p>
+          <p className="text-xs text-slate-500 font-mono">Connecting to Filebase IPFS Database...</p>
         </div>
 
         {/* Spinner */}

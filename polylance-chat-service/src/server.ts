@@ -10,6 +10,9 @@ import { verifyWalletAuth } from "./auth.js";
 import { createConversationKey } from "./crypto/ecies.js";
 import { startPaymentListener } from "./paymentListener.js";
 import { authLimiter, messageLimiter, joinLimiter, deleteLimiter, httpLimiter } from "./ratelimit.js";
+import multer from "multer";
+import { StorageService } from "./services/storage/storage.service.js";
+import { getLocalStateCid, saveLocalStateCid, saveLocalFileMetadata, getLocalFileMetadata, deleteLocalFileMetadata } from "./utils/dbFallback.js";
 
 dotenv.config();
 
@@ -313,6 +316,260 @@ app.post("/api/unlock", async (req: Request, res: Response) => {
 
   io.to(jobAddress).emit("deletion-unlocked", { jobAddress });
   res.json({ success: true, unlocked: true });
+});
+
+const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
+
+// REST storage upload endpoint (Web3 authenticated)
+app.post("/api/storage/upload", upload.single("file"), async (req: Request, res: Response) => {
+  const address = req.headers["x-address"]?.toString() || req.body.address;
+  const signature = req.headers["x-signature"]?.toString() || req.body.signature;
+  const message = req.headers["x-message"]?.toString() || req.body.message;
+  const category = req.body.category || "project-assets";
+
+  if (!address || !signature || !message) {
+    res.status(401).json({ success: false, error: "Authentication required: Missing wallet signature headers" });
+    return;
+  }
+
+  try {
+    const verified = await verifyWalletAuth(address, signature, message);
+    if (!verified) {
+      res.status(401).json({ success: false, error: "Unauthorized: Invalid wallet signature" });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ success: false, error: "No file uploaded" });
+      return;
+    }
+
+    const storageService = new StorageService(prisma);
+    const metadata = await storageService.uploadFile(
+      req.file.buffer,
+      {
+        walletAddress: address,
+        fileName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        visibility: req.body.visibility === "private" ? "private" : "public",
+        entityType: req.body.entityType,
+        entityId: req.body.entityId,
+      },
+      category
+    );
+
+    res.json({
+      success: true,
+      file: {
+        id: metadata.id,
+        fileName: metadata.fileName,
+        mimeType: metadata.mimeType,
+        size: metadata.size,
+        cid: metadata.cid,
+        storageProvider: metadata.storageProvider,
+        storageBucket: metadata.storageBucket,
+        visibility: metadata.visibility,
+      }
+    });
+  } catch (err: any) {
+    console.error("[API] Storage upload error:", err);
+    res.status(500).json({ success: false, error: err.message || "Internal server error" });
+  }
+});
+
+// REST file metadata retrieval
+app.get("/api/storage/metadata/:id", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const storageService = new StorageService(prisma);
+    const metadata = await storageService.getFileMetadata(id);
+    if (!metadata) {
+      res.status(404).json({ success: false, error: "File metadata not found" });
+      return;
+    }
+    res.json({
+      success: true,
+      file: {
+        id: metadata.id,
+        fileName: metadata.fileName,
+        mimeType: metadata.mimeType,
+        size: metadata.size,
+        cid: metadata.cid,
+        storageProvider: metadata.storageProvider,
+        storageBucket: metadata.storageBucket,
+        visibility: metadata.visibility,
+        createdAt: metadata.createdAt,
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || "Internal server error" });
+  }
+});
+
+// REST CID verification
+app.get("/api/storage/verify/:cid", async (req: Request, res: Response) => {
+  const { cid } = req.params;
+  try {
+    const storageService = new StorageService(prisma);
+    const verifyResult = await storageService.verifyCID(cid);
+    if (verifyResult.success) {
+      res.json({
+        success: true,
+        status: "Verified",
+        cid,
+        storageProvider: "filebase-ipfs",
+        gatewayUrl: verifyResult.gatewayUrl,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        status: "Invalid",
+        message: verifyResult.message
+      });
+    }
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || "Internal server error" });
+  }
+});
+
+// REST File deletion endpoint (Web3 authenticated)
+app.post("/api/storage/delete/:id", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const address = req.headers["x-address"]?.toString() || req.body.address;
+  const signature = req.headers["x-signature"]?.toString() || req.body.signature;
+  const message = req.headers["x-message"]?.toString() || req.body.message;
+
+  if (!address || !signature || !message) {
+    res.status(401).json({ success: false, error: "Authentication required: Missing wallet signature headers" });
+    return;
+  }
+
+  try {
+    const verified = await verifyWalletAuth(address, signature, message);
+    if (!verified) {
+      res.status(401).json({ success: false, error: "Unauthorized: Invalid wallet signature" });
+      return;
+    }
+
+    const storageService = new StorageService(prisma);
+    const metadata = await storageService.getFileMetadata(id);
+    if (!metadata) {
+      res.status(404).json({ success: false, error: "File not found" });
+      return;
+    }
+
+    if (metadata.walletAddress.toLowerCase() !== address.toLowerCase()) {
+      res.status(403).json({ success: false, error: "Forbidden: You are not the owner of this file" });
+      return;
+    }
+
+    const deleted = await storageService.deleteFile(id);
+    res.json({ success: deleted });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || "Internal server error" });
+  }
+});
+
+// REST GET global state (Filebase-backed)
+app.get("/api/storage/state", async (req: Request, res: Response) => {
+  let cid = "";
+  try {
+    const stateRecord = await prisma.systemState.findUnique({ where: { key: "global_state" } }).catch(() => null);
+    cid = stateRecord ? stateRecord.cid : getLocalStateCid();
+  } catch (dbErr: any) {
+    console.warn("[STATE] Database query failed, using local file fallback:", dbErr.message);
+    cid = getLocalStateCid();
+  }
+
+  if (!cid) {
+    return res.json({
+      success: true,
+      cid: "",
+      state: {
+        jobs: [],
+        daoProposals: [],
+        treasuryBalanceUsdc: 0,
+        treasuryBalanceEth: 0,
+        treasuryProposals: [],
+        treasuryHistory: [],
+        profiles: {}
+      }
+    });
+  }
+
+  const storageService = new StorageService(prisma);
+  try {
+    const stateData = await storageService.getJsonState(cid);
+    res.json({
+      success: true,
+      cid,
+      state: stateData
+    });
+  } catch (err: any) {
+    console.warn(`[STATE] Failed to fetch state JSON from IPFS CID ${cid}:`, err.message);
+    res.json({
+      success: true,
+      cid,
+      warning: "Failed to download state JSON from IPFS",
+      state: {
+        jobs: [],
+        daoProposals: [],
+        treasuryBalanceUsdc: 0,
+        treasuryBalanceEth: 0,
+        treasuryProposals: [],
+        treasuryHistory: [],
+        profiles: {}
+      }
+    });
+  }
+});
+
+// REST POST update global state (Filebase-backed with Web3 signature authorization)
+app.post("/api/storage/state", async (req: Request, res: Response) => {
+  const { state, auth } = req.body;
+  if (!state || !auth) {
+    res.status(400).json({ success: false, error: "Missing state or auth parameters" });
+    return;
+  }
+
+  const { address, signature, message } = auth;
+  if (!address || !signature || !message) {
+    res.status(401).json({ success: false, error: "Authentication required: Missing wallet signature parameters" });
+    return;
+  }
+
+  try {
+    const verified = await verifyWalletAuth(address, signature, message);
+    if (!verified) {
+      res.status(401).json({ success: false, error: "Unauthorized: Invalid wallet signature" });
+      return;
+    }
+
+    const storageService = new StorageService(prisma);
+    const cid = await storageService.uploadJsonState(state);
+
+    try {
+      await prisma.systemState.upsert({
+        where: { key: "global_state" },
+        update: { cid },
+        create: { key: "global_state", cid }
+      });
+    } catch (dbErr: any) {
+      console.warn("[STATE] Database save failed, saving state CID to local file fallback:", dbErr.message);
+    }
+
+    // Always keep local file fallback in sync
+    saveLocalStateCid(cid);
+
+    res.json({
+      success: true,
+      cid
+    });
+  } catch (err: any) {
+    console.error("[STATE] Error updating state:", err);
+    res.status(500).json({ success: false, error: err.message || "Internal server error" });
+  }
 });
 
 app.get("/health", (req: Request, res: Response) => {

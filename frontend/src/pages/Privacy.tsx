@@ -135,7 +135,7 @@ export const Privacy: React.FC = () => {
               <CheckCircle2 size={13} className="text-emerald-500" /> Immutable CID hashes
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 size={13} className="text-emerald-500" /> Decentralized Pinata & W3S storage
+              <CheckCircle2 size={13} className="text-emerald-500" /> Decentralized Filebase IPFS storage
             </li>
           </ul>
         </motion.div>

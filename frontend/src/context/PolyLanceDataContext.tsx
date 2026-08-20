@@ -102,7 +102,7 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
 
 
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { provider, getSigner } = useWeb3();
+  const { provider, getSigner, address } = useWeb3();
   const hasUnsyncedChangesRef = useRef(false);
   const isRestoringRef = useRef(false);
   const lastLoadedCidRef = useRef<string | null>(null);
@@ -377,7 +377,7 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
   }, [judgeMessages]);
 
   const [loading, setLoading] = useState(true);
-  const pinataJwt = import.meta.env.VITE_PINATA_JWT;
+  const pinataJwt = undefined;
 
   const getAbi = (imported: any) => (Array.isArray(imported) ? imported : imported.abi ?? imported);
 
@@ -554,43 +554,28 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
     };
   }, []);
 
-  // 2. Background Pinata IPFS State Sync (Load)
+  // 2. Background Filebase IPFS State Sync (Load)
   useEffect(() => {
-    const loadStateFromPinata = async () => {
-      if (!pinataJwt) {
-        setLoading(false);
-        return;
-      }
+    const loadStateFromFilebase = async () => {
       try {
-        const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
-        const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
-          headers: {
-            Authorization: `Bearer ${pinataJwt}`,
-          }
-        }).catch(() => null);
+        const serviceUrl = import.meta.env.VITE_CHAT_SERVICE_URL || "http://localhost:3001";
+        const listResponse = await fetch(`${serviceUrl}/api/storage/state`).catch(() => null);
 
         if (listResponse && listResponse.ok) {
-          const listData = await listResponse.json();
-          const rows = listData.rows || [];
-          if (rows.length > 0) {
-            const newest = rows.sort((a: any, b: any) => new Date(b.date_pinned).getTime() - new Date(a.date_pinned).getTime())[0];
-            const cid = newest.ipfs_pin_hash;
+          const resData = await listResponse.json();
+          if (resData.success && resData.state) {
+            const data = resData.state;
+            isRestoringRef.current = true;
+            if (data.jobs) setJobs(data.jobs);
+            if (data.daoProposals) setDaoProposals(data.daoProposals);
+            if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
+            if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
+            if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
+            if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
+            if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
 
-            const data = await fetchIpfsData(cid);
-
-            if (data) {
-              isRestoringRef.current = true;
-              if (data.jobs) setJobs(data.jobs);
-              if (data.daoProposals) setDaoProposals(data.daoProposals);
-              if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
-              if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
-              if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
-              if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
-              if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
-
-              lastLoadedCidRef.current = cid;
-              isRestoringRef.current = false;
-            }
+            lastLoadedCidRef.current = resData.cid || "";
+            isRestoringRef.current = false;
           }
         }
       } catch (error) {
@@ -599,88 +584,79 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         setLoading(false);
       }
     };
-    loadStateFromPinata();
-  }, [pinataJwt]);
+    loadStateFromFilebase();
+  }, []);
 
-  // 3. Background Polling Loop for Pinata updates
+  // 3. Background Polling Loop for state updates
   useEffect(() => {
-    if (!pinataJwt) return;
-
     const pollInterval = setInterval(async () => {
       try {
-        const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
-        const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
-          headers: {
-            Authorization: `Bearer ${pinataJwt}`,
-          }
-        }).catch(() => null);
+        const serviceUrl = import.meta.env.VITE_CHAT_SERVICE_URL || "http://localhost:3001";
+        const response = await fetch(`${serviceUrl}/api/storage/state`).catch(() => null);
 
-        if (listResponse && listResponse.ok) {
-          const listData = await listResponse.json();
-          const rows = listData.rows || [];
-          if (rows.length > 0) {
-            const newest = rows.sort((a: any, b: any) => new Date(b.date_pinned).getTime() - new Date(a.date_pinned).getTime())[0];
-            const cid = newest.ipfs_pin_hash;
-
+        if (response && response.ok) {
+          const resData = await response.json();
+          if (resData.success && resData.cid) {
+            const cid = resData.cid;
             if (cid === lastLoadedCidRef.current) return;
 
-            // Wait 20 seconds for DHT propagation to prevent public gateways from throwing CORS errors on too fresh CIDs
-            const pinAgeMs = Date.now() - new Date(newest.date_pinned).getTime();
-            if (pinAgeMs < 20000) {
-              return;
-            }
-
-            const data = await fetchIpfsData(cid);
-
+            const data = resData.state;
             if (data) {
-                isRestoringRef.current = true;
-                if (!hasUnsyncedChangesRef.current) {
-                  if (data.jobs) setJobs(data.jobs);
-                  if (data.daoProposals) setDaoProposals(data.daoProposals);
-                  if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
-                  if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
-                  if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
-                  if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
-                }
-                if (data.treasuryProposals && data.treasuryProposals.length > 0) {
-                  setTreasuryProposals((local: TreasuryProposal[]) => {
-                    const cloudProposals = data.treasuryProposals as TreasuryProposal[];
-                    const cloudMap = new Map<string, TreasuryProposal>(cloudProposals.map((p) => [p.id, p]));
-                    const merged: TreasuryProposal[] = local.map((lp) => {
-                      const cp = cloudMap.get(lp.id);
-                      if (!cp) return lp;
-                      const sigs = Array.from(new Set([...lp.signatures, ...cp.signatures]));
-                      return { ...lp, signatures: sigs, executed: lp.executed || cp.executed } as TreasuryProposal;
-                    });
-                    cloudProposals.forEach((cp) => {
-                      if (!merged.find((p) => p.id === cp.id)) merged.push(cp);
-                    });
-                    return merged;
-                  });
-                }
-                isRestoringRef.current = false;
-                lastLoadedCidRef.current = cid;
+              isRestoringRef.current = true;
+              if (!hasUnsyncedChangesRef.current) {
+                if (data.jobs) setJobs(data.jobs);
+                if (data.daoProposals) setDaoProposals(data.daoProposals);
+                if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
+                if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
+                if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
+                if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
               }
+              if (data.treasuryProposals && data.treasuryProposals.length > 0) {
+                setTreasuryProposals((local: TreasuryProposal[]) => {
+                  const cloudProposals = data.treasuryProposals as TreasuryProposal[];
+                  const cloudMap = new Map<string, TreasuryProposal>(cloudProposals.map((p) => [p.id, p]));
+                  const merged: TreasuryProposal[] = local.map((lp) => {
+                    const cp = cloudMap.get(lp.id);
+                    if (!cp) return lp;
+                    const sigs = Array.from(new Set([...lp.signatures, ...cp.signatures]));
+                    return { ...lp, signatures: sigs, executed: lp.executed || cp.executed } as TreasuryProposal;
+                  });
+                  cloudProposals.forEach((cp) => {
+                    if (!merged.find((p) => p.id === cp.id)) merged.push(cp);
+                  });
+                  return merged;
+                });
+              }
+              isRestoringRef.current = false;
+              lastLoadedCidRef.current = cid;
             }
           }
+        }
       } catch (error) {
         // Quiet background polling error
       }
     }, 15000);
 
     return () => clearInterval(pollInterval);
-  }, [pinataJwt]);
+  }, []);
 
   useEffect(() => {
     fetchLiveExchangeRates().catch((err) => console.warn('Failed to load rates on boot:', err));
   }, []);
 
-  // 4. Pinata Save Sync Loop
+  // 4. Filebase Save Sync Loop
   useEffect(() => {
-    if (loading || !pinataJwt) return;
+    if (loading) return;
 
-    const syncStateToPinata = async () => {
+    const syncStateToFilebase = async () => {
       try {
+        const signer = await getSigner();
+        if (!signer) return;
+
+        const timestamp = Date.now();
+        const message = `Authorize PolyLance state update at timestamp ${timestamp}`;
+        const signature = await signer.signMessage(message);
+
         const statePayload = {
           jobs,
           daoProposals,
@@ -690,63 +666,39 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
           treasuryHistory,
           profiles
         };
-        const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+
+        const serviceUrl = import.meta.env.VITE_CHAT_SERVICE_URL || "http://localhost:3001";
+        const response = await fetch(`${serviceUrl}/api/storage/state`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${pinataJwt}`,
           },
           body: JSON.stringify({
-            pinataOptions: { cidVersion: 1 },
-            pinataMetadata: {
-              name: 'polylance_db_state',
-              keyvalues: { app: 'polylance', type: 'state' }
-            },
-            pinataContent: statePayload
+            state: statePayload,
+            auth: {
+              address,
+              signature,
+              message
+            }
           })
         }).catch(() => null);
 
         if (response && response.ok) {
-          const data = await response.json();
-          const newCid = data.IpfsHash;
-          console.log('Synced live cloud state to Pinata IPFS CID:', newCid);
-
-          lastLoadedCidRef.current = newCid;
-          hasUnsyncedChangesRef.current = false;
-
-          try {
-            const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
-            const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
-              headers: {
-                Authorization: `Bearer ${pinataJwt}`,
-              }
-            }).catch(() => null);
-            if (listResponse && listResponse.ok) {
-              const listData = await listResponse.json();
-              const rows = listData.rows || [];
-              const oldPins = rows.filter((r: any) => r.ipfs_pin_hash !== newCid);
-              if (oldPins.length > 2) {
-                const oldest = oldPins.sort((a: any, b: any) => new Date(a.date_pinned).getTime() - new Date(b.date_pinned).getTime())[0];
-                fetch(`https://api.pinata.cloud/pinning/unpin/${oldest.ipfs_pin_hash}`, {
-                  method: 'DELETE',
-                  headers: {
-                    Authorization: `Bearer ${pinataJwt}`,
-                  }
-                }).catch(() => { });
-              }
-            }
-          } catch (pinListErr) {
-            // Silently catch client-side CORS restriction on Pinata management endpoint
+          const resData = await response.json();
+          if (resData.success && resData.cid) {
+            console.log('Synced live cloud state to Filebase IPFS CID:', resData.cid);
+            lastLoadedCidRef.current = resData.cid;
+            hasUnsyncedChangesRef.current = false;
           }
         }
       } catch (error) {
-        // Silently catch sync state errors
+        console.warn('[STATE] Failed to sync state to Filebase:', error);
       }
     };
 
-    const timer = setTimeout(syncStateToPinata, 3000);
+    const timer = setTimeout(syncStateToFilebase, 5000);
     return () => clearTimeout(timer);
-  }, [jobs, daoProposals, treasuryBalanceUsdc, treasuryBalanceEth, treasuryProposals, treasuryHistory, profiles, loading, pinataJwt]);
+  }, [jobs, daoProposals, treasuryBalanceUsdc, treasuryBalanceEth, treasuryProposals, treasuryHistory, profiles, loading, address]);
 
   // Local Cache storage triggers
   useEffect(() => {
@@ -1568,32 +1520,44 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         freelancer: job.freelancer,
         chatMessages: job.chatMessages,
         archivedAt: Date.now(),
-        engine: 'Encline Protocol v2.4'
+        engine: 'Encline Protocol v2.5'
       };
 
-      const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+      const signer = await getSigner();
+      if (!signer) {
+        throw new Error("Wallet not connected");
+      }
+
+      const message = `Authorize chat archive for ${job.id}`;
+      const signature = await signer.signMessage(message);
+
+      const jsonBlob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+      const formData = new FormData();
+      formData.append("file", jsonBlob, `chat_archive_${job.id}.json`);
+      formData.append("category", "chat-archives");
+      formData.append("entityType", "job");
+      formData.append("entityId", job.id);
+
+      const serviceUrl = import.meta.env.VITE_CHAT_SERVICE_URL || "http://localhost:3001";
+      const response = await fetch(`${serviceUrl}/api/storage/upload`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${pinataJwt}`,
+          'x-address': address,
+          'x-signature': signature,
+          'x-message': message
         },
-        body: JSON.stringify({
-          pinataOptions: { cidVersion: 1 },
-          pinataMetadata: {
-            name: `polylance_chat_archive_${job.id}`,
-            keyvalues: { app: 'polylance', type: 'chat_archive', jobId: job.id }
-          },
-          pinataContent: payload
-        })
+        body: formData
       }).catch(() => null);
 
       if (response && response.ok) {
-        const data = await response.json();
-        console.log(`🔒 Encline chat session archived to Pinata IPFS. CID: ${data.IpfsHash}`);
-        return data.IpfsHash;
+        const resData = await response.json();
+        if (resData.success && resData.file && resData.file.cid) {
+          console.log(`🔒 Encline chat session archived to Filebase IPFS. CID: ${resData.file.cid}`);
+          return resData.file.cid;
+        }
       }
     } catch (err) {
-      console.warn('Pinata chat archiving notice:', err);
+      console.warn('Filebase chat archiving notice:', err);
     }
     return null;
   };
@@ -1601,7 +1565,7 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
   const closeChatSession = async (jobId: string): Promise<string | null> => {
     const cid = await archiveChatToPinata(jobId);
     if (cid) {
-      sendChatMessage(jobId, `🔒 Chat session closed. Full transcript permanently archived to Pinata IPFS (CID: ${cid}).`, 'Judge');
+      sendChatMessage(jobId, `🔒 Chat session closed. Full transcript permanently archived to Filebase IPFS (CID: ${cid}).`, 'Judge');
     }
     return cid;
   };

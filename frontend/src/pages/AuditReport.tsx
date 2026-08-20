@@ -443,7 +443,7 @@ export const AuditReport: React.FC = () => {
             <span className="text-slate-900 uppercase font-black block text-xs tracking-wider">Cryptographic Proof Integrity</span>
             <p className="text-slate-900 font-bold leading-relaxed font-sans text-xs">
               This document serves as an immutable certificate of participants' trust indices and platform performance. 
-              The verified details are secured decentralized, and hashes are synced to Pinata IPFS networks.
+              The verified details are secured decentralized, and hashes are synced to Filebase IPFS networks.
             </p>
             <div className="text-xs break-all text-purple-950 bg-purple-100 p-3 rounded-xl border border-purple-300 mt-2 font-mono font-extrabold shadow-xs">
               IPFS CID: {mockIpfsHash}

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "npm --prefix frontend run dev",
+    "dev": "node scripts/dev.mjs",
     "build": "npm --prefix frontend run build",
     "test": "npx hardhat test",
     "contracts:compile": "npx hardhat compile",

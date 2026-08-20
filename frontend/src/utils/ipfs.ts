@@ -24,5 +24,5 @@ export function getIpfsGatewayUrl(cid: string): string {
   if (!cid) return '#';
   if (cid.startsWith('http')) return cid;
   const cleanCid = cid.replace('ipfs://', '');
-  return `https://gateway.pinata.cloud/ipfs/${cleanCid}`;
+  return `https://ipfs.filebase.io/ipfs/${cleanCid}`;
 }

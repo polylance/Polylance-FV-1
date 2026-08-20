@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { UploadCloud, CheckCircle2, FileText, Link as LinkIcon, Loader2, Sparkles, ArrowRight, ShieldCheck, RefreshCw } from 'lucide-react';
-import { generateIpfsCid, getIpfsGatewayUrl } from '../utils/ipfs';
+import { UploadCloud, CheckCircle2, FileText, Link as LinkIcon, Loader2, Sparkles, ShieldCheck, RefreshCw, Copy, ExternalLink, AlertTriangle, Check } from 'lucide-react';
+import { getIpfsGatewayUrl } from '../utils/ipfs';
+import { useWeb3 } from '../context/Web3Context';
 
 interface UploadingFile {
   id: string;
@@ -9,13 +10,30 @@ interface UploadingFile {
   progress: number;
   cid?: string;
   done: boolean;
+  error?: string;
+  fileObj: File;
 }
 
 interface ProofOfWorkUploaderProps {
   onSubmit: (title: string, description: string, evidenceHashes: string[], externalLink?: string) => void;
 }
 
+const ALLOWED_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+  "image/svg+xml",
+  "application/pdf",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/json"
+]);
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
 export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubmit }) => {
+  const { address, getSigner } = useWeb3();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [externalLink, setExternalLink] = useState('');
@@ -24,58 +42,150 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [lastSubmittedTitle, setLastSubmittedTitle] = useState('');
   const [lastSubmittedCids, setLastSubmittedCids] = useState<string[]>([]);
+  const [copiedCid, setCopiedCid] = useState<string | null>(null);
 
-  const simulateFileUpload = (fileList: FileList) => {
-    setIsUploading(true);
-    const newUploadingFiles: UploadingFile[] = Array.from(fileList).map((f) => ({
-      id: Math.random().toString(36).slice(2),
-      name: f.name,
-      size: (f.size / (1024 * 1024)).toFixed(2) + ' MB',
-      progress: 0,
-      done: false,
-    }));
+  const startUpload = async (fileObj: File, id: string) => {
+    // 1. Validate File Size
+    if (fileObj.size > MAX_FILE_SIZE) {
+      setFiles((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: "File exceeds 50MB limit" } : f))
+      );
+      return;
+    }
 
-    setFiles((prev) => [...prev, ...newUploadingFiles]);
+    // 2. Validate Mime Type
+    if (!ALLOWED_MIME_TYPES.has(fileObj.type) && !fileObj.name.endsWith(".zip") && !fileObj.name.endsWith(".pdf") && !fileObj.name.endsWith(".json")) {
+      setFiles((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: "Unsupported file type" } : f))
+      );
+      return;
+    }
 
-    newUploadingFiles.forEach((fileObj) => {
-      let currentProgress = 0;
-      const interval = setInterval(() => {
-        currentProgress += Math.floor(Math.random() * 25) + 20;
-        if (currentProgress >= 100) {
-          currentProgress = 100;
-          clearInterval(interval);
-          const cid = generateIpfsCid(fileObj.name + Date.now().toString());
+    try {
+      // 3. Get Signer
+      const signer = await getSigner();
+      if (!signer) {
+        throw new Error("Wallet not connected or signer unavailable");
+      }
+
+      // 4. Request signature for upload authentication
+      const message = `Authorize upload for ${fileObj.name}`;
+      const signature = await signer.signMessage(message);
+
+      // 5. Setup Form Data
+      const formData = new FormData();
+      formData.append("file", fileObj);
+      formData.append("category", "proof-of-work");
+
+      const serviceUrl = import.meta.env.VITE_CHAT_SERVICE_URL || "http://localhost:3001";
+      const uploadUrl = `${serviceUrl}/api/storage/upload`;
+
+      // 6. XHR Upload for progress tracking
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", uploadUrl);
+      xhr.setRequestHeader("x-address", address);
+      xhr.setRequestHeader("x-signature", signature);
+      xhr.setRequestHeader("x-message", message);
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
           setFiles((prev) =>
-            prev.map((f) => (f.id === fileObj.id ? { ...f, progress: 100, cid, done: true } : f))
-          );
-          setIsUploading(false);
-        } else {
-          setFiles((prev) =>
-            prev.map((f) => (f.id === fileObj.id ? { ...f, progress: currentProgress } : f))
+            prev.map((f) => (f.id === id ? { ...f, progress: percentComplete } : f))
           );
         }
-      }, 250);
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            if (response.success && response.file && response.file.cid) {
+              setFiles((prev) =>
+                prev.map((f) => (f.id === id ? { ...f, progress: 100, cid: response.file.cid, done: true, error: undefined } : f))
+              );
+            } else {
+              throw new Error(response.error || "Upload failed");
+            }
+          } catch (e: any) {
+            setFiles((prev) =>
+              prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: e.message || "Invalid upload response" } : f))
+            );
+          }
+        } else {
+          setFiles((prev) =>
+            prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: `Upload error: HTTP ${xhr.status}` } : f))
+          );
+        }
+      };
+
+      xhr.onerror = () => {
+        setFiles((prev) =>
+          prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: "Network communication error" } : f))
+        );
+      };
+
+      xhr.send(formData);
+    } catch (err: any) {
+      setFiles((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: err.message || "Signature request denied" } : f))
+      );
+    }
+  };
+
+  const handleUploadFiles = (fileList: FileList) => {
+    setIsUploading(true);
+    const newUploadingFiles: UploadingFile[] = Array.from(fileList).map((f) => {
+      const id = Math.random().toString(36).slice(2);
+      const fileObj = {
+        id,
+        name: f.name,
+        size: (f.size / (1024 * 1024)).toFixed(2) + ' MB',
+        progress: 0,
+        done: false,
+        fileObj: f,
+      };
+
+      // Proactively trigger upload
+      startUpload(f, id);
+      return fileObj;
     });
+
+    setFiles((prev) => [...prev, ...newUploadingFiles]);
+    setIsUploading(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      simulateFileUpload(e.dataTransfer.files);
+      handleUploadFiles(e.dataTransfer.files);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      simulateFileUpload(e.target.files);
+      handleUploadFiles(e.target.files);
     }
+  };
+
+  const handleRetry = (file: UploadingFile) => {
+    setFiles((prev) =>
+      prev.map((f) => (f.id === file.id ? { ...f, progress: 0, done: false, error: undefined } : f))
+    );
+    startUpload(file.fileObj, file.id);
+  };
+
+  const handleCopyCid = (cid: string) => {
+    navigator.clipboard.writeText(cid);
+    setCopiedCid(cid);
+    setTimeout(() => setCopiedCid(null), 2000);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const readyCids = files.filter((f) => f.done && f.cid).map((f) => f.cid as string);
     if (!title.trim() || !description.trim() || readyCids.length === 0) {
-      alert('Please provide a deliverable title, summary description, and at least 1 uploaded evidence file.');
+      alert('Please provide a deliverable title, summary description, and at least 1 successfully uploaded file.');
       return;
     }
     
@@ -85,7 +195,7 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
     setLastSubmittedTitle(title.trim());
     setLastSubmittedCids(readyCids);
 
-    // Reset Form Fields completely
+    // Reset Form Fields
     setTitle('');
     setDescription('');
     setExternalLink('');
@@ -118,11 +228,32 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               Pinned IPFS Evidence CIDs:
             </span>
             {lastSubmittedCids.map((cid, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs font-mono bg-slate-50 p-2 rounded-xl border border-slate-200 text-purple-700 font-bold truncate">
-                <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
-                <a href={getIpfsGatewayUrl(cid)} target="_blank" rel="noreferrer" className="hover:underline truncate">
-                  {cid}
-                </a>
+              <div key={i} className="flex items-center justify-between gap-2 text-xs font-mono bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-purple-700 font-bold truncate">
+                <div className="flex items-center gap-2 truncate">
+                  <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                  <a href={getIpfsGatewayUrl(cid)} target="_blank" rel="noreferrer" className="hover:underline truncate">
+                    {cid}
+                  </a>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCid(cid)}
+                    className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-purple-700 transition-colors"
+                    title="Copy CID"
+                  >
+                    {copiedCid === cid ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                  </button>
+                  <a
+                    href={getIpfsGatewayUrl(cid)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-purple-700 transition-colors"
+                    title="View File"
+                  >
+                    <ExternalLink size={13} />
+                  </a>
+                </div>
               </div>
             ))}
           </div>
@@ -207,7 +338,7 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
             <p className="text-sm font-extrabold text-slate-900">
               Drag & drop deliverable files here, or <span className="text-purple-700 underline">browse</span>
             </p>
-            <p className="text-xs font-bold text-slate-500 mt-1">Supports code archives, PDFs, screenshots, videos (Max 50MB per file)</p>
+            <p className="text-xs font-bold text-slate-500 mt-1">Supports code archives, PDFs, screenshots, json (Max 50MB per file)</p>
           </div>
         </div>
 
@@ -225,9 +356,13 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
                     <span className="font-mono font-bold text-slate-900 truncate">{file.name}</span>
                     <span className="text-slate-500 font-semibold">({file.size})</span>
                   </div>
-                  {file.done ? (
+                  {file.done && !file.error ? (
                     <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold text-[11px]">
                       <CheckCircle2 size={13} /> Uploaded
+                    </span>
+                  ) : file.error ? (
+                    <span className="text-red-700 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold text-[11px]">
+                      <AlertTriangle size={13} /> Failed
                     </span>
                   ) : (
                     <span className="text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold text-[11px]">
@@ -239,22 +374,56 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
                 {/* Progress bar */}
                 <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mb-1.5">
                   <div
-                    className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-200"
-                    style={{ width: `${file.progress}%` }}
+                    className={`h-full transition-all duration-200 ${file.error ? 'bg-red-500' : 'bg-gradient-to-r from-purple-600 to-indigo-600'}`}
+                    style={{ width: `${file.error ? 100 : file.progress}%` }}
                   />
                 </div>
 
-                {file.cid && (
-                  <div className="flex items-center gap-1.5 text-[11px] font-mono text-purple-700 pt-1.5 border-t border-slate-100 font-bold">
-                    <span className="text-slate-500">IPFS CID:</span>
-                    <a
-                      href={getIpfsGatewayUrl(file.cid)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-purple-900 truncate"
+                {file.error && (
+                  <div className="flex items-center justify-between text-[11px] text-red-600 pt-1.5 border-t border-slate-100 font-bold">
+                    <span>Error: {file.error}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRetry(file)}
+                      className="text-purple-700 hover:text-purple-900 underline flex items-center gap-1"
                     >
-                      {file.cid}
-                    </a>
+                      <RefreshCw size={11} /> Retry
+                    </button>
+                  </div>
+                )}
+
+                {file.cid && (
+                  <div className="flex items-center justify-between gap-1.5 text-[11px] font-mono text-purple-700 pt-1.5 border-t border-slate-100 font-bold">
+                    <div className="flex items-center gap-1 truncate">
+                      <span className="text-slate-500">IPFS CID:</span>
+                      <a
+                        href={getIpfsGatewayUrl(file.cid)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-purple-900 truncate"
+                      >
+                        {file.cid}
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCid(file.cid!)}
+                        className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-purple-700 transition-colors"
+                        title="Copy CID"
+                      >
+                        {copiedCid === file.cid ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                      </button>
+                      <a
+                        href={getIpfsGatewayUrl(file.cid)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-purple-700 transition-colors"
+                        title="View File"
+                      >
+                        <ExternalLink size={11} />
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
@@ -282,7 +451,7 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
 
       <button
         type="submit"
-        disabled={isUploading || files.length === 0}
+        disabled={isUploading || files.length === 0 || files.some((f) => !f.done)}
         className="w-full bg-purple-700 hover:bg-purple-800 text-white font-headline font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50 cursor-pointer"
       >
         <Sparkles size={16} />
