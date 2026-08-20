@@ -488,18 +488,20 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         if (cached) return JSON.parse(cached);
       }
     } catch (_) {}
-
     const gateways = [
-      `https://gateway.pinata.cloud/ipfs/${cid}`,
-      `https://cloudflare-ipfs.com/ipfs/${cid}`,
-      `https://dweb.link/ipfs/${cid}`
+      { url: `https://gateway.pinata.cloud/ipfs/${cid}`, timeout: 12000 },
+      { url: `https://cloudflare-ipfs.com/ipfs/${cid}`, timeout: 6000 },
+      { url: `https://storry.tv/ipfs/${cid}`, timeout: 6000 },
+      { url: `https://4everland.io/ipfs/${cid}`, timeout: 6000 },
+      { url: `https://w3s.link/ipfs/${cid}`, timeout: 6000 },
+      { url: `https://dweb.link/ipfs/${cid}`, timeout: 6000 }
     ];
 
-    for (const gatewayUrl of gateways) {
+    for (const gw of gateways) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4500);
-        const response = await fetch(gatewayUrl, { signal: controller.signal, mode: 'cors' }).catch(() => null);
+        const timeoutId = setTimeout(() => controller.abort(), gw.timeout);
+        const response = await fetch(gw.url, { signal: controller.signal, mode: 'cors' }).catch(() => null);
         clearTimeout(timeoutId);
 
         if (response && response.ok) {
