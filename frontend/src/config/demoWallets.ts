@@ -21,7 +21,7 @@ export const DEMO_WALLETS = {
     reputationCount: 4,
   },
   judge: {
-    address: '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd',
+    address: import.meta.env.VITE_JUDGE_ADDRESS || '',
     label: 'Judge / Arbitrator',
     isArbitrator: true,
     isTreasuryAdmin: false,
@@ -35,7 +35,7 @@ export const DEMO_WALLETS = {
     reputationCount: 1,
   },
   admin3: {
-    address: '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1',
+    address: import.meta.env.VITE_ADMIN_ADDRESS_3 || '',
     label: '3rd Admin & Arbitrator (0xb30F2e...)',
     isArbitrator: true,
     isTreasuryAdmin: true,

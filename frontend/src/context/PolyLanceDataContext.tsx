@@ -68,10 +68,10 @@ const PolyLanceDataContext = createContext<PolyLanceDataContextType | undefined>
 const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<string, UserProfile> => {
   const normalized: Record<string, UserProfile> = {};
   
-  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
-  const adminAddr1 = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase();
-  const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A').toLowerCase();
-  const adminAddr3 = '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1';
+  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
+  const adminAddr1 = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '').toLowerCase();
+  const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '').toLowerCase();
+  const adminAddr3 = (import.meta.env.VITE_ADMIN_ADDRESS_3 || '').toLowerCase();
 
   for (const [addr, profile] of Object.entries(rawProfiles)) {
     if (!addr) continue;
@@ -169,10 +169,10 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
     const rationaleLower = (p.rationale || p.description || '').toLowerCase();
 
     // Filter out mock/demo proposals
-    const isDemoCandidate = candidateLower === '0xb8aa0398b91a150b041da819bc954bb356e009dd';
-    const isDemoProposer = proposerLower === '0x1111222233334444555566667777888899990000' || proposerLower === '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a' || proposerLower === '0xb8aa0398b91a150b041da819bc954bb356e009dd';
+    const isDemoCandidate = candidateLower === '0x1111222233334444555566667777888899990000';
+    const isDemoProposer = proposerLower === '0x1111222233334444555566667777888899990000';
     const isDemoRationale = rationaleLower === 'checking' || rationaleLower.includes('nominate lead arbitrator');
-    const isDemoTitle = titleLower.includes('0xb8aa');
+    const isDemoTitle = titleLower.includes('0x1111');
 
     return !(isDemoTitle || isDemoRationale || (isDemoCandidate && isDemoProposer));
   });
@@ -331,7 +331,7 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
       const saved = localStorage.getItem('polylance_judges');
       if (saved) return JSON.parse(saved);
     }
-    const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
+    const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
     return [
       {
         address: defaultJudgeAddr,
@@ -774,9 +774,9 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
     balanceEth: treasuryBalanceEth.toString(),
     requiredSignatures: 2,
     signers: [
-      import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cDfc0692cC675c95304BaCE2C834D8F901dCba',
-      import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
-      import.meta.env.VITE_ADMIN_ADDRESS_3 || '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1',
+      import.meta.env.VITE_ADMIN_ADDRESS_1 || '',
+      import.meta.env.VITE_ADMIN_ADDRESS_2 || '',
+      import.meta.env.VITE_ADMIN_ADDRESS_3 || '',
     ],
     proposals: treasuryProposals,
   };

@@ -57,11 +57,11 @@ export const Reputation: React.FC = () => {
   const totalPoints = escrowPoints + multisigPoints + govPoints;
 
   // Exclude non-developer roles/addresses (judge, admins, client) from rankings
-  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
-  const adminAddr1 = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase();
-  const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A').toLowerCase();
-  const adminAddr3 = '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1'.toLowerCase();
-  const clientAddr = (import.meta.env.VITE_CLIENT_ADDRESS || '0x9999888877776666555544443333222211110000').toLowerCase();
+  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
+  const adminAddr1 = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '').toLowerCase();
+  const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '').toLowerCase();
+  const adminAddr3 = (import.meta.env.VITE_ADMIN_ADDRESS_3 || '').toLowerCase();
+  const clientAddr = (import.meta.env.VITE_CLIENT_ADDRESS || '').toLowerCase();
 
   // Compute leaderboard first to determine dynamic rank
   const leaderboardData = Object.values(profiles)
