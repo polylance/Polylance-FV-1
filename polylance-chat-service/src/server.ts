@@ -17,10 +17,19 @@ import { getLocalStateCid, saveLocalStateCid, saveLocalFileMetadata, getLocalFil
 dotenv.config();
 
 const app = express();
-const allowedOrigin = process.env.FRONTEND_URL || "https://polylance.codes";
+const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || [
+  "http://localhost:5173",
+  "https://polylance.github.io",
+  "https://polylance.codes",
+].join(",")).split(",").map(o => o.trim()).filter(Boolean);
 
 app.use(cors({
-  origin: allowedOrigin,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: Origin '${origin}' is not allowed`));
+  },
   credentials: true,
 }));
 app.use(express.json());
@@ -42,7 +51,10 @@ app.use(async (req: Request, res: Response, next) => {
 export const server = http.createServer(app);
 export const io = new Server(server, {
   cors: {
-    origin: allowedOrigin,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: Origin '${origin}' is not allowed`));
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
