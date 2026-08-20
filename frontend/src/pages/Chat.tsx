@@ -471,12 +471,12 @@ export const Chat: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={`w-2 h-2 rounded-full ${isEnclineConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-[10px] font-mono text-slate-500 font-bold">
-                          {isEnclineConnected ? 'Encline Realtime Engine Active' : 'Encline Encrypted Channel'}
+                          XMTP Encrypted Channel Active
                         </span>
                         <span className="text-[9px] bg-purple-100 text-purple-800 font-mono px-1.5 py-0.5 rounded font-extrabold flex items-center gap-1">
-                          <Zap size={10} className="text-purple-600 fill-purple-600" /> Encline v2.4
+                          <Shield size={10} className="text-purple-600" /> XMTP Protocol
                         </span>
                       </div>
                       <div className="flex items-center gap-1 text-[10px] font-mono text-slate-400">
@@ -656,12 +656,12 @@ export const Chat: React.FC = () => {
                     <div>
                       <h4 className="font-headline font-bold text-slate-900 text-sm">{activeJob.title}</h4>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={`w-2 h-2 rounded-full ${isEnclineConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-[10px] font-mono text-slate-500 font-bold">
-                          {isEnclineConnected ? 'Encline Realtime Engine Active' : 'Encline Encrypted Channel'}
+                          XMTP Encrypted Channel Active
                         </span>
                         <span className="text-[9px] bg-purple-100 text-purple-800 font-mono px-1.5 py-0.5 rounded font-extrabold flex items-center gap-1">
-                          <Zap size={10} className="text-purple-600 fill-purple-600" /> Encline v2.4
+                          <Shield size={10} className="text-purple-600" /> XMTP Protocol
                         </span>
                       </div>
                     </div>
@@ -827,7 +827,7 @@ export const Chat: React.FC = () => {
 
                   <div className="text-center">
                     <span className="text-[9.5px] font-mono text-slate-400 flex items-center justify-center gap-1">
-                      <Shield size={11} className="text-purple-600" /> Realtime E2E Encrypted via Encline Messaging Engine
+                      <Shield size={11} className="text-purple-600" /> Messages are end-to-end encrypted via XMTP Peer-to-Peer Protocol
                     </span>
                   </div>
                 </div>

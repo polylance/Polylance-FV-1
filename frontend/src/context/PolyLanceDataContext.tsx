@@ -111,79 +111,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_ENCLINE_SOCKET_URL || 'https://encline.vercel.app';
-
-    try {
-      const socket = io(socketUrl, {
-        transports: ['polling', 'websocket'],
-        autoConnect: true,
-        reconnection: true,
-        reconnectionAttempts: 3,
-        timeout: 4000,
-      });
-      socketRef.current = socket;
-
-      socket.on('connect', () => {
-        setIsEnclineConnected(true);
-      });
-
-      socket.on('connect_error', () => {
-        setIsEnclineConnected(false);
-      });
-
-      socket.on('disconnect', () => {
-        setIsEnclineConnected(false);
-      });
-
-      socket.on('polylance-chat-message', (data: { jobId?: string; judgeAddress?: string; message: any }) => {
-        if (!data || !data.message) return;
-        if (data.jobId) {
-          setJobs((prev) =>
-            prev.map((job) => {
-              if (job.id.toLowerCase() !== data.jobId!.toLowerCase()) return job;
-              const existingMsgs = job.chatMessages || [];
-              if (existingMsgs.some((m) => m.text === data.message.text && m.timestamp === data.message.timestamp)) {
-                return job;
-              }
-              return { ...job, chatMessages: [...existingMsgs, data.message] };
-            })
-          );
-        } else if (data.judgeAddress) {
-          setJudgeMessages((prev) => {
-            const key = data.judgeAddress!.toLowerCase();
-            const existing = prev[key] || [];
-            if (existing.some((m) => m.text === data.message.text && m.timestamp === data.message.timestamp)) {
-              return prev;
-            }
-            return { ...prev, [key]: [...existing, data.message] };
-          });
-        }
-      });
-
-      socket.on('polylance-chat-deleted', (data: { jobId?: string; judgeAddress?: string }) => {
-        if (!data) return;
-        if (data.jobId) {
-          setJobs((prev) =>
-            prev.map((job) => {
-              if (job.id.toLowerCase() !== data.jobId!.toLowerCase()) return job;
-              return { ...job, chatMessages: [] };
-            })
-          );
-        } else if (data.judgeAddress) {
-          setJudgeMessages((prev) => {
-            const next = { ...prev };
-            delete next[data.judgeAddress!.toLowerCase()];
-            return next;
-          });
-        }
-      });
-
-      return () => {
-        socket.disconnect();
-      };
-    } catch (err) {
-      // Quiet background handling
-    }
+    // Socket real-time engine (Encline) disabled per user request to resolve CORS/WebSocket socket errors.
+    // Reverted to local state sync + background IPFS polling (XMTP peer-to-peer style).
+    setIsEnclineConnected(false);
+    socketRef.current = null;
   }, []);
 
   const touchLocalTimestamp = () => {
@@ -560,13 +491,14 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
 
     const gateways = [
       `https://gateway.pinata.cloud/ipfs/${cid}`,
-      `https://ipfs.io/ipfs/${cid}`
+      `https://cloudflare-ipfs.com/ipfs/${cid}`,
+      `https://dweb.link/ipfs/${cid}`
     ];
 
     for (const gatewayUrl of gateways) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const timeoutId = setTimeout(() => controller.abort(), 4500);
         const response = await fetch(gatewayUrl, { signal: controller.signal, mode: 'cors' }).catch(() => null);
         clearTimeout(timeoutId);
 
