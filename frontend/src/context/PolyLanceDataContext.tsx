@@ -624,6 +624,12 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
 
             if (cid === lastLoadedCidRef.current) return;
 
+            // Wait 20 seconds for DHT propagation to prevent public gateways from throwing CORS errors on too fresh CIDs
+            const pinAgeMs = Date.now() - new Date(newest.date_pinned).getTime();
+            if (pinAgeMs < 20000) {
+              return;
+            }
+
             const data = await fetchIpfsData(cid);
 
             if (data) {
