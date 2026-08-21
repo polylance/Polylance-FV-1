@@ -37,7 +37,7 @@ async function main() {
   }
 
   console.log("\n3. Checking IPFS Gateway Resolution...");
-  const ipfsUrl = "https://gateway.pinata.cloud/ipfs/bafybeifx7yeb55armcsx4imwgaqqg2nvd5cc2ic2645whkhd7mu4a42viy";
+  const ipfsUrl = "https://ipfs.filebase.io/ipfs/bafybeifx7yeb55armcsx4imwgaqqg2nvd5cc2ic2645whkhd7mu4a42viy";
   console.log(`   ✓ IPFS Public Gateway URL structured: ${ipfsUrl}`);
 
   console.log("\n4. External Black Box Interface Rules...");

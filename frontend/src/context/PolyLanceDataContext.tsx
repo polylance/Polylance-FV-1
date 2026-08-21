@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { ethers } from 'ethers';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage } from '../types';
-import { generateMockTxHash, generateDeterministicHash, getDeterministicSbtId } from '../utils/formatters';
+import { generateMockTxHash, generateDeterministicHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { fetchLiveExchangeRates } from '../utils/currency';
 import { CONTRACTS } from '../config/contracts';
@@ -40,7 +39,6 @@ const INITIAL_PROFILES: Record<string, UserProfile> = {};
 
 interface PolyLanceDataContextType {
   loading: boolean;
-  isEnclineConnected: boolean;
   jobs: Job[];
   daoProposals: DaoProposal[];
   treasury: TreasuryState;
@@ -68,9 +66,6 @@ interface PolyLanceDataContextType {
   submitDisputeResponse: (jobId: string, responseText: string, responseIpfsHash: string) => void;
   resolveDispute: (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => Promise<void>;
   sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => void;
-  archiveChatToPinata: (jobId: string) => Promise<string | null>;
-  closeChatSession: (jobId: string) => Promise<string | null>;
-  deleteChatHistory: (jobId?: string, judgeAddress?: string) => void;
   updateProfile: (profile: Partial<UserProfile>, address: string) => Promise<void>;
   castDaoVote: (proposalId: string | number, support: boolean, voterAddress?: string, votingPower?: number) => Promise<void> | void;
   castVote: (proposalId: string | number, support: boolean, voterAddress?: string) => Promise<void> | void;
@@ -86,11 +81,8 @@ const PolyLanceDataContext = createContext<PolyLanceDataContextType | undefined>
 
 const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<string, UserProfile> => {
   const normalized: Record<string, UserProfile> = {};
-  
-  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
-  const adminAddr1 = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '').toLowerCase();
-  const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '').toLowerCase();
-  const adminAddr3 = (import.meta.env.VITE_ADMIN_ADDRESS_3 || '').toLowerCase();
+  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
+  const judgeGithub = import.meta.env.VITE_JUDGE_GITHUB_USERNAME || 'sunny200551';
 
   for (const [addr, profile] of Object.entries(rawProfiles)) {
     if (!addr) continue;
@@ -143,20 +135,10 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
 
 
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { provider, getSigner, address } = useWeb3();
+  const { provider, getSigner } = useWeb3();
   const hasUnsyncedChangesRef = useRef(false);
   const isRestoringRef = useRef(false);
   const lastLoadedCidRef = useRef<string | null>(null);
-
-  const [isEnclineConnected, setIsEnclineConnected] = useState(false);
-  const socketRef = useRef<Socket | null>(null);
-
-  useEffect(() => {
-    // Socket real-time engine (Encline) disabled per user request to resolve CORS/WebSocket socket errors.
-    // Reverted to local state sync + background IPFS polling (XMTP peer-to-peer style).
-    setIsEnclineConnected(false);
-    socketRef.current = null;
-  }, []);
 
   const touchLocalTimestamp = () => {
     if (typeof window !== 'undefined') {
@@ -164,60 +146,20 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const deduplicateJobs = (jobList: Job[]): Job[] => {
-    if (!Array.isArray(jobList)) return [];
-    const seen = new Set<string>();
-    return jobList.filter((j) => {
-      if (!j || !j.id) return false;
-      const key = j.id.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  };
-
   const [jobs, setJobsRaw] = useState<Job[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_jobs');
-      const loaded = saved ? JSON.parse(saved) : INITIAL_JOBS;
-      return deduplicateJobs(loaded);
+      return saved ? JSON.parse(saved) : INITIAL_JOBS;
     }
-    return deduplicateJobs(INITIAL_JOBS);
+    return INITIAL_JOBS;
   });
   const setJobs = (val: React.SetStateAction<Job[]>) => {
     if (!isRestoringRef.current) {
       hasUnsyncedChangesRef.current = true;
       touchLocalTimestamp();
     }
-    setJobsRaw((prev) => {
-      const nextRaw = typeof val === 'function' ? val(prev) : val;
-      const next = deduplicateJobs(nextRaw);
-      if (typeof window !== 'undefined' && !isRestoringRef.current) {
-        localStorage.setItem('polylance_jobs', JSON.stringify(next));
-        window.dispatchEvent(new CustomEvent('polylance_update', { detail: { jobs: next } }));
-      }
-      return next;
-    });
+    setJobsRaw(val);
   };
-
-const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
-  if (!Array.isArray(raw)) return [];
-  return raw.filter((p) => {
-    if (!p) return false;
-    const titleLower = (p.title || '').toLowerCase();
-    const candidateLower = (p.candidate || p.candidateAddress || '').toLowerCase();
-    const proposerLower = (p.proposer || '').toLowerCase();
-    const rationaleLower = (p.rationale || p.description || '').toLowerCase();
-
-    // Filter out mock/demo proposals
-    const isDemoCandidate = candidateLower === '0x1111222233334444555566667777888899990000';
-    const isDemoProposer = proposerLower === '0x1111222233334444555566667777888899990000';
-    const isDemoRationale = rationaleLower === 'checking' || rationaleLower.includes('nominate lead arbitrator');
-    const isDemoTitle = titleLower.includes('0x1111');
-
-    return !(isDemoTitle || isDemoRationale || (isDemoCandidate && isDemoProposer));
-  });
-};
 
   const [daoProposals, setDaoProposalsRaw] = useState<DaoProposal[]>(() => {
     if (typeof window !== 'undefined') {
@@ -266,26 +208,10 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
     setTreasuryBalanceEthRaw(val);
   };
 
-const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
-const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryProposal[] => {
-  if (!Array.isArray(rawProposals)) return [];
-  const now = Date.now();
-  return rawProposals.filter((p) => {
-    if (!p) return false;
-    const propTime = p.timestamp || (p as any).createdAt || (p as any).timeMs;
-    if (!propTime) return true;
-    return now - propTime <= ONE_WEEK_MS;
-  });
-};
-
   const [treasuryProposals, setTreasuryProposalsRaw] = useState<TreasuryProposal[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_treasury_proposals');
-      const raw = saved ? JSON.parse(saved) : [];
-      const pruned = pruneOldTreasuryProposals(raw);
-      localStorage.setItem('polylance_treasury_proposals', JSON.stringify(pruned));
-      return pruned;
+      return saved ? JSON.parse(saved) : [];
     }
     return [];
   });
@@ -294,10 +220,7 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
       hasUnsyncedChangesRef.current = true;
       touchLocalTimestamp();
     }
-    setTreasuryProposalsRaw((prev) => {
-      const next = typeof val === 'function' ? val(prev) : val;
-      return pruneOldTreasuryProposals(next);
-    });
+    setTreasuryProposalsRaw(val);
   };
 
   const [treasuryHistory, setTreasuryHistoryRaw] = useState<any[]>(() => {
@@ -336,7 +259,7 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
       const saved = localStorage.getItem('polylance_judges');
       if (saved) return JSON.parse(saved);
     }
-    const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
+    const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
     return [
       {
         address: defaultJudgeAddr,
@@ -382,7 +305,7 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
   }, [judgeMessages]);
 
   const [loading, setLoading] = useState(true);
-  const pinataJwt = undefined;
+  const pinataJwt = import.meta.env.VITE_PINATA_JWT;
 
   const getAbi = (imported: any) => (Array.isArray(imported) ? imported : imported.abi ?? imported);
 
@@ -446,25 +369,9 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
 
       if (parsedJobs.length > 0) {
         setJobs((prev) => {
-          const merged = parsedJobs.map((onChainJob) => {
-            const existing = prev.find(
-              (p) =>
-                p.id.toLowerCase() === onChainJob.id.toLowerCase() ||
-                p.contractAddress.toLowerCase() === onChainJob.contractAddress.toLowerCase()
-            );
-            if (existing) {
-              return {
-                ...onChainJob,
-                applications: existing.applications && existing.applications.length > 0 ? existing.applications : onChainJob.applications,
-                chatMessages: existing.chatMessages && existing.chatMessages.length > 0 ? existing.chatMessages : (onChainJob.chatMessages || []),
-                dispute: existing.dispute || onChainJob.dispute,
-              };
-            }
-            return onChainJob;
-          });
-
+          const merged = [...parsedJobs];
           prev.forEach((p) => {
-            if (!merged.some((m) => m.id.toLowerCase() === p.id.toLowerCase() || m.contractAddress.toLowerCase() === p.contractAddress.toLowerCase())) {
+            if (!merged.some((m) => m.contractAddress.toLowerCase() === p.contractAddress.toLowerCase())) {
               merged.push(p);
             }
           });
@@ -482,105 +389,62 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
     return () => clearInterval(interval);
   }, [syncOnChainJobs]);
 
-  // Helper function to safely fetch JSON from IPFS without CORS or DNS timeout errors
-  const fetchIpfsData = async (cid: string) => {
-    if (!cid) return null;
-
-    // Check localStorage cache first to avoid unneeded network calls
-    try {
-      if (typeof window !== 'undefined') {
-        const cached = localStorage.getItem(`ipfs_cache_${cid}`);
-        if (cached) return JSON.parse(cached);
-      }
-    } catch (_) {}
-    const gateways = [
-      { url: `https://gateway.pinata.cloud/ipfs/${cid}`, timeout: 12000 },
-      { url: `https://cloudflare-ipfs.com/ipfs/${cid}`, timeout: 6000 },
-      { url: `https://storry.tv/ipfs/${cid}`, timeout: 6000 },
-      { url: `https://4everland.io/ipfs/${cid}`, timeout: 6000 },
-      { url: `https://w3s.link/ipfs/${cid}`, timeout: 6000 },
-      { url: `https://dweb.link/ipfs/${cid}`, timeout: 6000 }
-    ];
-
-    for (const gw of gateways) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), gw.timeout);
-        const response = await fetch(gw.url, { signal: controller.signal, mode: 'cors' }).catch(() => null);
-        clearTimeout(timeoutId);
-
-        if (response && response.ok) {
-          const data = await response.json().catch(() => null);
-          if (data) {
-            try {
-              if (typeof window !== 'undefined') {
-                localStorage.setItem(`ipfs_cache_${cid}`, JSON.stringify(data));
-              }
-            } catch (_) {}
-            return data;
-          }
-        }
-      } catch (e) {
-        // Silently try next gateway
-      }
-    }
-    return null;
-  };
-
-  // Real-time cross-tab and event synchronization
+  // 2. Background Pinata IPFS State Sync (Load)
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (isRestoringRef.current) return;
-      if (e.key === 'polylance_jobs' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) {
-            setJobsRaw(parsed);
-          }
-        } catch (err) {}
+    const loadStateFromPinata = async () => {
+      if (!pinataJwt) {
+        setLoading(false);
+        return;
       }
-    };
-
-    const handleCustomBroadcast = (e: any) => {
-      if (isRestoringRef.current) return;
-      if (e.detail?.jobs && Array.isArray(e.detail.jobs)) {
-        setJobsRaw(e.detail.jobs);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('polylance_update', handleCustomBroadcast as EventListener);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('polylance_update', handleCustomBroadcast as EventListener);
-    };
-  }, []);
-
-  // 2. Background Filebase IPFS State Sync (Load)
-  useEffect(() => {
-    const loadStateFromFilebase = async () => {
       try {
-        const serviceUrl = import.meta.env.VITE_CHAT_SERVICE_URL || "http://localhost:3001";
-        const listResponse = await fetch(`${serviceUrl}/api/storage/state`).catch(() => null);
+        const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
+        const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
+          headers: {
+            Authorization: `Bearer ${pinataJwt}`,
+          }
+        }).catch(() => null);
 
         if (listResponse && listResponse.ok) {
-          const resData = await listResponse.json();
-          if (resData.success && resData.state) {
-            const data = resData.state;
-            isRestoringRef.current = true;
-            if (data.jobs) setJobs(data.jobs);
-            if (data.daoProposals) setDaoProposals(data.daoProposals);
-            if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
-            if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
-            if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
-            if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
-            if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
+          const listData = await listResponse.json();
+          const rows = listData.rows || [];
+          if (rows.length > 0) {
+            const newest = rows.sort((a: any, b: any) => new Date(b.date_pinned).getTime() - new Date(a.date_pinned).getTime())[0];
+            const cid = newest.ipfs_pin_hash;
 
-            lastLoadedCidRef.current = resData.cid || "";
-            isRestoringRef.current = false;
+            const gateways = [
+              `https://ipfs.filebase.io/ipfs/${cid}`,
+              `https://cloudflare-ipfs.com/ipfs/${cid}`,
+              `https://dweb.link/ipfs/${cid}`,
+              `https://ipfs.io/ipfs/${cid}`
+            ];
+
+            let data = null;
+            for (const gatewayUrl of gateways) {
+              try {
+                const getResponse = await fetch(gatewayUrl);
+                if (getResponse.ok) {
+                  data = await getResponse.json();
+                  console.log('Restored live cloud state from IPFS via:', gatewayUrl);
+                  break;
+                }
+              } catch (e) {
+                // Gateway failed, try next gateway silently
+              }
+            }
+
+            if (data) {
+              isRestoringRef.current = true;
+              if (data.jobs) setJobs(data.jobs);
+              if (data.daoProposals) setDaoProposals(data.daoProposals);
+              if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
+              if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
+              if (data.treasuryProposals) setTreasuryProposals(data.treasuryProposals);
+              if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
+              if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
+
+              lastLoadedCidRef.current = cid;
+              isRestoringRef.current = false;
+            }
           }
         }
       } catch (error) {
@@ -589,51 +453,63 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         setLoading(false);
       }
     };
-    loadStateFromFilebase();
-  }, []);
+    loadStateFromPinata();
+  }, [pinataJwt]);
 
-  // 3. Background Polling Loop for state updates
+  // 3. Background Polling Loop for Pinata updates
   useEffect(() => {
+    if (!pinataJwt) return;
+
     const pollInterval = setInterval(async () => {
       try {
-        const serviceUrl = import.meta.env.VITE_CHAT_SERVICE_URL || "http://localhost:3001";
-        const response = await fetch(`${serviceUrl}/api/storage/state`).catch(() => null);
+        const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
+        const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
+          headers: {
+            Authorization: `Bearer ${pinataJwt}`,
+          }
+        }).catch(() => null);
 
-        if (response && response.ok) {
-          const resData = await response.json();
-          if (resData.success && resData.cid) {
-            const cid = resData.cid;
+        if (listResponse && listResponse.ok) {
+          const listData = await listResponse.json();
+          const rows = listData.rows || [];
+          if (rows.length > 0) {
+            const newest = rows.sort((a: any, b: any) => new Date(b.date_pinned).getTime() - new Date(a.date_pinned).getTime())[0];
+            const cid = newest.ipfs_pin_hash;
+
             if (cid === lastLoadedCidRef.current) return;
 
-            const data = resData.state;
-            if (data) {
-              isRestoringRef.current = true;
-              if (!hasUnsyncedChangesRef.current) {
-                if (data.jobs) setJobs(data.jobs);
-                if (data.daoProposals) setDaoProposals(data.daoProposals);
-                if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
-                if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
-                if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
-                if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
-              }
-              if (data.treasuryProposals && data.treasuryProposals.length > 0) {
-                setTreasuryProposals((local: TreasuryProposal[]) => {
-                  const cloudProposals = data.treasuryProposals as TreasuryProposal[];
-                  const cloudMap = new Map<string, TreasuryProposal>(cloudProposals.map((p) => [p.id, p]));
-                  const merged: TreasuryProposal[] = local.map((lp) => {
-                    const cp = cloudMap.get(lp.id);
-                    if (!cp) return lp;
-                    const sigs = Array.from(new Set([...lp.signatures, ...cp.signatures]));
-                    return { ...lp, signatures: sigs, executed: lp.executed || cp.executed } as TreasuryProposal;
+            const response = await fetch(`https://ipfs.filebase.io/ipfs/${cid}`).catch(() => null);
+            if (response && response.ok) {
+              const data = await response.json();
+              if (data) {
+                isRestoringRef.current = true;
+                if (!hasUnsyncedChangesRef.current) {
+                  if (data.jobs) setJobs(data.jobs);
+                  if (data.daoProposals) setDaoProposals(data.daoProposals);
+                  if (data.treasuryBalanceUsdc !== undefined) setTreasuryBalanceUsdc(data.treasuryBalanceUsdc);
+                  if (data.treasuryBalanceEth !== undefined) setTreasuryBalanceEth(data.treasuryBalanceEth);
+                  if (data.treasuryHistory) setTreasuryHistory(data.treasuryHistory);
+                  if (data.profiles) setProfiles(normalizeProfiles(data.profiles));
+                }
+                if (data.treasuryProposals && data.treasuryProposals.length > 0) {
+                  setTreasuryProposals((local: TreasuryProposal[]) => {
+                    const cloudProposals = data.treasuryProposals as TreasuryProposal[];
+                    const cloudMap = new Map<string, TreasuryProposal>(cloudProposals.map((p) => [p.id, p]));
+                    const merged: TreasuryProposal[] = local.map((lp) => {
+                      const cp = cloudMap.get(lp.id);
+                      if (!cp) return lp;
+                      const sigs = Array.from(new Set([...lp.signatures, ...cp.signatures]));
+                      return { ...lp, signatures: sigs, executed: lp.executed || cp.executed } as TreasuryProposal;
+                    });
+                    cloudProposals.forEach((cp) => {
+                      if (!merged.find((p) => p.id === cp.id)) merged.push(cp);
+                    });
+                    return merged;
                   });
-                  cloudProposals.forEach((cp) => {
-                    if (!merged.find((p) => p.id === cp.id)) merged.push(cp);
-                  });
-                  return merged;
-                });
+                }
+                isRestoringRef.current = false;
+                lastLoadedCidRef.current = cid;
               }
-              isRestoringRef.current = false;
-              lastLoadedCidRef.current = cid;
             }
           }
         }
@@ -643,25 +519,18 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
     }, 15000);
 
     return () => clearInterval(pollInterval);
-  }, []);
+  }, [pinataJwt]);
 
   useEffect(() => {
     fetchLiveExchangeRates().catch((err) => console.warn('Failed to load rates on boot:', err));
   }, []);
 
-  // 4. Filebase Save Sync Loop
+  // 4. Pinata Save Sync Loop
   useEffect(() => {
-    if (loading) return;
+    if (loading || !pinataJwt) return;
 
-    const syncStateToFilebase = async () => {
+    const syncStateToPinata = async () => {
       try {
-        const signer = await getSigner();
-        if (!signer) return;
-
-        const timestamp = Date.now();
-        const message = `Authorize PolyLance state update at timestamp ${timestamp}`;
-        const signature = await signer.signMessage(message);
-
         const statePayload = {
           jobs,
           daoProposals,
@@ -671,39 +540,63 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
           treasuryHistory,
           profiles
         };
-
-        const serviceUrl = import.meta.env.VITE_CHAT_SERVICE_URL || "http://localhost:3001";
-        const response = await fetch(`${serviceUrl}/api/storage/state`, {
+        const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${pinataJwt}`,
           },
           body: JSON.stringify({
-            state: statePayload,
-            auth: {
-              address,
-              signature,
-              message
-            }
+            pinataOptions: { cidVersion: 1 },
+            pinataMetadata: {
+              name: 'polylance_db_state',
+              keyvalues: { app: 'polylance', type: 'state' }
+            },
+            pinataContent: statePayload
           })
         }).catch(() => null);
 
         if (response && response.ok) {
-          const resData = await response.json();
-          if (resData.success && resData.cid) {
-            console.log('Synced live cloud state to Filebase IPFS CID:', resData.cid);
-            lastLoadedCidRef.current = resData.cid;
-            hasUnsyncedChangesRef.current = false;
+          const data = await response.json();
+          const newCid = data.IpfsHash;
+          console.log('Synced live cloud state to Pinata IPFS CID:', newCid);
+
+          lastLoadedCidRef.current = newCid;
+          hasUnsyncedChangesRef.current = false;
+
+          try {
+            const queryParams = encodeURIComponent('{"app":{"value":"polylance","op":"eq"},"type":{"value":"state","op":"eq"}}');
+            const listResponse = await fetch(`https://api.pinata.cloud/data/pinList?status=pinned&metadata[keyvalues]=${queryParams}`, {
+              headers: {
+                Authorization: `Bearer ${pinataJwt}`,
+              }
+            }).catch(() => null);
+            if (listResponse && listResponse.ok) {
+              const listData = await listResponse.json();
+              const rows = listData.rows || [];
+              const oldPins = rows.filter((r: any) => r.ipfs_pin_hash !== newCid);
+              if (oldPins.length > 2) {
+                const oldest = oldPins.sort((a: any, b: any) => new Date(a.date_pinned).getTime() - new Date(b.date_pinned).getTime())[0];
+                fetch(`https://api.pinata.cloud/pinning/unpin/${oldest.ipfs_pin_hash}`, {
+                  method: 'DELETE',
+                  headers: {
+                    Authorization: `Bearer ${pinataJwt}`,
+                  }
+                }).catch(() => { });
+              }
+            }
+          } catch (pinListErr) {
+            // Silently catch client-side CORS restriction on Pinata management endpoint
           }
         }
       } catch (error) {
-        console.warn('[STATE] Failed to sync state to Filebase:', error);
+        // Silently catch sync state errors
       }
     };
 
-    const timer = setTimeout(syncStateToFilebase, 5000);
+    const timer = setTimeout(syncStateToPinata, 3000);
     return () => clearTimeout(timer);
-  }, [jobs, daoProposals, treasuryBalanceUsdc, treasuryBalanceEth, treasuryProposals, treasuryHistory, profiles, loading, address]);
+  }, [jobs, daoProposals, treasuryBalanceUsdc, treasuryBalanceEth, treasuryProposals, treasuryHistory, profiles, loading, pinataJwt]);
 
   // Local Cache storage triggers
   useEffect(() => {
@@ -739,9 +632,9 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
     balanceEth: treasuryBalanceEth.toString(),
     requiredSignatures: 2,
     signers: [
-      import.meta.env.VITE_ADMIN_ADDRESS_1 || '',
-      import.meta.env.VITE_ADMIN_ADDRESS_2 || '',
-      import.meta.env.VITE_ADMIN_ADDRESS_3 || '',
+      import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cDfc0692cC675c95304BaCE2C834D8F901dCba',
+      import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
+      import.meta.env.VITE_ADMIN_ADDRESS_3 || '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1',
     ],
     proposals: treasuryProposals,
   };
@@ -1287,28 +1180,18 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
           ...h,
         ]);
 
-        const sbtId = j.sbtTokenId || getDeterministicSbtId(j.id);
-
         if (j.freelancer) {
           const flAddr = j.freelancer.toLowerCase();
           setProfiles((prevProfiles) => {
             const next = { ...prevProfiles };
-            const key = Object.keys(next).find(k => k.toLowerCase() === flAddr) || flAddr;
-            const existing = next[key] || {
-              address: flAddr,
-              displayName: 'Freelancer',
-              bio: '',
-              avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-              ipfsHash: '',
-              skills: [],
-              githubVerified: false,
-              reputationSbtCount: 0,
-            };
-            next[key] = {
-              ...existing,
-              reputationSbtCount: (existing.reputationSbtCount || 0) + 1,
-              primaryScore: Math.min((existing.primaryScore || 750) + 35, 1000),
-            };
+            const key = Object.keys(next).find(k => k.toLowerCase() === flAddr);
+            if (key) {
+              next[key] = {
+                ...next[key],
+                reputationSbtCount: (next[key].reputationSbtCount || 0) + 1,
+                primaryScore: Math.min((next[key].primaryScore || 700) + 35, 1000),
+              };
+            }
             return next;
           });
         }
@@ -1322,7 +1205,6 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         return {
           ...j,
           status: 'Completed',
-          sbtTokenId: sbtId,
           events: updatedEvents,
         };
       })
@@ -1431,32 +1313,22 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
           ...h,
         ]);
 
-        const sbtId = freelancerBps > 0 ? (j.sbtTokenId || getDeterministicSbtId(j.id)) : undefined;
-
         if (j.freelancer) {
           const flAddr = j.freelancer.toLowerCase();
           setProfiles((prevProfiles) => {
             const next = { ...prevProfiles };
-            const key = Object.keys(next).find(k => k.toLowerCase() === flAddr) || flAddr;
-            const existing = next[key] || {
-              address: flAddr,
-              displayName: 'Freelancer',
-              bio: '',
-              avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-              ipfsHash: '',
-              skills: [],
-              githubVerified: false,
-              reputationSbtCount: 0,
-            };
-            const reputationSbtCountInc = freelancerBps > 0 ? 1 : 0;
-            const scoreAdjustment = freelancerBps > 0
-              ? Math.round(35 * (freelancerBps / 10000))
-              : -20;
-            next[key] = {
-              ...existing,
-              reputationSbtCount: (existing.reputationSbtCount || 0) + reputationSbtCountInc,
-              primaryScore: Math.min(Math.max((existing.primaryScore || 750) + scoreAdjustment, 0), 1000),
-            };
+            const key = Object.keys(next).find(k => k.toLowerCase() === flAddr);
+            if (key) {
+              const reputationSbtCountInc = freelancerBps > 0 ? 1 : 0;
+              const scoreAdjustment = freelancerBps > 0
+                ? Math.round(35 * (freelancerBps / 10000))
+                : -20;
+              next[key] = {
+                ...next[key],
+                reputationSbtCount: (next[key].reputationSbtCount || 0) + reputationSbtCountInc,
+                primaryScore: Math.min(Math.max((next[key].primaryScore || 700) + scoreAdjustment, 0), 1000),
+              };
+            }
             return next;
           });
         }
@@ -1470,7 +1342,6 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         return {
           ...j,
           status: 'Completed',
-          sbtTokenId: sbtId,
           dispute: {
             ...j.dispute,
             resolved: true,
@@ -1486,118 +1357,16 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
   };
 
   const sendChatMessage = (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => {
-    if (!jobId || !text) return;
     setJobs((prev) =>
       prev.map((job) => {
-        if (job.id.toLowerCase() !== jobId.toLowerCase() && job.contractAddress.toLowerCase() !== jobId.toLowerCase()) return job;
-        
-        const existingMsgs = job.chatMessages || [];
-        const lastMsg = existingMsgs[existingMsgs.length - 1];
-        // Prevent duplicate message pushes within 1500ms
-        if (lastMsg && lastMsg.text.trim() === text.trim() && lastMsg.sender === senderRole && (Date.now() - lastMsg.timestamp) < 1500) {
-          return job;
-        }
-
-        const newMsg = { sender: senderRole, text: text.trim(), timestamp: Date.now() };
-        
-        if (socketRef.current && socketRef.current.connected) {
-          socketRef.current.emit('polylance-chat-message', { jobId, message: newMsg });
-        }
-
+        if (job.id !== jobId) return job;
+        const newMsg = { sender: senderRole, text, timestamp: Date.now() };
         return {
           ...job,
-          chatMessages: [...existingMsgs, newMsg],
+          chatMessages: [...(job.chatMessages || []), newMsg],
         };
       })
     );
-  };
-
-  const archiveChatToPinata = async (jobId: string): Promise<string | null> => {
-    const job = jobs.find(j => j.id.toLowerCase() === jobId.toLowerCase() || j.contractAddress.toLowerCase() === jobId.toLowerCase());
-    if (!job || !job.chatMessages || job.chatMessages.length === 0) return null;
-
-    try {
-      const payload = {
-        jobId: job.id,
-        contractAddress: job.contractAddress,
-        title: job.title,
-        client: job.client,
-        freelancer: job.freelancer,
-        chatMessages: job.chatMessages,
-        archivedAt: Date.now(),
-        engine: 'Encline Protocol v2.5'
-      };
-
-      const signer = await getSigner();
-      if (!signer) {
-        throw new Error("Wallet not connected");
-      }
-
-      const message = `Authorize chat archive for ${job.id}`;
-      const signature = await signer.signMessage(message);
-
-      const jsonBlob = new Blob([JSON.stringify(payload)], { type: "application/json" });
-      const formData = new FormData();
-      formData.append("file", jsonBlob, `chat_archive_${job.id}.json`);
-      formData.append("category", "chat-archives");
-      formData.append("entityType", "job");
-      formData.append("entityId", job.id);
-
-      const serviceUrl = import.meta.env.VITE_CHAT_SERVICE_URL || "http://localhost:3001";
-      const response = await fetch(`${serviceUrl}/api/storage/upload`, {
-        method: 'POST',
-        headers: {
-          'x-address': address,
-          'x-signature': signature,
-          'x-message': message
-        },
-        body: formData
-      }).catch(() => null);
-
-      if (response && response.ok) {
-        const resData = await response.json();
-        if (resData.success && resData.file && resData.file.cid) {
-          console.log(`🔒 Encline chat session archived to Filebase IPFS. CID: ${resData.file.cid}`);
-          return resData.file.cid;
-        }
-      }
-    } catch (err) {
-      console.warn('Filebase chat archiving notice:', err);
-    }
-    return null;
-  };
-
-  const closeChatSession = async (jobId: string): Promise<string | null> => {
-    const cid = await archiveChatToPinata(jobId);
-    if (cid) {
-      sendChatMessage(jobId, `🔒 Chat session closed. Full transcript permanently archived to Filebase IPFS (CID: ${cid}).`, 'Judge');
-    }
-    return cid;
-  };
-
-  const deleteChatHistory = (jobId?: string, judgeAddress?: string) => {
-    if (jobId) {
-      setJobs((prev) =>
-        prev.map((j) => {
-          if (j.id.toLowerCase() !== jobId.toLowerCase() && j.contractAddress.toLowerCase() !== jobId.toLowerCase()) return j;
-          return { ...j, chatMessages: [] };
-        })
-      );
-    } else if (judgeAddress) {
-      const lower = judgeAddress.toLowerCase();
-      setJudgeMessages((prev) => {
-        const next = { ...prev };
-        delete next[lower];
-        return next;
-      });
-    }
-
-    touchLocalTimestamp();
-    hasUnsyncedChangesRef.current = true;
-
-    if (socketRef.current && socketRef.current.connected) {
-      socketRef.current.emit('polylance-chat-deleted', { jobId, judgeAddress });
-    }
   };
 
   const updateProfile = async (profileData: Partial<UserProfile>, address: string) => {
@@ -1738,7 +1507,6 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
       confirmationsRequired: 2,
       executed: false,
       isExecuted: false,
-      timestamp: Date.now(),
     };
     setTreasuryProposals((prev) => [newProp, ...prev]);
   };
@@ -1805,35 +1573,10 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
     }));
   };
 
-  const sendJudgeChatMessage = (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => {
-    if (!judgeAddress || !text.trim()) return;
-    const lower = judgeAddress.toLowerCase();
-    const msg: JudgeMessage = {
-      id: `jmsg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-      judgeAddress: lower,
-      sender: senderAddress || (senderRole === 'Admin' ? 'Admin' : lower),
-      senderRole,
-      text: text.trim(),
-      timestamp: Date.now()
-    };
-    setJudgeMessages(prev => {
-      const existing = prev[lower] || [];
-      return {
-        ...prev,
-        [lower]: [...existing, msg]
-      };
-    });
-
-    if (socketRef.current && socketRef.current.connected) {
-      socketRef.current.emit('polylance-chat-message', { judgeAddress: lower, message: msg });
-    }
-  };
-
   return (
     <PolyLanceDataContext.Provider
       value={{
         loading,
-        isEnclineConnected,
         jobs,
         daoProposals,
         treasury: treasuryState,
@@ -1861,9 +1604,6 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         submitDisputeResponse,
         resolveDispute,
         sendChatMessage,
-        archiveChatToPinata,
-        closeChatSession,
-        deleteChatHistory,
         updateProfile,
         castDaoVote,
         castVote,
