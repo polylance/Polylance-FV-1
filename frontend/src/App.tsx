@@ -1,6 +1,6 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Web3Provider, useWeb3 } from './context/Web3Context';
 import { PolyLanceDataProvider } from './context/PolyLanceDataContext';
 import { Navbar } from './components/Navbar';
@@ -66,10 +66,9 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/dashboard" element={isVisitor ? <Navigate to="/login" replace /> : <Dashboard />} />
           <Route path="/dao" element={isVisitor ? <Navigate to="/login" replace /> : <Dao />} />
           <Route path="/analytics" element={isVisitor ? <Navigate to="/login" replace /> : <Analytics />} />
-          <Route path="/jobs/post" element={currentRole === 'client' || currentRole === 'admin' || currentRole === 'judge' ? <PostJob /> : <Navigate to="/jobs" replace />} />
+          <Route path="/jobs/post" element={currentRole === 'client' || currentRole === 'admin' ? <PostJob /> : <Navigate to="/jobs" replace />} />
           <Route path="/judge" element={currentRole === 'judge' || currentRole === 'admin' ? <Judge /> : <Navigate to="/dashboard" replace />} />
           <Route path="/treasury" element={currentRole === 'admin' ? <Treasury /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/settings" element={isVisitor ? <Navigate to="/login" replace /> : <Settings />} />
 
           {/* Certified trust & reputation audits */}
           <Route path="/audit/:address" element={<AuditReport />} />

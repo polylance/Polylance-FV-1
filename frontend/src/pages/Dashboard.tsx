@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
@@ -571,7 +571,7 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* GitHub Verified Skill Score */}
-              {(userProfile.githubVerified || Boolean(userProfile.githubUsername?.trim())) ? (
+              {userProfile.githubVerified ? (
                 <div className="glass-panel p-6 border-cyan-200 bg-white hard-shadow space-y-3 font-mono text-xs">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <span className="font-bold text-slate-900 flex items-center gap-1.5">

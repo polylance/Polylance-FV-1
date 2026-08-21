@@ -46,7 +46,7 @@ export const Login: React.FC = () => {
       desc: 'Connect using your MetaMask wallet instantly.',
       arrowColor: 'text-orange-500 bg-orange-50/20 border-orange-100/30 group-hover:bg-orange-50 group-hover:border-orange-300',
       logo: (
-        <img src={`${import.meta.env.BASE_URL}MetaMask_logo.png`} alt="MetaMask" className="w-9 h-9 object-contain shrink-0" />
+        <img src="/MetaMask_logo.png" alt="MetaMask" className="w-9 h-9 object-contain shrink-0" />
       )
     },
     {
@@ -57,7 +57,7 @@ export const Login: React.FC = () => {
       desc: 'Scan with your wallet app to connect.',
       arrowColor: 'text-blue-500 bg-blue-50/20 border-blue-100/30 group-hover:bg-blue-50 group-hover:border-blue-300',
       logo: (
-        <img src={`${import.meta.env.BASE_URL}WalletConnect_logo.png`} alt="WalletConnect" className="w-9 h-9 object-contain shrink-0" />
+        <img src="/WalletConnect_logo.png" alt="WalletConnect" className="w-9 h-9 object-contain shrink-0" />
       )
     },
     {
@@ -68,7 +68,7 @@ export const Login: React.FC = () => {
       desc: 'Connect with Coinbase Wallet in one click.',
       arrowColor: 'text-blue-500 bg-blue-50/20 border-blue-100/30 group-hover:bg-blue-50 group-hover:border-blue-300',
       logo: (
-        <img src={`${import.meta.env.BASE_URL}CoinBase_logo.png`} alt="Coinbase Wallet" className="w-9 h-9 object-contain shrink-0" />
+        <img src="/CoinBase_logo.png" alt="Coinbase Wallet" className="w-9 h-9 object-contain shrink-0" />
       )
     },
   ];

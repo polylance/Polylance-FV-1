@@ -5,10 +5,20 @@
         "internalType": "contract IVotes",
         "name": "_reputationSBT",
         "type": "address"
+      },
+      {
+        "internalType": "contract TimelockController",
+        "name": "_timelock",
+        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "CheckpointUnorderedInsertion",
+    "type": "error"
   },
   {
     "inputs": [],
@@ -82,6 +92,22 @@
       }
     ],
     "name": "GovernorInvalidProposalLength",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "quorumNumerator",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "quorumDenominator",
+        "type": "uint256"
+      }
+    ],
+    "name": "GovernorInvalidQuorumFraction",
     "type": "error"
   },
   {
@@ -379,6 +405,44 @@
       }
     ],
     "name": "ProposalThresholdSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldQuorumNumerator",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newQuorumNumerator",
+        "type": "uint256"
+      }
+    ],
+    "name": "QuorumNumeratorUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "oldTimelock",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newTimelock",
+        "type": "address"
+      }
+    ],
+    "name": "TimelockChange",
     "type": "event"
   },
   {
@@ -1171,7 +1235,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "proposalId",
         "type": "uint256"
       }
     ],
@@ -1338,7 +1402,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "timepoint",
         "type": "uint256"
       }
     ],
@@ -1350,7 +1414,52 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "quorumDenominator",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "timepoint",
+        "type": "uint256"
+      }
+    ],
+    "name": "quorumNumerator",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "quorumNumerator",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1455,6 +1564,19 @@
   },
   {
     "inputs": [],
+    "name": "timelock",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "token",
     "outputs": [
       {
@@ -1464,6 +1586,32 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newQuorumNumerator",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateQuorumNumerator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract TimelockController",
+        "name": "newTimelock",
+        "type": "address"
+      }
+    ],
+    "name": "updateTimelock",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

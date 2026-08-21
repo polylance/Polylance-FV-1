@@ -20,7 +20,7 @@ import {
   Check,
   Shield
 } from 'lucide-react';
-import { motion, Variants } from 'motion/react';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 
 export const Reputation: React.FC = () => {
@@ -67,8 +67,7 @@ export const Reputation: React.FC = () => {
   const leaderboardData = Object.values(profiles)
     .filter((profile) => {
       const lower = profile.address.toLowerCase();
-      // Only exclude standard clients who are not admin or judge
-      return lower !== clientAddr;
+      return lower !== judgeAddr && lower !== adminAddr1 && lower !== adminAddr2 && lower !== adminAddr3 && lower !== clientAddr;
     })
     .map((profile) => {
       const isYou = profile.address.toLowerCase() === address?.toLowerCase();
@@ -115,7 +114,7 @@ export const Reputation: React.FC = () => {
       };
     })
     .concat(
-      address && (currentRole === 'freelancer' || currentRole === 'admin' || currentRole === 'judge') && !Object.keys(profiles).some(k => k.toLowerCase() === address.toLowerCase())
+      address && currentRole === 'freelancer' && !Object.keys(profiles).some(k => k.toLowerCase() === address.toLowerCase())
         ? [
             {
               rank: 0,
@@ -166,7 +165,7 @@ export const Reputation: React.FC = () => {
     tierProgress = (totalPoints / 100) * 100;
   }
 
-  if (userRankIndex !== -1) {
+  if (userRankIndex !== -1 && totalPoints > 0) {
     rankLabel = `#${userRankIndex + 1}`;
   } else {
     rankLabel = 'Unranked';
@@ -267,7 +266,7 @@ export const Reputation: React.FC = () => {
           </div>
 
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t border-white/10">
-            {Boolean(address) ? (
+            {Boolean(address) && totalPoints > 0 ? (
               <div className="flex items-baseline gap-4">
                 <span className="text-6xl sm:text-7xl font-black tracking-tight text-[#FFFFFF] drop-shadow-[0_6px_20px_rgba(6,207,238,0.6)] font-space" style={{ color: '#FFFFFF' }}>
                   {rankLabel}

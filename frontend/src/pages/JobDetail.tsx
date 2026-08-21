@@ -220,12 +220,12 @@ export const JobDetail: React.FC = () => {
                   onSelect={(freelancerAddr) => selectFreelancer(job.id, freelancerAddr)}
                   isClient={true}
                 />
-              ) : currentRole === 'client' ? (
+              ) : currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin' ? (
                 <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow text-center">
                   <Shield className="w-10 h-10 text-purple-700 mx-auto mb-3" />
                   <h4 className="text-sm font-bold text-slate-900">Role Restriction</h4>
                   <p className="text-xs text-slate-500 mt-1 font-mono">
-                    You are connected as a Client. Only Freelancer accounts can submit proposals to this job.
+                    You are connected as a {currentRole === 'client' ? 'Client' : currentRole === 'judge' ? 'Judge' : 'Admin'}. Only Freelancer accounts can submit proposals to this job.
                   </p>
                 </div>
               ) : (

@@ -487,7 +487,7 @@ export const Profile: React.FC = () => {
             </div>
 
             {/* Section 7 GitHub Verification Skill Breakdown Card */}
-            {(userProfile.githubVerified || Boolean(userProfile.githubUsername?.trim())) && (
+            {userProfile.githubVerified && (
               <div className="glass-panel p-5 border-slate-200 bg-slate-50 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono text-emerald-800 font-bold flex items-center gap-1.5">
@@ -570,17 +570,6 @@ export const Profile: React.FC = () => {
                           : '0 Bytes'}
                       </span>
                     </div>
-                    {/* Render any dynamic other languages fetched from GitHub */}
-                    {Object.entries(userProfile.languageBytes || {})
-                      .filter(([key, val]) => !['Solidity', 'Rust', 'TypeScript', 'JavaScript', 'Python', 'Go'].includes(key) && val > 0)
-                      .map(([key, val]) => (
-                        <div key={key} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                          <span className="text-[10px] text-slate-500 uppercase block font-bold">{key}</span>
-                          <span className="font-extrabold text-purple-900">
-                            {`${val.toLocaleString()} Bytes`}
-                          </span>
-                        </div>
-                      ))}
                   </div>
                 </div>
               </div>

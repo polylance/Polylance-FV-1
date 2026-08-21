@@ -14,7 +14,28 @@ import JudgeDAOABI from '../config/abis/JudgeDAO.json';
 import { useWeb3 } from './Web3Context';
 
 const INITIAL_JOBS: Job[] = [];
-const INITIAL_PROPOSALS: DaoProposal[] = [];
+const INITIAL_PROPOSALS: DaoProposal[] = [
+  {
+    id: 'prop-101',
+    candidate: '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd',
+    proposer: '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
+    rationale: 'Nominate Lead Arbitrator for decentralized dispute resolution and circuit court quorum.',
+    status: 'Active',
+    votesFor: 14500,
+    votesAgainst: 3200,
+    createdAt: Date.now() - 86400000 * 3,
+  },
+  {
+    id: 'prop-102',
+    candidate: '0x62cdfc0692cc675c95304bace2c834d8f901dcba',
+    proposer: '0x9999888877776666555544443333222211110000',
+    rationale: 'Appoint Security Auditor as secondary Judge for technical code disputes.',
+    status: 'Active',
+    votesFor: 9800,
+    votesAgainst: 1400,
+    createdAt: Date.now() - 86400000 * 1,
+  }
+];
 const INITIAL_PROFILES: Record<string, UserProfile> = {};
 
 interface PolyLanceDataContextType {
@@ -28,11 +49,9 @@ interface PolyLanceDataContextType {
   treasuryHistory: { id: string; type: 'FEE_COLLECTED' | 'WITHDRAWAL'; amountUsdc: number; txHash: string; timestamp: number; by?: string }[];
   profiles: Record<string, UserProfile>;
   judges: JudgeRecord[];
-  judgeMessages: Record<string, JudgeMessage[]>;
   addJudge: (address: string, name: string, notes?: string, addedBy?: string) => void;
   removeJudge: (address: string) => void;
   toggleJudgeStatus: (address: string) => void;
-  sendJudgeChatMessage: (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => void;
   postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
   applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => Promise<void>;
   selectFreelancer: (jobId: string, freelancerAddress: string) => Promise<void>;
@@ -77,24 +96,46 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
     if (!addr) continue;
     const lowerAddr = addr.toLowerCase();
 
-    let cleanedProfile = { ...profile, address: lowerAddr };
-
-    // If profile has a connected GitHub username, guarantee githubVerified = true
-    if (cleanedProfile.githubUsername && cleanedProfile.githubUsername.trim().length > 0) {
-      cleanedProfile.githubVerified = true;
+    // Copy profile data, but if this is NOT the judge address and it has the judge's GitHub username, unbind it
+    let cleanedProfile = { ...profile };
+    if (lowerAddr !== judgeAddr && cleanedProfile.githubUsername?.toLowerCase() === judgeGithub.toLowerCase()) {
+      delete cleanedProfile.githubUsername;
+      cleanedProfile.githubVerified = false;
     }
 
     const existing = normalized[lowerAddr];
     if (!existing) {
-      normalized[lowerAddr] = cleanedProfile;
+      normalized[lowerAddr] = { ...cleanedProfile, address: lowerAddr };
     } else {
       const selectNewer = (!existing.displayName && cleanedProfile.displayName) ||
         (!existing.githubVerified && cleanedProfile.githubVerified) ||
         (cleanedProfile.displayName && existing.displayName && cleanedProfile.displayName !== 'Anonymous PolyLancer' && existing.displayName === 'Anonymous PolyLancer');
       if (selectNewer) {
-        normalized[lowerAddr] = cleanedProfile;
+        normalized[lowerAddr] = { ...cleanedProfile, address: lowerAddr };
       }
     }
+  }
+
+  // Ensure judge profile is initialized and linked with the target GitHub username
+  if (!normalized[judgeAddr]) {
+    normalized[judgeAddr] = {
+      address: judgeAddr,
+      displayName: 'Protocol Judge',
+      bio: 'Official PolyLance Lead Arbitrator & DAO Verifier.',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      ipfsHash: 'QmJudgeProfileDataHashPlaceholder',
+      skills: ['Arbitration', 'Smart Contracts', 'Security Audit', 'Solidity'],
+      githubUsername: judgeGithub,
+      githubVerified: true,
+      primaryScore: 850,
+      reputationSbtCount: 12,
+    };
+  } else {
+    normalized[judgeAddr] = {
+      ...normalized[judgeAddr],
+      githubUsername: judgeGithub,
+      githubVerified: true,
+    };
   }
 
   return normalized;
@@ -181,10 +222,7 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
   const [daoProposals, setDaoProposalsRaw] = useState<DaoProposal[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_dao_proposals');
-      const raw = saved ? JSON.parse(saved) : INITIAL_PROPOSALS;
-      const cleaned = cleanDaoProposals(raw);
-      localStorage.setItem('polylance_dao_proposals', JSON.stringify(cleaned));
-      return cleaned;
+      return saved ? JSON.parse(saved) : INITIAL_PROPOSALS;
     }
     return INITIAL_PROPOSALS;
   });
@@ -193,10 +231,7 @@ const cleanDaoProposals = (raw: DaoProposal[]): DaoProposal[] => {
       hasUnsyncedChangesRef.current = true;
       touchLocalTimestamp();
     }
-    setDaoProposalsRaw((prev) => {
-      const next = typeof val === 'function' ? val(prev) : val;
-      return cleanDaoProposals(next);
-    });
+    setDaoProposalsRaw(val);
   };
 
   const [treasuryBalanceUsdc, setTreasuryBalanceUsdcRaw] = useState<number>(() => {
@@ -295,36 +330,6 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
     }
     setProfilesRaw(val);
   };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_profiles', JSON.stringify(profiles));
-    }
-  }, [profiles]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_jobs', JSON.stringify(jobs));
-    }
-  }, [jobs]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_dao_proposals', JSON.stringify(daoProposals));
-    }
-  }, [daoProposals]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_treasury_balance_usdc', treasuryBalanceUsdc.toString());
-    }
-  }, [treasuryBalanceUsdc]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_treasury_balance_eth', treasuryBalanceEth.toString());
-    }
-  }, [treasuryBalanceEth]);
 
   const [judges, setJudgesRaw] = useState<JudgeRecord[]>(() => {
     if (typeof window !== 'undefined') {
@@ -1623,21 +1628,12 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         reputationSbtCount: 0,
       };
 
-      const finalUsername = profileData.githubUsername ?? existing.githubUsername;
-      const isVerified = (finalUsername && finalUsername.trim().length > 0)
-        ? true
-        : (profileData.githubVerified ?? existing.githubVerified ?? false);
-
-      const mergedProfile: UserProfile = {
-        ...existing,
-        ...profileData,
-        githubUsername: finalUsername,
-        githubVerified: isVerified,
-      };
-
       return {
         ...prev,
-        [lowerAddress]: mergedProfile,
+        [lowerAddress]: {
+          ...existing,
+          ...profileData,
+        },
       };
     });
   };
@@ -1846,11 +1842,9 @@ const pruneOldTreasuryProposals = (rawProposals: TreasuryProposal[]): TreasuryPr
         treasuryHistory,
         profiles,
         judges,
-        judgeMessages,
         addJudge,
         removeJudge,
         toggleJudgeStatus,
-        sendJudgeChatMessage,
         postJob,
         applyToJob,
         selectFreelancer,

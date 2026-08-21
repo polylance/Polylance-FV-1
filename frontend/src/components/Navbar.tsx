@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useWeb3 } from '../context/Web3Context';
 import { PolyLanceLogo } from './PolyLanceLogo';
 import { LoginModal } from './LoginModal';
@@ -39,16 +39,16 @@ interface NavLinkProps {
 }
 
 const NavLink: React.FC<NavLinkProps> = ({ to, active, children, accent = 'purple' }) => {
-  const activeTextClass = accent === 'amber' ? 'text-amber-800 font-extrabold' : 'text-purple-700 font-extrabold';
+  const activeTextClass = accent === 'amber' ? 'text-amber-800 font-bold' : 'text-purple-700 font-bold';
   const hoverClass = accent === 'amber'
     ? 'hover:text-amber-700 hover:bg-amber-50/60'
-    : 'hover:text-slate-900 hover:bg-white/60';
+    : 'hover:text-slate-900 hover:bg-white/50';
 
   return (
     <Link
       to={to}
       className={`
-        relative px-3.5 py-1.5 rounded-full text-[13px] font-bold
+        relative px-3.5 py-1.5 rounded-full text-[13px] font-semibold
         flex items-center gap-1.5 select-none z-10
         transition-colors duration-200
         nav-pill-item
@@ -62,12 +62,12 @@ const NavLink: React.FC<NavLinkProps> = ({ to, active, children, accent = 'purpl
           className={`absolute inset-0 rounded-full ${
             accent === 'amber'
               ? 'bg-amber-100/80'
-              : 'bg-white/85'
+              : 'bg-white/70'
           }`}
           style={{
             boxShadow: accent === 'amber'
-              ? 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 4px rgba(0,0,0,0.08)'
-              : 'inset 0 1px 1px rgba(255,255,255,0.9), 0 2px 6px rgba(124,58,237,0.12)',
+              ? 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.06)'
+              : 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(37,99,235,0.08)',
           }}
           transition={spring.default}
         />
@@ -176,14 +176,14 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center shrink-0">
           <Link to="/" className="flex items-center gap-2.5 group shrink-0">
             <div className="relative">
-              <div className="absolute inset-0 rounded-xl bg-purple-500/20 blur-md group-hover:bg-purple-500/35 transition-all duration-300" />
+              <div className="absolute inset-0 rounded-xl bg-purple-400/20 blur-md group-hover:bg-purple-400/30 transition-all duration-300" />
               <PolyLanceLogo size={36} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
             </div>
             <div className="flex flex-col leading-none">
               <span className="font-black text-[22px] tracking-tight text-slate-900 leading-none">
                 Poly<span className="text-purple-600">Lance</span>
               </span>
-              <span className="text-[7.5px] font-mono text-purple-700/80 font-bold tracking-[0.16em] uppercase mt-0.5 leading-none select-none">
+              <span className="text-[7px] font-mono text-slate-400/60 font-medium tracking-[0.15em] uppercase mt-0.5 leading-none select-none">
                 mvp on-chain
               </span>
             </div>
@@ -191,28 +191,28 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* ── CENTER: Navigation Pill ──────────────────────────────────── */}
-        <div className="hidden md:flex items-center gap-1 font-sans">
+        <div className="hidden md:flex items-center gap-0.5 font-sans">
           <div
-            className="flex items-center gap-1 rounded-full px-2 py-1.5"
+            className="flex items-center gap-0.5 rounded-full px-1.5 py-1"
             style={{
-              background: 'rgba(255,255,255,0.50)',
-              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04), 0 1px 0 rgba(255,255,255,0.9)',
+              background: 'rgba(255,255,255,0.40)',
+              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.8)',
             }}
           >
             {/* VISITOR LINKS */}
             {isVisitor && (
               <>
                 <NavLink to="/" active={isActive('/') && location.pathname === '/'}>
-                  <Shield size={15} />Overview
+                  <Shield size={13} />Overview
                 </NavLink>
                 <NavLink to="/jobs" active={isActive('/jobs')}>
-                  <Briefcase size={15} />Find Jobs
+                  <Briefcase size={13} />Find Jobs
                 </NavLink>
                 <NavLink to="/reputation" active={isActive('/reputation')}>
-                  <Trophy size={15} />SBT Leaderboard
+                  <Trophy size={13} />SBT Leaderboard
                 </NavLink>
                 <NavLink to="/dao" active={isActive('/dao')}>
-                  <Users size={15} />DAO
+                  <Users size={13} />DAO
                 </NavLink>
               </>
             )}
@@ -221,23 +221,23 @@ export const Navbar: React.FC = () => {
             {!isVisitor && (
               <>
                 <NavLink to="/dashboard" active={isActive('/dashboard')}>
-                  <LayoutDashboard size={15} />Dashboard
+                  <LayoutDashboard size={13} />Dashboard
                 </NavLink>
 
                 {currentRole === 'client' && (
                   <NavLink to="/jobs/post" active={isActive('/jobs/post')}>
-                    <PlusCircle size={15} />Post Job
+                    <PlusCircle size={13} />Post Job
                   </NavLink>
                 )}
 
-                {/* For non-admin, non-client roles, show Find Jobs & SBT Leaderboard on top bar */}
-                {currentRole !== 'admin' && currentRole !== 'client' && (
+                {/* For non-admin roles, show Find Jobs & SBT Leaderboard on top bar */}
+                {currentRole !== 'admin' && (
                   <>
                     <NavLink to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post')}>
-                      <Briefcase size={15} />Find Jobs
+                      <Briefcase size={13} />Find Jobs
                     </NavLink>
                     <NavLink to="/reputation" active={isActive('/reputation')}>
-                      <Trophy size={15} />SBT Leaderboard
+                      <Trophy size={13} />SBT Leaderboard
                     </NavLink>
                   </>
                 )}
@@ -245,22 +245,22 @@ export const Navbar: React.FC = () => {
                 {/* Judge Panel on top bar for Judge role */}
                 {currentRole === 'judge' && (
                   <NavLink to="/judge" active={isActive('/judge')} accent="amber">
-                    <Scale size={15} />Judge Panel
+                    <Scale size={13} />Judge Panel
                   </NavLink>
                 )}
 
                 {/* Treasury on top bar for Admin role */}
                 {currentRole === 'admin' && (
                   <NavLink to="/treasury" active={isActive('/treasury')}>
-                    <Landmark size={15} />Treasury
+                    <Landmark size={13} />Treasury
                   </NavLink>
                 )}
 
                 <NavLink to="/dao" active={isActive('/dao')}>
-                  <Users size={15} />DAO
+                  <Users size={13} />DAO
                 </NavLink>
                 <NavLink to="/chat" active={isActive('/chat')}>
-                  <MessageSquare size={15} />Messages
+                  <MessageSquare size={13} />Messages
                 </NavLink>
 
                 {/* More dropdown */}
@@ -268,8 +268,8 @@ export const Navbar: React.FC = () => {
                   <button
                     onClick={() => setIsMoreOpen(!isMoreOpen)}
                     className={`
-                      px-4 py-2 rounded-full text-sm font-bold
-                      flex items-center gap-2 cursor-pointer select-none
+                      px-3.5 py-1.5 rounded-full text-[13px] font-semibold
+                      flex items-center gap-1.5 cursor-pointer select-none
                       nav-pill-item
                       ${isMoreOpen ? 'text-purple-700 font-bold' : 'text-slate-600'}
                     `}
@@ -278,13 +278,13 @@ export const Navbar: React.FC = () => {
                       boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(124,58,237,0.08)',
                     } : {}}
                   >
-                    <Grid size={15} />
+                    <Grid size={13} />
                     More
                     <motion.span
                       animate={{ rotate: isMoreOpen ? 180 : 0 }}
                       transition={transition.fast}
                     >
-                      <ChevronDown size={14} />
+                      <ChevronDown size={12} />
                     </motion.span>
                   </button>
 
@@ -311,15 +311,7 @@ export const Navbar: React.FC = () => {
                           <>
                             <DropdownLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMoreOpen(false)} />
                             <DropdownLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMoreOpen(false)} />
-                            <DropdownLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMoreOpen(false)} />
                             <DropdownLink to="/judge" icon={<Scale size={14} />} label="Judge Panel" onClick={() => setIsMoreOpen(false)} />
-                            <div className="border-t border-slate-100/80 my-1" />
-                          </>
-                        )}
-                        {/* Judge specific extra options in More dropdown */}
-                        {currentRole === 'judge' && (
-                          <>
-                            <DropdownLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMoreOpen(false)} />
                             <div className="border-t border-slate-100/80 my-1" />
                           </>
                         )}
@@ -464,17 +456,11 @@ export const Navbar: React.FC = () => {
               ) : (
                 <>
                   <MobileLink to="/dashboard" icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => setIsMobileOpen(false)} />
-                  {/* Post Job for client, admin, and judge */}
-                  {(currentRole === 'client' || currentRole === 'admin' || currentRole === 'judge') && (
+                  {currentRole === 'client' && (
                     <MobileLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMobileOpen(false)} />
                   )}
-                  {/* Find Jobs & Leaderboard for non-clients (and admin verification) */}
-                  {currentRole !== 'client' && (
-                    <>
-                      <MobileLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
-                      <MobileLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMobileOpen(false)} />
-                    </>
-                  )}
+                  <MobileLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
+                  <MobileLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMobileOpen(false)} />
                   {(currentRole === 'admin' || currentRole === 'judge') && (
                     <Link
                       to="/judge"

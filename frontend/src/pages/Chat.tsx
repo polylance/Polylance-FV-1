@@ -9,7 +9,6 @@ import {
   Paperclip, Smile, MoreVertical, Copy, Shield, Download, AlertTriangle, ChevronRight, X, Zap, Trash2
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
-import { JudgeRecord, JudgeMessage } from '../types';
 import confetti from 'canvas-confetti';
 import { EmptyState } from '../components/UIStates';
 
@@ -57,31 +56,21 @@ export const Chat: React.FC = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto select initial judge if admin
-  useEffect(() => {
-    if (isAdmin && !selectedJudgeAddr && judges.length > 0) {
-      setSelectedJudgeAddr(judges[0].address);
-    }
-  }, [isAdmin, judges, selectedJudgeAddr]);
-
-  // If URL contains a jobId, auto select it and switch tab to jobs
+  // If URL contains a jobId, auto select it
   useEffect(() => {
     if (urlJobId) {
       setSelectedJobId(urlJobId);
-      setChatTab('jobs');
     }
   }, [urlJobId]);
 
   // Securely filter jobs for conversation sidebar
-  // ONLY show escrow chat channel to the Client or the assigned/accepted Freelancer (or Admin/Judge)
   const myChats = jobs.filter(j => {
-    if (isAdmin) return true; // Admin has platform governance oversight
+    if (isArbitrator || isTreasuryAdmin) return true;
     const lowerAddr = (address || '').toLowerCase();
     const isClient = j.client.toLowerCase() === lowerAddr;
     const isFreelancer = j.freelancer?.toLowerCase() === lowerAddr;
-    const isJudgeOnDispute = isJudgeRole && j.status === 'Disputed';
+    const isJudgeOnDispute = isArbitrator && j.status === 'Disputed';
 
-    // Strictly limit private escrow channels to the client and accepted developer
     return isClient || isFreelancer || isJudgeOnDispute;
   });
 
@@ -93,7 +82,6 @@ export const Chat: React.FC = () => {
   }, [myChats, selectedJobId]);
 
   const activeJob = jobs.find(j => j.id === selectedJobId);
-  const activeJudge = judges.find(j => j.address.toLowerCase() === (selectedJudgeAddr || '').toLowerCase());
 
   // Scroll to bottom helper
   const scrollToBottom = () => {
@@ -102,7 +90,7 @@ export const Chat: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [activeJob?.chatMessages, selectedJudgeAddr, judgeMessages, chatTab]);
+  }, [activeJob?.chatMessages]);
 
   const handleCopyAddress = (addrToCopy: string) => {
     navigator.clipboard.writeText(addrToCopy);
@@ -125,7 +113,7 @@ export const Chat: React.FC = () => {
   // Handle message submission
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !activeJob) return;
 
     if (chatTab === 'judges' && selectedJudgeAddr) {
       const senderRole = isAdmin ? 'Admin' : 'Judge';
@@ -271,7 +259,7 @@ export const Chat: React.FC = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder={chatTab === 'judges' ? "Search judges or address..." : "Search escrow channels..."}
+                placeholder="Search escrow channels..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full !pl-8 !pr-3 !py-2 text-xs glass-input font-medium rounded-xl"
@@ -334,6 +322,17 @@ export const Chat: React.FC = () => {
                     );
                   })}
                 </div>
+              ) : (
+                filteredChats.map((job) => {
+                  const jobIsSelected = job.id === selectedJobId;
+                  const activeRoleIsClient = job.client.toLowerCase() === (address || '').toLowerCase();
+                  const activeCounterpartAddress = activeRoleIsClient ? (job.freelancer || job.applications?.[0]?.applicant || '') : job.client;
+                  const activeCounterpartKey = activeCounterpartAddress 
+                    ? Object.keys(profiles).find(k => k.toLowerCase() === activeCounterpartAddress.toLowerCase()) 
+                    : null;
+                  const activeCounterpartProfile = activeCounterpartKey ? profiles[activeCounterpartKey] : null;
+                  const activeCounterpartName = activeCounterpartProfile?.displayName || truncateAddress(activeCounterpartAddress || '');
+                  const lastMsg = job.chatMessages?.[job.chatMessages.length - 1];
 
                 {/* Other Judges Section Header */}
                 <div className="space-y-1.5 pt-2">
@@ -429,23 +428,13 @@ export const Chat: React.FC = () => {
             )}
           </div>
 
-          {/* Bottom Sidebar Action matching Reference Image */}
           <div className="pt-2 border-t border-slate-200 shrink-0">
-            {isAdmin ? (
-              <Link
-                to="/judge"
-                className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-purple-700 font-bold py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-xs transition-all"
-              >
-                <Gavel size={14} /> Invite Judge
-              </Link>
-            ) : (
-              <Link
-                to="/jobs/post"
-                className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-purple-700 font-bold py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-xs transition-all"
-              >
-                <PlusCircle size={14} /> Post Escrow Job
-              </Link>
-            )}
+            <Link
+              to="/jobs/post"
+              className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-purple-700 font-bold py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-xs transition-all"
+            >
+              Post Escrow Job
+            </Link>
           </div>
         </div>
 
@@ -538,9 +527,22 @@ export const Chat: React.FC = () => {
                     </span>
                   </div>
 
-                  {((selectedJudgeAddr && judgeMessages[selectedJudgeAddr.toLowerCase()]) || []).map((msg: JudgeMessage) => {
-                    const isMe = isAdmin ? msg.senderRole === 'Admin' : msg.senderRole === 'Judge';
+              {/* Messages Feed */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-white/40">
+                <div className="flex justify-center my-2">
+                  <span className="bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-mono font-bold px-3 py-0.5 rounded-full">
+                    Today
+                  </span>
+                </div>
 
+                {(activeJob.chatMessages || [
+                  { sender: 'Client' as const, text: 'Welcome! Let us coordinate milestone specifications and delivery targets.', timestamp: activeJob.createdAt || Date.now() - 3600000 }
+                ]).map((msg, index) => {
+                  const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase();
+                  const isUser = msg.sender === (isClient ? 'Client' : 'Freelancer') || (isArbitrator && msg.sender === 'Judge');
+                  const isSystem = msg.sender === 'Judge' && !isArbitrator;
+
+                  if (isSystem) {
                     return (
                       <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-start gap-2.5`}>
                         {!isMe && (
@@ -565,7 +567,7 @@ export const Chat: React.FC = () => {
                         </div>
                       </div>
                     );
-                  })}
+                  }
 
                   {/* No More Messages Divider */}
                   <div className="flex items-center justify-center gap-3 my-6">
@@ -615,34 +617,49 @@ export const Chat: React.FC = () => {
                               </button>
                             ))}
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
 
-                    <button
-                      type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                    >
-                      <Send size={14} /> Send
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input Panel */}
+              <div className="p-4 border-t border-slate-200 bg-white shrink-0 space-y-2">
+                <form onSubmit={handleSend} className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center glass-input rounded-2xl px-3 py-1.5 bg-slate-50 border border-slate-200 shadow-inner">
+                    <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                      <Paperclip size={16} />
                     </button>
-                  </form>
-
-                  <div className="text-center">
-                    <span className="text-[9.5px] font-mono text-slate-400 flex items-center justify-center gap-1">
-                      <Shield size={11} className="text-purple-600" /> Messages are end-to-end encrypted via XMTP
-                    </span>
+                    <input
+                      type="text"
+                      placeholder="Message client or developer..."
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      className="w-full bg-transparent border-none outline-none text-xs font-semibold px-2 py-1.5 text-slate-800 placeholder-slate-400"
+                    />
+                    <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                      <Smile size={16} />
+                    </button>
                   </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col justify-center items-center text-center p-8 text-slate-400 space-y-3">
-                <UserCheck size={48} className="text-purple-600 stroke-1" />
-                <div>
-                  <h4 className="font-bold text-slate-800 text-sm">Select a Judge Channel</h4>
-                  <p className="text-xs text-slate-500 mt-1 font-mono">Choose an arbitrator from the left panel to open direct communications.</p>
+
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  >
+                    <Send size={14} /> Send
+                  </button>
+                </form>
+
+                <div className="text-center">
+                  <span className="text-[9.5px] font-mono text-slate-400 flex items-center justify-center gap-1">
+                    <Shield size={11} className="text-purple-600" /> Messages are end-to-end encrypted via XMTP
+                  </span>
                 </div>
               </div>
-            )
+            </>
           ) : (
             /* Job Escrow Chat Window matching Reference Image */
             activeJob ? (
@@ -840,18 +857,16 @@ export const Chat: React.FC = () => {
                   actionText=""
                 />
               </div>
-            )
+            </div>
           )}
         </div>
 
-        {/* Right Side: Escrow / Arbitrator Summary Panel (3 Cols) matching Reference Image */}
+        {/* Right Side: Escrow Details Side Panel (3 Cols) */}
         <div className="lg:col-span-3 border-l border-slate-200 flex flex-col h-full bg-white p-5 overflow-y-auto space-y-5">
           {activeJob ? (
             <>
-              {/* Top Status Pill matching Image 3 */}
               <div>
                 <span className="inline-flex items-center gap-1 text-[9.5px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100/80 border border-purple-200 px-3 py-1 rounded-full">
-                  <CheckCircle2 size={12} className="text-purple-700" />
                   {activeJob.status === 'Completed' ? 'COMPLETED ESCROW' : `${activeJob.status.toUpperCase()} ESCROW`}
                 </span>
                 <h3 className="font-headline font-extrabold text-slate-900 text-base mt-3 leading-snug">
@@ -862,7 +877,6 @@ export const Chat: React.FC = () => {
                 </p>
               </div>
 
-              {/* Locked Vault Deposit Card matching Image 3 */}
               <div className="bg-slate-50/80 border border-slate-200/80 p-4 rounded-2xl space-y-1">
                 <span className="text-[9.5px] uppercase font-mono text-slate-500 font-bold block tracking-wider">
                   LOCKED VAULT DEPOSIT
@@ -875,13 +889,11 @@ export const Chat: React.FC = () => {
                 </div>
               </div>
 
-              {/* Smart Contract Actions matching Image 3 */}
               <div className="space-y-3 pt-1 border-t border-slate-100">
                 <span className="text-[9.5px] uppercase font-mono text-slate-400 font-bold block tracking-wider">
                   SMART CONTRACT ACTIONS
                 </span>
 
-                {/* Smart Escrow Card */}
                 <div className="bg-purple-50/60 border border-purple-100 p-3.5 rounded-2xl flex items-center justify-between text-xs cursor-pointer hover:bg-purple-50 transition-colors">
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-xl bg-purple-200/70 text-purple-800 flex items-center justify-center">
@@ -904,7 +916,7 @@ export const Chat: React.FC = () => {
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-xl bg-emerald-200/70 text-emerald-800 flex items-center justify-center">
-                      <ExternalLink size={14} />
+                      <ArrowUpRight size={14} />
                     </div>
                     <div>
                       <p className="font-bold text-emerald-950 text-xs">View on Explorer</p>
@@ -932,9 +944,7 @@ export const Chat: React.FC = () => {
                 </Link>
               </div>
 
-              {/* Action Buttons: Terms / Fund / Submit / Release */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
-                {/* Propose Terms */}
                 {activeJob.status === 'Open' && (
                   <button
                     onClick={handleProposeTerms}
@@ -944,8 +954,7 @@ export const Chat: React.FC = () => {
                   </button>
                 )}
 
-                {/* Fund Escrow Vault */}
-                {((activeJob.status as string) === 'TermsAgreed' || activeJob.status === 'Selected') && (activeJob.client.toLowerCase() === (address || '').toLowerCase() || isAdmin) && (
+                {((activeJob.status as string) === 'TermsAgreed' || activeJob.status === 'Selected') && (activeJob.client.toLowerCase() === (address || '').toLowerCase() || isTreasuryAdmin) && (
                   <button
                     onClick={handleFund}
                     className="w-full gradient-btn-emerald py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
@@ -953,198 +962,17 @@ export const Chat: React.FC = () => {
                     <DollarSign size={14} /> Fund Vault Deposit
                   </button>
                 )}
-
-                {/* Submit Deliverable */}
-                {((activeJob.status as string) === 'Funded' || activeJob.status === 'Selected') && (activeJob.freelancer?.toLowerCase() === (address || '').toLowerCase() || isAdmin) && (
-                  <button
-                    onClick={() => setIsSubmitModalOpen(true)}
-                    className="w-full gradient-btn-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
-                  >
-                    <PlusCircle size={14} /> Submit Deliverable
-                  </button>
-                )}
-
-                {/* Approve & Release Payout */}
-                {(activeJob.status === 'Submitted' || (activeJob.status as string) === 'Funded') && (activeJob.client.toLowerCase() === (address || '').toLowerCase() || isAdmin) && (
-                  <button
-                    onClick={handleRelease}
-                    className="w-full gradient-btn-emerald py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
-                  >
-                    <CheckCircle size={14} /> Approve & Release Payout
-                  </button>
-                )}
               </div>
-
-              {/* Bottom Raise Dispute Danger Button matching Image 3 */}
-              <button
-                type="button"
-                onClick={() => {
-                  const reason = prompt('State the dispute reason:');
-                  if (reason && activeJob) {
-                    sendChatMessage(activeJob.id, `⚠️ Dispute Raised: ${reason}`, 'Judge');
-                  }
-                }}
-                className="w-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-3 rounded-2xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer mt-auto"
-              >
-                <AlertTriangle size={15} /> Raise Dispute
-              </button>
-            </>
-          ) : activeJudge ? (
-            <>
-              {/* Judge Summary matching Image 3 layout */}
-              <div>
-                <span className="inline-flex items-center gap-1 text-[9.5px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100/80 border border-purple-200 px-3 py-1 rounded-full">
-                  <CheckCircle2 size={12} className="text-purple-700" />
-                  COMPLETED ESCROW
-                </span>
-                <h3 className="font-headline font-extrabold text-slate-900 text-base mt-3 leading-snug">
-                  {activeJudge.name}
-                </h3>
-                <p className="text-xs text-slate-500 font-sans mt-1 leading-relaxed">
-                  {activeJudge.notes || 'Lead Arbitrator for decentralized dispute resolution.'}
-                </p>
-              </div>
-
-              {/* Deposit Card */}
-              <div className="bg-slate-50/80 border border-slate-200/80 p-4 rounded-2xl space-y-1">
-                <span className="text-[9.5px] uppercase font-mono text-slate-500 font-bold block tracking-wider">
-                  LOCKED VAULT DEPOSIT
-                </span>
-                <div className="font-mono font-black text-slate-900 text-xl flex items-center justify-between">
-                  <span>$99.96 <span className="text-xs text-slate-500 font-normal">USDC</span></span>
-                  <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shadow-xs">
-                    $
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="space-y-3 pt-1 border-t border-slate-100">
-                <span className="text-[9.5px] uppercase font-mono text-slate-400 font-bold block tracking-wider">
-                  SMART CONTRACT ACTIONS
-                </span>
-
-                <div className="bg-purple-50/60 border border-purple-100 p-3.5 rounded-2xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-purple-200/70 text-purple-800 flex items-center justify-center">
-                      <Shield size={14} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-purple-950 text-xs">Polygon Smart Escrow</p>
-                      <p className="text-[10px] text-slate-500 font-mono">Non-custodial EIP-5192 vault protection.</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-slate-400" />
-                </div>
-
-                <div className="bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-2xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-emerald-200/70 text-emerald-800 flex items-center justify-center">
-                      <ExternalLink size={14} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-emerald-950 text-xs">View on Explorer</p>
-                      <p className="text-[10px] text-slate-500 font-mono">Check transaction & escrow details</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-slate-400" />
-                </div>
-
-                <div className="bg-amber-50/60 border border-amber-100 p-3.5 rounded-2xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-amber-200/70 text-amber-800 flex items-center justify-center">
-                      <Download size={14} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-amber-950 text-xs">Download Receipt</p>
-                      <p className="text-[10px] text-slate-500 font-mono">Export escrow information</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-slate-400" />
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="w-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-3 rounded-2xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer mt-auto"
-              >
-                <AlertTriangle size={15} /> Raise Dispute
-              </button>
             </>
           ) : (
-            <div className="text-center py-12 text-slate-400 text-xs font-mono">
-              No active channel selected.
+            <div className="p-8 text-center text-slate-400 text-xs font-medium">
+              Select an escrow job to view smart contract actions.
             </div>
           )}
         </div>
       </div>
-
-      {/* Deliverable Submission Modal */}
-      {isSubmitModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
-          <div className="glass-panel max-w-md w-full p-6 space-y-4 border-purple-200 bg-white shadow-xl">
-            <h3 className="font-headline text-base font-bold text-slate-900">Submit Deliverable Work</h3>
-            <form onSubmit={handleSubmitDeliverable} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
-                  Deliverable Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Smart Contract V1 Audit & Frontend Integration"
-                  value={submitTitle}
-                  onChange={(e) => setSubmitTitle(e.target.value)}
-                  className="w-full glass-input text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
-                  Description / Notes *
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Provide summary of completed milestones..."
-                  value={submitDesc}
-                  onChange={(e) => setSubmitDesc(e.target.value)}
-                  className="w-full glass-input text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
-                  External Link (GitHub PR / Figma / IPFS)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://github.com/..."
-                  value={submitLink}
-                  onChange={(e) => setSubmitLink(e.target.value)}
-                  className="w-full glass-input text-xs"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsSubmitModalOpen(false)}
-                  className="btn-secondary px-4 py-2 text-xs font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="gradient-btn-primary px-5 py-2 text-xs font-bold"
-                >
-                  Submit Milestone
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
+export default Chat;

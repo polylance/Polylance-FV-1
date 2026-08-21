@@ -204,11 +204,6 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     if (typeof window !== 'undefined') {
       localStorage.setItem('polylance_demo_role', role);
     }
-    if (!walletIsConnected) {
-      setIsArbitrator(DEMO_WALLETS[role].isArbitrator);
-      setIsTreasuryAdmin(DEMO_WALLETS[role].isTreasuryAdmin);
-      setReputationCount(DEMO_WALLETS[role].reputationCount);
-    }
   };
 
   const connectWallet = async () => {
@@ -251,8 +246,8 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   };
 
-  const address = walletIsConnected ? walletAddress || '' : DEMO_WALLETS[currentRole].address;
-  const isConnected = walletIsConnected || currentRole !== 'visitor';
+  const address = walletIsConnected ? walletAddress || '' : '';
+  const isConnected = Boolean(walletIsConnected);
 
   return (
     <Web3Context.Provider

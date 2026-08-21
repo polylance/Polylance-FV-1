@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { SkillCategory } from '../types';
@@ -17,7 +17,7 @@ export const FindJobs: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFiat, setSelectedFiat] = useState('INR');
 
-  const isClientRole = currentRole === 'client' || currentRole === 'admin' || currentRole === 'judge';
+  const isClientRole = currentRole === 'client';
 
   const categories: { id: SkillCategory | 'all'; label: string; sub: string }[] = [
     { id: 'all', label: 'All Jobs', sub: 'Everything' },

@@ -10,9 +10,7 @@ interface PolyLanceLogoProps {
 
 export const PolyLanceLogo: React.FC<PolyLanceLogoProps> = ({ size = 92, className = '', src }) => {
   const [imageError, setImageError] = useState(false);
-  const logoSrc = (src && typeof src === 'string' && src.startsWith('/')) 
-    ? `${import.meta.env.BASE_URL}${src.slice(1)}` 
-    : (src || defaultLogo);
+  const logoSrc = src || defaultLogo;
   const shouldUseImage = LOGO_CONFIG.useCustomImage && logoSrc && !imageError;
 
   return (

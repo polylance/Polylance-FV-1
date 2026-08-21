@@ -85,66 +85,65 @@ export const Dao: React.FC = () => {
               const totalVotes = prop.votesFor + prop.votesAgainst;
               const forPercent = totalVotes > 0 ? Math.round((prop.votesFor / totalVotes) * 100) : 50;
 
-              return (
-                <div key={prop.id} className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-3">
-                    <div>
-                      <h4 className="font-headline text-base font-bold text-slate-900">
-                        Nominate {truncateAddress(prop.candidate)} as Arbitrator
-                      </h4>
-                      <p className="text-xs text-slate-500 font-mono">Proposed by: {truncateAddress(prop.proposer)}</p>
-                    </div>
-
-                    <span className="bg-purple-50 border border-purple-200 px-3 py-1 rounded-full text-xs font-mono text-purple-900 font-bold">
-                      Status: {prop.status}
-                    </span>
+            return (
+              <div key={prop.id} className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-3">
+                  <div>
+                    <h4 className="font-headline text-base font-bold text-slate-900">
+                      Nominate {truncateAddress(prop.candidate)} as Arbitrator
+                    </h4>
+                    <p className="text-xs text-slate-500 font-mono">Proposed by: {truncateAddress(prop.proposer)}</p>
                   </div>
 
-                  <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200 leading-relaxed">
-                    {prop.rationale}
-                  </p>
-
-                  {/* Vote Bar */}
-                  <div className="space-y-1 font-mono text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-emerald-700 font-bold">For: {prop.votesFor} SBT</span>
-                      <span className="text-rose-700 font-bold">Against: {prop.votesAgainst} SBT</span>
-                    </div>
-                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200 flex">
-                      <div className="bg-emerald-600 h-full" style={{ width: `${forPercent}%` }} />
-                      <div className="bg-rose-500 h-full flex-1" />
-                    </div>
-                  </div>
-
-                  {prop.status === 'Active' && isConnected && (
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100/50">
-                      {prop.userVoted ? (
-                        <span className="text-xs font-mono text-purple-950 font-black bg-purple-50 px-3.5 py-2 rounded-xl border border-purple-200 flex items-center gap-1.5 shadow-sm">
-                          <CheckCircle2 size={14} className="text-purple-700" />
-                          Your One-Time Vote Recorded: {prop.userVoted === 'FOR' ? 'For 👍' : 'Against 👎'}
-                        </span>
-                      ) : (
-                        <div className="flex gap-3 ml-auto">
-                          <button
-                            onClick={() => castVote(prop.id, false, address)}
-                            className="bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-800 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                          >
-                            Vote Against
-                          </button>
-                          <button
-                            onClick={() => castVote(prop.id, true, address)}
-                            className="gradient-btn-emerald px-6 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                          >
-                            Vote For
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <span className="bg-purple-50 border border-purple-200 px-3 py-1 rounded-full text-xs font-mono text-purple-900 font-bold">
+                    Status: {prop.status}
+                  </span>
                 </div>
-              );
-            })
-          )}
+
+                <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200 leading-relaxed">
+                  {prop.rationale}
+                </p>
+
+                {/* Vote Bar */}
+                <div className="space-y-1 font-mono text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-emerald-700 font-bold">For: {prop.votesFor} SBT</span>
+                    <span className="text-rose-700 font-bold">Against: {prop.votesAgainst} SBT</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200 flex">
+                    <div className="bg-emerald-600 h-full" style={{ width: `${forPercent}%` }} />
+                    <div className="bg-rose-500 h-full flex-1" />
+                  </div>
+                </div>
+
+                {prop.status === 'Active' && isConnected && (
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100/50">
+                    {prop.userVoted ? (
+                      <span className="text-xs font-mono text-purple-950 font-black bg-purple-50 px-3.5 py-2 rounded-xl border border-purple-200 flex items-center gap-1.5 shadow-sm">
+                        <CheckCircle2 size={14} className="text-purple-700" />
+                        Your One-Time Vote Recorded: {prop.userVoted === 'FOR' ? 'For 👍' : 'Against 👎'}
+                      </span>
+                    ) : (
+                      <div className="flex gap-3 ml-auto">
+                        <button
+                          onClick={() => castVote(prop.id, false, address)}
+                          className="bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-800 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Vote Against
+                        </button>
+                        <button
+                          onClick={() => castVote(prop.id, true, address)}
+                          className="gradient-btn-emerald px-6 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Vote For
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

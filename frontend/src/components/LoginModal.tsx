@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useWeb3 } from '../context/Web3Context';
 import { DemoRole } from '../types';
 import { PolyLanceLogo } from './PolyLanceLogo';
@@ -24,21 +24,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       id: 'metamask',
       name: 'MetaMask',
       logo: (
-        <img src={`${import.meta.env.BASE_URL}MetaMask_logo.png`} alt="MetaMask" className="w-5.5 h-5.5 object-contain shrink-0" />
+        <img src="/MetaMask_logo.png" alt="MetaMask" className="w-5.5 h-5.5 object-contain shrink-0" />
       )
     },
     {
       id: 'walletconnect',
       name: 'WalletConnect',
       logo: (
-        <img src={`${import.meta.env.BASE_URL}WalletConnect_logo.png`} alt="WalletConnect" className="w-5.5 h-5.5 object-contain shrink-0" />
+        <img src="/WalletConnect_logo.png" alt="WalletConnect" className="w-5.5 h-5.5 object-contain shrink-0" />
       )
     },
     {
       id: 'coinbase',
       name: 'Coinbase',
       logo: (
-        <img src={`${import.meta.env.BASE_URL}CoinBase_logo.png`} alt="Coinbase Wallet" className="w-5.5 h-5.5 object-contain shrink-0" />
+        <img src="/CoinBase_logo.png" alt="Coinbase Wallet" className="w-5.5 h-5.5 object-contain shrink-0" />
       )
     },
   ];
