@@ -14,198 +14,13 @@ import { useWeb3 } from './Web3Context';
 
 const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
 
-const INITIAL_PROFILES: Record<string, UserProfile> = {
-  '0x71c8366420a092c55660830e8115e9a44390001': {
-    address: '0x71c8366420a092c55660830e8115e9a44390001',
-    displayName: 'Alex Rivera',
-    bio: 'Principal Smart Contract Engineer specializing in ERC-4337 Account Abstraction & DeFi protocols.',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    ipfsHash: 'QmAlexRiveraProfileDataHash',
-    skills: ['Solidity', 'Foundry', 'DeFi', 'ERC-4337', 'Hardhat'],
-    githubUsername: 'arivera-sol',
-    githubVerified: true,
-    primaryScore: 960,
-    reputationSbtCount: 18,
-    hourlyRateUsdc: 150,
-    title: 'Principal Solidity Architect'
-  },
-  '0x34a589112d480055dafd8a610b7d1e203891c821': {
-    address: '0x34a589112d480055dafd8a610b7d1e203891c821',
-    displayName: 'Elena Rostova',
-    bio: 'Full-Stack Web3 & Zero-Knowledge Cryptography Researcher. Circom, SnarkJS & Next.js.',
-    avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-    ipfsHash: 'QmElenaRostovaProfileDataHash',
-    skills: ['ZK-SNARKs', 'Circom', 'React', 'TypeScript', 'Ethers.js'],
-    githubUsername: 'erostova-zk',
-    githubVerified: true,
-    primaryScore: 920,
-    reputationSbtCount: 14,
-    hourlyRateUsdc: 135,
-    title: 'ZK Cryptography & Full-Stack Engineer'
-  },
-  '0x89b4566420a092c55660830e8115e9a443900142': {
-    address: '0x89b4566420a092c55660830e8115e9a443900142',
-    displayName: 'Marcus Sterling',
-    bio: 'Protocol Security Auditor and Rust / Anchor framework specialist for high-throughput L1/L2 networks.',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    ipfsHash: 'QmMarcusSterlingProfileDataHash',
-    skills: ['Rust', 'Security Audit', 'Solana', 'EVM', 'Fuzzing'],
-    githubUsername: 'msterling-sec',
-    githubVerified: true,
-    primaryScore: 885,
-    reputationSbtCount: 11,
-    hourlyRateUsdc: 140,
-    title: 'Security Auditor & Systems Dev'
-  },
-  '0x42f8366420a092c55660830e8115e9a443900990': {
-    address: '0x42f8366420a092c55660830e8115e9a443900990',
-    displayName: 'Nadia Chen',
-    bio: 'Decentralized Data Architect & The Graph Subgraph Expert with 30+ production subgraphs deployed.',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-    ipfsHash: 'QmNadiaChenProfileDataHash',
-    skills: ['The Graph', 'GraphQL', 'Indexing', 'Solidity', 'Node.js'],
-    githubUsername: 'nadiachen-data',
-    githubVerified: true,
-    primaryScore: 840,
-    reputationSbtCount: 8,
-    hourlyRateUsdc: 110,
-    title: 'Web3 Data & Indexing Specialist'
-  },
-  '0x55e1236420a092c55660830e8115e9a443900310': {
-    address: '0x55e1236420a092c55660830e8115e9a443900310',
-    displayName: 'DevPioneer',
-    bio: 'Smart contract developer building decentralized escrow, DAO governance, and cross-chain messaging.',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    ipfsHash: 'QmDevPioneerProfileDataHash',
-    skills: ['Solidity', 'Viem', 'Wagmi', 'TailwindCSS', 'TypeScript'],
-    githubUsername: 'devpioneer-eth',
-    githubVerified: true,
-    primaryScore: 810,
-    reputationSbtCount: 6,
-    hourlyRateUsdc: 95,
-    title: 'Smart Contract & DApp Engineer'
-  }
-};
+const INITIAL_PROFILES: Record<string, UserProfile> = {};
 
-const INITIAL_JOBS: Job[] = [
-  {
-    id: 'job-101',
-    contractAddress: '0x1291Be112d480055DaFd8a610b7d1e203891C274',
-    client: '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
-    freelancer: '0x71c8366420a092c55660830e8115e9a44390001',
-    title: 'Cross-Chain Escrow Architecture & Security Audit',
-    description: 'Design and deploy an audited cross-chain escrow smart contract using LayerZero and ERC-4337 paymasters on Polygon Amoy.',
-    category: 'web3',
-    amountEth: '0.85',
-    amountUsdc: '2500',
-    paymentToken: '0x0000000000000000000000000000000000000000',
-    paymentTokenSymbol: 'USDC',
-    paymentTokenDecimals: 6,
-    status: 'Completed',
-    createdAt: Date.now() - 86400000 * 5,
-    reviewPeriodDays: 7,
-    applications: [],
-    chatMessages: [
-      { sender: 'Client', text: 'Hi Alex, we need the initial escrow architecture diagram and Foundry test suite.', timestamp: Date.now() - 86400000 * 4 },
-      { sender: 'Freelancer', text: 'Working on the LayerZero endpoint integration and gas profiling now.', timestamp: Date.now() - 86400000 * 3 },
-      { sender: 'Freelancer', text: 'Completed milestone 1 with 100% test coverage and gas benchmarks.', timestamp: Date.now() - 86400000 * 2 },
-      { sender: 'Client', text: 'Approved and payment released. Minting your Reputation SBT!', timestamp: Date.now() - 86400000 * 1 }
-    ],
-    events: [
-      { step: 'Created', title: 'Escrow Created', status: 'completed', timestamp: Date.now() - 86400000 * 5, txHash: '0x8f2334901ba12', actor: 'Client' },
-      { step: 'Selected', title: 'Alex Rivera Selected', status: 'completed', timestamp: Date.now() - 86400000 * 4, txHash: '0x9a12001bb33', actor: 'Client' },
-      { step: 'Funded', title: '2,500 USDC Deposited', status: 'completed', timestamp: Date.now() - 86400000 * 4, txHash: '0x1b4588992ca', actor: 'Client' },
-      { step: 'Submitted', title: 'Work Deliverable Submitted', status: 'completed', timestamp: Date.now() - 86400000 * 2, txHash: '0x4c7811223da', actor: 'Freelancer' },
-      { step: 'Completed', title: 'Payment Released', status: 'completed', timestamp: Date.now() - 86400000 * 1, txHash: '0x5d9033445ea', actor: 'Client' },
-      { step: 'Minted', title: 'Reputation SBT Minted', status: 'completed', timestamp: Date.now() - 86400000 * 1, txHash: '0x6e0155667fa', actor: 'JobFactory' }
-    ]
-  },
-  {
-    id: 'job-102',
-    contractAddress: '0x34A589112D480055DAFD8A610b7D1E203891C821',
-    client: '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
-    freelancer: '0x34a589112d480055dafd8a610b7d1e203891c821',
-    title: 'Zero-Knowledge Proof Verification for KYC Credentials',
-    description: 'Implement Circom circuits for selective disclosure of identity credentials without exposing private keys or wallet associations.',
-    category: 'web3',
-    amountEth: '1.2',
-    amountUsdc: '3600',
-    paymentToken: '0x0000000000000000000000000000000000000000',
-    paymentTokenSymbol: 'USDC',
-    paymentTokenDecimals: 6,
-    status: 'Disputed',
-    createdAt: Date.now() - 86400000 * 3,
-    reviewPeriodDays: 5,
-    applications: [],
-    dispute: {
-      raisedBy: '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
-      reason: 'SCOPE_DISAGREEMENT',
-      evidenceIpfsHash: 'QmDisputeEvidenceZKCircuitHash',
-      evidenceText: 'Submitted circuit requires 450k gas on verification which exceeds the 300k gas SLA specification.',
-      responseText: 'Circuit optimized to 280k gas using Plonk recursion. Proof artifacts uploaded to IPFS.',
-      responseIpfsHash: 'QmDisputeResponseZKPlonkProof',
-      raisedAt: Date.now() - 86400000 * 1,
-      resolved: false
-    },
-    chatMessages: [
-      { sender: 'Client', text: 'We need the gas consumption to stay below 300k gas per verification.', timestamp: Date.now() - 86400000 * 2 },
-      { sender: 'Freelancer', text: 'I have delivered the Groth16 circuit and test vectors.', timestamp: Date.now() - 86400000 * 1 },
-      { sender: 'Judge', text: 'DAO Arbitration session initialized. Both parties may provide cryptographic evidence.', timestamp: Date.now() - 43200000 }
-    ],
-    events: [
-      { step: 'Created', title: 'Escrow Created', status: 'completed', timestamp: Date.now() - 86400000 * 3, txHash: '0x111122233aa', actor: 'Client' },
-      { step: 'Selected', title: 'Elena Rostova Selected', status: 'completed', timestamp: Date.now() - 86400000 * 2, txHash: '0x222233344bb', actor: 'Client' },
-      { step: 'Funded', title: '3,600 USDC Deposited', status: 'completed', timestamp: Date.now() - 86400000 * 2, txHash: '0x333344455cc', actor: 'Client' },
-      { step: 'Submitted', title: 'ZK Circom Circuit Submitted', status: 'completed', timestamp: Date.now() - 86400000 * 1, txHash: '0x444455566dd', actor: 'Freelancer' },
-      { step: 'Disputed', title: 'Dispute Raised by Client', status: 'completed', timestamp: Date.now() - 86400000 * 1, txHash: '0x555566677ee', actor: 'Client' },
-      { step: 'Ruled', title: 'Awaiting DAO Arbitration', status: 'current', timestamp: 0, txHash: '', actor: 'Judge DAO' }
-    ]
-  }
-];
+const INITIAL_JOBS: Job[] = [];
 
-const INITIAL_PROPOSALS: DaoProposal[] = [
-  {
-    id: 'prop-101',
-    candidate: '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd',
-    proposer: '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
-    rationale: 'Nominate Lead Arbitrator for decentralized dispute resolution and circuit court quorum.',
-    status: 'Active',
-    votesFor: 14500,
-    votesAgainst: 3200,
-    createdAt: Date.now() - 86400000 * 3,
-  },
-  {
-    id: 'prop-102',
-    candidate: '0x62cdfc0692cc675c95304bace2c834d8f901dcba',
-    proposer: '0x9999888877776666555544443333222211110000',
-    rationale: 'Appoint Security Auditor as secondary Judge for technical code disputes.',
-    status: 'Active',
-    votesFor: 9800,
-    votesAgainst: 1400,
-    createdAt: Date.now() - 86400000 * 1,
-  }
-];
+const INITIAL_PROPOSALS: DaoProposal[] = [];
 
-const INITIAL_JUDGE_MESSAGES: Record<string, JudgeMessage[]> = {
-  [defaultJudgeAddr]: [
-    {
-      id: 'jmsg_init_1',
-      judgeAddress: defaultJudgeAddr,
-      sender: 'Admin',
-      senderRole: 'Admin',
-      text: 'Welcome Lead Arbitrator. The PolyLance DAO Arbitration Circuit Court channel is active and encrypted with XMTP protocol.',
-      timestamp: Date.now() - 86400000 * 2
-    },
-    {
-      id: 'jmsg_init_2',
-      judgeAddress: defaultJudgeAddr,
-      sender: defaultJudgeAddr,
-      senderRole: 'Judge',
-      text: 'Acknowledged. Standing by for escrow dispute reviews and cryptographic evidence verification.',
-      timestamp: Date.now() - 86400000 * 1
-    }
-  ]
-};
+const INITIAL_JUDGE_MESSAGES: Record<string, JudgeMessage[]> = {};
 
 interface PolyLanceDataContextType {
   loading: boolean;
@@ -259,10 +74,7 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
   const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
   const judgeGithub = import.meta.env.VITE_JUDGE_GITHUB_USERNAME || 'sunny200551';
 
-  // Merge default initial profiles if not already present
-  const merged = { ...INITIAL_PROFILES, ...rawProfiles };
-
-  for (const [addr, profile] of Object.entries(merged)) {
+  for (const [addr, profile] of Object.entries(rawProfiles || {})) {
     if (!addr) continue;
     const lowerAddr = addr.toLowerCase();
 
@@ -293,12 +105,12 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
       displayName: 'Protocol Judge',
       bio: 'Official PolyLance Lead Arbitrator & DAO Verifier.',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      ipfsHash: 'QmJudgeProfileDataHashPlaceholder',
+      ipfsHash: '',
       skills: ['Arbitration', 'Smart Contracts', 'Security Audit', 'Solidity'],
       githubUsername: judgeGithub,
       githubVerified: true,
       primaryScore: 850,
-      reputationSbtCount: 12,
+      reputationSbtCount: 0,
     };
   } else {
     normalized[judgeAddr] = {
@@ -310,7 +122,6 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
 
   return normalized;
 };
-
 
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { provider, getSigner } = useWeb3();

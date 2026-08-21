@@ -923,90 +923,106 @@ export const Reputation: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-150 font-medium">
-              {leaderboardData.map((row) => (
-                <tr 
-                  key={row.address}
-                  className={`hover:bg-slate-50/50 transition-colors ${
-                    row.isUser 
-                      ? 'bg-purple-50/20 border-y border-purple-150' 
-                      : ''
-                  }`}
-                >
-                  <td className="px-4 py-3 text-center font-mono">
-                    {row.rank === 1 ? (
-                      <span className="text-amber-500 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
-                        🥇 1
-                      </span>
-                    ) : row.rank === 2 ? (
-                      <span className="text-slate-400 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
-                        🥈 2
-                      </span>
-                    ) : row.rank === 3 ? (
-                      <span className="text-amber-800 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
-                        🥉 3
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 font-bold">{row.rank}</span>
-                    )}
+              {leaderboardData.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-sans">
+                    <Trophy size={36} className="mx-auto text-purple-300 mb-2" />
+                    <p className="font-bold text-slate-800 text-sm">No Attested Developers Yet</p>
+                    <p className="text-xs text-slate-500 font-mono mt-1">
+                      Complete escrow milestones and mint Reputation SBTs to claim the #1 spot on the global leaderboard.
+                    </p>
                   </td>
-                  
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {row.address ? (
-                        <Link to={`/profile/${row.address}`} className="relative shrink-0 hover:opacity-90 transition-opacity">
-                          <img
-                            src={row.avatar}
-                            alt={row.name}
-                            className={`w-9 h-9 rounded-full object-cover border ${
-                              row.isUser ? 'border-purple-300 ring-2 ring-purple-100' : 'border-slate-200'
-                            }`}
-                          />
-                        </Link>
+                </tr>
+              ) : (
+                leaderboardData.map((row) => (
+                  <tr 
+                    key={row.address}
+                    className={`hover:bg-slate-50/50 transition-colors ${
+                      row.isUser 
+                        ? 'bg-purple-50/20 border-y border-purple-150' 
+                        : ''
+                    }`}
+                  >
+                    <td className="px-4 py-3 text-center font-mono">
+                      {row.rank === 1 ? (
+                        <span className="text-amber-500 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
+                          🥇 1
+                        </span>
+                      ) : row.rank === 2 ? (
+                        <span className="text-slate-400 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
+                          🥈 2
+                        </span>
+                      ) : row.rank === 3 ? (
+                        <span className="text-amber-800 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
+                          🥉 3
+                        </span>
                       ) : (
-                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 text-slate-400 font-bold">
-                          ?
-                        </div>
+                        <span className="text-slate-400 font-bold">{row.rank}</span>
                       )}
-                      
-                      <div>
+                    </td>
+                    
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
                         {row.address ? (
-                          <Link to={`/profile/${row.address}`} className="font-bold text-slate-900 hover:text-purple-700 hover:underline">
-                            {row.name}
+                          <Link to={`/profile/${row.address}`} className="relative shrink-0 hover:opacity-90 transition-opacity">
+                            <img
+                              src={row.avatar}
+                              alt={row.name}
+                              className={`w-9 h-9 rounded-full object-cover border ${
+                                row.isUser ? 'border-purple-600 ring-2 ring-purple-600/20' : 'border-slate-200'
+                              }`}
+                            />
+                            {row.isUser && (
+                              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-purple-600 text-white rounded-full flex items-center justify-center text-[8px] font-black font-mono border-2 border-white">
+                                ★
+                              </span>
+                            )}
                           </Link>
                         ) : (
-                          <span className="font-bold text-slate-500">Open Spot</span>
+                          <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200 font-bold">
+                            ?
+                          </div>
                         )}
-                        <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                          {row.address ? `${row.address.slice(0, 8)}...${row.address.slice(-6)}` : '0x0000...0000'}
-                        </span>
+                        
+                        <div>
+                          {row.address ? (
+                            <Link 
+                              to={`/profile/${row.address}`} 
+                              className={`font-bold hover:underline block leading-tight text-xs ${
+                                row.isUser ? 'text-purple-950 font-black' : 'text-slate-900'
+                              }`}
+                            >
+                              {row.name}
+                            </Link>
+                          ) : (
+                            <span className="font-bold text-slate-500 block leading-tight text-xs">
+                              {row.name}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                            {row.address ? `${row.address.slice(0, 8)}...${row.address.slice(-6)}` : '0x0000...0000'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  
-                  <td className="px-4 py-3">
-                    {getRoleBadge(row.role)}
-                  </td>
-                  
-                  <td className="px-4 py-3 text-center font-mono font-bold text-slate-800">
-                    {row.successRate}
-                  </td>
-                  
-                  <td className="px-4 py-3 text-center font-mono font-black text-emerald-600">
-                    {row.earnings}
-                  </td>
-                  
-                  <td className="px-4 py-3 text-right font-mono font-black text-purple-600 pr-6">
-                    {row.points} pts
-                  </td>
-                </tr>
-              ))}
-              
-              {leaderboardData.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400 font-mono font-medium">
-                    No verified freelancers found on the leaderboard.
-                  </td>
-                </tr>
+                    </td>
+                    
+                    <td className="px-4 py-3">
+                      {getRoleBadge(row.role)}
+                    </td>
+                    
+                    <td className="px-4 py-3 text-center font-mono font-bold text-slate-800">
+                      {row.successRate}
+                    </td>
+                    
+                    <td className="px-4 py-3 text-center font-mono font-black text-emerald-600">
+                      {row.earnings}
+                    </td>
+                    
+                    <td className="px-4 py-3 text-right font-mono font-black text-purple-600 pr-6">
+                      {row.points} pts
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
