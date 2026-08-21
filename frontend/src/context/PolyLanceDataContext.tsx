@@ -69,6 +69,22 @@ interface PolyLanceDataContextType {
 
 const PolyLanceDataContext = createContext<PolyLanceDataContextType | undefined>(undefined);
 
+const MOCK_ADDRESSES_TO_PURGE = new Set([
+  '0x71c8366420a092c55660830e8115e9a44390001',
+  '0x34a589112d480055dafd8a610b7d1e203891c821',
+  '0x89b4566420a092c55660830e8115e9a443900142',
+  '0x42f8366420a092c55660830e8115e9a443900990',
+  '0x55e1236420a092c55660830e8115e9a443900310',
+]);
+
+const MOCK_NAMES_TO_PURGE = new Set([
+  'alex rivera',
+  'elena rostova',
+  'marcus sterling',
+  'nadia chen',
+  'devpioneer'
+]);
+
 const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<string, UserProfile> => {
   const normalized: Record<string, UserProfile> = {};
   const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
@@ -77,6 +93,10 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
   for (const [addr, profile] of Object.entries(rawProfiles || {})) {
     if (!addr) continue;
     const lowerAddr = addr.toLowerCase();
+
+    // Strip legacy mock records
+    if (MOCK_ADDRESSES_TO_PURGE.has(lowerAddr)) continue;
+    if (profile.displayName && MOCK_NAMES_TO_PURGE.has(profile.displayName.toLowerCase().trim())) continue;
 
     // Copy profile data, but if this is NOT the judge address and it has the judge's GitHub username, unbind it
     let cleanedProfile = { ...profile };
@@ -126,10 +146,27 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { provider, getSigner } = useWeb3();
 
+  // One-time purge of legacy mock data in client browsers
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const version = localStorage.getItem('polylance_data_version');
+      if (version !== 'v3_zero_mock') {
+        localStorage.removeItem('polylance_profiles');
+        localStorage.removeItem('polylance_jobs');
+        localStorage.removeItem('polylance_dao_proposals');
+        localStorage.removeItem('polylance_judge_messages');
+        localStorage.setItem('polylance_data_version', 'v3_zero_mock');
+      }
+    }
+  }, []);
+
   const [jobs, setJobsRaw] = useState<Job[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_jobs');
-      return saved ? JSON.parse(saved) : INITIAL_JOBS;
+      if (saved) {
+        const parsed: Job[] = JSON.parse(saved);
+        return parsed.filter(j => j.id !== 'job-101' && j.id !== 'job-102');
+      }
     }
     return INITIAL_JOBS;
   });
