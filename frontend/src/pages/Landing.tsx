@@ -99,7 +99,7 @@ export const Landing: React.FC = () => {
         initial={{ opacity: 0, y: 24, filter: 'blur(12px)' }}
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        className="hero-gradient pt-8 pb-12 text-center max-w-3xl mx-auto space-y-6"
+        className="relative pt-6 pb-12 w-full max-w-6xl mx-auto"
       >
 
         {/* Subtle Ambient Particle Accents */}
@@ -149,7 +149,7 @@ export const Landing: React.FC = () => {
                 className="blue-glow-btn text-white px-8 py-4 rounded-xl font-headline font-bold text-base flex items-center justify-center gap-3 cursor-pointer"
               >
                 <Wallet size={19} />
-                <span>Go to Dashboard</span>
+                <span>{isConnected ? 'Go to Dashboard' : 'Connect Wallet to Start'}</span>
                 <ArrowRight size={19} />
               </button>
 
@@ -158,7 +158,7 @@ export const Landing: React.FC = () => {
                 className="liquid-glass px-7 py-4 rounded-xl font-headline font-bold text-slate-800 text-base hover:bg-white border-slate-200/80 transition-all flex items-center justify-center gap-2.5 shadow-2xs hover:shadow-xs cursor-pointer"
               >
                 <Search size={18} className="text-purple-600" />
-                <span>Browse Jobs</span>
+                <span>Browse Jobs (Marketplace)</span>
               </Link>
             </div>
           </motion.div>
@@ -222,45 +222,6 @@ export const Landing: React.FC = () => {
               </motion.div>
             </div>
           </motion.div>
-        </div>
-
-        <h1 className="font-headline text-4xl sm:text-5xl font-black text-slate-900 leading-tight">
-          Verifiable Reputation. <br />
-          <span className="gradient-text-purple-pink">Immutable Professionalism.</span>
-        </h1>
-
-        <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-          The world's first decentralized talent protocol where work history is written in stone. No inflated resumes. No fake reviews. Just pure, on-chain performance.
-        </p>
-
-        {/* HERO CTA BUTTONS */}
-        <div className="flex flex-wrap gap-4 pt-2 justify-center">
-          <button
-            onClick={handleGetStarted}
-            className="gradient-btn-primary px-8 py-3.5 rounded-xl font-headline font-bold text-base flex items-center gap-2.5 hard-shadow cursor-pointer"
-          >
-            <Wallet size={18} />
-            {isConnected ? 'Go to Dashboard' : 'Connect Wallet to Start'}
-            <ArrowRight size={18} />
-          </button>
-
-          {currentRole === 'client' ? (
-            <Link
-              to="/jobs/post"
-              className="glass-panel px-8 py-3.5 rounded-xl font-headline font-bold text-purple-900 text-base hover:bg-slate-50 border-purple-200 transition-all flex items-center gap-2"
-            >
-              <PlusCircle size={18} className="text-purple-700" />
-              Post Job Escrow
-            </Link>
-          ) : (
-            <Link
-              to="/jobs"
-              className="glass-panel px-8 py-3.5 rounded-xl font-headline font-bold text-slate-800 text-base hover:bg-slate-50 border-slate-200 transition-all flex items-center gap-2"
-            >
-              <Search size={18} className="text-purple-700" />
-              Browse Jobs (Marketplace)
-            </Link>
-          )}
         </div>
       </motion.section>
 
