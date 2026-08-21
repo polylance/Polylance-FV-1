@@ -120,28 +120,38 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const provider = getActiveProvider();
-      const factory = new ethers.Contract(CONTRACTS.JobFactory, getAbi(JobFactoryABI), provider);
-      const sbt = new ethers.Contract(CONTRACTS.ReputationSBT, getAbi(ReputationSBTABI), provider);
+      
+      // Verify if contract code exists on the connected network
+      const code = await provider.getCode(CONTRACTS.JobFactory).catch(() => '0x');
+      let arbitrator = false;
+      let treasuryAdmin = false;
+      let sbtBalance = 0;
 
-      const [ARBITRATOR_ROLE, TREASURY_ADMIN_ROLE] = await Promise.all([
-        factory.ARBITRATOR_ROLE(),
-        factory.TREASURY_ADMIN_ROLE(),
-      ]);
+      if (code && code !== '0x') {
+        const factory = new ethers.Contract(CONTRACTS.JobFactory, getAbi(JobFactoryABI), provider);
+        const sbt = new ethers.Contract(CONTRACTS.ReputationSBT, getAbi(ReputationSBTABI), provider);
 
-      const [arbitrator, treasuryAdmin, sbtBalance] = await Promise.all([
-        factory.hasRole(ARBITRATOR_ROLE, connectedAddress),
-        factory.hasRole(TREASURY_ADMIN_ROLE, connectedAddress),
-        sbt.balanceOf(connectedAddress),
-      ]);
+        const arbitratorRole = ethers.id("ARBITRATOR_ROLE");
+        const treasuryAdminRole = ethers.id("TREASURY_ADMIN_ROLE");
 
-      const lowerAddr = connectedAddress.toLowerCase();
-      // Use adminGuard — no hardcoded addresses in this file
-      const isActuallyAdmin = isAdminAddress(connectedAddress) || Boolean(treasuryAdmin);
-      const isActuallyJudge = isJudgeAddress(connectedAddress) || Boolean(arbitrator);
+        const [isArb, isTreasury, balance] = await Promise.all([
+          factory.hasRole(arbitratorRole, connectedAddress).catch(() => false),
+          factory.hasRole(treasuryAdminRole, connectedAddress).catch(() => false),
+          sbt.balanceOf(connectedAddress).catch(() => 0n),
+        ]);
+
+        arbitrator = Boolean(isArb);
+        treasuryAdmin = Boolean(isTreasury);
+        sbtBalance = Number(balance || 0);
+      }
+
+      // Use adminGuard — address matching as primary/fallback
+      const isActuallyAdmin = isAdminAddress(connectedAddress) || treasuryAdmin;
+      const isActuallyJudge = isJudgeAddress(connectedAddress) || arbitrator;
 
       setIsArbitrator(isActuallyJudge);
       setIsTreasuryAdmin(isActuallyAdmin);
-      setReputationCount(Number(sbtBalance));
+      setReputationCount(sbtBalance);
 
       // Persist role to localStorage so page refresh doesn't lose it
       const persistRole = (r: DemoRole) => {
@@ -161,11 +171,8 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
           persistRole(activeRole);
         }
       }
-      // suppress unused-var warning
-      void lowerAddr;
     } catch (err) {
-      console.error('Failed to load on-chain state:', err);
-      setError('Could not load on-chain permissions — check network connection.');
+      console.warn('On-chain permissions check notice:', err);
       // Even on RPC failure, detect role purely via env-var address matching
       const privilegedRole = detectPrivilegedRole(connectedAddress);
       const persistRoleCatch = (r: DemoRole) => {
