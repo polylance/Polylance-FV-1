@@ -29,18 +29,6 @@ services:
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
-      - key: FILEBASE_ACCESS_KEY
-        sync: false
-      - key: FILEBASE_SECRET_KEY
-        sync: false
-      - key: FILEBASE_BUCKET
-        value: polylance-db
-      - key: FILEBASE_ENDPOINT
-        value: https://s3.filebase.io
-      - key: FILEBASE_REGION
-        value: auto
-      - key: IPFS_GATEWAY_URL
-        value: https://ipfs.filebase.io/ipfs/
 
 databases:
   - name: polylance-chat-db

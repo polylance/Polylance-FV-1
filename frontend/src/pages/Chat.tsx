@@ -18,7 +18,7 @@ export const Chat: React.FC = () => {
   const { address, currentRole, isConnected } = useWeb3();
   const {
     jobs, profiles, judges, judgeMessages, sendChatMessage, sendJudgeChatMessage, proposeTerms, fundJob,
-    releasePayment, submitWork, requestModifications, isEnclineConnected, closeChatSession, archiveChatToPinata, deleteChatHistory
+    releasePayment, submitWork, requestModifications, isEnclineConnected, closeChatSession, deleteChatHistory
   } = usePolyLanceData();
 
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -29,14 +29,6 @@ export const Chat: React.FC = () => {
   const [chatTab, setChatTab] = useState<'jobs' | 'judges'>(isAdmin && !urlJobId ? 'judges' : 'jobs');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(urlJobId || null);
 
-  // Automatically archive chat session to Pinata IPFS & localStorage on channel switch or exit
-  useEffect(() => {
-    return () => {
-      if (selectedJobId) {
-        archiveChatToPinata(selectedJobId);
-      }
-    };
-  }, [selectedJobId]);
   const [selectedJudgeAddr, setSelectedJudgeAddr] = useState<string | null>(
     judges.length > 0 ? judges[0].address : null
   );
