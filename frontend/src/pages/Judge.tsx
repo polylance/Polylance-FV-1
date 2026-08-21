@@ -7,7 +7,7 @@ import confetti from 'canvas-confetti';
 import { EmptyState, PermissionDeniedState } from '../components/UIStates';
 
 export const Judge: React.FC = () => {
-  const { address } = useWeb3();
+  const { address, currentRole } = useWeb3();
   const { jobs, resolveDispute } = usePolyLanceData();
 
   const disputedJobs = jobs.filter((j) => j.status === 'Disputed');

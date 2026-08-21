@@ -130,6 +130,8 @@ export interface UserProfile {
   prsCount?: number;
   reputationTier?: string;
   role?: 'freelancer' | 'client';
+  title?: string;
+  hourlyRateUsdc?: number;
 }
 
 export interface DaoProposal {

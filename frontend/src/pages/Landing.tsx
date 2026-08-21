@@ -43,6 +43,13 @@ export const Landing: React.FC = () => {
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
+  const { scrollY } = useScroll();
+  const heroScale = useTransform(scrollY, [0, 300], [1, 0.96]);
+  const smoothHeroScale = useSpring(heroScale, { stiffness: 100, damping: 30 });
+  const heroY = useTransform(scrollY, [0, 300], [0, -20]);
+  const logoRotate = useTransform(scrollY, [0, 500], [0, 15]);
+  const smoothLogoRotate = useSpring(logoRotate, { stiffness: 100, damping: 30 });
+  const logoY = useTransform(scrollY, [0, 500], [0, 25]);
 
   const handleGetStarted = () => {
     if (!isConnected) {

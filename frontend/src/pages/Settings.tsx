@@ -148,7 +148,7 @@ export const Settings: React.FC = () => {
           title: title.trim(),
           bio: bio.trim(),
           skills,
-          hourlyRateUsdc: hourlyRateUsdc.trim(),
+          hourlyRateUsdc: parseFloat(String(hourlyRateUsdc)) || 0,
           githubUsername: githubUsername.trim(),
           githubVerified: Boolean(githubUsername.trim()),
         },

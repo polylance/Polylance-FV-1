@@ -66,6 +66,11 @@ interface PolyLanceDataContextType {
   submitDisputeResponse: (jobId: string, responseText: string, responseIpfsHash: string) => void;
   resolveDispute: (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => Promise<void>;
   sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => void;
+  sendJudgeChatMessage: (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => void;
+  isEnclineConnected: boolean;
+  judgeMessages: Record<string, JudgeMessage[]>;
+  closeChatSession: (jobId: string) => Promise<string | null>;
+  deleteChatHistory: (jobId?: string, judgeAddress?: string) => void;
   updateProfile: (profile: Partial<UserProfile>, address: string) => Promise<void>;
   castDaoVote: (proposalId: string | number, support: boolean, voterAddress?: string, votingPower?: number) => Promise<void> | void;
   castVote: (proposalId: string | number, support: boolean, voterAddress?: string) => Promise<void> | void;
@@ -1328,6 +1333,49 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }));
   };
 
+  const closeChatSession = async (jobId: string): Promise<string | null> => {
+    sendChatMessage(jobId, '🔒 Chat session closed.', 'Judge');
+    return null;
+  };
+
+  const deleteChatHistory = (jobId?: string, judgeAddress?: string) => {
+    if (jobId) {
+      setJobs((prev) =>
+        prev.map((j) => {
+          if (j.id.toLowerCase() !== jobId.toLowerCase() && j.contractAddress.toLowerCase() !== jobId.toLowerCase()) return j;
+          return { ...j, chatMessages: [] };
+        })
+      );
+    } else if (judgeAddress) {
+      const lower = judgeAddress.toLowerCase();
+      setJudgeMessages((prev) => {
+        const next = { ...prev };
+        delete next[lower];
+        return next;
+      });
+    }
+  };
+
+  const sendJudgeChatMessage = (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => {
+    if (!judgeAddress || !text.trim()) return;
+    const lower = judgeAddress.toLowerCase();
+    const msg: JudgeMessage = {
+      id: `jmsg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      judgeAddress: lower,
+      sender: senderAddress || (senderRole === 'Admin' ? 'Admin' : lower),
+      senderRole,
+      text: text.trim(),
+      timestamp: Date.now()
+    };
+    setJudgeMessages(prev => {
+      const existing = prev[lower] || [];
+      return {
+        ...prev,
+        [lower]: [...existing, msg]
+      };
+    });
+  };
+
   return (
     <PolyLanceDataContext.Provider
       value={{
@@ -1359,6 +1407,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         submitDisputeResponse,
         resolveDispute,
         sendChatMessage,
+        sendJudgeChatMessage,
+        isEnclineConnected: false,
+        judgeMessages,
+        closeChatSession,
+        deleteChatHistory,
         updateProfile,
         castDaoVote,
         castVote,

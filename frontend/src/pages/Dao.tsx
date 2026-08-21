@@ -143,7 +143,8 @@ export const Dao: React.FC = () => {
                 )}
               </div>
             );
-          })}
+          })
+        )}
         </div>
       </div>
 
