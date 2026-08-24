@@ -517,40 +517,68 @@ export const Profile: React.FC = () => {
           </div>
 
           {/* Soulbound Reputation Tokens Collection */}
+          {/* On-Chain Soulbound Token (SBT) Vault */}
           <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
-                <Award size={20} className="text-purple-700" /> ReputationSBT Token Collection ({completedFreelancerJobs.length})
-              </h3>
-              <span className="text-[10px] font-mono text-purple-900 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200 font-bold">
-                ERC-721 Votes Soulbound
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
+                  <Award size={20} className="text-purple-700" /> Soulbound Reputation Tokens ({completedFreelancerJobs.length})
+                </h3>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                  Cryptographically minted, non-transferable on-chain escrow credentials
+                </p>
+              </div>
+              <span className="text-[10px] font-mono text-purple-900 bg-purple-100 px-3 py-1 rounded-full border border-purple-200 font-bold flex items-center gap-1">
+                <ShieldCheck size={12} className="text-purple-700" /> Polygon ERC-721 Soulbound
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {completedFreelancerJobs.length > 0 ? (
-                completedFreelancerJobs.map((j, idx) => (
+                completedFreelancerJobs.map((j) => (
                   <div
                     key={j.id}
-                    className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 relative overflow-hidden group hover:border-purple-300 transition-all"
+                    className="bg-gradient-to-br from-purple-50/40 via-white to-slate-50 p-5 rounded-2xl border border-purple-200/80 space-y-3 relative overflow-hidden group hover:border-purple-400 hover:shadow-xs transition-all"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-purple-900">
-                        PLREP Token #{j.sbtTokenId || getDeterministicSbtId(j.id)}
+                      <span className="text-xs font-mono font-black text-purple-900 bg-purple-100/80 px-2.5 py-0.5 rounded-lg border border-purple-200">
+                        SBT #{j.sbtTokenId || getDeterministicSbtId(j.id)}
                       </span>
-                      <ShieldCheck size={16} className="text-emerald-600" />
+                      <span className="text-xs font-mono font-black text-emerald-700">
+                        ${parseFloat(j.amountUsdc || '0').toLocaleString()} USDC
+                      </span>
                     </div>
-                    <p className="text-xs font-bold text-slate-900">
-                      Completed Job: {j.title}
-                    </p>
-                    <span className="text-[10px] font-mono text-slate-500 block">
-                      Non-transferable Soulbound reputation proof
-                    </span>
+
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 line-clamp-1 font-headline">
+                        {j.title}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        Client: {truncateAddress(j.client)}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t border-purple-100/80 flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-400">
+                        Minted: {new Date(j.submittedAt || j.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                      <a
+                        href={`https://polygonscan.com/address/${j.contractAddress}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1 hover:underline"
+                      >
+                        <span>PolygonScan</span>
+                        <ExternalLink size={11} />
+                      </a>
+                    </div>
                   </div>
                 ))
               ) : (
-                <div className="col-span-2 text-center py-6 text-slate-500 border border-dashed border-slate-300 rounded-xl bg-slate-50 font-sans">
-                  No Soulbound SBT Attestations minted yet.
+                <div className="col-span-2 text-center py-8 text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 font-sans space-y-1">
+                  <Award className="w-8 h-8 text-slate-400 mx-auto mb-1" />
+                  <p className="font-bold text-slate-700 text-xs">No Soulbound SBT Attestations Minted Yet</p>
+                  <p className="text-[11px] text-slate-400 font-mono">Complete your first freelance escrow delivery to mint a non-transferable reputation token.</p>
                 </div>
               )}
             </div>

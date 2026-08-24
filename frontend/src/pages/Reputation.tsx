@@ -25,6 +25,8 @@ import {
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 
+import { calculateReputationScores, formatEarnings } from '../utils/reputation';
+
 export const Reputation: React.FC = () => {
   const { address, isArbitrator, currentRole, reputationCount: onChainReputationCount } = useWeb3();
   const { profiles, jobs } = usePolyLanceData();
@@ -43,60 +45,14 @@ export const Reputation: React.FC = () => {
   const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '').toLowerCase();
   const adminAddr3 = (import.meta.env.VITE_ADMIN_ADDRESS_3 || '').toLowerCase();
 
-  // Standardized PolyLance Reputation Calculation Formula:
-  // 1. SBT Escrow Deliveries: 100 pts per completed escrow delivery / minted SBT
-  // 2. Escrow Volume Settled: 1 pt per $25 completed volume (4 pts per $100)
-  // 3. Verified Developer Attestation: +50 pts
-  // 4. Governance & Dispute Arbitration: +25 pts per ruling / DAO vote
-  const calculateReputationScores = (
-    targetAddress: string,
-    profileObj?: UserProfile | null,
-    sbtCount: number = 0,
-    isJudgeAccount: boolean = false
-  ) => {
-    const lower = targetAddress.toLowerCase();
-    const profileJobs = jobs.filter(
-      (j) => j.freelancer?.toLowerCase() === lower
-    );
-    const completedJobs = profileJobs.filter((j) => j.status === 'Completed');
-    const completedCount = Math.max(sbtCount, completedJobs.length, profileObj?.reputationSbtCount || 0);
-
-    const completedVolume = completedJobs.reduce((sum, j) => {
-      const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
-      return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
-    }, 0);
-
-    const escrowPts = completedCount * 100;
-    const volumePts = Math.floor(completedVolume / 25);
-    const hasGithub = Boolean(profileObj?.githubVerified || (profileObj?.githubUsername && profileObj.githubUsername.trim().length > 0));
-    const attestationBonus = hasGithub ? 50 : 0;
-    const isArbitratorRole = isJudgeAccount || lower === judgeAddr || Boolean(profileObj?.bio?.toLowerCase().includes('arbitrat'));
-    const arbitrationPts = isArbitratorRole ? 50 : 0;
-
-    const totalPts = escrowPts + volumePts + attestationBonus + arbitrationPts;
-
-    const successRatePercent = completedCount > 0
-      ? Math.round((completedJobs.filter(j => !j.dispute || (j.dispute.resolved && (j.dispute.rulingBps ?? 0) >= 5000)).length / completedCount) * 100)
-      : (profileJobs.length > 0 ? 100 : 0);
-
-    return {
-      totalPoints: totalPts,
-      escrowPoints: escrowPts,
-      volumePoints: volumePts,
-      attestationBonus,
-      arbitrationPoints: arbitrationPts,
-      completedJobsCount: completedCount,
-      totalVolume: completedVolume,
-      successRatePercent,
-    };
-  };
-
   // Current connected user stats
   const userScores = calculateReputationScores(
     address || '',
+    jobs,
     userProfile,
     Number(onChainReputationCount || 0),
-    Boolean(isArbitrator)
+    Boolean(isArbitrator),
+    judgeAddr
   );
 
   const reputationCount = userScores.completedJobsCount;
@@ -116,9 +72,11 @@ export const Reputation: React.FC = () => {
 
       const scores = calculateReputationScores(
         profile.address,
+        jobs,
         profile,
         profile.reputationSbtCount || 0,
-        isJudge
+        isJudge,
+        judgeAddr
       );
 
       const roleDisplay = profile.title 
@@ -482,21 +440,21 @@ export const Reputation: React.FC = () => {
                   <span className="font-mono text-emerald-600 font-black text-sm">+{escrowPoints} pts</span>
                 </div>
                 <p className="text-[10px] text-slate-500 font-mono">
-                  {reputationCount > 0 
-                    ? `Based on ${reputationCount * 12} block-verified deliverables across ${reputationCount * 3} projects.`
+                  {userCompletedJobsCount > 0 
+                    ? `Based on ${userCompletedJobsCount} completed escrow contract${userCompletedJobsCount !== 1 ? 's' : ''} (100 pts each).`
                     : 'Complete verified jobs to build your escrow success history.'}
                 </p>
                 <div className="flex items-center gap-2.5 pt-0.5">
                   <div className="flex-1 bg-slate-200/60 h-1.5 rounded-full overflow-hidden shadow-inner">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: reputationCount > 0 ? '64%' : '0%' }}
+                      animate={{ width: totalPoints > 0 ? `${Math.round((escrowPoints / totalPoints) * 100)}%` : '0%' }}
                       transition={{ duration: 1.2, ease: 'easeOut' }}
                       className="bg-emerald-600 h-full rounded-full" 
                     />
                   </div>
                   <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black shrink-0">
-                    {reputationCount > 0 ? '64%' : '0%'}
+                    {totalPoints > 0 ? `${Math.round((escrowPoints / totalPoints) * 100)}%` : '0%'}
                   </span>
                 </div>
               </div>
@@ -513,21 +471,21 @@ export const Reputation: React.FC = () => {
                   <span className="font-mono text-blue-600 font-black text-sm">+{multisigPoints} pts</span>
                 </div>
                 <p className="text-[10px] text-slate-500 font-mono">
-                  {isArbitrator 
-                    ? `Earned from ${reputationCount * 3 || 15} high-stakes escrow releases with 0 disputes.`
+                  {multisigPoints > 0 
+                    ? `Earned +${multisigPoints} pts from verified arbitrator role participation.`
                     : 'Acquire arbitrator credentials to earn multi-sig verification points.'}
                 </p>
                 <div className="flex items-center gap-2.5 pt-0.5">
                   <div className="flex-1 bg-slate-200/60 h-1.5 rounded-full overflow-hidden shadow-inner">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: isArbitrator ? '21%' : '0%' }}
+                      animate={{ width: totalPoints > 0 ? `${Math.round((multisigPoints / totalPoints) * 100)}%` : '0%' }}
                       transition={{ duration: 1.2, ease: 'easeOut' }}
                       className="bg-blue-600 h-full rounded-full" 
                     />
                   </div>
                   <span className="bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black shrink-0">
-                    {isArbitrator ? '21%' : '0%'}
+                    {totalPoints > 0 ? `${Math.round((multisigPoints / totalPoints) * 100)}%` : '0%'}
                   </span>
                 </div>
               </div>
@@ -544,19 +502,21 @@ export const Reputation: React.FC = () => {
                   <span className="font-mono text-amber-600 font-black text-sm">+{govPoints} pts</span>
                 </div>
                 <p className="text-[10px] text-slate-500 font-mono">
-                  Protocol governance votes and peer milestone reviews.
+                  {govPoints > 0 
+                    ? `+${govPoints} pts from verified GitHub developer attestation.`
+                    : 'Verify your GitHub account to earn attestation bonus points.'}
                 </p>
                 <div className="flex items-center gap-2.5 pt-0.5">
                   <div className="flex-1 bg-slate-200/60 h-1.5 rounded-full overflow-hidden shadow-inner">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: reputationCount > 0 ? '15%' : '0%' }}
+                      animate={{ width: totalPoints > 0 ? `${Math.round((govPoints / totalPoints) * 100)}%` : '0%' }}
                       transition={{ duration: 1.2, ease: 'easeOut' }}
                       className="bg-amber-500 h-full rounded-full" 
                     />
                   </div>
                   <span className="bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black shrink-0">
-                    {reputationCount > 0 ? '15%' : '0%'}
+                    {totalPoints > 0 ? `${Math.round((govPoints / totalPoints) * 100)}%` : '0%'}
                   </span>
                 </div>
               </div>

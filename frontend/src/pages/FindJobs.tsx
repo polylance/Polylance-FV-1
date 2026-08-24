@@ -189,8 +189,8 @@ export const FindJobs: React.FC = () => {
                       <span className="text-emerald-700">
                         {parseFloat(payAmount).toLocaleString(undefined, { maximumFractionDigits: 6 })} <span className="text-xs font-normal text-slate-500">{payToken}</span>
                       </span>
-                      <span className="text-[10px] text-purple-600 font-bold font-sans mt-0.5 whitespace-nowrap block">
-                        ≈ {converted.formatted}
+                      <span className="text-[10px] text-purple-700 font-bold font-sans mt-0.5 whitespace-nowrap block">
+                        Net: ${(parseFloat(payAmount) * 0.975).toFixed(2)} USDC (after 2.5% fee)
                       </span>
                     </div>
                   </div>

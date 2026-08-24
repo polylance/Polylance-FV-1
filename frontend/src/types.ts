@@ -14,10 +14,20 @@ export interface Application {
   githubScore: number;
 }
 
+export interface DeliverableFile {
+  cid: string;
+  name: string;
+  type: string;
+  size: number;
+  dataUrl?: string;
+  uploadedAt: number;
+}
+
 export interface ProofOfWork {
   title: string;
   description: string;
   evidenceHashes: string[];
+  evidenceFiles?: DeliverableFile[];
   submittedAt: number;
   externalLink?: string;
 }
@@ -106,6 +116,11 @@ export interface Job {
   events: JobEvent[];
   chatMessages?: { sender: 'Client' | 'Freelancer' | 'Judge'; text: string; timestamp: number }[];
   sbtTokenId?: number;
+  negotiatedAmount?: string;
+  negotiatedDeadlineDays?: number;
+  preAcceptMessages?: { sender: string; senderRole: 'Client' | 'Freelancer'; text: string; timestamp: number }[];
+  completedAt?: number;
+  chatClearedAt?: number;
 }
 
 export interface UserProfile {
@@ -194,6 +209,9 @@ export interface JudgeRecord {
   addedAt: number;
   addedBy: string;
   notes?: string;
+  specialty?: string;
+  casesResolved?: number;
+  avgResolutionTime?: string;
 }
 
 export interface JudgeMessage {

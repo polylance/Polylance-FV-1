@@ -9,7 +9,7 @@
       "paymentToken": "0x0000000000000000000000000000000000000000",
       "paymentTokenSymbol": "MATIC",
       "paymentTokenDecimals": 18,
-      "status": "Submitted",
+      "status": "Completed",
       "title": "Check the Entire Polylance Working functionalities after that db issue ",
       "description": "check every feature and functionalities and the db integration and the data syncing everything ",
       "category": "backend",
@@ -73,17 +73,19 @@
         },
         {
           "step": "Completed",
-          "title": "Release Payment",
-          "timestamp": 0,
-          "txHash": "",
-          "status": "current"
+          "title": "Payment Released (100%)",
+          "timestamp": 1787576392906,
+          "txHash": "0x1f9240c89b3672fbe85f3c194ccdb182122ec3aa6f12279d35c442af4c905326",
+          "status": "completed",
+          "actor": "Client"
         },
         {
           "step": "Minted",
           "title": "Mint Reputation SBT",
-          "timestamp": 0,
-          "txHash": "",
-          "status": "pending"
+          "timestamp": 1787576392906,
+          "txHash": "0x7d4a0aca1e4268dfd789c7083271ad83ca596a869a4ae4293e71acad2cc1b02d",
+          "status": "completed",
+          "actor": "JobFactory"
         },
         {
           "step": "Update",
@@ -195,13 +197,257 @@
         "evidenceHashes": [],
         "submittedAt": 1787311736541
       },
-      "submittedAt": 1787311736601
+      "submittedAt": 1787311736601,
+      "preAcceptMessages": []
+    },
+    {
+      "id": "0xce1376c2272E",
+      "contractAddress": "0xce1376c2272EC6ed6E1D547A42Ce80AfcA835487",
+      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+      "amountEth": "0.0060",
+      "amountUsdc": "15",
+      "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "paymentTokenSymbol": "USDC",
+      "paymentTokenDecimals": 6,
+      "status": "Completed",
+      "title": "Check New Filebase DB Working Process",
+      "description": "Check all the Features like create new accounts with wallet addresses and create jobs if client and apply for job if freelancer and accept the job proposals and use xmtp message protocol and check its latency and submit any demo work and its link with any demo image or file and check for realtime submission and its process and check every feature in client side to fix the bugs in it .",
+      "category": "backend",
+      "reviewPeriodDays": 4,
+      "createdAt": 1787240607076,
+      "applications": [
+        {
+          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "proposalIpfsHash": "bafybeixzbwuzbdla6dlnvkinvx7usx7bj64bjl",
+          "proposalText": "I'm a Working professional on polylance",
+          "appliedAt": 1787577759446,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "React",
+            "Rust",
+            "IPFS"
+          ],
+          "githubVerified": true,
+          "githubScore": 888
+        }
+      ],
+      "events": [
+        {
+          "step": "Posted",
+          "title": "Job Posted (USDC Escrow)",
+          "timestamp": 1787240607076,
+          "txHash": "0x798f8e89d6995683f26b3f57694388b1694979fb072058b48ff6c5807a05111f",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Selected",
+          "title": "Select Freelancer",
+          "timestamp": 1787578457082,
+          "txHash": "0x11b08e20a93374dc2630a57b101020f1d049d1c07d632f630f4522c71ec5bb30",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Terms",
+          "title": "Agree Terms",
+          "timestamp": 1787578493206,
+          "txHash": "0x38338d324e5912edbd86cbab2b977c3a9fd045acd5a88e87ccae9021394dca25",
+          "status": "completed"
+        },
+        {
+          "step": "Funded",
+          "title": "Fund Escrow",
+          "timestamp": 1787579135552,
+          "txHash": "0x7a67cd8b1d7127bcac097f9d8d7bd6d6f91efed2afcd1bf47975b21703675970",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Submitted",
+          "title": "Submit Work",
+          "timestamp": 1787583793176,
+          "txHash": "0xc5e2d8eb73646b447d422252c469a69600a06ea53256a33f4b060f2dd79d1865",
+          "status": "completed",
+          "actor": "Freelancer"
+        },
+        {
+          "step": "Completed",
+          "title": "Payment Released (100%)",
+          "timestamp": 1787583848968,
+          "txHash": "0xdc2dee975df94b8d501e4565bb70619c0cbf8e3854b72c2b862f1b9c0db57910",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Minted",
+          "title": "Mint Reputation SBT",
+          "timestamp": 1787583848968,
+          "txHash": "0xd5c8b61126400d15b7f42cb8929b1a9effad665056d381c36b1488af751343ba",
+          "status": "completed",
+          "actor": "JobFactory"
+        },
+        {
+          "step": "Update",
+          "title": "Progress Update (50%)",
+          "timestamp": 1787580201198,
+          "txHash": "0xe712ff41e825215119d9f2a5c5ec1c62b9ffce1541440a74ab0e139139a98722",
+          "status": "completed",
+          "actor": "Freelancer",
+          "description": "The Messages section work is going on "
+        },
+        {
+          "step": "Update",
+          "title": "Progress Update (75%)",
+          "timestamp": 1787581772907,
+          "txHash": "0xaff1654d7e4d2abce101938804c9c60e91e536cd564e0283a1066ccd3a1813c5",
+          "status": "completed",
+          "actor": "Freelancer",
+          "description": "the ui is getting better"
+        },
+        {
+          "step": "Update",
+          "title": "Progress Update (90%)",
+          "timestamp": 1787582699315,
+          "txHash": "0xf6c1737996a215cf20845fdbd7552ea9c3115acd825fe90c54125bfde00b5b03",
+          "status": "completed",
+          "actor": "Freelancer",
+          "description": "almost done"
+        },
+        {
+          "step": "Modifications",
+          "title": "Modifications Requested by Client",
+          "timestamp": 1787583425327,
+          "txHash": "0xd68512e04fa33764f20ab8d7e883c923f1e448aafa64d0635c53fa6d3ba2f73d",
+          "status": "completed",
+          "actor": "Client",
+          "description": "submit the images of proofOfWork"
+        }
+      ],
+      "chatMessages": [
+        {
+          "sender": "Freelancer",
+          "text": "hi",
+          "timestamp": 1787579090874
+        },
+        {
+          "sender": "Client",
+          "text": "hi",
+          "timestamp": 1787579097993
+        },
+        {
+          "sender": "Client",
+          "text": "hi",
+          "timestamp": 1787579547496
+        },
+        {
+          "sender": "Freelancer",
+          "text": "hello",
+          "timestamp": 1787579572691
+        },
+        {
+          "sender": "Freelancer",
+          "text": "so modify it",
+          "timestamp": 1787583571126
+        },
+        {
+          "sender": "Client",
+          "text": "yes modify the following one",
+          "timestamp": 1787583598997
+        },
+        {
+          "sender": "Freelancer",
+          "text": "💯",
+          "timestamp": 1787589158040
+        }
+      ],
+      "progressUpdates": [
+        {
+          "id": "0xe712ff41",
+          "ipfsHash": "bafybeiqi7erv2sjo37e4tyfjog5cptyqhmz5c2",
+          "progressPercent": 50,
+          "statusNote": "The Messages section work is going on ",
+          "timestamp": 1787580201197,
+          "txHash": "0xe712ff41e825215119d9f2a5c5ec1c62b9ffce1541440a74ab0e139139a98722",
+          "demoUrl": ""
+        },
+        {
+          "id": "0xaff1654d",
+          "ipfsHash": "bafybeiiyzjunscdt6x4mn5ibgwxhslqabr4v2k",
+          "progressPercent": 75,
+          "statusNote": "the ui is getting better",
+          "timestamp": 1787581772906,
+          "txHash": "0xaff1654d7e4d2abce101938804c9c60e91e536cd564e0283a1066ccd3a1813c5",
+          "demoUrl": "https://github.com/polylance/Polylance-FV-1/"
+        },
+        {
+          "id": "0xf6c17379",
+          "ipfsHash": "bafybeisbfp5p4lpzhzgvzdrdq7dn3n2jnxfxet",
+          "progressPercent": 90,
+          "statusNote": "almost done",
+          "timestamp": 1787582699314,
+          "txHash": "0xf6c1737996a215cf20845fdbd7552ea9c3115acd825fe90c54125bfde00b5b03"
+        }
+      ],
+      "extensionRequests": [],
+      "modificationRequests": [
+        {
+          "id": "0xd68512e0",
+          "note": "submit the images of proofOfWork",
+          "requestedAt": 1787583425326,
+          "status": "Pending"
+        }
+      ],
+      "preAcceptMessages": [
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1787577794773
+        },
+        {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1787578337923
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "hello",
+          "timestamp": 1787578427348
+        },
+        {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Freelancer",
+          "text": "good",
+          "timestamp": 1787578437983
+        }
+      ],
+      "freelancer": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+      "clientAgreedTerms": true,
+      "freelancerAgreedTerms": true,
+      "termsHash": "0x67699599b1ba85d7f05356b71f69503d7d34e938214424e22b2866fd0a9cf7f1",
+      "proof": {
+        "title": "Check New Filebase DB Working Process",
+        "description": "Please review the feedback above, make the required changes, and re-submit your deliverables using the form below.",
+        "evidenceHashes": [
+          "bafybeit5hkrwaknuzdnqx4gqt27jtw5cmwzafp"
+        ],
+        "submittedAt": 1787583793174,
+        "externalLink": "https://github.com/polylance/Polylance-FV-1/"
+      },
+      "negotiatedAmount": "15",
+      "negotiatedDeadlineDays": 4,
+      "submittedAt": 1787583793176,
+      "completedAt": 1787583848968
     }
   ],
   "profiles": {
     "0xb8aa0398b91a150b041da819bc954bb356e009dd": {
       "address": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-      "displayName": "Protocol Judge",
+      "displayName": "Sunny Pasumarthi",
       "bio": "Official PolyLance Lead Arbitrator & DAO Verifier.",
       "avatarUrl": "https://github.com/sunny200551.png",
       "ipfsHash": "QmJudgeProfileDataHashPlaceholder",
@@ -209,12 +455,18 @@
         "Arbitration",
         "Smart Contracts",
         "Security Audit",
-        "Solidity"
+        "Solidity",
+        "HTML5/CSS3",
+        "Python",
+        "JavaScript",
+        "Java",
+        "Next.js",
+        "React"
       ],
       "githubUsername": "sunny200551",
       "githubVerified": true,
-      "primaryScore": 1000,
-      "reputationSbtCount": 16,
+      "primaryScore": 870,
+      "reputationSbtCount": 19,
       "secondaryScores": [
         392,
         191
@@ -231,7 +483,20 @@
         "CSS": 74628,
         "Nix": 1280
       },
-      "verifiedAt": 1787305346593
+      "verifiedAt": 1787583808764,
+      "role": "freelancer",
+      "primaryCategory": "frontend",
+      "secondaryCategories": [
+        "frontend",
+        "web3"
+      ],
+      "attestationUID": "0xbdb099c2d407d61f1bfd6ee7b6952154f9287c13d395071c979e09cc16d7dbe8",
+      "commitsCount": 72,
+      "reposCount": 5,
+      "prsCount": 9,
+      "reputationTier": "GOLD",
+      "title": "Frontend Developer",
+      "hourlyRateUsdc": 75
     },
     "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1": {
       "address": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
@@ -247,10 +512,10 @@
         "IPFS"
       ],
       "githubVerified": true,
-      "reputationSbtCount": 0,
+      "reputationSbtCount": 2,
       "role": "freelancer",
       "githubUsername": "stevenson20",
-      "verifiedAt": 1787311085484,
+      "verifiedAt": 1787587689384,
       "primaryCategory": "frontend",
       "primaryScore": 695,
       "secondaryCategories": [
@@ -280,6 +545,41 @@
   "judges": [],
   "treasuryProposals": [],
   "treasuryHistory": [
+    {
+      "id": "1787583848970",
+      "type": "FEE_COLLECTED",
+      "amountUsdc": 0.375,
+      "txHash": "0xdc2dee975df94b8d501e4565bb70619c0cbf8e3854b72c2b862f1b9c0db57910",
+      "timestamp": 1787583848970
+    },
+    {
+      "id": "1787583848969",
+      "type": "FEE_COLLECTED",
+      "amountUsdc": 0.375,
+      "txHash": "0xdc2dee975df94b8d501e4565bb70619c0cbf8e3854b72c2b862f1b9c0db57910",
+      "timestamp": 1787583848969
+    },
+    {
+      "id": "1787576392908",
+      "type": "FEE_COLLECTED",
+      "amountUsdc": 0.25,
+      "txHash": "0x1f9240c89b3672fbe85f3c194ccdb182122ec3aa6f12279d35c442af4c905326",
+      "timestamp": 1787576392908
+    },
+    {
+      "id": "1787576392835",
+      "type": "FEE_COLLECTED",
+      "amountUsdc": 0.25,
+      "txHash": "0x1f9240c89b3672fbe85f3c194ccdb182122ec3aa6f12279d35c442af4c905326",
+      "timestamp": 1787576392835
+    },
+    {
+      "id": "1787576392835",
+      "type": "FEE_COLLECTED",
+      "amountUsdc": 0.25,
+      "txHash": "0x1f9240c89b3672fbe85f3c194ccdb182122ec3aa6f12279d35c442af4c905326",
+      "timestamp": 1787576392835
+    },
     {
       "id": "1787311700194",
       "type": "FEE_COLLECTED",

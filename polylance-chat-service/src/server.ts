@@ -177,9 +177,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Global HTTP rate limiter for Express routes (bypasses /health for Render uptime probes)
+// Global HTTP rate limiter for Express routes (bypasses /health and /api/sync for probes and live state sync)
 app.use(async (req: Request, res: Response, next) => {
-  if (req.path === "/health") {
+  if (req.path === "/health" || req.path === "/api/sync") {
     return next();
   }
   const ip = req.headers["x-forwarded-for"]?.toString() || req.socket.remoteAddress || "unknown";

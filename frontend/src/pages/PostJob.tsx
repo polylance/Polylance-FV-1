@@ -508,6 +508,29 @@ export const PostJob: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Protocol Commission & Net Payout Breakdown */}
+                {(() => {
+                  const grossUsdc = (parseFloat(tokenAmount || '0') || 0) * (tokenPriceUsd || 1);
+                  const commUsdc = grossUsdc * 0.025;
+                  const netUsdc = grossUsdc - commUsdc;
+                  return (
+                    <div className="my-2 p-2 bg-purple-50/80 border border-purple-200/80 rounded-xl space-y-1 font-mono text-[9.5px]">
+                      <div className="flex justify-between items-center text-slate-600">
+                        <span>Escrow Total:</span>
+                        <span className="font-bold text-slate-900">${grossUsdc.toFixed(2)} USDC</span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-500">
+                        <span>Protocol Fee (2.5%):</span>
+                        <span className="font-bold text-rose-600">-${commUsdc.toFixed(2)} USDC</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-purple-200/80 text-purple-950 font-bold">
+                        <span>Freelancer Net Payout:</span>
+                        <span className="text-emerald-700 font-extrabold text-[10.5px]">${netUsdc.toFixed(2)} USDC</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Divider Line */}
                 <div className="border-t border-slate-100 my-2.5" />
 

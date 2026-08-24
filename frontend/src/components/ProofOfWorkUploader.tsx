@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { UploadCloud, CheckCircle2, FileText, Link as LinkIcon, Sparkles, ShieldCheck, RefreshCw, Copy, ExternalLink, Check } from 'lucide-react';
-import { generateIpfsCid } from '../utils/ipfs';
+import { FileText, Link2, Sparkles, ShieldCheck, RefreshCw, Copy, Check, Send } from 'lucide-react';
+import { generateIpfsCid, storeIpfsFile, getCachedIpfsFile } from '../utils/ipfs';
+import { DeliverableFile } from '../types';
 
 interface UploadingFile {
   id: string;
@@ -14,35 +15,38 @@ interface UploadingFile {
 }
 
 interface ProofOfWorkUploaderProps {
-  onSubmit: (title: string, description: string, evidenceHashes: string[], externalLink?: string) => void;
+  onSubmit: (
+    title: string,
+    description: string,
+    evidenceHashes: string[],
+    externalLink?: string,
+    evidenceFiles?: DeliverableFile[]
+  ) => void;
 }
 
-const ALLOWED_MIME_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-  "image/svg+xml",
-  "application/pdf",
-  "application/zip",
-  "application/x-zip-compressed",
-  "application/json"
-]);
-
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+const CloudUploadIllustration = () => (
+  <svg width="48" height="36" viewBox="0 0 48 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto mb-2">
+    <defs>
+      <linearGradient id="cloudGradIcon" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#60A5FA" />
+        <stop offset="100%" stopColor="#2563EB" />
+      </linearGradient>
+    </defs>
+    <path d="M38 15 C37.5 7.5 31 2 24 2 C18 2 12.8 6 11 11.5 C5 12.5 1 17.5 1 23.5 C1 30 6.5 35 13 35 L37 35 C42.5 35 47 30.5 47 25 C47 19.8 43 15.5 38 15 Z" fill="url(#cloudGradIcon)" />
+    <path d="M24 13 L17 20 L21.5 20 L21.5 28 L26.5 28 L26.5 20 L31 20 Z" fill="#FFFFFF" />
+  </svg>
+);
 
 export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubmit }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [externalLink, setExternalLink] = useState('');
   const [files, setFiles] = useState<UploadingFile[]>([]);
-  const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
-  const [lastSubmittedTitle, setLastSubmittedTitle] = useState('');
-  const [lastSubmittedCids, setLastSubmittedCids] = useState<string[]>([]);
   const [copiedCid, setCopiedCid] = useState<string | null>(null);
 
-  const processFile = async (fileObj: File, id: string) => {
-    // Validate file size
+  const processFile = (fileObj: File, id: string) => {
     if (fileObj.size > MAX_FILE_SIZE) {
       setFiles((prev) =>
         prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: "File exceeds 50MB limit" } : f))
@@ -50,32 +54,48 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
       return;
     }
 
-    // Validate mime type
-    if (!ALLOWED_MIME_TYPES.has(fileObj.type) && !fileObj.name.endsWith(".zip") && !fileObj.name.endsWith(".pdf") && !fileObj.name.endsWith(".json")) {
-      setFiles((prev) =>
-        prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: "Unsupported file type" } : f))
-      );
-      return;
-    }
+    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, progress: 30 } : f)));
 
-    try {
-      // Simulate progress
-      setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, progress: 30 } : f)));
-      await new Promise((r) => setTimeout(r, 200));
-      setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, progress: 70 } : f)));
-      await new Promise((r) => setTimeout(r, 200));
+    const reader = new FileReader();
 
-      // Generate a deterministic CID from file name + size (client-side, no upload)
-      const cid = generateIpfsCid(`${fileObj.name}-${fileObj.size}-${fileObj.lastModified}`);
+    reader.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.min(90, Math.round((event.loaded / event.total) * 90));
+        setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, progress: percent } : f)));
+      }
+    };
 
+    reader.onload = () => {
+      try {
+        const dataUrl = reader.result as string;
+        const cid = generateIpfsCid(`${fileObj.name}-${fileObj.size}-${fileObj.lastModified}-${Date.now()}`);
+
+        storeIpfsFile(cid, {
+          cid,
+          name: fileObj.name,
+          type: fileObj.type || 'application/octet-stream',
+          size: fileObj.size,
+          dataUrl,
+          uploadedAt: Date.now(),
+        });
+
+        setFiles((prev) =>
+          prev.map((f) => (f.id === id ? { ...f, progress: 100, cid, done: true, error: undefined } : f))
+        );
+      } catch (err: any) {
+        setFiles((prev) =>
+          prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: err.message || "Failed to process file" } : f))
+        );
+      }
+    };
+
+    reader.onerror = () => {
       setFiles((prev) =>
-        prev.map((f) => (f.id === id ? { ...f, progress: 100, cid, done: true, error: undefined } : f))
+        prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: "Failed to read file from disk" } : f))
       );
-    } catch (err: any) {
-      setFiles((prev) =>
-        prev.map((f) => (f.id === id ? { ...f, done: true, progress: 0, error: err.message || "Processing failed" } : f))
-      );
-    }
+    };
+
+    reader.readAsDataURL(fileObj);
   };
 
   const handleUploadFiles = (fileList: FileList) => {
@@ -122,134 +142,146 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const readyCids = files.filter((f) => f.done && f.cid).map((f) => f.cid as string);
-    if (!title.trim() || !description.trim() || readyCids.length === 0) {
-      alert('Please provide a deliverable title, summary description, and at least 1 successfully processed file.');
+    if (!title.trim() || !description.trim() || !externalLink.trim()) {
+      alert('Please provide a deliverable title, release summary description, and a valid project/deliverable link (strictly required).');
       return;
     }
 
-    onSubmit(title.trim(), description.trim(), readyCids, externalLink.trim());
+    const readyCids = files.filter((f) => f.done && f.cid).map((f) => f.cid as string);
+    const readyFiles: DeliverableFile[] = [];
 
-    setLastSubmittedTitle(title.trim());
-    setLastSubmittedCids(readyCids);
+    files.forEach((f) => {
+      if (f.done && f.cid) {
+        const cached = getCachedIpfsFile(f.cid);
+        readyFiles.push({
+          cid: f.cid,
+          name: f.name,
+          type: cached?.type || f.fileObj?.type || 'application/octet-stream',
+          size: cached?.size || f.fileObj?.size || 0,
+          dataUrl: cached?.dataUrl,
+          uploadedAt: Date.now(),
+        });
+      }
+    });
+
+    if (readyCids.length === 0) {
+      const generatedCid = generateIpfsCid({ title: title.trim(), link: externalLink.trim(), timestamp: Date.now() });
+      readyCids.push(generatedCid);
+      readyFiles.push({
+        cid: generatedCid,
+        name: 'Project-Release-Metadata.json',
+        type: 'application/json',
+        size: 1024,
+        dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify({ title: title.trim(), externalLink: externalLink.trim(), description: description.trim(), timestamp: Date.now() }))}`,
+        uploadedAt: Date.now(),
+      });
+    }
+
+    onSubmit(title.trim(), description.trim(), readyCids, externalLink.trim(), readyFiles);
+
     setTitle('');
     setDescription('');
     setExternalLink('');
     setFiles([]);
-    setIsSubmittedSuccess(true);
   };
 
-  if (isSubmittedSuccess) {
-    return (
-      <div className="bg-gradient-to-br from-emerald-50 via-white to-purple-50 p-8 rounded-3xl border border-emerald-200 shadow-xl space-y-6 text-center animate-fadeIn">
-        <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-200">
-          <CheckCircle2 size={36} />
-        </div>
-
-        <div className="space-y-2">
-          <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-mono font-black uppercase rounded-full tracking-wider">
-            On-Chain Verified
-          </span>
-          <h3 className="text-2xl font-black text-slate-900 font-headline">
-            Deliverables Submitted Successfully!
-          </h3>
-          <p className="text-sm font-semibold text-slate-600 max-w-lg mx-auto">
-            Your work <span className="text-purple-700 font-extrabold">"{lastSubmittedTitle}"</span> has been logged to the smart contract escrow for client review.
-          </p>
-        </div>
-
-        {lastSubmittedCids.length > 0 && (
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 text-left max-w-md mx-auto space-y-2 shadow-xs">
-            <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">
-              Evidence Reference Hashes:
-            </span>
-            {lastSubmittedCids.map((cid, i) => (
-              <div key={i} className="flex items-center justify-between gap-2 text-xs font-mono bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-purple-700 font-bold truncate">
-                <div className="flex items-center gap-2 truncate">
-                  <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
-                  <span className="truncate">{cid}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopyCid(cid)}
-                  className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-purple-700 transition-colors shrink-0"
-                  title="Copy CID"
-                >
-                  {copiedCid === cid ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="pt-2 flex justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsSubmittedSuccess(false)}
-            className="px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white text-xs font-black font-headline rounded-xl flex items-center gap-2 shadow-md transition-all cursor-pointer"
-          >
-            <RefreshCw size={15} /> Submit Additional Deliverable
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-lg space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-        <div>
-          <h3 className="text-xl font-black text-slate-900 font-headline flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-700" />
-            Submit Proof of Work Deliverables
-          </h3>
-          <p className="text-xs text-slate-600 font-bold mt-1">
-            Attach deliverable files and submit evidence hashes to the on-chain escrow
-          </p>
+    <form onSubmit={handleSubmit} className="border border-slate-200/90 rounded-3xl p-5 sm:p-7 bg-white shadow-xs space-y-5">
+      {/* Form Header (Matching Image 3) */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 shadow-2xs">
+            <Send size={18} className="text-purple-600" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-slate-900 font-headline leading-tight">
+              Submit Proof of Work Deliverables
+            </h3>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Provide the required project link and optionally attach supporting media or deliverables
+            </p>
+          </div>
         </div>
-        <span className="text-xs font-mono font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full border border-purple-200">
+
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 shrink-0 font-mono shadow-2xs">
+          <ShieldCheck size={13} className="text-purple-600" />
           On-Chain Evidence
         </span>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-4">
+        {/* Field 1: DELIVERABLE TITLE * */}
         <div>
-          <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2">
-            Deliverable Title *
+          <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            Deliverable Title <span className="text-rose-500">*</span>
           </label>
-          <input
-            type="text"
-            required
-            placeholder="e.g. Completed Smart Contract Suite & Test Coverage Report"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-semibold text-sm rounded-xl px-4 py-3 focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-purple-200 outline-none transition-all placeholder:text-slate-400"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              required
+              placeholder="e.g. Completed Smart Contract Suite & Test Coverage Report"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
+            />
+            <FileText size={15} className="absolute left-3 top-3 text-blue-500 pointer-events-none" />
+          </div>
         </div>
 
+        {/* Field 2: PROJECT / DELIVERABLE LINK * (STRICTLY REQUIRED) */}
         <div>
-          <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2">
-            Detailed Summary / Release Notes *
+          <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5">
+            <span className="text-slate-700">Project / Deliverable Link </span>
+            <span className="text-rose-500 font-black">* (Strictly Required)</span>
           </label>
-          <textarea
-            required
-            rows={4}
-            placeholder="Describe what was built, how to run tests, and any relevant deployment details..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-semibold text-sm rounded-xl px-4 py-3 focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-purple-200 outline-none transition-all placeholder:text-slate-400 resize-none"
-          />
+          <div className="relative">
+            <input
+              type="url"
+              required
+              placeholder="https://github.com/your-org/repo/pull/1 or https://demo.yourproject.xyz"
+              value={externalLink}
+              onChange={(e) => setExternalLink(e.target.value)}
+              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all placeholder:text-slate-400"
+            />
+            <Link2 size={15} className="absolute left-3 top-3 text-purple-500 pointer-events-none" />
+          </div>
+          <p className="text-[11px] text-slate-400 font-medium mt-1">
+            Provide a working repository, pull request, Figma prototype, or live deployment URL.
+          </p>
         </div>
 
-        {/* Drag & Drop File Zone */}
+        {/* Field 3: DETAILED SUMMARY / RELEASE NOTES * */}
         <div>
-          <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2">
-            Evidence Files *
+          <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            Detailed Summary / Release Notes <span className="text-rose-500">*</span>
           </label>
+          <div className="relative">
+            <textarea
+              required
+              rows={3}
+              placeholder="Describe what was built, how to run tests, and any relevant deployment details..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400 resize-none"
+            />
+            <FileText size={15} className="absolute left-3 top-3 text-blue-500 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Field 4: MEDIA & EVIDENCE FILES (OPTIONAL) */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+              Media & Evidence Files <span className="text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 font-mono">
+              Optional
+            </span>
+          </div>
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
-            className="border-2 border-dashed border-slate-300 hover:border-purple-600 rounded-2xl p-6 text-center bg-slate-50/80 hover:bg-purple-50/50 transition-all cursor-pointer relative group"
+            className="border-2 border-dashed border-blue-200 hover:border-blue-500 rounded-2xl p-6 text-center bg-blue-50/20 hover:bg-blue-50/40 transition-all cursor-pointer relative group"
           >
             <input
               type="file"
@@ -257,112 +289,80 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               onChange={handleFileChange}
               className="absolute inset-0 opacity-0 cursor-pointer z-10"
             />
-            <UploadCloud className="w-10 h-10 text-purple-700 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-            <p className="text-sm font-extrabold text-slate-900">
-              Drag & drop deliverable files here, or <span className="text-purple-700 underline">browse</span>
+            <CloudUploadIllustration />
+            <p className="text-xs font-bold text-slate-800">
+              Drag & drop deliverable files here, or <span className="text-blue-600 underline">browse</span>
             </p>
-            <p className="text-xs font-bold text-slate-500 mt-1">Supports code archives, PDFs, screenshots, json (Max 50MB per file)</p>
+            <p className="text-[11px] text-slate-400 font-medium mt-1">
+              Supports code archives, PDFs, screenshots, json (Max 50MB per file)
+            </p>
           </div>
         </div>
 
-        {/* File Processing List */}
+        {/* Attached Files List */}
         {files.length > 0 && (
-          <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-            <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block mb-1">
-              Files & Evidence Hashes:
+          <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+              Attached Files:
             </span>
             {files.map((file) => (
-              <div key={file.id} className="bg-white p-3 rounded-xl border border-slate-200 text-xs shadow-2xs">
-                <div className="flex items-center justify-between mb-1.5">
+              <div key={file.id} className="bg-white p-2.5 rounded-xl border border-slate-200 text-xs shadow-2xs">
+                <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2 truncate">
-                    <FileText size={15} className="text-purple-700 shrink-0" />
-                    <span className="font-mono font-bold text-slate-900 truncate">{file.name}</span>
-                    <span className="text-slate-500 font-semibold">({file.size})</span>
+                    <FileText size={14} className="text-purple-600 shrink-0" />
+                    <span className="font-mono font-bold text-slate-800 truncate text-xs">{file.name}</span>
+                    <span className="text-slate-400 font-semibold text-[11px]">({file.size})</span>
                   </div>
                   {file.done && !file.error ? (
-                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold text-[11px]">
-                      <CheckCircle2 size={13} /> Processed
+                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold text-[10px]">
+                      <Check size={11} /> Ready
                     </span>
                   ) : file.error ? (
-                    <span className="text-red-700 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold text-[11px]">
+                    <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full font-bold text-[10px]">
                       Failed
                     </span>
                   ) : (
-                    <span className="text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold text-[11px]">
+                    <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full font-bold text-[10px]">
                       {file.progress}%
                     </span>
                   )}
                 </div>
 
-                {/* Progress bar */}
-                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mb-1.5">
+                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-200 ${file.error ? 'bg-red-500' : 'bg-gradient-to-r from-purple-600 to-indigo-600'}`}
+                    className={`h-full transition-all duration-200 ${file.error ? 'bg-rose-500' : 'bg-blue-600'}`}
                     style={{ width: `${file.error ? 100 : file.progress}%` }}
                   />
                 </div>
 
-                {file.error && (
-                  <div className="flex items-center justify-between text-[11px] text-red-600 pt-1.5 border-t border-slate-100 font-bold">
-                    <span>Error: {file.error}</span>
+                {file.cid && (
+                  <div className="flex items-center justify-between gap-1.5 text-[10.5px] font-mono text-purple-700 pt-1.5 mt-1 border-t border-slate-100">
+                    <span className="truncate text-slate-500">CID: {file.cid}</span>
                     <button
                       type="button"
-                      onClick={() => handleRetry(file)}
-                      className="text-purple-700 hover:text-purple-900 underline flex items-center gap-1"
+                      onClick={() => handleCopyCid(file.cid!)}
+                      className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-purple-700 transition-colors"
+                      title="Copy CID"
                     >
-                      <RefreshCw size={11} /> Retry
+                      {copiedCid === file.cid ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
                     </button>
-                  </div>
-                )}
-
-                {file.cid && (
-                  <div className="flex items-center justify-between gap-1.5 text-[11px] font-mono text-purple-700 pt-1.5 border-t border-slate-100 font-bold">
-                    <div className="flex items-center gap-1 truncate">
-                      <span className="text-slate-500">Hash:</span>
-                      <span className="truncate">{file.cid}</span>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCid(file.cid!)}
-                        className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-purple-700 transition-colors"
-                        title="Copy Hash"
-                      >
-                        {copiedCid === file.cid ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
             ))}
           </div>
         )}
-
-        {/* External Link (GitHub PR / Figma / Staging) */}
-        <div>
-          <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2">
-            External Artifact / GitHub PR Link (Optional)
-          </label>
-          <div className="relative">
-            <LinkIcon size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
-            <input
-              type="url"
-              placeholder="https://github.com/org/repo/pull/42"
-              value={externalLink}
-              onChange={(e) => setExternalLink(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-semibold text-sm rounded-xl !pl-10 px-4 py-3 focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-purple-200 outline-none transition-all placeholder:text-slate-400"
-            />
-          </div>
-        </div>
       </div>
 
+      {/* Submit Button (Matching Image 3) */}
       <button
         type="submit"
-        disabled={files.length === 0 || files.some((f) => !f.done)}
-        className="w-full bg-purple-700 hover:bg-purple-800 text-white font-headline font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+        disabled={!title.trim() || !description.trim() || !externalLink.trim() || files.some((f) => !f.done)}
+        className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-fuchsia-600 hover:from-blue-700 hover:to-fuchsia-700 text-white font-bold py-3 px-6 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all hover:scale-[1.005] disabled:opacity-50"
       >
-        <Sparkles size={16} />
-        Submit Deliverables for Review
+        <Send size={15} className="text-white" />
+        <span>Submit Deliverables for Review</span>
+        <Sparkles size={16} className="text-purple-200 ml-auto sm:ml-2" />
       </button>
     </form>
   );

@@ -59,7 +59,9 @@ export const Dashboard: React.FC = () => {
   const completedFreelanceJobs = myFreelancerJobs.filter((j) => j.status === 'Completed');
   const totalEarnedUsdc = completedFreelanceJobs.reduce((sum, j) => {
     const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
-    return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
+    const gross = parseFloat(j.amountUsdc || '0') * earnedFraction;
+    const net = gross * 0.975; // 2.5% platform commission deducted
+    return sum + net;
   }, 0);
   const clientTotalEscrow = myClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
   const completedClientJobs = myClientJobs.filter((j) => j.status === 'Completed');
@@ -419,10 +421,10 @@ export const Dashboard: React.FC = () => {
 
             <div className="glass-panel p-4 border-slate-200 bg-white text-center hard-shadow space-y-1">
               <div className="text-2xl font-black text-purple-900 font-mono">
-                ${totalEarnedUsdc.toLocaleString()}
+                ${totalEarnedUsdc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
-                Total Earned
+                Net Earned (-2.5% fee)
               </div>
             </div>
 
@@ -554,8 +556,9 @@ export const Dashboard: React.FC = () => {
 
                           <div className="grid grid-cols-3 gap-3 font-mono text-xs pt-1">
                             <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                              <span className="text-slate-500 text-[10px] block font-bold uppercase">Escrow Locked</span>
-                              <span className="font-bold text-emerald-700">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span>
+                              <span className="text-slate-500 text-[10px] block font-bold uppercase">Escrow / Net Payout</span>
+                              <span className="font-bold text-emerald-700 block">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span>
+                              <span className="text-[9.5px] text-purple-700 font-bold block">Net: ${(parseFloat(job.amountUsdc || '0') * 0.975).toFixed(2)} USDC</span>
                             </div>
                             <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                               <span className="text-slate-500 text-[10px] block font-bold uppercase">Review Period</span>

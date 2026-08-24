@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage } from '../types';
+import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, DeliverableFile, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage } from '../types';
 import { generateMockTxHash, generateDeterministicHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { fetchLiveExchangeRates } from '../utils/currency';
@@ -44,7 +44,7 @@ interface PolyLanceDataContextType {
   selectFreelancer: (jobId: string, freelancerAddress: string) => Promise<void>;
   proposeTerms: (jobId: string, userAddress: string) => Promise<void>;
   fundJob: (jobId: string) => Promise<void>;
-  submitWork: (jobId: string, title: string, description: string, evidenceHashes: string[], externalLink?: string) => Promise<void>;
+  submitWork: (jobId: string, title: string, description: string, evidenceHashes: string[], externalLink?: string, evidenceFiles?: DeliverableFile[]) => Promise<void>;
   postProgressUpdate: (jobId: string, progressPercent: number, statusNote: string, demoUrl?: string) => Promise<void>;
   requestTimeExtension: (jobId: string, requestedDays: number, reason: string) => Promise<void>;
   respondToTimeExtension: (jobId: string, requestId: string, approve: boolean, responseNote?: string) => Promise<void>;
@@ -54,12 +54,15 @@ interface PolyLanceDataContextType {
   raiseDispute: (jobId: string, reason: DisputeReason, evidenceText: string, evidenceIpfsHash: string, raisedByAddress: string) => Promise<void>;
   submitDisputeResponse: (jobId: string, responseText: string, responseIpfsHash: string) => void;
   resolveDispute: (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => Promise<void>;
+  updateJobTerms: (jobId: string, newAmountUsdc: string, newReviewPeriodDays?: number) => Promise<void>;
+  sendPreAcceptMessage: (jobId: string, text: string, senderAddress: string, senderRole: 'Client' | 'Freelancer') => void;
   sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => void;
   sendJudgeChatMessage: (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => void;
   isEnclineConnected: boolean;
   judgeMessages: Record<string, JudgeMessage[]>;
   closeChatSession: (jobId: string) => Promise<string | null>;
   deleteChatHistory: (jobId?: string, judgeAddress?: string) => void;
+  restoreChatHistory: (jobId?: string, messages?: any[], judgeAddress?: string, judgeMsgs?: JudgeMessage[]) => void;
   updateProfile: (profile: Partial<UserProfile>, address: string) => Promise<void>;
   castDaoVote: (proposalId: string | number, support: boolean, voterAddress?: string, votingPower?: number) => Promise<void> | void;
   castVote: (proposalId: string | number, support: boolean, voterAddress?: string) => Promise<void> | void;
@@ -229,9 +232,17 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
       (curr.applications || []).forEach((a) => appMap.set(a.applicant.toLowerCase(), a));
       (inJob.applications || []).forEach((a) => appMap.set(a.applicant.toLowerCase(), a));
 
+      // Respect chatClearedAt so cleared messages are never re-merged
+      const chatClearedAt = Math.max(curr.chatClearedAt || 0, inJob.chatClearedAt || 0);
+
       // Merge chat messages with smart deduplication (same sender + text within 3.5 seconds)
       const mergedMsgs: any[] = [];
-      const allMsgs = [...(curr.chatMessages || []), ...(inJob.chatMessages || [])].sort(
+      const sourceMsgs = [
+        ...(curr.chatMessages || []),
+        ...(inJob.chatMessages || [])
+      ].filter(m => !chatClearedAt || (m.timestamp || 0) > chatClearedAt);
+
+      const allMsgs = sourceMsgs.sort(
         (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
       );
       for (const m of allMsgs) {
@@ -251,16 +262,40 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
       const extMap = new Map<string, any>();
       (curr.extensionRequests || []).forEach((r) => r && extMap.set(r.id || `${r.requestIndex}`, r));
       (inJob.extensionRequests || []).forEach((r) => r && extMap.set(r.id || `${r.requestIndex}`, r));
+      const mergedExtensionRequests = Array.from(extMap.values()).sort(
+        (a, b) => (b.requestedAt || b.timestamp || 0) - (a.requestedAt || a.timestamp || 0)
+      );
 
-      // Merge progress updates safely
+      // Merge progress updates safely with newest timestamp first
       const progMap = new Map<string, any>();
       (curr.progressUpdates || []).forEach((p) => p && progMap.set(p.id || `${p.timestamp}`, p));
       (inJob.progressUpdates || []).forEach((p) => p && progMap.set(p.id || `${p.timestamp}`, p));
+      const mergedProgressUpdates = Array.from(progMap.values()).sort(
+        (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+      );
 
       // Merge modification requests safely
       const modMap = new Map<string, any>();
       (curr.modificationRequests || []).forEach((m) => m && modMap.set(m.id || `${m.requestedAt}`, m));
       (inJob.modificationRequests || []).forEach((m) => m && modMap.set(m.id || `${m.requestedAt}`, m));
+
+      // Merge pre-acceptance messages with smart deduplication
+      const mergedPreMsgs: any[] = [];
+      const allPreMsgs = [...(curr.preAcceptMessages || []), ...(inJob.preAcceptMessages || [])].sort(
+        (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
+      );
+      for (const m of allPreMsgs) {
+        if (!m || !m.text) continue;
+        const isDuplicate = mergedPreMsgs.some(
+          (existing) =>
+            existing.sender === m.sender &&
+            existing.text.trim() === m.text.trim() &&
+            Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500
+        );
+        if (!isDuplicate) {
+          mergedPreMsgs.push(m);
+        }
+      }
 
       const mergedJob: Job = {
         ...curr,
@@ -273,14 +308,18 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         amountUsdc: inJob.amountUsdc || curr.amountUsdc,
         amountEth: inJob.amountEth || curr.amountEth,
         paymentTokenSymbol: inJob.paymentTokenSymbol || curr.paymentTokenSymbol,
+        negotiatedAmount: inJob.negotiatedAmount || curr.negotiatedAmount,
+        negotiatedDeadlineDays: inJob.negotiatedDeadlineDays !== undefined ? inJob.negotiatedDeadlineDays : curr.negotiatedDeadlineDays,
         applications: Array.from(appMap.values()),
         chatMessages: mergedMsgs,
+        preAcceptMessages: mergedPreMsgs,
         events: inJob.events?.length ? inJob.events : curr.events,
         dispute: inJob.dispute || curr.dispute,
         proof: inJob.proof || curr.proof,
-        progressUpdates: Array.from(progMap.values()),
-        extensionRequests: Array.from(extMap.values()),
+        progressUpdates: mergedProgressUpdates,
+        extensionRequests: mergedExtensionRequests,
         modificationRequests: Array.from(modMap.values()),
+        chatClearedAt: chatClearedAt > 0 ? chatClearedAt : undefined,
       };
 
       map.set(key, normalizeJob(mergedJob));
@@ -681,10 +720,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
 
-    // Second-to-second 100% real-time data sync heartbeat from microservice
+    // Periodic synchronization check and window focus listener for multi-account / cross-context real-time sync
     const syncFromRemoteBackend = () => {
       fetch(`${BACKEND_SYNC_URL}/api/sync`)
-        .then((r) => r.json())
+        .then((r) => {
+          if (!r.ok) return null;
+          return r.json();
+        })
         .then((payload) => {
           if (!payload) return;
           if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
@@ -715,7 +757,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     const pollInterval = setInterval(() => {
       syncFromStorage();
       syncFromRemoteBackend();
-    }, 1200);
+    }, 8000);
 
     window.addEventListener('focus', () => {
       syncFromStorage();
@@ -1079,7 +1121,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     title: string,
     description: string,
     evidenceHashes: string[],
-    externalLink?: string
+    externalLink?: string,
+    evidenceFiles?: DeliverableFile[]
   ) => {
     let txHash = '';
     const job = jobs.find((j) => matchJob(j, jobId));
@@ -1102,6 +1145,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       title,
       description,
       evidenceHashes,
+      evidenceFiles,
       submittedAt: Date.now(),
       externalLink,
     };
@@ -1406,6 +1450,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         return {
           ...j,
           status: 'Completed',
+          completedAt: Date.now(),
           events: updatedEvents,
         };
       })
@@ -1552,6 +1597,42 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             judge: judgeAddress,
           },
           events: updatedEvents,
+        };
+      })
+    );
+  };
+
+  const updateJobTerms = async (jobId: string, newAmountUsdc: string, newReviewPeriodDays?: number) => {
+    setJobs((prev) =>
+      prev.map((j) => {
+        if (!matchJob(j, jobId)) return j;
+        const numAmount = parseFloat(newAmountUsdc || '0');
+        const ethVal = (numAmount / 2500).toFixed(4); // approx conversion
+        return {
+          ...j,
+          amountUsdc: newAmountUsdc,
+          amountEth: ethVal,
+          reviewPeriodDays: newReviewPeriodDays !== undefined ? newReviewPeriodDays : j.reviewPeriodDays,
+          negotiatedAmount: newAmountUsdc,
+          negotiatedDeadlineDays: newReviewPeriodDays !== undefined ? newReviewPeriodDays : j.reviewPeriodDays,
+        };
+      })
+    );
+  };
+
+  const sendPreAcceptMessage = (jobId: string, text: string, senderAddress: string, senderRole: 'Client' | 'Freelancer') => {
+    if (!text || !text.trim()) return;
+    const trimmed = text.trim();
+    const now = Date.now();
+    const newMsg = { sender: senderAddress, senderRole, text: trimmed, timestamp: now };
+
+    setJobs((prev) =>
+      prev.map((job) => {
+        if (!matchJob(job, jobId)) return job;
+        const existing = job.preAcceptMessages || [];
+        return {
+          ...job,
+          preAcceptMessages: [...existing, newMsg],
         };
       })
     );
@@ -1791,10 +1872,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const deleteChatHistory = (jobId?: string, judgeAddress?: string) => {
     if (jobId) {
+      const now = Date.now();
       setJobs((prev) =>
         prev.map((j) => {
-          if (j.id.toLowerCase() !== jobId.toLowerCase() && j.contractAddress.toLowerCase() !== jobId.toLowerCase()) return j;
-          return { ...j, chatMessages: [] };
+          if (!matchJob(j, jobId)) return j;
+          return { ...j, chatMessages: [], preAcceptMessages: [], chatClearedAt: now };
         })
       );
     } else if (judgeAddress) {
@@ -1806,6 +1888,45 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       });
     }
   };
+
+  const restoreChatHistory = (jobId?: string, messages?: any[], judgeAddress?: string, judgeMsgs?: JudgeMessage[]) => {
+    if (jobId && messages) {
+      setJobs((prev) =>
+        prev.map((j) => {
+          if (!matchJob(j, jobId)) return j;
+          return { ...j, chatMessages: messages, chatClearedAt: undefined };
+        })
+      );
+    } else if (judgeAddress && judgeMsgs) {
+      const lower = judgeAddress.toLowerCase();
+      setJudgeMessages((prev) => ({
+        ...prev,
+        [lower]: judgeMsgs,
+      }));
+    }
+  };
+
+  // Auto-cleanup chat history for jobs completed over 1 week (7 days) ago
+  useEffect(() => {
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    setJobs((prev) => {
+      let modified = false;
+      const updated = prev.map((j) => {
+        if (
+          j.status === 'Completed' &&
+          j.completedAt &&
+          now - j.completedAt > ONE_WEEK_MS &&
+          ((j.chatMessages && j.chatMessages.length > 0) || (j.preAcceptMessages && j.preAcceptMessages.length > 0))
+        ) {
+          modified = true;
+          return { ...j, chatMessages: [], preAcceptMessages: [] };
+        }
+        return j;
+      });
+      return modified ? updated : prev;
+    });
+  }, []);
 
   const sendJudgeChatMessage = (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => {
     if (!judgeAddress || !text.trim()) return;
@@ -1857,12 +1978,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         raiseDispute,
         submitDisputeResponse,
         resolveDispute,
+        updateJobTerms,
+        sendPreAcceptMessage,
         sendChatMessage,
         sendJudgeChatMessage,
         isEnclineConnected: false,
         judgeMessages,
         closeChatSession,
         deleteChatHistory,
+        restoreChatHistory,
         updateProfile,
         castDaoVote,
         castVote,
@@ -1880,10 +2004,58 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
+const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
+  loading: false,
+  jobs: [],
+  daoProposals: [],
+  treasury: { balanceEth: '0', balanceUsdc: '0', requiredSignatures: 2, signers: [], proposals: [] },
+  treasuryBalanceUsdc: 0,
+  treasuryBalanceEth: 0,
+  treasuryHistory: [],
+  profiles: {},
+  judges: [],
+  addJudge: () => {},
+  removeJudge: () => {},
+  toggleJudgeStatus: () => {},
+  postJob: async () => ({} as any),
+  applyToJob: async () => {},
+  selectFreelancer: async () => {},
+  proposeTerms: async () => {},
+  fundJob: async () => {},
+  submitWork: async () => {},
+  postProgressUpdate: async () => {},
+  requestTimeExtension: async () => {},
+  respondToTimeExtension: async () => {},
+  requestModifications: async () => {},
+  releasePayment: async () => {},
+  claimAutoRelease: async () => {},
+  raiseDispute: async () => {},
+  submitDisputeResponse: () => {},
+  resolveDispute: async () => {},
+  updateJobTerms: async () => {},
+  sendPreAcceptMessage: () => {},
+  sendChatMessage: () => {},
+  sendJudgeChatMessage: () => {},
+  isEnclineConnected: false,
+  judgeMessages: {},
+  closeChatSession: async () => null,
+  deleteChatHistory: () => {},
+  restoreChatHistory: () => {},
+  updateProfile: async () => {},
+  castDaoVote: () => {},
+  castVote: () => {},
+  createDaoProposal: () => {},
+  proposeJudgeCandidate: () => {},
+  withdrawTreasury: () => {},
+  proposeTreasuryWithdrawal: () => {},
+  signTreasuryWithdrawal: () => {},
+  executeTreasuryWithdrawal: () => {},
+};
+
 export const usePolyLanceData = () => {
   const context = useContext(PolyLanceDataContext);
   if (!context) {
-    throw new Error('usePolyLanceData must be used within a PolyLanceDataProvider');
+    return SAFE_FALLBACK_DATA_CONTEXT;
   }
   return context;
 };

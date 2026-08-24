@@ -43,7 +43,7 @@ const AnimatedRoutes: React.FC = () => {
         animate="animate"
         exit="exit"
         transition={transition.page}
-        className="w-full"
+        className={location.pathname.startsWith('/chat') ? "w-full h-full flex-1 min-h-0 flex flex-col overflow-hidden" : "w-full"}
         style={{ willChange: 'transform, opacity' }}
       >
         <Routes location={location}>
@@ -89,15 +89,16 @@ const AnimatedRoutes: React.FC = () => {
 
 const AppContent: React.FC = () => {
   const location = useLocation();
-  const showFooter = location.pathname === '/' || location.pathname === '/dashboard';
+  const isChat = location.pathname.startsWith('/chat');
+  const showFooter = !isChat && (location.pathname === '/' || location.pathname === '/dashboard');
 
   return (
-    <div className="min-h-screen bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white">
+    <div className={isChat ? "h-screen max-h-screen overflow-hidden bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white" : "min-h-screen bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white"}>
       {/* Production Navbar with Role-Aware Perception Navigation */}
       <Navbar />
 
       {/* Main Application Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6">
+      <main className={isChat ? "flex-1 w-full min-h-0 overflow-hidden flex flex-col" : "flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6"}>
         <AnimatedRoutes />
       </main>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Application, SkillCategory, UserProfile } from '../types';
 import { truncateAddress } from '../utils/formatters';
+import { calculateReputationScores } from '../utils/reputation';
 import { 
   CheckCircle2, 
   UserCheck, 
@@ -23,13 +24,21 @@ import {
   TrendingUp,
   GitCommit,
   GitPullRequest,
-  AlertCircle
+  AlertCircle,
+  Filter,
+  DollarSign,
+  Send,
+  Sliders,
+  Check
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 
 interface ApplicantTableProps {
+  jobId?: string;
+  jobAmount?: string;
+  jobReviewPeriodDays?: number;
   applications: Application[];
   category: SkillCategory;
   onSelect: (applicantAddress: string) => void;
@@ -37,17 +46,32 @@ interface ApplicantTableProps {
 }
 
 export const ApplicantTable: React.FC<ApplicantTableProps> = ({
+  jobId,
+  jobAmount = '100',
+  jobReviewPeriodDays = 7,
   applications,
   category,
   onSelect,
   isClient,
 }) => {
-  const { jobs, profiles } = usePolyLanceData();
-  const [sortField, setSortField] = useState<'score' | 'appliedAt'>('appliedAt');
+  const { jobs, profiles, updateJobTerms, sendPreAcceptMessage } = usePolyLanceData();
+  const [sortField, setSortField] = useState<'score' | 'reputation' | 'appliedAt'>('score');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [filterGithubOnly, setFilterGithubOnly] = useState<boolean>(false);
+  const [filterMinReputation, setFilterMinReputation] = useState<number>(0);
   const [expandedApplicant, setExpandedApplicant] = useState<string | null>(null);
 
-  const handleSort = (field: 'score' | 'appliedAt') => {
+  // Pre-Acceptance Discussion / Negotiation Modal State
+  const [negotiatingApplicant, setNegotiatingApplicant] = useState<Application | null>(null);
+  const [negotiatedAmount, setNegotiatedAmount] = useState<string>(jobAmount);
+  const [negotiatedDays, setNegotiatedDays] = useState<number>(jobReviewPeriodDays);
+  const [negotiateChatInput, setNegotiateChatInput] = useState<string>('');
+  const [isTermsUpdatedSuccess, setIsTermsUpdatedSuccess] = useState<boolean>(false);
+
+  const activeJob = jobId ? jobs.find(j => j.id === jobId) : undefined;
+  const currentPreAcceptMessages = activeJob?.preAcceptMessages || [];
+
+  const handleSort = (field: 'score' | 'reputation' | 'appliedAt') => {
     if (sortField === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -56,7 +80,20 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
     }
   };
 
-  const sortedApplicants = [...applications].sort((a, b) => {
+  const filteredApplicants = applications.filter((app) => {
+    if (filterGithubOnly && !app.githubVerified) return false;
+    
+    if (filterMinReputation > 0) {
+      const profileKey = Object.keys(profiles).find(k => k.toLowerCase() === app.applicant.toLowerCase());
+      const profile = profileKey ? profiles[profileKey] : undefined;
+      const repScores = calculateReputationScores(app.applicant, jobs, profile);
+      if (repScores.totalPoints < filterMinReputation) return false;
+    }
+
+    return true;
+  });
+
+  const sortedApplicants = [...filteredApplicants].sort((a, b) => {
     const mult = sortDir === 'asc' ? 1 : -1;
     if (sortField === 'score') {
       if (a.githubScore !== b.githubScore) {
@@ -64,8 +101,34 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
       }
       return -1 * (a.appliedAt - b.appliedAt);
     }
+    if (sortField === 'reputation') {
+      const profA = Object.keys(profiles).find(k => k.toLowerCase() === a.applicant.toLowerCase());
+      const repA = calculateReputationScores(a.applicant, jobs, profA ? profiles[profA] : undefined).totalPoints;
+      const profB = Object.keys(profiles).find(k => k.toLowerCase() === b.applicant.toLowerCase());
+      const repB = calculateReputationScores(b.applicant, jobs, profB ? profiles[profB] : undefined).totalPoints;
+      return mult * (repA - repB);
+    }
     return mult * (a.appliedAt - b.appliedAt);
   });
+
+  const handleSendPreAcceptMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!negotiateChatInput.trim() || !jobId) return;
+    sendPreAcceptMessage(jobId, negotiateChatInput.trim(), 'Client', 'Client');
+    setNegotiateChatInput('');
+  };
+
+  const handleSaveTermsAndSelect = async () => {
+    if (!negotiatingApplicant || !jobId) return;
+    // Update terms on-chain / context
+    await updateJobTerms(jobId, negotiatedAmount, negotiatedDays);
+    setIsTermsUpdatedSuccess(true);
+    setTimeout(() => {
+      onSelect(negotiatingApplicant.applicant);
+      setNegotiatingApplicant(null);
+      setIsTermsUpdatedSuccess(false);
+    }, 600);
+  };
 
   if (applications.length === 0) {
     return (
@@ -98,33 +161,79 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
   return (
     <div className="bg-white border border-purple-200/80 rounded-3xl overflow-hidden shadow-xl shadow-purple-900/5 space-y-0 font-sans">
       
-      {/* Header Bar */}
-      <div className="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-white">
+      {/* Header Bar with Filter & Sort Controls */}
+      <div className="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-white">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-purple-50 text-purple-700 rounded-2xl flex items-center justify-center border border-purple-100 shrink-0">
             <Users className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-base font-extrabold text-slate-900 font-headline">
-              Applicants ({applications.length})
+              Proposals & Applicants ({sortedApplicants.length} of {applications.length})
             </h3>
             <p className="text-xs text-slate-500 font-mono">
-              Sorted by relevance to job category: <span className="text-purple-700 font-bold uppercase">{category}</span>
+              Filtered by reputation & GitHub verified skill attestations
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Filter Controls Toolbar */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* GitHub Verified Only Toggle */}
           <button
             type="button"
-            onClick={() => handleSort('score')}
-            className={`text-xs px-3.5 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer font-mono font-bold ${
-              sortField === 'score'
-                ? 'bg-purple-100 border-purple-300 text-purple-950 shadow-2xs'
+            onClick={() => setFilterGithubOnly(!filterGithubOnly)}
+            className={`text-xs px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer font-bold ${
+              filterGithubOnly
+                ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
-            Sort by Score <ArrowUpDown size={13} />
+            <Github size={13} />
+            <span>GitHub Verified</span>
+            {filterGithubOnly && <Check size={12} className="text-white" />}
           </button>
+
+          {/* Min Reputation Filter Dropdown */}
+          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-xs">
+            <ShieldCheck size={13} className="text-purple-600 ml-1" />
+            <select
+              value={filterMinReputation}
+              onChange={(e) => setFilterMinReputation(Number(e.target.value))}
+              className="bg-transparent text-slate-800 font-bold outline-none cursor-pointer text-xs pr-1"
+            >
+              <option value={0}>All Reputation</option>
+              <option value={50}>50+ PLREP</option>
+              <option value={100}>100+ PLREP (Silver)</option>
+              <option value={300}>300+ PLREP (Gold)</option>
+            </select>
+          </div>
+
+          {/* Sort Controls */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => handleSort('score')}
+              className={`text-xs px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all cursor-pointer font-bold ${
+                sortField === 'score'
+                  ? 'bg-purple-100 border-purple-300 text-purple-950 shadow-2xs'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span>GitHub Score</span> <ArrowUpDown size={12} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSort('reputation')}
+              className={`text-xs px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all cursor-pointer font-bold ${
+                sortField === 'reputation'
+                  ? 'bg-purple-100 border-purple-300 text-purple-950 shadow-2xs'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span>Reputation</span> <ArrowUpDown size={12} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -136,40 +245,26 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
 
           // Real-time calculation of freelancer stats from live data context
           const freelancerAddr = app.applicant.toLowerCase();
+          const repScores = calculateReputationScores(app.applicant, jobs, profile);
           const completedJobs = jobs.filter(
             (j) => j.freelancer?.toLowerCase() === freelancerAddr && j.status === 'Completed'
           );
           const activeJobs = jobs.filter(
             (j) => j.freelancer?.toLowerCase() === freelancerAddr && ((j.status as string) === 'Funded' || j.status === 'Selected' || j.status === 'Submitted')
           );
-
+          const completedCount = completedJobs.length;
+          const rating = completedCount > 0 ? 5.0 : 0;
+          const onTimeRate = completedCount > 0 ? '100%' : 'N/A';
+          const progressAvg = activeJobs.length > 0 ? '75%' : (completedCount > 0 ? '100%' : 'N/A');
+          const soulboundCount = completedCount;
           const isVerified = Boolean(profile?.githubVerified);
-          const shortAddr = `${app.applicant.slice(0, 6)}...${app.applicant.slice(-4)}`;
-          const name = profile?.displayName || `User ${shortAddr}`;
-          const githubUsername = isVerified ? (profile?.githubUsername || '') : '';
-          const completedCount = (profile as any)?.jobsCompletedCount !== undefined ? (profile as any).jobsCompletedCount : completedJobs.length;
-          const rating = (profile as any)?.rating !== undefined ? (profile as any).rating : (completedCount > 0 ? 5.0 : 0);
-          const onTimeRate = (profile as any)?.onTimeRate || (completedCount > 0 ? '100%' : 'N/A');
-          const progressAvg = (profile as any)?.progressAvg || (activeJobs.length > 0 ? '75%' : (completedCount > 0 ? '100%' : 'N/A Completion'));
-          const soulboundCount = (profile as any)?.reputationSbtCount !== undefined ? (profile as any).reputationSbtCount : completedCount;
-
-          // Real user data only — 0 for unverified accounts
           const commitsCount = isVerified ? (profile?.commitsCount ?? 0) : 0;
           const prsCount = isVerified ? (profile?.prsCount ?? 0) : 0;
-
           const bio = profile?.bio || 'No bio provided.';
-
-          const avatarUrl = profile?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${app.applicant.toLowerCase()}`;
-
+          const githubUsername = isVerified ? (profile?.githubUsername || '') : '';
+          const shortAddr = `${app.applicant.slice(0, 6)}...${app.applicant.slice(-4)}`;
+          const name = profile?.displayName || `User ${shortAddr}`;
           const isExpanded = expandedApplicant === app.applicant;
-
-          // Real-time activity summary bullets for freelancer
-          const recentActivities = [
-            'Consistent contributions across multiple repositories',
-            'Active pull request participation',
-            'Code reviews & improvements',
-            ...(completedCount > 0 ? [`Successfully completed ${completedCount} PolyLance escrow milestones`] : [])
-          ];
 
           return (
             <div 
@@ -183,7 +278,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                 <div className="flex items-center gap-3">
                   <div className="relative w-12 h-12 shrink-0">
                     <img 
-                      src={avatarUrl} 
+                      src={profile?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${app.applicant.toLowerCase()}`} 
                       alt={name} 
                       className="w-12 h-12 rounded-full object-cover border border-purple-200"
                     />
@@ -209,32 +304,39 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                   </div>
                 </div>
 
-                {/* Score & Category Match */}
-                {app.githubVerified && (
-                  <div className="space-y-1 bg-slate-50/80 border border-slate-200/60 px-4 py-2 rounded-xl">
-                    <div className="flex items-center gap-1.5 font-mono">
-                      <span className="font-extrabold text-emerald-600 text-sm">{app.githubScore}</span>
-                      <span className="text-slate-400 font-bold text-xs">/ 1000</span>
-                      <CheckCircle2 size={13} className="text-emerald-600 ml-0.5" />
+                {/* Score & Reputation Metrics Badge */}
+                <div className="flex items-center gap-3">
+                  {/* Real Reputation Score */}
+                  <div className="bg-purple-50 border border-purple-200/80 px-3.5 py-1.5 rounded-xl text-center">
+                    <div className="text-xs font-mono font-black text-purple-900">
+                      {repScores.totalPoints} <span className="text-[10px] text-purple-600 font-bold">PLREP</span>
                     </div>
-                    <div className="flex items-center gap-2 w-32">
-                      <div className="w-full bg-slate-200 rounded-full h-1.5">
-                        <div 
-                          className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300" 
-                          style={{ width: `${app.githubScore / 10}%` }}
-                        />
-                      </div>
-                      <span className="text-[9px] font-mono font-bold text-slate-500">{Math.round(app.githubScore / 10)}%</span>
-                    </div>
+                    <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-wider block">
+                      Reputation Points
+                    </span>
                   </div>
-                )}
 
-                {/* Action Buttons: Audit & Select Freelancer */}
+                  {/* GitHub Verified Score */}
+                  {app.githubVerified && (
+                    <div className="space-y-1 bg-emerald-50/70 border border-emerald-200/70 px-3.5 py-1.5 rounded-xl">
+                      <div className="flex items-center gap-1 font-mono">
+                        <span className="font-extrabold text-emerald-700 text-xs">{app.githubScore}</span>
+                        <span className="text-slate-400 font-bold text-[10px]">/ 1000</span>
+                        <CheckCircle2 size={12} className="text-emerald-600 ml-0.5" />
+                      </div>
+                      <span className="text-[9px] font-mono font-bold text-emerald-800 uppercase tracking-wider block">
+                        GitHub Verified
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons: Discuss & Select Freelancer */}
                 <div className="flex items-center gap-2.5 ml-auto sm:ml-0">
                   <button
                     type="button"
                     onClick={() => setExpandedApplicant(isExpanded ? null : app.applicant)}
-                    className={`px-3.5 py-2 border rounded-xl font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer transition-all ${
+                    className={`px-3 py-2 border rounded-xl font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer transition-all ${
                       isExpanded 
                         ? 'bg-purple-100 border-purple-300 text-purple-950 shadow-2xs' 
                         : 'bg-slate-50 hover:bg-purple-50 border-slate-200 hover:border-purple-300 text-slate-700 hover:text-purple-900'
@@ -246,19 +348,35 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                   </button>
 
                   {isClient && (
-                    <button
-                      type="button"
-                      onClick={() => onSelect(app.applicant)}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
-                    >
-                      <UserCheck size={14} />
-                      Select Freelancer
-                    </button>
+                    <>
+                      {/* Pre-Acceptance Discussion / Negotiation CTA */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNegotiatingApplicant(app);
+                          setNegotiatedAmount(jobAmount);
+                          setNegotiatedDays(jobReviewPeriodDays);
+                        }}
+                        className="bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      >
+                        <MessageSquare size={14} className="text-purple-700" />
+                        Discuss Terms
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onSelect(app.applicant)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                      >
+                        <UserCheck size={14} />
+                        Select Freelancer
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
 
-              {/* Proposal Text Section (Sleek Dedicated Container) */}
+              {/* Proposal Text Section */}
               <div className="bg-[#FAF5FF] border border-purple-200/60 rounded-2xl p-4 space-y-1.5">
                 <div className="flex items-center gap-1.5">
                   <MessageSquare size={13} className="text-purple-600 shrink-0" />
@@ -521,6 +639,172 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
           );
         })}
       </div>
+
+      {/* Pre-Acceptance Discussion & Terms Negotiation Modal */}
+      <AnimatePresence>
+        {negotiatingApplicant && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setNegotiatingApplicant(null)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 overflow-hidden z-10 space-y-6 max-h-[90vh] flex flex-col justify-between"
+            >
+              {/* Modal Header */}
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-bold shadow-md">
+                    <MessageSquare size={22} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono uppercase text-purple-800 font-bold bg-purple-100 px-2 py-0.5 rounded border border-purple-200">
+                      PRE-ACCEPTANCE NEGOTIATION
+                    </span>
+                    <h3 className="font-headline text-lg sm:text-xl font-black text-slate-900 mt-1">
+                      Discuss Terms with {truncateAddress(negotiatingApplicant.applicant)}
+                    </h3>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setNegotiatingApplicant(null)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Negotiation Controls: Adjust Amount & Review Period */}
+              <div className="bg-purple-50/60 border border-purple-200/80 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-900 uppercase">
+                  <Sliders size={14} className="text-purple-700" />
+                  <span>Negotiable Job Terms (Pre-Acceptance)</span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-sans">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Escrow Amount (USDC)
+                    </label>
+                    <div className="relative">
+                      <DollarSign size={14} className="absolute left-3 top-3 text-slate-400" />
+                      <input
+                        type="number"
+                        min="1"
+                        value={negotiatedAmount}
+                        onChange={(e) => setNegotiatedAmount(e.target.value)}
+                        className="w-full bg-white border border-slate-300 text-slate-900 font-bold text-sm rounded-xl !pl-8 px-3 py-2 focus:ring-2 focus:ring-purple-200 focus:border-purple-600 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Review Window SLA (Days)
+                    </label>
+                    <div className="relative">
+                      <Clock size={14} className="absolute left-3 top-3 text-slate-400" />
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={negotiatedDays}
+                        onChange={(e) => setNegotiatedDays(Number(e.target.value))}
+                        className="w-full bg-white border border-slate-300 text-slate-900 font-bold text-sm rounded-xl !pl-8 px-3 py-2 focus:ring-2 focus:ring-purple-200 focus:border-purple-600 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500 font-mono">
+                  Modify terms if agreed upon before formally selecting this candidate for on-chain escrow lock.
+                </p>
+              </div>
+
+              {/* Chat Stream Box */}
+              <div className="flex-1 min-h-[160px] max-h-[220px] overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
+                {currentPreAcceptMessages.length === 0 ? (
+                  <div className="text-center py-6 text-slate-400 text-xs font-medium">
+                    <p>No messages yet. Send a message to discuss project details or negotiate scope.</p>
+                  </div>
+                ) : (
+                  currentPreAcceptMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex flex-col ${msg.senderRole === 'Client' ? 'items-end' : 'items-start'}`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-[10px] font-mono font-bold text-slate-500">
+                          {msg.senderRole === 'Client' ? 'You (Client)' : 'Freelancer'}
+                        </span>
+                        <span className="text-[9px] text-slate-400">
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div
+                        className={`p-3 rounded-2xl text-xs max-w-sm font-medium ${
+                          msg.senderRole === 'Client'
+                            ? 'bg-purple-600 text-white rounded-br-none shadow-xs'
+                            : 'bg-white border border-slate-200 text-slate-900 rounded-bl-none shadow-2xs'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Message Input */}
+              <form onSubmit={handleSendPreAcceptMessage} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type a message to discuss requirements or adjust budget..."
+                  value={negotiateChatInput}
+                  onChange={(e) => setNegotiateChatInput(e.target.value)}
+                  className="flex-1 bg-slate-50 border border-slate-300 text-slate-900 text-xs font-semibold rounded-xl px-4 py-2.5 focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-purple-200 outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!negotiateChatInput.trim()}
+                  className="px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md disabled:opacity-50 transition-all cursor-pointer"
+                >
+                  <Send size={13} />
+                  Send
+                </button>
+              </form>
+
+              {/* Footer CTA: Finalize & Select */}
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setNegotiatingApplicant(null)}
+                  className="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                >
+                  Close
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveTermsAndSelect}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <UserCheck size={15} />
+                  Accept & Proceed with ${negotiatedAmount} USDC
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

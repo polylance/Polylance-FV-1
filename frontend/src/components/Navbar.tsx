@@ -39,10 +39,10 @@ interface NavLinkProps {
 }
 
 const NavLink: React.FC<NavLinkProps> = ({ to, active, children, accent = 'purple' }) => {
-  const activeTextClass = accent === 'amber' ? 'text-amber-800 font-bold' : 'text-purple-700 font-bold';
+  const activeTextClass = accent === 'amber' ? 'text-amber-900 font-black' : 'text-purple-700 font-black';
   const hoverClass = accent === 'amber'
-    ? 'hover:text-amber-700 hover:bg-amber-50/60'
-    : 'hover:text-slate-900 hover:bg-white/50';
+    ? 'hover:text-amber-800 hover:bg-amber-50/60'
+    : 'hover:text-slate-900 hover:bg-white/60';
 
   return (
     <Link
@@ -55,24 +55,31 @@ const NavLink: React.FC<NavLinkProps> = ({ to, active, children, accent = 'purpl
         ${active ? activeTextClass : `text-slate-600 ${hoverClass}`}
       `}
     >
-      {/* Sliding active background */}
+      {/* Apple Liquid Glass Sliding active background */}
       {active && (
         <motion.span
-          layoutId="activeNav"
+          layoutId="activeNavAppleGlass"
           className={`absolute inset-0 rounded-full ${
             accent === 'amber'
-              ? 'bg-amber-100/80'
-              : 'bg-white/70'
+              ? 'bg-gradient-to-b from-amber-100/90 via-amber-50/80 to-amber-100/70 border border-amber-300/80 ring-1 ring-amber-400/20'
+              : 'bg-gradient-to-b from-white/95 via-white/80 to-purple-50/70 border border-white/95 ring-1 ring-purple-500/20'
           }`}
           style={{
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             boxShadow: accent === 'amber'
-              ? 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.06)'
-              : 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(37,99,235,0.08)',
+              ? '0 4px 16px rgba(245, 158, 11, 0.15), inset 0 1px 1px rgba(255,255,255,1), inset 0 -1px 2px rgba(217, 119, 6, 0.1)'
+              : '0 4px 16px rgba(147, 51, 234, 0.12), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 1px rgba(255, 255, 255, 1), inset 0 -1px 2px rgba(147, 51, 234, 0.08)',
           }}
-          transition={spring.default}
+          transition={{
+            type: 'spring',
+            stiffness: 420,
+            damping: 30,
+            mass: 0.8,
+          }}
         />
       )}
-      <span className="relative z-10 flex items-center gap-1.5">{children}</span>
+      <span className="relative z-10 flex items-center gap-1.5 transition-transform duration-150 active:scale-95">{children}</span>
     </Link>
   );
 };
@@ -166,7 +173,7 @@ export const Navbar: React.FC = () => {
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="w-[calc(100%-1.5rem)] sm:w-[calc(100%-2.5rem)] max-w-[1536px] mx-auto
             flex items-center justify-between
-            px-5 py-2 sm:py-2.5 rounded-[28px] bg-white/85 border border-white/90 shadow-2xs"
+            px-5 py-2 sm:py-2.5 rounded-[28px] bg-white/90 border border-black/10 shadow-sm"
           style={{
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
@@ -190,13 +197,15 @@ export const Navbar: React.FC = () => {
           </Link>
         </div>
 
-        {/* ── CENTER: Navigation Pill ──────────────────────────────────── */}
+        {/* ── CENTER: Navigation Pill (Apple Glass Container with Tiny Stroke) ─── */}
         <div className="hidden md:flex items-center gap-0.5 font-sans">
           <div
-            className="flex items-center gap-0.5 rounded-full px-1.5 py-1"
+            className="flex items-center gap-0.5 rounded-full px-1.5 py-1 border border-black/10"
             style={{
-              background: 'rgba(255,255,255,0.40)',
-              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.8)',
+              background: 'rgba(255,255,255,0.55)',
+              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04), 0 1px 0 rgba(255,255,255,0.9)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
             }}
           >
             {/* VISITOR LINKS */}

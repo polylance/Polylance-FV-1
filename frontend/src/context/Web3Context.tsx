@@ -28,14 +28,14 @@ export const DEMO_WALLETS = {
     label: 'Freelancer (Dev)',
     isArbitrator: false,
     isTreasuryAdmin: false,
-    reputationCount: 4,
+    reputationCount: 0,
   },
   judge: {
     address: import.meta.env.VITE_JUDGE_ADDRESS as string || '',
     label: 'Judge / Arbitrator',
     isArbitrator: true,
     isTreasuryAdmin: false,
-    reputationCount: 12,
+    reputationCount: 0,
   },
   admin: {
     // Primary admin demo address — loaded from env only, never hardcoded
@@ -43,7 +43,7 @@ export const DEMO_WALLETS = {
     label: 'Treasury Admin (Safe Multisig)',
     isArbitrator: false,
     isTreasuryAdmin: true,
-    reputationCount: 1,
+    reputationCount: 0,
   },
 };
 
@@ -280,8 +280,27 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+const SAFE_FALLBACK_WEB3_CONTEXT: Web3ContextType = {
+  address: '',
+  isConnected: false,
+  isArbitrator: false,
+  isTreasuryAdmin: false,
+  reputationCount: 0,
+  loading: false,
+  error: null,
+  currentRole: 'visitor',
+  setRole: () => {},
+  connectWallet: async () => {},
+  disconnectWallet: () => {},
+  refreshOnChainState: async () => {},
+  provider: null as any,
+  getSigner: async () => null,
+};
+
 export const useWeb3 = () => {
   const context = useContext(Web3Context);
-  if (!context) throw new Error('useWeb3 must be used within a Web3Provider');
+  if (!context) {
+    return SAFE_FALLBACK_WEB3_CONTEXT;
+  }
   return context;
 };
