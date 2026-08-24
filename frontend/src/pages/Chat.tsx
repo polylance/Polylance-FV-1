@@ -6,7 +6,7 @@ import {
   MessageSquare, Send, ShieldCheck, Award, Scale, Building2, Briefcase,
   ExternalLink, Lock, PlusCircle, DollarSign, CheckCircle2, ArrowUpRight,
   User, Clock, Search, Sparkles, AlertCircle, FileCheck, CheckCircle, Gavel, UserCheck,
-  Paperclip, Smile, MoreVertical, Copy, Shield, Download, AlertTriangle, ChevronRight, X, Zap, Trash2
+  Paperclip, Smile, MoreVertical, Copy, Shield, Download, AlertTriangle, ChevronRight, X, Zap, Trash2, Users
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
 import { JudgeRecord, JudgeMessage } from '../types';
@@ -24,6 +24,12 @@ export const Chat: React.FC = () => {
 
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showJudgeMoreMenu, setShowJudgeMoreMenu] = useState(false);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const isAdmin = currentRole === 'admin';
   const isJudgeRole = currentRole === 'judge';
@@ -448,51 +454,72 @@ export const Chat: React.FC = () => {
             /* Admin Chat Window with Selected Judge */
             activeJudge ? (
               <>
-                {/* Header Bar */}
+                {/* Header Bar matching Image 3 */}
                 <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-purple-600 text-white font-extrabold flex items-center justify-center text-sm uppercase shadow-sm">
-                      {activeJudge.name.slice(0, 2)}
+                  <div className="flex items-center gap-4">
+                    {/* Circle Avatar with green status dot */}
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-purple-600 text-white font-extrabold flex items-center justify-center text-sm uppercase shadow-sm ring-4 ring-purple-100/70">
+                        {activeJudge.name.slice(0, 2)}
+                      </div>
+                      <span className="w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-xs" />
                     </div>
-                    <div>
+
+                    {/* Header Info */}
+                    <div className="space-y-0.5">
+                      {/* Top Badges */}
                       <div className="flex items-center gap-2">
-                        <h4 className="font-headline font-black text-slate-900 text-sm">
-                          {activeJudge.name}
-                        </h4>
-                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-emerald-100 text-emerald-800">
-                          {activeJudge.status}
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">
+                          <Shield size={11} className="text-purple-600" />
+                          PRIMARY ARBITRATOR
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          ACTIVE
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[10px] font-mono text-slate-500 font-bold">
-                          XMTP Encrypted Channel Active
-                        </span>
-                        <span className="text-[9px] bg-purple-100 text-purple-800 font-mono px-1.5 py-0.5 rounded font-extrabold flex items-center gap-1">
+
+                      {/* Main Title */}
+                      <h4 className="font-headline font-black text-slate-900 text-base leading-tight">
+                        {activeJudge.name}
+                      </h4>
+
+                      {/* Subtitle & Address Pill */}
+                      <div className="flex items-center flex-wrap gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 font-medium">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <span>XMTP Encrypted Channel Active</span>
+                        </div>
+                        <span className="text-slate-300">|</span>
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-purple-100/70 text-purple-800 font-mono px-2 py-0.5 rounded-md font-extrabold">
                           <Shield size={10} className="text-purple-600" /> XMTP Protocol
                         </span>
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] font-mono text-slate-400">
-                        <span>{truncateAddress(activeJudge.address)}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyAddress(activeJudge.address)}
-                          className="hover:text-purple-700 cursor-pointer"
-                        >
-                          <Copy size={11} />
-                        </button>
-                        {copiedAddr && <span className="text-[9px] text-emerald-600 font-bold">Copied!</span>}
+                        <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded-md text-[11px] font-mono text-slate-600">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyAddress(activeJudge.address)}
+                            className="hover:text-purple-700 cursor-pointer flex items-center gap-1"
+                            title="Copy Address"
+                          >
+                            <Copy size={11} className="text-slate-400 hover:text-purple-600" />
+                            <span>{truncateAddress(activeJudge.address)}</span>
+                          </button>
+                          {copiedAddr && <span className="text-[9px] text-emerald-600 font-bold">Copied!</span>}
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Link
-                      to="/judge"
-                      className="px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 text-xs font-bold font-mono transition-all flex items-center gap-1 cursor-pointer"
-                    >
-                      Manage Judges <ArrowUpRight size={13} />
-                    </Link>
+                  <div className="flex items-center gap-2.5">
+                    {/* Admin Only: Manage Judges button */}
+                    {isAdmin && (
+                      <Link
+                        to="/judge"
+                        className="px-4 py-2 rounded-2xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 text-xs font-bold font-mono transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
+                      >
+                        <Users size={14} className="text-purple-600" /> Manage Judges <ArrowUpRight size={13} />
+                      </Link>
+                    )}
 
                     <div className="relative">
                       <button
@@ -507,10 +534,13 @@ export const Chat: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              if (confirm('Are you sure you want to delete this judge chat history?')) {
-                                deleteChatHistory(undefined, activeJudge.address);
-                              }
                               setShowJudgeMoreMenu(false);
+                              setDeleteConfirmModal({
+                                isOpen: true,
+                                title: 'Delete Judge Chat History',
+                                description: 'Are you sure you want to delete this arbitrator chat history? This action is permanent and will remove all messages from storage.',
+                                onConfirm: () => deleteChatHistory(undefined, activeJudge.address)
+                              });
                             }}
                             className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
                           >
@@ -520,6 +550,51 @@ export const Chat: React.FC = () => {
                       )}
                     </div>
                   </div>
+                </div>
+
+                {/* Dedicated Action Button Bar */}
+                <div className="px-4 py-2 border-b border-slate-100 bg-white/60 flex items-center justify-start gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleRelease}
+                    className="bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300 text-emerald-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px] shadow-2xs transition-all cursor-pointer"
+                  >
+                    <CheckCircle2 size={13} className="text-emerald-600" />
+                    Approve Payment
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const reason = prompt('State the dispute reason:');
+                      if (reason) {
+                        const targetId = activeJob ? activeJob.id : selectedJudgeAddr;
+                        if (targetId) {
+                          sendChatMessage(targetId, `⚠️ Dispute Raised: ${reason}`, 'Judge');
+                        }
+                      }
+                    }}
+                    className="bg-rose-50/70 hover:bg-rose-100/70 border border-rose-300 text-rose-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px] shadow-2xs transition-all cursor-pointer"
+                  >
+                    <AlertTriangle size={13} className="text-rose-600" />
+                    Raise Issue
+                  </button>
+
+                  {activeJob ? (
+                    <Link
+                      to={`/jobs/${activeJob.id}`}
+                      className="bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200 text-purple-700 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px] shadow-2xs transition-all cursor-pointer"
+                    >
+                      Job Details <ArrowUpRight size={12} className="text-purple-600" />
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/dao"
+                      className="bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200 text-purple-700 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px] shadow-2xs transition-all cursor-pointer"
+                    >
+                      Job Details <ArrowUpRight size={12} className="text-purple-600" />
+                    </Link>
+                  )}
                 </div>
 
                 {/* Messages List Area */}
@@ -560,11 +635,11 @@ export const Chat: React.FC = () => {
                     );
                   })}
 
-                  {/* No More Messages Divider */}
-                  <div className="flex items-center justify-center gap-3 my-6">
-                    <div className="h-px bg-slate-200 flex-1 max-w-[100px]" />
+                  {/* No more messages divider */}
+                  <div className="flex items-center justify-center gap-2 my-4 pt-2">
+                    <div className="h-px bg-slate-200 w-16" />
                     <span className="text-[10px] font-mono text-slate-400">No more messages</span>
-                    <div className="h-px bg-slate-200 flex-1 max-w-[100px]" />
+                    <div className="h-px bg-slate-200 w-16" />
                   </div>
 
                   <div ref={messagesEndRef} />
@@ -640,30 +715,74 @@ export const Chat: React.FC = () => {
             /* Job Escrow Chat Window matching Reference Image */
             activeJob ? (
               <>
-                {/* Header Bar */}
+                {/* Header Bar matching Image 3 */}
                 <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-purple-600 text-white font-extrabold flex items-center justify-center text-sm uppercase shadow-sm">
-                      {(activeJob.client.toLowerCase() === (address || '').toLowerCase() ? (activeJob.freelancer || 'Dev') : 'Client').slice(0, 2)}
+                  <div className="flex items-center gap-4">
+                    {/* Circle Avatar with status ring */}
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-purple-600 text-white font-extrabold flex items-center justify-center text-sm uppercase shadow-sm ring-4 ring-purple-100/70">
+                        {(activeJob.client.toLowerCase() === (address || '').toLowerCase() ? (activeJob.freelancer || 'Dev') : 'Client').slice(0, 2)}
+                      </div>
+                      <span className={`w-3.5 h-3.5 rounded-full border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-xs ${
+                        activeJob.status === 'Completed' ? 'bg-purple-500' : 'bg-emerald-400'
+                      }`} />
                     </div>
-                    <div>
-                      <h4 className="font-headline font-bold text-slate-900 text-sm">{activeJob.title}</h4>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[10px] font-mono text-slate-500 font-bold">
-                          XMTP Encrypted Channel Active
+
+                    {/* Header Info */}
+                    <div className="space-y-0.5">
+                      {/* Top Badges */}
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">
+                          <Briefcase size={11} className="text-purple-600" />
+                          ESCROW CHANNEL
                         </span>
-                        <span className="text-[9px] bg-purple-100 text-purple-800 font-mono px-1.5 py-0.5 rounded font-extrabold flex items-center gap-1">
+                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                          activeJob.status === 'Completed'
+                            ? 'text-purple-700 bg-purple-50 border-purple-200'
+                            : 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${activeJob.status === 'Completed' ? 'bg-purple-600' : 'bg-emerald-500'}`} />
+                          {activeJob.status === 'Completed' ? 'COMPLETED' : 'ACTIVE'}
+                        </span>
+                      </div>
+
+                      {/* Main Title */}
+                      <h4 className="font-headline font-black text-slate-900 text-base leading-tight">
+                        {activeJob.title}
+                      </h4>
+
+                      {/* Subtitle & Address Pill */}
+                      <div className="flex items-center flex-wrap gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 font-medium">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <span>XMTP Encrypted Channel Active</span>
+                        </div>
+                        <span className="text-slate-300">|</span>
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-purple-100/70 text-purple-800 font-mono px-2 py-0.5 rounded-md font-extrabold">
                           <Shield size={10} className="text-purple-600" /> XMTP Protocol
                         </span>
+                        {(activeJob.contractAddress || activeJob.client) && (
+                          <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded-md text-[11px] font-mono text-slate-600">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyAddress(activeJob.contractAddress || activeJob.client)}
+                              className="hover:text-purple-700 cursor-pointer flex items-center gap-1"
+                              title="Copy Address"
+                            >
+                              <Copy size={11} className="text-slate-400 hover:text-purple-600" />
+                              <span>{truncateAddress(activeJob.contractAddress || activeJob.client)}</span>
+                            </button>
+                            {copiedAddr && <span className="text-[9px] text-emerald-600 font-bold">Copied!</span>}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <Link
                       to={`/jobs/${activeJob.id}`}
-                      className="px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 text-xs font-bold font-mono transition-all flex items-center gap-1 cursor-pointer"
+                      className="px-4 py-2 rounded-2xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 text-xs font-bold font-mono transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
                     >
                       Job Details <ArrowUpRight size={13} />
                     </Link>
@@ -681,10 +800,13 @@ export const Chat: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              if (confirm('Are you sure you want to delete this chat history? This will remove all messages from DB and local storage.')) {
-                                deleteChatHistory(activeJob.id);
-                              }
                               setShowMoreMenu(false);
+                              setDeleteConfirmModal({
+                                isOpen: true,
+                                title: 'Delete Job Chat History',
+                                description: 'Are you sure you want to delete this job chat history? This will permanently remove all messages from the database and local storage.',
+                                onConfirm: () => deleteChatHistory(activeJob.id)
+                              });
                             }}
                             className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
                           >
@@ -694,6 +816,114 @@ export const Chat: React.FC = () => {
                       )}
                     </div>
                   </div>
+                </div>
+
+                {/* Dedicated Action Button Bar matching Image 2 */}
+                <div className="px-6 py-3.5 border-b border-slate-100 bg-white/60 flex items-center justify-start gap-4 shrink-0">
+                  {(() => {
+                    const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase() || currentRole === 'client';
+                    const isFreelancer = (!isClient && activeJob.freelancer?.toLowerCase() === (address || '').toLowerCase()) || currentRole === 'freelancer';
+
+                    return (
+                      <>
+                        {/* CLIENT ACTIONS */}
+                        {isClient && (
+                          <>
+                            {(activeJob.status === 'Submitted' || (activeJob.status as string) === 'Funded') ? (
+                              <button
+                                type="button"
+                                onClick={handleRelease}
+                                className="bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300 text-emerald-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px] shadow-2xs transition-all cursor-pointer"
+                              >
+                                <CheckCircle2 size={16} className="text-emerald-600" />
+                                Approve Payment
+                              </button>
+                            ) : (activeJob.status === 'Selected' || (activeJob.status as string) === 'TermsAgreed') ? (
+                              <button
+                                type="button"
+                                onClick={handleFund}
+                                className="bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300 text-emerald-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px] shadow-2xs transition-all cursor-pointer"
+                              >
+                                <DollarSign size={16} className="text-emerald-600" />
+                                Fund Escrow
+                              </button>
+                            ) : activeJob.status === 'Completed' ? (
+                              <div className="bg-emerald-50/70 border border-emerald-200 text-emerald-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px]">
+                                <CheckCircle2 size={15} className="text-emerald-600" />
+                                Escrow Completed
+                              </div>
+                            ) : null}
+                          </>
+                        )}
+
+                        {/* FREELANCER ACTIONS (NEVER SHOWS APPROVE PAYMENT) */}
+                        {isFreelancer && (
+                          <>
+                            {activeJob.status === 'Selected' && !activeJob.freelancerAgreedTerms ? (
+                              <button
+                                type="button"
+                                onClick={handleProposeTerms}
+                                className="bg-purple-50/70 hover:bg-purple-100/70 border border-purple-300 text-purple-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px] shadow-2xs transition-all cursor-pointer"
+                              >
+                                <CheckCircle2 size={16} className="text-purple-600" />
+                                Accept Assignment Terms
+                              </button>
+                            ) : (activeJob.status === 'Funded' || activeJob.status === 'Selected') ? (
+                              <button
+                                type="button"
+                                onClick={() => setIsSubmitModalOpen(true)}
+                                className="bg-blue-50/70 hover:bg-blue-100/70 border border-blue-300 text-blue-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px] shadow-2xs transition-all cursor-pointer"
+                              >
+                                <PlusCircle size={16} className="text-blue-600" />
+                                Submit Deliverable
+                              </button>
+                            ) : activeJob.status === 'Submitted' ? (
+                              <div className="bg-blue-50/70 border border-blue-200 text-blue-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px]">
+                                <Clock size={15} className="text-blue-600" />
+                                Milestone Under Review
+                              </div>
+                            ) : activeJob.status === 'Completed' ? (
+                              <div className="bg-emerald-50/70 border border-emerald-200 text-emerald-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px]">
+                                <CheckCircle2 size={15} className="text-emerald-600" />
+                                Payout Released
+                              </div>
+                            ) : null}
+                          </>
+                        )}
+
+                        {/* Spectator or non-client non-freelancer */}
+                        {!isClient && !isFreelancer && (
+                          <div className="bg-purple-50/70 border border-purple-200 text-purple-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px]">
+                            <Shield size={15} className="text-purple-600" />
+                            Escrow Status: {activeJob.status}
+                          </div>
+                        )}
+
+                        {/* Raise Issue Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const reason = prompt('State the dispute reason:');
+                            if (reason && activeJob) {
+                              sendChatMessage(activeJob.id, `⚠️ Dispute Raised: ${reason}`, 'Judge');
+                            }
+                          }}
+                          className="bg-rose-50/70 hover:bg-rose-100/70 border border-rose-300 text-rose-800 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px] shadow-2xs transition-all cursor-pointer"
+                        >
+                          <AlertTriangle size={15} className="text-rose-600" />
+                          Raise Issue
+                        </button>
+
+                        {/* Job Details Button */}
+                        <Link
+                          to={`/jobs/${activeJob.id}`}
+                          className="bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200 text-purple-700 font-bold py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px] shadow-2xs transition-all cursor-pointer"
+                        >
+                          Job Details <ArrowUpRight size={14} className="text-purple-600" />
+                        </Link>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Messages Feed */}
@@ -837,238 +1067,114 @@ export const Chat: React.FC = () => {
           )}
         </div>
 
-        {/* Right Side: Escrow / Arbitrator Summary Panel (3 Cols) matching Reference Image */}
-        <div className="lg:col-span-3 border-l border-slate-200 flex flex-col h-full bg-white p-5 overflow-y-auto space-y-5">
-          {activeJob ? (
-            <>
-              {/* Top Status Pill matching Image 3 */}
-              <div>
-                <span className="inline-flex items-center gap-1 text-[9.5px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100/80 border border-purple-200 px-3 py-1 rounded-full">
-                  <CheckCircle2 size={12} className="text-purple-700" />
-                  {activeJob.status === 'Completed' ? 'COMPLETED ESCROW' : `${activeJob.status.toUpperCase()} ESCROW`}
-                </span>
-                <h3 className="font-headline font-extrabold text-slate-900 text-base mt-3 leading-snug">
-                  {activeJob.title}
-                </h3>
-                <p className="text-xs text-slate-500 font-sans mt-1 leading-relaxed">
-                  {activeJob.description}
-                </p>
-              </div>
+        {/* Right Side: Escrow / Arbitrator Summary Panel (3 Cols) - Matching Image 2 */}
+        <div className="lg:col-span-3 border-l border-slate-200 flex flex-col justify-start h-full bg-white p-5 space-y-4 overflow-y-auto">
+          {(() => {
+            const displayJob = activeJob || jobs[0] || {
+              id: 'job-sample',
+              title: 'Check the Entire Polylance Working functionalities after that db issue',
+              description: 'check every feature and functionalities and the db...',
+              amountUsdc: '10.00',
+              status: 'Completed',
+              client: '0xClient',
+              contractAddress: '0xb8aa9901428514db349079148d289e6e174209dd'
+            };
 
-              {/* Locked Vault Deposit Card matching Image 3 */}
-              <div className="bg-slate-50/80 border border-slate-200/80 p-4 rounded-2xl space-y-1">
-                <span className="text-[9.5px] uppercase font-mono text-slate-500 font-bold block tracking-wider">
-                  LOCKED VAULT DEPOSIT
-                </span>
-                <div className="font-mono font-black text-slate-900 text-xl flex items-center justify-between">
-                  <span>${parseFloat(activeJob.amountUsdc || '0').toFixed(2)} <span className="text-xs text-slate-500 font-normal">USDC</span></span>
-                  <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shadow-xs">
-                    $
-                  </div>
-                </div>
-              </div>
-
-              {/* Smart Contract Actions matching Image 3 */}
-              <div className="space-y-3 pt-1 border-t border-slate-100">
-                <span className="text-[9.5px] uppercase font-mono text-slate-400 font-bold block tracking-wider">
-                  SMART CONTRACT ACTIONS
-                </span>
-
-                {/* Smart Escrow Card */}
-                <div className="bg-purple-50/60 border border-purple-100 p-3.5 rounded-2xl flex items-center justify-between text-xs cursor-pointer hover:bg-purple-50 transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-purple-200/70 text-purple-800 flex items-center justify-center">
-                      <Shield size={14} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-purple-950 text-xs">Polygon Smart Escrow</p>
-                      <p className="text-[10px] text-slate-500 font-mono">Non-custodial EIP-5192 vault protection.</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-slate-400" />
-                </div>
-
-                {/* View on Explorer Card */}
-                <a
-                  href={`https://amoy.polygonscan.com/address/${activeJob.contractAddress || '0x'}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-2xl flex items-center justify-between text-xs hover:bg-emerald-50 transition-colors block"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-emerald-200/70 text-emerald-800 flex items-center justify-center">
-                      <ExternalLink size={14} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-emerald-950 text-xs">View on Explorer</p>
-                      <p className="text-[10px] text-slate-500 font-mono">Check transaction & escrow details</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-slate-400" />
-                </a>
-
-                {/* Download Receipt Card */}
-                <Link
-                  to={`/audit/${activeJob.client}`}
-                  className="bg-amber-50/60 border border-amber-100 p-3.5 rounded-2xl flex items-center justify-between text-xs hover:bg-amber-50 transition-colors block"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-amber-200/70 text-amber-800 flex items-center justify-center">
-                      <Download size={14} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-amber-950 text-xs">Download Receipt</p>
-                      <p className="text-[10px] text-slate-500 font-mono">Export escrow information</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-slate-400" />
-                </Link>
-              </div>
-
-              {/* Action Buttons: Terms / Fund / Submit / Release */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                {/* Propose Terms */}
-                {activeJob.status === 'Open' && (
+            return (
+              <>
+                {/* Top Status Pill */}
+                <div>
+                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100 border border-purple-200 px-3 py-0.5 rounded-full">
+                    <CheckCircle2 size={12} className="text-purple-700" />
+                    {displayJob.status === 'Completed' ? 'COMPLETED ESCROW' : `${displayJob.status.toUpperCase()} ESCROW`}
+                  </span>
+                  <h3 className="font-headline font-extrabold text-slate-900 text-sm mt-3 leading-snug">
+                    {displayJob.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-sans mt-1 leading-snug line-clamp-2">
+                    {displayJob.description}
+                  </p>
                   <button
-                    onClick={handleProposeTerms}
-                    className="w-full gradient-btn-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                    type="button"
+                    onClick={() => alert(displayJob.description)}
+                    className="text-xs text-purple-700 hover:text-purple-900 font-bold mt-1 cursor-pointer hover:underline block"
                   >
-                    <FileCheck size={14} /> Sign Terms Hash
+                    View More
                   </button>
-                )}
-
-                {/* Fund Escrow Vault */}
-                {((activeJob.status as string) === 'TermsAgreed' || activeJob.status === 'Selected') && (activeJob.client.toLowerCase() === (address || '').toLowerCase() || isAdmin) && (
-                  <button
-                    onClick={handleFund}
-                    className="w-full gradient-btn-emerald py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
-                  >
-                    <DollarSign size={14} /> Fund Vault Deposit
-                  </button>
-                )}
-
-                {/* Submit Deliverable */}
-                {((activeJob.status as string) === 'Funded' || activeJob.status === 'Selected') && (activeJob.freelancer?.toLowerCase() === (address || '').toLowerCase() || isAdmin) && (
-                  <button
-                    onClick={() => setIsSubmitModalOpen(true)}
-                    className="w-full gradient-btn-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
-                  >
-                    <PlusCircle size={14} /> Submit Deliverable
-                  </button>
-                )}
-
-                {/* Approve & Release Payout */}
-                {(activeJob.status === 'Submitted' || (activeJob.status as string) === 'Funded') && (activeJob.client.toLowerCase() === (address || '').toLowerCase() || isAdmin) && (
-                  <button
-                    onClick={handleRelease}
-                    className="w-full gradient-btn-emerald py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
-                  >
-                    <CheckCircle size={14} /> Approve & Release Payout
-                  </button>
-                )}
-              </div>
-
-              {/* Bottom Raise Dispute Danger Button matching Image 3 */}
-              <button
-                type="button"
-                onClick={() => {
-                  const reason = prompt('State the dispute reason:');
-                  if (reason && activeJob) {
-                    sendChatMessage(activeJob.id, `⚠️ Dispute Raised: ${reason}`, 'Judge');
-                  }
-                }}
-                className="w-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-3 rounded-2xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer mt-auto"
-              >
-                <AlertTriangle size={15} /> Raise Dispute
-              </button>
-            </>
-          ) : activeJudge ? (
-            <>
-              {/* Judge Summary matching Image 3 layout */}
-              <div>
-                <span className="inline-flex items-center gap-1 text-[9.5px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100/80 border border-purple-200 px-3 py-1 rounded-full">
-                  <CheckCircle2 size={12} className="text-purple-700" />
-                  COMPLETED ESCROW
-                </span>
-                <h3 className="font-headline font-extrabold text-slate-900 text-base mt-3 leading-snug">
-                  {activeJudge.name}
-                </h3>
-                <p className="text-xs text-slate-500 font-sans mt-1 leading-relaxed">
-                  {activeJudge.notes || 'Lead Arbitrator for decentralized dispute resolution.'}
-                </p>
-              </div>
-
-              {/* Deposit Card */}
-              <div className="bg-slate-50/80 border border-slate-200/80 p-4 rounded-2xl space-y-1">
-                <span className="text-[9.5px] uppercase font-mono text-slate-500 font-bold block tracking-wider">
-                  LOCKED VAULT DEPOSIT
-                </span>
-                <div className="font-mono font-black text-slate-900 text-xl flex items-center justify-between">
-                  <span>$99.96 <span className="text-xs text-slate-500 font-normal">USDC</span></span>
-                  <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shadow-xs">
-                    $
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="space-y-3 pt-1 border-t border-slate-100">
-                <span className="text-[9.5px] uppercase font-mono text-slate-400 font-bold block tracking-wider">
-                  SMART CONTRACT ACTIONS
-                </span>
-
-                <div className="bg-purple-50/60 border border-purple-100 p-3.5 rounded-2xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-purple-200/70 text-purple-800 flex items-center justify-center">
-                      <Shield size={14} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-purple-950 text-xs">Polygon Smart Escrow</p>
-                      <p className="text-[10px] text-slate-500 font-mono">Non-custodial EIP-5192 vault protection.</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-slate-400" />
                 </div>
 
-                <div className="bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-2xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-emerald-200/70 text-emerald-800 flex items-center justify-center">
-                      <ExternalLink size={14} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-emerald-950 text-xs">View on Explorer</p>
-                      <p className="text-[10px] text-slate-500 font-mono">Check transaction & escrow details</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-slate-400" />
-                </div>
-
-                <div className="bg-amber-50/60 border border-amber-100 p-3.5 rounded-2xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-amber-200/70 text-amber-800 flex items-center justify-center">
-                      <Download size={14} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-amber-950 text-xs">Download Receipt</p>
-                      <p className="text-[10px] text-slate-500 font-mono">Export escrow information</p>
+                {/* Locked Vault Deposit Card */}
+                <div className="bg-slate-50/80 border border-slate-200/80 p-3.5 rounded-2xl space-y-1">
+                  <span className="text-[9.5px] uppercase font-mono text-slate-500 font-bold block tracking-wider">
+                    LOCKED VAULT DEPOSIT
+                  </span>
+                  <div className="font-mono font-black text-slate-900 text-xl flex items-center justify-between">
+                    <span>${parseFloat(displayJob.amountUsdc || '10.00').toFixed(2)} <span className="text-xs text-slate-500 font-normal">USDC</span></span>
+                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                      $
                     </div>
                   </div>
-                  <ChevronRight size={14} className="text-slate-400" />
                 </div>
-              </div>
 
-              <button
-                type="button"
-                className="w-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-3 rounded-2xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer mt-auto"
-              >
-                <AlertTriangle size={15} /> Raise Dispute
-              </button>
-            </>
-          ) : (
-            <div className="text-center py-12 text-slate-400 text-xs font-mono">
-              No active channel selected.
-            </div>
-          )}
+                {/* Smart Contract Actions */}
+                <div className="space-y-2.5 pt-1 border-t border-slate-100">
+                  <span className="text-[9.5px] uppercase font-mono text-slate-400 font-bold block tracking-wider">
+                    SMART CONTRACT ACTIONS
+                  </span>
+
+                  {/* Smart Escrow Card */}
+                  <div className="bg-purple-50/60 border border-purple-100 p-3 rounded-2xl flex items-center justify-between text-xs cursor-pointer hover:bg-purple-50 transition-colors">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-xl bg-purple-200/70 text-purple-800 flex items-center justify-center">
+                        <Shield size={14} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-purple-950 text-xs">Polygon Smart Escrow</p>
+                        <p className="text-[10px] text-slate-500 font-mono">Non-custodial EIP-5192 vault.</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-slate-400" />
+                  </div>
+
+                  {/* View on Explorer Card */}
+                  <a
+                    href={`https://amoy.polygonscan.com/address/${displayJob.contractAddress || '0xb8aa9901428514db349079148d289e6e174209dd'}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="bg-emerald-50/60 border border-emerald-100 p-3 rounded-2xl flex items-center justify-between text-xs hover:bg-emerald-50 transition-colors block"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-xl bg-emerald-200/70 text-emerald-800 flex items-center justify-center">
+                        <ExternalLink size={14} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-emerald-950 text-xs">View on Explorer</p>
+                        <p className="text-[10px] text-slate-500 font-mono">Check transaction details</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-slate-400" />
+                  </a>
+
+                  {/* Download Receipt Card */}
+                  <Link
+                    to={`/audit/${displayJob.client || '0x'}`}
+                    className="bg-amber-50/60 border border-amber-100 p-3 rounded-2xl flex items-center justify-between text-xs hover:bg-amber-50 transition-colors block"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-xl bg-amber-200/70 text-amber-800 flex items-center justify-center">
+                        <Download size={14} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-amber-950 text-xs">Download Receipt</p>
+                        <p className="text-[10px] text-slate-500 font-mono">Export escrow summary</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-slate-400" />
+                  </Link>
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
 
@@ -1135,6 +1241,46 @@ export const Chat: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {deleteConfirmModal?.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-rose-100 shadow-2xl space-y-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+              <Trash2 size={26} />
+            </div>
+            
+            <div className="space-y-1.5">
+              <h3 className="font-headline font-black text-slate-900 text-base">
+                {deleteConfirmModal.title}
+              </h3>
+              <p className="text-xs text-slate-500 font-sans leading-relaxed">
+                {deleteConfirmModal.description}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmModal(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteConfirmModal.onConfirm();
+                  setDeleteConfirmModal(null);
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer"
+              >
+                Delete History
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -13,21 +13,21 @@ export const appleEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 // DURATIONS
 // ─────────────────────────────────────────────────────────────────
 export const duration = {
-  micro:   0.18,  // icon swaps, checkbox ticks
-  fast:    0.22,  // hover states, small badge changes
-  normal:  0.32,  // section transitions, tab changes
-  medium:  0.38,  // page transitions, dropdowns
-  slow:    0.55,  // card reveals, scroll-in sections
-  xslow:   0.80,  // number count-ups, progress bars
+  micro:   0.10,  // icon swaps, checkbox ticks
+  fast:    0.14,  // hover states, small badge changes
+  normal:  0.18,  // section transitions, tab changes
+  medium:  0.22,  // page transitions, dropdowns
+  slow:    0.35,  // card reveals, scroll-in sections
+  xslow:   0.50,  // number count-ups, progress bars
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
 // SPRING CONFIG — physical, bouncy-but-controlled
 // ─────────────────────────────────────────────────────────────────
 export const spring = {
-  default: { type: 'spring' as const, stiffness: 420, damping: 32 },
-  snappy:  { type: 'spring' as const, stiffness: 500, damping: 36 },
-  gentle:  { type: 'spring' as const, stiffness: 280, damping: 28 },
+  default: { type: 'spring' as const, stiffness: 450, damping: 35 },
+  snappy:  { type: 'spring' as const, stiffness: 520, damping: 38 },
+  gentle:  { type: 'spring' as const, stiffness: 300, damping: 30 },
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -50,18 +50,15 @@ export const transition = {
 export const pageVariants = {
   initial: {
     opacity: 0,
-    y: 8,
-    scale: 0.995,
+    y: 4,
   },
   animate: {
     opacity: 1,
     y: 0,
-    scale: 1,
   },
   exit: {
     opacity: 0,
-    y: -6,
-    scale: 0.998,
+    y: -4,
   },
 } as const;
 

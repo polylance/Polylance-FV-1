@@ -157,9 +157,11 @@ export const AuditReport: React.FC = () => {
         {/* Identity Verification Summary */}
         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 font-mono">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-purple-100 border-2 border-purple-200 flex items-center justify-center text-purple-900 text-2xl font-black shadow-inner shrink-0 uppercase">
-              {displayName.slice(0, 2)}
-            </div>
+            <img 
+              src={profile?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress || 'polylance'}`}
+              alt={displayName}
+              className="w-16 h-16 rounded-full border-2 border-purple-300 object-cover shadow-inner shrink-0 bg-purple-50"
+            />
             <div className="space-y-1">
               <span className="text-slate-600 text-[10px] uppercase font-extrabold block">Audited Participant</span>
               <h2 className="font-extrabold text-slate-900 text-lg leading-none">{displayName}</h2>
@@ -170,7 +172,7 @@ export const AuditReport: React.FC = () => {
           <div className="space-y-1 sm:text-right shrink-0">
             <span className="text-slate-600 text-[10px] uppercase font-extrabold block">Assigned Role Profile</span>
             <span className="badge-role bg-purple-100 text-purple-950 font-extrabold border border-purple-200 px-3 py-1 rounded-xl text-xs uppercase inline-block">
-              {isFreelancer ? 'Sovereign Developer' : 'Enterprise Client'}
+              {profile?.title || (isFreelancer ? 'Sovereign Developer' : 'Enterprise Client')}
             </span>
           </div>
         </div>
@@ -310,39 +312,79 @@ export const AuditReport: React.FC = () => {
             </h3>
 
             {isFreelancer ? (
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs">
-                <div className="flex justify-between items-center text-[10px] pb-1 border-b border-slate-200">
-                  <span className="text-slate-700 uppercase font-extrabold">Language Index</span>
-                  <span className="text-slate-700 uppercase font-extrabold">Byte share</span>
+              <div className="space-y-4">
+                {/* Language Matrix with Byte Share & Progress Bars */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs">
+                  <div className="flex justify-between items-center text-[10px] pb-2 border-b border-slate-200">
+                    <span className="text-slate-700 uppercase font-extrabold">Language Index</span>
+                    <span className="text-slate-700 uppercase font-extrabold">Byte Share & Percent</span>
+                  </div>
+                  
+                  {(() => {
+                    const rawLangs = Object.entries(profile?.languageBytes || {}).filter(([_, bytes]) => (bytes || 0) > 0);
+                    // Ensure full skills representation if list is short
+                    const totalBytes = rawLangs.reduce((acc, [_, b]) => acc + b, 0) || 1;
+
+                    return rawLangs.length > 0 ? (
+                      <div className="space-y-2.5">
+                        {rawLangs
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([lang, bytes]) => {
+                            const pct = Math.max(1, Math.round((bytes / totalBytes) * 100));
+                            return (
+                              <div key={lang} className="space-y-1">
+                                <div className="flex justify-between items-center text-xs">
+                                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-purple-600 inline-block" />
+                                    {lang}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-500 font-mono">{pct}%</span>
+                                    <span className="font-bold text-purple-900">{(bytes / 1024).toFixed(1)} KB</span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-gradient-to-r from-purple-600 to-indigo-600 h-full rounded-full"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    ) : (
+                      <div className="text-slate-500 py-2 text-center text-xs">
+                        Verified On-Chain Developer Attestation
+                      </div>
+                    );
+                  })()}
+                  
+                  <div className="flex items-center gap-1.5 text-[10px] text-purple-900 bg-purple-100/70 px-2.5 py-1.5 rounded-lg border border-purple-200 mt-3 font-bold justify-center font-sans shadow-3xs">
+                    <Sparkles size={12} className="text-purple-600" /> Sybil Resistant GitHub Multi-Repo Verification Active
+                  </div>
                 </div>
-                
-                {profile?.languageBytes && Object.keys(profile.languageBytes).length > 0 ? (
-                  Object.entries(profile.languageBytes).map(([lang, bytes]) => (
-                    <div key={lang} className="flex justify-between items-center">
-                      <span className="font-bold text-slate-900 capitalize">{lang}</span>
-                      <span className="font-bold text-purple-900">{(bytes / 1024).toFixed(1)} KB</span>
+
+                {/* PolyLance Verified Skill Stack */}
+                {profile?.skills && profile.skills.length > 0 && (
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 font-mono text-xs">
+                    <div className="flex justify-between items-center text-[10px] pb-1 border-b border-slate-200">
+                      <span className="text-slate-700 uppercase font-extrabold">Attested Skill Stack</span>
+                      <span className="text-emerald-700 uppercase font-extrabold">Status: Verified</span>
                     </div>
-                  ))
-                ) : (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-900">TypeScript</span>
-                      <span className="font-bold text-purple-900">842 KB</span>
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      {profile.skills.map((skill, sIdx) => (
+                        <span
+                          key={sIdx}
+                          className="px-2.5 py-1 bg-white border border-purple-200 text-purple-900 text-[11px] font-sans font-bold rounded-lg flex items-center gap-1 shadow-3xs"
+                        >
+                          <CheckCircle2 size={11} className="text-purple-600" />
+                          {skill}
+                        </span>
+                      ))}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-900">Rust</span>
-                      <span className="font-bold text-purple-900">312 KB</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-900">Solidity</span>
-                      <span className="font-bold text-purple-900">148 KB</span>
-                    </div>
-                  </>
+                  </div>
                 )}
-                
-                <div className="flex items-center gap-1.5 text-[10px] text-purple-900 bg-purple-100/70 px-2 py-1 rounded border border-purple-200 mt-2 font-bold justify-center font-sans">
-                  <Sparkles size={11} /> Sybil Resistant GitHub verification Active
-                </div>
               </div>
             ) : (
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs">
@@ -352,19 +394,25 @@ export const AuditReport: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="font-bold text-slate-900">On-Time Milestones</span>
-                  <span className="font-extrabold text-emerald-700">96.8%</span>
+                  <span className="font-extrabold text-emerald-700">
+                    {clientJobs.length > 0 ? `${devSuccessRate}%` : '100%'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-bold text-slate-900">Dispute Escalation Rate</span>
-                  <span className="font-extrabold text-emerald-700">0.00%</span>
+                  <span className="font-extrabold text-emerald-700">
+                    {clientJobs.length > 0
+                      ? `${((clientJobs.filter(j => j.status === 'Disputed').length / clientJobs.length) * 100).toFixed(1)}%`
+                      : '0.00%'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-bold text-slate-900">Funds Locked Escrow TVL</span>
                   <span className="font-extrabold text-indigo-900">${clientVolumeDistributed.toLocaleString()} USDC</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-bold text-slate-900">Platform Longevity</span>
-                  <span className="font-extrabold text-slate-900">142 Days Active</span>
+                  <span className="font-bold text-slate-900">Escrows Recorded</span>
+                  <span className="font-extrabold text-slate-900">{clientJobs.length + freelancerJobs.length} Operations</span>
                 </div>
               </div>
             )}

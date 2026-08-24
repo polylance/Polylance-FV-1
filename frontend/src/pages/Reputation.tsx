@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { UserProfile } from '../types';
 import { 
   Award, 
   ShieldCheck, 
@@ -18,7 +19,8 @@ import {
   Landmark,
   Bookmark,
   Check,
-  Shield
+  Shield,
+  Scale
 } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
@@ -36,64 +38,100 @@ export const Reputation: React.FC = () => {
   const userProfileKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
   const userProfile = userProfileKey ? profiles[userProfileKey] : null;
 
-  // Compute actual completed freelance jobs count for this user
-  const userCompletedJobs = jobs.filter(
-    (j) => j.freelancer?.toLowerCase() === address?.toLowerCase() && j.status === 'Completed'
-  );
-  const userCompletedJobsCount = userCompletedJobs.length;
-  
-  // Combine on-chain reputation count with local completed jobs
-  const reputationCount = Math.max(Number(onChainReputationCount || 0), userCompletedJobsCount);
-
-  const userVolume = userCompletedJobs.reduce((sum, j) => {
-    const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
-    return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
-  }, 0);
-
-  // Calculate dynamic points breakdown based on reputation count
-  const escrowPoints = reputationCount * 60;
-  const multisigPoints = isArbitrator ? reputationCount * 25 : 0;
-  const govPoints = reputationCount > 0 ? (reputationCount * 15) + 10 : 0;
-  const totalPoints = escrowPoints + multisigPoints + govPoints;
-
-  // Exclude non-developer roles/addresses (judge, admins, client) from rankings
   const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
   const adminAddr1 = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '').toLowerCase();
   const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '').toLowerCase();
   const adminAddr3 = (import.meta.env.VITE_ADMIN_ADDRESS_3 || '').toLowerCase();
-  const clientAddr = (import.meta.env.VITE_CLIENT_ADDRESS || '').toLowerCase();
 
-  // Compute leaderboard first to determine dynamic rank
+  // Standardized PolyLance Reputation Calculation Formula:
+  // 1. SBT Escrow Deliveries: 100 pts per completed escrow delivery / minted SBT
+  // 2. Escrow Volume Settled: 1 pt per $25 completed volume (4 pts per $100)
+  // 3. Verified Developer Attestation: +50 pts
+  // 4. Governance & Dispute Arbitration: +25 pts per ruling / DAO vote
+  const calculateReputationScores = (
+    targetAddress: string,
+    profileObj?: UserProfile | null,
+    sbtCount: number = 0,
+    isJudgeAccount: boolean = false
+  ) => {
+    const lower = targetAddress.toLowerCase();
+    const profileJobs = jobs.filter(
+      (j) => j.freelancer?.toLowerCase() === lower
+    );
+    const completedJobs = profileJobs.filter((j) => j.status === 'Completed');
+    const completedCount = Math.max(sbtCount, completedJobs.length, profileObj?.reputationSbtCount || 0);
+
+    const completedVolume = completedJobs.reduce((sum, j) => {
+      const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
+      return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
+    }, 0);
+
+    const escrowPts = completedCount * 100;
+    const volumePts = Math.floor(completedVolume / 25);
+    const hasGithub = Boolean(profileObj?.githubVerified || (profileObj?.githubUsername && profileObj.githubUsername.trim().length > 0));
+    const attestationBonus = hasGithub ? 50 : 0;
+    const isArbitratorRole = isJudgeAccount || lower === judgeAddr || Boolean(profileObj?.bio?.toLowerCase().includes('arbitrat'));
+    const arbitrationPts = isArbitratorRole ? 50 : 0;
+
+    const totalPts = escrowPts + volumePts + attestationBonus + arbitrationPts;
+
+    const successRatePercent = completedCount > 0
+      ? Math.round((completedJobs.filter(j => !j.dispute || (j.dispute.resolved && (j.dispute.rulingBps ?? 0) >= 5000)).length / completedCount) * 100)
+      : (profileJobs.length > 0 ? 100 : 0);
+
+    return {
+      totalPoints: totalPts,
+      escrowPoints: escrowPts,
+      volumePoints: volumePts,
+      attestationBonus,
+      arbitrationPoints: arbitrationPts,
+      completedJobsCount: completedCount,
+      totalVolume: completedVolume,
+      successRatePercent,
+    };
+  };
+
+  // Current connected user stats
+  const userScores = calculateReputationScores(
+    address || '',
+    userProfile,
+    Number(onChainReputationCount || 0),
+    Boolean(isArbitrator)
+  );
+
+  const reputationCount = userScores.completedJobsCount;
+  const escrowPoints = userScores.escrowPoints;
+  const multisigPoints = userScores.arbitrationPoints;
+  const govPoints = userScores.attestationBonus;
+  const totalPoints = userScores.totalPoints;
+  const userVolume = userScores.totalVolume;
+  const userCompletedJobsCount = userScores.completedJobsCount;
+
+  // Compute leaderboard across all registered profiles with the unified reputation system
   const leaderboardData = Object.values(profiles)
-    .filter((profile) => {
-      const lower = profile.address.toLowerCase();
-      return lower !== judgeAddr && lower !== adminAddr1 && lower !== adminAddr2 && lower !== adminAddr3 && lower !== clientAddr;
-    })
     .map((profile) => {
-      const isYou = profile.address.toLowerCase() === address?.toLowerCase();
-      // For profile entries, count their completed/active jobs in real-time
-      const profileJobs = jobs.filter(
-        (j) => j.freelancer?.toLowerCase() === profile.address.toLowerCase()
+      const isYou = profile.address?.toLowerCase() === address?.toLowerCase();
+      const lower = profile.address?.toLowerCase();
+      const isJudge = lower === judgeAddr;
+
+      const scores = calculateReputationScores(
+        profile.address,
+        profile,
+        profile.reputationSbtCount || 0,
+        isJudge
       );
-      const profileCompletedJobs = profileJobs.filter(j => j.status === 'Completed');
-      const profileCompletedJobsCount = profileCompletedJobs.length;
 
-      const totalVolumeHandled = profileJobs.reduce((sum, j) => {
-        if (j.status === 'Completed') {
-          const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
-          return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
-        }
-        if (j.status === 'Submitted' || j.status === 'Selected') {
-          return sum + parseFloat(j.amountUsdc || '0');
-        }
-        return sum;
-      }, 0);
-
-      const combinedRep = Math.max(profile.reputationSbtCount || 0, profileCompletedJobsCount);
-      const pts = combinedRep * 100;
-      const successRatePercent = profileCompletedJobsCount > 0
-        ? Math.round((profileCompletedJobs.filter(j => !j.dispute || (j.dispute.resolved && (j.dispute.rulingBps ?? 0) >= 5000)).length / profileCompletedJobsCount) * 100)
-        : (profileJobs.length > 0 ? 100 : 0);
+      const roleDisplay = profile.title 
+        ? profile.title
+        : profile.skills && profile.skills.length > 0
+          ? `${profile.skills[0]} Engineer`
+          : profile.primaryCategory === 'web3' 
+            ? 'Web3 Engineer' 
+            : profile.primaryCategory === 'frontend' 
+              ? 'Frontend Developer' 
+              : profile.primaryCategory === 'backend' 
+                ? 'Backend Developer' 
+                : 'Smart Contract Developer';
 
       const formatEarnings = (val: number): string => {
         if (!val || val <= 0) return '$0.0k';
@@ -101,30 +139,36 @@ export const Reputation: React.FC = () => {
         return `$${val.toFixed(1)}`;
       };
 
+      const rawName = profile.displayName && profile.displayName !== 'Anonymous PolyLancer'
+        ? profile.displayName
+        : profile.githubUsername
+          ? `@${profile.githubUsername}`
+          : `${profile.address.slice(0, 6)}...${profile.address.slice(-4)}`;
+
       return {
         rank: 0,
-        name: isYou ? `${profile.displayName || 'Anonymous'} (You)` : (profile.displayName || `${profile.address.slice(0, 6)}...${profile.address.slice(-4)}`),
-        role: profile.primaryCategory === 'web3' ? 'Web3 Engineer' : profile.primaryCategory === 'frontend' ? 'Frontend Dev' : profile.primaryCategory === 'backend' ? 'Backend Dev' : 'Sovereign Developer',
-        points: pts || 10,
-        successRate: (profileCompletedJobsCount > 0 || profileJobs.length > 0) ? `${successRatePercent}%` : '0%',
-        earnings: formatEarnings(totalVolumeHandled),
+        name: isYou ? `${rawName} (You)` : rawName,
+        role: roleDisplay,
+        points: scores.totalPoints,
+        successRate: `${scores.successRatePercent}%`,
+        earnings: formatEarnings(scores.totalVolume),
         isUser: isYou,
-        avatar: profile.avatarUrl || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+        avatar: profile.avatarUrl || (profile.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${profile.address}`),
         address: profile.address
       };
     })
     .concat(
-      address && currentRole === 'freelancer' && !Object.keys(profiles).some(k => k.toLowerCase() === address.toLowerCase())
+      address && !Object.keys(profiles).some(k => k.toLowerCase() === address.toLowerCase())
         ? [
             {
               rank: 0,
-              name: address ? `${address.slice(0, 6)}...${address.slice(-4)} (You)` : 'You',
-              role: isArbitrator ? 'DAO Arbitrator' : 'Web3 Engineer',
-              points: totalPoints || 10,
-              successRate: userCompletedJobsCount > 0 ? '100%' : '0%',
-              earnings: userVolume > 0 ? (userVolume >= 1000 ? `$${(userVolume / 1000).toFixed(1)}k` : `$${userVolume.toFixed(1)}`) : '$0.0k',
+              name: `${address.slice(0, 6)}...${address.slice(-4)} (You)`,
+              role: isArbitrator ? 'Protocol Arbitrator' : currentRole === 'admin' ? 'DAO Admin' : 'Web3 Engineer',
+              points: userScores.totalPoints,
+              successRate: `${userScores.successRatePercent}%`,
+              earnings: userScores.totalVolume > 0 ? (userScores.totalVolume >= 1000 ? `$${(userScores.totalVolume / 1000).toFixed(1)}k` : `$${userScores.totalVolume.toFixed(1)}`) : '$0.0k',
               isUser: true,
-              avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+              avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${address}`,
               address: address
             }
           ]
@@ -140,7 +184,7 @@ export const Reputation: React.FC = () => {
   let activeTier: 'Diamond' | 'Gold' | 'Silver' | 'None' = 'None';
   let tierProgress = 0;
   let ptsLeft = 100 - totalPoints;
-  let nextTierName = 'Silver';
+  let nextTierName = 'Silver Tier';
   let rankLabel = 'Unranked';
 
   if (totalPoints >= 800) {
@@ -150,19 +194,19 @@ export const Reputation: React.FC = () => {
     tierProgress = Math.min(100, ((totalPoints - 800) / 700) * 100);
   } else if (totalPoints >= 300) {
     activeTier = 'Gold';
-    nextTierName = 'Diamond';
+    nextTierName = 'Diamond Tier';
     ptsLeft = 800 - totalPoints;
     tierProgress = ((totalPoints - 300) / 500) * 100;
   } else if (totalPoints >= 100) {
     activeTier = 'Silver';
-    nextTierName = 'Gold';
+    nextTierName = 'Gold Tier';
     ptsLeft = 300 - totalPoints;
     tierProgress = ((totalPoints - 100) / 200) * 100;
   } else {
     activeTier = 'None';
-    nextTierName = 'Silver';
+    nextTierName = 'Silver Tier';
     ptsLeft = 100 - totalPoints;
-    tierProgress = (totalPoints / 100) * 100;
+    tierProgress = Math.max(0, (totalPoints / 100) * 100);
   }
 
   if (userRankIndex !== -1 && totalPoints > 0) {
@@ -177,31 +221,30 @@ export const Reputation: React.FC = () => {
 
   const getRoleBadge = (role: string) => {
     const normalized = role.toLowerCase();
-    if (normalized.includes('solidity') || normalized.includes('architect')) {
+    if (normalized.includes('solidity') || normalized.includes('smart contract') || normalized.includes('architect')) {
       return (
-        <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1 bg-amber-50/50 text-amber-700 border border-amber-200/50 font-mono tracking-wide">
-          <Star size={9.5} className="fill-amber-500/10 text-amber-500" /> {role}
+        <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200/80 font-mono tracking-wide">
+          <Star size={10} className="fill-amber-500 text-amber-500" /> {role}
         </span>
       );
     }
-    if (normalized.includes('auditor') || normalized.includes('cyber') || normalized.includes('shield')) {
+    if (normalized.includes('auditor') || normalized.includes('security') || normalized.includes('shield')) {
       return (
-        <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1 bg-blue-50/50 text-blue-700 border border-blue-200/50 font-mono tracking-wide">
-          <ShieldCheck size={9.5} className="text-blue-500" /> {role}
+        <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-mono tracking-wide">
+          <ShieldCheck size={10} className="text-emerald-600" /> {role}
         </span>
       );
     }
-    if (normalized.includes('devops') || normalized.includes('lead') || normalized.includes('backend')) {
+    if (normalized.includes('judge') || normalized.includes('arbitrat')) {
       return (
-        <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1.5 bg-orange-50/50 text-orange-800 border border-orange-200/50 font-mono tracking-wide">
-          <span className="text-[10px] font-black font-mono text-orange-600">&gt;_</span> {role}
+        <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-purple-50 text-purple-800 border border-purple-200/80 font-mono tracking-wide">
+          <Scale size={10} className="text-purple-600" /> {role}
         </span>
       );
     }
-    // Default (Web3 Engineer, etc.)
     return (
-      <span className="text-[9.5px] px-2 py-0.5 rounded-md font-extrabold inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200/50 font-mono tracking-wide">
-        <span className="text-[10px] font-black font-mono text-purple-500">&lt;/&gt;</span> {role}
+      <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-blue-50 text-blue-800 border border-blue-200/80 font-mono tracking-wide">
+        <span className="text-[10px] font-black font-mono text-blue-600">&lt;/&gt;</span> {role}
       </span>
     );
   };
@@ -675,7 +718,7 @@ export const Reputation: React.FC = () => {
             </div>
             <p className="text-[9.5px] text-slate-500 font-medium leading-relaxed">
               {ptsLeft > 0 
-                ? `Earn ${ptsLeft} more reputation points to enter the Elite Platinum circle.`
+                ? `Earn ${ptsLeft} more reputation points to unlock ${nextTierName} standing.`
                 : 'You have attained the highest soulbound reputation tier on PolyLance!'}
             </p>
             <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden border border-slate-300/40 shadow-inner">

@@ -224,23 +224,17 @@ export const Navbar: React.FC = () => {
                   <LayoutDashboard size={13} />Dashboard
                 </NavLink>
 
-                {currentRole === 'client' && (
-                  <NavLink to="/jobs/post" active={isActive('/jobs/post')}>
-                    <PlusCircle size={13} />Post Job
-                  </NavLink>
-                )}
+                <NavLink to="/jobs/post" active={isActive('/jobs/post')}>
+                  <PlusCircle size={13} />Post Job
+                </NavLink>
 
-                {/* For non-admin roles, show Find Jobs & SBT Leaderboard on top bar */}
-                {currentRole !== 'admin' && (
-                  <>
-                    <NavLink to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post')}>
-                      <Briefcase size={13} />Find Jobs
-                    </NavLink>
-                    <NavLink to="/reputation" active={isActive('/reputation')}>
-                      <Trophy size={13} />SBT Leaderboard
-                    </NavLink>
-                  </>
-                )}
+                <NavLink to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post')}>
+                  <Briefcase size={13} />Find Jobs
+                </NavLink>
+
+                <NavLink to="/reputation" active={isActive('/reputation')}>
+                  <Trophy size={13} />SBT Leaderboard
+                </NavLink>
 
                 {/* Judge Panel on top bar for Judge role */}
                 {currentRole === 'judge' && (
@@ -456,9 +450,7 @@ export const Navbar: React.FC = () => {
               ) : (
                 <>
                   <MobileLink to="/dashboard" icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => setIsMobileOpen(false)} />
-                  {currentRole === 'client' && (
-                    <MobileLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMobileOpen(false)} />
-                  )}
+                  <MobileLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMobileOpen(false)} />
                   <MobileLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
                   <MobileLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMobileOpen(false)} />
                   {(currentRole === 'admin' || currentRole === 'judge') && (

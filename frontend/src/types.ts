@@ -1,4 +1,4 @@
-export type JobStatus = 'Open' | 'Selected' | 'Submitted' | 'Disputed' | 'Completed' | 'Cancelled';
+export type JobStatus = 'Open' | 'Selected' | 'Funded' | 'Submitted' | 'Disputed' | 'Completed' | 'Cancelled';
 
 export type DisputeReason = 'QUALITY' | 'NON_DELIVERY' | 'SCOPE_DISAGREEMENT' | 'PAYMENT_DISPUTE' | 'OTHER';
 

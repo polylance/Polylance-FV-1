@@ -2,6 +2,8 @@ import express from "express";
 import type { Request, Response } from "express";
 import http from "http";
 import cors from "cors";
+import fs from "fs";
+import path from "path";
 import dotenv from "dotenv";
 import { Server } from "socket.io";
 import { PrismaClient } from "@prisma/client";
@@ -12,6 +14,150 @@ import { startPaymentListener } from "./paymentListener.js";
 import { authLimiter, messageLimiter, joinLimiter, deleteLimiter, httpLimiter } from "./ratelimit.js";
 
 dotenv.config();
+
+const STATE_FILE = path.resolve(process.cwd(), "polylance_shared_state.json");
+
+let sharedState: {
+  jobs: any[];
+  profiles: Record<string, any>;
+  daoProposals: any[];
+  judgeMessages: Record<string, any[]>;
+  judges: any[];
+  treasuryProposals: any[];
+  treasuryHistory: any[];
+} = {
+  jobs: [],
+  profiles: {},
+  daoProposals: [],
+  judgeMessages: {},
+  judges: [],
+  treasuryProposals: [],
+  treasuryHistory: [],
+};
+
+try {
+  if (fs.existsSync(STATE_FILE)) {
+    const raw = fs.readFileSync(STATE_FILE, "utf-8");
+    sharedState = { ...sharedState, ...JSON.parse(raw) };
+  }
+} catch (err) {
+  console.warn("[STATE] Could not load initial shared state file:", err);
+}
+
+function persistState() {
+  try {
+    fs.writeFileSync(STATE_FILE, JSON.stringify(sharedState, null, 2), "utf-8");
+  } catch (err) {
+    console.warn("[STATE] Could not persist shared state file:", err);
+  }
+}
+
+function normalizeJobOnServer(job: any): any {
+  if (!job) return job;
+  const next = { ...job };
+  const isFundedEvent = (next.events || []).some((e: any) => e.step === 'Funded' && e.status === 'completed');
+  const bothAgreed = Boolean(next.clientAgreedTerms && next.freelancerAgreedTerms);
+
+  if (isFundedEvent || bothAgreed) {
+    if (Array.isArray(next.events)) {
+      next.events = next.events.map((evt: any) => {
+        if (evt.step === 'Terms' && evt.status !== 'completed') {
+          return { ...evt, status: 'completed', timestamp: evt.timestamp || Date.now() };
+        }
+        return evt;
+      });
+    }
+  }
+
+  if (isFundedEvent && (next.status === 'Open' || next.status === 'Selected')) {
+    next.status = 'Funded';
+  }
+  return next;
+}
+
+function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
+  const map = new Map<string, any>();
+  (existingJobs || []).forEach((j) => {
+    if (!j) return;
+    const norm = normalizeJobOnServer(j);
+    const key = (norm.contractAddress || norm.id || '').toLowerCase();
+    if (key) map.set(key, norm);
+  });
+
+  (incomingJobs || []).forEach((inJobRaw) => {
+    if (!inJobRaw) return;
+    const inJob = normalizeJobOnServer(inJobRaw);
+    const key = (inJob.contractAddress || inJob.id || '').toLowerCase();
+    if (!key) return;
+    const curr = map.get(key);
+    if (!curr) {
+      map.set(key, inJob);
+    } else {
+      // Merge applications safely
+      const appMap = new Map<string, any>();
+      (curr.applications || []).forEach((a: any) => a && a.applicant && appMap.set(a.applicant.toLowerCase(), a));
+      (inJob.applications || []).forEach((a: any) => a && a.applicant && appMap.set(a.applicant.toLowerCase(), a));
+
+      // Merge chat messages with smart deduplication (same sender + text within 3.5 seconds)
+      const mergedMsgs: any[] = [];
+      const allMsgs = [...(curr.chatMessages || []), ...(inJob.chatMessages || [])].sort(
+        (a: any, b: any) => (a.timestamp || 0) - (b.timestamp || 0)
+      );
+      for (const m of allMsgs) {
+        if (!m || !m.text) continue;
+        const isDuplicate = mergedMsgs.some(
+          (existing: any) =>
+            existing.sender === m.sender &&
+            existing.text.trim() === m.text.trim() &&
+            Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500
+        );
+        if (!isDuplicate) {
+          mergedMsgs.push(m);
+        }
+      }
+
+      // Merge extension requests safely
+      const extMap = new Map<string, any>();
+      (curr.extensionRequests || []).forEach((r: any) => r && extMap.set(r.id || `${r.requestIndex}`, r));
+      (inJob.extensionRequests || []).forEach((r: any) => r && extMap.set(r.id || `${r.requestIndex}`, r));
+
+      // Merge progress updates safely
+      const progMap = new Map<string, any>();
+      (curr.progressUpdates || []).forEach((p: any) => p && progMap.set(p.id || `${p.timestamp}`, p));
+      (inJob.progressUpdates || []).forEach((p: any) => p && progMap.set(p.id || `${p.timestamp}`, p));
+
+      // Merge modification requests safely
+      const modMap = new Map<string, any>();
+      (curr.modificationRequests || []).forEach((m: any) => m && modMap.set(m.id || `${m.requestedAt}`, m));
+      (inJob.modificationRequests || []).forEach((m: any) => m && modMap.set(m.id || `${m.requestedAt}`, m));
+
+      const merged = {
+        ...curr,
+        ...inJob,
+        status: inJob.status || curr.status,
+        freelancer: inJob.freelancer || curr.freelancer,
+        clientAgreedTerms: inJob.clientAgreedTerms !== undefined ? inJob.clientAgreedTerms : curr.clientAgreedTerms,
+        freelancerAgreedTerms: inJob.freelancerAgreedTerms !== undefined ? inJob.freelancerAgreedTerms : curr.freelancerAgreedTerms,
+        termsHash: inJob.termsHash || curr.termsHash,
+        amountUsdc: inJob.amountUsdc || curr.amountUsdc,
+        amountEth: inJob.amountEth || curr.amountEth,
+        paymentTokenSymbol: inJob.paymentTokenSymbol || curr.paymentTokenSymbol,
+        applications: Array.from(appMap.values()),
+        chatMessages: mergedMsgs,
+        events: inJob.events?.length ? inJob.events : curr.events,
+        dispute: inJob.dispute || curr.dispute,
+        proof: inJob.proof || curr.proof,
+        progressUpdates: Array.from(progMap.values()),
+        extensionRequests: Array.from(extMap.values()),
+        modificationRequests: Array.from(modMap.values()),
+      };
+
+      map.set(key, normalizeJobOnServer(merged));
+    }
+  });
+
+  return Array.from(map.values());
+}
 
 const app = express();
 const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || [
@@ -159,14 +305,12 @@ io.use(async (socket, next) => {
   }
 
   const { address, signature, message } = socket.handshake.auth || {};
-  if (!address || !signature || !message) {
-    return next(new Error("Unauthorized: Missing auth parameters"));
+  if (address && signature && message) {
+    const verified = await verifyWalletAuth(address, signature, message);
+    if (verified) {
+      socket.data.address = address.toLowerCase();
+    }
   }
-  const verified = await verifyWalletAuth(address, signature, message);
-  if (!verified) {
-    return next(new Error("Unauthorized: Invalid signature"));
-  }
-  socket.data.address = address.toLowerCase();
   next();
 });
 
@@ -302,6 +446,60 @@ io.on("connection", (socket) => {
     io.to(jobAddress).emit("conversation-deleted", { by: walletAddress, jobAddress });
     callback?.({ success: true, keyShredded: true });
   });
+
+
+
+  // REAL-TIME MULTI-CLIENT DATA SYNCHRONIZATION
+  socket.emit("realtime-sync", sharedState);
+
+  socket.on("client-sync", (incoming: any) => {
+    if (!incoming) return;
+    if (Array.isArray(incoming.jobs)) {
+      sharedState.jobs = mergeJobsOnServer(sharedState.jobs, incoming.jobs);
+    }
+    if (incoming.profiles) {
+      sharedState.profiles = { ...sharedState.profiles, ...incoming.profiles };
+    }
+    if (incoming.daoProposals) sharedState.daoProposals = incoming.daoProposals;
+    if (incoming.judgeMessages) sharedState.judgeMessages = { ...sharedState.judgeMessages, ...incoming.judgeMessages };
+    if (incoming.judges) sharedState.judges = incoming.judges;
+    if (incoming.treasuryProposals) sharedState.treasuryProposals = incoming.treasuryProposals;
+    if (incoming.treasuryHistory) sharedState.treasuryHistory = incoming.treasuryHistory;
+
+    persistState();
+    io.emit("realtime-sync", sharedState);
+  });
+});
+
+// REST endpoints for cross-device state synchronization
+app.get("/api/sync", (_req: Request, res: Response) => {
+  res.json(sharedState);
+});
+
+app.post("/api/sync", (req: Request, res: Response) => {
+  try {
+    const incoming = req.body;
+    if (incoming) {
+      if (Array.isArray(incoming.jobs)) {
+        sharedState.jobs = mergeJobsOnServer(sharedState.jobs, incoming.jobs);
+      }
+      if (incoming.profiles) {
+        sharedState.profiles = { ...sharedState.profiles, ...incoming.profiles };
+      }
+      if (incoming.daoProposals) sharedState.daoProposals = incoming.daoProposals;
+      if (incoming.judgeMessages) sharedState.judgeMessages = { ...sharedState.judgeMessages, ...incoming.judgeMessages };
+      if (incoming.judges) sharedState.judges = incoming.judges;
+      if (incoming.treasuryProposals) sharedState.treasuryProposals = incoming.treasuryProposals;
+      if (incoming.treasuryHistory) sharedState.treasuryHistory = incoming.treasuryHistory;
+
+      persistState();
+      io.emit("realtime-sync", sharedState);
+    }
+    res.json({ success: true, data: sharedState });
+  } catch (err: any) {
+    console.error("[SYNC ERROR]", err);
+    res.status(500).json({ error: "Failed to process sync request", details: err?.message });
+  }
 });
 
 // REST unlock endpoint for manual testing & event listeners

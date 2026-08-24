@@ -8,9 +8,11 @@ import { truncateAddress } from '../utils/formatters';
 import { 
   Sparkles, CheckCircle2, Clock, AlertTriangle, FileText, ExternalLink, 
   Send, ShieldCheck, Scale, RefreshCw, Layers, TrendingUp, MessageSquare, 
-  ChevronRight, Calendar, UserCheck, Wallet, Eye, XCircle
+  ChevronRight, Calendar, UserCheck, Wallet, Eye, XCircle, Info
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+
+import { ActionStatusModal, ActionModalDetail } from './ActionStatusModal';
 
 interface DeliverableWorkSubmissionPanelProps {
   job: Job;
@@ -30,6 +32,19 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
   const isClient = isConnected && address && address.toLowerCase() === job.client.toLowerCase();
   const isFreelancer = isConnected && address && job.freelancer && address.toLowerCase() === job.freelancer.toLowerCase();
+
+  // In-App Action Status Modal State
+  const [actionModal, setActionModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle?: string;
+    icon?: 'success' | 'progress' | 'extension' | 'modification' | 'dispute' | 'payment' | 'terms';
+    badgeText?: string;
+    details?: ActionModalDetail[];
+  }>({
+    isOpen: false,
+    title: '',
+  });
 
   // Active Tab for Freelancer Work Management
   const [freelancerTab, setFreelancerTab] = useState<'submit' | 'status' | 'extension'>('submit');
@@ -62,38 +77,96 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     externalLink?: string
   ) => {
     submitWork(job.id, title, description, evidenceHashes, externalLink);
-    confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+    confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+    setActionModal({
+      isOpen: true,
+      title: 'Deliverables & Proof of Work Submitted',
+      subtitle: 'Your deliverables and IPFS proof files have been securely submitted to the client for milestone approval.',
+      icon: 'success',
+      badgeText: 'PROOF OF WORK LOCKED',
+      details: [
+        { label: 'Deliverable Title', value: title },
+        { label: 'Review Period SLA', value: `${job.reviewPeriodDays || 7} Days`, isBadge: true },
+        { label: 'IPFS Artifacts', value: `${evidenceHashes.length} File(s) Attached`, isMono: true },
+        ...(externalLink ? [{ label: 'Deliverable Link', value: externalLink, isMono: true }] : []),
+      ],
+    });
   };
 
   const handlePostStatus = (e: React.FormEvent) => {
     e.preventDefault();
     if (!statusNote.trim()) return;
     postProgressUpdate(job.id, progressPercent, statusNote, demoUrl);
+    setActionModal({
+      isOpen: true,
+      title: 'Project Status Update Published',
+      subtitle: 'Your live milestone update has been recorded on-chain and broadcasted to the client.',
+      icon: 'progress',
+      badgeText: 'MILESTONE PROGRESS',
+      details: [
+        { label: 'Completion', value: `${progressPercent}%`, isBadge: true },
+        { label: 'Status Note', value: statusNote },
+        ...(demoUrl ? [{ label: 'Live Demo URL', value: demoUrl, isMono: true }] : []),
+        { label: 'Contract', value: truncateAddress(job.contractAddress), isMono: true },
+      ],
+    });
     setStatusNote('');
     setDemoUrl('');
-    alert('Project status update posted successfully!');
   };
 
   const handleRequestExtension = (e: React.FormEvent) => {
     e.preventDefault();
     if (!extensionReason.trim()) return;
     requestTimeExtension(job.id, extensionDays, extensionReason);
+    setActionModal({
+      isOpen: true,
+      title: 'Time Extension Requested',
+      subtitle: `A formal request for +${extensionDays} days has been submitted to the client for SLA review window adjustment.`,
+      icon: 'extension',
+      badgeText: 'TIMELINE SLA REQUEST',
+      details: [
+        { label: 'Extension Requested', value: `+${extensionDays} Days`, isBadge: true },
+        { label: 'Reason', value: extensionReason },
+        { label: 'Contract', value: truncateAddress(job.contractAddress), isMono: true },
+      ],
+    });
     setExtensionReason('');
-    alert(`Time extension request (+${extensionDays} Days) sent to client!`);
   };
 
   const handleApproveWork = () => {
     releasePayment(job.id);
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+    setActionModal({
+      isOpen: true,
+      title: 'Payment Released & SBT Minted',
+      subtitle: 'Escrow funds have been transferred directly to the freelancer, and an on-chain reputation SBT has been minted.',
+      icon: 'payment',
+      badgeText: 'TRANSACTION SETTLED',
+      details: [
+        { label: 'Amount Released', value: `$${job.amountUsdc} USDC`, isBadge: true },
+        { label: 'Freelancer', value: truncateAddress(job.freelancer || ''), isMono: true },
+        { label: 'Contract', value: truncateAddress(job.contractAddress), isMono: true },
+      ],
+    });
   };
 
   const handleSendModification = (e: React.FormEvent) => {
     e.preventDefault();
     if (!modificationNote.trim()) return;
     requestModifications(job.id, modificationNote);
+    setActionModal({
+      isOpen: true,
+      title: 'Revision Request Sent',
+      subtitle: 'Your modification feedback has been forwarded to the freelancer.',
+      icon: 'modification',
+      badgeText: 'REVISION REQUIRED',
+      details: [
+        { label: 'Feedback Notes', value: modificationNote },
+        { label: 'Contract', value: truncateAddress(job.contractAddress), isMono: true },
+      ],
+    });
     setModificationNote('');
     setIsModifyingOpen(false);
-    alert('Modification request sent to freelancer!');
   };
 
   const handleEscalateToJudge = (e: React.FormEvent) => {
@@ -103,7 +176,18 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     raiseDispute(job.id, disputeReason, disputeEvidence, cid, address);
     setIsDisputeOpen(false);
     setDisputeEvidence('');
-    alert('Dispute raised! The case is now listed in the DAO Judge Panel.');
+    setActionModal({
+      isOpen: true,
+      title: 'Escrow Case Escalated to DAO Judges',
+      subtitle: 'Your evidence and case details have been registered on-chain for decentralized arbitration.',
+      icon: 'dispute',
+      badgeText: 'DISPUTE SUBMITTED',
+      details: [
+        { label: 'Dispute Reason', value: disputeReason, isBadge: true },
+        { label: 'IPFS Evidence CID', value: cid, isMono: true },
+        { label: 'Contract Address', value: truncateAddress(job.contractAddress), isMono: true },
+      ],
+    });
   };
 
   return (
@@ -527,52 +611,191 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               </button>
             </form>
           )}
+        </div>
+      )}
 
-          {/* TIME EXTENSION REQUESTS REVIEW PANEL FOR CLIENT */}
-          {(job.extensionRequests || []).length > 0 && (
-            <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50 space-y-3 text-xs">
-              <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <Clock size={15} className="text-purple-700" /> Pending / Past Time Extension Requests
-              </h4>
-
-              <div className="space-y-2">
-                {job.extensionRequests!.map((req) => (
-                  <div key={req.id} className="p-3 rounded-xl bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900">Requested: +{req.requestedDays} Additional Days</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                          req.status === 'Approved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                          req.status === 'Rejected' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
-                          'bg-amber-100 text-amber-900 border border-amber-300'
-                        }`}>
-                          {req.status}
-                        </span>
-                      </div>
-                      <p className="text-slate-600 mt-1 italic">"{req.reason}"</p>
-                    </div>
-
-                    {req.status === 'Pending' && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => respondToTimeExtension(job.id, req.id, true, 'Approved by Client')}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer"
-                        >
-                          <CheckCircle2 size={13} /> Approve (+{req.requestedDays} Days)
-                        </button>
-                        <button
-                          onClick={() => respondToTimeExtension(job.id, req.id, false, 'Rejected by Client')}
-                          className="bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold px-3 py-1.5 rounded-lg text-xs border border-rose-300 cursor-pointer"
-                        >
-                          <XCircle size={13} /> Reject
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+      {/* PENDING / PAST TIME EXTENSION REQUESTS PANEL (MATCHING IMAGE 2 DESIGN) */}
+      {(job.extensionRequests || []).length > 0 && (
+        <div className="glass-panel p-6 sm:p-7 border-purple-200 bg-white hard-shadow space-y-5">
+          {/* Section Header */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-purple-100/80 text-purple-700 flex items-center justify-center shrink-0">
+                <Clock size={20} className="text-purple-700" />
+              </div>
+              <div>
+                <h3 className="font-headline text-base font-bold text-slate-900 leading-tight">
+                  Pending / Past Time Extension Requests
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Review and take action on time extension requests
+                </p>
               </div>
             </div>
-          )}
+
+            <span className="px-3.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200/80 font-mono">
+              {job.extensionRequests!.length} Request{job.extensionRequests!.length > 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* Request Cards */}
+          <div className="space-y-4 pt-1">
+            {job.extensionRequests!.map((req) => {
+              const isPending = req.status === 'Pending';
+              const isApproved = req.status === 'Approved';
+              const isRejected = req.status === 'Rejected';
+
+              return (
+                <div
+                  key={req.id}
+                  className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-2xs transition-all hover:border-purple-200"
+                >
+                  <div className="grid grid-cols-12 gap-6 items-center">
+                    {/* Left Column: Clock Icon + Details + Metadata */}
+                    <div className="col-span-12 lg:col-span-7 flex items-start gap-4">
+                      <div className="w-11 h-11 rounded-full bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                        <Clock size={20} className="text-amber-600" />
+                      </div>
+
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <span className="font-bold text-slate-900 text-sm">
+                            Requested: +{req.requestedDays} Additional Days
+                          </span>
+                          <span
+                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase flex items-center gap-1.5 font-mono ${
+                              isApproved
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : isRejected
+                                ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                : 'bg-amber-100 text-amber-900 border border-amber-300'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isApproved ? 'bg-emerald-500' : isRejected ? 'bg-rose-500' : 'bg-amber-500'
+                              } inline-block`}
+                            />
+                            {req.status}
+                          </span>
+                        </div>
+
+                        <p className="text-slate-600 text-sm italic font-sans py-1">
+                          "{req.reason}"
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-500 font-mono pt-2 border-t border-slate-100">
+                          <span className="flex items-center gap-1.5">
+                            <UserCheck size={13} className="text-purple-600" />
+                            Requested by <span className="text-purple-700 font-bold">{isClient ? 'Freelancer' : 'Freelancer'}</span>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Calendar size={13} className="text-slate-400" />
+                            Requested on{' '}
+                            {new Date(req.requestedAt || Date.now()).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}{' '}
+                            •{' '}
+                            {new Date(req.requestedAt || Date.now()).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Actions / Approval Feedback */}
+                    <div className="col-span-12 lg:col-span-5 flex flex-col justify-center pl-0 lg:pl-6 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0">
+                      {isPending ? (
+                        isClient ? (
+                          <div className="space-y-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                respondToTimeExtension(job.id, req.id, true, 'Approved by Client');
+                                setActionModal({
+                                  isOpen: true,
+                                  title: 'Time Extension Approved',
+                                  subtitle: `The review period deadline for this escrow has been extended by +${req.requestedDays} day${req.requestedDays > 1 ? 's' : ''}.`,
+                                  icon: 'extension',
+                                  badgeText: 'SLA EXTENDED',
+                                  details: [
+                                    { 
+                                      label: 'ADDED DAYS', 
+                                      value: `+${req.requestedDays} Day${req.requestedDays > 1 ? 's' : ''}`, 
+                                      dateBadge: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+                                    },
+                                    { label: 'JOB', value: job.title },
+                                    { 
+                                      label: 'CONTRACT', 
+                                      value: truncateAddress(job.contractAddress), 
+                                      isMono: true, 
+                                      explorerUrl: `https://polygonscan.com/address/${job.contractAddress}` 
+                                    },
+                                  ],
+                                });
+                              }}
+                              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl flex items-center justify-center gap-2 text-xs shadow-xs transition-all cursor-pointer"
+                            >
+                              <CheckCircle2 size={15} /> Approve (+{req.requestedDays} Days)
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                respondToTimeExtension(job.id, req.id, false, 'Rejected by Client');
+                                setActionModal({
+                                  isOpen: true,
+                                  title: 'Time Extension Rejected',
+                                  subtitle: 'The time extension request was declined. The existing SLA deadline remains active.',
+                                  icon: 'modification',
+                                  badgeText: 'REQUEST DECLINED',
+                                  details: [
+                                    { label: 'Requested Days', value: `+${req.requestedDays} Days` },
+                                    { label: 'Decision', value: 'Declined by Client', isBadge: true },
+                                  ],
+                                });
+                              }}
+                              className="w-full bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-200 font-bold py-2.5 px-6 rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer mt-2"
+                            >
+                              <XCircle size={15} /> Reject
+                            </button>
+
+                            <div className="text-[11px] text-purple-900 bg-purple-50/80 px-3 py-1.5 rounded-lg border border-purple-100/80 flex items-center gap-1.5 mt-2">
+                              <Info size={13} className="text-purple-600 shrink-0" />
+                              <span>Approval will extend the deadline by {req.requestedDays} day{req.requestedDays > 1 ? 's' : ''}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200/80 text-xs text-amber-900 font-medium text-center space-y-1">
+                            <div className="font-bold flex items-center justify-center gap-1.5">
+                              <Clock size={14} className="text-amber-700" /> Awaiting Client Review
+                            </div>
+                            <p className="text-[11px] text-amber-800">
+                              The client has been notified to review your +{req.requestedDays} day extension request.
+                            </p>
+                          </div>
+                        )
+                      ) : isApproved ? (
+                        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 font-bold flex items-center gap-2 font-mono">
+                          <CheckCircle2 size={16} className="text-emerald-700 shrink-0" />
+                          <span>Approved (+{req.requestedDays} Days Added to SLA)</span>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 font-bold flex items-center gap-2 font-mono">
+                          <XCircle size={16} className="text-rose-700 shrink-0" />
+                          <span>Request Declined</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -651,6 +874,17 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           </div>
         </div>
       )}
+
+      {/* Action Confirmation & Process Status Modal */}
+      <ActionStatusModal
+        isOpen={actionModal.isOpen}
+        onClose={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
+        title={actionModal.title}
+        subtitle={actionModal.subtitle}
+        icon={actionModal.icon}
+        badgeText={actionModal.badgeText}
+        details={actionModal.details}
+      />
     </div>
   );
 };

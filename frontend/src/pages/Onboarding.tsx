@@ -290,59 +290,34 @@ export const Onboarding: React.FC = () => {
                       {/* Skill Bars with dynamic percentages */}
                       <div className="space-y-3 font-mono text-xs">
                         {(() => {
-                          const totalBytes = (githubResult.languageBytes.Solidity || 0) +
-                            (githubResult.languageBytes.Rust || 0) +
-                            (githubResult.languageBytes.TypeScript || 0) +
-                            (githubResult.languageBytes.Go || 0);
+                          const langEntries = Object.entries(githubResult.languageBytes || {}).filter(([_, bytes]) => bytes > 0);
+                          const totalBytes = langEntries.reduce((sum, [_, b]) => sum + b, 0);
 
-                          const web3Percent = totalBytes > 0 ? Math.round(((githubResult.languageBytes.Solidity || 0) + (githubResult.languageBytes.Rust || 0)) / totalBytes * 100) : 0;
-                          const frontendPercent = totalBytes > 0 ? Math.round((githubResult.languageBytes.TypeScript || 0) / totalBytes * 100) : 0;
-                          const backendPercent = totalBytes > 0 ? Math.round((githubResult.languageBytes.Go || 0) * 0.85 / totalBytes * 100) : 0;
-                          const mobilePercent = totalBytes > 0 ? Math.max(0, 100 - web3Percent - frontendPercent - backendPercent) : 0;
+                          if (langEntries.length === 0 || totalBytes === 0) {
+                            return (
+                              <div className="text-slate-500 py-3 text-center">
+                                Verified GitHub Developer Repository Attestation
+                              </div>
+                            );
+                          }
 
-                          return (
-                            <>
-                              <div>
+                          return langEntries.slice(0, 4).map(([lang, bytes]) => {
+                            const percent = Math.round((bytes / totalBytes) * 100);
+                            return (
+                              <div key={lang}>
                                 <div className="flex justify-between mb-1">
-                                  <span className="text-slate-700 font-medium">Web3 & Smart Contracts</span>
-                                  <span className="text-purple-700 font-bold">{web3Percent}%</span>
+                                  <span className="text-slate-700 font-medium">{lang}</span>
+                                  <span className="text-purple-700 font-bold">{percent}% ({Math.round(bytes / 1024).toLocaleString()}k Bytes)</span>
                                 </div>
                                 <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                                  <div className="h-full bg-gradient-to-r from-purple-600 to-indigo-600" style={{ width: `${web3Percent}%` }} />
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-purple-600 to-indigo-600" 
+                                    style={{ width: `${percent}%` }} 
+                                  />
                                 </div>
                               </div>
-
-                              <div>
-                                <div className="flex justify-between mb-1">
-                                  <span className="text-slate-700 font-medium">Frontend (React/Next)</span>
-                                  <span className="text-purple-700 font-bold">{frontendPercent}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                                  <div className="h-full bg-gradient-to-r from-indigo-600 to-purple-500" style={{ width: `${frontendPercent}%` }} />
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="flex justify-between mb-1">
-                                  <span className="text-slate-700 font-medium">Backend Systems</span>
-                                  <span className="text-purple-700 font-bold">{backendPercent}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                                  <div className="h-full bg-purple-500" style={{ width: `${backendPercent}%` }} />
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="flex justify-between mb-1">
-                                  <span className="text-slate-700 font-medium">Mobile Apps</span>
-                                  <span className="text-purple-700 font-bold">{mobilePercent}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                                  <div className="h-full bg-slate-400" style={{ width: `${mobilePercent}%` }} />
-                                </div>
-                              </div>
-                            </>
-                          );
+                            );
+                          });
                         })()}
                       </div>
 

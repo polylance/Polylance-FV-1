@@ -11,8 +11,12 @@ import JobEscrowABI from '../config/abis/JobEscrow.json';
 import ProfileRegistryABI from '../config/abis/ProfileRegistry.json';
 import JudgeDAOABI from '../config/abis/JudgeDAO.json';
 import { useWeb3 } from './Web3Context';
+import { io as socketIO, Socket } from 'socket.io-client';
 
-const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
+const BACKEND_SYNC_URL = import.meta.env.VITE_CHAT_SERVER_URL || 'http://localhost:3001';
+let syncSocket: Socket | null = null;
+
+const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
 
 const INITIAL_PROFILES: Record<string, UserProfile> = {};
 
@@ -87,7 +91,7 @@ const MOCK_NAMES_TO_PURGE = new Set([
 
 const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<string, UserProfile> => {
   const normalized: Record<string, UserProfile> = {};
-  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
+  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
   const judgeGithub = import.meta.env.VITE_JUDGE_GITHUB_USERNAME || 'sunny200551';
 
   for (const [addr, profile] of Object.entries(rawProfiles || {})) {
@@ -100,7 +104,7 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
 
     // Copy profile data, but if this is NOT the judge address and it has the judge's GitHub username, unbind it
     let cleanedProfile = { ...profile };
-    if (lowerAddr !== judgeAddr && cleanedProfile.githubUsername?.toLowerCase() === judgeGithub.toLowerCase()) {
+    if (judgeAddr && lowerAddr !== judgeAddr && cleanedProfile.githubUsername?.toLowerCase() === judgeGithub.toLowerCase()) {
       delete cleanedProfile.githubUsername;
       cleanedProfile.githubVerified = false;
     }
@@ -118,47 +122,213 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
     }
   }
 
-  // Ensure judge profile is initialized and linked with the target GitHub username
-  if (!normalized[judgeAddr]) {
+  // If judge address is configured in .env and not yet in profiles, initialize editable profile
+  if (judgeAddr && !normalized[judgeAddr]) {
     normalized[judgeAddr] = {
       address: judgeAddr,
-      displayName: 'Protocol Judge',
-      bio: 'Official PolyLance Lead Arbitrator & DAO Verifier.',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      displayName: judgeGithub || 'Lead Developer',
+      bio: 'Full-Stack Web3 & Software Engineer.',
+      avatarUrl: judgeGithub ? `https://github.com/${judgeGithub}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${judgeAddr}`,
       ipfsHash: '',
-      skills: ['Arbitration', 'Smart Contracts', 'Security Audit', 'Solidity'],
+      skills: ['TypeScript', 'React', 'Smart Contracts', 'Node.js', 'Solidity'],
       githubUsername: judgeGithub,
       githubVerified: true,
       primaryScore: 850,
       reputationSbtCount: 0,
     };
-  } else {
-    normalized[judgeAddr] = {
-      ...normalized[judgeAddr],
-      githubUsername: judgeGithub,
-      githubVerified: true,
-    };
+  } else if (judgeAddr && normalized[judgeAddr] && judgeGithub) {
+    if (!normalized[judgeAddr].githubUsername || !normalized[judgeAddr].githubVerified) {
+      normalized[judgeAddr].githubUsername = judgeGithub;
+      normalized[judgeAddr].githubVerified = true;
+    }
+    if (!normalized[judgeAddr].avatarUrl || normalized[judgeAddr].avatarUrl.includes('unsplash.com')) {
+      normalized[judgeAddr].avatarUrl = `https://github.com/${judgeGithub}.png`;
+    }
   }
 
   return normalized;
 };
 
+const BROADCAST_CHANNEL_NAME = 'polylance_realtime_sync_channel';
+
+const broadcastSync = (data: {
+  jobs?: Job[];
+  profiles?: Record<string, UserProfile>;
+  daoProposals?: DaoProposal[];
+  judgeMessages?: Record<string, JudgeMessage[]>;
+  judges?: JudgeRecord[];
+  treasuryProposals?: TreasuryProposal[];
+  treasuryHistory?: any[];
+  treasuryBalanceUsdc?: number;
+  treasuryBalanceEth?: number;
+}) => {
+  try {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+      channel.postMessage({ type: 'SYNC_UPDATE', payload: data, sender: Date.now() });
+      channel.close();
+    }
+  } catch (err) {
+    // Fallback gracefully
+  }
+
+  // Cross-Device and Multi-Browser Real-Time Sync via Backend Microservice
+  try {
+    if (syncSocket && syncSocket.connected) {
+      syncSocket.emit('client-sync', data);
+    } else {
+      fetch(`${BACKEND_SYNC_URL}/api/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).catch(() => {});
+    }
+  } catch (err) {}
+};
+
+const normalizeJob = (job: Job): Job => {
+  if (!job) return job;
+  let next = { ...job };
+  const isFundedEvent = (next.events || []).some((e) => e.step === 'Funded' && e.status === 'completed');
+  const bothAgreed = Boolean(next.clientAgreedTerms && next.freelancerAgreedTerms);
+
+  if (isFundedEvent || bothAgreed) {
+    if (Array.isArray(next.events)) {
+      next.events = next.events.map((evt) => {
+        if (evt.step === 'Terms' && evt.status !== 'completed') {
+          return { ...evt, status: 'completed' as const, timestamp: evt.timestamp || Date.now() };
+        }
+        return evt;
+      });
+    }
+  }
+
+  if (isFundedEvent && (next.status === 'Open' || next.status === 'Selected')) {
+    next.status = 'Funded';
+  }
+  return next;
+};
+
+const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
+  const map = new Map<string, Job>();
+  (existing || []).forEach((j) => {
+    const norm = normalizeJob(j);
+    const key = (norm.contractAddress || norm.id).toLowerCase();
+    map.set(key, norm);
+  });
+
+  (incoming || []).forEach((inJobRaw) => {
+    const inJob = normalizeJob(inJobRaw);
+    const key = (inJob.contractAddress || inJob.id).toLowerCase();
+    const curr = map.get(key);
+    if (!curr) {
+      map.set(key, inJob);
+    } else {
+      // Merge applications
+      const appMap = new Map<string, Application>();
+      (curr.applications || []).forEach((a) => appMap.set(a.applicant.toLowerCase(), a));
+      (inJob.applications || []).forEach((a) => appMap.set(a.applicant.toLowerCase(), a));
+
+      // Merge chat messages with smart deduplication (same sender + text within 3.5 seconds)
+      const mergedMsgs: any[] = [];
+      const allMsgs = [...(curr.chatMessages || []), ...(inJob.chatMessages || [])].sort(
+        (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
+      );
+      for (const m of allMsgs) {
+        if (!m || !m.text) continue;
+        const isDuplicate = mergedMsgs.some(
+          (existing) =>
+            existing.sender === m.sender &&
+            existing.text.trim() === m.text.trim() &&
+            Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500
+        );
+        if (!isDuplicate) {
+          mergedMsgs.push(m);
+        }
+      }
+
+      // Merge extension requests safely
+      const extMap = new Map<string, any>();
+      (curr.extensionRequests || []).forEach((r) => r && extMap.set(r.id || `${r.requestIndex}`, r));
+      (inJob.extensionRequests || []).forEach((r) => r && extMap.set(r.id || `${r.requestIndex}`, r));
+
+      // Merge progress updates safely
+      const progMap = new Map<string, any>();
+      (curr.progressUpdates || []).forEach((p) => p && progMap.set(p.id || `${p.timestamp}`, p));
+      (inJob.progressUpdates || []).forEach((p) => p && progMap.set(p.id || `${p.timestamp}`, p));
+
+      // Merge modification requests safely
+      const modMap = new Map<string, any>();
+      (curr.modificationRequests || []).forEach((m) => m && modMap.set(m.id || `${m.requestedAt}`, m));
+      (inJob.modificationRequests || []).forEach((m) => m && modMap.set(m.id || `${m.requestedAt}`, m));
+
+      const mergedJob: Job = {
+        ...curr,
+        ...inJob,
+        status: inJob.status || curr.status,
+        freelancer: inJob.freelancer || curr.freelancer,
+        clientAgreedTerms: inJob.clientAgreedTerms !== undefined ? inJob.clientAgreedTerms : curr.clientAgreedTerms,
+        freelancerAgreedTerms: inJob.freelancerAgreedTerms !== undefined ? inJob.freelancerAgreedTerms : curr.freelancerAgreedTerms,
+        termsHash: inJob.termsHash || curr.termsHash,
+        amountUsdc: inJob.amountUsdc || curr.amountUsdc,
+        amountEth: inJob.amountEth || curr.amountEth,
+        paymentTokenSymbol: inJob.paymentTokenSymbol || curr.paymentTokenSymbol,
+        applications: Array.from(appMap.values()),
+        chatMessages: mergedMsgs,
+        events: inJob.events?.length ? inJob.events : curr.events,
+        dispute: inJob.dispute || curr.dispute,
+        proof: inJob.proof || curr.proof,
+        progressUpdates: Array.from(progMap.values()),
+        extensionRequests: Array.from(extMap.values()),
+        modificationRequests: Array.from(modMap.values()),
+      };
+
+      map.set(key, normalizeJob(mergedJob));
+    }
+  });
+
+  return Array.from(map.values());
+};
+
+const matchJob = (job: Job, targetId: string): boolean => {
+  if (!job || !targetId) return false;
+  const tid = targetId.toLowerCase().trim();
+  return (
+    Boolean(job.id && job.id.toLowerCase().trim() === tid) ||
+    Boolean(job.contractAddress && job.contractAddress.toLowerCase().trim() === tid)
+  );
+};
+
+const mergeProfilesMap = (existing: Record<string, UserProfile>, incoming: Record<string, UserProfile>): Record<string, UserProfile> => {
+  const merged: Record<string, UserProfile> = { ...existing };
+  for (const [addr, inProf] of Object.entries(incoming || {})) {
+    if (!addr) continue;
+    const lower = addr.toLowerCase();
+    const curr = merged[lower];
+    if (!curr) {
+      merged[lower] = inProf;
+    } else {
+      merged[lower] = {
+        ...curr,
+        ...inProf,
+        displayName: inProf.displayName || curr.displayName,
+        bio: inProf.bio || curr.bio,
+        avatarUrl: inProf.avatarUrl || curr.avatarUrl,
+        skills: inProf.skills?.length ? inProf.skills : curr.skills,
+        githubUsername: inProf.githubUsername || curr.githubUsername,
+        githubVerified: inProf.githubVerified ?? curr.githubVerified,
+        primaryScore: inProf.primaryScore || curr.primaryScore,
+        reputationSbtCount: inProf.reputationSbtCount ?? curr.reputationSbtCount,
+      };
+    }
+  }
+  return normalizeProfiles(merged);
+};
+
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { provider, getSigner } = useWeb3();
 
-  // One-time purge of legacy mock data in client browsers
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const version = localStorage.getItem('polylance_data_version');
-      if (version !== 'v3_zero_mock') {
-        localStorage.removeItem('polylance_profiles');
-        localStorage.removeItem('polylance_jobs');
-        localStorage.removeItem('polylance_dao_proposals');
-        localStorage.removeItem('polylance_judge_messages');
-        localStorage.setItem('polylance_data_version', 'v3_zero_mock');
-      }
-    }
-  }, []);
+
 
   const [jobs, setJobsRaw] = useState<Job[]>(() => {
     if (typeof window !== 'undefined') {
@@ -171,13 +341,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return INITIAL_JOBS;
   });
   const setJobs = (val: React.SetStateAction<Job[]>) => {
-    setJobsRaw(val);
+    setJobsRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('polylance_jobs', JSON.stringify(next));
+      }
+      broadcastSync({ jobs: next });
+      return next;
+    });
   };
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_jobs', JSON.stringify(jobs));
-    }
-  }, [jobs]);
 
   const [daoProposals, setDaoProposalsRaw] = useState<DaoProposal[]>(() => {
     if (typeof window !== 'undefined') {
@@ -187,13 +359,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return INITIAL_PROPOSALS;
   });
   const setDaoProposals = (val: React.SetStateAction<DaoProposal[]>) => {
-    setDaoProposalsRaw(val);
+    setDaoProposalsRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined') localStorage.setItem('polylance_dao_proposals', JSON.stringify(next));
+      broadcastSync({ daoProposals: next });
+      return next;
+    });
   };
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_dao_proposals', JSON.stringify(daoProposals));
-    }
-  }, [daoProposals]);
 
   const [treasuryBalanceUsdc, setTreasuryBalanceUsdcRaw] = useState<number>(() => {
     if (typeof window !== 'undefined') {
@@ -204,13 +376,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return 0;
   });
   const setTreasuryBalanceUsdc = (val: React.SetStateAction<number>) => {
-    setTreasuryBalanceUsdcRaw(val);
+    setTreasuryBalanceUsdcRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_balance_usdc', next.toString());
+      broadcastSync({ treasuryBalanceUsdc: next });
+      return next;
+    });
   };
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_treasury_balance_usdc', treasuryBalanceUsdc.toString());
-    }
-  }, [treasuryBalanceUsdc]);
 
   const [treasuryBalanceEth, setTreasuryBalanceEthRaw] = useState<number>(() => {
     if (typeof window !== 'undefined') {
@@ -221,13 +393,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return 0.0;
   });
   const setTreasuryBalanceEth = (val: React.SetStateAction<number>) => {
-    setTreasuryBalanceEthRaw(val);
+    setTreasuryBalanceEthRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_balance_eth', next.toString());
+      broadcastSync({ treasuryBalanceEth: next });
+      return next;
+    });
   };
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_treasury_balance_eth', treasuryBalanceEth.toString());
-    }
-  }, [treasuryBalanceEth]);
 
   const [treasuryProposals, setTreasuryProposalsRaw] = useState<TreasuryProposal[]>(() => {
     if (typeof window !== 'undefined') {
@@ -237,13 +409,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return [];
   });
   const setTreasuryProposals = (val: React.SetStateAction<TreasuryProposal[]>) => {
-    setTreasuryProposalsRaw(val);
+    setTreasuryProposalsRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_proposals', JSON.stringify(next));
+      broadcastSync({ treasuryProposals: next });
+      return next;
+    });
   };
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_treasury_proposals', JSON.stringify(treasuryProposals));
-    }
-  }, [treasuryProposals]);
 
   const [treasuryHistory, setTreasuryHistoryRaw] = useState<any[]>(() => {
     if (typeof window !== 'undefined') {
@@ -253,13 +425,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return [];
   });
   const setTreasuryHistory = (val: React.SetStateAction<any[]>) => {
-    setTreasuryHistoryRaw(val);
+    setTreasuryHistoryRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_history', JSON.stringify(next));
+      broadcastSync({ treasuryHistory: next });
+      return next;
+    });
   };
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_treasury_history', JSON.stringify(treasuryHistory));
-    }
-  }, [treasuryHistory]);
 
   const [profiles, setProfilesRaw] = useState<Record<string, UserProfile>>(() => {
     if (typeof window !== 'undefined') {
@@ -270,13 +442,14 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return normalizeProfiles(INITIAL_PROFILES);
   });
   const setProfiles = (val: React.SetStateAction<Record<string, UserProfile>>) => {
-    setProfilesRaw(val);
+    setProfilesRaw((prev) => {
+      const computed = typeof val === 'function' ? val(prev) : val;
+      const next = normalizeProfiles(computed);
+      if (typeof window !== 'undefined') localStorage.setItem('polylance_profiles', JSON.stringify(next));
+      broadcastSync({ profiles: next });
+      return next;
+    });
   };
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_profiles', JSON.stringify(profiles));
-    }
-  }, [profiles]);
 
   const [judges, setJudgesRaw] = useState<JudgeRecord[]>(() => {
     if (typeof window !== 'undefined') {
@@ -295,13 +468,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     ];
   });
   const setJudges = (val: React.SetStateAction<JudgeRecord[]>) => {
-    setJudgesRaw(val);
+    setJudgesRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined') localStorage.setItem('polylance_judges', JSON.stringify(next));
+      broadcastSync({ judges: next });
+      return next;
+    });
   };
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_judges', JSON.stringify(judges));
-    }
-  }, [judges]);
 
   const [judgeMessages, setJudgeMessagesRaw] = useState<Record<string, JudgeMessage[]>>(() => {
     if (typeof window !== 'undefined') {
@@ -311,13 +484,260 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return INITIAL_JUDGE_MESSAGES;
   });
   const setJudgeMessages = (val: React.SetStateAction<Record<string, JudgeMessage[]>>) => {
-    setJudgeMessagesRaw(val);
+    setJudgeMessagesRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined') localStorage.setItem('polylance_judge_messages', JSON.stringify(next));
+      broadcastSync({ judgeMessages: next });
+      return next;
+    });
   };
+
+  // Real-time synchronization across all tabs/windows/browser contexts
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_judge_messages', JSON.stringify(judgeMessages));
+    if (typeof window === 'undefined') return;
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if ('BroadcastChannel' in window) {
+        bc = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+        bc.onmessage = (event) => {
+          if (event.data && event.data.type === 'SYNC_UPDATE' && event.data.payload) {
+            const { payload } = event.data;
+            if (payload.jobs) {
+              setJobsRaw((curr) => {
+                const merged = mergeJobsList(curr, payload.jobs);
+                return [...merged];
+              });
+            }
+            if (payload.profiles) {
+              setProfilesRaw((curr) => {
+                const merged = mergeProfilesMap(curr, payload.profiles);
+                return { ...merged };
+              });
+            }
+            if (payload.daoProposals) setDaoProposalsRaw([...payload.daoProposals]);
+            if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
+            if (payload.judges) setJudgesRaw([...payload.judges]);
+            if (payload.treasuryProposals) setTreasuryProposalsRaw([...payload.treasuryProposals]);
+            if (payload.treasuryHistory) setTreasuryHistoryRaw([...payload.treasuryHistory]);
+            if (typeof payload.treasuryBalanceUsdc === 'number') setTreasuryBalanceUsdcRaw(payload.treasuryBalanceUsdc);
+            if (typeof payload.treasuryBalanceEth === 'number') setTreasuryBalanceEthRaw(payload.treasuryBalanceEth);
+          }
+        };
+      }
+    } catch (err) {
+      console.warn('Real-time sync BroadcastChannel notice:', err);
     }
-  }, [judgeMessages]);
+
+    // Real-Time Cross-Device WebSocket Sync Setup
+    try {
+      if (!syncSocket) {
+        syncSocket = socketIO(BACKEND_SYNC_URL, {
+          transports: ['websocket', 'polling'],
+          withCredentials: true,
+          reconnection: true,
+        });
+
+        syncSocket.on('realtime-sync', (payload: any) => {
+          if (!payload) return;
+          if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
+            setJobsRaw((curr) => {
+              const merged = mergeJobsList(curr, payload.jobs);
+              try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
+              return [...merged];
+            });
+          }
+          if (payload.profiles && Object.keys(payload.profiles).length > 0) {
+            setProfilesRaw((curr) => {
+              const merged = mergeProfilesMap(curr, payload.profiles);
+              try { localStorage.setItem('polylance_profiles', JSON.stringify(merged)); } catch {}
+              return { ...merged };
+            });
+          }
+          if (Array.isArray(payload.daoProposals)) setDaoProposalsRaw([...payload.daoProposals]);
+          if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
+          if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
+          if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
+          if (Array.isArray(payload.treasuryHistory)) setTreasuryHistoryRaw([...payload.treasuryHistory]);
+        });
+      }
+    } catch (err) {
+      console.warn('Real-time WebSocket sync initialization notice:', err);
+    }
+
+    // Initial load from backend shared state + upload local items if new
+    fetch(`${BACKEND_SYNC_URL}/api/sync`)
+      .then((r) => r.json())
+      .then((payload) => {
+        let currentLocalJobs: Job[] = [];
+        try {
+          const saved = localStorage.getItem('polylance_jobs');
+          if (saved) currentLocalJobs = JSON.parse(saved);
+        } catch {}
+
+        if (payload) {
+          if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
+            setJobsRaw((curr) => {
+              const merged = mergeJobsList(curr, payload.jobs);
+              try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
+              return [...merged];
+            });
+            // If local had additional jobs, merge back to backend
+            if (currentLocalJobs.length > 0) {
+              broadcastSync({ jobs: currentLocalJobs });
+            }
+          } else if (currentLocalJobs.length > 0) {
+            // Seed backend with existing local jobs
+            broadcastSync({ jobs: currentLocalJobs });
+          }
+
+          if (payload.profiles && Object.keys(payload.profiles).length > 0) {
+            setProfilesRaw((curr) => {
+              const merged = mergeProfilesMap(curr, payload.profiles);
+              try { localStorage.setItem('polylance_profiles', JSON.stringify(merged)); } catch {}
+              return { ...merged };
+            });
+          }
+        }
+      })
+      .catch(() => {});
+
+    const handleStorage = (e: StorageEvent) => {
+      if (!e.key) return;
+      try {
+        if (e.key === 'polylance_jobs' && e.newValue) {
+          const parsed = JSON.parse(e.newValue);
+          setJobsRaw((curr) => {
+            const merged = mergeJobsList(curr, parsed);
+            return [...merged];
+          });
+        } else if (e.key === 'polylance_profiles' && e.newValue) {
+          const parsed = JSON.parse(e.newValue);
+          setProfilesRaw((curr) => {
+            const merged = mergeProfilesMap(curr, parsed);
+            return { ...merged };
+          });
+        } else if (e.key === 'polylance_dao_proposals' && e.newValue) {
+          setDaoProposalsRaw(JSON.parse(e.newValue));
+        } else if (e.key === 'polylance_judge_messages' && e.newValue) {
+          setJudgeMessagesRaw(JSON.parse(e.newValue));
+        } else if (e.key === 'polylance_judges' && e.newValue) {
+          setJudgesRaw(JSON.parse(e.newValue));
+        } else if (e.key === 'polylance_treasury_proposals' && e.newValue) {
+          setTreasuryProposalsRaw(JSON.parse(e.newValue));
+        } else if (e.key === 'polylance_treasury_history' && e.newValue) {
+          setTreasuryHistoryRaw(JSON.parse(e.newValue));
+        }
+      } catch (err) {
+        console.warn('Storage sync parsing error:', err);
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+
+    // Periodic synchronization check and window focus listener for multi-account / cross-context real-time sync
+    const syncFromStorage = () => {
+      try {
+        const savedJobs = localStorage.getItem('polylance_jobs');
+        if (savedJobs) {
+          const parsed = JSON.parse(savedJobs);
+          setJobsRaw((curr) => {
+            const merged = mergeJobsList(curr, parsed);
+            if (curr.length === merged.length && JSON.stringify(curr) === JSON.stringify(merged)) {
+              return curr;
+            }
+            return [...merged];
+          });
+        }
+        const savedProfiles = localStorage.getItem('polylance_profiles');
+        if (savedProfiles) {
+          const parsed = JSON.parse(savedProfiles);
+          setProfilesRaw((curr) => {
+            const merged = mergeProfilesMap(curr, parsed);
+            if (Object.keys(curr).length === Object.keys(merged).length && JSON.stringify(curr) === JSON.stringify(merged)) {
+              return curr;
+            }
+            return { ...merged };
+          });
+        }
+        const savedDao = localStorage.getItem('polylance_dao_proposals');
+        if (savedDao) {
+          setDaoProposalsRaw((curr) => {
+            const parsed = JSON.parse(savedDao);
+            if (curr.length === parsed.length && JSON.stringify(curr) === JSON.stringify(parsed)) return curr;
+            return parsed;
+          });
+        }
+        const savedMessages = localStorage.getItem('polylance_judge_messages');
+        if (savedMessages) {
+          setJudgeMessagesRaw((curr) => {
+            const parsed = JSON.parse(savedMessages);
+            if (JSON.stringify(curr) === JSON.stringify(parsed)) return curr;
+            return parsed;
+          });
+        }
+      } catch (err) {
+        // silent sync fallback
+      }
+    };
+
+    // Second-to-second 100% real-time data sync heartbeat from microservice
+    const syncFromRemoteBackend = () => {
+      fetch(`${BACKEND_SYNC_URL}/api/sync`)
+        .then((r) => r.json())
+        .then((payload) => {
+          if (!payload) return;
+          if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
+            setJobsRaw((curr) => {
+              const merged = mergeJobsList(curr, payload.jobs);
+              if (curr.length === merged.length && JSON.stringify(curr) === JSON.stringify(merged)) return curr;
+              try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
+              return [...merged];
+            });
+          }
+          if (payload.profiles && Object.keys(payload.profiles).length > 0) {
+            setProfilesRaw((curr) => {
+              const merged = mergeProfilesMap(curr, payload.profiles);
+              if (Object.keys(curr).length === Object.keys(merged).length && JSON.stringify(curr) === JSON.stringify(merged)) return curr;
+              try { localStorage.setItem('polylance_profiles', JSON.stringify(merged)); } catch {}
+              return { ...merged };
+            });
+          }
+          if (Array.isArray(payload.daoProposals)) setDaoProposalsRaw([...payload.daoProposals]);
+          if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
+          if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
+          if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
+          if (Array.isArray(payload.treasuryHistory)) setTreasuryHistoryRaw([...payload.treasuryHistory]);
+        })
+        .catch(() => {});
+    };
+
+    const pollInterval = setInterval(() => {
+      syncFromStorage();
+      syncFromRemoteBackend();
+    }, 1200);
+
+    window.addEventListener('focus', () => {
+      syncFromStorage();
+      syncFromRemoteBackend();
+    });
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncFromStorage();
+        syncFromRemoteBackend();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      if (bc) bc.close();
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', syncFromStorage);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
 
   const [loading, setLoading] = useState(false);
 
@@ -382,15 +802,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       if (parsedJobs.length > 0) {
-        setJobs((prev) => {
-          const merged = [...parsedJobs];
-          prev.forEach((p) => {
-            if (!merged.some((m) => m.contractAddress.toLowerCase() === p.contractAddress.toLowerCase())) {
-              merged.push(p);
-            }
-          });
-          return merged;
-        });
+        setJobs((prev) => mergeJobsList(parsedJobs, prev));
       }
     } catch (err) {
       console.warn('Real-time on-chain job sync warning:', err);
@@ -407,34 +819,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchLiveExchangeRates().catch((err) => console.warn('Failed to load rates on boot:', err));
   }, []);
 
-  // Local Cache storage triggers
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_jobs', JSON.stringify(jobs));
-  }, [jobs]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_dao_proposals', JSON.stringify(daoProposals));
-  }, [daoProposals]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_balance_usdc', treasuryBalanceUsdc.toString());
-  }, [treasuryBalanceUsdc]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_balance_eth', treasuryBalanceEth.toString());
-  }, [treasuryBalanceEth]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_proposals', JSON.stringify(treasuryProposals));
-  }, [treasuryProposals]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_treasury_history', JSON.stringify(treasuryHistory));
-  }, [treasuryHistory]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('polylance_profiles', JSON.stringify(profiles));
-  }, [profiles]);
 
   const treasuryState: TreasuryState = {
     balanceUsdc: treasuryBalanceUsdc.toString(),
@@ -475,8 +860,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     if (!contractAddr) {
-      const nonceVal = Math.floor(performance.now() * 1000) + jobs.length + 1;
-      contractAddr = ethers.getCreateAddress({ from: clientAddress || ethers.ZeroAddress, nonce: nonceVal });
+      const validFrom = (clientAddress && ethers.isAddress(clientAddress)) ? clientAddress : ethers.ZeroAddress;
+      const nonceVal = Math.floor(Date.now() % 1000000) + jobs.length + 1;
+      try {
+        contractAddr = ethers.getCreateAddress({ from: validFrom, nonce: nonceVal });
+      } catch {
+        contractAddr = ethers.Wallet.createRandom().address;
+      }
       txHash = generateMockTxHash();
     }
 
@@ -527,8 +917,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((job) => {
-        if (job.id !== jobId) return job;
-        const exists = job.applications.some((a) => a.applicant.toLowerCase() === applicantAddress.toLowerCase());
+        if (!matchJob(job, jobId)) return job;
+        const exists = (job.applications || []).some((a) => a.applicant.toLowerCase() === applicantAddress.toLowerCase());
         if (exists) return job;
 
         const newApp: Application = {
@@ -542,7 +932,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         };
         return {
           ...job,
-          applications: [newApp, ...job.applications],
+          applications: [newApp, ...(job.applications || [])],
         };
       })
     );
@@ -550,7 +940,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const selectFreelancer = async (jobId: string, freelancerAddress: string) => {
     let txHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
     try {
       const signer = await getSigner();
       if (signer && job && ethers.isAddress(job.contractAddress)) {
@@ -568,7 +958,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId) return j;
+        if (!matchJob(j, jobId)) return j;
         const updatedEvents = j.events.map((evt) => {
           if (evt.step === 'Selected') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
           if (evt.step === 'Terms') return { ...evt, status: 'current' as const };
@@ -579,6 +969,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           ...j,
           freelancer: freelancerAddress,
           status: 'Selected',
+          clientAgreedTerms: true,
           events: updatedEvents,
         };
       })
@@ -587,7 +978,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const proposeTerms = async (jobId: string, userAddress: string) => {
     let txHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
     try {
       const signer = await getSigner();
       if (signer && job && ethers.isAddress(job.contractAddress)) {
@@ -602,10 +993,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId) return j;
-        const isClient = userAddress.toLowerCase() === j.client.toLowerCase();
-        const clientAgreed = isClient ? true : j.clientAgreedTerms;
-        const freelancerAgreed = !isClient ? true : j.freelancerAgreedTerms;
+        if (!matchJob(j, jobId)) return j;
+        const isClient = (userAddress || '').toLowerCase() === (j.client || '').toLowerCase();
+        const clientAgreed = isClient ? true : (j.clientAgreedTerms !== undefined ? j.clientAgreedTerms : true);
+        const freelancerAgreed = !isClient ? true : Boolean(j.freelancerAgreedTerms);
         const bothAgreed = clientAgreed && freelancerAgreed;
 
         let updatedEvents = j.events;
@@ -631,7 +1022,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const fundJob = async (jobId: string) => {
     let txHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
     try {
       const signer = await getSigner();
       if (signer && job && ethers.isAddress(job.contractAddress)) {
@@ -668,7 +1059,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId) return j;
+        if (!matchJob(j, jobId)) return j;
         const updatedEvents = j.events.map((evt) => {
           if (evt.step === 'Funded') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
           if (evt.step === 'Submitted') return { ...evt, status: 'current' as const };
@@ -676,6 +1067,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         });
         return {
           ...j,
+          status: 'Funded' as const,
           events: updatedEvents,
         };
       })
@@ -690,7 +1082,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     externalLink?: string
   ) => {
     let txHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
     try {
       const signer = await getSigner();
       if (signer && job && ethers.isAddress(job.contractAddress)) {
@@ -716,7 +1108,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId) return j;
+        if (!matchJob(j, jobId)) return j;
         const updatedEvents = j.events.map((evt) => {
           if (evt.step === 'Submitted') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Freelancer' };
           if (evt.step === 'Completed') return { ...evt, status: 'current' as const };
@@ -740,7 +1132,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     demoUrl?: string
   ) => {
     let txHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
     const updateIpfsHash = generateIpfsCid({ progressPercent, statusNote, demoUrl, timestamp: Date.now() });
 
     try {
@@ -768,7 +1160,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId) return j;
+        if (!matchJob(j, jobId)) return j;
         const newEvents = [
           ...j.events,
           {
@@ -792,7 +1184,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const requestTimeExtension = async (jobId: string, requestedDays: number, reason: string) => {
     let txHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
     const reasonIpfsHash = generateIpfsCid({ reason, requestedDays, timestamp: Date.now() });
 
     try {
@@ -823,7 +1215,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId) return j;
+        if (!matchJob(j, jobId)) return j;
         const newEvents = [
           ...j.events,
           {
@@ -852,7 +1244,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     responseNote?: string
   ) => {
     let txHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
     const targetReq = job?.extensionRequests?.find((r) => r.id === requestId || r.requestIndex?.toString() === requestId);
     const requestIndex = targetReq ? targetReq.requestIndex : 0;
 
@@ -871,7 +1263,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId) return j;
+        if (!matchJob(j, jobId)) return j;
         let addedDays = 0;
         const updatedRequests = (j.extensionRequests || []).map((req) => {
           if (req.id === requestId || req.requestIndex === requestIndex) {
@@ -912,7 +1304,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const requestModifications = async (jobId: string, note: string) => {
     let txHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
     const noteIpfsHash = generateIpfsCid({ note, timestamp: Date.now() });
 
     try {
@@ -937,7 +1329,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId) return j;
+        if (!matchJob(j, jobId)) return j;
         const newEvents = [
           ...j.events,
           {
@@ -962,7 +1354,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const releasePayment = async (jobId: string) => {
     let txHash = '';
     let sbtTxHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
 
     try {
       const signer = await getSigner();
@@ -981,7 +1373,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId) return j;
+        if (!matchJob(j, jobId)) return j;
         const fee = parseFloat(j.amountUsdc) * 0.025;
         setTreasuryBalanceUsdc((b) => b + fee);
         setTreasuryHistory((h) => [
@@ -1032,7 +1424,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     raisedByAddress: string
   ) => {
     let txHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
 
     try {
       const signer = await getSigner();
@@ -1049,7 +1441,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId) return j;
+        if (!matchJob(j, jobId)) return j;
         const updatedEvents = j.events.map((evt) => {
           if (evt.step === 'Completed') return { step: 'Disputed', title: 'Dispute Raised', status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Party' };
           if (evt.step === 'Minted') return { step: 'Ruled', title: 'Awaiting DAO Arbitration', status: 'current' as const, timestamp: 0, txHash: '' };
@@ -1076,7 +1468,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const submitDisputeResponse = (jobId: string, responseText: string, responseIpfsHash: string) => {
     setJobs((prev) =>
       prev.map((j) => {
-        if (j.id !== jobId || !j.dispute) return j;
+        if (!matchJob(j, jobId) || !j.dispute) return j;
         return {
           ...j,
           dispute: {
@@ -1092,7 +1484,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const resolveDispute = async (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => {
     let txHash = '';
     let sbtTxHash = '';
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => matchJob(j, jobId));
 
     try {
       const signer = await getSigner();
@@ -1166,13 +1558,23 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const sendChatMessage = (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => {
+    if (!text || !text.trim()) return;
+    const trimmed = text.trim();
+    const now = Date.now();
+    const newMsg = { sender: senderRole, text: trimmed, timestamp: now };
+
     setJobs((prev) =>
       prev.map((job) => {
-        if (job.id !== jobId) return job;
-        const newMsg = { sender: senderRole, text, timestamp: Date.now() };
+        if (!matchJob(job, jobId)) return job;
+        const existing = job.chatMessages || [];
+        const isRecentDuplicate = existing.some(
+          (m) => m.sender === senderRole && m.text.trim() === trimmed && Math.abs(m.timestamp - now) < 2500
+        );
+        if (isRecentDuplicate) return job;
+
         return {
           ...job,
-          chatMessages: [...(job.chatMessages || []), newMsg],
+          chatMessages: [...existing, newMsg],
         };
       })
     );

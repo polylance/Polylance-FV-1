@@ -17,6 +17,7 @@ export const Dashboard: React.FC = () => {
 
   const activeAddress = address;
   const isClientRole = currentRole === 'client';
+  const [activeHubTab, setActiveHubTab] = React.useState<'contracts' | 'applications' | 'posted' | 'explore'>('contracts');
 
   const userProfileKey = activeAddress ? Object.keys(profiles).find(k => k.toLowerCase() === activeAddress.toLowerCase()) : null;
   const userProfile = ((userProfileKey ? profiles[userProfileKey] : null) || {
@@ -68,13 +69,16 @@ export const Dashboard: React.FC = () => {
   }, 0);
   const clientPendingReviewJobs = myClientJobs.filter((j) => j.status === 'Submitted');
 
-  // Dynamic ranking calculation
+  // Dynamic ranking calculation matching the official PolyLance Reputation System
   const sortedProfiles = Object.values(profiles)
     .map((p) => {
       const profileCompletedJobs = jobs.filter(
         (j) => j.freelancer?.toLowerCase() === p.address.toLowerCase() && j.status === 'Completed'
-      ).length;
-      return { address: p.address, points: profileCompletedJobs * 100 };
+      );
+      const volume = profileCompletedJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
+      const repSbt = Math.max(p.reputationSbtCount || 0, profileCompletedJobs.length);
+      const pts = (repSbt * 100) + Math.floor(volume / 25) + (p.githubVerified ? 50 : 0);
+      return { address: p.address, points: pts };
     })
     .sort((a, b) => b.points - a.points);
 
@@ -118,8 +122,11 @@ export const Dashboard: React.FC = () => {
       <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <img
-            src={userProfile.avatarUrl}
+            src={userProfile.avatarUrl || (userProfile.githubUsername ? `https://github.com/${userProfile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress}`)}
             alt={userProfile.displayName}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress}`;
+            }}
             className="w-16 h-16 rounded-2xl border-2 border-purple-200 object-cover shadow-xs"
           />
           <div>
@@ -452,76 +459,267 @@ export const Dashboard: React.FC = () => {
             <div className="lg:col-span-8 space-y-8">
               {/* Active Contracts & Deliverable Proof Submissions */}
               <section className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
                   <h3 className="text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
                     <Send size={18} className="text-purple-700" /> Active Freelance Contracts & Collaboration Hub
                   </h3>
-                  <Link to="/reputation" className="text-xs font-mono text-purple-700 font-bold hover:underline flex items-center gap-1">
+                  <Link to="/reputation" className="text-xs font-mono text-purple-700 font-bold hover:underline flex items-center gap-1 self-start sm:self-auto">
                     <Award size={14} /> View Leaderboard Standings
                   </Link>
                 </div>
 
+                {/* Hub Navigation Tabs */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 border-b border-slate-100 pb-3">
+                  <button
+                    onClick={() => setActiveHubTab('contracts')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeHubTab === 'contracts'
+                        ? 'bg-purple-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Briefcase size={13} />
+                    Active Contracts ({myFreelancerJobs.length})
+                  </button>
+
+                  <button
+                    onClick={() => setActiveHubTab('applications')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeHubTab === 'applications'
+                        ? 'bg-purple-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Send size={13} />
+                    My Applications ({myApplications.length})
+                  </button>
+
+                  <button
+                    onClick={() => setActiveHubTab('posted')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeHubTab === 'posted'
+                        ? 'bg-purple-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <PlusCircle size={13} />
+                    My Posted Jobs ({myClientJobs.length})
+                  </button>
+
+                  <button
+                    onClick={() => setActiveHubTab('explore')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeHubTab === 'explore'
+                        ? 'bg-purple-900 text-white shadow-xs'
+                        : 'bg-purple-50 text-purple-900 hover:bg-purple-100'
+                    }`}
+                  >
+                    <Search size={13} />
+                    Marketplace Jobs ({jobs.filter(j => j.status === 'Open').length})
+                  </button>
+                </div>
+
                 <div className="space-y-4">
-                  {myFreelancerJobs.length === 0 ? (
-                    <div className="py-2">
-                      <EmptyState
-                        title="No Active Freelance Contracts"
-                        description="Browse the marketplace and submit verified proposals to get started."
-                        actionText="Explore Opportunities"
-                        onAction={() => navigate('/jobs')}
-                      />
-                    </div>
-                  ) : (
-                    myFreelancerJobs.map((job) => (
-                      <div
-                        key={job.id}
-                        onClick={() => navigate(`/jobs/${job.id}`)}
-                        className="bg-slate-50 p-5 rounded-2xl border border-purple-200 space-y-3 cursor-pointer group hover:border-purple-400 transition-all"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="font-bold text-base text-slate-900 group-hover:text-purple-700 transition-colors">
-                              {job.title}
-                            </div>
-                            <p className="text-xs text-slate-600 mt-0.5 font-mono">
-                              Client: <span className="text-purple-700 font-bold">{truncateAddress(job.client)}</span>
-                            </p>
-                          </div>
-                          <span className={`badge-status badge-${job.status.toLowerCase()} shrink-0`}>
-                            {job.status}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-3 font-mono text-xs pt-1">
-                          <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                            <span className="text-slate-500 text-[10px] block font-bold uppercase">Escrow Locked</span>
-                            <span className="font-bold text-emerald-700">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span>
-                          </div>
-                          <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                            <span className="text-slate-500 text-[10px] block font-bold uppercase">Review Period</span>
-                            <span className="font-bold text-purple-700">{job.reviewPeriodDays} Days</span>
-                          </div>
-                          <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                            <span className="text-slate-500 text-[10px] block font-bold uppercase">Category</span>
-                            <span className="font-bold text-slate-900 capitalize">{job.category}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-                          <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
-                            <MessageSquare size={15} className="text-purple-700" />
-                            <span>XMTP Encrypted Chat Connected</span>
-                          </div>
-                          <button
-                            onClick={() => navigate(`/chat/${job.id}`)}
-                            className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                          >
-                            Open Collaboration Hub
-                            <ArrowUpRight size={14} />
-                          </button>
-                        </div>
+                  {/* TAB 1: ACTIVE CONTRACTS */}
+                  {activeHubTab === 'contracts' && (
+                    myFreelancerJobs.length === 0 ? (
+                      <div className="py-2">
+                        <EmptyState
+                          title="No Active Freelance Contracts"
+                          description="Browse the marketplace and submit verified proposals to get started."
+                          actionText="Explore Opportunities"
+                          onAction={() => setActiveHubTab('explore')}
+                        />
                       </div>
-                    ))
+                    ) : (
+                      myFreelancerJobs.map((job) => (
+                        <div
+                          key={job.id}
+                          onClick={() => navigate(`/jobs/${job.id}`)}
+                          className="bg-slate-50 p-5 rounded-2xl border border-purple-200 space-y-3 cursor-pointer group hover:border-purple-400 transition-all"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-bold text-base text-slate-900 group-hover:text-purple-700 transition-colors">
+                                {job.title}
+                              </div>
+                              <p className="text-xs text-slate-600 mt-0.5 font-mono">
+                                Client: <span className="text-purple-700 font-bold">{truncateAddress(job.client)}</span>
+                              </p>
+                            </div>
+                            <span className={`badge-status badge-${job.status.toLowerCase()} shrink-0`}>
+                              {job.status}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-3 font-mono text-xs pt-1">
+                            <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                              <span className="text-slate-500 text-[10px] block font-bold uppercase">Escrow Locked</span>
+                              <span className="font-bold text-emerald-700">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span>
+                            </div>
+                            <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                              <span className="text-slate-500 text-[10px] block font-bold uppercase">Review Period</span>
+                              <span className="font-bold text-purple-700">{job.reviewPeriodDays} Days</span>
+                            </div>
+                            <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                              <span className="text-slate-500 text-[10px] block font-bold uppercase">Category</span>
+                              <span className="font-bold text-slate-900 capitalize">{job.category}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                            <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
+                              <MessageSquare size={15} className="text-purple-700" />
+                              <span>XMTP Encrypted Chat Connected</span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/chat/${job.id}`);
+                              }}
+                              className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                            >
+                              Open Collaboration Hub
+                              <ArrowUpRight size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )
+                  )}
+
+                  {/* TAB 2: MY APPLICATIONS */}
+                  {activeHubTab === 'applications' && (
+                    myApplications.length === 0 ? (
+                      <div className="py-2">
+                        <EmptyState
+                          title="No Submitted Applications"
+                          description="You haven't submitted any job proposals yet. Explore available smart contract jobs to apply."
+                          actionText="Browse Marketplace"
+                          onAction={() => setActiveHubTab('explore')}
+                        />
+                      </div>
+                    ) : (
+                      myApplications.map((app, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => navigate(`/jobs/${app.job.id}`)}
+                          className="bg-slate-50 p-5 rounded-2xl border border-slate-200 hover:border-purple-300 space-y-3 cursor-pointer transition-all"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-bold text-base text-slate-900">
+                                {app.job.title}
+                              </div>
+                              <p className="text-xs text-slate-500 mt-0.5 font-mono">
+                                Applied for: <span className="text-emerald-700 font-bold">${parseFloat(app.job.amountUsdc || '0').toLocaleString()} USDC</span> • {app.job.reviewPeriodDays} Days SLA
+                              </p>
+                            </div>
+                            <span className={`badge-status badge-${app.job.status.toLowerCase()} shrink-0`}>
+                              {app.job.status === 'Open' ? 'Under Review' : app.job.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-700 font-sans line-clamp-2 bg-white p-3 rounded-xl border border-slate-200">
+                            "{app.proposalText}"
+                          </p>
+                          <div className="flex justify-between items-center text-xs font-mono pt-1 text-slate-500">
+                            <span>Client: {truncateAddress(app.job.client)}</span>
+                            <span className="text-purple-700 font-bold hover:underline">View Job & Proposal →</span>
+                          </div>
+                        </div>
+                      ))
+                    )
+                  )}
+
+                  {/* TAB 3: MY POSTED JOBS */}
+                  {activeHubTab === 'posted' && (
+                    myClientJobs.length === 0 ? (
+                      <div className="py-2">
+                        <EmptyState
+                          title="No Jobs Posted by You"
+                          description="You haven't created any escrow jobs yet. Post a job with guaranteed smart contract milestones."
+                          actionText="Post New Job"
+                          onAction={() => navigate('/jobs/post')}
+                        />
+                      </div>
+                    ) : (
+                      myClientJobs.map((job) => (
+                        <div
+                          key={job.id}
+                          onClick={() => navigate(`/jobs/${job.id}`)}
+                          className="bg-slate-50 p-5 rounded-2xl border border-slate-200 hover:border-purple-300 space-y-3 cursor-pointer transition-all"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-bold text-base text-slate-900">
+                                {job.title}
+                              </div>
+                              <p className="text-xs text-slate-500 mt-0.5 font-mono">
+                                Escrow Vault: <span className="text-purple-700 font-bold">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span> • {job.applications.length} Applicant{job.applications.length !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                            <span className={`badge-status badge-${job.status.toLowerCase()} shrink-0`}>
+                              {job.status}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs font-mono pt-1 text-slate-500">
+                            <span>Freelancer: {job.freelancer ? truncateAddress(job.freelancer) : 'Awaiting Selection'}</span>
+                            <span className="text-purple-700 font-bold hover:underline">Manage Job Details →</span>
+                          </div>
+                        </div>
+                      ))
+                    )
+                  )}
+
+                  {/* TAB 4: EXPLORE MARKETPLACE JOBS */}
+                  {activeHubTab === 'explore' && (
+                    jobs.filter(j => j.status === 'Open').length === 0 ? (
+                      <div className="py-2">
+                        <EmptyState
+                          title="No Open Marketplace Listings"
+                          description="There are currently no open marketplace listings. Be the first to create one!"
+                          actionText="Post New Job"
+                          onAction={() => navigate('/jobs/post')}
+                        />
+                      </div>
+                    ) : (
+                      jobs.filter(j => j.status === 'Open').map((job) => (
+                        <div
+                          key={job.id}
+                          onClick={() => navigate(`/jobs/${job.id}`)}
+                          className="bg-white p-5 rounded-2xl border border-purple-200 hover:border-purple-400 space-y-3 cursor-pointer shadow-3xs hover:shadow-xs transition-all"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-bold text-base text-slate-900 hover:text-purple-700 transition-colors">
+                                {job.title}
+                              </div>
+                              <p className="text-xs text-slate-500 mt-0.5 font-mono">
+                                Client: {truncateAddress(job.client)} • Category: <span className="capitalize text-slate-700 font-bold">{job.category}</span>
+                              </p>
+                            </div>
+                            <span className="text-base font-extrabold text-emerald-700 font-mono">
+                              ${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 line-clamp-2 font-sans">
+                            {job.description}
+                          </p>
+                          <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs font-mono">
+                            <span className="text-slate-500">{job.applications.length} Proposal{job.applications.length !== 1 ? 's' : ''} Received</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/jobs/${job.id}`);
+                              }}
+                              className="gradient-btn-primary px-3.5 py-1.5 rounded-lg text-xs font-bold font-sans cursor-pointer"
+                            >
+                              View & Apply
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )
                   )}
                 </div>
               </section>
@@ -582,54 +780,28 @@ export const Dashboard: React.FC = () => {
                     </span>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Solidity</span>
-                      <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.Solidity
-                          ? `${userProfile.languageBytes.Solidity.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Rust</span>
-                      <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.Rust
-                          ? `${userProfile.languageBytes.Rust.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">TypeScript</span>
-                      <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.TypeScript
-                          ? `${userProfile.languageBytes.TypeScript.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">JavaScript</span>
-                      <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.JavaScript
-                          ? `${userProfile.languageBytes.JavaScript.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Python</span>
-                      <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.Python
-                          ? `${userProfile.languageBytes.Python.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Go / Indexers</span>
-                      <span className="font-bold text-purple-900">
-                        {userProfile.languageBytes?.Go
-                          ? `${userProfile.languageBytes.Go.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
+                    {(() => {
+                      const usedLanguages = Object.entries(userProfile.languageBytes || {}).filter(
+                        (entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0
+                      );
+
+                      if (usedLanguages.length === 0) {
+                        return (
+                          <div className="text-slate-500 py-2 text-center">
+                            Verified on-chain via GitHub Oracle
+                          </div>
+                        );
+                      }
+
+                      return usedLanguages.map(([lang, bytes]) => (
+                        <div key={lang} className="flex justify-between items-center py-0.5">
+                          <span className="text-slate-600 font-medium">{lang}</span>
+                          <span className="font-bold text-purple-900">
+                            {bytes.toLocaleString()} Bytes
+                          </span>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </div>
               ) : (

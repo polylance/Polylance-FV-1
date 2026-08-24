@@ -86,11 +86,20 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.5;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
   background-image:
     radial-gradient(circle at 85% 15%, rgba(6, 207, 232, 0.08) 0%, transparent 45%),
     radial-gradient(circle at 15% 85%, rgba(37, 99, 235, 0.06) 0%, transparent 45%),
     radial-gradient(circle at 50% 50%, rgba(168, 230, 58, 0.03) 0%, transparent 60%);
-  background-attachment: fixed;
+  transform: translateZ(0);
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -121,21 +130,19 @@ h1, h2, h3, h4, h5, h6 {
 
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
   box-shadow: var(--shadow-md);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, box-shadow, border-color;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  transform: translateZ(0);
 }
 
 .glass-panel:hover,
 .glass-panel-interactive:hover {
   background: var(--bg-card-hover);
   border-color: var(--primary);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.09), 0 0 16px rgba(6, 207, 232, 0.12);
+  transform: translateY(-2px) translateZ(0);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08), 0 0 12px rgba(6, 207, 232, 0.10);
 }
 
 /* Glass Inputs (Light Minimalist) */
@@ -148,7 +155,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sans);
   font-size: 0.95rem;
   outline: none;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
 .glass-input::placeholder {
@@ -164,11 +171,11 @@ h1, h2, h3, h4, h5, h6 {
 /* Elevation Accents */
 .hard-shadow {
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
-  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .hard-shadow:hover {
-  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.09);
 }
 
 .hard-shadow-subtle {

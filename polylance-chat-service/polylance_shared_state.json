@@ -1,0 +1,312 @@
+{
+  "jobs": [
+    {
+      "id": "0xBF88a19b9740",
+      "contractAddress": "0xBF88a19b97409F70d278a8843eA4CfBEb1908A4c",
+      "client": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+      "amountEth": "10.00",
+      "amountUsdc": "10.00",
+      "paymentToken": "0x0000000000000000000000000000000000000000",
+      "paymentTokenSymbol": "MATIC",
+      "paymentTokenDecimals": 18,
+      "status": "Submitted",
+      "title": "Check the Entire Polylance Working functionalities after that db issue ",
+      "description": "check every feature and functionalities and the db integration and the data syncing everything ",
+      "category": "backend",
+      "reviewPeriodDays": 2,
+      "createdAt": 1787301836668,
+      "applications": [
+        {
+          "applicant": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "proposalIpfsHash": "bafybeirrxzt233bd5efflnhoppvxryzz7b3cdd",
+          "proposalText": "I'm a frontend lead for polylance so accept my proposal",
+          "appliedAt": 1787307260720,
+          "applicantSkills": [
+            "Arbitration",
+            "Smart Contracts",
+            "Security Audit",
+            "Solidity"
+          ],
+          "githubVerified": true,
+          "githubScore": 870
+        }
+      ],
+      "events": [
+        {
+          "step": "Posted",
+          "title": "Job Posted (MATIC Escrow)",
+          "timestamp": 1787301836668,
+          "txHash": "0x0d09c5943d673135afeccbea633c580a26958faa01ef08daa7815b7d5cb24bdf",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Selected",
+          "title": "Select Freelancer",
+          "timestamp": 1787307651099,
+          "txHash": "0xb8578664f4b23876c0f78eaac520d8903f74f6c3846d6d1494f6194c82a65bc1",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Terms",
+          "title": "Agree Terms",
+          "timestamp": 1787310995748,
+          "txHash": "",
+          "status": "completed"
+        },
+        {
+          "step": "Funded",
+          "title": "Fund Escrow",
+          "timestamp": 1787309065925,
+          "txHash": "0x630dd7499a5ebe5c567046535454aa43564c35e8eb9881060192b6d1fca97041",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Submitted",
+          "title": "Submit Work",
+          "timestamp": 1787311736601,
+          "txHash": "0xff4239a4d24baff8b6b813251be4159149378f112b275ded989573767b0c3816",
+          "status": "completed",
+          "actor": "Freelancer"
+        },
+        {
+          "step": "Completed",
+          "title": "Release Payment",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "current"
+        },
+        {
+          "step": "Minted",
+          "title": "Mint Reputation SBT",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Update",
+          "title": "Progress Update (75%)",
+          "timestamp": 1787309243101,
+          "txHash": "0x8c801e07a1693097a78f5fe7ee0eb870882f37f74ec87c52cb9af199324e16c5",
+          "status": "completed",
+          "actor": "Freelancer",
+          "description": "competing"
+        },
+        {
+          "step": "Extension",
+          "title": "Time Extension Requested (+1 Days)",
+          "timestamp": 1787309510125,
+          "txHash": "0xe7e8fbb1f7fcd48f1a32ed2c656030c2296b2840aca13b917feebb9920a39b2f",
+          "status": "completed",
+          "actor": "Freelancer",
+          "description": "just for testing"
+        },
+        {
+          "step": "ExtensionResponse",
+          "title": "Extension Approved (+1 Days)",
+          "timestamp": 1787310028676,
+          "txHash": "0x167cafff8d73a8e62743d6b7290be3c7c884158330f4b0e4672df9278200d6c3",
+          "status": "completed",
+          "actor": "Client",
+          "description": "Approved by Client"
+        }
+      ],
+      "chatMessages": [
+        {
+          "sender": "Freelancer",
+          "text": "hi",
+          "timestamp": 1787308977776
+        },
+        {
+          "sender": "Freelancer",
+          "text": "hello",
+          "timestamp": 1787308983435
+        },
+        {
+          "sender": "Client",
+          "text": "hi",
+          "timestamp": 1787308991186
+        },
+        {
+          "sender": "Freelancer",
+          "text": "hi",
+          "timestamp": 1787310117907
+        },
+        {
+          "sender": "Client",
+          "text": "hi",
+          "timestamp": 1787310431384
+        },
+        {
+          "sender": "Client",
+          "text": "hi",
+          "timestamp": 1787310989388
+        },
+        {
+          "sender": "Client",
+          "text": "hello",
+          "timestamp": 1787310995714
+        },
+        {
+          "sender": "Judge",
+          "text": "🎉 Escrow Milestone approved. Funds released to Developer's wallet. SBT minted!",
+          "timestamp": 1787311700069
+        },
+        {
+          "sender": "Freelancer",
+          "text": "🚀 Work Submission: \"asdfghjkl;\" submitted for Client review. Deliverable link: N/A",
+          "timestamp": 1787311736539
+        }
+      ],
+      "freelancer": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+      "freelancerAgreedTerms": true,
+      "clientAgreedTerms": true,
+      "progressUpdates": [
+        {
+          "id": "0x8c801e07",
+          "ipfsHash": "bafybeiraccwy3kmmacfuwwkmp6aauwzikk6ads",
+          "progressPercent": 75,
+          "statusNote": "competing",
+          "timestamp": 1787309243060,
+          "txHash": "0x8c801e07a1693097a78f5fe7ee0eb870882f37f74ec87c52cb9af199324e16c5",
+          "demoUrl": ""
+        }
+      ],
+      "extensionRequests": [
+        {
+          "id": "0xe7e8fbb1",
+          "requestIndex": 0,
+          "requestedDays": 1,
+          "reasonIpfsHash": "bafybeit3645s5figh4hpsqrgrz423q3dgef2fn",
+          "reason": "just for testing",
+          "requestedAt": 1787309510082,
+          "responded": true,
+          "approved": true,
+          "status": "Approved",
+          "responseNote": "Approved by Client"
+        }
+      ],
+      "modificationRequests": [],
+      "proof": {
+        "title": "asdfghjkl;",
+        "description": "sdfghjk",
+        "evidenceHashes": [],
+        "submittedAt": 1787311736541
+      },
+      "submittedAt": 1787311736601
+    }
+  ],
+  "profiles": {
+    "0xb8aa0398b91a150b041da819bc954bb356e009dd": {
+      "address": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+      "displayName": "Protocol Judge",
+      "bio": "Official PolyLance Lead Arbitrator & DAO Verifier.",
+      "avatarUrl": "https://github.com/sunny200551.png",
+      "ipfsHash": "QmJudgeProfileDataHashPlaceholder",
+      "skills": [
+        "Arbitration",
+        "Smart Contracts",
+        "Security Audit",
+        "Solidity"
+      ],
+      "githubUsername": "sunny200551",
+      "githubVerified": true,
+      "primaryScore": 1000,
+      "reputationSbtCount": 16,
+      "secondaryScores": [
+        392,
+        191
+      ],
+      "languageBytes": {
+        "Dart": 243418,
+        "C++": 19894,
+        "JavaScript": 91065,
+        "CMake": 10508,
+        "HTML": 137754,
+        "C": 734,
+        "Kotlin": 126,
+        "TypeScript": 642339,
+        "CSS": 74628,
+        "Nix": 1280
+      },
+      "verifiedAt": 1787305346593
+    },
+    "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1": {
+      "address": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+      "displayName": "stevenson20",
+      "bio": "",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/245890505?v=4",
+      "ipfsHash": "bafybeizrh3pvd3rfz7nf3pdjxpfzntbzpdx5ld",
+      "skills": [
+        "Solidity",
+        "TypeScript",
+        "React",
+        "Rust",
+        "IPFS"
+      ],
+      "githubVerified": true,
+      "reputationSbtCount": 0,
+      "role": "freelancer",
+      "githubUsername": "stevenson20",
+      "verifiedAt": 1787311085484,
+      "primaryCategory": "frontend",
+      "primaryScore": 695,
+      "secondaryCategories": [
+        "backend",
+        "web3"
+      ],
+      "secondaryScores": [
+        313,
+        153
+      ],
+      "attestationUID": "0xe32cd042efe5ee218436429a47f0858d300043b85e919c6aba80210219ed4ce5",
+      "languageBytes": {
+        "JavaScript": 15424,
+        "CSS": 18101,
+        "HTML": 7332,
+        "TypeScript": 428150,
+        "Nix": 1280
+      },
+      "commitsCount": 24,
+      "reposCount": 2,
+      "prsCount": 4,
+      "reputationTier": "SILVER"
+    }
+  },
+  "daoProposals": [],
+  "judgeMessages": {},
+  "judges": [],
+  "treasuryProposals": [],
+  "treasuryHistory": [
+    {
+      "id": "1787311700194",
+      "type": "FEE_COLLECTED",
+      "amountUsdc": 0.25,
+      "txHash": "0x2f5d5e29e6ea4831efd8243fdeb00ed589a06ad3f51c0cc061a80e0ae0bccfa5",
+      "timestamp": 1787311700194
+    },
+    {
+      "id": "1787311700192",
+      "type": "FEE_COLLECTED",
+      "amountUsdc": 0.25,
+      "txHash": "0x2f5d5e29e6ea4831efd8243fdeb00ed589a06ad3f51c0cc061a80e0ae0bccfa5",
+      "timestamp": 1787311700192
+    },
+    {
+      "id": "1787311700086",
+      "type": "FEE_COLLECTED",
+      "amountUsdc": 0.25,
+      "txHash": "0x2f5d5e29e6ea4831efd8243fdeb00ed589a06ad3f51c0cc061a80e0ae0bccfa5",
+      "timestamp": 1787311700086
+    },
+    {
+      "id": "1787311700084",
+      "type": "FEE_COLLECTED",
+      "amountUsdc": 0.25,
+      "txHash": "0x2f5d5e29e6ea4831efd8243fdeb00ed589a06ad3f51c0cc061a80e0ae0bccfa5",
+      "timestamp": 1787311700084
+    }
+  ]
+}

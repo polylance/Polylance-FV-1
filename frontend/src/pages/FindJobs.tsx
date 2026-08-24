@@ -56,16 +56,14 @@ export const FindJobs: React.FC = () => {
           </p>
         </div>
 
-        {/* ONLY SHOW POST A JOB BUTTON IF USER IS IN CLIENT ROLE */}
-        {isClientRole && (
-          <Link
-            to="/jobs/post"
-            className="gradient-btn-primary px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow self-start md:self-auto"
-          >
-            <Briefcase size={15} />
-            Post a Job
-          </Link>
-        )}
+        {/* Post a Job Button for all users */}
+        <Link
+          to="/jobs/post"
+          className="gradient-btn-primary px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow self-start md:self-auto"
+        >
+          <Briefcase size={15} />
+          Post a Job
+        </Link>
       </div>
 
       {/* Filter Tabs & Search Bar */}

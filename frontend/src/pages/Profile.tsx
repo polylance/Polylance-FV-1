@@ -21,7 +21,7 @@ export const Profile: React.FC = () => {
     address: profileAddr,
     displayName: profileAddr ? `${profileAddr.slice(0, 6)}...${profileAddr.slice(-4)}` : 'Anonymous Member',
     bio: 'No biography has been written yet.',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+    avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${profileAddr || 'polylance'}`,
     skills: [],
     githubVerified: false,
     reputationSbtCount: 0,
@@ -46,7 +46,7 @@ export const Profile: React.FC = () => {
   }, [profileAddr, userProfile.githubUsername, userProfile.githubVerified]);
 
   const isClientProfile = profileAddr.toLowerCase() === (import.meta.env.VITE_CLIENT_ADDRESS || '').toLowerCase() || (isOwnProfile && currentRole === 'client');
-  const isJudgeProfile = profileAddr.toLowerCase() === (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase() || (isOwnProfile && currentRole === 'judge');
+  const isJudgeProfile = Boolean(isOwnProfile && currentRole === 'judge');
 
   const clientJobs = jobs.filter((j) => j.client.toLowerCase() === profileAddr?.toLowerCase());
   const completedClientJobs = clientJobs.filter((j) => j.status === 'Completed');
@@ -333,131 +333,44 @@ export const Profile: React.FC = () => {
             </div>
           </div>
         </div>
-      ) : isJudgeProfile ? (
+      ) : (
+        /* 2. FREELANCER & DEVELOPER PROFILE VIEW */
         <div className="space-y-8">
-          {/* Arbitrator Header Card */}
-          <div className="glass-panel p-6 sm:p-8 border-amber-300 bg-white hard-shadow space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-slate-100 pb-6">
-              <div className="flex items-center gap-5">
-                <div className="w-20 h-20 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-center justify-center text-amber-700">
-                  <Scale size={40} />
+          {/* If Judge, show arbitrator banner at top of developer profile */}
+          {isJudgeProfile && (
+            <div className="bg-amber-50 border border-amber-200 p-4 sm:p-5 rounded-2xl flex items-center justify-between gap-4 font-mono text-xs shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shrink-0">
+                  <Scale size={20} />
                 </div>
-                <div className="space-y-1">
+                <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-extrabold text-slate-900 font-heading">
-                      Hon. Arbitrator Judge
-                    </h1>
-                    <span className="text-xs bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1">
-                      <ShieldCheck size={14} className="text-amber-700" /> SOVEREIGN ARBITRATOR
+                    <span className="font-extrabold text-amber-950 text-sm">DAO Arbitrator & Sovereign Developer</span>
+                    <span className="text-[10px] bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full font-bold">
+                      Protocol Judge Active
                     </span>
                   </div>
-                  <p className="text-xs font-mono text-slate-500">
-                    Arbitrator Identity Check: {truncateAddress(userProfile.address)}
-                  </p>
-                  <p className="text-xs text-slate-600 max-w-xl pt-1 leading-relaxed">
-                    Certified protocol arbitrator and dispute mediator. Inspects smart contract milestone evidence, audited code commits, and executes binding Kleros-style payouts.
+                  <p className="text-[11px] text-amber-800 font-sans mt-0.5">
+                    Authorized to freelance, post jobs, and arbitrate smart contract escrow disputes.
                   </p>
                 </div>
               </div>
-
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-center shrink-0">
-                <span className="text-[10px] text-slate-500 font-bold uppercase block tracking-wider font-mono">Arbitration Score</span>
-                <span className="text-2xl font-black text-amber-800 font-mono">100%</span>
-                <span className="text-[10px] text-slate-500 block font-mono">SLA Compliance</span>
+              <div className="text-right hidden sm:block">
+                <span className="text-[10px] text-amber-800 uppercase font-bold block">Arbitration SLA</span>
+                <span className="text-lg font-black text-amber-900">100%</span>
               </div>
             </div>
-          </div>
-
-          {/* Active Disputes Cases Queue */}
-          <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Scale size={20} className="text-amber-600" /> Active Dispute Cases Assigned
-            </h3>
-
-            {jobs.filter((j) => j.status === 'Disputed').length === 0 ? (
-              <p className="text-xs text-slate-500 font-mono p-4 bg-slate-50 rounded-xl text-center border border-dashed border-slate-300">
-                No active dispute cases awaiting review.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {jobs.filter((j) => j.status === 'Disputed').map((j) => (
-                  <div key={j.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
-                    <div>
-                      <span className="font-bold text-slate-900 block text-sm">{j.title}</span>
-                      <span className="text-[11px] text-slate-500">
-                        Client: {truncateAddress(j.client)} | Freelancer: {truncateAddress(j.freelancer || '')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="font-extrabold text-amber-700">${parseFloat(j.amountUsdc).toLocaleString()} USDC</span>
-                      <Link to={`/jobs/${j.id}`} className="gradient-btn-primary px-4 py-2 rounded-xl text-[10px] font-bold flex items-center gap-1 shadow-xs">
-                        Audit Case <ExternalLink size={12} />
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Resolved Cases / solutions History */}
-          <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2 border-b border-slate-100 pb-3">
-              <History size={20} className="text-amber-600" /> Dispute Solutions & Ruling History
-            </h3>
-
-            {jobs.filter((j) => j.dispute?.resolved).length === 0 ? (
-              <div className="text-center py-6 text-slate-500 border border-dashed border-slate-350 rounded-xl bg-slate-50 font-sans text-xs">
-                No resolved disputes in ruling history.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {jobs.filter((j) => j.dispute?.resolved).map((j) => (
-                  <div key={j.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs space-y-2">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                      <span className="font-bold text-slate-900 text-sm">{j.title}</span>
-                      <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-0.5 rounded-full text-[10px] font-bold">
-                        Ruled & Closed
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-[11px] text-slate-600">
-                      <div>
-                        <strong>Ruling Allocation:</strong> {j.dispute?.rulingBps ? (j.dispute.rulingBps / 100) : 50}% Developer
-                      </div>
-                      <div>
-                        <strong>Transaction Hash:</strong> {j.id.slice(0, 10)}...
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-700 bg-white p-2 rounded border border-slate-200 italic leading-relaxed">
-                      "Reasoning: {j.dispute?.reasoningText || 'Delivered work matched structural contract criteria.'}"
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Score Auditor Tool */}
-          <ScoreAuditorWidget
-            userProfile={userProfile}
-            freelancerJobs={freelancerJobs}
-            completedFreelancerJobs={completedFreelancerJobs}
-            reliabilityScore={reliabilityScore}
-            clientTvl={clientTvl}
-            completedClientJobs={completedClientJobs}
-            disputes={disputes}
-          />
-        </div>
-      ) : (
-        /* 2. FREELANCER PROFILE VIEW */
-        <div className="space-y-8">
+          )}
           {/* Header Profile Card */}
           <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-slate-100 pb-6">
               <div className="flex items-center gap-5">
                 <img
-                  src={userProfile.avatarUrl}
+                  src={userProfile.avatarUrl || (userProfile.githubUsername ? `https://github.com/${userProfile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${userProfile.address}`)}
                   alt={userProfile.displayName}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${userProfile.address}`;
+                  }}
                   className="w-20 h-20 rounded-2xl border-2 border-purple-200 object-cover shadow-xs"
                 />
                 <div className="space-y-1">
@@ -478,7 +391,7 @@ export const Profile: React.FC = () => {
 
               {isOwnProfile && (
                 <Link
-                  to="/onboarding"
+                  to="/settings"
                   className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold shadow-md self-start sm:self-auto"
                 >
                   Edit Profile & Skills
@@ -522,54 +435,28 @@ export const Profile: React.FC = () => {
                     Audited Code Byte Matrix:
                   </span>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] text-slate-500 uppercase block font-bold">Solidity</span>
-                      <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.Solidity
-                          ? `${userProfile.languageBytes.Solidity.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] text-slate-500 uppercase block font-bold">Rust</span>
-                      <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.Rust
-                          ? `${userProfile.languageBytes.Rust.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] text-slate-500 uppercase block font-bold">TypeScript</span>
-                      <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.TypeScript
-                          ? `${userProfile.languageBytes.TypeScript.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] text-slate-500 uppercase block font-bold">JavaScript</span>
-                      <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.JavaScript
-                          ? `${userProfile.languageBytes.JavaScript.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] text-slate-500 uppercase block font-bold">Python</span>
-                      <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.Python
-                          ? `${userProfile.languageBytes.Python.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] text-slate-500 uppercase block font-bold">Go / Indexers</span>
-                      <span className="font-extrabold text-purple-900">
-                        {userProfile.languageBytes?.Go
-                          ? `${userProfile.languageBytes.Go.toLocaleString()} Bytes`
-                          : '0 Bytes'}
-                      </span>
-                    </div>
+                    {(() => {
+                      const usedLanguages = Object.entries(userProfile.languageBytes || {}).filter(
+                        (entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0
+                      );
+
+                      if (usedLanguages.length === 0) {
+                        return (
+                          <div className="col-span-full bg-slate-50 p-3 rounded-xl border border-slate-200 text-center text-slate-500">
+                            Verified on-chain via GitHub Oracle
+                          </div>
+                        );
+                      }
+
+                      return usedLanguages.map(([lang, bytes]) => (
+                        <div key={lang} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                          <span className="text-[10px] text-slate-500 uppercase block font-bold">{lang}</span>
+                          <span className="font-extrabold text-purple-900">
+                            {bytes.toLocaleString()} Bytes
+                          </span>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </div>
               </div>
@@ -760,31 +647,29 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
                 <span className="text-slate-600 font-bold">GitHub Attested Developer Score</span>
                 <span className="text-emerald-700 font-extrabold text-sm">{userProfile.primaryScore || 850} / 1000</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-[10px] text-center text-slate-700 font-mono">
-                <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                  <span className="block font-bold text-slate-800">Solidity</span>
-                  <span className="text-purple-700 font-bold">
-                    {userProfile.languageBytes?.Solidity !== undefined
-                      ? `${Math.round(userProfile.languageBytes.Solidity / 1024).toLocaleString()}k Bytes`
-                      : '0k Bytes'}
-                  </span>
-                </div>
-                <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                  <span className="block font-bold text-slate-800">Rust</span>
-                  <span className="text-purple-700 font-bold">
-                    {userProfile.languageBytes?.Rust !== undefined
-                      ? `${Math.round(userProfile.languageBytes.Rust / 1024).toLocaleString()}k Bytes`
-                      : '0k Bytes'}
-                  </span>
-                </div>
-                <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                  <span className="block font-bold text-slate-800">TypeScript</span>
-                  <span className="text-purple-700 font-bold">
-                    {userProfile.languageBytes?.TypeScript !== undefined
-                      ? `${Math.round(userProfile.languageBytes.TypeScript / 1024).toLocaleString()}k Bytes`
-                      : '0k Bytes'}
-                  </span>
-                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] text-center text-slate-700 font-mono">
+                {(() => {
+                  const usedLanguages = Object.entries(userProfile.languageBytes || {}).filter(
+                    (entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0
+                  );
+
+                  if (usedLanguages.length === 0) {
+                    return (
+                      <div className="col-span-full bg-slate-50 p-2 rounded-lg border border-slate-200 text-center text-slate-500">
+                        Verified Developer Attestation
+                      </div>
+                    );
+                  }
+
+                  return usedLanguages.map(([lang, bytes]) => (
+                    <div key={lang} className="bg-white p-2.5 rounded-lg border border-slate-200">
+                      <span className="block font-bold text-slate-800">{lang}</span>
+                      <span className="text-purple-700 font-bold">
+                        {Math.round(bytes / 1024).toLocaleString()}k Bytes
+                      </span>
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
           )}

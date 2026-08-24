@@ -22,9 +22,13 @@ import {
   Eye,
   Tag,
   Code2,
-  Check
+  Check,
+  Camera,
+  Image as ImageIcon,
+  DownloadCloud
 } from 'lucide-react';
 import { scrollReveal } from '../lib/motion';
+import { scoreGithubUser } from '../utils/githubOracle';
 
 // Comprehensive Tech Skills Database for Predictive Autocomplete
 const TECH_SKILLS_DATABASE = [
@@ -56,10 +60,17 @@ export const Settings: React.FC = () => {
   // View / Edit Toggle Mode (Default is Saved View Mode)
   const [isEditing, setIsEditing] = useState(false);
 
+  const fallbackDefaultAvatar = address
+    ? (currentProfile?.githubUsername
+        ? `https://github.com/${currentProfile.githubUsername}.png`
+        : `https://api.dicebear.com/7.x/identicon/svg?seed=${address.toLowerCase()}`)
+    : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
+
   // Form State
   const [displayName, setDisplayName] = useState(currentProfile?.displayName || '');
   const [title, setTitle] = useState(currentProfile?.title || '');
   const [bio, setBio] = useState(currentProfile?.bio || '');
+  const [avatarUrl, setAvatarUrl] = useState(currentProfile?.avatarUrl || fallbackDefaultAvatar);
   const [hourlyRateUsdc, setHourlyRateUsdc] = useState(currentProfile?.hourlyRateUsdc || '75');
   const [githubUsername, setGithubUsername] = useState(currentProfile?.githubUsername || '');
   const [skills, setSkills] = useState<string[]>(currentProfile?.skills || ['Solidity', 'React', 'TypeScript', 'Smart Contracts']);
@@ -67,6 +78,7 @@ export const Settings: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFetchingGithub, setIsFetchingGithub] = useState(false);
 
   // Role Settings Specific State
   const [clientEscrowWindowDays, setClientEscrowWindowDays] = useState('7');
@@ -84,6 +96,11 @@ export const Settings: React.FC = () => {
       setDisplayName(currentProfile.displayName || '');
       setTitle(currentProfile.title || '');
       setBio(currentProfile.bio || '');
+      if (currentProfile.avatarUrl) {
+        setAvatarUrl(currentProfile.avatarUrl);
+      } else if (currentProfile.githubUsername) {
+        setAvatarUrl(`https://github.com/${currentProfile.githubUsername}.png`);
+      }
       if (currentProfile.skills && currentProfile.skills.length > 0) {
         setSkills(currentProfile.skills);
       }
@@ -102,6 +119,41 @@ export const Settings: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Auto-fetch profile basics from GitHub
+  const handleFetchFromGithub = async (explicitUsername?: string) => {
+    const rawTarget = explicitUsername || githubUsername;
+    let clean = rawTarget.trim();
+    if (clean.includes('github.com/')) {
+      const parts = clean.split('github.com/');
+      clean = parts[parts.length - 1].split('/')[0];
+    }
+    clean = clean.replace(/^@/, '').replace(/\/$/, '').trim();
+
+    if (!clean) {
+      alert('Please enter a GitHub username first.');
+      return;
+    }
+
+    setIsFetchingGithub(true);
+    try {
+      const res = await scoreGithubUser(clean, address || '');
+      if (res) {
+        if (res.fetchedAvatarUrl) setAvatarUrl(res.fetchedAvatarUrl);
+        if (res.fetchedDisplayName && (!displayName || displayName === 'Anonymous PolyLancer' || displayName === 'Lead Developer')) {
+          setDisplayName(res.fetchedDisplayName);
+        }
+        if (res.fetchedBio && (!bio || bio.includes('PolyLance Arbitrator'))) {
+          setBio(res.fetchedBio);
+        }
+        setGithubUsername(clean);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch profile details from GitHub:', err);
+    } finally {
+      setIsFetchingGithub(false);
+    }
+  };
 
   // Filter Predictive Skill Suggestions
   const matchingSuggestions = newSkillInput.trim()
@@ -142,15 +194,44 @@ export const Settings: React.FC = () => {
     setIsSaving(true);
 
     try {
+      let githubMetrics = {};
+      let trimmedGithub = githubUsername.trim();
+      if (trimmedGithub.includes('github.com/')) {
+        const parts = trimmedGithub.split('github.com/');
+        trimmedGithub = parts[parts.length - 1].split('/')[0];
+      }
+      trimmedGithub = trimmedGithub.replace(/^@/, '').replace(/\/$/, '').trim();
+
+      if (trimmedGithub) {
+        try {
+          const res = await scoreGithubUser(trimmedGithub, address);
+          if (res && res.primaryScore) {
+            githubMetrics = {
+              primaryScore: res.primaryScore,
+              secondaryScores: res.secondaryScores,
+              primaryCategory: res.primaryCategory,
+              languageBytes: res.languageBytes,
+              verifiedAt: res.verifiedAt,
+            };
+          }
+        } catch (syncErr) {
+          console.warn('Background GitHub scoring during settings save:', syncErr);
+        }
+      }
+
+      const finalAvatar = avatarUrl.trim() || (trimmedGithub ? `https://github.com/${trimmedGithub}.png` : fallbackDefaultAvatar);
+
       await updateProfile(
         {
           displayName: displayName.trim() || 'Anonymous PolyLancer',
           title: title.trim(),
           bio: bio.trim(),
+          avatarUrl: finalAvatar,
           skills,
           hourlyRateUsdc: parseFloat(String(hourlyRateUsdc)) || 0,
-          githubUsername: githubUsername.trim(),
-          githubVerified: Boolean(githubUsername.trim()),
+          githubUsername: trimmedGithub,
+          githubVerified: Boolean(trimmedGithub),
+          ...githubMetrics,
         },
         address
       );
@@ -274,20 +355,41 @@ export const Settings: React.FC = () => {
             {!isEditing ? (
               <div className="space-y-6">
                 
-                {/* Main Card Overview */}
+                {/* Main Card Overview with Avatar */}
                 <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/70 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
-                    <div>
-                      <h2 className="font-headline text-xl font-extrabold text-slate-900">
-                        {displayName || 'Anonymous PolyLancer'}
-                      </h2>
-                      <p className="text-xs font-sans font-semibold text-purple-700 mt-0.5">
-                        {title || 'Senior Web3 Developer'}
-                      </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 pb-4">
+                    <div className="flex items-center gap-4">
+                      {/* Avatar Image */}
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-purple-100 border-2 border-purple-300 shadow-sm shrink-0">
+                        <img
+                          src={avatarUrl || fallbackDefaultAvatar}
+                          alt={displayName || 'User Avatar'}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = fallbackDefaultAvatar;
+                          }}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="font-headline text-xl font-extrabold text-slate-900">
+                            {displayName || 'Anonymous PolyLancer'}
+                          </h2>
+                          {githubUsername && (
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 rounded-full text-[10px] font-mono font-bold">
+                              VERIFIED
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-sans font-semibold text-purple-700 mt-0.5">
+                          {title || 'Senior Web3 Developer'}
+                        </p>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 self-start sm:self-auto">
-                      <div className="px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono font-bold rounded-xl flex items-center gap-1">
+                      <div className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono font-bold rounded-xl flex items-center gap-1.5 shadow-2xs">
                         <DollarSign size={14} className="text-emerald-600" />
                         <span>{hourlyRateUsdc || '75'} USDC/hr</span>
                       </div>
@@ -357,6 +459,74 @@ export const Settings: React.FC = () => {
               /* ── MODE 2: EDIT PROFILE FORM MODE ── */
               <form onSubmit={handleSaveProfile} className="space-y-5">
                 
+                {/* Avatar Image Controls */}
+                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-200/70 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <Camera size={14} className="text-purple-600" />
+                      Profile Avatar & Photo
+                    </label>
+                    <span className="text-[11px] text-purple-700 font-sans font-semibold">
+                      Auto-syncs with GitHub
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {/* Avatar Preview */}
+                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white border-2 border-purple-300 shadow-sm shrink-0">
+                      <img
+                        src={avatarUrl || fallbackDefaultAvatar}
+                        alt="Avatar Preview"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = fallbackDefaultAvatar;
+                        }}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Avatar URL Input & Quick Actions */}
+                    <div className="flex-1 w-full space-y-2">
+                      <input
+                        type="text"
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                        placeholder="https://... image URL or avatar"
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 font-mono focus:border-purple-400 transition-all"
+                      />
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {githubUsername && (
+                          <button
+                            type="button"
+                            onClick={() => setAvatarUrl(`https://github.com/${githubUsername.trim().replace(/^@/, '')}.png`)}
+                            className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-[11px] font-bold font-sans flex items-center gap-1 transition-all cursor-pointer shadow-3xs"
+                          >
+                            <Github size={12} />
+                            Use GitHub Avatar
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setAvatarUrl(`https://api.dicebear.com/7.x/identicon/svg?seed=${address || 'polylance'}`)}
+                          className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-bold font-sans flex items-center gap-1 transition-all cursor-pointer shadow-3xs"
+                        >
+                          <Sparkles size={12} className="text-amber-500" />
+                          Use Web3 Identicon
+                        </button>
+                        {avatarUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setAvatarUrl('')}
+                            className="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-[11px] font-bold font-sans transition-all cursor-pointer shadow-3xs"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Display Name */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 block">
@@ -404,16 +574,29 @@ export const Settings: React.FC = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 block">
-                      GitHub Handle
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 block">
+                        GitHub Handle
+                      </label>
+                      {githubUsername && (
+                        <button
+                          type="button"
+                          onClick={() => handleFetchFromGithub()}
+                          disabled={isFetchingGithub}
+                          className="text-[11px] text-purple-600 hover:text-purple-800 font-bold font-sans flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-50"
+                        >
+                          {isFetchingGithub ? <RefreshCw size={11} className="animate-spin" /> : <DownloadCloud size={11} />}
+                          <span>Sync GitHub Details</span>
+                        </button>
+                      )}
+                    </div>
                     <div className="relative">
                       <Github size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         type="text"
                         value={githubUsername}
                         onChange={(e) => setGithubUsername(e.target.value)}
-                        placeholder="octocat"
+                        placeholder="e.g. sunny200551 or octocat"
                         className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-purple-400 transition-all"
                       />
                     </div>
@@ -520,12 +703,12 @@ export const Settings: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Save Button */}
+                {/* Save & Cancel Action Buttons */}
                 <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="blue-glow-btn text-white px-6 py-3 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl px-7 py-3 rounded-xl font-headline font-extrabold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
                   >
                     {isSaving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
                     <span>Save Profile Settings</span>
@@ -534,7 +717,7 @@ export const Settings: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-headline font-bold text-xs transition-colors cursor-pointer text-center"
+                    className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-headline font-bold text-xs transition-colors cursor-pointer text-center"
                   >
                     Cancel
                   </button>

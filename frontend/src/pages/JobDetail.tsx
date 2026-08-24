@@ -10,9 +10,10 @@ import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSub
 import { DisputeReason, UserProfile } from '../types';
 import { truncateAddress, formatDaysRemaining, getDeterministicSbtId } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
-import { Shield, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github } from 'lucide-react';
+import { Shield, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ErrorState } from '../components/UIStates';
+import { ActionStatusModal, ActionModalDetail } from '../components/ActionStatusModal';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +44,19 @@ export const JobDetail: React.FC = () => {
   const [disputeReason, setDisputeReason] = useState<DisputeReason>('QUALITY');
   const [disputeEvidenceText, setDisputeEvidenceText] = useState('');
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+
+  // In-App Action Status Modal State
+  const [actionModal, setActionModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle?: string;
+    icon?: 'success' | 'progress' | 'extension' | 'modification' | 'dispute' | 'payment' | 'terms';
+    badgeText?: string;
+    details?: ActionModalDetail[];
+  }>({
+    isOpen: false,
+    title: '',
+  });
 
   const job = jobs.find((j) => j.id === id || j.contractAddress.toLowerCase() === id?.toLowerCase());
   const chatMessages = job?.chatMessages || [
@@ -84,7 +98,17 @@ export const JobDetail: React.FC = () => {
     e.preventDefault();
     if (!applyProposalText.trim()) return;
     if (!isUserVerified) {
-      alert('GitHub verification is required before applying for jobs! Please verify your GitHub account on your profile page.');
+      setActionModal({
+        isOpen: true,
+        title: 'GitHub Verification Required',
+        subtitle: 'Sybil-resistant verification is required before submitting job applications.',
+        icon: 'extension',
+        badgeText: 'VERIFICATION NEEDED',
+        details: [
+          { label: 'Requirement', value: 'GitHub OAuth Verification' },
+          { label: 'Action', value: 'Go to Profile Page to Verify' },
+        ],
+      });
       return;
     }
     applyToJob(
@@ -97,7 +121,54 @@ export const JobDetail: React.FC = () => {
     );
     setIsApplyingModalOpen(false);
     setApplyProposalText('');
+    confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+    setActionModal({
+      isOpen: true,
+      title: 'Job Proposal Submitted On-Chain',
+      subtitle: 'Your verified application and proposal have been recorded and sent to the client.',
+      icon: 'success',
+      badgeText: 'PROPOSAL ACTIVE',
+      details: [
+        { label: 'Escrow Budget', value: `$${job.amountUsdc} USDC`, isBadge: true },
+        { label: 'Applicant', value: truncateAddress(address || ''), isMono: true },
+        { label: 'Review SLA', value: `${job.reviewPeriodDays || 7} Days` },
+      ],
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleProposeTermsAction = (jobId: string, userAddr: string) => {
+    proposeTerms(jobId, userAddr);
+    confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+    setActionModal({
+      isOpen: true,
+      title: 'Milestone Terms Agreed On-Chain',
+      subtitle: 'Your acceptance of the project scope and SLA terms has been signed and recorded.',
+      icon: 'terms',
+      badgeText: 'TERMS FINALIZED',
+      details: [
+        { label: 'Agreement Status', value: 'Terms Accepted ✓', isBadge: true },
+        { label: 'Milestone Payout', value: `$${job.amountUsdc} USDC` },
+        { label: 'Escrow Address', value: truncateAddress(job.contractAddress), isMono: true },
+      ],
+    });
+  };
+
+  const handleFundJobAction = (jobId: string) => {
+    fundJob(jobId);
+    confetti({ particleCount: 110, spread: 80, origin: { y: 0.6 } });
+    setActionModal({
+      isOpen: true,
+      title: 'Escrow Deposit Funded Successfully',
+      subtitle: `Milestone funds ($${job.amountUsdc} USDC) are now locked in the standalone JobEscrow smart contract.`,
+      icon: 'payment',
+      badgeText: 'ESCROW ACTIVE',
+      details: [
+        { label: 'Escrow Locked', value: `$${job.amountUsdc} USDC`, isBadge: true },
+        { label: 'Escrow Clone', value: truncateAddress(job.contractAddress), isMono: true },
+        { label: 'Next Step', value: 'Freelancer Deliverables In Progress' },
+      ],
+    });
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -110,19 +181,47 @@ export const JobDetail: React.FC = () => {
   const handleReleasePayment = () => {
     releasePayment(job.id);
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    setActionModal({
+      isOpen: true,
+      title: 'Payment Released & SBT Minted',
+      subtitle: 'Escrow funds have been transferred directly to the freelancer, and an on-chain reputation SBT has been minted.',
+      icon: 'payment',
+      badgeText: 'TRANSACTION SETTLED',
+      details: [
+        { label: 'Amount Released', value: `$${job.amountUsdc} USDC`, isBadge: true },
+        { label: 'Freelancer', value: truncateAddress(job.freelancer || ''), isMono: true },
+        { label: 'Contract', value: truncateAddress(job.contractAddress), isMono: true },
+      ],
+    });
   };
 
   const handleRaiseDisputeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!disputeEvidenceText.trim()) return;
     const evidenceCid = generateIpfsCid({ disputeEvidenceText, timestamp: Date.now() });
-    raiseDispute(job.id, disputeReason, disputeEvidenceText, evidenceCid, address);
+    raiseDispute(job.id, disputeReason, disputeEvidenceText, evidenceCid, address || '');
     setIsDisputeModalOpen(false);
+    setActionModal({
+      isOpen: true,
+      title: 'Escrow Case Escalated to DAO Judges',
+      subtitle: 'Your evidence and case details have been registered on-chain for decentralized arbitration.',
+      icon: 'dispute',
+      badgeText: 'DISPUTE SUBMITTED',
+      details: [
+        { label: 'Dispute Reason', value: disputeReason, isBadge: true },
+        { label: 'IPFS Evidence CID', value: evidenceCid, isMono: true },
+        { label: 'Contract Address', value: truncateAddress(job.contractAddress), isMono: true },
+      ],
+    });
   };
 
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
       {/* Top Breadcrumb & Status Header */}
+      <ActionStatusModal 
+        {...actionModal} 
+        onClose={() => setActionModal({ ...actionModal, isOpen: false })} 
+      />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Link to="/jobs" className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 font-mono font-bold">
           <ArrowLeft size={14} /> Back to Find Jobs
@@ -220,14 +319,6 @@ export const JobDetail: React.FC = () => {
                   onSelect={(freelancerAddr) => selectFreelancer(job.id, freelancerAddr)}
                   isClient={true}
                 />
-              ) : currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin' ? (
-                <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow text-center">
-                  <Shield className="w-10 h-10 text-purple-700 mx-auto mb-3" />
-                  <h4 className="text-sm font-bold text-slate-900">Role Restriction</h4>
-                  <p className="text-xs text-slate-500 mt-1 font-mono">
-                    You are connected as a {currentRole === 'client' ? 'Client' : currentRole === 'judge' ? 'Judge' : 'Admin'}. Only Freelancer accounts can submit proposals to this job.
-                  </p>
-                </div>
               ) : (
                 <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
                   <div className="flex items-center justify-between">
@@ -274,84 +365,191 @@ export const JobDetail: React.FC = () => {
             </div>
           )}
 
-          {/* 2. STATUS: SELECTED (XMTP Panel) */}
+          {/* 2. STATUS: SELECTED (Proposal Acceptance & Agreement Workspace) */}
           {job.status === 'Selected' && (
             isParty ? (
-              <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-6">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div>
-                    <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <MessageSquare size={18} className="text-purple-700" /> XMTP Encrypted Negotiation Panel
-                    </h3>
-                    <p className="text-xs text-slate-600">
-                      Freelancer selected: <span className="text-purple-900 font-bold">{freelancerDisplayName}</span> <span className="font-mono text-[10px] text-slate-500">({truncateAddress(job.freelancer)})</span>
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-mono text-purple-800 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200 font-bold">
-                    End-to-End Encrypted
-                  </span>
-                </div>
-
-                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 max-h-60 overflow-y-auto font-mono text-xs">
-                  {chatMessages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`p-3 rounded-lg max-w-lg ${msg.sender === 'Client' ? 'bg-purple-100 border border-purple-200 text-purple-950 ml-auto' : 'bg-white border border-slate-200 text-slate-800'
-                        }`}
-                    >
-                      <div className="font-bold text-[10px] text-slate-500 mb-1">{msg.sender}</div>
-                      <div>{msg.text}</div>
+              <div className="space-y-6">
+                {/* Dedicated Freelancer Acceptance Banner */}
+                {isFreelancer && (
+                  <div className="glass-panel p-6 sm:p-8 border-purple-300 bg-gradient-to-br from-purple-50 via-white to-indigo-50 hard-shadow space-y-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-100 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-bold shadow-md">
+                          <Sparkles size={24} />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono uppercase text-purple-800 font-bold bg-purple-100 px-2 py-0.5 rounded border border-purple-200">
+                            ACTION REQUIRED • PROPOSAL ACCEPTED
+                          </span>
+                          <h3 className="font-headline text-xl font-extrabold text-slate-900 mt-1">
+                            🎉 Congratulations! The client selected your proposal
+                          </h3>
+                        </div>
+                      </div>
+                      <span className="text-xs font-mono font-bold px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full flex items-center gap-1">
+                        <CheckCircle2 size={14} /> Selected Candidate
+                      </span>
                     </div>
-                  ))}
-                </div>
 
-                <form onSubmit={handleSendMessage} className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Type message to agree on terms..."
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    className="w-full glass-input text-xs"
-                  />
-                  <button type="submit" className="gradient-btn-primary px-4 rounded-xl text-xs font-bold">
-                    Send
-                  </button>
-                </form>
+                    {/* Proposal & Scope Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
+                      <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs space-y-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Escrow Payout</span>
+                        <span className="text-lg font-black text-emerald-700">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span>
+                        <span className="text-[10px] text-slate-500 block">({job.amountEth || '...'} {job.paymentTokenSymbol || 'MATIC'})</span>
+                      </div>
+                      <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs space-y-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Review Window SLA</span>
+                        <span className="text-lg font-black text-purple-900">{job.reviewPeriodDays || 7} Days</span>
+                        <span className="text-[10px] text-slate-500 block">Auto-release after submission</span>
+                      </div>
+                      <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs space-y-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Agreement Terms</span>
+                        <span className="text-base font-bold text-slate-800 flex items-center gap-1">
+                          {job.freelancerAgreedTerms ? (
+                            <span className="text-emerald-700 flex items-center gap-1 font-black">
+                              <CheckCircle2 size={16} /> Terms Accepted
+                            </span>
+                          ) : (
+                            <span className="text-amber-700 flex items-center gap-1 font-bold">
+                              <Clock size={16} /> Acceptance Pending
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">
+                          Client: {job.clientAgreedTerms ? '✓ Agreed' : 'Pending'}
+                        </span>
+                      </div>
+                    </div>
 
-                <div className="pt-4 border-t border-slate-100 space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-                    <div>
-                      <h4 className="font-headline font-bold text-slate-900">Milestone Terms Hash Status</h4>
-                      <p className="text-slate-600">
-                        Client Agreed: {job.clientAgreedTerms ? '✓ Yes' : 'Pending'} | Freelancer Agreed: {job.freelancerAgreedTerms ? '✓ Yes' : 'Pending'}
+                    {/* Accepted Proposal Text Preview */}
+                    {(() => {
+                      const selApp = (job.applications || []).find((a) => a.applicant.toLowerCase() === address.toLowerCase());
+                      return selApp?.proposalText ? (
+                        <div className="bg-white/80 p-4 rounded-xl border border-purple-100 text-xs space-y-1">
+                          <span className="text-[10px] font-mono font-bold text-purple-900 uppercase">Your Accepted Proposal</span>
+                          <p className="text-slate-700 italic">"{selApp.proposalText}"</p>
+                        </div>
+                      ) : null;
+                    })()}
+
+                    {/* Acceptance Action CTA */}
+                    <div className="pt-2 flex flex-wrap items-center justify-between gap-4 border-t border-purple-100">
+                      <p className="text-xs text-slate-600 max-w-md">
+                        {job.freelancerAgreedTerms
+                          ? '✓ You have accepted the assignment terms. Once the client funds the on-chain escrow, work can begin!'
+                          : 'Review the project requirements and click below to finalize the milestone terms on-chain.'}
                       </p>
+
+                      {!job.freelancerAgreedTerms ? (
+                        <button
+                          onClick={() => handleProposeTermsAction(job.id, address || '')}
+                          className="gradient-btn-emerald px-6 py-3 rounded-xl font-bold text-xs shadow-md flex items-center gap-2 cursor-pointer animate-pulse"
+                        >
+                          <CheckCircle2 size={16} />
+                          Accept Assignment & Agree to Terms
+                        </button>
+                      ) : (
+                        <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 font-mono">
+                          <CheckCircle2 size={16} /> Terms Agreed & Finalized
+                        </span>
+                      )}
                     </div>
-
-                    {isParty && (
-                      <button
-                        onClick={() => proposeTerms(job.id, address)}
-                        className="bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-900 px-4 py-2 rounded-xl text-xs font-bold"
-                      >
-                        Propose Terms Hash
-                      </button>
-                    )}
                   </div>
+                )}
 
-                  {isClient && (
-                    <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-center justify-between">
+                {/* Client Selection Status Banner */}
+                {isClient && (
+                  <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                       <div>
-                        <h4 className="font-headline text-sm font-bold text-emerald-900">Ready to Fund Escrow</h4>
-                        <p className="text-xs text-slate-600">Deposit ${job.amountUsdc} USDC into JobEscrow clone</p>
+                        <span className="text-[10px] font-mono uppercase text-purple-800 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                          HIRING PIPELINE
+                        </span>
+                        <h3 className="font-headline text-lg font-bold text-slate-900 mt-1">
+                          Freelancer Selected: <span className="text-purple-900 font-black">{freelancerDisplayName}</span>
+                        </h3>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">
+                          Address: {truncateAddress(job.freelancer)}
+                        </p>
                       </div>
 
-                      <button
-                        onClick={() => fundJob(job.id)}
-                        className="gradient-btn-emerald px-6 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-1.5"
-                      >
-                        <DollarSign size={16} /> Fund Escrow Contract
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono px-3 py-1 rounded-full font-bold bg-purple-100 text-purple-900 border border-purple-200">
+                          Freelancer Status: {job.freelancerAgreedTerms ? '✓ Agreed Terms' : 'Pending Acceptance'}
+                        </span>
+                      </div>
                     </div>
-                  )}
+
+                    <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                      <div className="space-y-1">
+                        <h4 className="font-headline text-sm font-bold text-slate-900">Next Step: Fund Escrow Deposit</h4>
+                        <p className="text-xs text-slate-600">
+                          Lock ${job.amountUsdc} USDC in the smart contract escrow to start the project.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {!job.clientAgreedTerms && (
+                          <button
+                            onClick={() => handleProposeTermsAction(job.id, address || '')}
+                            className="bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <CheckCircle2 size={15} /> Propose Terms Hash
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleFundJobAction(job.id)}
+                          className="gradient-btn-emerald px-6 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <DollarSign size={16} /> Fund Escrow Contract
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* XMTP Encrypted Chat Panel */}
+                <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-6">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                      <h3 className="font-headline text-base font-bold text-slate-900 flex items-center gap-2">
+                        <MessageSquare size={18} className="text-purple-700" /> XMTP Encrypted Negotiation Panel
+                      </h3>
+                      <p className="text-xs text-slate-600">
+                        End-to-end direct communication between client and selected freelancer.
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-purple-800 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200 font-bold">
+                      End-to-End Encrypted
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 max-h-60 overflow-y-auto font-mono text-xs">
+                    {chatMessages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-lg max-w-lg ${msg.sender === 'Client' ? 'bg-purple-100 border border-purple-200 text-purple-950 ml-auto' : 'bg-white border border-slate-200 text-slate-800'
+                          }`}
+                      >
+                        <div className="font-bold text-[10px] text-slate-500 mb-1">{msg.sender}</div>
+                        <div>{msg.text}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <form onSubmit={handleSendMessage} className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Type message to discuss scope or deliverables..."
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      className="w-full glass-input text-xs"
+                    />
+                    <button type="submit" className="gradient-btn-primary px-4 rounded-xl text-xs font-bold cursor-pointer">
+                      Send
+                    </button>
+                  </form>
                 </div>
               </div>
             ) : (
@@ -366,7 +564,7 @@ export const JobDetail: React.FC = () => {
           )}
 
           {/* DELIVERABLE SUBMISSION, WORK STATUS, EXTENSIONS & CLIENT APPROVAL WORKSPACE */}
-          {(job.status === 'Selected' || job.status === 'Submitted' || job.status === 'Disputed' || job.status === 'Completed') && (
+          {(job.status === 'Funded' || job.status === 'Submitted' || job.status === 'Disputed' || job.status === 'Completed') && (
             <DeliverableWorkSubmissionPanel job={job} />
           )}
 
