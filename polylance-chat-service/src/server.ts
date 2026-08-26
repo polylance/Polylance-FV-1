@@ -126,45 +126,69 @@ export async function loadStateFromDatabase() {
   }
 }
 
-export async function persistStateToDatabases() {
-  persistState(); // file fallback
-  const payload = JSON.parse(JSON.stringify(sharedState));
+let dbWriteDebounceTimer: any = null;
+let isWritingToDb = false;
+let pendingDbPayload: any = null;
 
-  // Write to Primary DB (Render) asynchronously
-  (async () => {
-    try {
-      if (prisma && prisma.protocolSharedState) {
+async function executeDatabaseSync(payload: any) {
+  if (isWritingToDb) {
+    pendingDbPayload = payload;
+    return;
+  }
+  isWritingToDb = true;
+
+  try {
+    // 1. Write to Primary DB (Render PostgreSQL)
+    if (prisma && prisma.protocolSharedState) {
+      try {
         await Promise.race([
           prisma.protocolSharedState.upsert({
             where: { key: "global_state" },
             update: { data: payload },
             create: { key: "global_state", data: payload },
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Primary DB write timeout")), 4000)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Primary DB write timeout")), 12000)),
         ]);
+      } catch (err: any) {
+        console.warn("[DB] Primary DB sync notice:", err?.message || err);
       }
-    } catch (err: any) {
-      console.warn("[DB] Primary DB sync notice:", err?.message || err);
     }
-  })().catch(() => {});
 
-  // Dual-write replication to Backup DB (Prisma Cloud) asynchronously
-  (async () => {
-    try {
-      if (backupPrisma && backupPrisma.protocolSharedState) {
+    // 2. Dual-write replication to Backup DB (Prisma Cloud)
+    if (backupPrisma && backupPrisma.protocolSharedState) {
+      try {
         await Promise.race([
           backupPrisma.protocolSharedState.upsert({
             where: { key: "global_state" },
             update: { data: payload },
             create: { key: "global_state", data: payload },
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Backup DB write timeout")), 3000)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Backup DB write timeout")), 12000)),
         ]);
+      } catch (err: any) {
+        console.warn("[DB] Backup DB sync notice:", err?.message || err);
       }
-    } catch (err: any) {
-      console.warn("[DB] Backup DB sync notice:", err?.message || err);
     }
-  })().catch(() => {});
+  } finally {
+    isWritingToDb = false;
+    if (pendingDbPayload) {
+      const next = pendingDbPayload;
+      pendingDbPayload = null;
+      executeDatabaseSync(next).catch(() => {});
+    }
+  }
+}
+
+export async function persistStateToDatabases() {
+  persistState(); // file fallback immediately
+  const payload = JSON.parse(JSON.stringify(sharedState));
+
+  if (dbWriteDebounceTimer) {
+    clearTimeout(dbWriteDebounceTimer);
+  }
+  dbWriteDebounceTimer = setTimeout(() => {
+    executeDatabaseSync(payload).catch(() => {});
+  }, 500);
 }
 
 
