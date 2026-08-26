@@ -25,17 +25,19 @@ import {
   CreditCard,
   Check,
   RefreshCw,
-  ArrowRight
+  ArrowRight,
+  Search
 } from 'lucide-react';
 import { RocketIcon, RocketIconHandle } from '../components/RocketIcon';
 import { generateIpfsCid } from '../utils/ipfs';
 import { SUPPORTED_FIAT, SUPPORTED_CRYPTO, getActiveRates } from '../utils/currency';
 
 export const PostJob: React.FC = () => {
-  const { address, isConnected, connectWallet } = useWeb3();
+  const { address, isConnected, connectWallet, currentRole } = useWeb3();
   const { postJob } = usePolyLanceData();
   const navigate = useNavigate();
   const rocketRef = useRef<RocketIconHandle>(null);
+
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -138,6 +140,41 @@ export const PostJob: React.FC = () => {
       </div>
     );
   }
+
+  // Guard: Only Clients, Judges, and Admins can post jobs
+  if (isConnected && currentRole === 'freelancer') {
+    return (
+      <div className="min-h-[70vh] py-16 px-4 max-w-xl mx-auto flex flex-col items-center justify-center text-center space-y-5">
+        <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-xs">
+          <Briefcase size={32} />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-extrabold text-slate-900 font-heading">
+            Job Posting is for Clients & Admins
+          </h2>
+          <p className="text-xs text-slate-600 font-medium leading-relaxed">
+            Your connected wallet is active in <span className="font-bold text-purple-700 uppercase font-mono">Freelancer Mode</span>. Freelancers can apply to active smart contract escrow jobs, submit deliverables, and earn soulbound reputation tokens.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <button
+            onClick={() => navigate('/jobs')}
+            className="gradient-btn-primary px-6 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-md cursor-pointer"
+          >
+            <Search size={15} />
+            Browse Open Jobs
+          </button>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="glass-panel px-5 py-2.5 rounded-xl font-bold text-xs text-slate-700 hover:text-slate-900 border-slate-200 hover:bg-slate-50 cursor-pointer"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 space-y-8">

@@ -13,16 +13,58 @@ import JudgeDAOABI from '../config/abis/JudgeDAO.json';
 import { useWeb3 } from './Web3Context';
 import { io as socketIO, Socket } from 'socket.io-client';
 
-const BACKEND_SYNC_URL = import.meta.env.VITE_CHAT_SERVER_URL || 'http://localhost:3001';
+export const getSyncEndpoints = (): string[] => {
+  const list: string[] = [];
+  const envUrl = import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL;
+
+  // 1. Explicit production service
+  list.push('https://polylance-fv-1.onrender.com');
+
+  if (envUrl) {
+    list.push(envUrl.replace(/\/$/, ''));
+  }
+
+  if (typeof window !== 'undefined') {
+    const { hostname, protocol } = window.location;
+
+    // 2. If running locally or on LAN (e.g. localhost, 127.0.0.1, or 192.168.x.x Wi-Fi)
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      list.push('http://localhost:3001');
+    } else if (hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
+      list.push(`${protocol}//${hostname}:3001`);
+    }
+  } else {
+    list.push('http://localhost:3001');
+  }
+
+  return Array.from(new Set(list.filter(Boolean)));
+};
+
+export const getBackendSyncUrl = (): string => {
+  const endpoints = getSyncEndpoints();
+  if (typeof window !== 'undefined') {
+    const { hostname } = window.location;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3001';
+    }
+  }
+  return endpoints[0] || 'https://polylance-fv-1.onrender.com';
+};
+
+
 let syncSocket: Socket | null = null;
 
+
 const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
+
 
 const INITIAL_PROFILES: Record<string, UserProfile> = {};
 
 const INITIAL_JOBS: Job[] = [];
 
 const INITIAL_PROPOSALS: DaoProposal[] = [];
+
+
 
 const INITIAL_JUDGE_MESSAGES: Record<string, JudgeMessage[]> = {};
 
@@ -165,29 +207,34 @@ const broadcastSync = (data: {
   treasuryBalanceUsdc?: number;
   treasuryBalanceEth?: number;
 }) => {
+  // 1. Cross-Tab Sync via BroadcastChannel
   try {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
       channel.postMessage({ type: 'SYNC_UPDATE', payload: data, sender: Date.now() });
       channel.close();
     }
-  } catch (err) {
-    // Fallback gracefully
-  }
+  } catch (err) {}
 
-  // Cross-Device and Multi-Browser Real-Time Sync via Backend Microservice
+  // 2. Real-Time Socket Relay (Instant Multi-Device Sync worldwide)
   try {
     if (syncSocket && syncSocket.connected) {
       syncSocket.emit('client-sync', data);
-    } else {
-      fetch(`${BACKEND_SYNC_URL}/api/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).catch(() => {});
     }
   } catch (err) {}
+
+  // 3. Multi-Endpoint Dual Write to Cloud Databases (Render PostgreSQL)
+  const endpoints = getSyncEndpoints();
+  endpoints.forEach((ep) => {
+    fetch(`${ep}/api/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).catch(() => {});
+  });
 };
+
+
 
 const normalizeJob = (job: Job): Job => {
   if (!job) return job;
@@ -568,13 +615,21 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       console.warn('Real-time sync BroadcastChannel notice:', err);
     }
 
+    const syncUrl = getBackendSyncUrl();
+
     // Real-Time Cross-Device WebSocket Sync Setup
     try {
-      if (!syncSocket) {
-        syncSocket = socketIO(BACKEND_SYNC_URL, {
+      if (!syncSocket || !syncSocket.connected) {
+        syncSocket = socketIO(syncUrl, {
           transports: ['websocket', 'polling'],
           withCredentials: true,
           reconnection: true,
+          reconnectionAttempts: 4,
+          timeout: 3000,
+        });
+
+        syncSocket.on('connect_error', () => {
+          // Fallback seamlessly to background REST polling
         });
 
         syncSocket.on('realtime-sync', (payload: any) => {
@@ -593,6 +648,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               return { ...merged };
             });
           }
+
           if (Array.isArray(payload.daoProposals)) setDaoProposalsRaw([...payload.daoProposals]);
           if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
           if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
@@ -605,7 +661,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     // Initial load from backend shared state + upload local items if new
-    fetch(`${BACKEND_SYNC_URL}/api/sync`)
+    fetch(`${syncUrl}/api/sync`)
       .then((r) => r.json())
       .then((payload) => {
         let currentLocalJobs: Job[] = [];
@@ -637,9 +693,31 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               return { ...merged };
             });
           }
+
+          if (Array.isArray(payload.daoProposals) && payload.daoProposals.length > 0) {
+            setDaoProposalsRaw([...payload.daoProposals]);
+            try { localStorage.setItem('polylance_dao_proposals', JSON.stringify(payload.daoProposals)); } catch {}
+          }
+          if (payload.judgeMessages && Object.keys(payload.judgeMessages).length > 0) {
+            setJudgeMessagesRaw({ ...payload.judgeMessages });
+            try { localStorage.setItem('polylance_judge_messages', JSON.stringify(payload.judgeMessages)); } catch {}
+          }
+          if (Array.isArray(payload.judges) && payload.judges.length > 0) {
+            setJudgesRaw([...payload.judges]);
+            try { localStorage.setItem('polylance_judges', JSON.stringify(payload.judges)); } catch {}
+          }
+          if (Array.isArray(payload.treasuryProposals) && payload.treasuryProposals.length > 0) {
+            setTreasuryProposalsRaw([...payload.treasuryProposals]);
+            try { localStorage.setItem('polylance_treasury_proposals', JSON.stringify(payload.treasuryProposals)); } catch {}
+          }
+          if (Array.isArray(payload.treasuryHistory) && payload.treasuryHistory.length > 0) {
+            setTreasuryHistoryRaw([...payload.treasuryHistory]);
+            try { localStorage.setItem('polylance_treasury_history', JSON.stringify(payload.treasuryHistory)); } catch {}
+          }
         }
       })
       .catch(() => {});
+
 
     const handleStorage = (e: StorageEvent) => {
       if (!e.key) return;
@@ -721,48 +799,58 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     // Periodic synchronization check and window focus listener for multi-account / cross-context real-time sync
-    const syncFromRemoteBackend = () => {
-      fetch(`${BACKEND_SYNC_URL}/api/sync`)
-        .then((r) => {
-          if (!r.ok) return null;
-          return r.json();
-        })
-        .then((payload) => {
-          if (!payload) return;
-          if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
-            setJobsRaw((curr) => {
-              const merged = mergeJobsList(curr, payload.jobs);
-              if (curr.length === merged.length && JSON.stringify(curr) === JSON.stringify(merged)) return curr;
-              try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
-              return [...merged];
-            });
+    const syncFromRemoteBackend = async () => {
+      const endpoints = getSyncEndpoints();
+      for (const ep of endpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4500);
+          const r = await fetch(`${ep}/api/sync`, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (!r.ok) continue;
+          const payload = await r.json();
+          if (payload) {
+            if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
+              setJobsRaw((curr) => {
+                const merged = mergeJobsList(curr, payload.jobs);
+                if (curr.length === merged.length && JSON.stringify(curr) === JSON.stringify(merged)) return curr;
+                try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
+                return [...merged];
+              });
+            }
+            if (payload.profiles && Object.keys(payload.profiles).length > 0) {
+              setProfilesRaw((curr) => {
+                const merged = mergeProfilesMap(curr, payload.profiles);
+                if (Object.keys(curr).length === Object.keys(merged).length && JSON.stringify(curr) === JSON.stringify(merged)) return curr;
+                try { localStorage.setItem('polylance_profiles', JSON.stringify(merged)); } catch {}
+                return { ...merged };
+              });
+            }
+            if (Array.isArray(payload.daoProposals)) setDaoProposalsRaw([...payload.daoProposals]);
+            if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
+            if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
+            if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
+            if (Array.isArray(payload.treasuryHistory)) setTreasuryHistoryRaw([...payload.treasuryHistory]);
+            return; // Successfully updated from live cloud database
           }
-          if (payload.profiles && Object.keys(payload.profiles).length > 0) {
-            setProfilesRaw((curr) => {
-              const merged = mergeProfilesMap(curr, payload.profiles);
-              if (Object.keys(curr).length === Object.keys(merged).length && JSON.stringify(curr) === JSON.stringify(merged)) return curr;
-              try { localStorage.setItem('polylance_profiles', JSON.stringify(merged)); } catch {}
-              return { ...merged };
-            });
-          }
-          if (Array.isArray(payload.daoProposals)) setDaoProposalsRaw([...payload.daoProposals]);
-          if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
-          if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
-          if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
-          if (Array.isArray(payload.treasuryHistory)) setTreasuryHistoryRaw([...payload.treasuryHistory]);
-        })
-        .catch(() => {});
+        } catch (err) {
+          // Continue to next endpoint
+          continue;
+        }
+      }
     };
+
 
     const pollInterval = setInterval(() => {
       syncFromStorage();
       syncFromRemoteBackend();
-    }, 8000);
+    }, 4000);
 
     window.addEventListener('focus', () => {
       syncFromStorage();
       syncFromRemoteBackend();
     });
+
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {

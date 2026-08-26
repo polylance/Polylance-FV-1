@@ -233,13 +233,17 @@ export const Navbar: React.FC = () => {
                   <LayoutDashboard size={13} />Dashboard
                 </NavLink>
 
-                <NavLink to="/jobs/post" active={isActive('/jobs/post')}>
-                  <PlusCircle size={13} />Post Job
-                </NavLink>
+                {/* Only Clients, Judges, and Admins can post jobs */}
+                {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') && (
+                  <NavLink to="/jobs/post" active={isActive('/jobs/post')}>
+                    <PlusCircle size={13} />Post Job
+                  </NavLink>
+                )}
 
                 <NavLink to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post')}>
                   <Briefcase size={13} />Find Jobs
                 </NavLink>
+
 
                 <NavLink to="/reputation" active={isActive('/reputation')}>
                   <Trophy size={13} />SBT Leaderboard
@@ -459,8 +463,11 @@ export const Navbar: React.FC = () => {
               ) : (
                 <>
                   <MobileLink to="/dashboard" icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => setIsMobileOpen(false)} />
-                  <MobileLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMobileOpen(false)} />
+                  {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') && (
+                    <MobileLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMobileOpen(false)} />
+                  )}
                   <MobileLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
+
                   <MobileLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMobileOpen(false)} />
                   {(currentRole === 'admin' || currentRole === 'judge') && (
                     <Link

@@ -152,7 +152,7 @@ export const Dashboard: React.FC = () => {
 
         {/* ROLE-SPECIFIC HEADER CTA BUTTONS */}
         <div className="flex items-center gap-3">
-          {isClientRole ? (
+          {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') ? (
             <Link
               to="/jobs/post"
               className="gradient-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md"
@@ -177,6 +177,7 @@ export const Dashboard: React.FC = () => {
             Edit Profile
           </Link>
         </div>
+
       </div>
 
       {/* CLIENT ENTERPRISE OVERVIEW DASHBOARD */}

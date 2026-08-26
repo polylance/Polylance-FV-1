@@ -1,36 +1,29 @@
 services:
   - type: web
-    name: polylance-chat-service
+    name: polylance-fv-1
     env: node
-    region: ohio
+    region: singapore
     plan: free
     rootDir: polylance-chat-service
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npx prisma db push && npm run build
     startCommand: npm start
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: polylance-chat-db
-          property: connectionString
+        value: postgresql://polylancedb_user:I4IAWIHcDI8YCPKRgNIe93nnQTuPFQL1@dpg-da78mhp42hec73am3phg-a/polylancedb
+      - key: BACKUP_DATABASE_URL
+        value: postgres://17a77f3e1cb2f34728bd50b80dd36257b564ba4864ae9693229ee3276fe81b91:sk_YbuOIT2V-RXc7UJIwd01U@pooled.db.prisma.io:5432/postgres?sslmode=require
       - key: RPC_URL
         value: https://rpc-amoy.polygon.technology
       - key: JOB_FACTORY_ADDRESS
         value: 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
       - key: ALLOWED_ORIGINS
-        value: https://polylance.github.io,https://polylance.codes
+        value: https://polylance-fv-1.onrender.com,https://polylance.github.io,https://polylance.codes,http://localhost:5173
       - key: NODE_ENV
         value: production
+
       - key: NPM_CONFIG_PRODUCTION
         value: "false"
       - key: PORT
         value: 10000
-      - key: UPSTASH_REDIS_REST_URL
-        sync: false
-      - key: UPSTASH_REDIS_REST_TOKEN
-        sync: false
 
-databases:
-  - name: polylance-chat-db
-    plan: free
-    region: ohio

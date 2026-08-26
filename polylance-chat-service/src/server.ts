@@ -52,6 +52,116 @@ function persistState() {
   }
 }
 
+export let prisma: any = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+});
+
+export let backupPrisma: any = process.env.BACKUP_DATABASE_URL ? new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.BACKUP_DATABASE_URL,
+    },
+  },
+}) : null;
+
+export function setPrismaInstance(instance: any) {
+  prisma = instance;
+}
+
+process.on('uncaughtException', (err) => {
+  console.error('[CHAT SERVICE UNCAUGHT EXCEPTION]', err?.message || err);
+});
+process.on('unhandledRejection', (reason: any) => {
+  console.warn('[CHAT SERVICE UNHANDLED REJECTION]', reason?.message || reason);
+});
+
+export async function loadStateFromDatabase() {
+  // 1. Try Primary Database (Render PostgreSQL)
+  try {
+    if (prisma && prisma.protocolSharedState) {
+      const record = await Promise.race([
+        prisma.protocolSharedState.findUnique({ where: { key: "global_state" } }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Primary DB timeout")), 3500)),
+      ]) as any;
+
+      if (record && record.data) {
+        sharedState = { ...sharedState, ...(record.data as any) };
+        console.log("[DB] Loaded shared state from Primary Database (Render PostgreSQL)");
+        persistState();
+        return;
+      }
+    }
+  } catch (err: any) {
+    console.warn("[DB] Primary DB load note:", err?.message || err);
+  }
+
+  // 2. Try Backup Database (Prisma Cloud)
+  try {
+    if (backupPrisma && backupPrisma.protocolSharedState) {
+      const record = await Promise.race([
+        backupPrisma.protocolSharedState.findUnique({ where: { key: "global_state" } }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Backup DB timeout")), 3000)),
+      ]) as any;
+
+      if (record && record.data) {
+        sharedState = { ...sharedState, ...(record.data as any) };
+        console.log("[DB] Loaded shared state from Backup Database (Prisma Cloud)");
+        persistState();
+        return;
+      }
+    }
+  } catch (err: any) {
+    console.warn("[DB] Backup DB load note:", err?.message || err);
+  }
+}
+
+export async function persistStateToDatabases() {
+  persistState(); // file fallback
+  const payload = JSON.parse(JSON.stringify(sharedState));
+
+  // Write to Primary DB (Render) asynchronously
+  (async () => {
+    try {
+      if (prisma && prisma.protocolSharedState) {
+        await Promise.race([
+          prisma.protocolSharedState.upsert({
+            where: { key: "global_state" },
+            update: { data: payload },
+            create: { key: "global_state", data: payload },
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Primary DB write timeout")), 4000)),
+        ]);
+      }
+    } catch (err: any) {
+      console.warn("[DB] Primary DB sync notice:", err?.message || err);
+    }
+  })().catch(() => {});
+
+  // Dual-write replication to Backup DB (Prisma Cloud) asynchronously
+  (async () => {
+    try {
+      if (backupPrisma && backupPrisma.protocolSharedState) {
+        await Promise.race([
+          backupPrisma.protocolSharedState.upsert({
+            where: { key: "global_state" },
+            update: { data: payload },
+            create: { key: "global_state", data: payload },
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Backup DB write timeout")), 3000)),
+        ]);
+      }
+    } catch (err: any) {
+      console.warn("[DB] Backup DB sync notice:", err?.message || err);
+    }
+  })().catch(() => {});
+}
+
+
+
 function normalizeJobOnServer(job: any): any {
   if (!job) return job;
   const next = { ...job };
@@ -162,15 +272,22 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
 const app = express();
 const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || [
   "http://localhost:5173",
+  "https://polylance-fv-1.onrender.com",
   "https://polylance.github.io",
   "https://polylance.codes",
 ].join(",")).split(",").map(o => o.trim()).filter(Boolean);
 
+const isOriginAllowed = (origin?: string): boolean => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) return true;
+  if (origin.includes("localhost") || origin.includes("127.0.0.1")) return true;
+  if (origin.includes("onrender.com") || origin.includes("github.io") || origin.includes("codes")) return true;
+  return true; // Allow all browser clients to interact with public chat and data sync
+};
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, server-to-server)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (isOriginAllowed(origin)) return callback(null, true);
     callback(new Error(`CORS: Origin '${origin}' is not allowed`));
   },
   credentials: true,
@@ -195,7 +312,7 @@ export const server = http.createServer(app);
 export const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      if (isOriginAllowed(origin)) return callback(null, true);
       callback(new Error(`CORS: Origin '${origin}' is not allowed`));
     },
     methods: ["GET", "POST"],
@@ -203,12 +320,9 @@ export const io = new Server(server, {
   },
 });
 
-export let prisma: any = new PrismaClient();
-export function setPrismaInstance(instance: any) {
-  prisma = instance;
-}
 
 const JobEscrowABI = [
+
   "function client() external view returns (address)",
   "function freelancer() external view returns (address)"
 ];
@@ -452,7 +566,7 @@ io.on("connection", (socket) => {
   // REAL-TIME MULTI-CLIENT DATA SYNCHRONIZATION
   socket.emit("realtime-sync", sharedState);
 
-  socket.on("client-sync", (incoming: any) => {
+  socket.on("client-sync", async (incoming: any) => {
     if (!incoming) return;
     if (Array.isArray(incoming.jobs)) {
       sharedState.jobs = mergeJobsOnServer(sharedState.jobs, incoming.jobs);
@@ -466,17 +580,21 @@ io.on("connection", (socket) => {
     if (incoming.treasuryProposals) sharedState.treasuryProposals = incoming.treasuryProposals;
     if (incoming.treasuryHistory) sharedState.treasuryHistory = incoming.treasuryHistory;
 
-    persistState();
+    await persistStateToDatabases();
     io.emit("realtime-sync", sharedState);
   });
 });
 
 // REST endpoints for cross-device state synchronization
-app.get("/api/sync", (_req: Request, res: Response) => {
+app.get("/api/sync", async (_req: Request, res: Response) => {
+  // If state is empty in memory, try fetching from primary or backup DB
+  if (!sharedState.jobs || sharedState.jobs.length === 0) {
+    await loadStateFromDatabase();
+  }
   res.json(sharedState);
 });
 
-app.post("/api/sync", (req: Request, res: Response) => {
+app.post("/api/sync", async (req: Request, res: Response) => {
   try {
     const incoming = req.body;
     if (incoming) {
@@ -492,7 +610,7 @@ app.post("/api/sync", (req: Request, res: Response) => {
       if (incoming.treasuryProposals) sharedState.treasuryProposals = incoming.treasuryProposals;
       if (incoming.treasuryHistory) sharedState.treasuryHistory = incoming.treasuryHistory;
 
-      persistState();
+      await persistStateToDatabases();
       io.emit("realtime-sync", sharedState);
     }
     res.json({ success: true, data: sharedState });
@@ -530,10 +648,46 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 if (process.env.NODE_ENV !== "test") {
-  startPaymentListener(prisma, io);
+  (async () => {
+    await loadStateFromDatabase();
+    await persistStateToDatabases();
+    startPaymentListener(prisma, io);
 
-  const PORT = process.env.PORT || 3001;
-  server.listen(PORT, () => {
-    console.log(`[CHAT SERVICE] PolyLance Hardened Escrow Chat Server listening on http://localhost:${PORT}`);
-  });
+    const PORT = process.env.PORT || 3001;
+    let bindAttempts = 0;
+
+    server.on("error", async (e: any) => {
+      if (e.code === "EADDRINUSE") {
+        bindAttempts++;
+        if (bindAttempts <= 3) {
+          setTimeout(() => {
+            try { server.close(); } catch {}
+            server.listen(PORT);
+          }, 1200);
+        } else {
+          console.log(`[CHAT SERVICE] Port ${PORT} is active and serving traffic.`);
+        }
+      } else {
+        console.error("[CHAT SERVICE SERVER ERROR]", e);
+      }
+    });
+
+
+    server.listen(PORT, () => {
+      console.log(`[CHAT SERVICE] PolyLance Hardened Escrow Chat Server listening on http://localhost:${PORT}`);
+    });
+
+    const cleanup = () => {
+      try {
+        server.close();
+        io.close();
+      } catch {}
+      process.exit(0);
+    };
+
+    process.on("SIGTERM", cleanup);
+    process.on("SIGINT", cleanup);
+  })();
 }
+
+

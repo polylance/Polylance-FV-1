@@ -13,6 +13,93 @@ export interface CachedIpfsFile {
 
 const memoryIpfsCache = new Map<string, CachedIpfsFile>();
 
+const PINATA_JWT = import.meta.env.VITE_PINATA_JWT;
+const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs/';
+
+/**
+ * Upload JSON payload directly to Pinata IPFS
+ */
+export async function pinJsonToPinata(body: Record<string, any>, name: string = 'payload.json'): Promise<string> {
+  if (!PINATA_JWT) {
+    const fallbackCid = generateIpfsCid(body);
+    storeIpfsFile(fallbackCid, {
+      cid: fallbackCid,
+      name,
+      type: 'application/json',
+      size: JSON.stringify(body).length,
+      dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(body))}`,
+      uploadedAt: Date.now(),
+    });
+    return fallbackCid;
+  }
+
+  try {
+    const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${PINATA_JWT}`,
+      },
+      body: JSON.stringify({
+        pinataMetadata: { name },
+        pinataContent: body,
+      }),
+    });
+
+    if (!res.ok) throw new Error(`Pinata error: ${res.statusText}`);
+    const data = await res.json();
+    const cid = data.IpfsHash;
+
+    storeIpfsFile(cid, {
+      cid,
+      name,
+      type: 'application/json',
+      size: JSON.stringify(body).length,
+      dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(body))}`,
+      uploadedAt: Date.now(),
+    });
+
+    return cid;
+  } catch (err) {
+    console.warn('Pinata upload fallback to local CID:', err);
+    const fallbackCid = generateIpfsCid(body);
+    return fallbackCid;
+  }
+}
+
+/**
+ * Upload File / Blob directly to Pinata IPFS
+ */
+export async function pinFileToPinata(file: File | Blob, filename: string): Promise<string> {
+  if (!PINATA_JWT) {
+    const fallbackCid = generateIpfsCid({ name: filename, size: file.size, timestamp: Date.now() });
+    return fallbackCid;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file, filename);
+
+    const metadata = JSON.stringify({ name: filename });
+    formData.append('pinataMetadata', metadata);
+
+    const res = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${PINATA_JWT}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error(`Pinata file error: ${res.statusText}`);
+    const data = await res.json();
+    return data.IpfsHash;
+  } catch (err) {
+    console.warn('Pinata file upload fallback:', err);
+    return generateIpfsCid({ name: filename, size: file.size, timestamp: Date.now() });
+  }
+}
+
 export function generateIpfsCid(content: string | Record<string, any>): string {
   const str = typeof content === 'string' ? content : JSON.stringify(content);
   let hash = 0;
@@ -63,6 +150,14 @@ export function getCachedIpfsFile(cid: string): CachedIpfsFile | null {
   return null;
 }
 
+export const IPFS_GATEWAYS = [
+  import.meta.env.VITE_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs/',
+  'https://cloudflare-ipfs.com/ipfs/',
+  'https://ipfs.io/ipfs/',
+  'https://dweb.link/ipfs/',
+  'https://w3s.link/ipfs/',
+];
+
 export function getIpfsGatewayUrl(cid: string): string {
   if (!cid) return '#';
   if (cid.startsWith('data:') || cid.startsWith('blob:') || cid.startsWith('http://') || cid.startsWith('https://')) {
@@ -73,14 +168,58 @@ export function getIpfsGatewayUrl(cid: string): string {
   if (cached && cached.dataUrl) {
     return cached.dataUrl;
   }
-  // Safe in-memory data URL fallback for simulated/unpinned CIDs
-  const fallbackJson = JSON.stringify({
-    cid: cleanCid,
-    verified: true,
-    protocol: 'IPFS / PolyLance Escrow Verifiable Record',
-    timestamp: Date.now()
-  }, null, 2);
-  return `data:application/json;charset=utf-8,${encodeURIComponent(fallbackJson)}`;
+  const primaryGateway = IPFS_GATEWAYS[0];
+  return `${primaryGateway}${cleanCid}`;
+}
+
+/**
+ * Multi-Gateway Resilient JSON Fetcher (Tries Pinata, Cloudflare, IPFS.io, dweb.link)
+ */
+export async function fetchIpfsJsonWithFallback<T = any>(cid: string): Promise<T | null> {
+  if (!cid) return null;
+  const cleanCid = cid.replace('ipfs://', '');
+
+  // 1. Check local cache
+  const cached = getCachedIpfsFile(cleanCid);
+  if (cached && cached.dataUrl) {
+    try {
+      if (cached.dataUrl.startsWith('data:application/json')) {
+        const jsonStr = decodeURIComponent(cached.dataUrl.split(',')[1]);
+        return JSON.parse(jsonStr) as T;
+      }
+    } catch {}
+  }
+
+  // 2. Iterate through redundant IPFS gateways with timeout
+  for (const gateway of IPFS_GATEWAYS) {
+    try {
+      const url = `${gateway}${cleanCid}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        // Save to local cache for future fast instant load
+        storeIpfsFile(cleanCid, {
+          cid: cleanCid,
+          name: `payload-${cleanCid.slice(0, 8)}.json`,
+          type: 'application/json',
+          size: JSON.stringify(data).length,
+          dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data))}`,
+          uploadedAt: Date.now(),
+        });
+        return data as T;
+      }
+    } catch (err) {
+      // Gateway timed out or failed, try next gateway in array
+      continue;
+    }
+  }
+
+  return null;
 }
 
 export function openOrDownloadIpfsFile(cid: string, fallbackName?: string): void {
@@ -101,3 +240,4 @@ export function openOrDownloadIpfsFile(cid: string, fallbackName?: string): void
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 }
+

@@ -27,3 +27,30 @@ model MessageIndex {
 
   @@index([jobAddress])
 }
+
+model ProtocolSharedState {
+  key       String   @id @default("global_state")
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+model JobRecord {
+  id              String   @id
+  contractAddress String?
+  client          String
+  freelancer      String?
+  status          String
+  data            Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([client])
+  @@index([freelancer])
+}
+
+model ProfileRecord {
+  address   String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
