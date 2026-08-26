@@ -67,7 +67,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Scan for accidentally committed secrets
         run: |
-          git diff --all -- . ':(exclude)*.md' | \
+          git diff HEAD~1 -- . ':(exclude)*.md' | \
             grep -E "(PRIVATE_KEY|api_key|JWT)\s*=\s*['\"][^'\"]{10,}" | \
             grep -v "process.env\|your_\|placeholder\|example" && \
             (echo "Possible secret detected in diff" && exit 1) || \
