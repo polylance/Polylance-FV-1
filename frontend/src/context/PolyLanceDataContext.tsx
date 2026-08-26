@@ -16,12 +16,12 @@ import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 
 export const getSyncEndpoints = (): string[] => {
   const list: string[] = [];
-  const envUrl = import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL;
+  const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
 
-  // 1. Explicit production service
+  // 1. Explicit production service (Primary)
   list.push('https://polylance-fv-1.onrender.com');
 
-  if (envUrl) {
+  if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
     list.push(envUrl.replace(/\/$/, ''));
   }
 
