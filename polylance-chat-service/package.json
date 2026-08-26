@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc && prisma generate",
+    "build": "prisma generate && tsc --skipLibCheck",
     "start": "node dist/server.js",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev --name init_postgres",
