@@ -144,7 +144,7 @@ export interface UserProfile {
   reposCount?: number;
   prsCount?: number;
   reputationTier?: string;
-  role?: 'freelancer' | 'client';
+  role?: 'freelancer' | 'client' | 'admin' | 'judge';
   title?: string;
   hourlyRateUsdc?: number;
 }

@@ -914,6 +914,27 @@
       "reputationTier": "GOLD",
       "title": "Frontend Developer",
       "hourlyRateUsdc": 75
+    },
+    "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a": {
+      "address": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a",
+      "reputationSbtCount": 0,
+      "displayName": "Akhil Muvva",
+      "githubUsername": "akhilmuvva",
+      "githubVerified": true,
+      "avatarUrl": "https://avatars.githubusercontent.com/u/192993350?v=4",
+      "bio": "Official PolyLance DAO Administrator & Core Developer.",
+      "role": "admin",
+      "primaryCategory": "fullstack",
+      "primaryScore": 820,
+      "skills": [
+        "Solidity",
+        "TypeScript",
+        "React",
+        "Node.js",
+        "Smart Contracts",
+        "Governance"
+      ],
+      "verifiedAt": 1787758039873
     }
   },
   "daoProposals": [],

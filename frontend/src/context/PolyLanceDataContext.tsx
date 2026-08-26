@@ -12,6 +12,7 @@ import ProfileRegistryABI from '../config/abis/ProfileRegistry.json';
 import JudgeDAOABI from '../config/abis/JudgeDAO.json';
 import { useWeb3 } from './Web3Context';
 import { io as socketIO, Socket } from 'socket.io-client';
+import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 
 export const getSyncEndpoints = (): string[] => {
   const list: string[] = [];
@@ -136,8 +137,12 @@ const MOCK_NAMES_TO_PURGE = new Set([
 
 const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<string, UserProfile> => {
   const normalized: Record<string, UserProfile> = {};
-  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
-  const judgeGithub = import.meta.env.VITE_JUDGE_GITHUB_USERNAME || 'sunny200551';
+  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
+  const judgeGithub = (import.meta.env.VITE_JUDGE_GITHUB_USERNAME || 'sunny200551').toLowerCase().trim();
+  const admin1Addr = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase();
+  const admin2Addr = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase();
+  const admin3Addr = (import.meta.env.VITE_ADMIN_ADDRESS_3 || '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1').toLowerCase();
+  const adminGithub = (import.meta.env.VITE_ADMIN_GITHUB_USERNAME || 'akhilmuvva').toLowerCase().trim();
 
   for (const [addr, profile] of Object.entries(rawProfiles || {})) {
     if (!addr) continue;
@@ -147,11 +152,22 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
     if (MOCK_ADDRESSES_TO_PURGE.has(lowerAddr)) continue;
     if (profile.displayName && MOCK_NAMES_TO_PURGE.has(profile.displayName.toLowerCase().trim())) continue;
 
-    // Copy profile data, but if this is NOT the judge address and it has the judge's GitHub username, unbind it
+    // Copy profile data, but if this address is NOT the admin/judge address and holds a reserved GitHub handle, unbind it
     let cleanedProfile = { ...profile };
-    if (judgeAddr && lowerAddr !== judgeAddr && cleanedProfile.githubUsername?.toLowerCase() === judgeGithub.toLowerCase()) {
-      delete cleanedProfile.githubUsername;
-      cleanedProfile.githubVerified = false;
+    const currGh = cleanedProfile.githubUsername?.toLowerCase().trim();
+    if (currGh) {
+      if (currGh === judgeGithub && judgeAddr && lowerAddr !== judgeAddr) {
+        delete cleanedProfile.githubUsername;
+        cleanedProfile.githubVerified = false;
+      }
+      if (currGh === adminGithub && admin2Addr && lowerAddr !== admin2Addr && !isAdminAddress(lowerAddr)) {
+        delete cleanedProfile.githubUsername;
+        cleanedProfile.githubVerified = false;
+      }
+      if (currGh === 'stevenson20' && admin3Addr && lowerAddr !== admin3Addr && !isAdminAddress(lowerAddr)) {
+        delete cleanedProfile.githubUsername;
+        cleanedProfile.githubVerified = false;
+      }
     }
 
     const existing = normalized[lowerAddr];
@@ -164,6 +180,42 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
       if (selectNewer) {
         normalized[lowerAddr] = { ...cleanedProfile, address: lowerAddr };
       }
+    }
+  }
+
+  // Ensure Admin 2 (Akhil Muvva) has verified admin profile with @akhilmuvva
+  if (admin2Addr) {
+    if (!normalized[admin2Addr]) {
+      normalized[admin2Addr] = {
+        address: admin2Addr,
+        displayName: 'Akhil Muvva',
+        bio: 'Official PolyLance DAO Administrator & Core Developer.',
+        avatarUrl: 'https://avatars.githubusercontent.com/u/192993350?v=4',
+        ipfsHash: '',
+        skills: ['Solidity', 'TypeScript', 'React', 'Smart Contracts', 'Governance'],
+        githubUsername: 'akhilmuvva',
+        githubVerified: true,
+        primaryScore: 820,
+        reputationSbtCount: 0,
+        role: 'admin',
+      };
+    } else {
+      normalized[admin2Addr].githubUsername = 'akhilmuvva';
+      normalized[admin2Addr].githubVerified = true;
+      if (!normalized[admin2Addr].displayName || normalized[admin2Addr].displayName === 'Anonymous PolyLancer') {
+        normalized[admin2Addr].displayName = 'Akhil Muvva';
+      }
+      if (!normalized[admin2Addr].avatarUrl || normalized[admin2Addr].avatarUrl.includes('unsplash.com')) {
+        normalized[admin2Addr].avatarUrl = 'https://avatars.githubusercontent.com/u/192993350?v=4';
+      }
+    }
+  }
+
+  // Ensure Admin 3 (Stevenson) is initialized/verified
+  if (admin3Addr && normalized[admin3Addr]) {
+    if (!normalized[admin3Addr].githubUsername) {
+      normalized[admin3Addr].githubUsername = 'stevenson20';
+      normalized[admin3Addr].githubVerified = true;
     }
   }
 
@@ -1752,21 +1804,38 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateProfile = async (profileData: Partial<UserProfile>, address: string) => {
     setProfiles((prev) => {
       const lowerAddress = address.toLowerCase();
+      let updatedPrev = { ...prev };
+
       if (profileData.githubVerified && profileData.githubUsername) {
         const lowerUsername = profileData.githubUsername.toLowerCase().trim();
-        const duplicateAddress = Object.keys(prev).find(
+        const duplicateAddress = Object.keys(updatedPrev).find(
           (addr) =>
             addr.toLowerCase() !== lowerAddress &&
-            prev[addr].githubVerified &&
-            prev[addr].githubUsername?.toLowerCase().trim() === lowerUsername
+            updatedPrev[addr].githubVerified &&
+            updatedPrev[addr].githubUsername?.toLowerCase().trim() === lowerUsername
         );
         if (duplicateAddress) {
-          alert(`Verification Error: The GitHub account @${profileData.githubUsername} is already linked to another wallet address (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})!\nOnly one wallet connection per GitHub username is allowed for Sybil resistance.`);
-          return prev;
+          const isPrivileged =
+            isAdminAddress(lowerAddress) ||
+            isJudgeAddress(lowerAddress) ||
+            lowerUsername === 'akhilmuvva' ||
+            lowerUsername === 'sunny200551' ||
+            lowerUsername === 'stevenson20';
+
+          if (isPrivileged) {
+            // Unbind GitHub username from previous/stale duplicate address to reassign to authorized wallet
+            const oldProf = { ...updatedPrev[duplicateAddress] };
+            delete oldProf.githubUsername;
+            oldProf.githubVerified = false;
+            updatedPrev[duplicateAddress] = oldProf;
+          } else {
+            alert(`Verification Error: The GitHub account @${profileData.githubUsername} is already linked to another wallet address (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})!\nOnly one wallet connection per GitHub username is allowed for Sybil resistance.`);
+            return prev;
+          }
         }
       }
 
-      const existing = prev[lowerAddress] || {
+      const existing = updatedPrev[lowerAddress] || {
         address: lowerAddress,
         displayName: 'Anonymous PolyLancer',
         bio: '',
@@ -1777,13 +1846,21 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         reputationSbtCount: 0,
       };
 
-      return {
-        ...prev,
+      const finalMerged = {
+        ...updatedPrev,
         [lowerAddress]: {
           ...existing,
           ...profileData,
         },
       };
+
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem('polylance_profiles', JSON.stringify(finalMerged));
+        }
+      } catch {}
+
+      return finalMerged;
     });
   };
 
