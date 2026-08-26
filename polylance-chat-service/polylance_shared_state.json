@@ -1437,43 +1437,38 @@
   "profiles": {
     "0x05dd0869aaa279f69ac9fe63f53d05e7be568706": {
       "address": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
-      "displayName": "Akhil Muvva",
+      "displayName": "Anonymous PolyLancer",
       "bio": "",
-      "avatarUrl": "https://avatars.githubusercontent.com/u/192993350?v=4",
+      "avatarUrl": "https://github.com/github123.png",
       "ipfsHash": "bafybeieafzhnokpdrxyuzn3bc6dxflminbpvws",
       "skills": [
         "Solidity",
         "TypeScript",
         "Ethers.js"
       ],
-      "githubVerified": false,
+      "githubVerified": true,
       "reputationSbtCount": 0,
       "role": "freelancer",
-      "verifiedAt": 1787238161883,
-      "primaryCategory": "backend",
-      "primaryScore": 980,
+      "verifiedAt": 1787761252433,
+      "primaryCategory": "web3",
+      "primaryScore": 740,
       "secondaryCategories": [
         "frontend",
         "web3"
       ],
       "secondaryScores": [
-        441,
-        216
+        333,
+        163
       ],
       "attestationUID": "0xa5c5f170ed2199d38bb9d33713cce350251bde32bab8744ef91c0e62cb7a3609",
-      "languageBytes": {
-        "Solidity": 6144,
-        "Rust": 33792,
-        "TypeScript": 6117376,
-        "JavaScript": 8314880,
-        "Python": 80835584,
-        "Go": 0,
-        "Jupyter Notebook": 683008
-      },
+      "languageBytes": {},
       "commitsCount": 196,
       "reposCount": 15,
       "prsCount": 27,
-      "reputationTier": "PLATINUM"
+      "reputationTier": "PLATINUM",
+      "githubUsername": "github123",
+      "title": "",
+      "hourlyRateUsdc": 75
     },
     "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a": {
       "address": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a",
@@ -1741,7 +1736,7 @@
       "reputationSbtCount": 2,
       "role": "freelancer",
       "githubUsername": "stevenson20",
-      "verifiedAt": 1787761004279,
+      "verifiedAt": 1787761113531,
       "primaryCategory": "frontend",
       "primaryScore": 695,
       "secondaryCategories": [
