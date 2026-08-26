@@ -1,11 +1,14 @@
 {
   "name": "polylance",
   "version": "1.0.0",
-  "description": "",
+  "description": "PolyLance Decentralized Freelance Platform",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "npm --prefix frontend run build",
+    "start": "node index.js",
+    "build": "npm --prefix polylance-chat-service install && npm --prefix polylance-chat-service run build",
+    "build:frontend": "npm --prefix frontend run build",
     "test": "npx hardhat test",
     "contracts:compile": "npx hardhat compile",
     "contracts:test": "npx hardhat test",
@@ -15,6 +18,7 @@
     "contracts:bootstrap:amoy": "npx hardhat run scripts/bootstrap.ts --network amoy",
     "contracts:sync-abis": "node scripts/sync-abis.js"
   },
+
   "keywords": [],
   "author": "",
   "license": "ISC",
