@@ -406,28 +406,28 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "text": "hi",
           "sender": "Client",
-          "timestamp": 1787577794773,
-          "senderRole": "Client"
-        },
-        {
+          "senderRole": "Client",
           "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1787578337923,
-          "senderRole": "Freelancer"
+          "timestamp": 1787577794773
         },
         {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1787578337923
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
           "text": "hello",
-          "sender": "Client",
-          "timestamp": 1787578427348,
-          "senderRole": "Client"
+          "timestamp": 1787578427348
         },
         {
-          "text": "good",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1787578437983,
-          "senderRole": "Freelancer"
+          "senderRole": "Freelancer",
+          "text": "good",
+          "timestamp": 1787578437983
         }
       ],
       "paymentTokenSymbol": "USDC",
@@ -528,7 +528,23 @@
           "proposalIpfsHash": "bafybeifkyxutpucb65z6mlihdiwvsrnsa743x4"
         }
       ],
-      "chatMessages": [],
+      "chatMessages": [
+        {
+          "sender": "Freelancer",
+          "text": "hi",
+          "timestamp": 1787733736483
+        },
+        {
+          "sender": "Client",
+          "text": "hey",
+          "timestamp": 1787733750244
+        },
+        {
+          "sender": "Client",
+          "text": "hyyy",
+          "timestamp": 1787733978579
+        }
+      ],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
       "contractAddress": "0x2C05b0992473a31816f1Bf67f647F002df0d31F3",
       "progressUpdates": [],
@@ -536,39 +552,232 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
           "text": "hi",
-          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
-          "timestamp": 1787729334205,
-          "senderRole": "Freelancer"
+          "timestamp": 1787729334205
         },
         {
-          "text": "hey",
           "sender": "Client",
-          "timestamp": 1787729355416,
-          "senderRole": "Client"
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1787729355416
         },
         {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
           "text": "hm",
-          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
-          "timestamp": 1787729361278,
-          "senderRole": "Freelancer"
+          "timestamp": 1787729361278
         },
         {
-          "text": "devices are not synced to the database",
           "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
-          "timestamp": 1787729667439,
-          "senderRole": "Freelancer"
+          "senderRole": "Freelancer",
+          "text": "devices are not synced to the database",
+          "timestamp": 1787729667439
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hello",
+          "timestamp": 1787732868110
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "hm",
+          "timestamp": 1787732900676
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "good",
+          "timestamp": 1787732902496
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1787733736482
+        },
+        {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1787733750242
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "Hello",
+          "timestamp": 1787733944376
+        },
+        {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Client",
+          "text": "hyyy",
+          "timestamp": 1787733978579
         }
       ],
       "paymentTokenSymbol": "USDC",
       "modificationRequests": [],
       "paymentTokenDecimals": 6
+    },
+    {
+      "id": "0xecA867d535f0",
+      "contractAddress": "0xecA867d535f013805256e6925795479225A0587b",
+      "client": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+      "amountEth": "0.0036",
+      "amountUsdc": "10.00",
+      "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "paymentTokenSymbol": "USDC",
+      "paymentTokenDecimals": 6,
+      "status": "Open",
+      "title": "Test Job ",
+      "description": "Just test the job",
+      "category": "backend",
+      "reviewPeriodDays": 1,
+      "createdAt": 1787632648159,
+      "applications": [],
+      "events": [
+        {
+          "step": "Posted",
+          "title": "Job Posted (USDC Escrow)",
+          "timestamp": 1787632648159,
+          "txHash": "0x47b0efa570e8be94032cf8b4f48c2a8f66d0690e321dcac83c71bf23b274ac1b",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Selected",
+          "title": "Select Freelancer",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "current"
+        },
+        {
+          "step": "Terms",
+          "title": "Agree Terms",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Funded",
+          "title": "Fund Escrow",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Submitted",
+          "title": "Submit Work",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Completed",
+          "title": "Release Payment",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Minted",
+          "title": "Mint Reputation SBT",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        }
+      ],
+      "chatMessages": [],
+      "progressUpdates": [],
+      "extensionRequests": [],
+      "modificationRequests": [],
+      "preAcceptMessages": []
+    },
+    {
+      "id": "0xE7CBf1F98599",
+      "contractAddress": "0xE7CBf1F98599EF0998120742a1EE6fDd848b7E79",
+      "client": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+      "amountEth": "0.0019",
+      "amountUsdc": "5.24",
+      "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "paymentTokenSymbol": "USDC",
+      "paymentTokenDecimals": 6,
+      "status": "Open",
+      "title": "Client Job Test",
+      "description": "Test the Site UI ",
+      "category": "frontend",
+      "reviewPeriodDays": 1,
+      "createdAt": 1786871117714,
+      "applications": [],
+      "events": [
+        {
+          "step": "Posted",
+          "title": "Job Posted (USDC Escrow)",
+          "timestamp": 1786871117715,
+          "txHash": "0x3887695d6d0a899db4cce607110da0c9dab4fe4b6d6592337ff15a9637fb1044",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Selected",
+          "title": "Select Freelancer",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "current"
+        },
+        {
+          "step": "Terms",
+          "title": "Agree Terms",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Funded",
+          "title": "Fund Escrow",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Submitted",
+          "title": "Submit Work",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Completed",
+          "title": "Release Payment",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Minted",
+          "title": "Mint Reputation SBT",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        }
+      ],
+      "chatMessages": [],
+      "preAcceptMessages": [],
+      "progressUpdates": [],
+      "extensionRequests": [],
+      "modificationRequests": []
     }
   ],
   "profiles": {
     "0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6": {
+      "address": "0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6",
+      "displayName": "SATHVIK_POLIPATI",
       "bio": "",
-      "role": "freelancer",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/158837165?v=4",
+      "ipfsHash": "bafybeifzd563pdnhifznxrspdxb34znblfgdxl",
       "skills": [
         "Solidity",
         "TypeScript",
@@ -582,42 +791,42 @@
         "Go",
         "Circom"
       ],
-      "address": "0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6",
-      "ipfsHash": "bafybeifzd563pdnhifznxrspdxb34znblfgdxl",
-      "prsCount": 7,
-      "avatarUrl": "https://avatars.githubusercontent.com/u/158837165?v=4",
-      "reposCount": 4,
-      "verifiedAt": 1787727990751,
-      "displayName": "SATHVIK_POLIPATI",
-      "commitsCount": 52,
-      "primaryScore": 730,
-      "languageBytes": {
-        "CSS": 45209,
-        "HTML": 453808,
-        "Shell": 2014,
-        "Python": 267104,
-        "Batchfile": 2790,
-        "JavaScript": 214569,
-        "Jupyter Notebook": 19958
-      },
-      "attestationUID": "0x27a5865073c706ad51facf553cff8d8e304a760304a1f8e1c64fe6d31699d8e7",
-      "githubUsername": "Sathvikpolipati",
       "githubVerified": true,
-      "reputationTier": "SILVER",
+      "reputationSbtCount": 0,
+      "role": "freelancer",
+      "githubUsername": "Sathvikpolipati",
+      "verifiedAt": 1787732855758,
       "primaryCategory": "frontend",
+      "primaryScore": 730,
+      "secondaryCategories": [
+        "backend",
+        "web3"
+      ],
       "secondaryScores": [
         329,
         161
       ],
-      "reputationSbtCount": 0,
-      "secondaryCategories": [
-        "backend",
-        "web3"
-      ]
+      "attestationUID": "0x27a5865073c706ad51facf553cff8d8e304a760304a1f8e1c64fe6d31699d8e7",
+      "languageBytes": {
+        "JavaScript": 214569,
+        "HTML": 453808,
+        "CSS": 45209,
+        "Python": 267104,
+        "Jupyter Notebook": 19958,
+        "Batchfile": 2790,
+        "Shell": 2014
+      },
+      "commitsCount": 52,
+      "reposCount": 4,
+      "prsCount": 7,
+      "reputationTier": "SILVER"
     },
     "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1": {
+      "address": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+      "displayName": "stevenson20",
       "bio": "",
-      "role": "freelancer",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/245890505?v=4",
+      "ipfsHash": "bafybeizrh3pvd3rfz7nf3pdjxpfzntbzpdx5ld",
       "skills": [
         "Solidity",
         "TypeScript",
@@ -625,15 +834,22 @@
         "Rust",
         "IPFS"
       ],
-      "address": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-      "ipfsHash": "bafybeizrh3pvd3rfz7nf3pdjxpfzntbzpdx5ld",
-      "prsCount": 4,
-      "avatarUrl": "https://avatars.githubusercontent.com/u/245890505?v=4",
-      "reposCount": 2,
+      "githubVerified": true,
+      "reputationSbtCount": 2,
+      "role": "freelancer",
+      "githubUsername": "stevenson20",
       "verifiedAt": 1787587689384,
-      "displayName": "stevenson20",
-      "commitsCount": 24,
+      "primaryCategory": "frontend",
       "primaryScore": 695,
+      "secondaryCategories": [
+        "backend",
+        "web3"
+      ],
+      "secondaryScores": [
+        313,
+        153
+      ],
+      "attestationUID": "0xe32cd042efe5ee218436429a47f0858d300043b85e919c6aba80210219ed4ce5",
       "languageBytes": {
         "CSS": 18101,
         "Nix": 1280,
@@ -641,25 +857,17 @@
         "JavaScript": 15424,
         "TypeScript": 428150
       },
-      "attestationUID": "0xe32cd042efe5ee218436429a47f0858d300043b85e919c6aba80210219ed4ce5",
-      "githubUsername": "stevenson20",
-      "githubVerified": true,
-      "reputationTier": "SILVER",
-      "primaryCategory": "frontend",
-      "secondaryScores": [
-        313,
-        153
-      ],
-      "reputationSbtCount": 2,
-      "secondaryCategories": [
-        "backend",
-        "web3"
-      ]
+      "commitsCount": 24,
+      "reposCount": 2,
+      "prsCount": 4,
+      "reputationTier": "SILVER"
     },
     "0xb8aa0398b91a150b041da819bc954bb356e009dd": {
+      "address": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+      "displayName": "Sunny Pasumarthi",
       "bio": "Official PolyLance Lead Arbitrator & DAO Verifier.",
-      "role": "freelancer",
-      "title": "Frontend Developer",
+      "avatarUrl": "https://github.com/sunny200551.png",
+      "ipfsHash": "QmJudgeProfileDataHashPlaceholder",
       "skills": [
         "Arbitration",
         "Smart Contracts",
@@ -672,15 +880,14 @@
         "Next.js",
         "React"
       ],
-      "address": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-      "ipfsHash": "QmJudgeProfileDataHashPlaceholder",
-      "prsCount": 9,
-      "avatarUrl": "https://github.com/sunny200551.png",
-      "reposCount": 5,
-      "verifiedAt": 1787583808764,
-      "displayName": "Sunny Pasumarthi",
-      "commitsCount": 72,
+      "githubUsername": "sunny200551",
+      "githubVerified": true,
       "primaryScore": 870,
+      "reputationSbtCount": 19,
+      "secondaryScores": [
+        392,
+        191
+      ],
       "languageBytes": {
         "C": 734,
         "C++": 19894,
@@ -693,21 +900,20 @@
         "JavaScript": 91065,
         "TypeScript": 642339
       },
-      "attestationUID": "0xbdb099c2d407d61f1bfd6ee7b6952154f9287c13d395071c979e09cc16d7dbe8",
-      "githubUsername": "sunny200551",
-      "githubVerified": true,
-      "hourlyRateUsdc": 75,
-      "reputationTier": "GOLD",
+      "verifiedAt": 1787583808764,
+      "role": "freelancer",
       "primaryCategory": "frontend",
-      "secondaryScores": [
-        392,
-        191
-      ],
-      "reputationSbtCount": 19,
       "secondaryCategories": [
         "frontend",
         "web3"
-      ]
+      ],
+      "attestationUID": "0xbdb099c2d407d61f1bfd6ee7b6952154f9287c13d395071c979e09cc16d7dbe8",
+      "commitsCount": 72,
+      "reposCount": 5,
+      "prsCount": 9,
+      "reputationTier": "GOLD",
+      "title": "Frontend Developer",
+      "hourlyRateUsdc": 75
     }
   },
   "daoProposals": [],

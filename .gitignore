@@ -1,5 +1,6 @@
 node_modules/
-dist/
+frontend/dist/
+!polylance-chat-service/dist/
 artifacts/
 cache/
 typechain-types/
@@ -7,3 +8,4 @@ coverage/
 coverage.json
 .env
 amoy_deployment_addresses.json
+

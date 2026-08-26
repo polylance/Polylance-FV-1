@@ -9,6 +9,7 @@
     "start": "node index.js",
     "build": "npm --prefix polylance-chat-service install && npm --prefix polylance-chat-service run build",
     "build:frontend": "npm --prefix frontend run build",
+    "postinstall": "npm --prefix polylance-chat-service install && npx prisma generate --schema=polylance-chat-service/prisma/schema.prisma",
     "test": "npx hardhat test",
     "contracts:compile": "npx hardhat compile",
     "contracts:test": "npx hardhat test",
@@ -18,7 +19,6 @@
     "contracts:bootstrap:amoy": "npx hardhat run scripts/bootstrap.ts --network amoy",
     "contracts:sync-abis": "node scripts/sync-abis.js"
   },
-
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -34,10 +34,11 @@
     "@typechain/ethers-v6": "^0.5.0",
     "@typechain/hardhat": "^9.0.0",
     "@types/chai": "^4.3.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
     "@types/mocha": ">=9.1.0",
     "@types/node": "^26.1.1",
     "chai": "^4.3.7",
-    "ethers": "^6.13.5",
     "hardhat": "^2.29.0",
     "hardhat-gas-reporter": "^2.3.0",
     "solidity-coverage": "^0.8.17",
@@ -50,12 +51,41 @@
     "@gsap/react": "^2.1.2",
     "@openzeppelin/contracts": "^5.6.1",
     "@openzeppelin/contracts-upgradeable": "^5.6.1",
+    "@prisma/client": "^6.3.1",
     "@rainbow-me/rainbowkit": "^2.2.11",
     "@splinetool/react-spline": "^4.1.0",
     "@tanstack/react-query": "^5.101.4",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.4.2",
+    "eth-crypto": "^2.6.0",
+    "ethers": "^6.13.5",
+    "express": "^4.21.2",
     "gsap": "^3.15.0",
+    "prisma": "^6.3.1",
+    "socket.io": "^4.8.1",
     "viem": "^2.55.11",
     "wagmi": "^2.19.5"
+  },
+  "overrides": {
+    "ws": "^8.21.0",
+    "undici": "^6.28.0",
+    "cross-spawn": "^7.0.6",
+    "tar": "^6.2.1",
+    "nanoid": "^3.3.8",
+    "cookie": "^0.7.2",
+    "path-to-regexp": "^0.1.12",
+    "body-parser": "^1.20.3",
+    "send": "^0.19.0",
+    "serve-static": "^1.16.0",
+    "micromatch": "^4.0.8",
+    "braces": "^3.0.3",
+    "lodash": "^4.17.21",
+    "serialize-javascript": "^6.0.2",
+    "tmp": "^0.2.3"
   }
 }
+
+
+

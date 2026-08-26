@@ -52,18 +52,24 @@ function persistState() {
   }
 }
 
+const DEFAULT_PRIMARY_DB = "postgresql://polylancedb_user:I4IAWIHcDI8YCPKRgNIe93nnQTuPFQL1@dpg-da78mhp42hec73am3phg-a.singapore-postgres.render.com/polylancedb?sslmode=require";
+const DEFAULT_BACKUP_DB = "postgres://17a77f3e1cb2f34728bd50b80dd36257b564ba4864ae9693229ee3276fe81b91:sk_YbuOIT2V-RXc7UJIwd01U@pooled.db.prisma.io:5432/postgres?sslmode=require";
+
+const primaryDbUrl = process.env.DATABASE_URL || DEFAULT_PRIMARY_DB;
+const backupDbUrl = process.env.BACKUP_DATABASE_URL || DEFAULT_BACKUP_DB;
+
 export let prisma: any = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: primaryDbUrl,
     },
   },
 });
 
-export let backupPrisma: any = process.env.BACKUP_DATABASE_URL ? new PrismaClient({
+export let backupPrisma: any = backupDbUrl ? new PrismaClient({
   datasources: {
     db: {
-      url: process.env.BACKUP_DATABASE_URL,
+      url: backupDbUrl,
     },
   },
 }) : null;
@@ -71,6 +77,7 @@ export let backupPrisma: any = process.env.BACKUP_DATABASE_URL ? new PrismaClien
 export function setPrismaInstance(instance: any) {
   prisma = instance;
 }
+
 
 process.on('uncaughtException', (err) => {
   console.error('[CHAT SERVICE UNCAUGHT EXCEPTION]', err?.message || err);

@@ -220,30 +220,36 @@ export const Chat: React.FC = () => {
     if (!inputText.trim()) return;
 
     if (chatTab === 'judges' && selectedJudgeAddr) {
-      const senderRole = isAdmin ? 'Admin' : 'Judge';
-      sendJudgeChatMessage(selectedJudgeAddr, inputText, senderRole, address);
+      const judgeSenderRole = isAdmin ? 'Admin' : 'Judge';
+      sendJudgeChatMessage(selectedJudgeAddr, inputText, judgeSenderRole, address);
       setInputText('');
     } else if (activeJob) {
-      const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase();
-      const isFreelancer = activeJob.freelancer?.toLowerCase() === (address || '').toLowerCase();
-      const hasApplied = (activeJob.applications || []).some(a => a.applicant.toLowerCase() === (address || '').toLowerCase());
+      const lowerAddr = (address || '').toLowerCase();
+      const isClient = activeJob.client.toLowerCase() === lowerAddr || currentRole === 'client';
+      const isFreelancer = (!isClient && (
+        (activeJob.freelancer?.toLowerCase() === lowerAddr) ||
+        (activeJob.applications || []).some(a => a.applicant.toLowerCase() === lowerAddr) ||
+        currentRole === 'freelancer' ||
+        (!isAdmin && !isJudgeRole)
+      ));
 
-      let senderRole: 'Client' | 'Freelancer' | 'Judge' = 'Judge';
+      let jobSenderRole: 'Client' | 'Freelancer' | 'Judge' = 'Freelancer';
       if (isClient) {
-        senderRole = 'Client';
-      } else if (isFreelancer || hasApplied) {
-        senderRole = 'Freelancer';
+        jobSenderRole = 'Client';
+      } else if (isFreelancer) {
+        jobSenderRole = 'Freelancer';
       } else if (isAdmin || isJudgeRole) {
-        senderRole = 'Judge';
+        jobSenderRole = 'Judge';
       }
 
       if (activeJob.status === 'Open') {
-        sendPreAcceptMessage(activeJob.id, inputText, address || '', senderRole === 'Client' ? 'Client' : 'Freelancer');
+        sendPreAcceptMessage(activeJob.id, inputText, address || '', jobSenderRole === 'Client' ? 'Client' : 'Freelancer');
       }
-      sendChatMessage(activeJob.id, inputText, senderRole);
+      sendChatMessage(activeJob.id, inputText, jobSenderRole);
       setInputText('');
     }
   };
+
 
   // Escrow direct actions
   const handleProposeTerms = () => {
@@ -1143,8 +1149,14 @@ export const Chat: React.FC = () => {
                         </div>
 
                         {jobMessages.map((msg, index) => {
-                          const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase();
-                          const isFreelancer = activeJob.freelancer?.toLowerCase() === (address || '').toLowerCase();
+                          const lowerAddr = (address || '').toLowerCase();
+                          const isClient = activeJob.client.toLowerCase() === lowerAddr || currentRole === 'client';
+                          const isFreelancer = (!isClient && (
+                            (activeJob.freelancer?.toLowerCase() === lowerAddr) ||
+                            (activeJob.applications || []).some(a => a.applicant.toLowerCase() === lowerAddr) ||
+                            currentRole === 'freelancer' ||
+                            (!isAdmin && !isJudgeRole)
+                          ));
 
                           const isSystem = msg.sender === 'Judge' && (
                             msg.text.startsWith('🔒') ||
@@ -1159,6 +1171,7 @@ export const Chat: React.FC = () => {
                             (isFreelancer && msg.sender === 'Freelancer') ||
                             ((isAdmin || isJudgeRole) && msg.sender === 'Judge')
                           );
+
 
                           if (isSystem) {
                             return (

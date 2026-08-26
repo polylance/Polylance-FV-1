@@ -1,8 +1,8 @@
 node_modules
-dist
 target
 chat.db
 chat.db-journal
 .env
 local_state_db.json
 local_files_db.json
+
