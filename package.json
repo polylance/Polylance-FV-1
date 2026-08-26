@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "PolyLance Decentralized Freelance Platform",
   "main": "index.js",
-  "type": "module",
   "scripts": {
+
     "dev": "node scripts/dev.mjs",
     "start": "node index.js",
     "build": "npm --prefix polylance-chat-service install && npm --prefix polylance-chat-service run build",
