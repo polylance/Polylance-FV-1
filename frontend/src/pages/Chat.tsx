@@ -115,9 +115,7 @@ export const Chat: React.FC = () => {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(urlJobId || null);
 
 
-  const [selectedJudgeAddr, setSelectedJudgeAddr] = useState<string | null>(
-    judges.length > 0 ? judges[0].address : null
-  );
+  const [selectedJudgeAddr, setSelectedJudgeAddr] = useState<string | null>(null);
 
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,12 +132,12 @@ export const Chat: React.FC = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto select initial judge if admin
+  // Auto select initial judge if admin and on judges tab
   useEffect(() => {
-    if (isAdmin && !selectedJudgeAddr && judges.length > 0) {
+    if (isAdmin && chatTab === 'judges' && !selectedJudgeAddr && judges.length > 0) {
       setSelectedJudgeAddr(judges[0].address);
     }
-  }, [isAdmin, judges, selectedJudgeAddr]);
+  }, [isAdmin, chatTab, judges, selectedJudgeAddr]);
 
   // If URL contains a jobId, auto select it and switch tab to jobs
   useEffect(() => {
@@ -1293,13 +1291,13 @@ export const Chat: React.FC = () => {
         {/* Right Side: Escrow / Arbitrator Summary Panel (Slide Toggleable) */}
         <div
           className={`transition-all duration-300 ease-in-out shrink-0 border-slate-200 bg-white flex flex-col h-full overflow-hidden ${
-            showJobDetailsSidebar && (activeJob || activeJudge)
+            showJobDetailsSidebar && ((chatTab === 'jobs' && activeJob) || (chatTab === 'judges' && activeJudge))
               ? 'w-80 lg:w-88 border-l opacity-100'
               : 'w-0 border-l-0 opacity-0 pointer-events-none'
           }`}
         >
           <div className="w-80 lg:w-88 flex flex-col justify-start h-full p-5 space-y-4 overflow-y-auto shrink-0">
-            {activeJob ? (
+            {chatTab === 'jobs' && activeJob ? (
               <>
                 {/* Top Status Pill */}
                 <div>
@@ -1395,7 +1393,7 @@ export const Chat: React.FC = () => {
                   </Link>
                 </div>
               </>
-            ) : activeJudge ? (
+            ) : chatTab === 'judges' && activeJudge ? (
               <div className="space-y-4">
                 <div>
                   <span className="inline-flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100 border border-purple-200 px-3 py-0.5 rounded-full">
