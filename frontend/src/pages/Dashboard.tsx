@@ -6,12 +6,13 @@ import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { scoreGithubUser } from '../utils/githubOracle';
+import { calculateReputationScores, getReputationTier } from '../utils/reputation';
 import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, TrendingUp, ShieldCheck, CheckCircle2, FileText, MessageSquare, Clock } from 'lucide-react';
 import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 import { EmptyState } from '../components/UIStates';
 
 export const Dashboard: React.FC = () => {
-  const { address, currentRole } = useWeb3();
+  const { address, currentRole, isArbitrator } = useWeb3();
   const { jobs, profiles, updateProfile } = usePolyLanceData();
   const navigate = useNavigate();
 
@@ -27,6 +28,26 @@ export const Dashboard: React.FC = () => {
     skills: [],
     reputationSbtCount: 0,
   }) as UserProfile;
+
+  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
+  const userScores = calculateReputationScores(
+    activeAddress || '',
+    jobs,
+    userProfile,
+    userProfile.reputationSbtCount || 0,
+    Boolean(isArbitrator || currentRole === 'judge'),
+    judgeAddr
+  );
+
+  const tierInfo = getReputationTier(userScores.totalPoints);
+
+  const rawDisplayName = userProfile.displayName && userProfile.displayName !== 'Anonymous User' && userProfile.displayName !== 'Anonymous PolyLancer'
+    ? userProfile.displayName
+    : userProfile.githubUsername
+      ? `@${userProfile.githubUsername}`
+      : activeAddress
+        ? `${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}`
+        : 'Anonymous User';
 
   // Real-time GitHub sync on dashboard mount if verified
   useEffect(() => {
@@ -125,7 +146,7 @@ export const Dashboard: React.FC = () => {
         <div className="flex items-center gap-4">
           <img
             src={userProfile.avatarUrl || (userProfile.githubUsername ? `https://github.com/${userProfile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress}`)}
-            alt={userProfile.displayName}
+            alt={rawDisplayName}
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress}`;
             }}
@@ -133,12 +154,9 @@ export const Dashboard: React.FC = () => {
           />
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 font-heading flex items-center gap-2">
-              {userProfile.displayName}
+              {rawDisplayName}
               <span className="text-xs bg-purple-100 text-purple-900 border border-purple-200 px-2.5 py-0.5 rounded-full font-mono font-bold capitalize">
-                {isClientRole ? 'Verified Enterprise Client' :
-                  (userProfile.reputationSbtCount >= 10 ? 'Diamond Freelancer' :
-                    userProfile.reputationSbtCount >= 5 ? 'Gold Freelancer' :
-                      userProfile.reputationSbtCount >= 1 ? 'Silver Freelancer' : 'New Freelancer')}
+                {isClientRole ? 'Verified Enterprise Client' : `${tierInfo.tier} Freelancer`}
               </span>
               <span className="text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1">
                 <CheckCircle2 size={12} /> On-Chain Verified
@@ -409,11 +427,11 @@ export const Dashboard: React.FC = () => {
       ) : (
         /* FREELANCER PERSONAL OVERVIEW & COLLABORATION HUB */
         <div className="space-y-8">
-          {/* Freelancer Performance Stat Cards (matching dashboard_personal_overview_1) */}
+          {/* Freelancer Performance Stat Cards (matching unified reputation metrics) */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <div className="glass-panel p-4 border-slate-200 bg-white text-center hard-shadow space-y-1">
               <div className="text-2xl font-black text-emerald-700 font-mono">
-                {completedFreelanceJobs.length}
+                {userScores.completedJobsCount}
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
                 Jobs Completed
@@ -422,7 +440,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="glass-panel p-4 border-slate-200 bg-white text-center hard-shadow space-y-1">
               <div className="text-2xl font-black text-purple-900 font-mono">
-                ${totalEarnedUsdc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${(userScores.totalVolume * 0.975).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
                 Net Earned (-2.5% fee)
@@ -440,7 +458,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="glass-panel p-4 border-slate-200 bg-white text-center hard-shadow space-y-1">
               <div className="text-2xl font-black text-amber-700 font-mono">
-                {myFreelancerJobs.length > 0 ? ((completedFreelanceJobs.length / myFreelancerJobs.length) * 100).toFixed(1) + '%' : '0%'}
+                {userScores.successRatePercent}%
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
                 Success Rate
@@ -449,7 +467,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="glass-panel p-4 border-purple-200 bg-purple-50 text-center hard-shadow space-y-1">
               <div className="text-2xl font-black text-purple-900 font-mono">
-                {completedFreelanceJobs.length * 100} pts
+                {userScores.totalPoints} pts
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-purple-900">
                 Reputation Score
