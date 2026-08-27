@@ -644,7 +644,7 @@ app.post("/api/sync", async (req: Request, res: Response) => {
       await persistStateToDatabases();
       io.emit("realtime-sync", sharedState);
     }
-    res.json({ success: true, data: sharedState });
+    res.json({ success: true });
   } catch (err: any) {
     console.error("[SYNC ERROR]", err);
     res.status(500).json({ error: "Failed to process sync request", details: err?.message });
@@ -675,6 +675,10 @@ app.post("/api/unlock", async (req: Request, res: Response) => {
 });
 
 app.get("/health", (req: Request, res: Response) => {
+  res.json({ status: "healthy", service: "polylance-chat-service" });
+});
+
+app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "healthy", service: "polylance-chat-service" });
 });
 
