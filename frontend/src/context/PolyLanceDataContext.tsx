@@ -18,38 +18,20 @@ export const getSyncEndpoints = (): string[] => {
   const list: string[] = [];
   const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
 
-  // 1. Explicit production service (Primary)
-  list.push('https://polylance-fv-1.onrender.com');
-
   if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
     list.push(envUrl.replace(/\/$/, ''));
   }
-
-  if (typeof window !== 'undefined') {
-    const { hostname, protocol } = window.location;
-
-    // 2. If running locally or on LAN (e.g. localhost, 127.0.0.1, or 192.168.x.x Wi-Fi)
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      list.push('http://localhost:3001');
-    } else if (hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
-      list.push(`${protocol}//${hostname}:3001`);
-    }
-  } else {
-    list.push('http://localhost:3001');
-  }
+  list.push('https://polylance-fv-1.onrender.com');
 
   return Array.from(new Set(list.filter(Boolean)));
 };
 
 export const getBackendSyncUrl = (): string => {
-  const endpoints = getSyncEndpoints();
-  if (typeof window !== 'undefined') {
-    const { hostname } = window.location;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:3001';
-    }
+  const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
+  if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
+    return envUrl.replace(/\/$/, '');
   }
-  return endpoints[0] || 'https://polylance-fv-1.onrender.com';
+  return 'https://polylance-fv-1.onrender.com';
 };
 
 
