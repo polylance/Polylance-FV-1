@@ -41,20 +41,39 @@ function persistState() {
 }
 const primaryDbUrl = process.env.DATABASE_URL;
 const backupDbUrl = process.env.BACKUP_DATABASE_URL;
-export let prisma = new PrismaClient({
-    datasources: {
-        db: {
-            url: primaryDbUrl,
-        },
-    },
-});
-export let backupPrisma = backupDbUrl ? new PrismaClient({
-    datasources: {
-        db: {
-            url: backupDbUrl,
-        },
-    },
-}) : null;
+export let prisma = null;
+try {
+    if (primaryDbUrl) {
+        prisma = new PrismaClient({
+            datasources: {
+                db: {
+                    url: primaryDbUrl,
+                },
+            },
+        });
+    }
+    else {
+        prisma = new PrismaClient();
+    }
+}
+catch (err) {
+    console.warn("[PRISMA] Primary DB client init note:", err?.message || err);
+}
+export let backupPrisma = null;
+try {
+    if (backupDbUrl) {
+        backupPrisma = new PrismaClient({
+            datasources: {
+                db: {
+                    url: backupDbUrl,
+                },
+            },
+        });
+    }
+}
+catch (err) {
+    console.warn("[PRISMA] Backup DB client init note:", err?.message || err);
+}
 export function setPrismaInstance(instance) {
     prisma = instance;
 }
