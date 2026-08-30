@@ -249,8 +249,8 @@ export const Navbar: React.FC = () => {
                   {hasActiveJobs && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
                 </NavLink>
 
-                {/* Only Clients, Judges, and Admins can post jobs */}
-                {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') && (
+                {/* Only Clients can post jobs directly in top bar. Admins and Judges have Post Job inside 'More' */}
+                {currentRole === 'client' && (
                   <NavLink to="/jobs/post" active={isActive('/jobs/post')}>
                     <PlusCircle size={13} />Post Job
                   </NavLink>
@@ -260,10 +260,12 @@ export const Navbar: React.FC = () => {
                   <Briefcase size={13} />Find Jobs
                 </NavLink>
 
-
-                <NavLink to="/reputation" active={isActive('/reputation')}>
-                  <Trophy size={13} />SBT Leaderboard
-                </NavLink>
+                {/* SBT Leaderboard on top bar for regular clients/freelancers. Admins and Judges have it inside 'More' */}
+                {(currentRole !== 'admin' && currentRole !== 'judge') && (
+                  <NavLink to="/reputation" active={isActive('/reputation')}>
+                    <Trophy size={13} />SBT Leaderboard
+                  </NavLink>
+                )}
 
                 {/* Judge Panel on top bar for Judge role */}
                 {currentRole === 'judge' && (
@@ -329,12 +331,14 @@ export const Navbar: React.FC = () => {
                           boxShadow: '0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
                         }}
                       >
-                        {/* Admin specific extra options in More dropdown */}
-                        {currentRole === 'admin' && (
+                        {/* Admin / Judge specific options moved to More dropdown to adjust top bar size */}
+                        {(currentRole === 'admin' || currentRole === 'judge') && (
                           <>
-                            <DropdownLink to="/jobs" icon={<Briefcase size={14} />} label="Find Jobs" onClick={() => setIsMoreOpen(false)} />
+                            <DropdownLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMoreOpen(false)} />
                             <DropdownLink to="/reputation" icon={<Trophy size={14} />} label="SBT Leaderboard" onClick={() => setIsMoreOpen(false)} />
-                            <DropdownLink to="/judge" icon={<Scale size={14} />} label="Judge Panel" onClick={() => setIsMoreOpen(false)} />
+                            {currentRole === 'admin' && (
+                              <DropdownLink to="/judge" icon={<Scale size={14} />} label="Judge Panel" onClick={() => setIsMoreOpen(false)} />
+                            )}
                             <div className="border-t border-slate-100/80 my-1" />
                           </>
                         )}
