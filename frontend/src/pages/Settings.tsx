@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
@@ -25,33 +26,30 @@ import {
   Check,
   Camera,
   Image as ImageIcon,
-  DownloadCloud
+  DownloadCloud,
+  Trash2,
+  AlertTriangle,
+  FileText,
+  ArrowUpRight,
+  ShieldAlert,
+  Clock
 } from 'lucide-react';
 import { scrollReveal } from '../lib/motion';
+import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 import { scoreGithubUser } from '../utils/githubOracle';
-
-// Comprehensive Tech Skills Database for Predictive Autocomplete
-const TECH_SKILLS_DATABASE = [
-  'Solidity', 'Vyper', 'Rust', 'Anchor Framework', 'Solana', 'Ethereum', 'Polygon', 'CosmWasm',
-  'Zero-Knowledge Proofs (ZK)', 'Circom', 'SnarkJS', 'Noir', 'Substrate', 'Move', 'Aptos', 'Sui',
-  'Hardhat', 'Foundry', 'Truffle', 'Ethers.js', 'Viem', 'Wagmi', 'Web3.js', 'IPFS', 'The Graph', 'Chainlink',
-  'Smart Contract Security', 'Slither', 'Mythril', 'Echidna', 'DeFi Protocols', 'NFT Standards (ERC-721/1155)',
-  'EIP-5192 Soulbound Tokens', 'Tokenomics', 'DAO Governance', 'Cross-Chain (CCIP/LayerZero)',
-  'React', 'React Native', 'Next.js', 'TypeScript', 'JavaScript', 'Vue.js', 'Nuxt.js', 'Svelte',
-  'TailwindCSS', 'Redux', 'Zustand', 'GraphQL', 'HTML5/CSS3', 'Framer Motion', 'Three.js', 'WebGPU',
-  'Node.js', 'Express.js', 'NestJS', 'Python', 'Django', 'FastAPI', 'Flask', 'Go (Golang)', 'Gin',
-  'C++', 'C#', '.NET', 'Java', 'Spring Boot', 'Ruby on Rails', 'PHP', 'Laravel', 'REST API', 'gRPC',
-  'PostgreSQL', 'MongoDB', 'Redis', 'MySQL', 'SQLite', 'Prisma ORM', 'TypeORM', 'DynamoDB',
-  'Elasticsearch', 'Supabase', 'Firebase', 'BigQuery', 'Apache Kafka', 'Vector DB (Pinecone)',
-  'Docker', 'Kubernetes', 'AWS', 'Google Cloud Platform (GCP)', 'Microsoft Azure', 'Terraform',
-  'CI/CD Pipelines', 'GitHub Actions', 'Linux Sysadmin', 'Nginx', 'Cybersecurity', 'Penetration Testing',
-  'Machine Learning', 'Deep Learning', 'PyTorch', 'TensorFlow', 'OpenAI API', 'LangChain', 'LlamaIndex',
-  'Computer Vision', 'NLP', 'Data Science', 'Pandas', 'NumPy', 'Solidity Auditing'
-];
+import { SkillSelector } from '../components/SkillSelector';
+import { findSkillByIdOrName, formatSkillDisplayName } from '../data/skillsData';
 
 export const Settings: React.FC = () => {
   const { address, currentRole, isConnected } = useWeb3();
-  const { profiles, updateProfile } = usePolyLanceData();
+  const { 
+    profiles, 
+    updateProfile,
+    accountDeletionRequests,
+    requestAccountDeletion,
+    cancelAccountDeletion,
+    purgeAccountData
+  } = usePolyLanceData();
 
   // Find user's current profile from context
   const userProfileKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
@@ -74,11 +72,10 @@ export const Settings: React.FC = () => {
   const [hourlyRateUsdc, setHourlyRateUsdc] = useState(currentProfile?.hourlyRateUsdc || '75');
   const [githubUsername, setGithubUsername] = useState(currentProfile?.githubUsername || '');
   const [skills, setSkills] = useState<string[]>(currentProfile?.skills || ['Solidity', 'React', 'TypeScript', 'Smart Contracts']);
-  const [newSkillInput, setNewSkillInput] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isFetchingGithub, setIsFetchingGithub] = useState(false);
+  const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
 
   // Role Settings Specific State
   const [clientEscrowWindowDays, setClientEscrowWindowDays] = useState('7');
@@ -87,8 +84,6 @@ export const Settings: React.FC = () => {
   const [judgeNotificationsActive, setJudgeNotificationsActive] = useState(true);
   const [judgeAvailability, setJudgeAvailability] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
-
-  const autocompleteRef = useRef<HTMLDivElement>(null);
 
   // Sync state if profile loads asynchronously (ONLY when not actively editing)
   useEffect(() => {
@@ -109,17 +104,6 @@ export const Settings: React.FC = () => {
     }
   }, [currentProfile, isEditing]);
 
-  // Click Outside Listener for Autocomplete Suggestions Dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   // Auto-fetch profile basics from GitHub
   const handleFetchFromGithub = async (explicitUsername?: string) => {
     const rawTarget = explicitUsername || githubUsername;
@@ -131,7 +115,11 @@ export const Settings: React.FC = () => {
     clean = clean.replace(/^@/, '').replace(/\/$/, '').trim();
 
     if (!clean) {
-      alert('Please enter a GitHub username first.');
+      setAlertModalOptions({
+        title: 'GitHub Handle Required',
+        message: 'Please enter a valid GitHub username first to fetch profile information.',
+        type: 'warning',
+      });
       return;
     }
 
@@ -153,38 +141,6 @@ export const Settings: React.FC = () => {
     } finally {
       setIsFetchingGithub(false);
     }
-  };
-
-  // Filter Predictive Skill Suggestions
-  const matchingSuggestions = newSkillInput.trim()
-    ? TECH_SKILLS_DATABASE.filter(
-        skill =>
-          skill.toLowerCase().includes(newSkillInput.trim().toLowerCase()) &&
-          !skills.some(existing => existing.toLowerCase() === skill.toLowerCase())
-      ).slice(0, 7)
-    : [];
-
-  // Handle Skill Tag Addition from Input or Suggestion Selection
-  const handleAddSkill = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const trimmed = newSkillInput.trim();
-    if (trimmed && !skills.some(s => s.toLowerCase() === trimmed.toLowerCase())) {
-      setSkills([...skills, trimmed]);
-      setNewSkillInput('');
-      setShowSuggestions(false);
-    }
-  };
-
-  const selectSuggestedSkill = (skillName: string) => {
-    if (!skills.some(s => s.toLowerCase() === skillName.toLowerCase())) {
-      setSkills([...skills, skillName]);
-    }
-    setNewSkillInput('');
-    setShowSuggestions(false);
-  };
-
-  const handleRemoveSkill = (skillToRemove: string) => {
-    setSkills(skills.filter(s => s !== skillToRemove));
   };
 
   // Save Profile Updates to Context / Ledger and Lock Form back to Saved Mode
@@ -423,20 +379,30 @@ export const Settings: React.FC = () => {
 
                 {/* Skills Tags Badges */}
                 <div className="space-y-2.5">
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 block">
-                    Saved Skill Stack
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 block">
+                      Saved Skill Stack ({skills.length})
+                    </span>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {skills.length > 0 ? (
-                      skills.map((skill, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-900 border border-purple-200/80 text-xs font-headline font-bold shadow-3xs flex items-center gap-1.5"
-                        >
-                          <Tag size={12} className="text-purple-600" />
-                          {skill}
-                        </span>
-                      ))
+                      skills.map((skill, idx) => {
+                        const matched = findSkillByIdOrName(skill);
+                        return (
+                          <span
+                            key={idx}
+                            className="px-3 py-1.5 rounded-xl bg-white text-slate-800 border border-purple-200 text-xs font-bold font-mono shadow-2xs flex items-center gap-1.5 group hover:border-purple-300 transition-all"
+                          >
+                            <Tag size={12} className="text-purple-600 shrink-0" />
+                            <span>{formatSkillDisplayName(skill)}</span>
+                            {matched?.subcategory && (
+                              <span className="text-[9px] font-mono text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded font-normal">
+                                {matched.subcategory}
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })
                     ) : (
                       <span className="text-xs font-sans text-slate-400">No skills added yet.</span>
                     )}
@@ -555,16 +521,19 @@ export const Settings: React.FC = () => {
                   />
                 </div>
 
-                {/* Hourly Rate & GitHub */}
+                {/* Hourly Rate & GitHub Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Hourly Rate */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 block">
-                      Hourly Rate (USDC/hr)
+                      Target Hourly Rate (USDC)
                     </label>
                     <div className="relative">
                       <DollarSign size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         type="number"
+                        min="0"
+                        step="5"
                         value={hourlyRateUsdc}
                         onChange={(e) => setHourlyRateUsdc(e.target.value)}
                         placeholder="75"
@@ -573,10 +542,11 @@ export const Settings: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* GitHub Handle Input */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 block">
-                        GitHub Handle
+                        GitHub Username
                       </label>
                       {githubUsername && (
                         <button
@@ -596,7 +566,7 @@ export const Settings: React.FC = () => {
                         type="text"
                         value={githubUsername}
                         onChange={(e) => setGithubUsername(e.target.value)}
-                        placeholder="e.g. sunny200551 or octocat"
+                        placeholder="e.g. octocat or web3dev"
                         className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-purple-400 transition-all"
                       />
                     </div>
@@ -617,90 +587,14 @@ export const Settings: React.FC = () => {
                   />
                 </div>
 
-                {/* Skill Tag Manager with Predictive Tech Autocomplete */}
-                <div className="space-y-2 pt-2 relative" ref={autocompleteRef}>
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 block">
-                      Skills & Expertise Tags
-                    </label>
-                    <span className="text-[11px] text-purple-600 font-sans font-semibold">
-                      Predictive Auto-Suggest Active
-                    </span>
-                  </div>
-
-                  {/* Active Skill Tags */}
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    {skills.map((skill, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-900 border border-purple-200 px-3 py-1 rounded-full text-xs font-bold font-sans shadow-3xs"
-                      >
-                        {skill}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSkill(skill)}
-                          className="text-purple-400 hover:text-purple-900 cursor-pointer transition-colors"
-                        >
-                          <X size={13} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Input Field + Add Button */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={newSkillInput}
-                        onChange={(e) => {
-                          setNewSkillInput(e.target.value);
-                          setShowSuggestions(true);
-                        }}
-                        onFocus={() => setShowSuggestions(true)}
-                        placeholder="Type a skill (e.g. Solidity, React, Rust, ZK)..."
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-sans focus:bg-white focus:border-purple-400 transition-all"
-                      />
-
-                      {/* Autocomplete Predictive Dropdown */}
-                      <AnimatePresence>
-                        {showSuggestions && matchingSuggestions.length > 0 && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 6 }}
-                            className="absolute left-0 right-0 top-full mt-1 bg-white border border-purple-200 rounded-2xl shadow-2xl z-[100] overflow-hidden max-h-56 overflow-y-auto py-1.5"
-                          >
-                            <div className="px-3 py-1 text-[10px] font-mono font-bold uppercase text-purple-600 tracking-wider bg-purple-50/60 border-b border-purple-100 mb-1">
-                              Matching Tech Skills ({matchingSuggestions.length})
-                            </div>
-                            {matchingSuggestions.map((suggestion, sIdx) => (
-                              <button
-                                key={sIdx}
-                                type="button"
-                                onClick={() => selectSuggestedSkill(suggestion)}
-                                className="w-full px-4 py-2 text-left text-xs font-headline font-bold text-slate-800 hover:bg-purple-50 hover:text-purple-900 flex items-center justify-between cursor-pointer transition-colors"
-                              >
-                                <span className="flex items-center gap-2">
-                                  <Code2 size={13} className="text-purple-600" />
-                                  {suggestion}
-                                </span>
-                                <Plus size={13} className="text-purple-400" />
-                              </button>
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleAddSkill()}
-                      className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
-                    >
-                      <Plus size={14} /> Add Skill
-                    </button>
-                  </div>
+                {/* Comprehensive Categorized Skill Selector */}
+                <div className="pt-2">
+                  <SkillSelector
+                    selectedSkills={skills}
+                    onChange={setSkills}
+                    label="Technical & Domain Skills"
+                    helperText="Browse 26 specialized tech categories or search to configure your exact stack."
+                  />
                 </div>
 
                 {/* Save & Cancel Action Buttons */}
@@ -877,11 +771,138 @@ export const Settings: React.FC = () => {
               </div>
             )}
 
+            {/* Audit Report Certificate Card */}
+            {address && (
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center shrink-0">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-headline text-base font-extrabold text-slate-900">Trust & Audit Certificate</h3>
+                    <p className="text-xs text-slate-500 font-sans">Official on-chain performance and reputation report</p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50/60 to-indigo-50/60 border border-purple-200 text-xs space-y-3">
+                  <p className="text-slate-700 leading-relaxed font-sans">
+                    Generate an official audit document containing your verified wallet details, Soulbound Reputation Tokens (SBT), completed escrow history, and platform metrics formatted for PDF export & printing.
+                  </p>
+                  <Link
+                    to={`/audit-report/${address}`}
+                    className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all"
+                  >
+                    <FileText size={14} />
+                    <span>View & Download Audit Report (PDF)</span>
+                    <ArrowUpRight size={13} />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* GDPR Data Sovereignty & Account Deletion (30-Day Buffer) */}
+            {address && (
+              <div className="space-y-4 pt-4 border-t border-rose-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-700 border border-rose-100 flex items-center justify-center shrink-0">
+                    <Trash2 size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-headline text-base font-extrabold text-slate-900">Data Sovereignty & Account Deletion</h3>
+                    <p className="text-xs text-slate-500 font-sans">GDPR Article 17 Right to be Forgotten compliance</p>
+                  </div>
+                </div>
+
+                {(() => {
+                  const lowerAddr = address.toLowerCase();
+                  const deletionReq = accountDeletionRequests[lowerAddr];
+                  const isDeletionPending = Boolean(deletionReq && deletionReq.executeAfter && Date.now() < deletionReq.executeAfter);
+
+                  if (isDeletionPending) {
+                    const timeLeftMs = Math.max(0, deletionReq.executeAfter - Date.now());
+                    const daysLeft = Math.floor(timeLeftMs / (1000 * 60 * 60 * 24));
+                    const hoursLeft = Math.floor((timeLeftMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const scheduledDate = new Date(deletionReq.executeAfter).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
+                    });
+
+                    return (
+                      <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 space-y-3 font-sans">
+                        <div className="flex items-center gap-2 text-rose-900 font-bold text-xs">
+                          <Clock size={16} className="text-rose-600 animate-pulse shrink-0" />
+                          <span>Deletion Scheduled • 30-Day Buffer Window Active</span>
+                        </div>
+                        <p className="text-xs text-rose-800 leading-relaxed">
+                          Your request to delete your account and personal data is currently in the <strong>30-day grace period</strong>. Your data will be permanently purged on <strong>{scheduledDate}</strong> ({daysLeft} days, {hoursLeft} hours remaining).
+                        </p>
+                        <div className="flex items-center gap-3 pt-1">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await cancelAccountDeletion(address);
+                              setAlertModalOptions({
+                                title: 'Account Deletion Cancelled',
+                                message: 'Your account deletion request has been cancelled and your profile remains active with full sovereign access.',
+                                type: 'success'
+                              });
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 size={14} />
+                            <span>Cancel Deletion Request (Keep Account)</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-3 font-sans">
+                      <p className="text-slate-600 leading-relaxed">
+                        In full compliance with sovereign global privacy regulations (such as GDPR Article 17), you may request permanent deletion of your profile, off-chain messages, and user records. A <strong>30-day buffer period</strong> protects your data from accidental deletion, during which you can cancel anytime.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAlertModalOptions({
+                            title: 'Confirm Account Deletion Request',
+                            message: 'Are you sure you want to request permanent account deletion? A 30-day buffer window will activate immediately. You can cancel this request at any time within 30 days before permanent data erasure.',
+                            type: 'error',
+                            confirmText: 'Schedule Deletion (30-Day Buffer)',
+                            onConfirm: async () => {
+                              await requestAccountDeletion(address);
+                              setAlertModalOptions({
+                                title: 'Deletion Scheduled',
+                                message: 'Your 30-day account deletion buffer has started. You can cancel this request anytime in your Settings.',
+                                type: 'info'
+                              });
+                            }
+                          });
+                        }}
+                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Trash2 size={14} className="text-rose-600" />
+                        <span>Request Permanent Account Deletion</span>
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
           </div>
         </div>
 
       </div>
 
+      {/* Modern Dialog Modal */}
+      <PolyLanceAlertModal
+        isOpen={Boolean(alertModalOptions)}
+        options={alertModalOptions}
+        onClose={() => setAlertModalOptions(null)}
+      />
     </div>
   );
 };

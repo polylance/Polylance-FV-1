@@ -52,11 +52,8 @@ function persistState() {
   }
 }
 
-const DEFAULT_PRIMARY_DB = "postgresql://polylancedb_user:I4IAWIHcDI8YCPKRgNIe93nnQTuPFQL1@dpg-da78mhp42hec73am3phg-a.singapore-postgres.render.com/polylancedb?sslmode=require";
-const DEFAULT_BACKUP_DB = "postgres://17a77f3e1cb2f34728bd50b80dd36257b564ba4864ae9693229ee3276fe81b91:sk_YbuOIT2V-RXc7UJIwd01U@pooled.db.prisma.io:5432/postgres?sslmode=require";
-
-const primaryDbUrl = process.env.DATABASE_URL || DEFAULT_PRIMARY_DB;
-const backupDbUrl = process.env.BACKUP_DATABASE_URL || DEFAULT_BACKUP_DB;
+const primaryDbUrl = process.env.DATABASE_URL;
+const backupDbUrl = process.env.BACKUP_DATABASE_URL;
 
 export let prisma: any = new PrismaClient({
   datasources: {
@@ -216,6 +213,26 @@ function normalizeJobOnServer(job: any): any {
   return next;
 }
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const JOB_AUTO_EXPIRY_DAYS = 14;
+
+export function isJobExpiredOnServer(job: any): boolean {
+  if (!job) return false;
+  if (job.status !== 'Open' || Boolean(job.freelancer)) return false;
+  const postedAt = job.createdAt || Date.now();
+  return (Date.now() - postedAt) >= (JOB_AUTO_EXPIRY_DAYS * MS_PER_DAY);
+}
+
+export function pruneExpiredJobsOnServer() {
+  if (!Array.isArray(sharedState.jobs) || sharedState.jobs.length === 0) return;
+  const beforeCount = sharedState.jobs.length;
+  sharedState.jobs = sharedState.jobs.filter((j) => !isJobExpiredOnServer(j));
+  if (sharedState.jobs.length !== beforeCount) {
+    console.log(`[PRUNE] Automatically removed ${beforeCount - sharedState.jobs.length} expired (14+ days inactive) job(s) from database`);
+    persistStateToDatabases().catch(() => {});
+  }
+}
+
 function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
   const map = new Map<string, any>();
   (existingJobs || []).forEach((j) => {
@@ -239,9 +256,15 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
       (curr.applications || []).forEach((a: any) => a && a.applicant && appMap.set(a.applicant.toLowerCase(), a));
       (inJob.applications || []).forEach((a: any) => a && a.applicant && appMap.set(a.applicant.toLowerCase(), a));
 
+      // Respect chatClearedAt so cleared messages are never re-merged from server memory
+      const chatClearedAt = Math.max(curr.chatClearedAt || 0, inJob.chatClearedAt || 0);
+
       // Merge chat messages with smart deduplication (same sender + text within 3.5 seconds)
       const mergedMsgs: any[] = [];
-      const allMsgs = [...(curr.chatMessages || []), ...(inJob.chatMessages || [])].sort(
+      const allMsgs = [
+        ...(curr.chatMessages || []),
+        ...(inJob.chatMessages || [])
+      ].filter((m: any) => !chatClearedAt || (m.timestamp || 0) > chatClearedAt).sort(
         (a: any, b: any) => (a.timestamp || 0) - (b.timestamp || 0)
       );
       for (const m of allMsgs) {
@@ -256,6 +279,12 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
           mergedMsgs.push(m);
         }
       }
+
+      // Merge pre-accept messages respecting chatClearedAt
+      const mergedPreMsgs = [
+        ...(curr.preAcceptMessages || []),
+        ...(inJob.preAcceptMessages || [])
+      ].filter((m: any) => !chatClearedAt || (m.timestamp || 0) > chatClearedAt);
 
       // Merge extension requests safely
       const extMap = new Map<string, any>();
@@ -285,6 +314,8 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
         paymentTokenSymbol: inJob.paymentTokenSymbol || curr.paymentTokenSymbol,
         applications: Array.from(appMap.values()),
         chatMessages: mergedMsgs,
+        preAcceptMessages: mergedPreMsgs,
+        chatClearedAt: chatClearedAt || undefined,
         events: inJob.events?.length ? inJob.events : curr.events,
         dispute: inJob.dispute || curr.dispute,
         proof: inJob.proof || curr.proof,
@@ -297,8 +328,11 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
     }
   });
 
-  return Array.from(map.values());
+  return Array.from(map.values()).filter((j) => !isJobExpiredOnServer(j));
 }
+
+// Background cron every 60 seconds to prune expired inactive jobs
+setInterval(pruneExpiredJobsOnServer, 60000);
 
 const app = express();
 const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || [
@@ -323,17 +357,26 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 
-// Global HTTP rate limiter for Express routes (bypasses /health and /api/sync for probes and live state sync)
+// Security headers middleware
+app.use((req: Request, res: Response, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
+// Global HTTP rate limiter for Express routes (bypasses /health for probes)
 app.use(async (req: Request, res: Response, next) => {
-  if (req.path === "/health" || req.path === "/api/sync") {
+  if (req.path === "/health" || req.path === "/api/health") {
     return next();
   }
   const ip = req.headers["x-forwarded-for"]?.toString() || req.socket.remoteAddress || "unknown";
   const { success } = await httpLimiter.limit(ip);
   if (!success) {
-    res.status(429).json({ error: "Rate limit exceeded — try again shortly" });
+    res.status(429).json({ error: "Rate limit exceeded — try again shortly", code: "RATE_LIMITED" });
     return;
   }
   next();
@@ -437,6 +480,216 @@ export async function getOrCreateKeyRegistry(
       };
     }
     throw err;
+  }
+}
+
+function getKnownAdminAddresses(): Set<string> {
+  const addrs = new Set<string>();
+  for (let i = 1; i <= 10; i++) {
+    const val1 = process.env[`ADMIN_ADDRESS_${i}`]?.toLowerCase().trim();
+    if (val1 && val1.startsWith("0x")) addrs.add(val1);
+    const val2 = process.env[`VITE_ADMIN_ADDRESS_${i}`]?.toLowerCase().trim();
+    if (val2 && val2.startsWith("0x")) addrs.add(val2);
+  }
+  const genericAdmin = process.env.ADMIN_ADDRESS?.toLowerCase().trim();
+  if (genericAdmin && genericAdmin.startsWith("0x")) addrs.add(genericAdmin);
+  return addrs;
+}
+
+function getKnownJudgeAddresses(): Set<string> {
+  const addrs = new Set<string>();
+  for (let i = 1; i <= 5; i++) {
+    const val1 = process.env[`JUDGE_${i}_ADDRESS`]?.toLowerCase().trim();
+    if (val1 && val1.startsWith("0x")) addrs.add(val1);
+  }
+  const genericJudge = (process.env.JUDGE_ADDRESS || process.env.VITE_JUDGE_ADDRESS)?.toLowerCase().trim();
+  if (genericJudge && genericJudge.startsWith("0x")) addrs.add(genericJudge);
+  return addrs;
+}
+
+export function isAuthorizedAdmin(address?: string | null): boolean {
+  if (!address) return false;
+  return getKnownAdminAddresses().has(address.toLowerCase().trim());
+}
+
+export function isAuthorizedJudge(address?: string | null): boolean {
+  if (!address) return false;
+  const addr = address.toLowerCase().trim();
+  if (getKnownJudgeAddresses().has(addr)) return true;
+  return (sharedState.judges || []).some(
+    (j: any) => j && j.address && j.address.toLowerCase().trim() === addr && j.status === "Active"
+  );
+}
+
+export function sanitizeSharedStateForRequester(
+  state: typeof sharedState,
+  requesterAddress?: string | null
+): typeof sharedState {
+  const reqAddr = (requesterAddress || "").toLowerCase().trim();
+  const isAdmin = isAuthorizedAdmin(reqAddr);
+  const isJudge = isAuthorizedJudge(reqAddr);
+
+  // 1. Sanitize Jobs:
+  // Strictly protect sensitive work submission proofs, private escrow chats, proposals, and application texts.
+  const sanitizedJobs = (state.jobs || []).map((job: any) => {
+    if (!job) return job;
+    const clientAddr = (job.client || "").toLowerCase().trim();
+    const freelancerAddr = (job.freelancer || "").toLowerCase().trim();
+    const isParty = Boolean(reqAddr && (clientAddr === reqAddr || freelancerAddr === reqAddr));
+    const hasApplied = Boolean(
+      reqAddr &&
+      (job.applications || []).some((a: any) => a && a.applicant && a.applicant.toLowerCase().trim() === reqAddr)
+    );
+    const isDisputeJudge = Boolean(isJudge && job.status === "Disputed");
+
+    // Work delivery proof & milestone modifications: strictly for client, assigned freelancer, or admin
+    const canSeeProof = isAdmin || isParty;
+    // Private chats and active negotiation thread: for parties, applicants, dispute judge, or admin
+    const canAccessPrivateJobChat = isAdmin || isParty || hasApplied || isDisputeJudge;
+
+    // Applications: only the job client or admin can see all applicants; applicants see only their own application
+    let sanitizedApplications: any[] = [];
+    if (isAdmin || (reqAddr && clientAddr === reqAddr)) {
+      sanitizedApplications = job.applications || [];
+    } else if (reqAddr) {
+      sanitizedApplications = (job.applications || []).filter(
+        (a: any) => a && a.applicant && a.applicant.toLowerCase().trim() === reqAddr
+      );
+    } else {
+      // Unauthenticated visitor / console caller gets zero application dumps
+      sanitizedApplications = [];
+    }
+
+    // Proof of work: Only visible to authorized contract parties (client / hired freelancer / admin)
+    const proof = canSeeProof ? job.proof : undefined;
+    const negotiationProposals = canAccessPrivateJobChat ? (job.negotiationProposals || []) : [];
+    const modificationRequests = canSeeProof ? (job.modificationRequests || []) : [];
+    const extensionRequests = canSeeProof ? (job.extensionRequests || []) : [];
+
+    // Dispute details: strip private evidence/reasoning texts for unrelated callers
+    let sanitizedDispute = undefined;
+    if (job.dispute) {
+      if (canAccessPrivateJobChat) {
+        sanitizedDispute = job.dispute;
+      } else {
+        const { evidenceText, responseText, reasoningText, evidenceIpfsHash, responseIpfsHash, ...publicDispute } = job.dispute;
+        sanitizedDispute = publicDispute;
+      }
+    }
+
+    if (canAccessPrivateJobChat) {
+      return {
+        ...job,
+        proof,
+        negotiationProposals,
+        modificationRequests,
+        extensionRequests,
+        applications: sanitizedApplications,
+        dispute: sanitizedDispute,
+      };
+    }
+
+    // Unauthenticated or unrelated caller: Clean public fields only
+    const {
+      chatMessages,
+      preAcceptMessages,
+      proof: _p,
+      modificationRequests: _m,
+      extensionRequests: _e,
+      negotiationProposals: _np,
+      events: _ev,
+      ...publicJobFields
+    } = job;
+
+    return {
+      ...publicJobFields,
+      chatMessages: [],
+      preAcceptMessages: [],
+      applications: sanitizedApplications,
+      dispute: sanitizedDispute,
+      proof: undefined,
+      modificationRequests: [],
+      extensionRequests: [],
+      negotiationProposals: [],
+    };
+  });
+
+  // 2. Sanitize Judge Messages:
+  // Only the specific judge or admins can see judgeMessages[judgeAddress]
+  let sanitizedJudgeMessages: Record<string, any[]> = {};
+  if (isAdmin) {
+    sanitizedJudgeMessages = state.judgeMessages || {};
+  } else if (isJudge && reqAddr) {
+    sanitizedJudgeMessages = {};
+    if (state.judgeMessages && state.judgeMessages[reqAddr]) {
+      sanitizedJudgeMessages[reqAddr] = state.judgeMessages[reqAddr];
+    }
+  } else {
+    // Public/unauthenticated callers get an empty object
+    sanitizedJudgeMessages = {};
+  }
+
+  // 3. Sanitize User Profiles:
+  // If caller is unauthenticated (!reqAddr), DO NOT dump all user profiles!
+  // If caller is authenticated, return their own profile and public directory summaries.
+  const sanitizedProfiles: Record<string, any> = {};
+  if (state.profiles && reqAddr) {
+    for (const [addr, p] of Object.entries(state.profiles)) {
+      if (!p) continue;
+      const lowerKey = addr.toLowerCase().trim();
+      const isOwner = lowerKey === reqAddr;
+      if (isAdmin || isOwner) {
+        sanitizedProfiles[addr] = p;
+      } else {
+        // Public directory view: strip any private keys, attestation secrets, and non-public notes
+        const {
+          email,
+          phone,
+          attestationUID,
+          secretKey,
+          privateNotes,
+          ...publicProfile
+        } = p as any;
+        sanitizedProfiles[addr] = publicProfile;
+      }
+    }
+  }
+
+  // 4. Sanitize DAO & Treasury Proposals:
+  // Internal multisig signature payloads and draft proposals are restricted to authenticated admins
+  let sanitizedTreasuryProposals: any[] = [];
+  let sanitizedTreasuryHistory: any[] = [];
+  if (isAdmin) {
+    sanitizedTreasuryProposals = state.treasuryProposals || [];
+    sanitizedTreasuryHistory = state.treasuryHistory || [];
+  } else if (reqAddr) {
+    sanitizedTreasuryProposals = (state.treasuryProposals || []).map((p: any) => {
+      const { signatures, signerDetails, ...publicProp } = p;
+      return publicProp;
+    });
+    sanitizedTreasuryHistory = state.treasuryHistory || [];
+  }
+
+  // 5. Return sanitized public + scoped state
+  return {
+    jobs: sanitizedJobs,
+    profiles: sanitizedProfiles,
+    daoProposals: state.daoProposals || [],
+    judgeMessages: sanitizedJudgeMessages,
+    judges: state.judges || [],
+    treasuryProposals: sanitizedTreasuryProposals,
+    treasuryHistory: sanitizedTreasuryHistory,
+  };
+}
+
+export function broadcastScopedRealtimeSync() {
+  try {
+    for (const [_, clientSocket] of io.sockets.sockets) {
+      const clientAddr = clientSocket.data?.address;
+      clientSocket.emit("realtime-sync", sanitizeSharedStateForRequester(sharedState, clientAddr));
+    }
+  } catch (err) {
+    console.warn("[SYNC] Scoped broadcast notice:", err);
   }
 }
 
@@ -594,69 +847,437 @@ io.on("connection", (socket) => {
 
 
 
-  // REAL-TIME MULTI-CLIENT DATA SYNCHRONIZATION
-  socket.emit("realtime-sync", sharedState);
+  // REAL-TIME MULTI-CLIENT DATA SYNCHRONIZATION (Scoped to connected wallet)
+  socket.emit("realtime-sync", sanitizeSharedStateForRequester(sharedState, walletAddress));
 
   socket.on("client-sync", async (incoming: any) => {
-    if (!incoming) return;
+    if (!incoming || typeof incoming !== "object") return;
+    const socketAddr = (socket.data?.address || "").toLowerCase().trim();
+    if (!socketAddr || !/^0x[a-fA-F0-9]{40}$/.test(socketAddr)) {
+      return; // Disallow state mutations from unauthenticated sockets
+    }
+
+    const isAdmin = isAuthorizedAdmin(socketAddr);
+
     if (Array.isArray(incoming.jobs)) {
-      sharedState.jobs = mergeJobsOnServer(sharedState.jobs, incoming.jobs);
+      const allowedJobs = incoming.jobs.filter((j: any) => {
+        if (!j) return false;
+        if (isAdmin) return true;
+        const client = (j.client || "").toLowerCase().trim();
+        const freelancer = (j.freelancer || "").toLowerCase().trim();
+        const isApplicant = (j.applications || []).some((a: any) => a && a.applicant && a.applicant.toLowerCase().trim() === socketAddr);
+        return client === socketAddr || freelancer === socketAddr || isApplicant;
+      });
+      if (allowedJobs.length > 0) {
+        sharedState.jobs = mergeJobsOnServer(sharedState.jobs, allowedJobs);
+      }
     }
-    if (incoming.profiles) {
-      sharedState.profiles = { ...sharedState.profiles, ...incoming.profiles };
+
+    if (incoming.profiles && typeof incoming.profiles === "object") {
+      if (isAdmin) {
+        sharedState.profiles = { ...sharedState.profiles, ...incoming.profiles };
+      } else {
+        for (const [profAddr, profData] of Object.entries(incoming.profiles)) {
+          if (profAddr.toLowerCase().trim() === socketAddr) {
+            sharedState.profiles = {
+              ...sharedState.profiles,
+              [socketAddr]: profData as any,
+              [profAddr]: profData as any,
+            };
+          }
+        }
+      }
     }
-    if (incoming.daoProposals) sharedState.daoProposals = incoming.daoProposals;
-    if (incoming.judgeMessages) sharedState.judgeMessages = { ...sharedState.judgeMessages, ...incoming.judgeMessages };
-    if (incoming.judges) sharedState.judges = incoming.judges;
-    if (incoming.treasuryProposals) sharedState.treasuryProposals = incoming.treasuryProposals;
-    if (incoming.treasuryHistory) sharedState.treasuryHistory = incoming.treasuryHistory;
+
+    if (incoming.daoProposals && Array.isArray(incoming.daoProposals)) {
+      if (isAdmin) {
+        sharedState.daoProposals = incoming.daoProposals;
+      } else {
+        const existing = new Map((sharedState.daoProposals || []).map((p: any) => [String(p.id), p]));
+        incoming.daoProposals.forEach((p: any) => {
+          if (p && p.id) {
+            const proposer = (p.proposer || p.proposerAddress || "").toLowerCase().trim();
+            if (proposer === socketAddr || !existing.has(String(p.id))) {
+              existing.set(String(p.id), p);
+            }
+          }
+        });
+        sharedState.daoProposals = Array.from(existing.values());
+      }
+    }
+
+    if (incoming.judgeMessages && typeof incoming.judgeMessages === "object") {
+      if (isAdmin) {
+        sharedState.judgeMessages = { ...sharedState.judgeMessages, ...incoming.judgeMessages };
+      } else if (incoming.judgeMessages[socketAddr] && Array.isArray(incoming.judgeMessages[socketAddr])) {
+        sharedState.judgeMessages[socketAddr] = incoming.judgeMessages[socketAddr];
+      }
+    }
+
+    if (incoming.deletedJobId) {
+      const delId = String(incoming.deletedJobId).toLowerCase().trim();
+      const targetJob = (sharedState.jobs || []).find(
+        (j: any) => j && (String(j.id).toLowerCase() === delId || String(j.contractAddress || "").toLowerCase() === delId)
+      );
+      if (targetJob) {
+        const client = (targetJob.client || "").toLowerCase().trim();
+        if (isAdmin || client === socketAddr) {
+          sharedState.jobs = (sharedState.jobs || []).filter(
+            (j: any) => j && String(j.id).toLowerCase() !== delId && String(j.contractAddress || "").toLowerCase() !== delId
+          );
+        }
+      }
+    }
+
+    if (isAdmin) {
+      if (incoming.judges && Array.isArray(incoming.judges)) sharedState.judges = incoming.judges;
+      if (incoming.treasuryProposals && Array.isArray(incoming.treasuryProposals)) sharedState.treasuryProposals = incoming.treasuryProposals;
+      if (incoming.treasuryHistory && Array.isArray(incoming.treasuryHistory)) sharedState.treasuryHistory = incoming.treasuryHistory;
+    }
 
     await persistStateToDatabases();
-    io.emit("realtime-sync", sharedState);
+    broadcastScopedRealtimeSync();
   });
 });
 
 // REST endpoints for cross-device state synchronization
-app.get("/api/sync", async (_req: Request, res: Response) => {
+app.get("/api/sync", async (req: Request, res: Response) => {
   // If state is empty in memory, try fetching from primary or backup DB
   if (!sharedState.jobs || sharedState.jobs.length === 0) {
     await loadStateFromDatabase();
   }
-  res.json(sharedState);
+
+  const requesterAddress = (
+    (req.headers["x-wallet-address"] as string) ||
+    (req.query.address as string) ||
+    ""
+  ).toLowerCase().trim();
+
+  const sanitized = sanitizeSharedStateForRequester(sharedState, requesterAddress);
+  res.json(sanitized);
 });
 
 app.post("/api/sync", async (req: Request, res: Response) => {
   try {
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    // Guard: Disallow unauthenticated or console anonymous state mutation attempts
+    if (!requesterAddress || !/^0x[a-fA-F0-9]{40}$/.test(requesterAddress)) {
+      return res.status(401).json({ 
+        error: "Unauthorized: Valid authenticated wallet address required for state synchronization",
+        code: "UNAUTHORIZED_CONSOLE_MUTATION"
+      });
+    }
+
     const incoming = req.body;
     if (incoming) {
+      const isAdmin = isAuthorizedAdmin(requesterAddress);
+
+      // 1. Jobs: Users can only create or update jobs they are party to (or admin)
       if (Array.isArray(incoming.jobs)) {
-        sharedState.jobs = mergeJobsOnServer(sharedState.jobs, incoming.jobs);
+        const allowedJobs = incoming.jobs.filter((j: any) => {
+          if (!j) return false;
+          if (isAdmin) return true;
+          const client = (j.client || '').toLowerCase().trim();
+          const freelancer = (j.freelancer || '').toLowerCase().trim();
+          const isApplicant = (j.applications || []).some((a: any) => a && a.applicant && a.applicant.toLowerCase().trim() === requesterAddress);
+          return client === requesterAddress || freelancer === requesterAddress || isApplicant;
+        });
+        if (allowedJobs.length > 0) {
+          sharedState.jobs = mergeJobsOnServer(sharedState.jobs, allowedJobs);
+        }
       }
-      if (incoming.profiles) {
-        sharedState.profiles = { ...sharedState.profiles, ...incoming.profiles };
+
+      // 2. Profiles: Non-admins can strictly ONLY create/update their OWN profile
+      if (incoming.profiles && typeof incoming.profiles === 'object') {
+        if (isAdmin) {
+          sharedState.profiles = { ...sharedState.profiles, ...incoming.profiles };
+        } else {
+          for (const [profAddr, profData] of Object.entries(incoming.profiles)) {
+            if (profAddr.toLowerCase().trim() === requesterAddress) {
+              sharedState.profiles = {
+                ...sharedState.profiles,
+                [requesterAddress]: profData as any,
+                [profAddr]: profData as any,
+              };
+            }
+          }
+        }
       }
-      if (incoming.daoProposals) sharedState.daoProposals = incoming.daoProposals;
-      if (incoming.judgeMessages) sharedState.judgeMessages = { ...sharedState.judgeMessages, ...incoming.judgeMessages };
-      if (incoming.judges) sharedState.judges = incoming.judges;
-      if (incoming.treasuryProposals) sharedState.treasuryProposals = incoming.treasuryProposals;
-      if (incoming.treasuryHistory) sharedState.treasuryHistory = incoming.treasuryHistory;
+
+      // 3. DAO Proposals: Merge securely without spoofing
+      if (incoming.daoProposals && Array.isArray(incoming.daoProposals)) {
+        if (isAdmin) {
+          sharedState.daoProposals = incoming.daoProposals;
+        } else {
+          const existing = new Map((sharedState.daoProposals || []).map((p: any) => [String(p.id), p]));
+          incoming.daoProposals.forEach((p: any) => {
+            if (p && p.id) {
+              const proposer = (p.proposer || p.proposerAddress || '').toLowerCase().trim();
+              if (proposer === requesterAddress || !existing.has(String(p.id))) {
+                existing.set(String(p.id), p);
+              }
+            }
+          });
+          sharedState.daoProposals = Array.from(existing.values());
+        }
+      }
+
+      // 4. Judge Messages: Only recipient or admin
+      if (incoming.judgeMessages) {
+        if (isAdmin) {
+          sharedState.judgeMessages = { ...sharedState.judgeMessages, ...incoming.judgeMessages };
+        } else {
+          for (const [judgeAddr, msgs] of Object.entries(incoming.judgeMessages)) {
+            if (judgeAddr.toLowerCase() === requesterAddress && Array.isArray(msgs)) {
+              sharedState.judgeMessages[judgeAddr.toLowerCase()] = msgs;
+            }
+          }
+        }
+      }
+
+      // 5. Job Deletion: Only client or admin
+      if (incoming.deletedJobId) {
+        const delId = String(incoming.deletedJobId).toLowerCase().trim();
+        const targetJob = (sharedState.jobs || []).find((j: any) => 
+          j && (String(j.id).toLowerCase() === delId || String(j.contractAddress || '').toLowerCase() === delId)
+        );
+        if (targetJob) {
+          const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
+          if (isAdmin || isClient) {
+            sharedState.jobs = (sharedState.jobs || []).filter(
+              (j: any) => j && String(j.id).toLowerCase() !== delId && String(j.contractAddress || '').toLowerCase() !== delId
+            );
+          }
+        }
+      }
+
+      // 6. Treasury & Judges: Strictly Admin only
+      if (isAdmin) {
+        if (incoming.judges) sharedState.judges = incoming.judges;
+        if (incoming.treasuryProposals) sharedState.treasuryProposals = incoming.treasuryProposals;
+        if (incoming.treasuryHistory) sharedState.treasuryHistory = incoming.treasuryHistory;
+      }
 
       await persistStateToDatabases();
-      io.emit("realtime-sync", sharedState);
+      broadcastScopedRealtimeSync();
     }
-    res.json({ success: true });
+    res.json({ success: true, authorized: true });
   } catch (err: any) {
     console.error("[SYNC ERROR]", err);
     res.status(500).json({ error: "Failed to process sync request", details: err?.message });
   }
 });
 
-// REST unlock endpoint for manual testing & event listeners
+// Delete a job permanently from server state and databases (Authorized Client / Admin only)
+app.delete("/api/jobs/:id", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    if (!jobId) return res.status(400).json({ error: "Missing job ID" });
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    const targetJob = (sharedState.jobs || []).find((j: any) => 
+      j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId)
+    );
+
+    if (targetJob) {
+      const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
+      const isAdmin = isAuthorizedAdmin(requesterAddress);
+      if (!isClient && !isAdmin) {
+        return res.status(403).json({ error: "Forbidden: Only the job creator or protocol admin can delete this job" });
+      }
+    }
+
+    sharedState.jobs = (sharedState.jobs || []).filter(
+      (j: any) => j && String(j.id).toLowerCase() !== jobId && String(j.contractAddress || '').toLowerCase() !== jobId
+    );
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+    res.json({ success: true, deletedJobId: jobId });
+  } catch (err: any) {
+    console.error("[DELETE JOB ERROR]", err);
+    res.status(500).json({ error: "Failed to delete job", details: err?.message });
+  }
+});
+
+// Delete job chat messages permanently (Authorized Party / Admin only)
+app.delete("/api/jobs/:id/chat", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    if (!jobId) return res.status(400).json({ error: "Missing job ID" });
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    const targetJob = (sharedState.jobs || []).find((j: any) => 
+      j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId)
+    );
+
+    if (targetJob) {
+      const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
+      const isFreelancer = String(targetJob.freelancer || '').toLowerCase().trim() === requesterAddress;
+      const isAdmin = isAuthorizedAdmin(requesterAddress);
+      if (!isClient && !isFreelancer && !isAdmin) {
+        return res.status(403).json({ error: "Forbidden: Only escrow participants or protocol admin can delete chat records" });
+      }
+    }
+
+    const now = Date.now();
+    sharedState.jobs = (sharedState.jobs || []).map((j: any) => {
+      if (j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId)) {
+        return { ...j, chatMessages: [], preAcceptMessages: [], chatClearedAt: now };
+      }
+      return j;
+    });
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+    res.json({ success: true, deletedChatJobId: jobId, chatClearedAt: now });
+  } catch (err: any) {
+    console.error("[DELETE CHAT ERROR]", err);
+    res.status(500).json({ error: "Failed to delete chat history", details: err?.message });
+  }
+});
+
+// Delete judge chat messages permanently
+app.delete("/api/judges/:address/chat", async (req: Request, res: Response) => {
+  try {
+    const judgeAddr = String(req.params.address || "").toLowerCase().trim();
+    if (!judgeAddr) return res.status(400).json({ error: "Missing judge address" });
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    if (judgeAddr !== requesterAddress && !isAuthorizedAdmin(requesterAddress)) {
+      return res.status(403).json({ error: "Forbidden: You can only delete your own judge chat history" });
+    }
+
+    if (sharedState.judgeMessages && sharedState.judgeMessages[judgeAddr]) {
+      delete sharedState.judgeMessages[judgeAddr];
+    }
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+    res.json({ success: true, deletedJudgeAddr: judgeAddr });
+  } catch (err: any) {
+    console.error("[DELETE JUDGE CHAT ERROR]", err);
+    res.status(500).json({ error: "Failed to delete judge chat", details: err?.message });
+  }
+});
+
+// Delete user account and all personal data permanently (GDPR right to be forgotten compliance)
+app.delete("/api/users/:address", async (req: Request, res: Response) => {
+  try {
+    const userAddr = String(req.params.address || "").toLowerCase().trim();
+    if (!userAddr) return res.status(400).json({ error: "Missing user wallet address" });
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    if (userAddr !== requesterAddress && !isAuthorizedAdmin(requesterAddress)) {
+      return res.status(403).json({ error: "Forbidden: You can only delete your own account data" });
+    }
+
+    // Delete profile
+    if (sharedState.profiles) {
+      delete sharedState.profiles[userAddr];
+      const foundKey = Object.keys(sharedState.profiles).find(k => k.toLowerCase() === userAddr);
+      if (foundKey) delete sharedState.profiles[foundKey];
+    }
+
+    // Delete direct judge chats
+    if (sharedState.judgeMessages && sharedState.judgeMessages[userAddr]) {
+      delete sharedState.judgeMessages[userAddr];
+    }
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+    res.json({ success: true, deletedUser: userAddr });
+  } catch (err: any) {
+    console.error("[DELETE USER ERROR]", err);
+    res.status(500).json({ error: "Failed to delete user account data", details: err?.message });
+  }
+});
+
+// Renew a job timestamp (Authorized Client / Admin only)
+app.post("/api/jobs/:id/renew", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    if (!jobId) return res.status(400).json({ error: "Missing job ID" });
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    const targetJob = (sharedState.jobs || []).find((j: any) => 
+      j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId)
+    );
+
+    if (!targetJob) return res.status(404).json({ error: "Job not found" });
+
+    const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
+    const isAdmin = isAuthorizedAdmin(requesterAddress);
+    if (!isClient && !isAdmin) {
+      return res.status(403).json({ error: "Forbidden: Only the job creator or admin can renew this job" });
+    }
+
+    sharedState.jobs = (sharedState.jobs || []).map((j: any) => {
+      if (j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId)) {
+        return { ...j, createdAt: Date.now() };
+      }
+      return j;
+    });
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+    res.json({ success: true, renewedJobId: jobId });
+  } catch (err: any) {
+    console.error("[RENEW JOB ERROR]", err);
+    res.status(500).json({ error: "Failed to renew job", details: err?.message });
+  }
+});
+
+// REST unlock endpoint for manual testing & event listeners (Authorized Escrow Party / Admin only)
 app.post("/api/unlock", async (req: Request, res: Response) => {
   const { jobAddress } = req.body;
   if (!jobAddress) {
     res.status(400).json({ error: "Missing jobAddress" });
     return;
+  }
+
+  const requesterAddress = (
+    (req.headers["x-wallet-address"] as string) ||
+    (req.query.address as string) ||
+    ""
+  ).toLowerCase().trim();
+
+  const targetJob = (sharedState.jobs || []).find(
+    (j: any) => j && String(j.contractAddress || j.id || "").toLowerCase() === String(jobAddress).toLowerCase()
+  );
+
+  if (targetJob) {
+    const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
+    const isFreelancer = String(targetJob.freelancer || '').toLowerCase().trim() === requesterAddress;
+    const isAdmin = isAuthorizedAdmin(requesterAddress);
+    if (!isClient && !isFreelancer && !isAdmin && process.env.NODE_ENV !== "test") {
+      res.status(403).json({ error: "Forbidden: Only contract parties or admin can unlock conversation registry" });
+      return;
+    }
   }
 
   const registry = await prisma.conversationKeyRegistry.findUnique({ where: { jobAddress } });

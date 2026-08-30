@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Application, SkillCategory, UserProfile } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { calculateReputationScores } from '../utils/reputation';
@@ -34,6 +35,7 @@ import {
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { UserProfileBioModal } from './UserProfileBioModal';
 
 interface ApplicantTableProps {
   jobId?: string;
@@ -54,12 +56,25 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
   onSelect,
   isClient,
 }) => {
+  const navigate = useNavigate();
   const { jobs, profiles, updateJobTerms, sendPreAcceptMessage } = usePolyLanceData();
   const [sortField, setSortField] = useState<'score' | 'reputation' | 'appliedAt'>('score');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [filterGithubOnly, setFilterGithubOnly] = useState<boolean>(false);
   const [filterMinReputation, setFilterMinReputation] = useState<number>(0);
   const [expandedApplicant, setExpandedApplicant] = useState<string | null>(null);
+
+  // User Full Bio Popup Modal State
+  const [bioModalApplicant, setBioModalApplicant] = useState<{
+    applicant: Application;
+    profile?: UserProfile;
+    completedCount: number;
+    onTimeRate: string;
+    progressAvg: string;
+    commitsCount: number;
+    prsCount: number;
+    soulboundCount: number;
+  } | null>(null);
 
   // Pre-Acceptance Discussion / Negotiation Modal State
   const [negotiatingApplicant, setNegotiatingApplicant] = useState<Application | null>(null);
@@ -69,7 +84,15 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
   const [isTermsUpdatedSuccess, setIsTermsUpdatedSuccess] = useState<boolean>(false);
 
   const activeJob = jobId ? jobs.find(j => j.id === jobId) : undefined;
-  const currentPreAcceptMessages = activeJob?.preAcceptMessages || [];
+  const currentPreAcceptMessages = (activeJob?.preAcceptMessages || []).filter((msg) => {
+    if (!negotiatingApplicant) return true;
+    const target = negotiatingApplicant.applicant.toLowerCase();
+    return (
+      msg.applicantAddress?.toLowerCase() === target ||
+      msg.sender?.toLowerCase() === target ||
+      (!msg.applicantAddress && msg.senderRole === 'Freelancer')
+    );
+  });
 
   const handleSort = (field: 'score' | 'reputation' | 'appliedAt') => {
     if (sortField === field) {
@@ -113,8 +136,15 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
 
   const handleSendPreAcceptMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!negotiateChatInput.trim() || !jobId) return;
-    sendPreAcceptMessage(jobId, negotiateChatInput.trim(), 'Client', 'Client');
+    if (!negotiateChatInput.trim() || !jobId || !negotiatingApplicant) return;
+    sendPreAcceptMessage(
+      jobId,
+      negotiateChatInput.trim(),
+      'Client',
+      'Client',
+      undefined,
+      negotiatingApplicant.applicant
+    );
     setNegotiateChatInput('');
   };
 
@@ -352,15 +382,11 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                       {/* Pre-Acceptance Discussion / Negotiation CTA */}
                       <button
                         type="button"
-                        onClick={() => {
-                          setNegotiatingApplicant(app);
-                          setNegotiatedAmount(jobAmount);
-                          setNegotiatedDays(jobReviewPeriodDays);
-                        }}
+                        onClick={() => navigate(`/chat?jobId=${jobId}&applicant=${app.applicant}`)}
                         className="bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
                       >
                         <MessageSquare size={14} className="text-purple-700" />
-                        Discuss Terms
+                        Discuss Terms in Messages
                       </button>
 
                       <button
@@ -418,66 +444,69 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                     transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                     className="overflow-hidden border-t border-slate-200/80 pt-3"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-sans text-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 font-sans text-xs">
                       
-                      {/* COL 1: TIMELINE & SPEED METRICS */}
-                      <div className="bg-white p-3 rounded-xl border border-slate-200/80 space-y-2 shadow-2xs flex flex-col justify-start">
+                      {/* COL 1: TIMELINE & SPEED */}
+                      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3 shadow-2xs flex flex-col justify-start">
                         {/* Header */}
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-purple-100/80 text-purple-700 flex items-center justify-center shrink-0">
-                            <Clock size={14} />
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
+                            <Clock size={18} />
                           </div>
                           <div>
-                            <h4 className="font-headline font-extrabold text-slate-900 text-xs">Timeline & Speed Metrics</h4>
-                            <p className="text-[10px] text-slate-500 font-sans">Performance at a glance</p>
+                            <span className="text-[11px] font-bold text-slate-800 block leading-tight">Timeline & Speed</span>
+                            <h4 className="font-headline font-black text-slate-900 text-sm leading-tight mt-0.5">Performance at a glance</h4>
                           </div>
                         </div>
 
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                        <div className="bg-slate-50/80 p-1.5 px-2 rounded-lg border border-slate-200/60 flex flex-col justify-between space-y-0.5">
-                          <div className="w-5 h-5 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
-                            <Briefcase size={11} />
+                        {/* Top 2 Cards Grid */}
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {/* Subcard 1: Jobs Completed */}
+                          <div className="bg-[#FAF9FF] p-3 rounded-2xl border border-purple-100/60 flex flex-col justify-between h-28">
+                            <div className="w-8 h-8 rounded-xl bg-purple-100/70 text-purple-600 flex items-center justify-center">
+                              <Briefcase size={15} />
+                            </div>
+                            <div>
+                              <span className="font-headline font-black text-slate-900 text-2xl leading-none block">
+                                {completedCount}
+                              </span>
+                              <span className="text-xs text-slate-500 font-sans font-medium mt-1 block">
+                                Jobs Completed
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-[8px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
-                              JOBS COMPLETED
-                            </span>
-                            <div className="flex items-center gap-1 mt-0.5 font-mono font-black text-slate-900 text-[11px]">
-                              <span>{completedCount}</span>
-                              <span className="w-3 h-3 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[7.5px] font-bold">★</span>
+
+                          {/* Subcard 2: On-time Rate */}
+                          <div className="bg-[#F8FCF9] p-3 rounded-2xl border border-emerald-100/60 flex flex-col justify-between h-28">
+                            <div className="w-7 h-7 rounded-full bg-emerald-100/70 text-emerald-600 flex items-center justify-center">
+                              <Clock size={14} />
+                            </div>
+                            <div>
+                              <span className="font-headline font-black text-slate-900 text-2xl leading-none block">
+                                {onTimeRate === 'N/A' ? '—' : onTimeRate}
+                              </span>
+                              <span className="text-xs text-slate-500 font-sans font-medium mt-1 block">
+                                On-time Rate
+                              </span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="bg-slate-50/80 p-1.5 px-2 rounded-lg border border-slate-200/60 flex flex-col justify-between space-y-0.5">
-                          <div className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                            <Clock size={11} />
-                          </div>
-                          <div>
-                            <span className="text-[8px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
-                              ON-TIME RATE
-                            </span>
-                            <span className="font-mono font-extrabold text-emerald-600 text-[11px] block mt-0.5">
-                              {onTimeRate}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50/80 p-1.5 px-2 rounded-lg border border-slate-200/60 col-span-2 space-y-0.5">
+                        {/* Bottom Subcard: Milestones Progress Avg. */}
+                        <div className="bg-[#FAF9FF] p-3 rounded-2xl border border-purple-100/60 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[8px] font-mono uppercase font-bold text-slate-400 tracking-wider">
-                              MILESTONES PROGRESS AVG.
+                            <span className="text-xs font-bold text-slate-800">
+                              Milestones Progress Avg.
                             </span>
-                            <div className="w-4 h-4 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
-                              <TrendingUp size={10} />
+                            <div className="w-6 h-6 rounded-full bg-purple-100/80 text-purple-600 flex items-center justify-center">
+                              <TrendingUp size={13} />
                             </div>
                           </div>
-                          <div className="flex items-center justify-between pt-0.5">
-                            <span className="font-mono font-extrabold text-purple-700 text-[11px]">
-                              {progressAvg}
+                          <div>
+                            <span className="font-headline font-black text-slate-900 text-xl leading-none block">
+                              {progressAvg.includes('N/A') ? '—' : progressAvg}
                             </span>
-                            <div className="w-20 bg-slate-200/80 rounded-full h-1.5 flex items-center">
+                            <div className="w-full bg-purple-100/70 rounded-full h-1.5 mt-2 overflow-hidden">
                               <div 
                                 className="bg-purple-600 h-1.5 rounded-full transition-all duration-300" 
                                 style={{ width: progressAvg.includes('N/A') ? '0%' : (progressAvg.includes('%') ? progressAvg : '0%') }}
@@ -486,152 +515,169 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* COL 2: RATING & CREDENTIALS */}
-                    <div className="bg-white p-3 rounded-xl border border-slate-200/80 space-y-2 shadow-2xs flex flex-col justify-start">
-                      {/* Header */}
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-amber-100/80 text-amber-600 flex items-center justify-center shrink-0">
-                          <Star size={13} className="fill-amber-500" />
+                      {/* COL 2: RATING & CREDENTIALS */}
+                      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3 shadow-2xs flex flex-col justify-start">
+                        {/* Header */}
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-500 border border-amber-100 flex items-center justify-center shrink-0">
+                            <Star size={18} className="fill-amber-400 text-amber-400" />
+                          </div>
+                          <div>
+                            <span className="text-[11px] font-bold text-slate-800 block leading-tight">Rating & Credentials</span>
+                            <h4 className="font-headline font-black text-slate-900 text-sm leading-tight mt-0.5">Reputation that's provable</h4>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-headline font-extrabold text-slate-900 text-xs">Rating & Credentials</h4>
-                          <p className="text-[9.5px] text-slate-500 font-sans">Reputation that's provable</p>
+
+                        {/* Credentials List */}
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <div className="flex items-center gap-2">
+                              <Smile size={16} className="text-purple-600" />
+                              <span className="text-xs text-slate-700 font-medium">Client Satisfaction</span>
+                            </div>
+                            {rating > 0 ? (
+                              <div className="flex items-center gap-1">
+                                {renderStars(rating)}
+                                <span className="font-mono font-extrabold text-slate-900 text-xs">{rating.toFixed(1)}</span>
+                              </div>
+                            ) : (
+                              <span className="font-mono font-extrabold text-slate-400 text-xs">N/A</span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <div className="flex items-center gap-2">
+                              <Shield size={16} className="text-purple-600" />
+                              <span className="text-xs text-slate-700 font-medium">Soulbound Badges</span>
+                            </div>
+                            <span className="font-mono font-extrabold text-purple-700 text-xs">
+                              {soulboundCount} Attested
+                            </span>
+                          </div>
+
+                          {/* Interactive Bio & Attestations Box (Click to open full bio popup) */}
+                          <div
+                            onClick={() => {
+                              setBioModalApplicant({
+                                applicant: app,
+                                profile,
+                                completedCount,
+                                onTimeRate,
+                                progressAvg,
+                                commitsCount,
+                                prsCount,
+                                soulboundCount,
+                              });
+                            }}
+                            className="bg-[#FAF8FF] border border-purple-100/90 rounded-2xl p-3.5 space-y-1.5 mt-2 cursor-pointer hover:border-purple-300 hover:shadow-xs transition-all group"
+                            title="Click to view full bio and complete attestations popup"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-purple-700 font-bold">
+                                <div className="w-5 h-5 rounded-md bg-purple-100 text-purple-700 flex items-center justify-center">
+                                  <Award size={12} />
+                                </div>
+                                <span className="text-xs font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+                                  Bio & Attestations
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono text-purple-600 bg-purple-100/70 hover:bg-purple-200/70 px-2 py-0.5 rounded-full font-bold transition-colors">
+                                View Full
+                              </span>
+                            </div>
+                            <p className="font-sans text-xs text-slate-600 leading-relaxed line-clamp-2">
+                              {bio || 'No bio provided.'}
+                            </p>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Credentials List with compact spacing */}
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-1">
-                          <div className="flex items-center gap-1">
-                            <Smile size={12} className="text-slate-400" />
-                            <span className="text-[10.5px] text-slate-700 font-medium">Client Satisfaction</span>
+                      {/* COL 3: VERIFIED GITHUB ACTIVITY */}
+                      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3 shadow-2xs flex flex-col justify-start">
+                        {/* Header */}
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
+                            <Code2 size={18} />
                           </div>
-                          {rating > 0 ? (
-                            <div className="flex items-center gap-1">
-                              {renderStars(rating)}
-                              <span className="font-mono font-extrabold text-slate-900 text-[10.5px]">{rating.toFixed(1)}</span>
+                          <div>
+                            <span className="text-[11px] font-bold text-slate-800 block leading-tight">Verified GitHub Activity</span>
+                            <h4 className="font-headline font-black text-slate-900 text-sm leading-tight mt-0.5">On-chain code contributions</h4>
+                          </div>
+                        </div>
+
+                        {/* Top 2 Cards Grid */}
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {/* Subcard 1: Total Commits */}
+                          <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-between h-28">
+                            <div className="text-blue-600">
+                              <GitCommit size={18} />
+                            </div>
+                            <div>
+                              <span className="font-headline font-black text-slate-900 text-2xl leading-none block">
+                                {commitsCount}
+                              </span>
+                              <span className="text-xs text-slate-500 font-sans font-medium mt-1 block">
+                                Total Commits
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Subcard 2: PRs Merged */}
+                          <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-between h-28">
+                            <div className="text-blue-600">
+                              <GitPullRequest size={18} />
+                            </div>
+                            <div>
+                              <span className="font-headline font-black text-slate-900 text-2xl leading-none block">
+                                {prsCount}
+                              </span>
+                              <span className="text-xs text-slate-500 font-sans font-medium mt-1 block">
+                                PRs Merged
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bottom Subcard: Linked GitHub */}
+                        <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Github size={20} className="text-slate-900 shrink-0" />
+                            <div className="min-w-0">
+                              <span className="text-[10px] text-slate-500 font-medium block truncate">
+                                Linked GitHub
+                              </span>
+                              {isVerified ? (
+                                <a 
+                                  href={`https://github.com/${githubUsername}`}
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  className="font-bold text-blue-600 text-xs hover:underline flex items-center gap-0.5 truncate"
+                                >
+                                  <span className="truncate">@{githubUsername}</span>
+                                  <ExternalLink size={10} className="text-blue-500 shrink-0" />
+                                </a>
+                              ) : (
+                                <span className="font-bold text-slate-500 text-xs truncate">Unlinked Account</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {isVerified ? (
+                            <div className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
+                              <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                              <span>Verified</span>
                             </div>
                           ) : (
-                            <span className="font-mono font-extrabold text-slate-400 text-[10.5px]">N/A</span>
+                            <div className="flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full shrink-0">
+                              <AlertCircle size={13} className="text-amber-600 shrink-0" />
+                              <span>Unverified</span>
+                            </div>
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-1">
-                          <div className="flex items-center gap-1">
-                            <Shield size={12} className="text-purple-600" />
-                            <span className="text-[10.5px] text-slate-700 font-medium">Soulbound Badges</span>
-                          </div>
-                          <span className="font-mono font-extrabold text-purple-700 text-[10.5px]">
-                            {soulboundCount} Attested
-                          </span>
-                        </div>
-
-                        {/* Full Visible Bio Box */}
-                        <div className="bg-[#FAF5FF] border border-purple-100/80 rounded-lg p-1.5 space-y-0.5 mt-1">
-                          <div className="flex items-center gap-1 text-purple-700 font-bold">
-                            <Award size={11} />
-                            <span className="text-[8.5px] uppercase font-mono tracking-wider">BIO & ATTESTATIONS</span>
-                          </div>
-                          <p className="font-sans text-[10.5px] text-slate-800 leading-tight whitespace-pre-wrap">
-                            {bio}
-                          </p>
-                        </div>
                       </div>
                     </div>
-
-                    {/* COL 3: VERIFIED GITHUB ACTIVITY */}
-                    <div className="bg-white p-3 rounded-xl border border-slate-200/80 space-y-2 shadow-2xs flex flex-col justify-start">
-                      {/* Header */}
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-purple-100/80 text-purple-700 flex items-center justify-center shrink-0">
-                          <Code2 size={13} />
-                        </div>
-                        <div>
-                          <h4 className="font-headline font-extrabold text-slate-900 text-xs">Verified GitHub Activity</h4>
-                          <p className="text-[9.5px] text-slate-500 font-sans">On-chain code contributions</p>
-                        </div>
-                      </div>
-
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                        <div className="bg-slate-50/80 p-1.5 px-2 rounded-lg border border-slate-200/60 flex flex-col justify-between space-y-0.5">
-                          <div className="w-5 h-5 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
-                            <GitCommit size={11} />
-                          </div>
-                          <div>
-                            <span className="text-[8px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
-                              TOTAL COMMITS
-                            </span>
-                            <span className="font-mono font-black text-slate-900 text-[11px] block mt-0.5">
-                              {commitsCount}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50/80 p-1.5 px-2 rounded-lg border border-slate-200/60 flex flex-col justify-between space-y-0.5">
-                          <div className="w-5 h-5 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
-                            <GitPullRequest size={11} />
-                          </div>
-                          <div>
-                            <span className="text-[8px] font-mono uppercase font-bold text-slate-400 block tracking-wider">
-                              PRS MERGED
-                            </span>
-                            <span className="font-mono font-black text-slate-900 text-[11px] block mt-0.5">
-                              {prsCount}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Clean Linked Handle Card with Verified / Unverified Badge Position */}
-                      {isVerified ? (
-                        <div className="bg-slate-50/80 border border-slate-200/80 rounded-lg p-1.5 px-2 flex items-center justify-between gap-1 overflow-hidden">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <Github size={15} className="text-slate-900 shrink-0" />
-                            <div className="min-w-0">
-                              <span className="text-[7.5px] font-mono uppercase font-bold text-slate-400 block tracking-wider truncate">
-                                LINKED HANDLE
-                              </span>
-                              <a 
-                                href={`https://github.com/${githubUsername}`}
-                                target="_blank" 
-                                rel="noreferrer"
-                                className="font-bold text-purple-700 text-[10.5px] hover:underline flex items-center gap-0.5 truncate"
-                              >
-                                <span className="truncate">@{githubUsername}</span>
-                                <ExternalLink size={9} className="text-purple-400 shrink-0" />
-                              </a>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1 text-[9.5px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0 shadow-2xs whitespace-nowrap">
-                            <CheckCircle2 size={11} className="text-emerald-600 shrink-0" />
-                            <span className="whitespace-nowrap">Verified</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-amber-50/70 border border-amber-200/80 rounded-lg p-1.5 px-2 flex items-center justify-between gap-1 overflow-hidden">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <Github size={15} className="text-amber-800 shrink-0" />
-                            <div className="min-w-0">
-                              <span className="text-[7.5px] font-mono uppercase font-bold text-amber-600 block tracking-wider truncate">
-                                GITHUB STATUS
-                              </span>
-                              <span className="font-bold text-amber-900 text-[10.5px] block truncate">
-                                Unlinked Account
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1 text-[9.5px] font-extrabold text-amber-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full shrink-0 shadow-2xs whitespace-nowrap">
-                            <AlertCircle size={11} className="text-amber-600 shrink-0" />
-                            <span className="whitespace-nowrap">Unverified</span>
-                          </div>
-                        </div>
-                      )}
-
-                    </div>
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -805,6 +851,23 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
           </div>
         )}
       </AnimatePresence>
+
+      {/* User Full Bio Popup Modal */}
+      {bioModalApplicant && (
+        <UserProfileBioModal
+          isOpen={Boolean(bioModalApplicant)}
+          onClose={() => setBioModalApplicant(null)}
+          applicantAddress={bioModalApplicant.applicant.applicant}
+          profile={bioModalApplicant.profile}
+          applicantData={bioModalApplicant.applicant}
+          completedCount={bioModalApplicant.completedCount}
+          onTimeRate={bioModalApplicant.onTimeRate}
+          progressAvg={bioModalApplicant.progressAvg}
+          commitsCount={bioModalApplicant.commitsCount}
+          prsCount={bioModalApplicant.prsCount}
+          soulboundCount={bioModalApplicant.soulboundCount}
+        />
+      )}
     </div>
   );
 };

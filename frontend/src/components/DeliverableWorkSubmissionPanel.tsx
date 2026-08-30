@@ -16,6 +16,7 @@ import {
 import confetti from 'canvas-confetti';
 
 import { ActionStatusModal, ActionModalDetail } from './ActionStatusModal';
+import { RaiseDisputeModal } from './RaiseDisputeModal';
 
 interface DeliverableWorkSubmissionPanelProps {
   job: Job;
@@ -23,70 +24,72 @@ interface DeliverableWorkSubmissionPanelProps {
 
 /* 3D Header Illustration: Clipboard Checklist + Shield + Golden Cube */
 const ChecklistIllustration = () => (
-  <svg width="110" height="85" viewBox="0 0 150 110" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 select-none">
-    <defs>
-      <linearGradient id="clipBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FFFFFF" />
-        <stop offset="100%" stopColor="#F8FAFC" />
-      </linearGradient>
-      <linearGradient id="clipBorderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#BFDBFE" />
-        <stop offset="100%" stopColor="#60A5FA" />
-      </linearGradient>
-      <linearGradient id="cubeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FDE68A" />
-        <stop offset="100%" stopColor="#F59E0B" />
-      </linearGradient>
-      <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#3B82F6" />
-        <stop offset="100%" stopColor="#1D4ED8" />
-      </linearGradient>
-      <filter id="shadow3D" x="-10%" y="-10%" width="130%" height="130%">
-        <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#1E3A8A" floodOpacity="0.12" />
-      </filter>
-    </defs>
+  <div className="relative w-24 h-20 flex items-center justify-center shrink-0 select-none">
+    <svg width="100%" height="100%" viewBox="0 0 160 115" fill="none" xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
+      <defs>
+        <linearGradient id="clipBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#F8FAFC" />
+        </linearGradient>
+        <linearGradient id="clipBorderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#BFDBFE" />
+          <stop offset="100%" stopColor="#60A5FA" />
+        </linearGradient>
+        <linearGradient id="cubeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FDE68A" />
+          <stop offset="100%" stopColor="#F59E0B" />
+        </linearGradient>
+        <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#3B82F6" />
+          <stop offset="100%" stopColor="#1D4ED8" />
+        </linearGradient>
+        <filter id="shadow3D" x="-10%" y="-10%" width="130%" height="130%">
+          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#1E3A8A" floodOpacity="0.10" />
+        </filter>
+      </defs>
 
-    {/* Floating Golden 3D Cube */}
-    <g transform="translate(122, 10) rotate(18)">
-      <polygon points="11,0 22,5.5 22,18 11,12.5" fill="#FBBF24" />
-      <polygon points="0,5.5 11,0 11,12.5 0,18" fill="#F59E0B" />
-      <polygon points="0,5.5 11,0 22,5.5 11,11" fill="#FDE68A" opacity="0.95" />
-    </g>
+      {/* Floating Golden 3D Cube */}
+      <g transform="translate(118, 12) rotate(16)">
+        <polygon points="10,0 20,5 20,16 10,11" fill="#FBBF24" />
+        <polygon points="0,5 10,0 10,11 0,16" fill="#F59E0B" />
+        <polygon points="0,5 10,0 20,5 10,10" fill="#FDE68A" opacity="0.95" />
+      </g>
 
-    {/* Floating Cyan Orb */}
-    <circle cx="20" cy="74" r="5" fill="#38BDF8" opacity="0.9" />
-    <circle cx="21.5" cy="72.5" r="1.5" fill="#FFFFFF" />
+      {/* Floating Cyan Orb */}
+      <circle cx="22" cy="74" r="4.5" fill="#38BDF8" opacity="0.9" />
+      <circle cx="23.5" cy="72.5" r="1.5" fill="#FFFFFF" />
 
-    {/* Sparkles */}
-    <path d="M128 44 L129.5 48 L133.5 49.5 L129.5 51 L128 55 L126.5 51 L122.5 49.5 L126.5 48 Z" fill="#93C5FD" opacity="0.85" />
-    <path d="M26 18 L27.5 22 L31.5 23.5 L27.5 25 L26 29 L24.5 25 L20.5 23.5 L24.5 22 Z" fill="#60A5FA" opacity="0.75" />
+      {/* Sparkles */}
+      <path d="M124 44 L125.5 48 L129.5 49.5 L125.5 51 L124 55 L122.5 51 L118.5 49.5 L122.5 48 Z" fill="#93C5FD" opacity="0.85" />
+      <path d="M28 18 L29.5 22 L33.5 23.5 L29.5 25 L28 29 L26.5 25 L22.5 23.5 L26.5 22 Z" fill="#60A5FA" opacity="0.75" />
 
-    {/* Main Clipboard Container */}
-    <g filter="url(#shadow3D)">
-      <rect x="42" y="8" width="68" height="90" rx="14" fill="url(#clipBodyGrad)" stroke="url(#clipBorderGrad)" strokeWidth="2.5" />
-      <rect x="62" y="3" width="28" height="10" rx="5" fill="#3B82F6" />
-      <circle cx="76" cy="8" r="2.5" fill="#DBEAFE" />
+      {/* Main Clipboard Container */}
+      <g filter="url(#shadow3D)">
+        <rect x="42" y="8" width="68" height="90" rx="14" fill="url(#clipBodyGrad)" stroke="url(#clipBorderGrad)" strokeWidth="2.5" />
+        <rect x="62" y="3" width="28" height="10" rx="5" fill="#3B82F6" />
+        <circle cx="76" cy="8" r="2.5" fill="#DBEAFE" />
 
-      <rect x="52" y="24" width="10" height="10" rx="3" fill="#38BDF8" />
-      <path d="M54.5 29 L56.5 31 L60 26.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="66" y="27" width="34" height="4" rx="2" fill="#BAE6FD" />
+        <rect x="52" y="24" width="10" height="10" rx="3" fill="#38BDF8" />
+        <path d="M54.5 29 L56.5 31 L60 26.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="66" y="27" width="34" height="4" rx="2" fill="#BAE6FD" />
 
-      <rect x="52" y="42" width="10" height="10" rx="3" fill="#38BDF8" />
-      <path d="M54.5 47 L56.5 49 L60 44.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="66" y="45" width="30" height="4" rx="2" fill="#BAE6FD" />
+        <rect x="52" y="42" width="10" height="10" rx="3" fill="#38BDF8" />
+        <path d="M54.5 47 L56.5 49 L60 44.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="66" y="45" width="30" height="4" rx="2" fill="#BAE6FD" />
 
-      <rect x="52" y="60" width="10" height="10" rx="3" fill="#38BDF8" />
-      <path d="M54.5 65 L56.5 67 L60 62.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="66" y="63" width="24" height="4" rx="2" fill="#BAE6FD" />
-    </g>
+        <rect x="52" y="60" width="10" height="10" rx="3" fill="#38BDF8" />
+        <path d="M54.5 65 L56.5 67 L60 62.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="66" y="63" width="24" height="4" rx="2" fill="#BAE6FD" />
+      </g>
 
-    {/* 3D Green Check Shield */}
-    <g transform="translate(94, 60)" filter="url(#shadow3D)">
-      <path d="M18 0 C28 0 34 5 34 16 C34 29 20 37 18 39 C16 37 2 29 2 16 C2 5 8 0 18 0 Z" fill="#10B981" />
-      <path d="M18 3 C26 3 31 7 31 16 C31 27 19 34 18 36 C17 34 5 27 5 16 C5 7 10 3 18 3 Z" fill="#34D399" opacity="0.3" />
-      <path d="M12 18 L16 22 L24 14" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-    </g>
-  </svg>
+      {/* 3D Green Check Shield */}
+      <g transform="translate(90, 58)" filter="url(#shadow3D)">
+        <path d="M16 0 C25 0 30 4 30 14 C30 26 18 33 16 35 C14 33 2 26 2 14 C2 4 7 0 16 0 Z" fill="#10B981" />
+        <path d="M16 3 C23 3 27 6 27 14 C27 24 17 30 16 32 C15 30 5 24 5 14 C5 6 9 3 16 3 Z" fill="#34D399" opacity="0.3" />
+        <path d="M11 16 L14.5 19.5 L21.5 12.5" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+    </svg>
+  </div>
 );
 
 /* Compact 3D Clock Illustration for Client View */
@@ -221,6 +224,14 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     if (!currentJob.modificationRequests || currentJob.modificationRequests.length === 0) return null;
     return [...currentJob.modificationRequests].sort((a, b) => (b.requestedAt || 0) - (a.requestedAt || 0))[0];
   }, [currentJob.modificationRequests]);
+
+  // Derived pending time extension requests
+  const pendingExtensionRequests = useMemo(() => {
+    if (!currentJob.extensionRequests || currentJob.extensionRequests.length === 0) return [];
+    return currentJob.extensionRequests.filter(
+      (req) => req.status === 'Pending' || (!req.responded && req.status !== 'Approved' && req.status !== 'Rejected')
+    );
+  }, [currentJob.extensionRequests]);
 
   const milestoneProgressText = useMemo(() => {
     if (currentJob.status === 'Completed') return '1 of 1 Completed';
@@ -362,6 +373,24 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       details: [
         { label: 'EXTENSION REQUESTED', value: `+${extensionDays} Additional Days`, isBadge: true },
         { label: 'RATIONALE', value: extensionReason.trim() },
+        { label: 'JOB TITLE', value: currentJob.title },
+      ],
+    });
+  };
+
+  const handleRespondExtension = (requestId: string, approve: boolean, requestedDays: number) => {
+    respondToTimeExtension(currentJob.id, requestId, approve);
+    setActionModal({
+      isOpen: true,
+      title: approve ? 'Time Extension Approved' : 'Time Extension Declined',
+      subtitle: approve
+        ? `Successfully granted +${requestedDays} additional days for the milestone deadline.`
+        : 'The time extension proposal was declined.',
+      icon: 'extension',
+      badgeText: approve ? `+${requestedDays} DAYS GRANTED` : 'EXTENSION DECLINED',
+      details: [
+        { label: 'STATUS', value: approve ? 'Approved' : 'Declined', isBadge: true },
+        { label: 'DEADLINE ADJUSTMENT', value: approve ? `+${requestedDays} Days Added` : 'No Change' },
         { label: 'JOB TITLE', value: currentJob.title },
       ],
     });
@@ -578,35 +607,93 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
   const displayedActivities = isFullLogExpanded ? filteredActivities : filteredActivities.slice(0, 3);
 
   return (
-    <div className="glass-panel p-4 sm:p-6 border border-slate-200/90 bg-white rounded-3xl shadow-xs space-y-4">
+    <div className="glass-panel p-4 sm:p-6 border border-slate-200/90 bg-white rounded-3xl shadow-xs space-y-4 overflow-hidden">
       
       {/* 1. TOP HEADER WITH 3D CLIPBOARD CHECKLIST ART */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
-        <div className="space-y-1 max-w-xl">
-          <div className="w-9 h-9 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-2xs mb-1.5">
-            <Layers size={20} className="text-blue-600" />
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-600 shadow-2xs">
+              <Layers size={16} />
+            </div>
+            <span className="text-[10.5px] font-mono font-bold uppercase tracking-wider text-blue-800 bg-blue-50/80 border border-blue-200/60 px-2 py-0.5 rounded-lg">
+              Milestone Escrow Workspace
+            </span>
           </div>
-          <h2 className="text-base sm:text-lg font-black text-slate-900 font-headline tracking-tight leading-tight">
+
+          <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 font-headline tracking-tight leading-tight pt-0.5">
             Project Submission & Deliverable Verification Workspace
           </h2>
-          <p className="text-[11.5px] text-slate-500 font-medium leading-relaxed">
+
+          <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xl">
             On-chain milestone submission, revision requests, extension management, and escrow payout release.
           </p>
           
           {/* Escrow Status Pill below Subtitle */}
-          <div className="flex items-center gap-2 pt-0.5 font-mono text-xs">
+          <div className="flex items-center gap-2 pt-1 font-mono text-xs">
             <span className="text-slate-400 font-medium text-[11px]">Escrow Status:</span>
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-bold text-[10px] uppercase tracking-wide">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-bold text-[10px] uppercase tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse shrink-0" />
               {currentJob.status === 'Funded' || currentJob.status === 'Selected' ? 'FUNDED' : currentJob.status.toUpperCase()}
             </span>
           </div>
         </div>
 
-        <div className="hidden sm:block">
-          <ChecklistIllustration />
+        {/* Right side: Action Button + Checklist Art (Properly Contained) */}
+        <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto justify-between sm:justify-end pr-0 lg:pr-1">
+          <button
+            type="button"
+            onClick={() => navigate(`/chat?jobId=${currentJob.id}`)}
+            className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer shrink-0 active:scale-95"
+          >
+            <MessageSquare size={14} />
+            <span>Open Messages Hub</span>
+          </button>
+          
+          <div className="hidden sm:flex items-center justify-center shrink-0 w-24 h-20 overflow-hidden">
+            <ChecklistIllustration />
+          </div>
         </div>
       </div>
+
+      {/* ACTIVE DISPUTE CASE BANNER (VISIBLE TO BOTH FREELANCER AND CLIENT) */}
+      {(currentJob.status === 'Disputed' || currentJob.dispute) && (
+        <div className="p-4 rounded-2xl bg-rose-50/90 border-2 border-rose-300 shadow-xs space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-200 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shrink-0">
+                <Scale size={16} />
+              </div>
+              <div>
+                <span className="font-mono font-black text-[9.5px] uppercase tracking-wider text-rose-900 bg-rose-200 px-2 py-0.5 rounded-full inline-block">
+                  Case Under DAO Arbitration • Escrow Locked
+                </span>
+                <h4 className="text-sm font-black text-slate-900 font-headline mt-0.5">
+                  Dispute Reason: {currentJob.dispute?.reason || 'Contract Disputed'}
+                </h4>
+              </div>
+            </div>
+            <span className="text-xs font-mono font-bold text-rose-800">
+              Raised by {truncateAddress(currentJob.dispute?.raisedBy || currentJob.client)}
+            </span>
+          </div>
+
+          <div className="p-3 bg-white/95 rounded-xl border border-rose-200 text-slate-800 text-xs font-medium space-y-1">
+            <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wide block">
+              Case Statement & Evidence:
+            </span>
+            <p className="whitespace-pre-wrap leading-relaxed text-slate-900 font-sans">
+              "{currentJob.dispute?.evidenceText || 'Case file awaiting Decentralized Court decision.'}"
+            </p>
+            {currentJob.dispute?.evidenceIpfsHash && (
+              <div className="pt-1.5 flex items-center gap-1.5 font-mono text-[11px] text-purple-700">
+                <FileText size={12} />
+                <span>Evidence IPFS CID: <strong>{currentJob.dispute.evidenceIpfsHash}</strong></span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* FREELANCER SIDE VIEW (MATCHING IMAGE 3) */}
@@ -801,25 +888,45 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
           {/* TAB 3: Request Time Extension */}
           {freelancerTab === 'extension' && (
-            <form onSubmit={handleRequestExtension} className="border border-slate-200/90 rounded-2xl p-4 sm:p-5 bg-white shadow-xs space-y-3.5 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0 shadow-2xs">
-                    <Calendar size={15} className="text-amber-600" />
+            <div className="space-y-3">
+              {pendingExtensionRequests.length > 0 && (
+                <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 flex items-start gap-3 shadow-2xs">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <Clock size={16} />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-tight">
-                      Request Milestone Time Extension
-                    </h3>
-                    <p className="text-[10.5px] text-slate-500 font-medium">
-                      Subject to Client Approval
+                  <div className="text-xs text-amber-900 leading-snug flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-bold font-headline text-xs text-amber-950">Time Extension Request Pending Client Review</span>
+                      <span className="text-[9.5px] font-mono font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
+                        +{pendingExtensionRequests[0].requestedDays} Days
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-800 font-medium">
+                      You requested additional time: "{pendingExtensionRequests[0].reason}". The client has been notified to accept the proposal.
                     </p>
                   </div>
                 </div>
-                <span className="text-[9.5px] font-mono font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                  SLA Adjustment
-                </span>
-              </div>
+              )}
+
+              <form onSubmit={handleRequestExtension} className="border border-slate-200/90 rounded-2xl p-4 sm:p-5 bg-white shadow-xs space-y-3.5 text-xs">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Calendar size={15} className="text-amber-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-tight">
+                        Request Milestone Time Extension
+                      </h3>
+                      <p className="text-[10.5px] text-slate-500 font-medium">
+                        Subject to Client Approval
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[9.5px] font-mono font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                    SLA Adjustment
+                  </span>
+                </div>
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
@@ -865,7 +972,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 <span>Send Time Extension Request</span>
               </button>
             </form>
-          )}
+          </div>
+        )}
 
         </div>
       ) : (
@@ -949,6 +1057,73 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               <ChevronRight size={12} className="text-slate-400 shrink-0" />
             </div>
           </div>
+
+          {/* PENDING TIME EXTENSION PROPOSAL(S) FOR CLIENT TO ACCEPT/DECLINE */}
+          {pendingExtensionRequests.length > 0 && (
+            <div className="space-y-3">
+              {pendingExtensionRequests.map((req) => (
+                <div
+                  key={req.id}
+                  className="bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/40 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3 relative overflow-hidden"
+                >
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-2xs shrink-0">
+                        <Clock size={20} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold uppercase text-amber-900 bg-amber-200/90 border border-amber-300 px-2.5 py-0.5 rounded-full">
+                            Action Required
+                          </span>
+                          <span className="text-[10px] font-mono font-bold text-amber-800">
+                            {formatActivityTime(req.requestedAt)}
+                          </span>
+                        </div>
+                        <h3 className="font-headline font-black text-sm sm:text-base text-slate-900 mt-1">
+                          Freelancer Requested +{req.requestedDays} Days Time Extension
+                        </h3>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono font-black text-amber-900 bg-white/90 border border-amber-300 px-3 py-1 rounded-xl shadow-2xs">
+                      +{req.requestedDays} Days Proposed
+                    </span>
+                  </div>
+
+                  {/* Reason / Explanation */}
+                  <div className="bg-white/80 border border-amber-200 rounded-xl p-3 text-xs space-y-1">
+                    <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">
+                      Freelancer Rationale & Reason
+                    </span>
+                    <p className="text-slate-800 font-medium leading-relaxed italic">
+                      "{req.reason || 'Requested additional time for milestone completion and revision polishing.'}"
+                    </p>
+                  </div>
+
+                  {/* Accept / Decline Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleRespondExtension(req.id, true, req.requestedDays)}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all hover:scale-[1.02]"
+                    >
+                      <CheckCircle2 size={14} />
+                      <span>Accept Extension (+{req.requestedDays} Days)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRespondExtension(req.id, false, req.requestedDays)}
+                      className="bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 border border-rose-300 cursor-pointer transition-all"
+                    >
+                      <XCircle size={14} />
+                      <span>Decline Extension</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Awaiting Freelancer Deliverables Showcase Card (CLIENT ONLY) */}
           {!currentJob.proof ? (
@@ -1188,8 +1363,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
               {currentJob.status !== 'Completed' && currentJob.status !== 'Disputed' && (() => {
                 const grossAmount = parseFloat(currentJob.amountUsdc || '0');
-                const commAmount = grossAmount * 0.025;
-                const netDevPayout = grossAmount - commAmount;
+                const maintFeeAmount = grossAmount * 0.025;
+                const netDevPayout = grossAmount - maintFeeAmount;
 
                 return (
                   <div className="pt-2.5 border-t border-purple-200 space-y-2.5 font-sans">
@@ -1197,7 +1372,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                       <div className="flex items-center gap-3">
                         <span className="text-slate-600">Escrow Release: <strong className="text-slate-900">${grossAmount.toFixed(2)} USDC</strong></span>
                         <span className="text-slate-400">|</span>
-                        <span className="text-slate-600">Protocol Fee (2.5%): <strong className="text-rose-600">-${commAmount.toFixed(2)} USDC</strong></span>
+                        <span className="text-slate-600">Platform Maintenance Fee (2.5%): <strong className="text-rose-600">-${maintFeeAmount.toFixed(2)} USDC</strong></span>
                       </div>
                       <div className="text-purple-950 font-bold">
                         <span>Net Sent to Talent: </span>
@@ -1270,57 +1445,28 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             </form>
           )}
 
-          {/* Client Dispute Form */}
-          {isDisputeOpen && (
-            <form onSubmit={handleEscalateToJudge} className="p-3.5 rounded-2xl border border-rose-300 bg-rose-50 space-y-2.5 text-xs">
-              <div className="flex items-center justify-between border-b border-rose-200 pb-1.5">
-                <h4 className="font-bold text-rose-900 text-xs flex items-center gap-1.5">
-                  <Scale size={13} /> Escalate to DAO Arbitration
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setIsDisputeOpen(false)}
-                  className="text-rose-700 hover:text-rose-950 underline text-[11px] cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-
-              <div>
-                <label className="block font-bold text-rose-900 mb-1 text-[11px]">Dispute Reason *</label>
-                <select
-                  value={disputeReason}
-                  onChange={(e) => setDisputeReason(e.target.value as DisputeReason)}
-                  className="w-full bg-white border border-rose-300 rounded-xl p-1.5 text-xs font-bold"
-                >
-                  <option value="QUALITY">Quality Defect / Spec Mismatch</option>
-                  <option value="NON_DELIVERY">Non-Delivery / Missing Code</option>
-                  <option value="SCOPE_DISAGREEMENT">Scope Disagreement</option>
-                  <option value="PAYMENT_DISPUTE">Payment Terms Dispute</option>
-                  <option value="OTHER">Other Issue</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-rose-900 mb-1 text-[11px]">Evidence & Case Statement *</label>
-                <textarea
-                  required
-                  rows={2}
-                  placeholder="Provide evidence for the DAO Arbitrators..."
-                  value={disputeEvidence}
-                  onChange={(e) => setDisputeEvidence(e.target.value)}
-                  className="w-full bg-white border border-rose-300 rounded-xl p-2 text-xs outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <Scale size={12} /> Submit Case to DAO Judge Panel
-              </button>
-            </form>
-          )}
+          {/* Client Dispute Modal */}
+          <RaiseDisputeModal
+            isOpen={isDisputeOpen}
+            onClose={() => setIsDisputeOpen(false)}
+            job={currentJob}
+            userAddress={address || ''}
+            onRaiseDispute={(reason, evidenceText, ipfsCid) => {
+              raiseDispute(currentJob.id, reason, evidenceText, ipfsCid, address || '');
+              setActionModal({
+                isOpen: true,
+                title: 'Dispute Filed with DAO Court',
+                subtitle: 'Case file submitted to the decentralized PolyLance Judge panel for on-chain arbitration.',
+                icon: 'dispute',
+                badgeText: 'ESCROW LOCKED FOR ARBITRATION',
+                details: [
+                  { label: 'CASE REASON', value: reason, isBadge: true },
+                  { label: 'CONTRACT', value: truncateAddress(currentJob.contractAddress), isMono: true },
+                  { label: 'IPFS EVIDENCE CID', value: ipfsCid, isMono: true },
+                ],
+              });
+            }}
+          />
 
         </div>
       )}

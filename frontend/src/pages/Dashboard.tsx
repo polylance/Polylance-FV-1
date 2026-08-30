@@ -4,16 +4,17 @@ import { motion } from 'framer-motion';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
-import { truncateAddress } from '../utils/formatters';
+import { truncateAddress, formatTimeAgo } from '../utils/formatters';
 import { scoreGithubUser } from '../utils/githubOracle';
 import { calculateReputationScores, getReputationTier } from '../utils/reputation';
-import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, TrendingUp, ShieldCheck, CheckCircle2, FileText, MessageSquare, Clock } from 'lucide-react';
+import { getJobInactivityStatus } from '../utils/inactivity';
+import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, TrendingUp, ShieldCheck, CheckCircle2, FileText, MessageSquare, Clock, AlertTriangle, Trash2, RefreshCw } from 'lucide-react';
 import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 import { EmptyState } from '../components/UIStates';
 
 export const Dashboard: React.FC = () => {
   const { address, currentRole, isArbitrator } = useWeb3();
-  const { jobs, profiles, updateProfile } = usePolyLanceData();
+  const { jobs, profiles, updateProfile, deleteJob, renewJob } = usePolyLanceData();
   const navigate = useNavigate();
 
   const activeAddress = address;
@@ -81,7 +82,7 @@ export const Dashboard: React.FC = () => {
   const totalEarnedUsdc = completedFreelanceJobs.reduce((sum, j) => {
     const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
     const gross = parseFloat(j.amountUsdc || '0') * earnedFraction;
-    const net = gross * 0.975; // 2.5% platform commission deducted
+    const net = gross * 0.975; // 0% commission, 2.5% platform maintenance fee
     return sum + net;
   }, 0);
   const clientTotalEscrow = myClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
@@ -327,37 +328,58 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  {(myClientJobs.length > 0 ? myClientJobs : jobs.slice(0, 3)).map((job) => (
-                    <div
-                      key={job.id}
-                      onClick={() => navigate(`/jobs/${job.id}`)}
-                      className="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-purple-300 transition-all flex items-center justify-between cursor-pointer group"
-                    >
-                      <div className="space-y-1 max-w-md">
-                        <div
-                          className="font-bold text-sm text-slate-900 group-hover:text-purple-700 transition-colors line-clamp-1"
-                        >
-                          {job.title}
+                  {(myClientJobs.length > 0 ? myClientJobs : jobs.slice(0, 3)).map((job) => {
+                    const inact = getJobInactivityStatus(job);
+                    return (
+                      <div
+                        key={job.id}
+                        onClick={() => navigate(`/jobs/${job.id}`)}
+                        className="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-purple-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer group"
+                      >
+                        <div className="space-y-1 max-w-md">
+                          <div
+                            className="font-bold text-sm text-slate-900 group-hover:text-purple-700 transition-colors line-clamp-1"
+                          >
+                            {job.title}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-600 font-mono">
+                            <span className="font-bold text-emerald-700">${job.amountUsdc} USDC Escrow</span>
+                            <span>•</span>
+                            <span>{job.applications.length} Proposals</span>
+                            {inact.isReminderActive && (
+                              <span className="bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded font-bold">
+                                ⚠️ Inactive (10+ Days) • Closes in {inact.daysRemaining}d
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 text-[11px] text-slate-600 font-mono">
-                          <span className="font-bold text-emerald-700">${job.amountUsdc} USDC Escrow</span>
-                          <span>•</span>
-                          <span>{job.applications.length} Proposals</span>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center gap-3">
-                        <span className={`badge-status badge-${job.status.toLowerCase()}`}>
-                          {job.status}
-                        </span>
-                        <div
-                          className="p-2 rounded-xl bg-purple-50 group-hover:bg-purple-100 text-purple-900 border border-purple-200 transition-colors"
-                        >
-                          <ArrowUpRight size={16} />
+                        <div className="flex items-center gap-2.5 self-end sm:self-auto">
+                          {inact.isReminderActive && isClientRole && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                await renewJob(job.id);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-mono font-bold flex items-center gap-1 shadow-2xs cursor-pointer"
+                              title="Reset 14-day inactivity timer"
+                            >
+                              <RefreshCw size={12} />
+                              <span>Renew</span>
+                            </button>
+                          )}
+                          <span className={`badge-status badge-${job.status.toLowerCase()}`}>
+                            {job.status}
+                          </span>
+                          <div
+                            className="p-2 rounded-xl bg-purple-50 group-hover:bg-purple-100 text-purple-900 border border-purple-200 transition-colors"
+                          >
+                            <ArrowUpRight size={16} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             </div>
@@ -443,7 +465,7 @@ export const Dashboard: React.FC = () => {
                 ${(userScores.totalVolume * 0.975).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
-                Net Earned (-2.5% fee)
+                Net Earned (-2.5% Maint. Fee)
               </div>
             </div>
 
@@ -665,31 +687,69 @@ export const Dashboard: React.FC = () => {
                         />
                       </div>
                     ) : (
-                      myClientJobs.map((job) => (
-                        <div
-                          key={job.id}
-                          onClick={() => navigate(`/jobs/${job.id}`)}
-                          className="bg-slate-50 p-5 rounded-2xl border border-slate-200 hover:border-purple-300 space-y-3 cursor-pointer transition-all"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="font-bold text-base text-slate-900">
-                                {job.title}
+                      myClientJobs.map((job) => {
+                        const isStale = job.status === 'Open' && (Date.now() - (job.createdAt || Date.now()) >= 10 * 24 * 60 * 60 * 1000);
+                        return (
+                          <div
+                            key={job.id}
+                            onClick={() => navigate(`/jobs/${job.id}`)}
+                            className="bg-slate-50 p-5 rounded-2xl border border-slate-200 hover:border-purple-300 space-y-3 cursor-pointer transition-all"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="font-bold text-base text-slate-900">
+                                  {job.title}
+                                </div>
+                                <p className="text-xs text-slate-500 mt-0.5 font-mono">
+                                  Escrow Vault: <span className="text-purple-700 font-bold">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span> • {job.applications.length} Applicant{job.applications.length !== 1 ? 's' : ''} • <span className="text-slate-600 font-bold">Posted {formatTimeAgo(job.createdAt || Date.now())}</span>
+                                </p>
                               </div>
-                              <p className="text-xs text-slate-500 mt-0.5 font-mono">
-                                Escrow Vault: <span className="text-purple-700 font-bold">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span> • {job.applications.length} Applicant{job.applications.length !== 1 ? 's' : ''}
-                              </p>
+                              <span className={`badge-status badge-${job.status.toLowerCase()} shrink-0`}>
+                                {job.status}
+                              </span>
                             </div>
-                            <span className={`badge-status badge-${job.status.toLowerCase()} shrink-0`}>
-                              {job.status}
-                            </span>
+
+                            {/* 10-Day Retention Notice on Client Dashboard */}
+                            {isStale && (
+                              <div 
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-3 bg-amber-50 border border-amber-300 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950 font-sans"
+                              >
+                                <div className="flex items-center gap-1.5 font-bold">
+                                  <AlertTriangle size={15} className="text-amber-700 shrink-0" />
+                                  <span>Posted 10+ days ago. Clean database or keep active?</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      await renewJob(job.id);
+                                    }}
+                                    className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
+                                  >
+                                    <RefreshCw size={11} /> Keep (+10d)
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const ok = window.confirm('Permanently remove this job from marketplace and database?');
+                                      if (ok) await deleteJob(job.id);
+                                    }}
+                                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
+                                  >
+                                    <Trash2 size={11} /> Remove
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex justify-between items-center text-xs font-mono pt-1 text-slate-500">
+                              <span>Freelancer: {job.freelancer ? truncateAddress(job.freelancer) : 'Awaiting Selection'}</span>
+                              <span className="text-purple-700 font-bold hover:underline">Manage Job Details →</span>
+                            </div>
                           </div>
-                          <div className="flex justify-between items-center text-xs font-mono pt-1 text-slate-500">
-                            <span>Freelancer: {job.freelancer ? truncateAddress(job.freelancer) : 'Awaiting Selection'}</span>
-                            <span className="text-purple-700 font-bold hover:underline">Manage Job Details →</span>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )
                   )}
 
@@ -717,7 +777,7 @@ export const Dashboard: React.FC = () => {
                                 {job.title}
                               </div>
                               <p className="text-xs text-slate-500 mt-0.5 font-mono">
-                                Client: {truncateAddress(job.client)} • Category: <span className="capitalize text-slate-700 font-bold">{job.category}</span>
+                                Client: {truncateAddress(job.client)} • Category: <span className="capitalize text-slate-700 font-bold">{job.category}</span> • <span className="text-purple-700 font-bold">Posted {formatTimeAgo(job.createdAt || Date.now())}</span>
                               </p>
                             </div>
                             <span className="text-base font-extrabold text-emerald-700 font-mono">

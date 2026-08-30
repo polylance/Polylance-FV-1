@@ -10,9 +10,9 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        value: postgresql://polylancedb_user:I4IAWIHcDI8YCPKRgNIe93nnQTuPFQL1@dpg-da78mhp42hec73am3phg-a/polylancedb
+        sync: false
       - key: BACKUP_DATABASE_URL
-        value: postgres://17a77f3e1cb2f34728bd50b80dd36257b564ba4864ae9693229ee3276fe81b91:sk_YbuOIT2V-RXc7UJIwd01U@pooled.db.prisma.io:5432/postgres?sslmode=require
+        sync: false
       - key: RPC_URL
         value: https://rpc-amoy.polygon.technology
       - key: JOB_FACTORY_ADDRESS

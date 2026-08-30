@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { useWeb3 } from '../context/Web3Context';
 import {
@@ -7,20 +7,51 @@ import {
   ExternalLink, Lock, PlusCircle, DollarSign, CheckCircle2, ArrowUpRight,
   User, Clock, Search, Sparkles, AlertCircle, FileCheck, CheckCircle, Gavel, UserCheck,
   Paperclip, Smile, MoreVertical, Copy, Shield, Download, AlertTriangle, ChevronRight, ChevronLeft, X, Zap, Trash2, Users,
-  RotateCcw, UserPlus, PanelRightClose, PanelRightOpen, Info
+  RotateCcw, UserPlus, PanelRightClose, PanelRightOpen, Info, TrendingUp, Calendar, RefreshCw
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
-import { JudgeRecord, JudgeMessage } from '../types';
+import { JudgeRecord, JudgeMessage, DisputeReason } from '../types';
 import confetti from 'canvas-confetti';
 import { EmptyState } from '../components/UIStates';
+import { PostProgressModal } from '../components/PostProgressModal';
+import { RequestExtensionModal } from '../components/RequestExtensionModal';
+import { RaiseDisputeModal } from '../components/RaiseDisputeModal';
+import { NegotiationProposalModal } from '../components/NegotiationProposalModal';
+import { NegotiationProposalCard } from '../components/NegotiationProposalCard';
+import { JobOverviewModal } from '../components/JobOverviewModal';
+import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
+
+export interface EscrowChatChannel {
+  channelId: string;
+  jobId: string;
+  applicantAddress?: string;
+  jobTitle: string;
+  counterpartAddress: string;
+  counterpartName: string;
+  counterpartAvatar?: string;
+  badge: string;
+  amountUsdc: string;
+  lastMessage?: string;
+  lastMessageTime?: number;
+  isApplicantThread?: boolean;
+  githubScore?: number;
+  githubVerified?: boolean;
+}
 
 export const Chat: React.FC = () => {
   const { jobId: urlJobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const queryJobId = searchParams.get('jobId') || urlJobId;
+  const queryApplicant = searchParams.get('applicant') || searchParams.get('recipient');
+
   const { address, currentRole, isConnected } = useWeb3();
   const {
     jobs, profiles, judges, judgeMessages, sendChatMessage, sendJudgeChatMessage, sendPreAcceptMessage, proposeTerms, fundJob,
-    releasePayment, submitWork, requestModifications, isEnclineConnected, closeChatSession, deleteChatHistory, restoreChatHistory, addJudge
+    releasePayment, submitWork, requestModifications, isEnclineConnected, closeChatSession, deleteChatHistory, restoreChatHistory, addJudge,
+    postProgressUpdate, requestTimeExtension, respondToTimeExtension, selectFreelancer, raiseDispute,
+    proposeNegotiationTerms, respondToNegotiationProposal
   } = usePolyLanceData();
 
   const [showJobDetailsSidebar, setShowJobDetailsSidebar] = useState(true);
@@ -46,6 +77,12 @@ export const Chat: React.FC = () => {
   const [newJudgeAddress, setNewJudgeAddress] = useState('');
   const [newJudgeName, setNewJudgeName] = useState('');
   const [newJudgeNotes, setNewJudgeNotes] = useState('');
+
+  // Negotiation & Overview Modal State
+  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
+  const [isFinalCallMode, setIsFinalCallMode] = useState(false);
+  const [isJobOverviewModalOpen, setIsJobOverviewModalOpen] = useState(false);
+  const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
 
   // 30-Second Countdown Effect
   useEffect(() => {
@@ -91,7 +128,11 @@ export const Chat: React.FC = () => {
   const handleAddJudgeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newJudgeAddress.trim() || !newJudgeAddress.startsWith('0x')) {
-      alert('Please enter a valid Ethereum/Polygon address starting with 0x.');
+      setAlertModalOptions({
+        title: 'Invalid Wallet Address',
+        message: 'Please enter a valid Ethereum/Polygon wallet address starting with 0x.',
+        type: 'error'
+      });
       return;
     }
     addJudge(
@@ -111,10 +152,16 @@ export const Chat: React.FC = () => {
 
   const isAdmin = currentRole === 'admin';
   const isJudgeRole = currentRole === 'judge';
-  const [chatTab, setChatTab] = useState<'jobs' | 'judges'>(isAdmin && !urlJobId ? 'judges' : 'jobs');
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(urlJobId || null);
-
-
+  const [chatTab, setChatTab] = useState<'jobs' | 'judges'>(isAdmin && !queryJobId ? 'judges' : 'jobs');
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(() => {
+    if (queryJobId) {
+      if (queryApplicant) {
+        return `${queryJobId}:${queryApplicant.toLowerCase()}`;
+      }
+      return queryJobId;
+    }
+    return null;
+  });
   const [selectedJudgeAddr, setSelectedJudgeAddr] = useState<string | null>(null);
 
   const [inputText, setInputText] = useState('');
@@ -122,11 +169,14 @@ export const Chat: React.FC = () => {
   const [copiedAddr, setCopiedAddr] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // Interactive submission modal inside chat
+  // Interactive Action Modals inside chat
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [submitTitle, setSubmitTitle] = useState('');
   const [submitDesc, setSubmitDesc] = useState('');
   const [submitLink, setSubmitLink] = useState('');
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [showMobileChannels, setShowMobileChannels] = useState(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -139,33 +189,190 @@ export const Chat: React.FC = () => {
     }
   }, [isAdmin, chatTab, judges, selectedJudgeAddr]);
 
-  // If URL contains a jobId, auto select it and switch tab to jobs
-  useEffect(() => {
-    if (urlJobId) {
-      setSelectedJobId(urlJobId);
-      setChatTab('jobs');
-    }
-  }, [urlJobId]);
+  const userAddr = (address || '').toLowerCase();
+  const isClientRole = currentRole === 'client';
 
   // Securely filter jobs for conversation sidebar
-  // ONLY show escrow chat channel to the Client or the assigned/accepted Freelancer, applied candidates, (or Admin/Judge)
-  const myChats = jobs.filter(j => {
+  const myChats = jobs.filter((j) => {
     if (isAdmin) return true; // Admin has platform governance oversight
-    const lowerAddr = (address || '').toLowerCase();
-    const isClient = j.client.toLowerCase() === lowerAddr;
-    const isFreelancer = j.freelancer?.toLowerCase() === lowerAddr;
-    const hasApplied = (j.applications || []).some(a => a.applicant.toLowerCase() === lowerAddr);
+    const isClient = j.client.toLowerCase() === userAddr || isClientRole;
+    const isFreelancer = j.freelancer?.toLowerCase() === userAddr;
+    const hasApplied = (j.applications || []).some((a) => a.applicant.toLowerCase() === userAddr);
     const isJudgeOnDispute = isJudgeRole && j.status === 'Disputed';
 
-    // Strictly limit private escrow channels to the client, accepted developer, applied candidates, or judge
     return isClient || isFreelancer || hasApplied || isJudgeOnDispute;
   });
 
-  const isUserScrolledUpRef = useRef(false);
-  const activeJobIdRef = useRef<string | null>(null);
+  // Construct distinct 1-on-1 Escrow Chat Channels for all candidates and assigned developers
+  const escrowChannels: EscrowChatChannel[] = [];
 
-  const activeJob = jobs.find(j => j.id === selectedJobId);
-  const activeJudge = judges.find(j => j.address.toLowerCase() === (selectedJudgeAddr || '').toLowerCase());
+  myChats.forEach((job) => {
+    const isJobClient = job.client.toLowerCase() === userAddr || isClientRole;
+
+    if (isJobClient) {
+      if (job.status === 'Open') {
+        const apps = job.applications || [];
+        if (apps.length > 0) {
+          apps.forEach((app) => {
+            const appAddr = app.applicant.toLowerCase();
+            const profKey = Object.keys(profiles).find((k) => k.toLowerCase() === appAddr);
+            const prof = profKey ? profiles[profKey] : null;
+            const name = prof?.displayName || truncateAddress(app.applicant);
+            const channelId = `${job.id}:${appAddr}`;
+
+            const msgs = (job.chatMessages || []).filter(
+              (m) =>
+                m.applicantAddress?.toLowerCase() === appAddr ||
+                m.senderAddress?.toLowerCase() === appAddr ||
+                m.recipientAddress?.toLowerCase() === appAddr
+            );
+            const lastMsgObj = msgs[msgs.length - 1];
+            let lastText = lastMsgObj?.text;
+            if (!lastText && lastMsgObj?.proposal) {
+              lastText = `📋 Proposal: $${lastMsgObj.proposal.amountUsdc} USDC (${lastMsgObj.proposal.deadlineDays}d)`;
+            }
+
+            escrowChannels.push({
+              channelId,
+              jobId: job.id,
+              applicantAddress: app.applicant,
+              jobTitle: job.title,
+              counterpartAddress: app.applicant,
+              counterpartName: name,
+              counterpartAvatar: prof?.avatarUrl,
+              badge: 'Candidate',
+              amountUsdc: job.amountUsdc,
+              lastMessage: lastText || app.proposalText || 'Candidate applied',
+              lastMessageTime: lastMsgObj ? lastMsgObj.timestamp : app.appliedAt || job.createdAt,
+              isApplicantThread: true,
+              githubScore: app.githubScore || prof?.primaryScore,
+              githubVerified: app.githubVerified || prof?.githubVerified,
+            });
+          });
+        } else {
+          escrowChannels.push({
+            channelId: `${job.id}:open`,
+            jobId: job.id,
+            jobTitle: job.title,
+            counterpartAddress: job.client,
+            counterpartName: 'Open Marketplace',
+            badge: 'Open',
+            amountUsdc: job.amountUsdc,
+            lastMessage: 'Waiting for candidates...',
+            lastMessageTime: job.createdAt,
+            isApplicantThread: false,
+          });
+        }
+      } else {
+        // Active contract with assigned freelancer
+        const hiredFreelancer = job.freelancer || (job.applications?.[0]?.applicant) || '';
+        const profKey = hiredFreelancer ? Object.keys(profiles).find((k) => k.toLowerCase() === hiredFreelancer.toLowerCase()) : null;
+        const prof = profKey ? profiles[profKey] : null;
+        const name = prof?.displayName || (hiredFreelancer ? truncateAddress(hiredFreelancer) : 'Assigned Talent');
+        const channelId = `${job.id}:${hiredFreelancer.toLowerCase() || 'contract'}`;
+
+        const msgs = (job.chatMessages || []).filter(
+          (m) =>
+            !m.applicantAddress ||
+            !hiredFreelancer ||
+            m.applicantAddress.toLowerCase() === hiredFreelancer.toLowerCase()
+        );
+        const lastMsgObj = msgs[msgs.length - 1];
+        let lastText = lastMsgObj?.text;
+        if (!lastText && lastMsgObj?.proposal) {
+          lastText = `📋 Terms: $${lastMsgObj.proposal.amountUsdc} USDC (${lastMsgObj.proposal.deadlineDays}d)`;
+        }
+
+        escrowChannels.push({
+          channelId,
+          jobId: job.id,
+          applicantAddress: hiredFreelancer,
+          jobTitle: job.title,
+          counterpartAddress: hiredFreelancer,
+          counterpartName: name,
+          counterpartAvatar: prof?.avatarUrl,
+          badge: job.status,
+          amountUsdc: job.amountUsdc,
+          lastMessage: lastText || 'Escrow contract active',
+          lastMessageTime: lastMsgObj ? lastMsgObj.timestamp : job.createdAt,
+          isApplicantThread: false,
+        });
+      }
+    } else {
+      // Freelancer view
+      const clientAddr = job.client.toLowerCase();
+      const profKey = Object.keys(profiles).find((k) => k.toLowerCase() === clientAddr);
+      const prof = profKey ? profiles[profKey] : null;
+      const clientName = prof?.displayName || truncateAddress(job.client);
+      const channelId = `${job.id}:${userAddr}`;
+
+      const msgs = (job.chatMessages || []).filter(
+        (m) =>
+          !m.applicantAddress ||
+          m.applicantAddress.toLowerCase() === userAddr ||
+          m.senderAddress?.toLowerCase() === userAddr
+      );
+      const lastMsgObj = msgs[msgs.length - 1];
+      let lastText = lastMsgObj?.text;
+      if (!lastText && lastMsgObj?.proposal) {
+        lastText = `📋 Proposal: $${lastMsgObj.proposal.amountUsdc} USDC (${lastMsgObj.proposal.deadlineDays}d)`;
+      }
+
+      escrowChannels.push({
+        channelId,
+        jobId: job.id,
+        applicantAddress: address || '',
+        jobTitle: job.title,
+        counterpartAddress: job.client,
+        counterpartName: clientName,
+        counterpartAvatar: prof?.avatarUrl,
+        badge: job.status === 'Open' ? 'Pre-Negotiation' : job.status,
+        amountUsdc: job.amountUsdc,
+        lastMessage: lastText || 'Discuss terms with client',
+        lastMessageTime: lastMsgObj ? lastMsgObj.timestamp : job.createdAt,
+        isApplicantThread: job.status === 'Open',
+      });
+    }
+  });
+
+  // Sort channels by most recent activity
+  escrowChannels.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
+
+  // Sync selectedChannelId when URL parameters change
+  useEffect(() => {
+    if (queryJobId) {
+      if (queryApplicant) {
+        setSelectedChannelId(`${queryJobId}:${queryApplicant.toLowerCase()}`);
+      } else {
+        const matching = escrowChannels.find((c) => c.jobId === queryJobId);
+        if (matching) {
+          setSelectedChannelId(matching.channelId);
+        } else {
+          setSelectedChannelId(queryJobId);
+        }
+      }
+      setChatTab('jobs');
+    }
+  }, [queryJobId, queryApplicant, escrowChannels.length]);
+
+  // Set default selected channel if none is selected
+  useEffect(() => {
+    if (chatTab === 'jobs' && !selectedChannelId && escrowChannels.length > 0) {
+      setSelectedChannelId(escrowChannels[0].channelId);
+    }
+  }, [chatTab, selectedChannelId, escrowChannels.length]);
+
+  const activeChannel =
+    escrowChannels.find((c) => c.channelId === selectedChannelId) ||
+    escrowChannels.find((c) => c.jobId === selectedChannelId) ||
+    (escrowChannels.length > 0 ? escrowChannels[0] : null);
+
+  const activeJob = activeChannel ? jobs.find((j) => j.id === activeChannel.jobId) : (queryJobId ? jobs.find((j) => j.id === queryJobId) : undefined);
+  const activeApplicantAddr = activeChannel?.applicantAddress;
+  const activeJudge = judges.find((j) => j.address.toLowerCase() === (selectedJudgeAddr || '').toLowerCase());
+
+  const isUserScrolledUpRef = useRef(false);
+  const activeChannelIdRef = useRef<string | null>(null);
 
   // Scroll listener to detect if user manually scrolled up
   const handleChatScroll = () => {
@@ -176,8 +383,8 @@ export const Chat: React.FC = () => {
 
   // Only scroll down internally in the chat feed if user is at the bottom or switching conversation channel
   useEffect(() => {
-    if (activeJobIdRef.current !== selectedJobId) {
-      activeJobIdRef.current = selectedJobId;
+    if (activeChannelIdRef.current !== selectedChannelId) {
+      activeChannelIdRef.current = selectedChannelId;
       isUserScrolledUpRef.current = false;
       setTimeout(() => {
         if (chatContainerRef.current) {
@@ -188,11 +395,11 @@ export const Chat: React.FC = () => {
       if (chatContainerRef.current) {
         chatContainerRef.current.scrollTo({
           top: chatContainerRef.current.scrollHeight,
-          behavior: 'smooth'
+          behavior: 'smooth',
         });
       }
     }
-  }, [activeJob?.chatMessages?.length, activeJob?.preAcceptMessages?.length, selectedJudgeAddr, judgeMessages, selectedJobId]);
+  }, [activeJob?.chatMessages?.length, activeJob?.preAcceptMessages?.length, selectedJudgeAddr, judgeMessages, selectedChannelId]);
 
   const handleCopyAddress = (addrToCopy: string) => {
     navigator.clipboard.writeText(addrToCopy);
@@ -212,7 +419,7 @@ export const Chat: React.FC = () => {
     );
   }
 
-  // Handle message submission
+  // Handle message submission with isolated applicant scoping
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
@@ -224,12 +431,12 @@ export const Chat: React.FC = () => {
     } else if (activeJob) {
       const lowerAddr = (address || '').toLowerCase();
       const isClient = activeJob.client.toLowerCase() === lowerAddr || currentRole === 'client';
-      const isFreelancer = (!isClient && (
-        (activeJob.freelancer?.toLowerCase() === lowerAddr) ||
-        (activeJob.applications || []).some(a => a.applicant.toLowerCase() === lowerAddr) ||
-        currentRole === 'freelancer' ||
-        (!isAdmin && !isJudgeRole)
-      ));
+      const isFreelancer =
+        !isClient &&
+        (activeJob.freelancer?.toLowerCase() === lowerAddr ||
+          (activeJob.applications || []).some((a) => a.applicant.toLowerCase() === lowerAddr) ||
+          currentRole === 'freelancer' ||
+          (!isAdmin && !isJudgeRole));
 
       let jobSenderRole: 'Client' | 'Freelancer' | 'Judge' = 'Freelancer';
       if (isClient) {
@@ -241,13 +448,26 @@ export const Chat: React.FC = () => {
       }
 
       if (activeJob.status === 'Open') {
-        sendPreAcceptMessage(activeJob.id, inputText, address || '', jobSenderRole === 'Client' ? 'Client' : 'Freelancer');
+        sendPreAcceptMessage(
+          activeJob.id,
+          inputText,
+          address || '',
+          jobSenderRole === 'Client' ? 'Client' : 'Freelancer',
+          undefined,
+          activeApplicantAddr
+        );
       }
-      sendChatMessage(activeJob.id, inputText, jobSenderRole);
+      sendChatMessage(
+        activeJob.id,
+        inputText,
+        jobSenderRole,
+        undefined,
+        activeApplicantAddr,
+        address
+      );
       setInputText('');
     }
   };
-
 
   // Escrow direct actions
   const handleProposeTerms = () => {
@@ -255,21 +475,42 @@ export const Chat: React.FC = () => {
     const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase();
     proposeTerms(activeJob.id, address);
     confetti({ particleCount: 50, spread: 60 });
-    sendChatMessage(activeJob.id, `🔒 Terms signature hash submitted cryptographically by ${isClient ? 'Client' : 'Developer'}.`, 'Judge');
+    sendChatMessage(
+      activeJob.id,
+      `🔒 Terms signature hash submitted cryptographically by ${isClient ? 'Client' : 'Developer'}.`,
+      'Judge',
+      undefined,
+      activeApplicantAddr,
+      address
+    );
   };
 
   const handleFund = () => {
     if (!activeJob) return;
     fundJob(activeJob.id);
     confetti({ particleCount: 75, spread: 60 });
-    sendChatMessage(activeJob.id, `💰 Escrow vault funded successfully. Budget of $${parseFloat(activeJob.amountUsdc).toLocaleString()} USDC is locked.`, 'Judge');
+    sendChatMessage(
+      activeJob.id,
+      `💰 Escrow vault funded successfully. Budget of $${parseFloat(activeJob.amountUsdc).toLocaleString()} USDC is locked.`,
+      'Judge',
+      undefined,
+      activeApplicantAddr,
+      address
+    );
   };
 
   const handleRelease = () => {
     if (!activeJob) return;
     releasePayment(activeJob.id);
     confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
-    sendChatMessage(activeJob.id, `🎉 Escrow Milestone approved. Funds released to Developer's wallet. SBT minted!`, 'Judge');
+    sendChatMessage(
+      activeJob.id,
+      `🎉 Escrow Milestone approved. Funds released to Developer's wallet. SBT minted!`,
+      'Judge',
+      undefined,
+      activeApplicantAddr,
+      address
+    );
   };
 
   const handleSubmitDeliverable = (e: React.FormEvent) => {
@@ -279,7 +520,14 @@ export const Chat: React.FC = () => {
     submitWork(activeJob.id, submitTitle, submitDesc, submitLink ? [submitLink] : []);
     setIsSubmitModalOpen(false);
     confetti({ particleCount: 60, spread: 50 });
-    sendChatMessage(activeJob.id, `🚀 Work Submission: "${submitTitle}" submitted for Client review. Deliverable link: ${submitLink || 'N/A'}`, 'Freelancer');
+    sendChatMessage(
+      activeJob.id,
+      `🚀 Work Submission: "${submitTitle}" submitted for Client review. Deliverable link: ${submitLink || 'N/A'}`,
+      'Freelancer',
+      undefined,
+      activeApplicantAddr,
+      address
+    );
   };
 
   const handleRequestRevision = () => {
@@ -287,7 +535,14 @@ export const Chat: React.FC = () => {
     const note = prompt('Please explain what revisions are required:');
     if (!note) return;
     requestModifications(activeJob.id, note);
-    sendChatMessage(activeJob.id, `⚠️ Revision Request: Client requested code changes. Note: "${note}"`, 'Client');
+    sendChatMessage(
+      activeJob.id,
+      `⚠️ Revision Request: Client requested code changes. Note: "${note}"`,
+      'Client',
+      undefined,
+      activeApplicantAddr,
+      address
+    );
   };
 
   // Comprehensive Filters for Search
@@ -308,42 +563,18 @@ export const Chat: React.FC = () => {
     return false;
   });
 
-  const filteredChats = myChats.filter(j => {
+  const filteredChannels = escrowChannels.filter((c) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
 
-    // 1. Title & Description & Category & Amount & Contract Address
-    if (j.title?.toLowerCase().includes(q)) return true;
-    if (j.description?.toLowerCase().includes(q)) return true;
-    if (j.category?.toLowerCase().includes(q)) return true;
-    if (j.amountUsdc?.toString().toLowerCase().includes(q)) return true;
-    if (j.contractAddress?.toLowerCase().includes(q)) return true;
-
-    // 2. Client & Freelancer addresses
-    if (j.client?.toLowerCase().includes(q)) return true;
-    if (j.freelancer?.toLowerCase().includes(q)) return true;
-
-    // 3. Counterpart Display Name, GitHub Username & Bio
-    const clientKey = Object.keys(profiles).find(k => k.toLowerCase() === j.client.toLowerCase());
-    const clientProfile = clientKey ? profiles[clientKey] : null;
-    if (clientProfile?.displayName?.toLowerCase().includes(q)) return true;
-    if (clientProfile?.githubUsername?.toLowerCase().includes(q)) return true;
-    if (clientProfile?.bio?.toLowerCase().includes(q)) return true;
-
-    const freelancerKey = j.freelancer ? Object.keys(profiles).find(k => k.toLowerCase() === j.freelancer?.toLowerCase()) : null;
-    const freelancerProfile = freelancerKey ? profiles[freelancerKey] : null;
-    if (freelancerProfile?.displayName?.toLowerCase().includes(q)) return true;
-    if (freelancerProfile?.githubUsername?.toLowerCase().includes(q)) return true;
-    if (freelancerProfile?.bio?.toLowerCase().includes(q)) return true;
-
-    // 4. Applicants
-    if (j.applications?.some(a => a.applicant.toLowerCase().includes(q) || a.proposalText?.toLowerCase().includes(q))) return true;
-
-    // 5. Message Content in Conversation History
-    const allMsgs = [...(j.chatMessages || []), ...(j.preAcceptMessages || [])];
-    if (allMsgs.some(m => m.text?.toLowerCase().includes(q))) return true;
-
-    return false;
+    return (
+      c.jobTitle.toLowerCase().includes(q) ||
+      c.counterpartName.toLowerCase().includes(q) ||
+      c.counterpartAddress.toLowerCase().includes(q) ||
+      (c.lastMessage && c.lastMessage.toLowerCase().includes(q)) ||
+      c.amountUsdc.toLowerCase().includes(q) ||
+      c.badge.toLowerCase().includes(q)
+    );
   });
 
 
@@ -509,9 +740,9 @@ export const Chat: React.FC = () => {
               /* Escrow Job Channels Section */
               <div className="space-y-1.5">
                 <span className="text-[10px] font-mono uppercase font-bold text-slate-400 tracking-wider px-1">
-                  ACTIVE ESCROW CHANNELS
+                  ACTIVE ESCROW CHANNELS ({filteredChannels.length})
                 </span>
-                {filteredChats.length === 0 ? (
+                {filteredChannels.length === 0 ? (
                   <div className="p-8 text-center text-slate-400 text-xs font-medium space-y-1">
                     <p className="font-bold text-slate-600">
                       {searchQuery ? 'No matching escrow channels' : 'No active escrow channels found'}
@@ -521,44 +752,83 @@ export const Chat: React.FC = () => {
                     </p>
                   </div>
                 ) : (
-                  filteredChats.map((job) => {
-                    const jobIsSelected = job.id === selectedJobId && chatTab === 'jobs';
-                    const activeRoleIsClient = job.client.toLowerCase() === (address || '').toLowerCase();
-                    const activeCounterpartAddress = activeRoleIsClient ? (job.freelancer || job.applications?.[0]?.applicant || '') : job.client;
-                    const activeCounterpartKey = activeCounterpartAddress
-                      ? Object.keys(profiles).find(k => k.toLowerCase() === activeCounterpartAddress.toLowerCase())
-                      : null;
-                    const activeCounterpartProfile = activeCounterpartKey ? profiles[activeCounterpartKey] : null;
-                    const activeCounterpartName = activeCounterpartProfile?.displayName || truncateAddress(activeCounterpartAddress || '');
-                    const lastMsg = job.chatMessages?.[job.chatMessages.length - 1];
+                  filteredChannels.map((channel) => {
+                    const isSelected =
+                      (channel.channelId === selectedChannelId ||
+                        (channel.jobId === selectedChannelId && !selectedChannelId?.includes(':'))) &&
+                      chatTab === 'jobs';
 
                     return (
                       <button
-                        key={job.id}
-                        onClick={() => { setSelectedJobId(job.id); setChatTab('jobs'); }}
-                        className={`w-full p-3 rounded-2xl text-left transition-all border flex items-start gap-3 cursor-pointer ${jobIsSelected
+                        key={channel.channelId}
+                        onClick={() => {
+                          setSelectedChannelId(channel.channelId);
+                          setChatTab('jobs');
+                        }}
+                        className={`w-full p-3 rounded-2xl text-left transition-all border flex items-start gap-3 cursor-pointer ${
+                          isSelected
                             ? 'bg-purple-700 text-white border-purple-800 shadow-md font-bold'
                             : 'bg-white text-slate-700 border-slate-150 hover:bg-slate-50'
-                          }`}
+                        }`}
                       >
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${jobIsSelected ? 'bg-purple-100 text-purple-900' : 'bg-slate-100 text-slate-700 border border-slate-200'
-                          }`}>
-                          {activeCounterpartName.slice(0, 2)}
+                        <div
+                          className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 overflow-hidden ${
+                            isSelected ? 'bg-purple-100 text-purple-900' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                          }`}
+                        >
+                          {channel.counterpartAvatar ? (
+                            <img src={channel.counterpartAvatar} alt={channel.counterpartName} className="w-full h-full object-cover" />
+                          ) : (
+                            channel.counterpartName.slice(0, 2)
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex justify-between items-start">
-                            <span className={`font-extrabold text-xs truncate max-w-[120px] ${jobIsSelected ? 'text-white' : 'text-slate-900'}`} style={jobIsSelected ? { color: '#FFFFFF' } : undefined}>
-                              {activeCounterpartName}
-                            </span>
-                            <span className={`text-[9px] font-mono shrink-0 ${jobIsSelected ? 'text-purple-100 font-bold' : 'text-slate-500'}`} style={jobIsSelected ? { color: '#F3E8FF' } : undefined}>
-                              ${parseFloat(job.amountUsdc || '0').toLocaleString()}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span
+                                className={`font-extrabold text-xs truncate max-w-[125px] ${
+                                  isSelected ? 'text-white' : 'text-slate-900'
+                                }`}
+                                style={isSelected ? { color: '#FFFFFF' } : undefined}
+                              >
+                                {channel.counterpartName}
+                              </span>
+                              <span
+                                className={`text-[8.5px] px-1.5 py-0.2 rounded-full font-mono font-bold uppercase tracking-wider shrink-0 ${
+                                  isSelected
+                                    ? 'bg-purple-800 text-purple-100 border border-purple-600'
+                                    : channel.badge === 'Candidate'
+                                    ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                    : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                }`}
+                              >
+                                {channel.badge}
+                              </span>
+                            </div>
+                            <span
+                              className={`text-[9px] font-mono shrink-0 ml-1 ${
+                                isSelected ? 'text-purple-100 font-bold' : 'text-slate-500'
+                              }`}
+                              style={isSelected ? { color: '#F3E8FF' } : undefined}
+                            >
+                              ${parseFloat(channel.amountUsdc || '0').toLocaleString()}
                             </span>
                           </div>
-                          <p className={`text-[10px] truncate font-sans mt-0.5 ${jobIsSelected ? 'text-white font-bold' : 'text-slate-700'}`} style={jobIsSelected ? { color: '#FFFFFF' } : undefined}>
-                            {job.title}
+                          <p
+                            className={`text-[10px] truncate font-sans mt-0.5 ${
+                              isSelected ? 'text-white font-bold' : 'text-slate-700'
+                            }`}
+                            style={isSelected ? { color: '#FFFFFF' } : undefined}
+                          >
+                            {channel.jobTitle}
                           </p>
-                          <p className={`text-[9px] truncate font-mono mt-1 ${jobIsSelected ? 'text-purple-100 font-medium' : 'text-slate-500'}`} style={jobIsSelected ? { color: '#E9D5FF' } : undefined}>
-                            {lastMsg ? `${lastMsg.sender}: ${lastMsg.text}` : 'No messages yet'}
+                          <p
+                            className={`text-[9px] truncate font-mono mt-1 ${
+                              isSelected ? 'text-purple-100 font-medium' : 'text-slate-500'
+                            }`}
+                            style={isSelected ? { color: '#E9D5FF' } : undefined}
+                          >
+                            {channel.lastMessage || 'No messages yet'}
                           </p>
                         </div>
                       </button>
@@ -712,22 +982,31 @@ export const Chat: React.FC = () => {
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const reason = prompt('State the dispute reason:');
-                      if (reason) {
-                        const targetId = activeJob ? activeJob.id : selectedJudgeAddr;
-                        if (targetId) {
-                          sendChatMessage(targetId, `⚠️ Dispute Raised: ${reason}`, 'Judge');
+                  {Boolean(
+                    !activeJob ||
+                    (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
+                    activeJob.status === 'Funded' ||
+                    activeJob.status === 'Submitted' ||
+                    activeJob.status === 'Completed' ||
+                    activeJob.status === 'Disputed'
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const reason = prompt('State the dispute reason:');
+                        if (reason) {
+                          const targetId = activeJob ? activeJob.id : selectedJudgeAddr;
+                          if (targetId) {
+                            sendChatMessage(targetId, `⚠️ Dispute Raised: ${reason}`, 'Judge');
+                          }
                         }
-                      }
-                    }}
-                    className="bg-rose-50/70 hover:bg-rose-100/70 border border-rose-300 text-rose-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
-                  >
-                    <AlertTriangle size={13} className="text-rose-600" />
-                    Raise Issue
-                  </button>
+                      }}
+                      className="bg-rose-50/70 hover:bg-rose-100/70 border border-rose-300 text-rose-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                    >
+                      <AlertTriangle size={13} className="text-rose-600" />
+                      Raise Issue
+                    </button>
+                  )}
 
                   {activeJob ? (
                     <Link
@@ -877,7 +1156,7 @@ export const Chat: React.FC = () => {
                 <UserCheck size={48} className="text-purple-600 stroke-1" />
                 <div>
                   <h4 className="font-bold text-slate-800 text-sm">Select a Judge Channel</h4>
-                  <p className="text-xs text-slate-500 mt-1 font-mono">Choose an arbitrator from the left panel to open direct communications.</p>
+<p className="text-xs text-slate-500 mt-1 font-mono">Choose an arbitrator from the left panel to open direct communications.</p>
                 </div>
               </div>
             )
@@ -890,7 +1169,7 @@ export const Chat: React.FC = () => {
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <button
                       type="button"
-                      onClick={() => setSelectedJobId(null)}
+                      onClick={() => setSelectedChannelId(null)}
                       className="md:hidden p-1 -ml-1 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
                       title="Back to conversation list"
                     >
@@ -898,8 +1177,12 @@ export const Chat: React.FC = () => {
                     </button>
                     {/* Circle Avatar with status ring */}
                     <div className="relative shrink-0">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-600 text-white font-extrabold flex items-center justify-center text-xs uppercase shadow-xs ring-2 ring-purple-100">
-                        {(activeJob.client.toLowerCase() === (address || '').toLowerCase() ? (activeJob.freelancer || 'Dev') : 'Client').slice(0, 2)}
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-600 text-white font-extrabold flex items-center justify-center text-xs uppercase shadow-xs ring-2 ring-purple-100 overflow-hidden">
+                        {activeChannel?.counterpartAvatar ? (
+                          <img src={activeChannel.counterpartAvatar} alt={activeChannel.counterpartName} className="w-full h-full object-cover" />
+                        ) : (
+                          (activeChannel?.counterpartName || 'Dev').slice(0, 2)
+                        )}
                       </div>
                       <span className={`w-2.5 h-2.5 rounded-full border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-xs ${
                         activeJob.status === 'Completed' ? 'bg-purple-500' : 'bg-emerald-400'
@@ -908,30 +1191,41 @@ export const Chat: React.FC = () => {
 
                     {/* Header Info */}
                     <div className="min-w-0 flex-1">
-                      {/* Main Title - compact single line / clean truncate */}
-                      <h4 className="font-headline font-black text-slate-900 text-sm sm:text-[15px] leading-tight truncate" title={activeJob.title}>
-                        {activeJob.title}
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-headline font-black text-slate-900 text-sm sm:text-[15px] leading-tight truncate">
+                          {activeChannel?.counterpartName || activeJob.title}
+                        </h4>
+                        <span className={`inline-flex items-center gap-1 text-[9.5px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${
+                          activeChannel?.badge === 'Candidate'
+                            ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                            : 'bg-purple-50 text-purple-700 border border-purple-200'
+                        }`}>
+                          {activeChannel?.badge || activeJob.status}
+                        </span>
+                        {activeChannel?.githubScore !== undefined && activeChannel.githubScore > 0 && (
+                          <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded-md">
+                            GitHub: {activeChannel.githubScore} pts
+                          </span>
+                        )}
+                      </div>
 
                       {/* Clean Single-line Subtitle & Address Pill */}
                       <div className="flex items-center gap-2 text-xs mt-0.5 min-w-0">
-                        <div className="flex items-center gap-1.5 text-[10.5px] font-mono text-slate-500 font-medium shrink-0">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          <span>Encrypted Channel</span>
-                        </div>
-
-                        {(activeJob.contractAddress || activeJob.client) && (
+                        <span className="text-[10.5px] font-sans text-slate-500 font-medium truncate">
+                          Job: {activeJob.title}
+                        </span>
+                        {activeChannel?.counterpartAddress && (
                           <>
                             <span className="text-slate-300 text-[10px] shrink-0">•</span>
-                            <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 px-1.5 py-0.5 rounded-md text-[10.5px] font-mono text-slate-600 shrink-0">
+                            <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 px-1.5 py-0.5 rounded-md text-[10px] font-mono text-slate-600 shrink-0">
                               <button
                                 type="button"
-                                onClick={() => handleCopyAddress(activeJob.contractAddress || activeJob.client)}
+                                onClick={() => handleCopyAddress(activeChannel.counterpartAddress)}
                                 className="hover:text-purple-700 cursor-pointer flex items-center gap-1"
                                 title="Copy Address"
                               >
                                 <Copy size={9} className="text-slate-400 hover:text-purple-600" />
-                                <span>{truncateAddress(activeJob.contractAddress || activeJob.client)}</span>
+                                <span>{truncateAddress(activeChannel.counterpartAddress)}</span>
                               </button>
                               {copiedAddr && <span className="text-[8px] text-emerald-600 font-bold">Copied!</span>}
                             </div>
@@ -952,21 +1246,24 @@ export const Chat: React.FC = () => {
                       <ArrowUpRight size={11} className="text-purple-600 shrink-0" />
                     </Link>
 
-                    {/* Raise Issue Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const reason = prompt('State the dispute reason:');
-                        if (reason && activeJob) {
-                          sendChatMessage(activeJob.id, `⚠️ Dispute Raised: ${reason}`, 'Judge');
-                        }
-                      }}
-                      className="whitespace-nowrap shrink-0 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[11px] shadow-2xs transition-all cursor-pointer leading-none"
-                      title="Raise an arbitrator dispute / issue"
-                    >
-                      <AlertTriangle size={11} className="text-rose-600 shrink-0" />
-                      <span>Raise Issue</span>
-                    </button>
+                    {/* Raise Issue Button - Only show after terms are agreed and contract is signed/funded */}
+                    {Boolean(
+                      (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
+                      activeJob.status === 'Funded' ||
+                      activeJob.status === 'Submitted' ||
+                      activeJob.status === 'Completed' ||
+                      activeJob.status === 'Disputed'
+                    ) && (
+                      <button
+                        type="button"
+                        onClick={() => setIsDisputeModalOpen(true)}
+                        className="whitespace-nowrap shrink-0 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[11px] shadow-2xs transition-all cursor-pointer leading-none"
+                        title="File formal DAO dispute case"
+                      >
+                        <AlertTriangle size={11} className="text-rose-600 shrink-0" />
+                        <span>Raise Issue</span>
+                      </button>
+                    )}
 
                     <div className="relative">
                       <button
@@ -1019,93 +1316,138 @@ export const Chat: React.FC = () => {
                 </div>
 
                 {/* Compact Dedicated Action Button Bar */}
-                <div className="px-4 py-2 border-b border-slate-100 bg-white/60 flex items-center justify-start gap-2 shrink-0 flex-wrap">
+                <div className="px-4 py-2 border-b border-slate-100 bg-white/60 flex flex-col gap-2 shrink-0">
                   {(() => {
                     const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase() || currentRole === 'client';
-                    const isFreelancer = (!isClient && activeJob.freelancer?.toLowerCase() === (address || '').toLowerCase()) || currentRole === 'freelancer';
+                    const activePendingExtensions = (activeJob.extensionRequests || []).filter(
+                      req => req.status === 'Pending' || (!req.responded && req.status !== 'Approved' && req.status !== 'Rejected')
+                    );
 
                     return (
                       <>
-                        {/* Escrow & Net Amount Badge */}
-                        <div className="bg-slate-100/90 border border-slate-200 text-slate-800 font-mono py-1 px-2.5 rounded-lg flex items-center gap-1.5 text-[10.5px]">
-                          <span className="font-bold text-slate-600">Escrow:</span>
-                          <strong className="text-slate-900">${parseFloat(activeJob.amountUsdc || '0').toLocaleString()} USDC</strong>
-                          <span className="text-slate-400">•</span>
-                          <span className="text-purple-700 font-bold">Net: ${(parseFloat(activeJob.amountUsdc || '0') * 0.975).toFixed(2)} USDC</span>
-                        </div>
-
-                        {/* CLIENT ACTIONS */}
-                        {isClient && (
-                          <>
-                            {(activeJob.status === 'Submitted' || (activeJob.status as string) === 'Funded') ? (
-                              <button
-                                type="button"
-                                onClick={handleRelease}
-                                className="bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
-                              >
-                                <CheckCircle2 size={13} className="text-emerald-600" />
-                                Approve Payment
-                              </button>
-                            ) : (activeJob.status === 'Selected' || (activeJob.status as string) === 'TermsAgreed') ? (
-                              <button
-                                type="button"
-                                onClick={handleFund}
-                                className="bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
-                              >
-                                <DollarSign size={13} className="text-emerald-600" />
-                                Fund Escrow
-                              </button>
-                            ) : activeJob.status === 'Completed' ? (
-                              <div className="bg-emerald-50/70 border border-emerald-200 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px]">
-                                <CheckCircle2 size={13} className="text-emerald-600" />
-                                Escrow Completed
+                        {/* PENDING TIME EXTENSION REQUEST BANNER (For Client) */}
+                        {isClient && activePendingExtensions.length > 0 && (
+                          <div className="w-full bg-amber-50/90 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-3 text-xs shadow-2xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Calendar size={16} className="text-amber-600 shrink-0" />
+                              <div>
+                                <span className="font-bold text-amber-950">Developer Extension Request: </span>
+                                <span className="text-slate-700">+{activePendingExtensions[0].requestedDays} Days ({activePendingExtensions[0].reason})</span>
                               </div>
-                            ) : null}
-                          </>
-                        )}
-
-                        {/* FREELANCER ACTIONS (NEVER SHOWS APPROVE PAYMENT) */}
-                        {isFreelancer && (
-                          <>
-                            {activeJob.status === 'Selected' && !activeJob.freelancerAgreedTerms ? (
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <button
                                 type="button"
-                                onClick={handleProposeTerms}
-                                className="bg-purple-50/70 hover:bg-purple-100/70 border border-purple-300 text-purple-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                                onClick={() => {
+                                  respondToTimeExtension(activeJob.id, activePendingExtensions[0].id, true);
+                                  sendChatMessage(activeJob.id, `✅ Extension Request Approved: +${activePendingExtensions[0].requestedDays} Days granted.`, 'Client', undefined, activeApplicantAddr, address);
+                                }}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-lg text-[10.5px] flex items-center gap-1 shadow-2xs cursor-pointer"
                               >
-                                <CheckCircle2 size={13} className="text-purple-600" />
-                                Accept Terms
+                                <CheckCircle2 size={12} /> Accept
                               </button>
-                            ) : (activeJob.status === 'Funded' || activeJob.status === 'Selected') ? (
                               <button
                                 type="button"
-                                onClick={() => setIsSubmitModalOpen(true)}
-                                className="bg-blue-50/70 hover:bg-blue-100/70 border border-blue-300 text-blue-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                                onClick={() => {
+                                  respondToTimeExtension(activeJob.id, activePendingExtensions[0].id, false);
+                                  sendChatMessage(activeJob.id, `❌ Extension Request Declined by Client.`, 'Client', undefined, activeApplicantAddr, address);
+                                }}
+                                className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold px-2.5 py-1 rounded-lg text-[10.5px] flex items-center gap-1 cursor-pointer"
                               >
-                                <PlusCircle size={13} className="text-blue-600" />
-                                Submit Deliverable
+                                <X size={12} /> Decline
                               </button>
-                            ) : activeJob.status === 'Submitted' ? (
-                              <div className="bg-blue-50/70 border border-blue-200 text-blue-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px]">
-                                <Clock size={13} className="text-blue-600" />
-                                Under Review
-                              </div>
-                            ) : activeJob.status === 'Completed' ? (
-                              <div className="bg-emerald-50/70 border border-emerald-200 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px]">
-                                <CheckCircle2 size={13} className="text-emerald-600" />
-                                Payout Released
-                              </div>
-                            ) : null}
-                          </>
-                        )}
-
-                        {/* Spectator or non-client non-freelancer */}
-                        {!isClient && !isFreelancer && (
-                          <div className="bg-purple-50/70 border border-purple-200 text-purple-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px]">
-                            <Shield size={13} className="text-purple-600" />
-                            Status: {activeJob.status}
+                            </div>
                           </div>
                         )}
+
+                        {/* PRE-ACCEPTANCE CANDIDATE NEGOTIATION BANNER */}
+                        {activeJob.status === 'Open' && (
+                          <div className="w-full bg-purple-50/90 border border-purple-200 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-2xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Sparkles size={15} className="text-purple-700 shrink-0" />
+                              <div>
+                                <span className="font-bold text-purple-950">Pre-Acceptance Candidate Negotiation</span>
+                                <span className="text-slate-500 font-mono text-[11px] ml-2">
+                                  Candidate: {activeChannel?.counterpartName} • Budget: ${activeJob.negotiatedAmount || activeJob.amountUsdc} USDC
+                                </span>
+                              </div>
+                            </div>
+                            {isClient && activeApplicantAddr && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  selectFreelancer(activeJob.id, activeApplicantAddr);
+                                  confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+                                }}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
+                              >
+                                <UserCheck size={13} />
+                                <span>Award Project to {activeChannel?.counterpartName}</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* ACTIVE DISPUTE BANNER */}
+                        {(activeJob.status === 'Disputed' || activeJob.dispute) && (
+                          <div className="w-full bg-rose-50 border-2 border-rose-300 rounded-xl p-2.5 flex items-center justify-between gap-3 text-xs shadow-2xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Scale size={16} className="text-rose-600 shrink-0" />
+                              <div>
+                                <span className="font-bold text-rose-950">Active DAO Court Dispute ({activeJob.dispute?.reason || 'Disputed'}): </span>
+                                <span className="text-slate-700 truncate">{activeJob.dispute?.evidenceText || 'Case file submitted to Judge DAO.'}</span>
+                              </div>
+                            </div>
+                            <Link
+                              to={`/jobs/${activeJob.id}`}
+                              className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1 rounded-lg text-[10.5px] flex items-center gap-1 shadow-2xs shrink-0"
+                            >
+                              <span>View DAO Case</span>
+                              <ArrowUpRight size={11} />
+                            </Link>
+                          </div>
+                        )}
+
+                        {/* Standard Action Pill Row */}
+                        <div className="flex items-center justify-start gap-2 flex-wrap">
+                          {/* Escrow & Net Amount Badge */}
+                          <div className="bg-slate-100/90 border border-slate-200 text-slate-800 font-mono py-1 px-2.5 rounded-lg flex items-center gap-1.5 text-[10.5px]">
+                            <span className="font-bold text-slate-600">Escrow:</span>
+                            <strong className="text-slate-900">${parseFloat(activeJob.amountUsdc || '0').toLocaleString()} USDC</strong>
+                            <span className="text-slate-400">•</span>
+                            <span className="text-purple-700 font-bold">Net: ${(parseFloat(activeJob.amountUsdc || '0') * 0.975).toFixed(2)} USDC</span>
+                          </div>
+
+                          {/* CLIENT ACTIONS */}
+                          {isClient && (
+                            <>
+                              {(activeJob.status === 'Submitted' || (activeJob.status as string) === 'Funded') ? (
+                                <button
+                                  type="button"
+                                  onClick={handleRelease}
+                                  className="bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                                >
+                                  <CheckCircle2 size={13} className="text-emerald-600" />
+                                  Approve Payment
+                                </button>
+                              ) : (activeJob.status === 'Selected' || (activeJob.status as string) === 'TermsAgreed') ? (
+                                <button
+                                  type="button"
+                                  onClick={handleFund}
+                                  className="bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                                >
+                                  <DollarSign size={13} className="text-emerald-600" />
+                                  Fund Escrow
+                                </button>
+                              ) : activeJob.status === 'Completed' ? (
+                                <div className="bg-emerald-50/70 border border-emerald-200 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px]">
+                                  <CheckCircle2 size={13} className="text-emerald-600" />
+                                  Escrow Completed
+                                </div>
+                              ) : null}
+                            </>
+                          )}
+                        </div>
                       </>
                     );
                   })()}
@@ -1119,9 +1461,41 @@ export const Chat: React.FC = () => {
                       : [
                           { sender: 'Client' as const, text: 'Welcome! Let us coordinate milestone specifications and delivery targets.', timestamp: activeJob.createdAt || Date.now() - 3600000 }
                         ];
-                    const jobMessages = rawJobMessages.filter(
-                      (m) => !activeJob.chatClearedAt || (m.timestamp || 0) > activeJob.chatClearedAt
-                    );
+                    const jobMessages = rawJobMessages.filter((m) => {
+                      if (activeJob.chatClearedAt && (m.timestamp || 0) <= activeJob.chatClearedAt) {
+                        return false;
+                      }
+                      // Proposal messages: always show if they belong to this thread
+                      if (m.proposal) {
+                        const propApplicant = (m.applicantAddress || m.senderAddress || m.proposal.applicantAddress || '').toLowerCase();
+                        const threadApplicant = (activeApplicantAddr || '').toLowerCase();
+                        // Show if no applicant filter, or if this proposal is for this thread
+                        if (!threadApplicant || !propApplicant || propApplicant === threadApplicant) {
+                          return true;
+                        }
+                        return false;
+                      }
+                      // In Open state with multiple candidate applications, filter per candidate
+                      if (activeApplicantAddr && activeJob.status === 'Open') {
+                        const cleanTarget = activeApplicantAddr.toLowerCase();
+                        if (m.applicantAddress) {
+                          return m.applicantAddress.toLowerCase() === cleanTarget;
+                        }
+                        if (m.senderAddress) {
+                          return m.senderAddress.toLowerCase() === cleanTarget;
+                        }
+                        return true;
+                      }
+                      // In active contract state, if message is bound to a specific applicant
+                      if (activeJob.status !== 'Open') {
+                        const hired = (activeJob.freelancer || activeApplicantAddr || '').toLowerCase();
+                        if (m.applicantAddress && hired) {
+                          return m.applicantAddress.toLowerCase() === hired;
+                        }
+                        return true;
+                      }
+                      return true;
+                    });
 
                     if (jobMessages.length === 0) {
                       return (
@@ -1149,12 +1523,7 @@ export const Chat: React.FC = () => {
                         {jobMessages.map((msg, index) => {
                           const lowerAddr = (address || '').toLowerCase();
                           const isClient = activeJob.client.toLowerCase() === lowerAddr || currentRole === 'client';
-                          const isFreelancer = (!isClient && (
-                            (activeJob.freelancer?.toLowerCase() === lowerAddr) ||
-                            (activeJob.applications || []).some(a => a.applicant.toLowerCase() === lowerAddr) ||
-                            currentRole === 'freelancer' ||
-                            (!isAdmin && !isJudgeRole)
-                          ));
+                          const isFreelancer = !isClient;
 
                           const isSystem = msg.sender === 'Judge' && (
                             msg.text.startsWith('🔒') ||
@@ -1200,7 +1569,45 @@ export const Chat: React.FC = () => {
                                     ? 'bg-purple-50/90 border-purple-200 text-slate-900 rounded-tr-none'
                                     : 'bg-white border-slate-200 text-slate-800 rounded-tl-none font-medium'
                                   }`}>
-                                  <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                                  {!msg.proposal && Boolean(msg.text) && (
+                                    <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                                  )}
+
+                                  {/* In-Message Interactive Negotiation Proposal Card */}
+                                  {msg.proposal && (
+                                    <NegotiationProposalCard
+                                      proposal={(() => {
+                                        const latest = (activeJob.negotiationProposals || []).find((p) => p.id === msg.proposal?.id);
+                                        return latest || msg.proposal;
+                                      })()}
+                                      currentUserRole={isClient ? 'Client' : isFreelancer ? 'Freelancer' : 'visitor'}
+                                      onAccept={async (propId) => {
+                                        await respondToNegotiationProposal(
+                                          activeJob.id,
+                                          propId,
+                                          true,
+                                          '',
+                                          isClient ? 'Client' : 'Freelancer',
+                                          activeApplicantAddr
+                                        );
+                                      }}
+                                      onReject={async (propId, reason) => {
+                                        await respondToNegotiationProposal(
+                                          activeJob.id,
+                                          propId,
+                                          false,
+                                          reason,
+                                          isClient ? 'Client' : 'Freelancer',
+                                          activeApplicantAddr
+                                        );
+                                      }}
+                                      onCounterOffer={() => {
+                                        setIsFinalCallMode(false);
+                                        setIsProposalModalOpen(true);
+                                      }}
+                                    />
+                                  )}
+
                                   <div className={`text-right text-[8px] font-mono mt-1 flex items-center justify-end gap-1 ${isUser ? 'text-purple-600 font-bold' : 'text-slate-400'}`}>
                                     <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     {isUser && <span className="text-purple-600 text-[10px]">✓✓</span>}
@@ -1219,6 +1626,73 @@ export const Chat: React.FC = () => {
 
                 {/* Input Panel */}
                 <div className="p-4 border-t border-slate-200 bg-white shrink-0 space-y-2">
+                  {(() => {
+                    const lowerAddr = (address || '').toLowerCase();
+                    const isClient = activeJob.client.toLowerCase() === lowerAddr || currentRole === 'client';
+                    const isFreelancer = !isClient;
+
+                    // Check if terms have already been accepted or finalized in this conversation thread
+                    const hasAcceptedProposal = (activeJob.negotiationProposals || []).some(
+                      (p) =>
+                        p.status === 'Accepted' &&
+                        (!activeApplicantAddr || !p.applicantAddress || p.applicantAddress.toLowerCase() === activeApplicantAddr.toLowerCase())
+                    );
+                    const areTermsFinalized =
+                      hasAcceptedProposal ||
+                      (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
+                      activeJob.status === 'Funded' ||
+                      activeJob.status === 'Submitted' ||
+                      activeJob.status === 'Completed';
+
+                    if (areTermsFinalized) {
+                      return (
+                        <div className="flex items-center justify-between gap-2 pb-1 text-xs">
+                          <div className="flex items-center gap-1.5 overflow-x-auto">
+                            <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-2xs">
+                              <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                              <span>Terms Finalized (${activeJob.amountUsdc} USDC • {activeJob.reviewPeriodDays || 7}d)</span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        {/* Pre-Negotiation Quick Action Bar */}
+                        <div className="flex items-center justify-between gap-2 pb-1 text-xs">
+                          <div className="flex items-center gap-1.5 overflow-x-auto">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsFinalCallMode(false);
+                                setIsProposalModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                            >
+                              <Sparkles size={12} />
+                              <span>{isFreelancer ? 'Propose Price & Timeline' : 'Propose Terms'}</span>
+                            </button>
+
+                            {isClient && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsFinalCallMode(true);
+                                  setIsProposalModalOpen(true);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                              >
+                                <Zap size={12} />
+                                <span>Final Call Offer</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+
                   <form onSubmit={handleSend} className="flex items-center gap-2">
                     <div className="flex-1 flex items-center glass-input rounded-2xl px-3 py-1.5 bg-slate-50 border border-slate-200 shadow-inner">
                       <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
@@ -1313,7 +1787,7 @@ export const Chat: React.FC = () => {
                   </p>
                   <button
                     type="button"
-                    onClick={() => alert(activeJob.description)}
+                    onClick={() => setIsJobOverviewModalOpen(true)}
                     className="text-xs text-purple-700 hover:text-purple-900 font-bold mt-1 cursor-pointer hover:underline block"
                   >
                     View More
@@ -1664,6 +2138,88 @@ export const Chat: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Post Progress Modal */}
+      {activeJob && (
+        <PostProgressModal
+          isOpen={isProgressModalOpen}
+          onClose={() => setIsProgressModalOpen(false)}
+          jobTitle={activeJob.title}
+          onPostProgress={(percent, note, demoUrl) => {
+            postProgressUpdate(activeJob.id, percent, note, demoUrl);
+            sendChatMessage(activeJob.id, `🚀 Progress Update: ${percent}% Complete\n\n${note}${demoUrl ? `\nDemo: ${demoUrl}` : ''}`, 'Freelancer');
+          }}
+        />
+      )}
+
+      {/* Request Extension Modal */}
+      {activeJob && (
+        <RequestExtensionModal
+          isOpen={isExtensionModalOpen}
+          onClose={() => setIsExtensionModalOpen(false)}
+          jobTitle={activeJob.title}
+          onRequestExtension={(days, reason) => {
+            requestTimeExtension(activeJob.id, days, reason);
+            sendChatMessage(activeJob.id, `⏳ Extension Request: +${days} Days\n\nReason: ${reason}`, 'Freelancer');
+          }}
+        />
+      )}
+
+      {/* Raise Dispute Modal */}
+      {activeJob && (
+        <RaiseDisputeModal
+          isOpen={isDisputeModalOpen}
+          onClose={() => setIsDisputeModalOpen(false)}
+          job={activeJob}
+          userAddress={address || ''}
+          onRaiseDispute={(reason, evidenceText, ipfsCid) => {
+            raiseDispute(activeJob.id, reason as DisputeReason, evidenceText, ipfsCid, address || '');
+            sendChatMessage(activeJob.id, `⚖️ Case Escalated to DAO Arbitration Panel\n\nReason: ${reason}\nEvidence: ${evidenceText}${ipfsCid ? `\nIPFS CID: ${ipfsCid}` : ''}`, 'Judge');
+          }}
+        />
+      )}
+
+      {/* In-Message Negotiation Proposal Modal */}
+      {activeJob && (
+        <NegotiationProposalModal
+          isOpen={isProposalModalOpen}
+          onClose={() => setIsProposalModalOpen(false)}
+          onSubmit={async (amountUsdc, deadlineDays, note, isFinalCall) => {
+            const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase() || currentRole === 'client';
+            await proposeNegotiationTerms(
+              activeJob.id,
+              amountUsdc,
+              deadlineDays,
+              note,
+              isClient ? 'Client' : 'Freelancer',
+              isFinalCall,
+              activeApplicantAddr
+            );
+            confetti({ particleCount: 60, spread: 60 });
+          }}
+          currentAmountUsdc={activeJob.amountUsdc}
+          currentDeadlineDays={activeJob.reviewPeriodDays || 7}
+          role={activeJob.client.toLowerCase() === (address || '').toLowerCase() || currentRole === 'client' ? 'Client' : 'Freelancer'}
+          counterpartName={activeChannel?.counterpartName || (activeJob.client.toLowerCase() === (address || '').toLowerCase() ? 'Freelancer' : truncateAddress(activeJob.client))}
+          initialIsFinalCall={isFinalCallMode}
+        />
+      )}
+
+      {/* Job Specifications & Full Details Modal */}
+      {activeJob && (
+        <JobOverviewModal
+          isOpen={isJobOverviewModalOpen}
+          onClose={() => setIsJobOverviewModalOpen(false)}
+          job={activeJob}
+        />
+      )}
+
+      {/* Modern In-App Notification / Dialog Modal */}
+      <PolyLanceAlertModal
+        isOpen={Boolean(alertModalOptions)}
+        options={alertModalOptions}
+        onClose={() => setAlertModalOptions(null)}
+      />
     </div>
   );
 };

@@ -5,6 +5,7 @@ import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { SkillCategory } from '../types';
 import { SuccessState } from '../components/UIStates';
+import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 import { 
   DollarSign, 
   Clock, 
@@ -49,6 +50,7 @@ export const PostJob: React.FC = () => {
   const [reviewPeriodDays, setReviewPeriodDays] = useState<number | string>(7);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdJobId, setCreatedJobId] = useState<string | null>(null);
+  const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
 
   useEffect(() => {
     if (createdJobId) {
@@ -97,7 +99,11 @@ export const PostJob: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) {
-      alert('Please fill in title and description.');
+      setAlertModalOptions({
+        title: 'Missing Required Fields',
+        message: 'Please provide both a Job Title and Detailed Scope Description before publishing your escrow job.',
+        type: 'warning'
+      });
       return;
     }
     if (!isConnected) {
@@ -465,23 +471,20 @@ export const PostJob: React.FC = () => {
                 <div className="absolute top-0 right-0 w-28 h-28 bg-indigo-50/40 rounded-full blur-2xl pointer-events-none" />
                 
                 {/* Card Header */}
-                <div className="flex justify-between items-center mb-3 gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100/80 flex items-center justify-center text-indigo-600 shrink-0 shadow-xs">
-                      <ShieldCheck size={16} className="stroke-[2.2]" />
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 shadow-xs">
+                      <ShieldCheck size={13} className="stroke-[2.2]" />
                     </div>
-                    <div className="min-w-0">
-                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide block leading-tight">
-                        SOVEREIGN PRICE ATTESTATION
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      <span className="text-[7.5px] sm:text-[8px] font-black text-slate-600 uppercase tracking-wider whitespace-nowrap">
+                        Live Oracle Synced
                       </span>
-                      <div className="text-[10.5px] font-black text-slate-900 flex items-center gap-1.5 mt-0.5 leading-none">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block shrink-0" />
-                        <span>LIVE ORACLE SYNCED</span>
-                      </div>
                     </div>
                   </div>
-                  <div className="px-2.5 py-1 bg-white border border-indigo-200/80 rounded-xl text-[10px] font-extrabold text-indigo-700 shadow-xs flex items-center gap-1 shrink-0">
-                    <CreditCard size={12} className="text-indigo-600" />
+                  <div className="px-2 py-0.5 bg-white border border-indigo-200 rounded-lg text-[9px] font-extrabold text-indigo-700 shadow-2xs flex items-center gap-1 shrink-0">
+                    <CreditCard size={11} className="text-indigo-600" />
                     <span>{selectedToken} Card</span>
                   </div>
                 </div>
@@ -545,24 +548,43 @@ export const PostJob: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Protocol Commission & Net Payout Breakdown */}
+                {/* Platform Maintenance Fee & Net Payout Breakdown */}
                 {(() => {
-                  const grossUsdc = (parseFloat(tokenAmount || '0') || 0) * (tokenPriceUsd || 1);
-                  const commUsdc = grossUsdc * 0.025;
-                  const netUsdc = grossUsdc - commUsdc;
+                  const numAmount = parseFloat(tokenAmount || '0') || 0;
+                  const grossUsd = numAmount * (tokenPriceUsd || 1);
+                  const maintFeeToken = numAmount * 0.025;
+                  const netToken = numAmount - maintFeeToken;
+                  const maintFeeUsd = grossUsd * 0.025;
+                  const netUsd = grossUsd - maintFeeUsd;
+
+                  const isStable = selectedToken === 'USDC' || selectedToken === 'USDT';
+                  const dec = selectedToken === 'BTC' || selectedToken === 'ETH' ? 4 : 2;
+
                   return (
-                    <div className="my-2 p-2 bg-purple-50/80 border border-purple-200/80 rounded-xl space-y-1 font-mono text-[9.5px]">
+                    <div className="my-2 p-2.5 bg-purple-50/80 border border-purple-200/80 rounded-xl space-y-1.5 font-mono text-[10px]">
                       <div className="flex justify-between items-center text-slate-600">
                         <span>Escrow Total:</span>
-                        <span className="font-bold text-slate-900">${grossUsdc.toFixed(2)} USDC</span>
+                        <span className="font-bold text-slate-900">
+                          {isStable
+                            ? `$${numAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedToken}`
+                            : `${numAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${selectedToken} (~$${grossUsd.toFixed(2)} USD)`}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center text-slate-500">
-                        <span>Protocol Fee (2.5%):</span>
-                        <span className="font-bold text-rose-600">-${commUsdc.toFixed(2)} USDC</span>
+                        <span>Platform Maintenance Fee (2.5%):</span>
+                        <span className="font-bold text-rose-600">
+                          {isStable
+                            ? `-$${maintFeeToken.toFixed(2)} ${selectedToken}`
+                            : `-${maintFeeToken.toFixed(dec)} ${selectedToken} (-$${maintFeeUsd.toFixed(2)})`}
+                        </span>
                       </div>
-                      <div className="flex justify-between items-center pt-1 border-t border-purple-200/80 text-purple-950 font-bold">
+                      <div className="flex justify-between items-center pt-1.5 border-t border-purple-200/80 text-purple-950 font-bold">
                         <span>Freelancer Net Payout:</span>
-                        <span className="text-emerald-700 font-extrabold text-[10.5px]">${netUsdc.toFixed(2)} USDC</span>
+                        <span className="text-emerald-700 font-extrabold text-[11px]">
+                          {isStable
+                            ? `$${netToken.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedToken}`
+                            : `${netToken.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${selectedToken} (~$${netUsd.toFixed(2)} USD)`}
+                        </span>
                       </div>
                     </div>
                   );
@@ -774,6 +796,13 @@ export const PostJob: React.FC = () => {
           </div>
         </div>
       </form>
+
+      {/* Modern Dialog Modal */}
+      <PolyLanceAlertModal
+        isOpen={Boolean(alertModalOptions)}
+        options={alertModalOptions}
+        onClose={() => setAlertModalOptions(null)}
+      />
     </div>
   );
 };

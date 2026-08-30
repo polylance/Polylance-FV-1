@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Link2, Sparkles, ShieldCheck, RefreshCw, Copy, Check, Send } from 'lucide-react';
+import { FileText, Link2, Sparkles, ShieldCheck, RefreshCw, Copy, Check, Send, AlertTriangle } from 'lucide-react';
 import { generateIpfsCid, storeIpfsFile, getCachedIpfsFile } from '../utils/ipfs';
 import { DeliverableFile } from '../types';
 
@@ -45,6 +45,7 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
   const [externalLink, setExternalLink] = useState('');
   const [files, setFiles] = useState<UploadingFile[]>([]);
   const [copiedCid, setCopiedCid] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const processFile = (fileObj: File, id: string) => {
     if (fileObj.size > MAX_FILE_SIZE) {
@@ -142,8 +143,9 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     if (!title.trim() || !description.trim() || !externalLink.trim()) {
-      alert('Please provide a deliverable title, release summary description, and a valid project/deliverable link (strictly required).');
+      setValidationError('Please provide a deliverable title, release summary description, and a valid project/deliverable link.');
       return;
     }
 
@@ -353,6 +355,14 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
           </div>
         )}
       </div>
+
+      {/* Validation Error Banner */}
+      {validationError && (
+        <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+          <AlertTriangle size={16} className="text-rose-600 shrink-0" />
+          <span>{validationError}</span>
+        </div>
+      )}
 
       {/* Submit Button (Matching Image 3) */}
       <button

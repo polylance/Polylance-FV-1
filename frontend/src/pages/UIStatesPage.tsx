@@ -14,9 +14,15 @@ import {
   SuccessState
 } from '../components/UIStates';
 import { Check, ShieldCheck, Sparkles } from 'lucide-react';
+import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 
 export const UIStatesPage: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'feedback' | 'network' | 'auth'>('all');
+  const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
+
+  const showAlert = (title: string, message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+    setAlertModalOptions({ title, message, type });
+  };
 
   const palette = [
     { name: 'Primary Purple', hex: '#7C3AED', bg: 'bg-[#7C3AED]' },
@@ -131,7 +137,7 @@ export const UIStatesPage: React.FC = () => {
           {(activeFilter === 'all' || activeFilter === 'feedback') && (
             <div className="space-y-2">
               <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">1. EMPTY STATE</span>
-              <EmptyState onAction={() => alert('Action clicked!')} />
+              <EmptyState onAction={() => showAlert('Empty State Action', 'Action button clicked on Empty State widget.', 'info')} />
             </div>
           )}
 
@@ -147,7 +153,10 @@ export const UIStatesPage: React.FC = () => {
           {(activeFilter === 'all' || activeFilter === 'network') && (
             <div className="space-y-2">
               <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">3. ERROR STATE</span>
-              <ErrorState onRetry={() => alert('Retry clicked')} onDashboard={() => alert('Go to dashboard clicked')} />
+              <ErrorState 
+                onRetry={() => showAlert('Retry Initiated', 'Retrying failed operation...', 'warning')} 
+                onDashboard={() => showAlert('Navigation Action', 'Redirecting user to home dashboard.', 'info')} 
+              />
             </div>
           )}
 
@@ -155,7 +164,7 @@ export const UIStatesPage: React.FC = () => {
           {(activeFilter === 'all' || activeFilter === 'network') && (
             <div className="space-y-2">
               <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">4. NO INTERNET</span>
-              <NoInternetState onRetry={() => alert('Retrying connection...')} />
+              <NoInternetState onRetry={() => showAlert('Reconnecting', 'Checking connection status...', 'info')} />
             </div>
           )}
 
@@ -163,7 +172,7 @@ export const UIStatesPage: React.FC = () => {
           {(activeFilter === 'all' || activeFilter === 'network') && (
             <div className="space-y-2">
               <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">5. SLOW NETWORK</span>
-              <SlowNetworkState onContinue={() => alert('Continuing anyway...')} />
+              <SlowNetworkState onContinue={() => showAlert('Slow Network', 'Proceeding with low bandwidth optimizations.', 'warning')} />
             </div>
           )}
 
@@ -171,7 +180,7 @@ export const UIStatesPage: React.FC = () => {
           {(activeFilter === 'all' || activeFilter === 'feedback') && (
             <div className="space-y-2">
               <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">6. NO SEARCH RESULT</span>
-              <NoSearchResultState onClear={() => alert('Search cleared')} />
+              <NoSearchResultState onClear={() => showAlert('Filter Cleared', 'Search query filters have been reset.', 'info')} />
             </div>
           )}
 
@@ -179,7 +188,7 @@ export const UIStatesPage: React.FC = () => {
           {(activeFilter === 'all' || activeFilter === 'auth') && (
             <div className="space-y-2">
               <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">7. PERMISSION DENIED</span>
-              <PermissionDeniedState onBack={() => alert('Navigating back...')} />
+              <PermissionDeniedState onBack={() => showAlert('Permission Denied', 'Navigating to previous authorized page.', 'error')} />
             </div>
           )}
 
@@ -187,7 +196,7 @@ export const UIStatesPage: React.FC = () => {
           {(activeFilter === 'all' || activeFilter === 'auth') && (
             <div className="space-y-2">
               <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">8. SESSION EXPIRED</span>
-              <SessionExpiredState onLogin={() => alert('Redirecting to login...')} />
+              <SessionExpiredState onLogin={() => showAlert('Session Expired', 'Redirecting to login portal.', 'info')} />
             </div>
           )}
 
@@ -195,7 +204,7 @@ export const UIStatesPage: React.FC = () => {
           {(activeFilter === 'all' || activeFilter === 'auth') && (
             <div className="space-y-2">
               <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">9. FORM VALIDATION</span>
-              <FormValidationCard onSubmit={(data) => alert(`Submitted: ${JSON.stringify(data)}`)} />
+              <FormValidationCard onSubmit={(data) => showAlert('Form Validated & Submitted', `Payload: ${JSON.stringify(data)}`, 'success')} />
             </div>
           )}
 
@@ -203,7 +212,7 @@ export const UIStatesPage: React.FC = () => {
           {(activeFilter === 'all' || activeFilter === 'feedback') && (
             <div className="space-y-2">
               <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">10. SUCCESS STATE</span>
-              <SuccessState onAction={() => alert('Viewing proposal...')} />
+              <SuccessState onAction={() => showAlert('Proposal View', 'Loading on-chain proposal data.', 'success')} />
             </div>
           )}
         </div>
@@ -302,6 +311,13 @@ export const UIStatesPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modern In-App Notification / Alert Modal */}
+      <PolyLanceAlertModal
+        isOpen={Boolean(alertModalOptions)}
+        options={alertModalOptions}
+        onClose={() => setAlertModalOptions(null)}
+      />
     </div>
   );
 };

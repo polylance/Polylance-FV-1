@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { SkillCategory } from '../types';
-import { Search, Filter, Briefcase, ArrowRight, ShieldCheck, Award, CheckCircle2, Globe } from 'lucide-react';
+import { Search, Filter, Briefcase, ArrowRight, ShieldCheck, Award, CheckCircle2, Globe, Clock } from 'lucide-react';
 import { SUPPORTED_FIAT, convertCryptoToFiat } from '../utils/currency';
+import { truncateAddress, formatTimeAgo } from '../utils/formatters';
+import { getJobInactivityStatus } from '../utils/inactivity';
 import { staggerContainer, staggerItem, scrollReveal, transition } from '../lib/motion';
 import { NoSearchResultState } from '../components/UIStates';
 
@@ -27,13 +29,15 @@ export const FindJobs: React.FC = () => {
     { id: 'mobile', label: 'Mobile Apps', sub: 'Swift, Kotlin, Dart' },
   ];
 
+  // Only active Open jobs that have not expired (> 14 days client inactivity) are listed on Find Jobs marketplace.
   const filteredJobs = jobs.filter((job) => {
-    const isNotCompleted = job.status !== 'Completed' && job.status !== 'Cancelled';
+    const statusInfo = getJobInactivityStatus(job);
+    const isOpen = job.status === 'Open' && !statusInfo.isExpired;
     const matchesCategory = selectedCategory === 'all' || job.category === selectedCategory;
     const matchesSearch =
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return isNotCompleted && matchesCategory && matchesSearch;
+    return isOpen && matchesCategory && matchesSearch;
   });
 
   return (
@@ -179,6 +183,14 @@ export const FindJobs: React.FC = () => {
                     <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
                       <CheckCircle2 size={12} /> Verified Client
                     </span>
+                    <span className="bg-purple-50 text-purple-800 border border-purple-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                      <Clock size={11} className="text-purple-600" /> Posted {formatTimeAgo(job.createdAt || Date.now())}
+                    </span>
+                    {getJobInactivityStatus(job).isReminderActive && (
+                      <span className="bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded font-bold flex items-center gap-1 animate-pulse">
+                        ⚠️ Inactive (10+ Days) • Closes in {getJobInactivityStatus(job).daysRemaining}d
+                      </span>
+                    )}
                     <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
                       <Award size={12} className="text-purple-700" /> Req Score &gt; 700
                     </span>
@@ -193,7 +205,7 @@ export const FindJobs: React.FC = () => {
                         {parseFloat(payAmount).toLocaleString(undefined, { maximumFractionDigits: 6 })} <span className="text-xs font-normal text-slate-500">{payToken}</span>
                       </span>
                       <span className="text-[10px] text-purple-700 font-bold font-sans mt-0.5 whitespace-nowrap block">
-                        Net: ${(parseFloat(payAmount) * 0.975).toFixed(2)} USDC (after 2.5% fee)
+                        Net: ${(parseFloat(payAmount) * 0.975).toFixed(2)} USDC (2.5% platform maintenance fee)
                       </span>
                     </div>
                   </div>

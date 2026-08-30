@@ -22,6 +22,6 @@ describe('JobDetail Page — Extended Workflow & USDC Funding', () => {
   it('renders job detail page fallback container when job is not found', () => {
     renderJobDetailPage();
     expect(screen.getByText(/Job Contract Not Found/i)).toBeInTheDocument();
-    expect(screen.getByText(/Return to Find Jobs/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Go to Dashboard/i })).toBeInTheDocument();
   });
 });

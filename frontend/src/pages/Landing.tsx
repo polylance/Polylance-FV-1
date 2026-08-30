@@ -475,8 +475,8 @@ export const Landing: React.FC = () => {
               <div className="flex items-start gap-3">
                 <CheckCircle2 size={18} className="text-purple-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">0% Platform Fees</span>
-                  <span className="text-xs text-slate-600 font-sans">Peer-to-peer smart contract payments with zero middleman fees.</span>
+                  <span className="text-sm font-bold text-slate-900 block font-sans">0% Commission</span>
+                  <span className="text-xs text-slate-600 font-sans">Zero middleman commission. Only a 2.5% platform maintenance fee routed to decentralized DAO treasury for protocol operations.</span>
                 </div>
               </div>
 
@@ -522,7 +522,7 @@ export const Landing: React.FC = () => {
             className="px-4 py-2 rounded-full flex items-center gap-2 text-xs font-mono font-bold text-slate-800 bg-white border border-slate-200/80 shadow-xs hover:border-purple-200 transition-colors cursor-default"
           >
             <Percent size={14} className="text-purple-600" />
-            <span>0% Commission</span>
+            <span>0% Commission (2.5% Maint. Fee)</span>
           </motion.div>
 
           <motion.div

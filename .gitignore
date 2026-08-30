@@ -7,5 +7,10 @@ typechain-types/
 coverage/
 coverage.json
 .env
+.env.*
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 amoy_deployment_addresses.json
-

@@ -20,6 +20,7 @@ import { Treasury } from './pages/Treasury';
 import { Analytics } from './pages/Analytics';
 import { AuditReport } from './pages/AuditReport';
 import { Chat } from './pages/Chat';
+import { JobWorkspace } from './pages/JobWorkspace';
 import { Settings } from './pages/Settings';
 import { Terms } from './pages/Terms';
 import { Privacy } from './pages/Privacy';
@@ -71,10 +72,14 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/treasury" element={currentRole === 'admin' ? <Treasury /> : <Navigate to="/dashboard" replace />} />
 
           {/* Certified trust & reputation audits */}
+          <Route path="/audit" element={<AuditReport />} />
           <Route path="/audit/:address" element={<AuditReport />} />
+          <Route path="/audit-report" element={<AuditReport />} />
+          <Route path="/audit-report/:address" element={<AuditReport />} />
 
           {/* Settings & Profile Customization */}
           <Route path="/settings" element={isVisitor ? <Navigate to="/login" replace /> : <Settings />} />
+          <Route path="/workspace" element={isVisitor ? <Navigate to="/login" replace /> : <JobWorkspace />} />
 
           {/* Chat & Negotiation messages */}
           <Route path="/chat" element={isVisitor ? <Navigate to="/login" replace /> : <Chat />} />

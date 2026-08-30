@@ -87,6 +87,32 @@ export interface ModificationRequest {
   status: 'Pending' | 'Addressed';
 }
 
+export interface NegotiationProposal {
+  id: string;
+  jobId?: string;
+  applicantAddress?: string;
+  proposedBy: 'Client' | 'Freelancer';
+  amountUsdc: string;
+  deadlineDays: number;
+  note?: string;
+  isFinalCall?: boolean;
+  status: 'Pending' | 'Accepted' | 'Rejected' | 'Countered';
+  createdAt: number;
+  respondedAt?: number;
+  responseNote?: string;
+}
+
+export interface ChatMessage {
+  id?: string;
+  sender: 'Client' | 'Freelancer' | 'Judge';
+  senderAddress?: string;
+  recipientAddress?: string;
+  applicantAddress?: string;
+  text: string;
+  timestamp: number;
+  proposal?: NegotiationProposal;
+}
+
 export interface Job {
   id: string;
   contractAddress: string;
@@ -101,6 +127,7 @@ export interface Job {
   title: string;
   description: string;
   category: SkillCategory;
+  skillsRequired?: string[];
   reviewPeriodDays: number;
   createdAt: number;
   submittedAt?: number;
@@ -113,12 +140,13 @@ export interface Job {
   progressUpdates?: ProgressUpdate[];
   extensionRequests?: TimeExtensionRequest[];
   modificationRequests?: ModificationRequest[];
+  negotiationProposals?: NegotiationProposal[];
   events: JobEvent[];
-  chatMessages?: { sender: 'Client' | 'Freelancer' | 'Judge'; text: string; timestamp: number }[];
+  chatMessages?: ChatMessage[];
   sbtTokenId?: number;
   negotiatedAmount?: string;
   negotiatedDeadlineDays?: number;
-  preAcceptMessages?: { sender: string; senderRole: 'Client' | 'Freelancer'; text: string; timestamp: number }[];
+  preAcceptMessages?: { sender: string; senderRole: 'Client' | 'Freelancer'; text: string; timestamp: number; proposal?: NegotiationProposal; applicantAddress?: string }[];
   completedAt?: number;
   chatClearedAt?: number;
 }

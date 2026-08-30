@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { EmptyState, PermissionDeniedState } from '../components/UIStates';
+import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 
 export const Judge: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,6 +32,12 @@ export const Judge: React.FC = () => {
   const [newJudgeAddress, setNewJudgeAddress] = useState('');
   const [newJudgeName, setNewJudgeName] = useState('');
   const [newJudgeNotes, setNewJudgeNotes] = useState('');
+  const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
+
+  // Dispute resolution state
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [freelancerBps, setFreelancerBps] = useState<number>(5000); // 50% default
+  const [reasoning, setReasoning] = useState<string>('');
 
   const disputedJobs = jobs.filter((j) => j.status === 'Disputed');
   const resolvedDisputes = jobs.filter((j) => j.dispute && j.dispute.resolved);
@@ -40,11 +47,6 @@ export const Judge: React.FC = () => {
     (sum, j) => sum + parseFloat(j.amountUsdc || '0') * 0.025,
     0
   );
-
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(disputedJobs.length > 0 ? disputedJobs[0].id : null);
-  const [freelancerBps, setFreelancerBps] = useState<number>(5000);
-  const [reasoning, setReasoning] = useState('');
-
   const activeJob = jobs.find((j) => j.id === selectedJobId);
 
   const handleApplyPreset = (bps: number) => {
@@ -63,7 +65,11 @@ export const Judge: React.FC = () => {
   const handleAddJudgeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newJudgeAddress.trim() || !newJudgeAddress.startsWith('0x')) {
-      alert('Please enter a valid Ethereum/Polygon address starting with 0x.');
+      setAlertModalOptions({
+        title: 'Invalid Wallet Address',
+        message: 'Please enter a valid Ethereum/Polygon wallet address starting with 0x.',
+        type: 'error',
+      });
       return;
     }
 
@@ -609,6 +615,13 @@ export const Judge: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modern In-App Dialog Modal */}
+      <PolyLanceAlertModal
+        isOpen={Boolean(alertModalOptions)}
+        options={alertModalOptions}
+        onClose={() => setAlertModalOptions(null)}
+      />
     </div>
   );
 };

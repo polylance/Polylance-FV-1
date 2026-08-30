@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useWeb3 } from '../context/Web3Context';
+import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { PolyLanceLogo } from './PolyLanceLogo';
 import { LoginModal } from './LoginModal';
 import {
@@ -100,6 +101,7 @@ const DropdownLink: React.FC<{ to: string; icon: React.ReactNode; label: string;
 // ──────────────────────────────────────────────────────────────────────────────
 export const Navbar: React.FC = () => {
   const { isConnected, address, currentRole, disconnectWallet } = useWeb3();
+  const { jobs } = usePolyLanceData();
   const location = useLocation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -107,6 +109,13 @@ export const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
 
   const moreRef = useRef<HTMLDivElement>(null);
+
+  const userAddr = (address || '').toLowerCase();
+  const hasActiveJobs = jobs.some(
+    (j) =>
+      (j.client.toLowerCase() === userAddr || j.freelancer?.toLowerCase() === userAddr) &&
+      (j.status === 'Selected' || j.status === 'Funded' || j.status === 'Submitted' || j.status === 'Open')
+  );
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -233,6 +242,13 @@ export const Navbar: React.FC = () => {
                   <LayoutDashboard size={13} />Dashboard
                 </NavLink>
 
+                {/* Fast-access Job Workspace for Freelancers and Clients */}
+                <NavLink to="/workspace" active={isActive('/workspace')}>
+                  <Briefcase size={13} />
+                  <span>Job Workspace</span>
+                  {hasActiveJobs && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                </NavLink>
+
                 {/* Only Clients, Judges, and Admins can post jobs */}
                 {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') && (
                   <NavLink to="/jobs/post" active={isActive('/jobs/post')}>
@@ -240,7 +256,7 @@ export const Navbar: React.FC = () => {
                   </NavLink>
                 )}
 
-                <NavLink to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post')}>
+                <NavLink to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post') && !isActive('/workspace')}>
                   <Briefcase size={13} />Find Jobs
                 </NavLink>
 
@@ -463,6 +479,7 @@ export const Navbar: React.FC = () => {
               ) : (
                 <>
                   <MobileLink to="/dashboard" icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => setIsMobileOpen(false)} />
+                  <MobileLink to="/workspace" icon={<Briefcase size={14} />} label="Job Workspace" onClick={() => setIsMobileOpen(false)} />
                   {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') && (
                     <MobileLink to="/jobs/post" icon={<PlusCircle size={14} />} label="Post Job" onClick={() => setIsMobileOpen(false)} />
                   )}

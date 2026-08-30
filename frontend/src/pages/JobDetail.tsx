@@ -8,9 +8,10 @@ import { ApplicantTable } from '../components/ApplicantTable';
 import { DisputePanel } from '../components/DisputePanel';
 import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSubmissionPanel';
 import { DisputeReason, UserProfile } from '../types';
-import { truncateAddress, formatDaysRemaining, getDeterministicSbtId } from '../utils/formatters';
+import { truncateAddress, formatDaysRemaining, formatTimeAgo, getDeterministicSbtId } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
-import { Shield, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles } from 'lucide-react';
+import { getJobInactivityStatus } from '../utils/inactivity';
+import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles, ArrowUpRight, Calendar, Trash2, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ErrorState } from '../components/UIStates';
 import { ActionStatusModal, ActionModalDetail } from '../components/ActionStatusModal';
@@ -26,6 +27,8 @@ export const JobDetail: React.FC = () => {
   const { address, isConnected, isArbitrator, currentRole, connectWallet } = useWeb3();
   const {
     jobs,
+    deleteJob,
+    renewJob,
     applyToJob,
     selectFreelancer,
     proposeTerms,
@@ -38,6 +41,33 @@ export const JobDetail: React.FC = () => {
     sendPreAcceptMessage,
     profiles,
   } = usePolyLanceData();
+
+  const handleKeepJobActive = async () => {
+    if (!job) return;
+    await renewJob(job.id);
+    setActionModal({
+      isOpen: true,
+      title: 'Job Posting Renewed',
+      subtitle: 'Your job posting has been renewed and will remain active on the marketplace for another 10 days.',
+      icon: 'success',
+      badgeText: 'RENEWED',
+      details: [
+        { label: 'Job Title', value: job.title },
+        { label: 'Status', value: 'Active / Open', isBadge: true },
+        { label: 'Retention Cycle', value: '+10 Days from today' },
+      ],
+    });
+  };
+
+  const handleRemoveJobPost = async () => {
+    if (!job) return;
+    const confirmed = window.confirm(
+      'Are you sure you want to remove this job posting? It will be permanently cleaned from the marketplace, site, and database.'
+    );
+    if (!confirmed) return;
+    await deleteJob(job.id);
+    navigate('/jobs');
+  };
 
   const [applyProposalText, setApplyProposalText] = useState('');
   const [isApplyingModalOpen, setIsApplyingModalOpen] = useState(false);
@@ -248,6 +278,8 @@ export const JobDetail: React.FC = () => {
     });
   };
 
+  const inactivityStatus = getJobInactivityStatus(job);
+
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
       {/* Top Breadcrumb & Status Header */}
@@ -263,6 +295,65 @@ export const JobDetail: React.FC = () => {
           Status: {job.status}
         </span>
       </div>
+
+      {/* 10-Day Client Inactivity Reminder Banner (14-Day Auto-Removal Policy) */}
+      {inactivityStatus.isReminderActive && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={20} />
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-headline font-bold text-amber-950 text-sm">
+                  10-Day Client Inactivity Reminder
+                </span>
+                <span className="bg-amber-200 text-amber-900 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
+                  {inactivityStatus.daysRemaining} DAY{inactivityStatus.daysRemaining === 1 ? '' : 'S'} REMAINING
+                </span>
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed font-sans">
+                This job was posted {Math.floor(inactivityStatus.daysElapsed)} days ago without an applicant selected or client response. Per protocol policy, jobs with no client action are automatically removed from the marketplace and database on Day 14.
+              </p>
+            </div>
+          </div>
+
+          {isClient && (
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <button
+                onClick={async () => {
+                  const ok = await renewJob(job.id);
+                  if (ok) {
+                    confetti({ particleCount: 50, spread: 60 });
+                    setActionModal({
+                      isOpen: true,
+                      title: 'Job Posting Renewed',
+                      subtitle: 'The 14-day inactivity timer has been refreshed for this job posting.',
+                      icon: 'success',
+                      badgeText: 'TIMER RESET',
+                    });
+                  }
+                }}
+                className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <RefreshCw size={13} />
+                <span>Renew (Keep Active)</span>
+              </button>
+
+              <button
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to cancel and remove this job posting now?')) {
+                    const ok = await deleteJob(job.id);
+                    if (ok) navigate('/dashboard');
+                  }
+                }}
+                className="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Trash2 size={13} />
+                <span>Remove Now</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main 2-Column Layout matching job_detail_status_open/code.html */}
       <div className="grid grid-cols-12 gap-8 items-start">
@@ -289,6 +380,10 @@ export const JobDetail: React.FC = () => {
             <div className="flex flex-wrap gap-2 pt-1">
               <span className="bg-purple-50 border border-purple-200 px-3 py-1 rounded text-xs font-mono text-purple-900 font-bold">
                 {job.category}
+              </span>
+              <span className="bg-purple-50 text-purple-800 border border-purple-200 px-3 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5">
+                <Clock size={13} className="text-purple-600" />
+                Posted: {new Date(job.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ({formatTimeAgo(job.createdAt || Date.now())})
               </span>
               <span className="bg-slate-100 border border-slate-200 px-3 py-1 rounded text-xs font-mono text-slate-700">
                 Review Window: {job.reviewPeriodDays} Days
@@ -324,7 +419,43 @@ export const JobDetail: React.FC = () => {
 
           </div>
 
-          {/* Job Description Card with CID tag */}
+          {/* 10-Day Retention & Database Cleaning Alert for Client */}
+          {isClient && (Date.now() - (job.createdAt || Date.now()) >= 10 * 24 * 60 * 60 * 1000) && job.status === 'Open' && (
+            <div className="p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3 shadow-md animate-fade-in">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shrink-0 mt-0.5">
+                  <AlertTriangle size={22} />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <h3 className="font-headline font-bold text-sm text-amber-900">
+                    10-Day Job Retention & Database Cleaning Alert
+                  </h3>
+                  <p className="text-xs text-amber-800 leading-relaxed font-sans font-medium">
+                    This job posting was created over 10 days ago (on {new Date(job.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}). To help keep the site, marketplace, and database clean and performant, please choose whether to keep this job active or remove and clean it permanently from the site and database.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-amber-200/80">
+                <button
+                  type="button"
+                  onClick={handleKeepJobActive}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                >
+                  <RefreshCw size={13} /> Keep Job Active (+10 Days)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRemoveJobPost}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                >
+                  <Trash2 size={13} /> Remove & Clean from Database
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Job Description Card with CID tag & Posted Date */}
           <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -332,6 +463,17 @@ export const JobDetail: React.FC = () => {
               </h2>
               <span className="font-data-hash text-[11px] text-purple-900 bg-purple-50 px-2.5 py-1 rounded border border-purple-200 font-bold">
                 CID: {generateIpfsCid(job.title).slice(0, 16)}...
+              </span>
+            </div>
+
+            {/* Prominent Posted Date Banner */}
+            <div className="flex flex-wrap items-center justify-between text-xs font-mono text-slate-600 bg-purple-50/60 p-3 rounded-xl border border-purple-100 gap-2">
+              <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                <Calendar size={14} className="text-purple-600" />
+                <span>Posted Date: {new Date(job.createdAt || Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              </div>
+              <span className="text-purple-800 font-bold bg-white px-2.5 py-0.5 rounded-full border border-purple-200 shadow-2xs">
+                {formatTimeAgo(job.createdAt || Date.now())}
               </span>
             </div>
 
@@ -404,91 +546,30 @@ export const JobDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Pre-Acceptance Direct Negotiation with Client (Real-Time) */}
+                  {/* Pre-Acceptance Direct Negotiation with Client (Redirect to Messages) */}
                   {hasApplied && (
-                    <div className="bg-white border border-purple-200/80 rounded-2xl p-5 space-y-4 shadow-sm">
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                            <MessageSquare size={16} />
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-slate-900">
-                              Pre-Acceptance Discussion with Client
-                            </h4>
-                            <p className="text-[11px] text-slate-500 font-mono">
-                              Real-time negotiation on budget, scope, and delivery targets
-                            </p>
-                          </div>
+                    <div className="bg-white border border-purple-200/80 rounded-2xl p-5 space-y-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare size={16} className="text-purple-700" />
+                          <h4 className="text-sm font-bold text-slate-900">
+                            Discuss Terms & Scope in Messages
+                          </h4>
                         </div>
-
-                        <div className="flex items-center gap-2 text-xs font-mono">
-                          <span className="bg-purple-50 text-purple-900 border border-purple-200 px-2.5 py-1 rounded-lg font-bold">
-                            Budget: ${job.negotiatedAmount || job.amountUsdc} USDC
-                          </span>
-                          <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-lg font-bold">
-                            SLA: {job.negotiatedDeadlineDays || job.reviewPeriodDays || 7} Days
-                          </span>
-                        </div>
+                        <p className="text-xs text-slate-500 font-mono">
+                          Communicate with the client in real-time to adjust deliverables, proposal scope, and deadlines.
+                        </p>
                       </div>
 
-                      {/* Live Pre-Acceptance Messages Stream */}
-                      <div className="bg-slate-50/80 border border-slate-200/70 rounded-xl p-4 max-h-56 overflow-y-auto space-y-3">
-                        {(job.preAcceptMessages && job.preAcceptMessages.length > 0) ? (
-                          job.preAcceptMessages.map((msg, idx) => {
-                            const isMe = msg.sender.toLowerCase() === (address || '').toLowerCase() || msg.senderRole === 'Freelancer';
-                            return (
-                              <div
-                                key={idx}
-                                className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-start gap-2`}
-                              >
-                                {!isMe && (
-                                  <div className="w-6 h-6 rounded-full bg-slate-800 text-white font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
-                                    C
-                                  </div>
-                                )}
-                                <div
-                                  className={`max-w-[78%] p-3 rounded-xl text-xs space-y-1 ${
-                                    isMe
-                                      ? 'bg-purple-600 text-white rounded-tr-none'
-                                      : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none shadow-2xs'
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between gap-3 text-[10px] opacity-80 font-mono">
-                                    <span className="font-bold">{isMe ? 'You (Freelancer)' : 'Client'}</span>
-                                    <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                  </div>
-                                  <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                                </div>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <div className="text-center py-6 text-slate-400 text-xs font-mono space-y-1">
-                            <MessageSquare className="w-6 h-6 mx-auto text-slate-300 mb-1" />
-                            <p className="font-bold text-slate-600">No negotiation messages yet</p>
-                            <p className="text-[10px]">Use the box below to ask questions or discuss terms with the client in real-time.</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Reply Input Bar */}
-                      <form onSubmit={handleFreelancerSendPreAccept} className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="Type message to client (e.g., discuss requirements, adjust scope or timeline)..."
-                          value={freelancerPreAcceptInput}
-                          onChange={(e) => setFreelancerPreAcceptInput(e.target.value)}
-                          className="flex-1 bg-slate-50 border border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all"
-                        />
-                        <button
-                          type="submit"
-                          className="gradient-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
-                        >
-                          <Send size={13} />
-                          <span>Send</span>
-                        </button>
-                      </form>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/chat?jobId=${job.id}`)}
+                        className="gradient-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shrink-0 cursor-pointer"
+                      >
+                        <MessageSquare size={14} />
+                        <span>Open Messages</span>
+                        <ArrowUpRight size={14} />
+                      </button>
                     </div>
                   )}
                 </div>
@@ -640,47 +721,28 @@ export const JobDetail: React.FC = () => {
                   </div>
                 )}
 
-                {/* XMTP Encrypted Chat Panel */}
-                <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-6">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div>
-                      <h3 className="font-headline text-base font-bold text-slate-900 flex items-center gap-2">
-                        <MessageSquare size={18} className="text-purple-700" /> XMTP Encrypted Negotiation Panel
+                {/* Direct Messages & Terms Negotiation Hub Card */}
+                <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare size={18} className="text-purple-700" />
+                      <h3 className="font-headline text-base font-bold text-slate-900">
+                        Encrypted Negotiation & Communication Hub
                       </h3>
-                      <p className="text-xs text-slate-600">
-                        End-to-end direct communication between client and selected freelancer.
-                      </p>
                     </div>
-                    <span className="text-[10px] font-mono text-purple-800 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200 font-bold">
-                      End-to-End Encrypted
-                    </span>
+                    <p className="text-xs text-slate-600">
+                      Communicate directly in the Messages section to discuss milestones, scope adjustments, and time extensions.
+                    </p>
                   </div>
-
-                  <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 max-h-60 overflow-y-auto font-mono text-xs">
-                    {chatMessages.map((msg, idx) => (
-                      <div
-                        key={idx}
-                        className={`p-3 rounded-lg max-w-lg ${msg.sender === 'Client' ? 'bg-purple-100 border border-purple-200 text-purple-950 ml-auto' : 'bg-white border border-slate-200 text-slate-800'
-                          }`}
-                      >
-                        <div className="font-bold text-[10px] text-slate-500 mb-1">{msg.sender}</div>
-                        <div>{msg.text}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <form onSubmit={handleSendMessage} className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Type message to discuss scope or deliverables..."
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      className="w-full glass-input text-xs"
-                    />
-                    <button type="submit" className="gradient-btn-primary px-4 rounded-xl text-xs font-bold cursor-pointer">
-                      Send
-                    </button>
-                  </form>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/chat?jobId=${job.id}`)}
+                    className="gradient-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shrink-0 cursor-pointer"
+                  >
+                    <MessageSquare size={14} />
+                    <span>Open Messages</span>
+                    <ArrowUpRight size={14} />
+                  </button>
                 </div>
               </div>
             ) : (
@@ -787,15 +849,24 @@ export const JobDetail: React.FC = () => {
 
         {/* Right Column Sidebar matching job_detail_status_open/code.html */}
         <aside className="col-span-12 lg:col-span-4 space-y-6">
-          {/* Budget & Escrow Commission Breakdown Card */}
+          {/* Budget & Escrow Platform Maintenance Fee Breakdown Card */}
           <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-4 font-sans">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-              <h3 className="font-label-mono text-xs text-slate-500 uppercase tracking-wider font-bold">
-                Job Escrow Budget
-              </h3>
-              <span className="text-[10px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full">
-                2.5% Protocol Fee
-              </span>
+            {/* Header matching requested visual design */}
+            <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2.5">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-purple-50/90 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0 shadow-2xs">
+                  <Wallet size={22} className="text-purple-600 stroke-[2.2]" />
+                </div>
+                <div className="font-mono text-xs font-black tracking-wider text-slate-900 leading-tight uppercase">
+                  <div>JOB ESCROW</div>
+                  <div>BUDGET</div>
+                </div>
+              </div>
+
+              <div className="px-3 py-1.5 rounded-full bg-purple-50/70 border border-purple-200 text-purple-900 font-mono text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs">
+                <ShieldCheck size={13} className="text-purple-600 shrink-0 stroke-[2.5]" />
+                <span>0% Commission • 2.5% Maint. Fee</span>
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -812,11 +883,11 @@ export const JobDetail: React.FC = () => {
               )}
             </div>
 
-            {/* Commission & Net Payout Breakdown */}
+            {/* Maintenance Fee & Net Payout Breakdown */}
             {(() => {
               const gross = parseFloat(job.amountUsdc || '0');
-              const commission = gross * 0.025;
-              const netPayout = gross - commission;
+              const maintenanceFee = gross * 0.025;
+              const netPayout = gross - maintenanceFee;
               const isMeFreelancer = job.freelancer?.toLowerCase() === (address || '').toLowerCase() || currentRole === 'freelancer';
               const isMeClient = job.client.toLowerCase() === (address || '').toLowerCase() || currentRole === 'client';
 
@@ -829,9 +900,9 @@ export const JobDetail: React.FC = () => {
 
                   <div className="flex justify-between items-center text-slate-500">
                     <span className="flex items-center gap-1">
-                      <span>Platform Commission (2.5%):</span>
+                      <span>Platform Maintenance Fee (2.5%):</span>
                     </span>
-                    <span className="font-bold text-rose-600">-${commission.toFixed(2)} USDC</span>
+                    <span className="font-bold text-rose-600">-${maintenanceFee.toFixed(2)} USDC</span>
                   </div>
 
                   <div className="flex justify-between items-center p-2.5 rounded-xl bg-purple-50/80 border border-purple-200 text-purple-950 font-bold">
@@ -841,8 +912,8 @@ export const JobDetail: React.FC = () => {
 
                   <p className="text-[10px] font-sans text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-200/80">
                     {isMeClient
-                      ? '💡 2.5% protocol fee is deducted upon payout release and routed to the decentralized DAO treasury.'
-                      : '💡 Net amount received after 2.5% protocol commission deduction.'}
+                      ? '💡 0% Commission — 2.5% platform maintenance fee is deducted upon payout release and routed to the decentralized DAO treasury.'
+                      : '💡 0% Commission — Net amount received after 2.5% platform maintenance fee.'}
                   </p>
                 </div>
               );

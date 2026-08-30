@@ -3,6 +3,10 @@ target
 chat.db
 chat.db-journal
 .env
+.env.*
+*.env
+.env.local
+polylance_shared_state.json
 local_state_db.json
 local_files_db.json
 

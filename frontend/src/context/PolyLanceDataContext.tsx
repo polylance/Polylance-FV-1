@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, DeliverableFile, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage } from '../types';
+import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, DeliverableFile, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage, NegotiationProposal, ChatMessage } from '../types';
 import { generateMockTxHash, generateDeterministicHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { fetchLiveExchangeRates } from '../utils/currency';
@@ -13,6 +13,7 @@ import JudgeDAOABI from '../config/abis/JudgeDAO.json';
 import { useWeb3 } from './Web3Context';
 import { io as socketIO, Socket } from 'socket.io-client';
 import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
+import { getJobInactivityStatus } from '../utils/inactivity';
 
 export const getSyncEndpoints = (): string[] => {
   const list: string[] = [];
@@ -65,6 +66,8 @@ interface PolyLanceDataContextType {
   removeJudge: (address: string) => void;
   toggleJudgeStatus: (address: string) => void;
   postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
+  deleteJob: (jobId: string) => Promise<boolean>;
+  renewJob: (jobId: string) => Promise<boolean>;
   applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => Promise<void>;
   selectFreelancer: (jobId: string, freelancerAddress: string) => Promise<void>;
   proposeTerms: (jobId: string, userAddress: string) => Promise<void>;
@@ -80,14 +83,20 @@ interface PolyLanceDataContextType {
   submitDisputeResponse: (jobId: string, responseText: string, responseIpfsHash: string) => void;
   resolveDispute: (jobId: string, freelancerBps: number, reasoningText: string, judgeAddress: string) => Promise<void>;
   updateJobTerms: (jobId: string, newAmountUsdc: string, newReviewPeriodDays?: number) => Promise<void>;
-  sendPreAcceptMessage: (jobId: string, text: string, senderAddress: string, senderRole: 'Client' | 'Freelancer') => void;
-  sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => void;
+  proposeNegotiationTerms: (jobId: string, amountUsdc: string, deadlineDays: number, note: string, senderRole: 'Client' | 'Freelancer', isFinalCall?: boolean, applicantAddress?: string) => Promise<void>;
+  respondToNegotiationProposal: (jobId: string, proposalId: string, accept: boolean, rejectReason?: string, responderRole?: 'Client' | 'Freelancer', applicantAddress?: string) => Promise<void>;
+  sendPreAcceptMessage: (jobId: string, text: string, senderAddress: string, senderRole: 'Client' | 'Freelancer', proposal?: NegotiationProposal, applicantAddress?: string) => void;
+  sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge', proposal?: NegotiationProposal, applicantAddress?: string, senderAddress?: string) => void;
   sendJudgeChatMessage: (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => void;
   isEnclineConnected: boolean;
   judgeMessages: Record<string, JudgeMessage[]>;
   closeChatSession: (jobId: string) => Promise<string | null>;
-  deleteChatHistory: (jobId?: string, judgeAddress?: string) => void;
+  deleteChatHistory: (jobId?: string, judgeAddress?: string) => Promise<void> | void;
   restoreChatHistory: (jobId?: string, messages?: any[], judgeAddress?: string, judgeMsgs?: JudgeMessage[]) => void;
+  accountDeletionRequests: Record<string, { requestedAt: number; executeAfter: number }>;
+  requestAccountDeletion: (address: string) => Promise<void>;
+  cancelAccountDeletion: (address: string) => Promise<void>;
+  purgeAccountData: (address: string) => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>, address: string) => Promise<void>;
   castDaoVote: (proposalId: string | number, support: boolean, voterAddress?: string, votingPower?: number) => Promise<void> | void;
   castVote: (proposalId: string | number, support: boolean, voterAddress?: string) => Promise<void> | void;
@@ -119,12 +128,9 @@ const MOCK_NAMES_TO_PURGE = new Set([
 
 const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<string, UserProfile> => {
   const normalized: Record<string, UserProfile> = {};
-  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd').toLowerCase();
-  const judgeGithub = (import.meta.env.VITE_JUDGE_GITHUB_USERNAME || 'sunny200551').toLowerCase().trim();
-  const admin1Addr = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cdfc0692cc675c95304bace2c834d8f901dcba').toLowerCase();
-  const admin2Addr = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a').toLowerCase();
-  const admin3Addr = (import.meta.env.VITE_ADMIN_ADDRESS_3 || '0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1').toLowerCase();
-  const adminGithub = (import.meta.env.VITE_ADMIN_GITHUB_USERNAME || 'akhilmuvva').toLowerCase().trim();
+  const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase().trim();
+  const judgeGithub = (import.meta.env.VITE_JUDGE_GITHUB_USERNAME || '').toLowerCase().trim();
+  const adminGithub = (import.meta.env.VITE_ADMIN_GITHUB_USERNAME || '').toLowerCase().trim();
 
   for (const [addr, profile] of Object.entries(rawProfiles || {})) {
     if (!addr) continue;
@@ -134,7 +140,6 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
     if (MOCK_ADDRESSES_TO_PURGE.has(lowerAddr)) continue;
     if (profile.displayName && MOCK_NAMES_TO_PURGE.has(profile.displayName.toLowerCase().trim())) continue;
 
-    // Copy profile data, but if this address is NOT the admin/judge address and holds a reserved GitHub handle, unbind it
     let cleanedProfile = { ...profile };
     const currGh = cleanedProfile.githubUsername?.toLowerCase().trim();
     if (currGh) {
@@ -142,11 +147,7 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
         delete cleanedProfile.githubUsername;
         cleanedProfile.githubVerified = false;
       }
-      if (currGh === adminGithub && admin2Addr && lowerAddr !== admin2Addr && !isAdminAddress(lowerAddr)) {
-        delete cleanedProfile.githubUsername;
-        cleanedProfile.githubVerified = false;
-      }
-      if (currGh === 'stevenson20' && admin3Addr && lowerAddr !== admin3Addr && !isAdminAddress(lowerAddr)) {
+      if (currGh === adminGithub && !isAdminAddress(lowerAddr)) {
         delete cleanedProfile.githubUsername;
         cleanedProfile.githubVerified = false;
       }
@@ -165,43 +166,33 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
     }
   }
 
-  // Ensure Admin 2 (Akhil Muvva) has verified admin profile with @akhilmuvva
-  if (admin2Addr) {
-    if (!normalized[admin2Addr]) {
-      normalized[admin2Addr] = {
-        address: admin2Addr,
-        displayName: 'Akhil Muvva',
+  // Initialize configured Admin profile if admin address and github handle are set in env
+  const adminAddr1 = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '').toLowerCase().trim();
+  const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '').toLowerCase().trim();
+  const primaryAdminAddr = adminAddr2 || adminAddr1;
+
+  if (primaryAdminAddr && adminGithub) {
+    if (!normalized[primaryAdminAddr]) {
+      normalized[primaryAdminAddr] = {
+        address: primaryAdminAddr,
+        displayName: adminGithub,
         bio: 'Official PolyLance DAO Administrator & Core Developer.',
-        avatarUrl: 'https://avatars.githubusercontent.com/u/192993350?v=4',
+        avatarUrl: `https://github.com/${adminGithub}.png`,
         ipfsHash: '',
         skills: ['Solidity', 'TypeScript', 'React', 'Smart Contracts', 'Governance'],
-        githubUsername: 'akhilmuvva',
+        githubUsername: adminGithub,
         githubVerified: true,
         primaryScore: 820,
         reputationSbtCount: 0,
         role: 'admin',
       };
     } else {
-      normalized[admin2Addr].githubUsername = 'akhilmuvva';
-      normalized[admin2Addr].githubVerified = true;
-      if (!normalized[admin2Addr].displayName || normalized[admin2Addr].displayName === 'Anonymous PolyLancer') {
-        normalized[admin2Addr].displayName = 'Akhil Muvva';
-      }
-      if (!normalized[admin2Addr].avatarUrl || normalized[admin2Addr].avatarUrl.includes('unsplash.com')) {
-        normalized[admin2Addr].avatarUrl = 'https://avatars.githubusercontent.com/u/192993350?v=4';
-      }
+      normalized[primaryAdminAddr].githubUsername = adminGithub;
+      normalized[primaryAdminAddr].githubVerified = true;
     }
   }
 
-  // Ensure Admin 3 (Stevenson) is initialized/verified
-  if (admin3Addr && normalized[admin3Addr]) {
-    if (!normalized[admin3Addr].githubUsername) {
-      normalized[admin3Addr].githubUsername = 'stevenson20';
-      normalized[admin3Addr].githubVerified = true;
-    }
-  }
-
-  // If judge address is configured in .env and not yet in profiles, initialize editable profile
+  // If judge address is configured in .env and not yet in profiles, initialize profile
   if (judgeAddr && !normalized[judgeAddr]) {
     normalized[judgeAddr] = {
       address: judgeAddr,
@@ -211,17 +202,15 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
       ipfsHash: '',
       skills: ['TypeScript', 'React', 'Smart Contracts', 'Node.js', 'Solidity'],
       githubUsername: judgeGithub,
-      githubVerified: true,
+      githubVerified: Boolean(judgeGithub),
       primaryScore: 850,
       reputationSbtCount: 0,
+      role: 'judge',
     };
   } else if (judgeAddr && normalized[judgeAddr] && judgeGithub) {
     if (!normalized[judgeAddr].githubUsername || !normalized[judgeAddr].githubVerified) {
       normalized[judgeAddr].githubUsername = judgeGithub;
       normalized[judgeAddr].githubVerified = true;
-    }
-    if (!normalized[judgeAddr].avatarUrl || normalized[judgeAddr].avatarUrl.includes('unsplash.com')) {
-      normalized[judgeAddr].avatarUrl = `https://github.com/${judgeGithub}.png`;
     }
   }
 
@@ -230,8 +219,15 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
 
 const BROADCAST_CHANNEL_NAME = 'polylance_realtime_sync_channel';
 
+let currentConnectedWalletAddress: string = '';
+
+export const setCurrentConnectedWalletAddress = (addr: string) => {
+  currentConnectedWalletAddress = (addr || '').toLowerCase().trim();
+};
+
 const broadcastSync = (data: {
   jobs?: Job[];
+  deletedJobId?: string;
   profiles?: Record<string, UserProfile>;
   daoProposals?: DaoProposal[];
   judgeMessages?: Record<string, JudgeMessage[]>;
@@ -240,7 +236,9 @@ const broadcastSync = (data: {
   treasuryHistory?: any[];
   treasuryBalanceUsdc?: number;
   treasuryBalanceEth?: number;
-}) => {
+}, senderAddress?: string) => {
+  const activeAddr = (senderAddress || currentConnectedWalletAddress || '').toLowerCase().trim();
+
   // 1. Cross-Tab Sync via BroadcastChannel
   try {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -259,10 +257,15 @@ const broadcastSync = (data: {
 
   // 3. Multi-Endpoint Dual Write to Cloud Databases (Render PostgreSQL)
   const endpoints = getSyncEndpoints();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (activeAddr) {
+    headers['x-wallet-address'] = activeAddr;
+  }
+  const query = activeAddr ? `?address=${encodeURIComponent(activeAddr)}` : '';
   endpoints.forEach((ep) => {
-    fetch(`${ep}/api/sync`, {
+    fetch(`${ep}/api/sync${query}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(data),
     }).catch(() => {});
   });
@@ -316,7 +319,7 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
       // Respect chatClearedAt so cleared messages are never re-merged
       const chatClearedAt = Math.max(curr.chatClearedAt || 0, inJob.chatClearedAt || 0);
 
-      // Merge chat messages with smart deduplication (same sender + text within 3.5 seconds)
+      // Merge chat messages with smart deduplication (preserve all proposals and non-duplicates)
       const mergedMsgs: any[] = [];
       const sourceMsgs = [
         ...(curr.chatMessages || []),
@@ -327,17 +330,50 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
       );
       for (const m of allMsgs) {
-        if (!m || !m.text) continue;
+        if (!m) continue;
         const isDuplicate = mergedMsgs.some(
           (existing) =>
-            existing.sender === m.sender &&
-            existing.text.trim() === m.text.trim() &&
-            Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500
+            (m.id && existing.id && m.id === existing.id) ||
+            (m.proposal && existing.proposal && m.proposal.id === existing.proposal.id) ||
+            (existing.sender === m.sender &&
+              Boolean(m.text) &&
+              existing.text?.trim() === m.text?.trim() &&
+              Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500 &&
+              !m.proposal)
         );
         if (!isDuplicate) {
           mergedMsgs.push(m);
+        } else if (m.proposal) {
+          // Keep newest proposal status if incoming has updated status (e.g., Accepted/Rejected)
+          const propId = m.proposal.id;
+          const idx = mergedMsgs.findIndex(
+            (em) => (m.id && em.id === m.id) || (em.proposal && propId && em.proposal.id === propId)
+          );
+          if (idx !== -1 && m.proposal) {
+            mergedMsgs[idx] = {
+              ...mergedMsgs[idx],
+              ...m,
+              proposal: { ...(mergedMsgs[idx].proposal || {}), ...m.proposal },
+            };
+          }
         }
       }
+
+      // Merge negotiation proposals safely
+      const propMap = new Map<string, NegotiationProposal>();
+      (curr.negotiationProposals || []).forEach((p) => p && propMap.set(p.id, p));
+      (inJob.negotiationProposals || []).forEach((p) => {
+        if (!p) return;
+        const existing = propMap.get(p.id);
+        if (!existing) {
+          propMap.set(p.id, p);
+        } else {
+          propMap.set(p.id, { ...existing, ...p });
+        }
+      });
+      const mergedProposals = Array.from(propMap.values()).sort(
+        (a, b) => (a.createdAt || 0) - (b.createdAt || 0)
+      );
 
       // Merge extension requests safely
       const extMap = new Map<string, any>();
@@ -366,15 +402,30 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
       );
       for (const m of allPreMsgs) {
-        if (!m || !m.text) continue;
+        if (!m) continue;
         const isDuplicate = mergedPreMsgs.some(
           (existing) =>
-            existing.sender === m.sender &&
-            existing.text.trim() === m.text.trim() &&
-            Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500
+            (m.proposal && existing.proposal && m.proposal.id === existing.proposal.id) ||
+            (existing.sender === m.sender &&
+              Boolean(m.text) &&
+              existing.text?.trim() === m.text?.trim() &&
+              Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500 &&
+              !m.proposal)
         );
         if (!isDuplicate) {
           mergedPreMsgs.push(m);
+        } else if (m.proposal) {
+          const propId = m.proposal.id;
+          const idx = mergedPreMsgs.findIndex(
+            (em) => em.proposal && propId && em.proposal.id === propId
+          );
+          if (idx !== -1 && m.proposal) {
+            mergedPreMsgs[idx] = {
+              ...mergedPreMsgs[idx],
+              ...m,
+              proposal: { ...(mergedPreMsgs[idx].proposal || {}), ...m.proposal },
+            };
+          }
         }
       }
 
@@ -389,9 +440,11 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         amountUsdc: inJob.amountUsdc || curr.amountUsdc,
         amountEth: inJob.amountEth || curr.amountEth,
         paymentTokenSymbol: inJob.paymentTokenSymbol || curr.paymentTokenSymbol,
+        reviewPeriodDays: inJob.reviewPeriodDays || curr.reviewPeriodDays,
         negotiatedAmount: inJob.negotiatedAmount || curr.negotiatedAmount,
         negotiatedDeadlineDays: inJob.negotiatedDeadlineDays !== undefined ? inJob.negotiatedDeadlineDays : curr.negotiatedDeadlineDays,
         applications: Array.from(appMap.values()),
+        negotiationProposals: mergedProposals,
         chatMessages: mergedMsgs,
         preAcceptMessages: mergedPreMsgs,
         events: inJob.events?.length ? inJob.events : curr.events,
@@ -407,7 +460,8 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
     }
   });
 
-  return Array.from(map.values());
+  const allMerged = Array.from(map.values());
+  return allMerged.filter((j) => !getJobInactivityStatus(j).isExpired);
 };
 
 const matchJob = (job: Job, targetId: string): boolean => {
@@ -446,7 +500,13 @@ const mergeProfilesMap = (existing: Record<string, UserProfile>, incoming: Recor
 };
 
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { provider, getSigner } = useWeb3();
+  const { provider, getSigner, address } = useWeb3();
+
+  useEffect(() => {
+    if (address) {
+      setCurrentConnectedWalletAddress(address);
+    }
+  }, [address]);
 
 
 
@@ -455,14 +515,38 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const saved = localStorage.getItem('polylance_jobs');
       if (saved) {
         const parsed: Job[] = JSON.parse(saved);
-        return parsed.filter(j => j.id !== 'job-101' && j.id !== 'job-102');
+        return parsed.filter(j => j.id !== 'job-101' && j.id !== 'job-102' && !getJobInactivityStatus(j).isExpired);
       }
     }
     return INITIAL_JOBS;
   });
+
+  // Periodic background check to automatically purge jobs reaching 14 days without client action
+  useEffect(() => {
+    const checkExpiry = () => {
+      setJobsRaw((curr) => {
+        const expired = curr.filter((j) => getJobInactivityStatus(j).isExpired);
+        if (expired.length === 0) return curr;
+
+        const remaining = curr.filter((j) => !getJobInactivityStatus(j).isExpired);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('polylance_jobs', JSON.stringify(remaining));
+        }
+        expired.forEach((exp) => {
+          broadcastSync({ deletedJobId: exp.id });
+        });
+        return remaining;
+      });
+    };
+
+    const timer = setInterval(checkExpiry, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   const setJobs = (val: React.SetStateAction<Job[]>) => {
     setJobsRaw((prev) => {
-      const next = typeof val === 'function' ? val(prev) : val;
+      const computed = typeof val === 'function' ? val(prev) : val;
+      const next = computed.filter((j) => !getJobInactivityStatus(j).isExpired);
       if (typeof window !== 'undefined') {
         localStorage.setItem('polylance_jobs', JSON.stringify(next));
       }
@@ -635,6 +719,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                 return { ...merged };
               });
             }
+            if (payload.deletedJobId) {
+              const delId = payload.deletedJobId;
+              setJobsRaw((curr) => curr.filter((j) => !matchJob(j, delId)));
+            }
             if (payload.daoProposals) setDaoProposalsRaw([...payload.daoProposals]);
             if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
             if (payload.judges) setJudgesRaw([...payload.judges]);
@@ -695,7 +783,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     // Initial load from backend shared state + upload local items if new
-    fetch(`${syncUrl}/api/sync`)
+    const currentAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
+    const initHeaders: Record<string, string> = {};
+    if (currentAddr) {
+      initHeaders['x-wallet-address'] = currentAddr;
+    }
+    const initQuery = currentAddr ? `?address=${encodeURIComponent(currentAddr)}` : '';
+    fetch(`${syncUrl}/api/sync${initQuery}`, { headers: initHeaders })
       .then((r) => r.json())
       .then((payload) => {
         let currentLocalJobs: Job[] = [];
@@ -835,11 +929,18 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     // Periodic synchronization check and window focus listener for multi-account / cross-context real-time sync
     const syncFromRemoteBackend = async () => {
       const endpoints = getSyncEndpoints();
+      const activeAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
+      const reqHeaders: Record<string, string> = {};
+      if (activeAddr) {
+        reqHeaders['x-wallet-address'] = activeAddr;
+      }
+      const query = activeAddr ? `?address=${encodeURIComponent(activeAddr)}` : '';
+
       for (const ep of endpoints) {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 4500);
-          const r = await fetch(`${ep}/api/sync`, { signal: controller.signal });
+          const r = await fetch(`${ep}/api/sync${query}`, { signal: controller.signal, headers: reqHeaders });
           clearTimeout(timeoutId);
           if (!r.ok) continue;
           const payload = await r.json();
@@ -878,7 +979,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     const pollInterval = setInterval(() => {
       syncFromStorage();
       syncFromRemoteBackend();
-    }, 4000);
+    }, 15000);
 
     window.addEventListener('focus', () => {
       syncFromStorage();
@@ -902,6 +1003,34 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
+
+  // Re-fetch scoped data securely when connected wallet changes
+  useEffect(() => {
+    if (!address) return;
+    const syncUrl = getBackendSyncUrl();
+    const headers: Record<string, string> = { 'x-wallet-address': address.toLowerCase().trim() };
+    const query = `?address=${encodeURIComponent(address.toLowerCase().trim())}`;
+    fetch(`${syncUrl}/api/sync${query}`, { headers })
+      .then((r) => r.json())
+      .then((payload) => {
+        if (!payload) return;
+        if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
+          setJobsRaw((curr) => {
+            const merged = mergeJobsList(curr, payload.jobs);
+            try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
+            return [...merged];
+          });
+        }
+        if (payload.judgeMessages && Object.keys(payload.judgeMessages).length > 0) {
+          setJudgeMessagesRaw((curr) => {
+            const next = { ...curr, ...payload.judgeMessages };
+            try { localStorage.setItem('polylance_judge_messages', JSON.stringify(next)); } catch {}
+            return next;
+          });
+        }
+      })
+      .catch(() => {});
+  }, [address]);
 
   const [loading, setLoading] = useState(false);
 
@@ -990,10 +1119,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     balanceEth: treasuryBalanceEth.toString(),
     requiredSignatures: 2,
     signers: [
-      import.meta.env.VITE_ADMIN_ADDRESS_1 || '0x62cDfc0692cC675c95304BaCE2C834D8F901dCba',
-      import.meta.env.VITE_ADMIN_ADDRESS_2 || '0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A',
-      import.meta.env.VITE_ADMIN_ADDRESS_3 || '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1',
-    ],
+      import.meta.env.VITE_ADMIN_ADDRESS_1 || '',
+      import.meta.env.VITE_ADMIN_ADDRESS_2 || '',
+      import.meta.env.VITE_ADMIN_ADDRESS_3 || '',
+    ].filter(Boolean),
     proposals: treasuryProposals,
   };
 
@@ -1067,6 +1196,52 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) => [newJob, ...prev]);
     return newJob;
+  };
+
+  const deleteJob = async (jobId: string): Promise<boolean> => {
+    try {
+      setJobsRaw((prev) => {
+        const next = prev.filter((j) => !matchJob(j, jobId));
+        if (typeof window !== 'undefined') localStorage.setItem('polylance_jobs', JSON.stringify(next));
+        return next;
+      });
+
+      broadcastSync({ deletedJobId: jobId });
+
+      const syncUrl = getBackendSyncUrl();
+      fetch(`${syncUrl}/api/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'DELETE',
+      }).catch((err) => console.warn('Backend delete job notice:', err));
+
+      return true;
+    } catch (err) {
+      console.error('Failed to delete job:', err);
+      return false;
+    }
+  };
+
+  const renewJob = async (jobId: string): Promise<boolean> => {
+    try {
+      setJobsRaw((prev) => {
+        const next = prev.map((j) => {
+          if (!matchJob(j, jobId)) return j;
+          return { ...j, createdAt: Date.now() };
+        });
+        if (typeof window !== 'undefined') localStorage.setItem('polylance_jobs', JSON.stringify(next));
+        broadcastSync({ jobs: next });
+        return next;
+      });
+
+      const syncUrl = getBackendSyncUrl();
+      fetch(`${syncUrl}/api/jobs/${encodeURIComponent(jobId)}/renew`, {
+        method: 'POST',
+      }).catch((err) => console.warn('Backend renew job notice:', err));
+
+      return true;
+    } catch (err) {
+      console.error('Failed to renew job:', err);
+      return false;
+    }
   };
 
   const applyToJob = async (
@@ -1195,7 +1370,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (job.paymentToken === ethers.ZeroAddress || tokenConfig.symbol === 'MATIC') {
           const val = ethers.parseUnits(job.amountEth || job.amountUsdc || '0.01', 18);
-          const tx = await escrow.fundJob(0n, { value: val });
+          const tx = await (escrow['fundJob()'] ? escrow['fundJob()']({ value: val }) : escrow.fundJob({ value: val }));
           const receipt = await tx.wait();
           txHash = receipt.hash;
         } else {
@@ -1209,7 +1384,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           const approveTx = await tokenContract.approve(job.contractAddress, amountParsed);
           await approveTx.wait();
 
-          const fundTx = await escrow.fundJob(amountParsed);
+          const fundTx = await (escrow['fundJob(uint256)'] ? escrow['fundJob(uint256)'](amountParsed) : escrow.fundJob(amountParsed));
           const receipt = await fundTx.wait();
           txHash = receipt.hash;
         }
@@ -1224,7 +1399,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setJobs((prev) =>
       prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
-        const updatedEvents = j.events.map((evt) => {
+        const updatedEvents = (j.events || []).map((evt) => {
           if (evt.step === 'Funded') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
           if (evt.step === 'Submitted') return { ...evt, status: 'current' as const };
           return evt;
@@ -1232,6 +1407,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         return {
           ...j,
           status: 'Funded' as const,
+          clientAgreedTerms: true,
+          freelancerAgreedTerms: true,
           events: updatedEvents,
         };
       })
@@ -1713,7 +1890,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           dispute: {
             ...j.dispute,
             resolved: true,
-            reasoningIpfsHash: reasoningCid,
+          reasoningIpfsHash: reasoningCid,
             reasoningText,
             rulingBps: freelancerBps,
             judge: judgeAddress,
@@ -1742,11 +1919,211 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const sendPreAcceptMessage = (jobId: string, text: string, senderAddress: string, senderRole: 'Client' | 'Freelancer') => {
+  const proposeNegotiationTerms = async (
+    jobId: string,
+    amountUsdc: string,
+    deadlineDays: number,
+    note: string,
+    senderRole: 'Client' | 'Freelancer',
+    isFinalCall: boolean = false,
+    applicantAddress?: string
+  ) => {
+    const proposalId = `prop-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const now = Date.now();
+    // Store the freelancer's address as applicantAddress so it shows in the right channel.
+    // For both roles, use the applicantAddress (freelancer wallet) as the thread key.
+    const cleanApplicant = applicantAddress?.toLowerCase();
+
+    const proposal: NegotiationProposal = {
+      id: proposalId,
+      jobId,
+      applicantAddress: cleanApplicant,
+      proposedBy: senderRole,
+      amountUsdc,
+      deadlineDays,
+      note: note.trim(),
+      isFinalCall,
+      status: 'Pending',
+      createdAt: now,
+    };
+
+    const actionText = `📋 ${senderRole === 'Freelancer' ? 'Freelancer' : 'Client'} proposed: $${amountUsdc} USDC in ${deadlineDays} days${note ? ` — "${note}"` : ''}`;
+
+    const newMsg: ChatMessage = {
+      id: `msg-${now}`,
+      sender: senderRole,
+      // Store applicantAddress (always the freelancer's wallet) so message appears in the correct thread.
+      applicantAddress: cleanApplicant,
+      // Also store as senderAddress to ensure filter fallback works.
+      senderAddress: senderRole === 'Freelancer' ? cleanApplicant : undefined,
+      text: actionText,
+      timestamp: now,
+      proposal,
+    };
+
+    setJobs((prev) =>
+      prev.map((j) => {
+        if (!matchJob(j, jobId)) return j;
+        const existingProps = j.negotiationProposals || [];
+        const existingChat = j.chatMessages || [];
+        const existingPre = j.preAcceptMessages || [];
+
+        // Mark any previous Pending proposals in this thread as Countered
+        const updatedProps = [
+          ...existingProps.map((p) =>
+            p.status === 'Pending' && (!cleanApplicant || !p.applicantAddress || p.applicantAddress === cleanApplicant)
+              ? { ...p, status: 'Countered' as const }
+              : p
+          ),
+          proposal,
+        ];
+
+        return {
+          ...j,
+          negotiationProposals: updatedProps,
+          chatMessages: [...existingChat, newMsg],
+          preAcceptMessages: [
+            ...existingPre,
+            {
+              sender: senderRole,
+              senderRole,
+              text: actionText,
+              timestamp: now,
+              proposal,
+              applicantAddress: cleanApplicant,
+            },
+          ],
+        };
+      })
+    );
+  };
+
+  const respondToNegotiationProposal = async (
+    jobId: string,
+    proposalId: string,
+    accept: boolean,
+    rejectReason: string = '',
+    responderRole: 'Client' | 'Freelancer' = 'Client',
+    applicantAddress?: string
+  ) => {
+    const now = Date.now();
+    setJobs((prev) =>
+      prev.map((j) => {
+        if (!matchJob(j, jobId)) return j;
+        const props = j.negotiationProposals || [];
+        // Find target proposal in proposals list OR chatMessages
+        const msgProp = (j.chatMessages || []).find((m) => m.proposal?.id === proposalId)?.proposal;
+        const targetProp = props.find((p) => p.id === proposalId) || msgProp;
+        if (!targetProp) return j;
+
+        const effectiveApplicant = (applicantAddress || targetProp.applicantAddress || j.freelancer || '')?.toLowerCase();
+
+        const updatedProp: NegotiationProposal = {
+          ...targetProp,
+          status: accept ? 'Accepted' : 'Rejected',
+          respondedAt: now,
+          responseNote: rejectReason,
+        };
+
+        // Update proposal in props array, and if accepted, mark all other pending proposals as Countered
+        const updatedProps = props.some((p) => p.id === proposalId)
+          ? props.map((p) => (p.id === proposalId ? updatedProp : (accept && p.status === 'Pending' ? { ...p, status: 'Countered' as const } : p)))
+          : [...props.map((p) => (accept && p.status === 'Pending' ? { ...p, status: 'Countered' as const } : p)), updatedProp];
+
+        const confirmationText = accept
+          ? `🎉 ${responderRole} ACCEPTED the terms: $${targetProp.amountUsdc} USDC in ${targetProp.deadlineDays} days! Full contract terms are updated on-chain.`
+          : `❌ ${responderRole} declined the proposed terms ($${targetProp.amountUsdc} USDC in ${targetProp.deadlineDays} days)${rejectReason ? `: "${rejectReason}"` : '.'}`;
+
+        const confMsg: ChatMessage = {
+          id: `msg-${now}`,
+          sender: responderRole,
+          applicantAddress: effectiveApplicant,
+          text: confirmationText,
+          timestamp: now,
+        };
+
+        const updatedEvents = (j.events || []).map((evt) => {
+          if (accept) {
+            if (evt.step === 'Terms') return { ...evt, status: 'completed' as const, timestamp: now, txHash: generateMockTxHash() };
+            if (evt.step === 'Funded') return { ...evt, status: 'completed' as const, timestamp: now, txHash: generateMockTxHash() };
+          }
+          return evt;
+        });
+
+        const effectiveFreelancer = effectiveApplicant || j.freelancer;
+
+        // Update all chat messages so the proposal card displays ACCEPTED instead of PENDING
+        const updatedChatMessages = (j.chatMessages || []).map((m) => {
+          if (!m.proposal) return m;
+          if (m.proposal.id === proposalId) {
+            return { ...m, proposal: updatedProp };
+          }
+          if (accept && m.proposal.status === 'Pending') {
+            return { ...m, proposal: { ...m.proposal, status: 'Countered' as const } };
+          }
+          return m;
+        });
+
+        const updatedPreAcceptMessages = (j.preAcceptMessages || []).map((m) => {
+          if (!m.proposal) return m;
+          if (m.proposal.id === proposalId) {
+            return { ...m, proposal: updatedProp };
+          }
+          if (accept && m.proposal.status === 'Pending') {
+            return { ...m, proposal: { ...m.proposal, status: 'Countered' as const } };
+          }
+          return m;
+        });
+
+        return {
+          ...j,
+          status: accept ? 'Funded' : j.status,
+          freelancer: accept && effectiveFreelancer ? effectiveFreelancer : j.freelancer,
+          amountUsdc: accept ? targetProp.amountUsdc : j.amountUsdc,
+          amountEth: accept ? (parseFloat(targetProp.amountUsdc) / 2500).toFixed(4) : j.amountEth,
+          reviewPeriodDays: accept ? targetProp.deadlineDays : j.reviewPeriodDays,
+          negotiatedAmount: accept ? targetProp.amountUsdc : j.negotiatedAmount,
+          negotiatedDeadlineDays: accept ? targetProp.deadlineDays : j.negotiatedDeadlineDays,
+          clientAgreedTerms: accept ? true : j.clientAgreedTerms,
+          freelancerAgreedTerms: accept ? true : j.freelancerAgreedTerms,
+          negotiationProposals: updatedProps,
+          events: updatedEvents,
+          chatMessages: [...updatedChatMessages, confMsg],
+          preAcceptMessages: [
+            ...updatedPreAcceptMessages,
+            {
+              sender: responderRole === 'Client' ? j.client : (effectiveApplicant || j.freelancer || ''),
+              senderRole: responderRole,
+              text: confirmationText,
+              timestamp: now,
+              applicantAddress: effectiveApplicant,
+            },
+          ],
+        };
+      })
+    );
+  };
+
+  const sendPreAcceptMessage = (
+    jobId: string,
+    text: string,
+    senderAddress: string,
+    senderRole: 'Client' | 'Freelancer',
+    proposal?: NegotiationProposal,
+    applicantAddress?: string
+  ) => {
     if (!text || !text.trim()) return;
     const trimmed = text.trim();
     const now = Date.now();
-    const newMsg = { sender: senderAddress, senderRole, text: trimmed, timestamp: now };
+    const cleanApplicant = applicantAddress?.toLowerCase();
+    const newMsg = {
+      sender: senderAddress,
+      senderRole,
+      text: trimmed,
+      timestamp: now,
+      proposal,
+      applicantAddress: cleanApplicant,
+    };
 
     setJobs((prev) =>
       prev.map((job) => {
@@ -1760,18 +2137,39 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  const sendChatMessage = (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge') => {
+  const sendChatMessage = (
+    jobId: string,
+    text: string,
+    senderRole: 'Client' | 'Freelancer' | 'Judge',
+    proposal?: NegotiationProposal,
+    applicantAddress?: string,
+    senderAddress?: string
+  ) => {
     if (!text || !text.trim()) return;
     const trimmed = text.trim();
     const now = Date.now();
-    const newMsg = { sender: senderRole, text: trimmed, timestamp: now };
+    const cleanApplicant = applicantAddress?.toLowerCase();
+    const newMsg: ChatMessage = {
+      id: `msg-${now}`,
+      sender: senderRole,
+      senderAddress: senderAddress?.toLowerCase(),
+      applicantAddress: cleanApplicant,
+      text: trimmed,
+      timestamp: now,
+      proposal,
+    };
 
     setJobs((prev) =>
       prev.map((job) => {
         if (!matchJob(job, jobId)) return job;
         const existing = job.chatMessages || [];
         const isRecentDuplicate = existing.some(
-          (m) => m.sender === senderRole && m.text.trim() === trimmed && Math.abs(m.timestamp - now) < 2500
+          (m) =>
+            m.sender === senderRole &&
+            m.text.trim() === trimmed &&
+            Math.abs(m.timestamp - now) < 2500 &&
+            !proposal &&
+            m.applicantAddress?.toLowerCase() === cleanApplicant
         );
         if (isRecentDuplicate) return job;
 
@@ -1811,7 +2209,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             oldProf.githubVerified = false;
             updatedPrev[duplicateAddress] = oldProf;
           } else {
-            alert(`Verification Error: The GitHub account @${profileData.githubUsername} is already linked to another wallet address (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})!\nOnly one wallet connection per GitHub username is allowed for Sybil resistance.`);
+            console.warn(`Verification Error: The GitHub account @${profileData.githubUsername} is already linked to another wallet address (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})! Only one wallet connection per GitHub username is allowed for Sybil resistance.`);
             return prev;
           }
         }
@@ -2017,7 +2415,96 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return null;
   };
 
-  const deleteChatHistory = (jobId?: string, judgeAddress?: string) => {
+  const [accountDeletionRequests, setAccountDeletionRequestsRaw] = useState<Record<string, { requestedAt: number; executeAfter: number }>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('polylance_deletion_requests');
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
+
+  const setAccountDeletionRequests = (val: React.SetStateAction<Record<string, { requestedAt: number; executeAfter: number }>>) => {
+    setAccountDeletionRequestsRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('polylance_deletion_requests', JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  const cancelAccountDeletion = async (userAddress: string) => {
+    if (!userAddress) return;
+    const lower = userAddress.toLowerCase();
+    setAccountDeletionRequests((prev) => {
+      const next = { ...prev };
+      delete next[lower];
+      return next;
+    });
+  };
+
+  const purgeAccountData = async (userAddress: string) => {
+    if (!userAddress) return;
+    const lower = userAddress.toLowerCase();
+    cancelAccountDeletion(lower);
+
+    // Purge profile from local state and localStorage
+    setProfiles((prev) => {
+      const next = { ...prev };
+      delete next[lower];
+      const matchKey = Object.keys(next).find((k) => k.toLowerCase() === lower);
+      if (matchKey) delete next[matchKey];
+      return next;
+    });
+
+    // Clear direct judge messages
+    setJudgeMessages((prev) => {
+      const next = { ...prev };
+      delete next[lower];
+      return next;
+    });
+
+    // Notify backend to purge off-chain data
+    try {
+      await fetch(`${getBackendSyncUrl()}/api/users/${encodeURIComponent(lower)}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': lower,
+        },
+      });
+    } catch (err) {
+      console.warn('Backend user purge fallback:', err);
+    }
+  };
+
+  const requestAccountDeletion = async (userAddress: string) => {
+    if (!userAddress) return;
+    const lower = userAddress.toLowerCase();
+    const now = Date.now();
+    const executeAfter = now + 30 * 24 * 60 * 60 * 1000; // 30 days buffer
+    setAccountDeletionRequests((prev) => ({
+      ...prev,
+      [lower]: { requestedAt: now, executeAfter },
+    }));
+  };
+
+  // Check for expired deletion requests whose 30-day buffer elapsed
+  useEffect(() => {
+    const checkExpiredDeletions = () => {
+      const now = Date.now();
+      Object.entries(accountDeletionRequests).forEach(([addr, req]) => {
+        if (req && req.executeAfter && now >= req.executeAfter) {
+          purgeAccountData(addr);
+        }
+      });
+    };
+    checkExpiredDeletions();
+    const interval = setInterval(checkExpiredDeletions, 60000);
+    return () => clearInterval(interval);
+  }, [accountDeletionRequests]);
+
+  const deleteChatHistory = async (jobId?: string, judgeAddress?: string) => {
     if (jobId) {
       const now = Date.now();
       setJobs((prev) =>
@@ -2026,6 +2513,18 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           return { ...j, chatMessages: [], preAcceptMessages: [], chatClearedAt: now };
         })
       );
+      // Trigger API call to backend database
+      try {
+        await fetch(`${getBackendSyncUrl()}/api/jobs/${encodeURIComponent(jobId)}/chat`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': currentConnectedWalletAddress || '',
+          },
+        });
+      } catch (e) {
+        console.warn('Backend delete chat history fallback:', e);
+      }
     } else if (judgeAddress) {
       const lower = judgeAddress.toLowerCase();
       setJudgeMessages((prev) => {
@@ -2033,6 +2532,17 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         delete next[lower];
         return next;
       });
+      try {
+        await fetch(`${getBackendSyncUrl()}/api/judges/${encodeURIComponent(judgeAddress)}/chat`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': currentConnectedWalletAddress || '',
+          },
+        });
+      } catch (e) {
+        console.warn('Backend delete judge chat history fallback:', e);
+      }
     }
   };
 
@@ -2111,6 +2621,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         removeJudge,
         toggleJudgeStatus,
         postJob,
+        deleteJob,
+        renewJob,
         applyToJob,
         selectFreelancer,
         proposeTerms,
@@ -2126,6 +2638,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         submitDisputeResponse,
         resolveDispute,
         updateJobTerms,
+        proposeNegotiationTerms,
+        respondToNegotiationProposal,
         sendPreAcceptMessage,
         sendChatMessage,
         sendJudgeChatMessage,
@@ -2134,6 +2648,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         closeChatSession,
         deleteChatHistory,
         restoreChatHistory,
+        accountDeletionRequests,
+        requestAccountDeletion,
+        cancelAccountDeletion,
+        purgeAccountData,
         updateProfile,
         castDaoVote,
         castVote,
@@ -2165,6 +2683,8 @@ const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
   removeJudge: () => {},
   toggleJudgeStatus: () => {},
   postJob: async () => ({} as any),
+  deleteJob: async () => false,
+  renewJob: async () => false,
   applyToJob: async () => {},
   selectFreelancer: async () => {},
   proposeTerms: async () => {},
@@ -2180,6 +2700,8 @@ const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
   submitDisputeResponse: () => {},
   resolveDispute: async () => {},
   updateJobTerms: async () => {},
+  proposeNegotiationTerms: async () => {},
+  respondToNegotiationProposal: async () => {},
   sendPreAcceptMessage: () => {},
   sendChatMessage: () => {},
   sendJudgeChatMessage: () => {},
@@ -2188,6 +2710,10 @@ const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
   closeChatSession: async () => null,
   deleteChatHistory: () => {},
   restoreChatHistory: () => {},
+  accountDeletionRequests: {},
+  requestAccountDeletion: async () => {},
+  cancelAccountDeletion: async () => {},
+  purgeAccountData: async () => {},
   updateProfile: async () => {},
   castDaoVote: () => {},
   castVote: () => {},

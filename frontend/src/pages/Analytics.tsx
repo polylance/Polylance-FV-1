@@ -150,7 +150,7 @@ export const Analytics: React.FC = () => {
                 {/* Stream 1 */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between font-bold text-slate-800">
-                    <span>Platform Milestone Ingestion Fees (2.5%)</span>
+                    <span>Platform Maintenance Operations Fee (2.5%)</span>
                     <span>${platformMilestoneFees.toLocaleString()} USDC ({platformPercent}%)</span>
                   </div>
                   <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">

@@ -24,6 +24,6 @@ describe('PostJob Page', () => {
     expect(screen.getByText(/Post an/i)).toBeInTheDocument();
     expect(screen.getAllByText(/On-Chain/i)[0]).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Audit & Optimize ERC-721 Reputation Smart Contracts/i)).toBeInTheDocument();
-    expect(screen.getByText(/Deploy Job Escrow Clone On-Chain/i)).toBeInTheDocument();
+    expect(screen.getByText(/Deploy Job Escrow Clone|Fill Required Job Details/i)).toBeInTheDocument();
   });
 });

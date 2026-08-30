@@ -31,6 +31,7 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
   const [customPercent, setCustomPercent] = useState<string>('50');
   const [reasoningText, setReasoningText] = useState<string>('');
   const [responseText, setResponseText] = useState<string>('');
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const isRespondent = isParty && userAddress.toLowerCase() !== dispute.raisedBy.toLowerCase();
   const hasResponded = !!dispute.responseText;
@@ -49,8 +50,9 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
 
   const handleResolveSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     if (!reasoningText.trim()) {
-      alert('Reasoning text is required for judge rulings.');
+      setValidationError('Reasoning text is required for judge rulings.');
       return;
     }
     if (onResolveDispute) {
@@ -60,8 +62,9 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
 
   const handleResponseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     if (!responseText.trim()) {
-      alert('Response text is required.');
+      setValidationError('Response text is required.');
       return;
     }
     if (onSubmitResponse) {

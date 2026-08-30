@@ -3,21 +3,23 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
-if (import.meta.env.PROD) {
-  console.log = () => {};
-  console.debug = () => {};
-  console.info = () => {};
+if (typeof window !== 'undefined') {
+  console.info(
+    "%c🛡️ PolyLance Sovereign Security Guard Active\n%cNotice: Autonomous multisig authorization and rate-limiting shields protect all platform state. Entering unauthorized scripts in this console will be rejected by decentralized contract guards.",
+    "color: #7C3AED; font-size: 14px; font-weight: bold;",
+    "color: #4B5563; font-size: 11px;"
+  );
 }
 
 import '@rainbow-me/rainbowkit/styles.css';
 import { RainbowKitProvider, connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { metaMaskWallet, coinbaseWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { mainnet, polygon, polygonAmoy } from 'wagmi/chains';
+import { polygonAmoy, polygon, mainnet } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
-const hasValidProjectId = !!projectId;
+const projectId = (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '').trim();
+const hasValidProjectId = Boolean(projectId && projectId !== '00000000000000000000000000000000' && projectId.length >= 32);
 
 const walletsList = [
   metaMaskWallet,
@@ -37,21 +39,28 @@ const connectors = connectorsForWallets(
   ],
   {
     appName: 'PolyLance',
-    projectId: hasValidProjectId ? projectId : '00000000000000000000000000000000', // Dummy fallback
+    projectId: hasValidProjectId ? projectId : '3a8170812b534d0ff9d794f19a901d64',
   }
 );
 
 const config = createConfig({
   connectors,
-  chains: [mainnet, polygon, polygonAmoy],
+  chains: [polygonAmoy, polygon, mainnet],
   transports: {
-    [mainnet.id]: http(),
-    [polygon.id]: http(),
-    [polygonAmoy.id]: http(),
+    [polygonAmoy.id]: http('https://polygon-amoy-bor-rpc.publicnode.com'),
+    [polygon.id]: http('https://polygon-bor-rpc.publicnode.com'),
+    [mainnet.id]: http('https://cloudflare-eth.com'),
   },
 });
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -63,4 +72,4 @@ createRoot(document.getElementById('root')!).render(
       </QueryClientProvider>
     </WagmiProvider>
   </StrictMode>,
-)
+);

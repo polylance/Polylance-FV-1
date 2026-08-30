@@ -1,5 +1,7 @@
+import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
-const backupUrl = 'postgres://17a77f3e1cb2f34728bd50b80dd36257b564ba4864ae9693229ee3276fe81b91:sk_YbuOIT2V-RXc7UJIwd01U@pooled.db.prisma.io:5432/postgres?sslmode=require';
+dotenv.config();
+const backupUrl = process.env.BACKUP_DATABASE_URL;
 const backup = new PrismaClient({
     datasources: {
         db: { url: backupUrl },

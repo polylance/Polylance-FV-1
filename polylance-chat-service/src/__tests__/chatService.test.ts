@@ -291,4 +291,88 @@ describe("PolyLance Hardened Chat — E2E Socket Security & Crypto Invariants", 
 
     intruderSocket.disconnect();
   });
+
+  it("PROTECTED SYNC API: strips private chatMessages, judgeMessages, and proposal details for unauthenticated requests", async () => {
+    // Seed test job and judge message via POST /api/sync
+    const testClient = "0x7777111177771111777711117777111177771111";
+    const testFreelancer = "0x8888222288882222888822228888222288882222";
+    const testJudge = "0xb8aa0398b91a150b041da819bc954bb356e009dd";
+
+    await fetch(`${SERVER_URL}/api/sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-wallet-address": testJudge },
+      body: JSON.stringify({
+        jobs: [
+          {
+            id: "test-privacy-job-1",
+            title: "Private Confidential Smart Contract",
+            client: testClient,
+            freelancer: testFreelancer,
+            amountUsdc: "1000",
+            status: "Funded",
+            chatMessages: [
+              { sender: "Client", text: "Secret client API key: sk_live_12345", timestamp: 1000 },
+            ],
+            preAcceptMessages: [
+              { sender: testClient, senderRole: "Client", text: "Confidential pre-negotiation note", timestamp: 1001 },
+            ],
+            applications: [
+              {
+                applicant: testFreelancer,
+                proposalText: "Private freelancer bid with personal phone number: +1-555-0199",
+                applicantSkills: ["Solidity"],
+                githubVerified: true,
+              },
+            ],
+          },
+        ],
+        judgeMessages: {
+          [testJudge]: [
+            {
+              id: "jmsg_1",
+              text: "Private arbitrator confidential dispute review notes",
+              sender: testJudge,
+              senderRole: "Judge",
+              judgeAddress: testJudge,
+              timestamp: 2000,
+            },
+          ],
+        },
+      }),
+    });
+
+    // 1. Unauthenticated call (like from browser console `fetch('/api/sync')`)
+    const unauthRes = await fetch(`${SERVER_URL}/api/sync`);
+    const unauthData = await unauthRes.json();
+
+    const targetJob = unauthData.jobs.find((j: any) => j.id === "test-privacy-job-1");
+    expect(targetJob).toBeDefined();
+    // Verify public metadata is preserved
+    expect(targetJob.title).toBe("Private Confidential Smart Contract");
+    // Verify private data is completely sanitized/stripped
+    expect(targetJob.chatMessages).toEqual([]);
+    expect(targetJob.preAcceptMessages).toEqual([]);
+    expect(targetJob.applications[0].proposalText).toBeUndefined();
+
+    // Verify judge messages are completely stripped
+    expect(unauthData.judgeMessages).toEqual({});
+
+    // 2. Authenticated call from the Job Client
+    const clientRes = await fetch(`${SERVER_URL}/api/sync`, {
+      headers: { "x-wallet-address": testClient },
+    });
+    const clientData = await clientRes.json();
+    const clientJob = clientData.jobs.find((j: any) => j.id === "test-privacy-job-1");
+    expect(clientJob.chatMessages.length).toBeGreaterThan(0);
+    expect(clientJob.chatMessages[0].text).toContain("Secret client API key");
+    expect(clientJob.applications[0].proposalText).toContain("Private freelancer bid");
+
+    // 3. Authenticated call from Judge
+    const judgeRes = await fetch(`${SERVER_URL}/api/sync`, {
+      headers: { "x-wallet-address": testJudge },
+    });
+    const judgeData = await judgeRes.json();
+    expect(judgeData.judgeMessages[testJudge]).toBeDefined();
+    expect(judgeData.judgeMessages[testJudge].some((m: any) => m.text.includes("Private arbitrator confidential dispute review"))).toBe(true);
+  });
 });
