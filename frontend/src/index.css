@@ -96,9 +96,9 @@ body::before {
   pointer-events: none;
   z-index: -1;
   background-image:
-    radial-gradient(circle at 85% 15%, rgba(6, 207, 232, 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 15% 85%, rgba(37, 99, 235, 0.06) 0%, transparent 45%),
-    radial-gradient(circle at 50% 50%, rgba(168, 230, 58, 0.03) 0%, transparent 60%);
+    radial-gradient(circle at 85% 15%, rgba(6, 207, 232, 0.06) 0%, transparent 45%),
+    radial-gradient(circle at 15% 85%, rgba(37, 99, 235, 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(147, 51, 234, 0.02) 0%, transparent 60%);
   transform: translateZ(0);
 }
 
@@ -646,7 +646,7 @@ select:focus {
   background:
     radial-gradient(circle at 20% 20%, rgba(37,99,235,0.08) 0%, transparent 35%),
     radial-gradient(circle at 80% 20%, rgba(6,207,232,0.10) 0%, transparent 35%),
-    radial-gradient(circle at 50% 80%, rgba(168,230,58,0.05) 0%, transparent 40%);
+    radial-gradient(circle at 50% 80%, rgba(147,51,234,0.04) 0%, transparent 40%);
   transform: translate3d(0, 0, 0);
 }
 
@@ -662,7 +662,7 @@ select:focus {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 8mm;
+    margin: 4mm 6mm;
   }
   
   header,
@@ -674,30 +674,53 @@ select:focus {
     display: none !important;
   }
 
-  body {
+  html, body {
     background: #ffffff !important;
     color: #0f172a !important;
     padding: 0 !important;
     margin: 0 !important;
-    font-size: 11px !important;
+    font-size: 10.5px !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  body::before {
+  body::before,
+  body::after {
     display: none !important;
+    content: none !important;
   }
 
-  .audit-sheet,
-  .attestation-sheet {
+  .audit-sheet {
     box-shadow: none !important;
     border: 1px solid #cbd5e1 !important;
-    padding: 18px !important;
+    padding: 16px !important;
     margin: 0 auto !important;
     max-width: 100% !important;
     width: 100% !important;
     background: #ffffff !important;
     page-break-inside: auto !important;
+  }
+
+  /* Strict Single-Page Certificate Rules */
+  .attestation-sheet {
+    box-shadow: none !important;
+    border: 1.5px solid #cbd5e1 !important;
+    padding: 14px 18px !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 285mm !important;
+    background: #ffffff !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
+
+  .attestation-sheet * {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   .page-break-inside-avoid {
@@ -706,15 +729,15 @@ select:focus {
   }
 
   .print-compact {
-    gap: 8px !important;
-    margin-top: 6px !important;
-    margin-bottom: 6px !important;
-    padding: 8px !important;
+    gap: 6px !important;
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
+    padding: 6px !important;
   }
 
   .print-compact-py {
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
   }
 
   .print-page-break {
