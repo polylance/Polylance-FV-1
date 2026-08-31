@@ -176,6 +176,8 @@ export const Chat: React.FC = () => {
   const [submitLink, setSubmitLink] = useState('');
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+  const [isModificationModalOpen, setIsModificationModalOpen] = useState(false);
+  const [modificationNote, setModificationNote] = useState('');
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [showMobileChannels, setShowMobileChannels] = useState(false);
 
@@ -1418,33 +1420,76 @@ export const Chat: React.FC = () => {
                             <span className="text-purple-700 font-bold">Net: ${(parseFloat(activeJob.amountUsdc || '0') * 0.975).toFixed(2)} USDC</span>
                           </div>
 
+                          {/* FREELANCER QUICK ACTIONS */}
+                          {!isClient && (activeJob.status === 'Funded' || activeJob.status === 'Selected' || (activeJob.status as string) === 'TermsAgreed') && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setIsProgressModalOpen(true)}
+                                className="bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                              >
+                                <TrendingUp size={13} className="text-blue-600" />
+                                <span>Update Progress</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setIsExtensionModalOpen(true)}
+                                className="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                              >
+                                <Clock size={13} className="text-amber-600" />
+                                <span>Request Extension</span>
+                              </button>
+                            </>
+                          )}
+
                           {/* CLIENT ACTIONS */}
                           {isClient && (
                             <>
                               {(activeJob.status === 'Submitted' || (activeJob.status as string) === 'Funded') ? (
-                                <button
-                                  type="button"
-                                  onClick={handleRelease}
-                                  className="bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
-                                >
-                                  <CheckCircle2 size={13} className="text-emerald-600" />
-                                  Approve Payment
-                                </button>
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={handleRelease}
+                                    className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                                  >
+                                    <CheckCircle2 size={13} className="text-emerald-600" />
+                                    <span>Approve Payment</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsModificationModalOpen(true)}
+                                    className="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                                  >
+                                    <RefreshCw size={13} className="text-amber-600" />
+                                    <span>Request Revisions</span>
+                                  </button>
+                                </>
                               ) : (activeJob.status === 'Selected' || (activeJob.status as string) === 'TermsAgreed') ? (
                                 <button
                                   type="button"
                                   onClick={handleFund}
-                                  className="bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                                  className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
                                 >
                                   <DollarSign size={13} className="text-emerald-600" />
-                                  Fund Escrow
+                                  <span>Fund Escrow</span>
                                 </button>
                               ) : activeJob.status === 'Completed' ? (
                                 <div className="bg-emerald-50/70 border border-emerald-200 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px]">
                                   <CheckCircle2 size={13} className="text-emerald-600" />
-                                  Escrow Completed
+                                  <span>Escrow Completed</span>
                                 </div>
                               ) : null}
+
+                              <button
+                                type="button"
+                                onClick={() => setIsDisputeModalOpen(true)}
+                                className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                              >
+                                <Scale size={13} className="text-rose-600" />
+                                <span>Raise Dispute</span>
+                              </button>
                             </>
                           )}
                         </div>
@@ -2177,6 +2222,80 @@ export const Chat: React.FC = () => {
             sendChatMessage(activeJob.id, `⚖️ Case Escalated to DAO Arbitration Panel\n\nReason: ${reason}\nEvidence: ${evidenceText}${ipfsCid ? `\nIPFS CID: ${ipfsCid}` : ''}`, 'Judge');
           }}
         />
+      )}
+
+      {/* Client Modification / Revision Request Modal */}
+      {activeJob && isModificationModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-amber-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-amber-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shadow-2xs">
+                  <RefreshCw size={17} className="text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 leading-tight">Request Project Revisions</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Send detailed feedback to developer</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModificationModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!modificationNote.trim() || !activeJob) return;
+                requestModifications(activeJob.id, modificationNote.trim());
+                sendChatMessage(
+                  activeJob.id,
+                  `🔄 Revisions Requested by Client:\n\n"${modificationNote.trim()}"\n\nPlease review feedback and re-submit updated milestone deliverables.`,
+                  'Client'
+                );
+                setIsModificationModalOpen(false);
+                setModificationNote('');
+                confetti({ particleCount: 50, spread: 50 });
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-bold text-slate-700 mb-1.5 uppercase text-[10px] tracking-wider">
+                  Revision Feedback & Required Adjustments *
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Detail the changes or corrections you would like the developer to make before releasing milestone funds..."
+                  value={modificationNote}
+                  onChange={(e) => setModificationNote(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 font-medium text-xs rounded-xl p-3 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none transition-all placeholder:text-slate-400 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsModificationModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold transition-all cursor-pointer text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold shadow-md cursor-pointer transition-all text-center flex items-center justify-center gap-1.5"
+                >
+                  <RefreshCw size={13} />
+                  <span>Send Revisions</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* In-Message Negotiation Proposal Modal */}

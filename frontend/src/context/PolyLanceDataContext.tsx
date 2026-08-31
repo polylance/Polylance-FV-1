@@ -979,7 +979,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     const pollInterval = setInterval(() => {
       syncFromStorage();
       syncFromRemoteBackend();
-    }, 15000);
+    }, 30000);
 
     window.addEventListener('focus', () => {
       syncFromStorage();
@@ -1104,7 +1104,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     syncOnChainJobs();
-    const interval = setInterval(syncOnChainJobs, 10000);
+    const interval = setInterval(syncOnChainJobs, 30000);
     return () => clearInterval(interval);
   }, [syncOnChainJobs]);
 
@@ -1112,9 +1112,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchLiveExchangeRates().catch((err) => console.warn('Failed to load rates on boot:', err));
   }, []);
 
-
-
-  const treasuryState: TreasuryState = {
+  const treasuryState: TreasuryState = React.useMemo(() => ({
     balanceUsdc: treasuryBalanceUsdc.toString(),
     balanceEth: treasuryBalanceEth.toString(),
     requiredSignatures: 2,
@@ -1124,7 +1122,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       import.meta.env.VITE_ADMIN_ADDRESS_3 || '',
     ].filter(Boolean),
     proposals: treasuryProposals,
-  };
+  }), [treasuryBalanceUsdc, treasuryBalanceEth, treasuryProposals]);
 
   const postJob = async (
     jobData: { title: string; description: string; category: any; amountUsdc: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number },
@@ -2605,65 +2603,117 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
-  return (
-    <PolyLanceDataContext.Provider
-      value={{
-        loading,
-        jobs,
-        daoProposals,
-        treasury: treasuryState,
-        treasuryBalanceUsdc,
-        treasuryBalanceEth,
-        treasuryHistory,
-        profiles,
-        judges,
-        addJudge,
-        removeJudge,
-        toggleJudgeStatus,
-        postJob,
-        deleteJob,
-        renewJob,
-        applyToJob,
-        selectFreelancer,
-        proposeTerms,
-        fundJob,
-        submitWork,
-        postProgressUpdate,
-        requestTimeExtension,
-        respondToTimeExtension,
-        requestModifications,
-        releasePayment,
-        claimAutoRelease,
-        raiseDispute,
-        submitDisputeResponse,
-        resolveDispute,
-        updateJobTerms,
-        proposeNegotiationTerms,
-        respondToNegotiationProposal,
-        sendPreAcceptMessage,
-        sendChatMessage,
-        sendJudgeChatMessage,
-        isEnclineConnected: false,
-        judgeMessages,
-        closeChatSession,
-        deleteChatHistory,
-        restoreChatHistory,
-        accountDeletionRequests,
-        requestAccountDeletion,
-        cancelAccountDeletion,
-        purgeAccountData,
-        updateProfile,
-        castDaoVote,
-        castVote,
-        createDaoProposal,
-        proposeJudgeCandidate,
-        withdrawTreasury,
-        proposeTreasuryWithdrawal,
-        signTreasuryWithdrawal,
-        executeTreasuryWithdrawal,
-      }}
-    >
+  const contextValue = React.useMemo<PolyLanceDataContextType>(() => ({
+    loading,
+    jobs,
+    daoProposals,
+    treasury: treasuryState,
+    treasuryBalanceUsdc,
+    treasuryBalanceEth,
+    treasuryHistory,
+    profiles,
+    judges,
+    addJudge,
+    removeJudge,
+    toggleJudgeStatus,
+    postJob,
+    deleteJob,
+    renewJob,
+    applyToJob,
+    selectFreelancer,
+    proposeTerms,
+    fundJob,
+    submitWork,
+    postProgressUpdate,
+    requestTimeExtension,
+    respondToTimeExtension,
+    requestModifications,
+    releasePayment,
+    claimAutoRelease,
+    raiseDispute,
+    submitDisputeResponse,
+    resolveDispute,
+    updateJobTerms,
+    proposeNegotiationTerms,
+    respondToNegotiationProposal,
+    sendPreAcceptMessage,
+    sendChatMessage,
+    sendJudgeChatMessage,
+    isEnclineConnected: false,
+    judgeMessages,
+    closeChatSession,
+    deleteChatHistory,
+    restoreChatHistory,
+    accountDeletionRequests,
+    requestAccountDeletion,
+    cancelAccountDeletion,
+    purgeAccountData,
+    updateProfile,
+    castDaoVote,
+    castVote,
+    createDaoProposal,
+    proposeJudgeCandidate,
+    withdrawTreasury,
+    proposeTreasuryWithdrawal,
+    signTreasuryWithdrawal,
+    executeTreasuryWithdrawal,
+  }), [
+    loading,
+    jobs,
+    daoProposals,
+    treasuryState,
+    treasuryBalanceUsdc,
+    treasuryBalanceEth,
+    treasuryHistory,
+    profiles,
+    judges,
+    addJudge,
+    removeJudge,
+    toggleJudgeStatus,
+    postJob,
+    deleteJob,
+    renewJob,
+    applyToJob,
+    selectFreelancer,
+    proposeTerms,
+    fundJob,
+    submitWork,
+    postProgressUpdate,
+    requestTimeExtension,
+    respondToTimeExtension,
+    requestModifications,
+    releasePayment,
+    claimAutoRelease,
+    raiseDispute,
+    submitDisputeResponse,
+    resolveDispute,
+    updateJobTerms,
+    proposeNegotiationTerms,
+    respondToNegotiationProposal,
+    sendPreAcceptMessage,
+    sendChatMessage,
+    sendJudgeChatMessage,
+    judgeMessages,
+    closeChatSession,
+    deleteChatHistory,
+    restoreChatHistory,
+    accountDeletionRequests,
+    requestAccountDeletion,
+    cancelAccountDeletion,
+    purgeAccountData,
+    updateProfile,
+    castDaoVote,
+    castVote,
+    createDaoProposal,
+    proposeJudgeCandidate,
+    withdrawTreasury,
+    proposeTreasuryWithdrawal,
+    signTreasuryWithdrawal,
+    executeTreasuryWithdrawal,
+  ]);
 
+  return (
+    <PolyLanceDataContext.Provider value={contextValue}>
       {children}
     </PolyLanceDataContext.Provider>
   );

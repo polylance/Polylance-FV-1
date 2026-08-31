@@ -617,15 +617,28 @@ select:focus {
 .liquid-glass {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.82),
-    rgba(255, 255, 255, 0.58)
+    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 0.65)
   );
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.75);
   box-shadow:
     0 10px 35px rgba(31, 38, 135, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+/* GPU Hardware Acceleration & Silky 60fps Smooth Compositing */
+.gpu-layer,
+.glass-panel,
+.nav-pill-item,
+.apple-button {
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Hero ambient light — subtle radial decoration */
@@ -634,12 +647,7 @@ select:focus {
     radial-gradient(circle at 20% 20%, rgba(37,99,235,0.08) 0%, transparent 35%),
     radial-gradient(circle at 80% 20%, rgba(6,207,232,0.10) 0%, transparent 35%),
     radial-gradient(circle at 50% 80%, rgba(168,230,58,0.05) 0%, transparent 40%);
-  animation: ambientShift 12s ease-in-out infinite alternate;
-}
-@keyframes ambientShift {
-  0%   { opacity: 0.8; }
-  50%  { opacity: 1.0; }
-  100% { opacity: 0.85; }
+  transform: translate3d(0, 0, 0);
 }
 
 /* Mobile-friendly: reduce blur on smaller devices */

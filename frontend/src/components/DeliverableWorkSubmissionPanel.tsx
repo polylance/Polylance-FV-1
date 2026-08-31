@@ -696,285 +696,245 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       )}
 
       {/* ========================================================================= */}
-      {/* FREELANCER SIDE VIEW (MATCHING IMAGE 3) */}
+      {/* FREELANCER SIDE VIEW */}
       {/* ========================================================================= */}
       {showFreelancerWorkspace && currentJob.status !== 'Completed' && currentJob.status !== 'Cancelled' ? (
-        <div className="space-y-4">
-          
-          {/* 3 Compact Action Tabs with Thematic Colors */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 font-sans">
-            {/* Tab 1: Submit Product Deliverables (Emerald Theme) */}
-            <button
-              type="button"
-              onClick={() => setFreelancerTab('submit')}
-              className={`px-3 py-1.5 rounded-xl text-[11.5px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs border ${
-                freelancerTab === 'submit'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-500 shadow-xs'
-                  : 'bg-emerald-50/70 text-emerald-800 border-emerald-200/90 hover:bg-emerald-100/80 hover:text-emerald-900'
-              }`}
-            >
-              <Send size={12} className={freelancerTab === 'submit' ? 'text-white' : 'text-emerald-600'} />
-              <span>Submit Deliverables</span>
-            </button>
-
-            {/* Tab 2: Update Project Status (Blue Theme) */}
-            <button
-              type="button"
-              onClick={() => setFreelancerTab('status')}
-              className={`px-3 py-1.5 rounded-xl text-[11.5px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs border ${
-                freelancerTab === 'status'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-500 shadow-xs'
-                  : 'bg-blue-50/70 text-blue-800 border-blue-200/90 hover:bg-blue-100/80 hover:text-blue-900'
-              }`}
-            >
-              <TrendingUp size={12} className={freelancerTab === 'status' ? 'text-white' : 'text-blue-600'} />
-              <span>Update Project Status</span>
-            </button>
-
-            {/* Tab 3: Request Time Extension (Amber Theme) */}
-            <button
-              type="button"
-              onClick={() => setFreelancerTab('extension')}
-              className={`px-3 py-1.5 rounded-xl text-[11.5px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs border ${
-                freelancerTab === 'extension'
-                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white border-amber-500 shadow-xs'
-                  : 'bg-amber-50/70 text-amber-900 border-amber-200/90 hover:bg-amber-100/80 hover:text-amber-950'
-              }`}
-            >
-              <Calendar size={12} className={freelancerTab === 'extension' ? 'text-white' : 'text-amber-600'} />
-              <span>Request Extension</span>
-            </button>
-          </div>
-
-          {/* TAB 1: Submit Work Deliverables */}
-          {freelancerTab === 'submit' && (
-            <div className="space-y-3.5">
-              {/* Prominent Client Modification Request Alert Box for Freelancer */}
-              {latestModificationRequest && (
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50/60 to-amber-50 border-2 border-amber-300 shadow-xs space-y-2.5 animate-fadeIn">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-amber-200/80 pb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                        <RefreshCw size={13} className="text-white" />
-                      </div>
-                      <div>
-                        <span className="font-mono font-black text-[9.5px] uppercase tracking-wider text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full inline-block">
-                          Action Required • Revisions Requested by Client
-                        </span>
-                        <h4 className="text-xs sm:text-sm font-black text-slate-900 font-headline mt-0.5">
-                          Client Feedback & Required Adjustments
-                        </h4>
-                      </div>
-                    </div>
-                    <span className="text-[10.5px] font-mono text-amber-900 font-bold self-end sm:self-auto">
-                      {formatActivityTime(latestModificationRequest.requestedAt)}
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-white/95 rounded-xl border border-amber-200 text-slate-800 text-xs font-medium space-y-1 shadow-2xs">
-                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wide block">
-                      Client Message:
-                    </span>
-                    <p className="whitespace-pre-wrap leading-relaxed text-slate-900 font-sans">
-                      "{latestModificationRequest.note}"
-                    </p>
-                  </div>
-
-                  <p className="text-[11px] text-amber-900 font-medium leading-relaxed">
-                    Please review the feedback above, make the required changes, and re-submit your deliverables using the form below.
-                  </p>
-                </div>
-              )}
-
-              {currentJob.proof && !latestModificationRequest ? (
-                <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-purple-900 flex items-center gap-1.5">
-                      <CheckCircle2 size={14} className="text-emerald-600" />
-                      Work Already Submitted (Awaiting Approval)
-                    </span>
-                    <span className="text-purple-700 font-mono text-[10px]">
-                      {new Date(currentJob.proof.submittedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-purple-800 font-medium text-[11px]">{currentJob.proof.description}</p>
-                </div>
-              ) : null}
-
-              <ProofOfWorkUploader onSubmit={handleWorkSubmit} />
-            </div>
-          )}
-
-          {/* TAB 2: Post Status Update */}
-          {freelancerTab === 'status' && (
-            <form onSubmit={handlePostStatus} className="border border-slate-200/90 rounded-2xl p-4 sm:p-5 bg-white shadow-xs space-y-3.5 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 shadow-2xs">
-                    <TrendingUp size={15} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-tight">
-                      Post Live Project Status Update
-                    </h3>
-                    <p className="text-[10.5px] text-slate-500 font-medium">
-                      Update the client on your milestone completion progress
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[9.5px] font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                  Real-Time Sync
-                </span>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Completion Percentage ({progressPercent}%)
-                </label>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  {[25, 50, 75, 90, 100].map((pct) => (
-                    <button
-                      key={pct}
-                      type="button"
-                      onClick={() => setProgressPercent(pct)}
-                      className={`px-2.5 py-1 rounded-lg font-bold font-mono text-xs transition-all cursor-pointer ${
-                        progressPercent === pct
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      {pct}%
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Status Note / Progress Description *
-                </label>
-                <textarea
-                  required
-                  rows={2}
-                  placeholder="e.g. Completed smart contract compilation & test coverage..."
-                  value={statusNote}
-                  onChange={(e) => setStatusNote(e.target.value)}
-                  className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs rounded-xl p-2.5 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400 resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Live Staging / Demo URL (Optional)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://polylance-staging.vercel.app"
-                  value={demoUrl}
-                  onChange={(e) => setDemoUrl(e.target.value)}
-                  className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs rounded-xl px-3 py-2 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all hover:scale-[1.005]"
-              >
-                <Send size={13} />
-                <span>Post Progress Update</span>
-              </button>
-            </form>
-          )}
-
-          {/* TAB 3: Request Time Extension */}
-          {freelancerTab === 'extension' && (
-            <div className="space-y-3">
-              {pendingExtensionRequests.length > 0 && (
-                <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 flex items-start gap-3 shadow-2xs">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                    <Clock size={16} />
-                  </div>
-                  <div className="text-xs text-amber-900 leading-snug flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-bold font-headline text-xs text-amber-950">Time Extension Request Pending Client Review</span>
-                      <span className="text-[9.5px] font-mono font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
-                        +{pendingExtensionRequests[0].requestedDays} Days
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-amber-800 font-medium">
-                      You requested additional time: "{pendingExtensionRequests[0].reason}". The client has been notified to accept the proposal.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <form onSubmit={handleRequestExtension} className="border border-slate-200/90 rounded-2xl p-4 sm:p-5 bg-white shadow-xs space-y-3.5 text-xs">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* Main Column (8 cols): Primary Proof of Work Submission Form */}
+          <div className="lg:col-span-8 space-y-4">
+            {/* Prominent Client Modification Request Alert Box for Freelancer */}
+            {latestModificationRequest && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50/60 to-amber-50 border-2 border-amber-300 shadow-xs space-y-2.5 animate-fadeIn">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-amber-200/80 pb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0 shadow-2xs">
-                      <Calendar size={15} className="text-amber-600" />
+                    <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <RefreshCw size={13} className="text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-tight">
-                        Request Milestone Time Extension
-                      </h3>
-                      <p className="text-[10.5px] text-slate-500 font-medium">
-                        Subject to Client Approval
-                      </p>
+                      <span className="font-mono font-black text-[9.5px] uppercase tracking-wider text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full inline-block">
+                        Action Required • Revisions Requested by Client
+                      </span>
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900 font-headline mt-0.5">
+                        Client Feedback & Required Adjustments
+                      </h4>
                     </div>
                   </div>
-                  <span className="text-[9.5px] font-mono font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                    SLA Adjustment
+                  <span className="text-[10.5px] font-mono text-amber-900 font-bold self-end sm:self-auto">
+                    {formatActivityTime(latestModificationRequest.requestedAt)}
                   </span>
                 </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Select Additional Days Requested
-                </label>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  {[1, 3, 5, 7, 14].map((days) => (
-                    <button
-                      key={days}
-                      type="button"
-                      onClick={() => setExtensionDays(days)}
-                      className={`px-2.5 py-1 rounded-lg font-bold font-mono text-xs transition-all cursor-pointer ${
-                        extensionDays === days
-                          ? 'bg-amber-600 text-white shadow-xs'
-                          : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      +{days} Days
-                    </button>
-                  ))}
+                <div className="p-3 bg-white/95 rounded-xl border border-amber-200 text-slate-800 text-xs font-medium space-y-1 shadow-2xs">
+                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wide block">
+                    Client Message:
+                  </span>
+                  <p className="whitespace-pre-wrap leading-relaxed text-slate-900 font-sans">
+                    "{latestModificationRequest.note}"
+                  </p>
+                </div>
+
+                <p className="text-[11px] text-amber-900 font-medium leading-relaxed">
+                  Please review the feedback above, make the required changes, and re-submit your deliverables using the form below.
+                </p>
+              </div>
+            )}
+
+            {currentJob.proof && !latestModificationRequest ? (
+              <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-200 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-purple-900 flex items-center gap-1.5">
+                    <CheckCircle2 size={14} className="text-emerald-600" />
+                    Work Already Submitted (Awaiting Approval)
+                  </span>
+                  <span className="text-purple-700 font-mono text-[10px]">
+                    {new Date(currentJob.proof.submittedAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <p className="text-purple-800 font-medium text-[11px]">{currentJob.proof.description}</p>
+              </div>
+            ) : null}
+
+            {/* Main Primary Deliverables Submission Form */}
+            <ProofOfWorkUploader onSubmit={handleWorkSubmit} />
+          </div>
+
+          {/* Side Column (4 cols): Quick Project Actions & Messaging Coordination */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* Quick Actions Card */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-3.5">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center shrink-0">
+                    <Sparkles size={14} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900 leading-tight">Project Coordination</h4>
+                    <p className="text-[10px] text-slate-500 font-medium">Coordinate in Messages or quick actions</p>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Extension Rationale / Explanation *
-                </label>
-                <textarea
-                  required
-                  rows={2}
-                  placeholder="Explain why additional time is required..."
-                  value={extensionReason}
-                  onChange={(e) => setExtensionReason(e.target.value)}
-                  className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs rounded-xl p-2.5 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none transition-all placeholder:text-slate-400 resize-none"
-                />
-              </div>
-
+              {/* Direct Link to Messages Hub */}
               <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold py-2.5 px-5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all hover:scale-[1.005]"
+                type="button"
+                onClick={() => {
+                  const counterpart = currentJob.client;
+                  const params = new URLSearchParams({ jobId: currentJob.id });
+                  if (counterpart) params.set('applicant', counterpart);
+                  navigate(`/chat?${params.toString()}`);
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-bold flex items-center justify-between transition-all cursor-pointer shadow-2xs group"
               >
-                <Clock size={13} />
-                <span>Send Time Extension Request</span>
+                <div className="flex items-center gap-2">
+                  <MessageSquare size={14} className="text-purple-600" />
+                  <span>Open Messages Hub</span>
+                </div>
+                <ChevronRight size={13} className="text-purple-400 group-hover:translate-x-0.5 transition-transform" />
               </button>
-            </form>
-          </div>
-        )}
 
+              {/* Side Quick Actions: Progress & Extension Drawer Toggles */}
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setFreelancerTab(freelancerTab === 'status' ? 'submit' : 'status')}
+                  className={`w-full py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer shadow-2xs ${
+                    freelancerTab === 'status'
+                      ? 'bg-blue-50 border-blue-300 text-blue-900'
+                      : 'bg-slate-50 hover:bg-blue-50/50 border-slate-200 text-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={13} className="text-blue-600" />
+                    <span>Post Status Update</span>
+                  </div>
+                  <ChevronDown size={13} className={`transition-transform duration-200 ${freelancerTab === 'status' ? 'rotate-180 text-blue-600' : 'text-slate-400'}`} />
+                </button>
+
+                {freelancerTab === 'status' && (
+                  <form onSubmit={handlePostStatus} className="border border-blue-200/80 rounded-xl p-3 bg-blue-50/40 shadow-inner space-y-2.5 text-xs animate-fadeIn">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1 uppercase text-[9px] tracking-wider">
+                        Completion ({progressPercent}%)
+                      </label>
+                      <div className="flex items-center gap-1">
+                        {[25, 50, 75, 100].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => setProgressPercent(pct)}
+                            className={`flex-1 py-0.5 rounded-lg font-bold font-mono text-[10.5px] transition-all cursor-pointer ${
+                              progressPercent === pct
+                                ? 'bg-blue-600 text-white shadow-xs'
+                                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-0.5 uppercase text-[9px] tracking-wider">
+                        Status Note *
+                      </label>
+                      <textarea
+                        required
+                        rows={2}
+                        placeholder="e.g. Completed API integration & smart contract..."
+                        value={statusNote}
+                        onChange={(e) => setStatusNote(e.target.value)}
+                        className="w-full bg-white border border-slate-200 text-slate-900 font-medium text-xs rounded-lg p-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 outline-none resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer transition-all"
+                    >
+                      <Send size={11} />
+                      <span>Post Update</span>
+                    </button>
+                  </form>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setFreelancerTab(freelancerTab === 'extension' ? 'submit' : 'extension')}
+                  className={`w-full py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer shadow-2xs ${
+                    freelancerTab === 'extension'
+                      ? 'bg-amber-50 border-amber-300 text-amber-900'
+                      : 'bg-slate-50 hover:bg-amber-50/50 border-slate-200 text-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar size={13} className="text-amber-600" />
+                    <span>Request Extension</span>
+                  </div>
+                  <ChevronDown size={13} className={`transition-transform duration-200 ${freelancerTab === 'extension' ? 'rotate-180 text-amber-600' : 'text-slate-400'}`} />
+                </button>
+
+                {freelancerTab === 'extension' && (
+                  <form onSubmit={handleRequestExtension} className="border border-amber-200/80 rounded-xl p-3 bg-amber-50/40 shadow-inner space-y-2.5 text-xs animate-fadeIn">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1 uppercase text-[9px] tracking-wider">
+                        Additional Days
+                      </label>
+                      <div className="flex items-center gap-1">
+                        {[1, 3, 7, 14].map((days) => (
+                          <button
+                            key={days}
+                            type="button"
+                            onClick={() => setExtensionDays(days)}
+                            className={`flex-1 py-0.5 rounded-lg font-bold font-mono text-[10.5px] transition-all cursor-pointer ${
+                              extensionDays === days
+                                ? 'bg-amber-600 text-white shadow-xs'
+                                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            +{days}d
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-0.5 uppercase text-[9px] tracking-wider">
+                        Reason *
+                      </label>
+                      <textarea
+                        required
+                        rows={2}
+                        placeholder="Explain reason for extra time..."
+                        value={extensionReason}
+                        onChange={(e) => setExtensionReason(e.target.value)}
+                        className="w-full bg-white border border-slate-200 text-slate-900 font-medium text-xs rounded-lg p-2 focus:border-amber-500 focus:ring-1 focus:ring-amber-200 outline-none resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer transition-all"
+                    >
+                      <Clock size={11} />
+                      <span>Send Request</span>
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+
+            {/* Pending Extension Notification if any */}
+            {pendingExtensionRequests.length > 0 && (
+              <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3 flex items-start gap-2.5 shadow-2xs text-xs">
+                <Clock size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5 min-w-0">
+                  <span className="font-bold text-amber-950 block">Extension Pending</span>
+                  <p className="text-[11px] text-amber-800 leading-snug">+{pendingExtensionRequests[0].requestedDays} Days requested: "{pendingExtensionRequests[0].reason}"</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         /* ========================================================================= */

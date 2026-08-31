@@ -256,25 +256,39 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const address = walletIsConnected ? walletAddress || '' : '';
   const isConnected = Boolean(walletIsConnected);
 
+  const contextValue = React.useMemo<Web3ContextType>(() => ({
+    address,
+    isConnected,
+    isArbitrator,
+    isTreasuryAdmin,
+    reputationCount,
+    loading,
+    error,
+    currentRole,
+    setRole,
+    connectWallet,
+    disconnectWallet,
+    refreshOnChainState,
+    provider: getActiveProvider(),
+    getSigner,
+  }), [
+    address,
+    isConnected,
+    isArbitrator,
+    isTreasuryAdmin,
+    reputationCount,
+    loading,
+    error,
+    currentRole,
+    setRole,
+    connectWallet,
+    disconnectWallet,
+    refreshOnChainState,
+    getSigner,
+  ]);
+
   return (
-    <Web3Context.Provider
-      value={{
-        address,
-        isConnected,
-        isArbitrator,
-        isTreasuryAdmin,
-        reputationCount,
-        loading,
-        error,
-        currentRole,
-        setRole,
-        connectWallet,
-        disconnectWallet,
-        refreshOnChainState,
-        provider: getActiveProvider(),
-        getSigner,
-      }}
-    >
+    <Web3Context.Provider value={contextValue}>
       {children}
     </Web3Context.Provider>
   );
