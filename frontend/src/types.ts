@@ -51,8 +51,8 @@ export interface JobEvent {
   step: string;
   title: string;
   timestamp: number;
-  txHash: string;
-  status: 'completed' | 'current' | 'pending';
+  txHash?: string;
+  status: 'completed' | 'current' | 'pending' | 'upcoming';
   actor?: string;
   description?: string;
 }

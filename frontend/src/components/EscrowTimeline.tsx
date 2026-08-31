@@ -4,10 +4,17 @@ import { CheckCircle2, Circle, ExternalLink, Clock } from 'lucide-react';
 import { formatTimeAgo, getPolygonScanUrl, truncateAddress } from '../utils/formatters';
 
 interface EscrowTimelineProps {
-  events: JobEvent[];
+  events?: JobEvent[];
 }
 
 export const EscrowTimeline: React.FC<EscrowTimelineProps> = ({ events }) => {
+  const safeEvents: JobEvent[] = Array.isArray(events) && events.length > 0 ? events : [
+    { step: 'Posted', title: 'Job Posted to PolyLance', status: 'completed', timestamp: Date.now() - 3600000, actor: 'Client' },
+    { step: 'Funded', title: 'Smart Contract Escrow Funded', status: 'current', timestamp: Date.now(), actor: 'Client' },
+    { step: 'Work In Progress', title: 'Development & Milestones', status: 'upcoming', timestamp: 0, actor: 'Freelancer' },
+    { step: 'Completed', title: 'Work Approved & Funds Released', status: 'upcoming', timestamp: 0, actor: 'Client' }
+  ];
+
   return (
     <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-6">
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -30,7 +37,7 @@ export const EscrowTimeline: React.FC<EscrowTimelineProps> = ({ events }) => {
         {/* Vertical Connector Line */}
         <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-slate-200 z-0" />
 
-        {events.map((evt, idx) => {
+        {safeEvents.map((evt, idx) => {
           const isDone = evt.status === 'completed';
           const isCurrent = evt.status === 'current';
 

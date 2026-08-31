@@ -1009,8 +1009,8 @@ export const JobDetail: React.FC = () => {
             const releaseSpeeds = clientJobs
               .filter(j => j.status === 'Completed')
               .map(j => {
-                const postedEvent = j.events.find(e => e.step === 'Posted');
-                const completedEvent = j.events.find(e => e.step === 'Completed');
+                const postedEvent = (j.events || []).find(e => e.step === 'Posted');
+                const completedEvent = (j.events || []).find(e => e.step === 'Completed');
                 if (postedEvent && completedEvent && completedEvent.timestamp > 0 && postedEvent.timestamp > 0) {
                   return (completedEvent.timestamp - postedEvent.timestamp) / 3600000;
                 }

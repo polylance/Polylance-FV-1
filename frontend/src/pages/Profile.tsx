@@ -136,8 +136,8 @@ export const Profile: React.FC = () => {
                     const releaseSpeeds = clientJobs
                       .filter(j => j.status === 'Completed')
                       .map(j => {
-                        const postedEvent = j.events.find(e => e.step === 'Posted');
-                        const completedEvent = j.events.find(e => e.step === 'Completed');
+                        const postedEvent = (j.events || []).find(e => e.step === 'Posted');
+                        const completedEvent = (j.events || []).find(e => e.step === 'Completed');
                         if (postedEvent && completedEvent && completedEvent.timestamp > 0 && postedEvent.timestamp > 0) {
                           return (completedEvent.timestamp - postedEvent.timestamp) / 3600000;
                         }
@@ -233,7 +233,7 @@ export const Profile: React.FC = () => {
                       <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
                         {(() => {
                           const oldest = clientJobs.reduce((old, j) => {
-                            const posted = j.events.find(e => e.step === 'Posted');
+                            const posted = (j.events || []).find(e => e.step === 'Posted');
                             if (posted && posted.timestamp > 0) {
                               return old === 0 || posted.timestamp < old ? posted.timestamp : old;
                             }
@@ -259,8 +259,8 @@ export const Profile: React.FC = () => {
                         const releaseSpeeds = clientJobs
                           .filter(j => j.status === 'Completed')
                           .map(j => {
-                            const postedEvent = j.events.find(e => e.step === 'Posted');
-                            const completedEvent = j.events.find(e => e.step === 'Completed');
+                            const postedEvent = (j.events || []).find(e => e.step === 'Posted');
+                            const completedEvent = (j.events || []).find(e => e.step === 'Completed');
                             if (postedEvent && completedEvent && completedEvent.timestamp > 0 && postedEvent.timestamp > 0) {
                               return (completedEvent.timestamp - postedEvent.timestamp) / 3600000;
                             }
