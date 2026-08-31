@@ -134,7 +134,7 @@ export const JobDetail: React.FC = () => {
   const isClient = Boolean(isConnected && address && address.toLowerCase() === job.client.toLowerCase());
   const isFreelancer = Boolean(isConnected && address && job.freelancer && address.toLowerCase() === job.freelancer.toLowerCase());
   const isParty = isClient || isFreelancer;
-  const hasApplied = Boolean(isConnected && address && job.applications.some((a) => a.applicant.toLowerCase() === address.toLowerCase()));
+  const hasApplied = Boolean(isConnected && address && (job.applications || []).some((a) => a.applicant.toLowerCase() === address.toLowerCase()));
 
   const getFormattedPayout = (amtUsdc: string, tokenSym?: string, amtEth?: string) => {
     const sym = (tokenSym || 'USDC').toUpperCase();
@@ -937,7 +937,7 @@ export const JobDetail: React.FC = () => {
             const clientJobs = jobs.filter(j => j.client.toLowerCase() === job.client.toLowerCase());
             const totalOffered = clientJobs.length;
             const completedJobsCount = clientJobs.filter(j => j.status === 'Completed').length;
-            const disputedJobsCount = clientJobs.filter(j => j.status === 'Disputed' || j.events.some(e => e.step === 'Disputed')).length;
+            const disputedJobsCount = clientJobs.filter(j => j.status === 'Disputed' || (j.events || []).some(e => e.step === 'Disputed')).length;
 
             const totalSpentUsdc = clientJobs
               .filter(j => j.status === 'Completed')
