@@ -17,6 +17,7 @@ import confetti from 'canvas-confetti';
 
 import { ActionStatusModal, ActionModalDetail } from './ActionStatusModal';
 import { RaiseDisputeModal } from './RaiseDisputeModal';
+import { FormattedJobDescription } from './FormattedJobDescription';
 
 interface DeliverableWorkSubmissionPanelProps {
   job: Job;
@@ -613,42 +614,61 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div className="space-y-1.5 max-w-2xl">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-600 shadow-2xs">
-              <Layers size={16} />
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-2xs ${currentJob.status === 'Completed' ? 'bg-emerald-50 border border-emerald-200/80 text-emerald-600' : 'bg-blue-50 border border-blue-200/80 text-blue-600'}`}>
+              {currentJob.status === 'Completed' ? <Award size={16} /> : <Layers size={16} />}
             </div>
-            <span className="text-[10.5px] font-mono font-bold uppercase tracking-wider text-blue-800 bg-blue-50/80 border border-blue-200/60 px-2 py-0.5 rounded-lg">
-              Milestone Escrow Workspace
+            <span className={`text-[10.5px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg ${currentJob.status === 'Completed' ? 'text-emerald-800 bg-emerald-50/80 border border-emerald-200/60' : 'text-blue-800 bg-blue-50/80 border border-blue-200/60'}`}>
+              {currentJob.status === 'Completed' ? 'Verified Milestone Archive' : 'Milestone Escrow Workspace'}
             </span>
           </div>
 
           <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 font-headline tracking-tight leading-tight pt-0.5">
-            Project Submission & Deliverable Verification Workspace
+            {currentJob.status === 'Completed'
+              ? 'Completed Project & Settled Escrow Archive'
+              : 'Project Submission & Deliverable Verification Workspace'}
           </h2>
 
           <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xl">
-            On-chain milestone submission, revision requests, extension management, and escrow payout release.
+            {currentJob.status === 'Completed'
+              ? 'This project milestone has been completed, verified, and 100% of escrow funds are settled on Polygon PoS.'
+              : 'On-chain milestone submission, revision requests, extension management, and escrow payout release.'}
           </p>
           
           {/* Escrow Status Pill below Subtitle */}
           <div className="flex items-center gap-2 pt-1 font-mono text-xs">
             <span className="text-slate-400 font-medium text-[11px]">Escrow Status:</span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-bold text-[10px] uppercase tracking-wide">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse shrink-0" />
-              {currentJob.status === 'Funded' || currentJob.status === 'Selected' ? 'FUNDED' : currentJob.status.toUpperCase()}
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono font-bold text-[10px] uppercase tracking-wide ${
+              currentJob.status === 'Completed'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${currentJob.status === 'Completed' ? 'bg-emerald-500' : 'bg-emerald-500 animate-pulse'}`} />
+              {currentJob.status === 'Completed' ? 'COMPLETED / SETTLED' : (currentJob.status === 'Funded' || currentJob.status === 'Selected' ? 'FUNDED' : currentJob.status.toUpperCase())}
             </span>
           </div>
         </div>
 
         {/* Right side: Action Button + Checklist Art (Properly Contained) */}
         <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto justify-between sm:justify-end pr-0 lg:pr-1">
-          <button
-            type="button"
-            onClick={() => navigate(`/chat?jobId=${currentJob.id}`)}
-            className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer shrink-0 active:scale-95"
-          >
-            <MessageSquare size={14} />
-            <span>Open Messages Hub</span>
-          </button>
+          {currentJob.status === 'Completed' ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
+              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-md shadow-purple-600/20 flex items-center gap-1.5 transition-all hover:scale-105 cursor-pointer"
+            >
+              <Award size={15} />
+              <span>View SBT Certificate</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate(`/chat?jobId=${currentJob.id}`)}
+              className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <MessageSquare size={14} />
+              <span>Open Messages Hub</span>
+            </button>
+          )}
           
           <div className="hidden sm:flex items-center justify-center shrink-0 w-24 h-20 overflow-hidden">
             <ChecklistIllustration />
@@ -695,47 +715,161 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         </div>
       )}
 
-      {/* COMPLETED JOB SBT ATTESTATION BANNER */}
-      {currentJob.status === 'Completed' && (
-        <div className="p-5 rounded-3xl bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white border-2 border-purple-500/40 shadow-xl space-y-3 animate-fadeIn relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0">
-                <Award size={22} />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                    ● Milestone Settled
-                  </span>
-                  <span className="text-xs text-purple-200 font-mono">ERC-5192 Soulbound Token</span>
+      {/* ========================================================================= */}
+      {/* 2. DEDICATED COMPLETED VIEW (NO SUBMISSION FORMS, ONLY VERIFIED DETAILS) */}
+      {/* ========================================================================= */}
+      {currentJob.status === 'Completed' ? (
+        <div className="space-y-5 animate-fadeIn">
+          {/* COMPLETED JOB SBT ATTESTATION BANNER */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white border-2 border-purple-500/40 shadow-xl space-y-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shadow-inner shrink-0">
+                  <Award size={28} className="text-purple-300 animate-pulse" />
                 </div>
-                <h4 className="font-headline font-black text-base text-white">
-                  Official Job SBT Attestation Certificate
-                </h4>
-                <p className="text-xs text-purple-200/80 font-sans">
-                  Proof of Work delivery and 100% escrow settlement are permanently attested on Polygon PoS.
-                </p>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-black uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                      ● 100% Escrow Settled
+                    </span>
+                    <span className="text-xs text-purple-200 font-mono">ERC-5192 Soulbound Token</span>
+                  </div>
+                  <h3 className="font-headline font-black text-xl text-white">
+                    Official Soulbound Token (SBT) Certificate Issued
+                  </h3>
+                  <p className="text-xs text-purple-200/90 font-sans max-w-xl leading-relaxed">
+                    This project is officially completed and permanent on-chain proof of work has been minted to Polygon. Both parties can share and verify the cryptographic attestation.
+                  </p>
+                </div>
               </div>
+
+              <button
+                type="button"
+                onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
+                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-purple-600/30 flex items-center gap-2 shrink-0 transition-all hover:scale-105 cursor-pointer"
+              >
+                <Award size={16} />
+                <span>View SBT Certificate & Share</span>
+                <ExternalLink size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Final Submitted Deliverables & Proof of Work Card */}
+          <div className="bg-white border border-purple-200/80 rounded-3xl p-6 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold shrink-0">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-[10px] uppercase text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+                      Verified Deliverables
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      Submitted by {truncateAddress(currentJob.freelancer || '')}
+                    </span>
+                  </div>
+                  <h4 className="font-headline font-black text-lg text-slate-900 mt-0.5">
+                    {currentJob.proof?.title || 'Final Milestone Deliverables & Proof of Work'}
+                  </h4>
+                </div>
+              </div>
+
+              {currentJob.proof?.externalLink && (
+                <div className="flex items-center gap-2">
+                  <a
+                    href={currentJob.proof.externalLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-extrabold text-xs border border-purple-200 flex items-center gap-1.5 transition-all shadow-2xs"
+                  >
+                    <ExternalLink size={13} />
+                    <span>Open Project Deliverable / PR</span>
+                  </a>
+                </div>
+              )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-purple-600/30 flex items-center gap-2 shrink-0 transition-all hover:scale-105 cursor-pointer"
-            >
-              <Award size={15} />
-              <span>View SBT Certificate & Share</span>
-            </button>
+            {/* Deliverable Notes */}
+            {(currentJob.proof?.description || currentJob.description) && (
+              <div className="space-y-2">
+                <span className="font-mono text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">
+                  Deliverable Scope & Submission Notes
+                </span>
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <FormattedJobDescription description={currentJob.proof?.description || currentJob.description} />
+                </div>
+              </div>
+            )}
+
+            {/* Attached Files / Media Artifacts */}
+            {currentJob.proof?.evidenceFiles && currentJob.proof.evidenceFiles.length > 0 && (
+              <div className="space-y-2">
+                <span className="font-mono text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">
+                  Attached Deliverables & IPFS Proof Files ({currentJob.proof.evidenceFiles.length})
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {currentJob.proof.evidenceFiles.map((file: DeliverableFile, idx: number) => (
+                    <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 flex items-center justify-between gap-3 shadow-2xs hover:border-purple-300 transition-colors">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                          <FileText size={15} />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-xs text-slate-800 truncate block">{file.name}</span>
+                          <span className="text-[10px] font-mono text-slate-400 block">{(file.size / 1024).toFixed(1)} KB • IPFS</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openOrDownloadIpfsFile(file.cid, file.name)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-purple-400 text-purple-700 font-bold text-[11px] flex items-center gap-1 shadow-2xs cursor-pointer"
+                      >
+                        <Download size={12} />
+                        <span>Download</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Escrow Settlement Financial Breakdown */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-200 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/70 pb-2">
+                <span className="font-mono text-[11px] font-bold uppercase text-emerald-900 flex items-center gap-1.5">
+                  <CheckCircle2 size={14} className="text-emerald-600" />
+                  Full On-Chain Escrow Settlement Summary
+                </span>
+                <span className="text-xs font-mono font-bold text-emerald-950">
+                  100% Released
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+                <div className="p-3 bg-white rounded-xl border border-emerald-100">
+                  <span className="text-slate-500 text-[10.5px] block">Gross Contract Escrow</span>
+                  <strong className="text-slate-900 text-sm font-black">${parseFloat(currentJob.amountUsdc || '0').toFixed(2)} USDC</strong>
+                </div>
+                <div className="p-3 bg-white rounded-xl border border-emerald-100">
+                  <span className="text-slate-500 text-[10.5px] block">Platform Maintenance (2.5%)</span>
+                  <strong className="text-rose-600 text-sm font-black">-${(parseFloat(currentJob.amountUsdc || '0') * 0.025).toFixed(2)} USDC</strong>
+                </div>
+                <div className="p-3 bg-emerald-600 text-white rounded-xl shadow-xs">
+                  <span className="text-emerald-100 text-[10.5px] block">Net Released to Talent</span>
+                  <strong className="text-white text-base font-black">${(parseFloat(currentJob.amountUsdc || '0') * 0.975).toFixed(2)} USDC</strong>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* FREELANCER SIDE VIEW */}
-      {/* ========================================================================= */}
-      {showFreelancerWorkspace && currentJob.status !== 'Completed' && currentJob.status !== 'Cancelled' ? (
+      ) : showFreelancerWorkspace && currentJob.status !== 'Cancelled' ? (
+        /* ========================================================================= */
+        /* 3. FREELANCER ACTIVE WORKSPACE (WORK BEGUN / UNDER REVIEW) */
+        /* ========================================================================= */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Main Column (8 cols): Primary Proof of Work Submission Form */}
           <div className="lg:col-span-8 space-y-4">
@@ -1358,7 +1492,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 </div>
               </div>
 
-              {currentJob.status !== 'Completed' && currentJob.status !== 'Disputed' && (() => {
+              {currentJob.status !== 'Disputed' && (() => {
                 const grossAmount = parseFloat(currentJob.amountUsdc || '0');
                 const maintFeeAmount = grossAmount * 0.025;
                 const netDevPayout = grossAmount - maintFeeAmount;
