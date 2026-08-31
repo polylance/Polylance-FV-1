@@ -19,6 +19,7 @@ import { Judge } from './pages/Judge';
 import { Treasury } from './pages/Treasury';
 import { Analytics } from './pages/Analytics';
 import { AuditReport } from './pages/AuditReport';
+import { JobAttestationReport } from './pages/JobAttestationReport';
 import { Chat } from './pages/Chat';
 import { JobWorkspace } from './pages/JobWorkspace';
 import { Settings } from './pages/Settings';
@@ -76,6 +77,11 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/audit/:address" element={<AuditReport />} />
           <Route path="/audit-report" element={<AuditReport />} />
           <Route path="/audit-report/:address" element={<AuditReport />} />
+
+          {/* Per-Job Soulbound Token (SBT) Attestation & Social Proof Reports */}
+          <Route path="/jobs/:id/attestation" element={<JobAttestationReport />} />
+          <Route path="/attestation/:id" element={<JobAttestationReport />} />
+          <Route path="/attestation" element={<JobAttestationReport />} />
 
           {/* Settings & Profile Customization */}
           <Route path="/settings" element={isVisitor ? <Navigate to="/login" replace /> : <Settings />} />

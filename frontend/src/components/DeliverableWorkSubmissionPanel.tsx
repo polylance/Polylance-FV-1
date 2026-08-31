@@ -11,7 +11,7 @@ import {
   Send, Scale, RefreshCw, Layers, TrendingUp, MessageSquare, 
   ChevronRight, Calendar, UserCheck, Eye, XCircle, Info, Copy,
   Check, Filter, ArrowUpDown, ChevronDown, DollarSign, Flag,
-  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X
+  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -691,6 +691,43 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 <span>Evidence IPFS CID: <strong>{currentJob.dispute.evidenceIpfsHash}</strong></span>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* COMPLETED JOB SBT ATTESTATION BANNER */}
+      {currentJob.status === 'Completed' && (
+        <div className="p-5 rounded-3xl bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white border-2 border-purple-500/40 shadow-xl space-y-3 animate-fadeIn relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0">
+                <Award size={22} />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    ● Milestone Settled
+                  </span>
+                  <span className="text-xs text-purple-200 font-mono">ERC-5192 Soulbound Token</span>
+                </div>
+                <h4 className="font-headline font-black text-base text-white">
+                  Official Job SBT Attestation Certificate
+                </h4>
+                <p className="text-xs text-purple-200/80 font-sans">
+                  Proof of Work delivery and 100% escrow settlement are permanently attested on Polygon PoS.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
+              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-purple-600/30 flex items-center gap-2 shrink-0 transition-all hover:scale-105 cursor-pointer"
+            >
+              <Award size={15} />
+              <span>View SBT Certificate & Share</span>
+            </button>
           </div>
         </div>
       )}

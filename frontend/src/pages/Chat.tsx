@@ -1420,6 +1420,17 @@ export const Chat: React.FC = () => {
                             <span className="text-purple-700 font-bold">Net: ${(parseFloat(activeJob.amountUsdc || '0') * 0.975).toFixed(2)} USDC</span>
                           </div>
 
+                          {/* COMPLETED JOB SBT ATTESTATION ACTION */}
+                          {activeJob.status === 'Completed' && (
+                            <Link
+                              to={`/jobs/${activeJob.id}/attestation`}
+                              className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-3 rounded-lg flex items-center justify-center gap-1.5 text-[10.5px] shadow-2xs transition-all hover:scale-105"
+                            >
+                              <Award size={13} className="text-white" />
+                              <span>View SBT Attestation Cert</span>
+                            </Link>
+                          )}
+
                           {/* FREELANCER QUICK ACTIONS */}
                           {!isClient && (activeJob.status === 'Funded' || activeJob.status === 'Selected' || (activeJob.status as string) === 'TermsAgreed') && (
                             <>

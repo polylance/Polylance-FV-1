@@ -237,7 +237,7 @@ export const Navbar: React.FC = () => {
     location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
   const isVisitor = !isConnected || currentRole === 'visitor';
 
-  const isAuditPage = location.pathname.startsWith('/audit/');
+  const isAuditPage = location.pathname.startsWith('/audit') || location.pathname.includes('attestation');
 
   if (isAuditPage) {
     return (
@@ -267,7 +267,7 @@ export const Navbar: React.FC = () => {
 
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 text-purple-800 rounded-full border border-purple-200 text-xs font-mono font-bold shadow-2xs">
             <ShieldCheck size={13} className="text-purple-600" />
-            <span>OFFICIAL AUDIT REPORT</span>
+            <span>{location.pathname.includes('attestation') ? 'OFFICIAL JOB SBT ATTESTATION' : 'OFFICIAL AUDIT REPORT'}</span>
           </div>
         </div>
       </header>
@@ -278,7 +278,7 @@ export const Navbar: React.FC = () => {
     <>
       {/* ── Scroll-aware Liquid Glass Header with Full Backdrop Blur (iOS 26 Frosted Glass) ───────── */}
       <header
-        className="sticky top-0 z-50 w-full py-2 border-b border-slate-200/40 transition-all duration-300"
+        className="sticky top-0 z-50 w-full py-2 border-b border-slate-200/40 transition-all duration-300 no-print"
         style={{
           background: scrolled ? 'rgba(246, 249, 252, 0.76)' : 'rgba(246, 249, 252, 0.88)',
           backdropFilter: 'blur(32px) saturate(190%)',

@@ -658,6 +658,71 @@ select:focus {
   }
 }
 
+/* Print optimization for Audit and Attestation reports (Clean 1-2 page PDFs with NO navbar) */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+  
+  header,
+  nav,
+  footer,
+  .no-print,
+  #navbar,
+  [data-navbar] {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 11px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  .audit-sheet,
+  .attestation-sheet {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 18px !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    page-break-inside: auto !important;
+  }
+
+  .page-break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-compact {
+    gap: 8px !important;
+    margin-top: 6px !important;
+    margin-bottom: 6px !important;
+    padding: 8px !important;
+  }
+
+  .print-compact-py {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .print-page-break {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+}
+
 /* Reduced Motion Accessibility Override */
 @media (prefers-reduced-motion: reduce) {
   *,
