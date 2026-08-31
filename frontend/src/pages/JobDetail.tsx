@@ -15,6 +15,7 @@ import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, Ale
 import confetti from 'canvas-confetti';
 import { ErrorState } from '../components/UIStates';
 import { ActionStatusModal, ActionModalDetail } from '../components/ActionStatusModal';
+import { FormattedJobDescription } from '../components/FormattedJobDescription';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -513,9 +514,9 @@ export const JobDetail: React.FC = () => {
               </span>
             </div>
 
-            <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">
-              {job.description}
-            </p>
+            <div className="bg-slate-50/80 p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs">
+              <FormattedJobDescription description={job.description} />
+            </div>
           </div>
 
           {/* STATUS-DRIVEN CONTENT PANELS */}

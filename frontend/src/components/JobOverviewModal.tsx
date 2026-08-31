@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Job } from '../types';
 import { truncateAddress } from '../utils/formatters';
+import { FormattedJobDescription } from './FormattedJobDescription';
 
 interface JobOverviewModalProps {
   isOpen: boolean;
@@ -110,9 +111,7 @@ export const JobOverviewModal: React.FC<JobOverviewModalProps> = ({
               <FileText size={14} className="text-purple-600" />
               <span>Full Job Description & Specifications</span>
             </div>
-            <p className="font-sans text-xs sm:text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap">
-              {job.description || 'No description provided.'}
-            </p>
+            <FormattedJobDescription description={job.description} />
           </div>
 
           {/* Skills Required */}

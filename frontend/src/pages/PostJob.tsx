@@ -27,11 +27,16 @@ import {
   Check,
   RefreshCw,
   ArrowRight,
-  Search
+  Search,
+  Eye,
+  Bold,
+  List,
+  Code
 } from 'lucide-react';
 import { RocketIcon, RocketIconHandle } from '../components/RocketIcon';
 import { generateIpfsCid } from '../utils/ipfs';
 import { SUPPORTED_FIAT, SUPPORTED_CRYPTO, getActiveRates } from '../utils/currency';
+import { FormattedJobDescription } from '../components/FormattedJobDescription';
 
 export const PostJob: React.FC = () => {
   const { address, isConnected, connectWallet, currentRole } = useWeb3();
@@ -46,6 +51,7 @@ export const PostJob: React.FC = () => {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [showDescPreview, setShowDescPreview] = useState(false);
   const [category, setCategory] = useState<SkillCategory>('web3');
   const [reviewPeriodDays, setReviewPeriodDays] = useState<number | string>(7);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -694,23 +700,80 @@ export const PostJob: React.FC = () => {
             <FileText size={20} />
           </div>
           <div className="flex-1 space-y-2 relative">
-            <label className="block text-sm font-bold text-slate-800 font-heading">
-              Detailed Job Specification (IPFS Pinning) <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <textarea
-                required
-                rows={5}
-                maxLength={2000}
-                placeholder="Describe deliverables, required test coverage, and acceptance criteria..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-4 py-3.5 pb-8 bg-slate-50/50 border border-slate-200/80 rounded-2xl text-slate-900 text-sm focus:border-purple-600 focus:bg-white focus:ring-4 focus:ring-purple-100 outline-none resize-none font-sans font-medium transition-all duration-200 shadow-sm"
-              />
-              <span className="absolute bottom-3 right-4 text-[10px] text-slate-400 font-mono select-none">
-                {description.length} / 2000
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="block text-sm font-bold text-slate-800 font-heading">
+                Detailed Job Specification (IPFS Pinning) <span className="text-red-500">*</span>
+              </label>
+
+              {/* Formatting & Preview Helper Bar */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setDescription(prev => prev + (prev.endsWith('\n') ? '' : '\n') + '**Key Requirement:** ')}
+                  className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold border border-slate-200 flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Add Bold Highlight"
+                >
+                  <Bold size={11} /> <span>Bold</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDescription(prev => prev + (prev.endsWith('\n') ? '' : '\n') + '* ')}
+                  className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold border border-slate-200 flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Add Bullet Item"
+                >
+                  <List size={11} /> <span>Bullet</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDescription(prev => prev + (prev.endsWith('\n') ? '' : '\n') + '### Scope of Work:\n* ')}
+                  className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold border border-slate-200 flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Add Section Heading"
+                >
+                  <span># Section</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDescPreview(!showDescPreview)}
+                  className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border transition-all cursor-pointer ${
+                    showDescPreview
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
+                      : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200'
+                  }`}
+                >
+                  <Eye size={12} />
+                  <span>{showDescPreview ? 'Edit Spec' : 'Live Preview'}</span>
+                </button>
+              </div>
             </div>
+
+            {showDescPreview ? (
+              <div className="w-full p-4 sm:p-5 bg-white border-2 border-purple-200 rounded-2xl shadow-xs space-y-2 min-h-[140px]">
+                <div className="flex items-center justify-between border-b border-purple-100 pb-1.5">
+                  <span className="text-[10.5px] font-mono font-bold text-purple-900 uppercase">
+                    Live Formatted Preview (How Talents Will See It)
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
+                    ✓ Rich Markdown Parsed
+                  </span>
+                </div>
+                <FormattedJobDescription description={description} />
+              </div>
+            ) : (
+              <div className="relative">
+                <textarea
+                  required
+                  rows={6}
+                  maxLength={2000}
+                  placeholder="Describe deliverables, required test coverage, and acceptance criteria... Supports **bold highlights**, * bullet items, and # section headings!"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-4 py-3.5 pb-8 bg-slate-50/50 border border-slate-200/80 rounded-2xl text-slate-900 text-sm focus:border-purple-600 focus:bg-white focus:ring-4 focus:ring-purple-100 outline-none resize-none font-sans font-medium transition-all duration-200 shadow-sm leading-relaxed"
+                />
+                <span className="absolute bottom-3 right-4 text-[10px] text-slate-400 font-mono select-none">
+                  {description.length} / 2000
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
