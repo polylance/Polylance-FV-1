@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { toPng, toBlob } from 'html-to-image';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { useWeb3 } from '../context/Web3Context';
 import { 
@@ -8,7 +9,7 @@ import {
   Copy, Check, ExternalLink, Share2, Twitter, Linkedin,
   Coins, Briefcase, Zap, Star, Lock, QrCode, ArrowUpRight,
   Download, Eye, Layers, UserCheck, CheckCheck, Shield, User,
-  FileBadge, CheckSquare, HeartHandshake, Flame
+  FileBadge, CheckSquare, HeartHandshake, Flame, Image as ImageIcon
 } from 'lucide-react';
 import { truncateAddress, generateDeterministicHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
@@ -21,6 +22,9 @@ export const JobAttestationReport: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'social' | 'certificate'>('social');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [shareToast, setShareToast] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Find job by ID or contract address
   const job = useMemo(() => {
@@ -90,7 +94,47 @@ export const JobAttestationReport: React.FC = () => {
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const handleShareTwitter = () => {
+  const handleDownloadCardImage = async () => {
+    if (!cardRef.current) return;
+    setIsExporting(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, { quality: 0.98, pixelRatio: 2 });
+      const link = document.createElement('a');
+      link.download = `PolyLance-${certificateId}.png`;
+      link.href = dataUrl;
+      link.click();
+      setShareToast('🎨 HD Card image downloaded! Attach to your social media post.');
+      setTimeout(() => setShareToast(null), 5000);
+    } catch (err) {
+      console.error('Error generating card image:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleShareTwitter = async () => {
+    // Generate and download PNG image so user has it ready to attach to tweet
+    if (cardRef.current) {
+      try {
+        const dataUrl = await toPng(cardRef.current, { quality: 0.98, pixelRatio: 2 });
+        const link = document.createElement('a');
+        link.download = `PolyLance-${certificateId}.png`;
+        link.href = dataUrl;
+        link.click();
+
+        // Also copy blob to clipboard if available
+        const blob = await toBlob(cardRef.current, { quality: 0.98, pixelRatio: 2 });
+        if (blob && navigator.clipboard && window.ClipboardItem) {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        }
+      } catch (err) {
+        console.warn('Could not auto-export card image:', err);
+      }
+    }
+
+    setShareToast('📸 Card image downloaded & copied to clipboard! Paste (Ctrl+V) or attach into your X post.');
+    setTimeout(() => setShareToast(null), 6000);
+
     const text = viewRole === 'client'
       ? encodeURIComponent(
           `🏛️ Trusted Milestone Settlement on @PolyLanceProtocol!\n\n` +
@@ -110,7 +154,22 @@ export const JobAttestationReport: React.FC = () => {
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(shareUrl)}`, '_blank');
   };
 
-  const handleShareLinkedIn = () => {
+  const handleShareLinkedIn = async () => {
+    if (cardRef.current) {
+      try {
+        const dataUrl = await toPng(cardRef.current, { quality: 0.98, pixelRatio: 2 });
+        const link = document.createElement('a');
+        link.download = `PolyLance-${certificateId}.png`;
+        link.href = dataUrl;
+        link.click();
+      } catch (err) {
+        console.warn('Could not auto-export card image:', err);
+      }
+    }
+
+    setShareToast('📸 Card image downloaded! Attach the image to your LinkedIn post.');
+    setTimeout(() => setShareToast(null), 6000);
+
     const url = encodeURIComponent(shareUrl);
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
   };
@@ -137,98 +196,134 @@ export const JobAttestationReport: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-100/80 py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-purple-600 selection:text-white">
       
-      {/* ── Action & Mode Switcher Bar (Hidden in Print) ────────────────────────── */}
-      <div className="max-w-4xl mx-auto mb-6 flex flex-wrap items-center justify-between gap-3 no-print">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link 
-            to={`/jobs/${job.id}`}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-2xs transition-colors"
-          >
-            <ArrowLeft size={14} /> Back to Escrow
-          </Link>
+      {/* ── Unified Glassmorphism Toolbar Card (Hidden in Print) ──────────────── */}
+      <div className="max-w-4xl mx-auto mb-6 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-2.5 sm:p-3 shadow-xs space-y-2.5 no-print">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          
+          {/* Left Group: Navigation & Scope Badge */}
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <Link 
+              to={`/jobs/${job.id}`}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 rounded-xl transition-all shadow-2xs shrink-0"
+            >
+              <ArrowLeft size={14} /> <span>Back to Escrow</span>
+            </Link>
 
-          {/* Certificate Badge Pill */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 shadow-2xs text-xs font-bold font-mono">
-            {viewRole === 'client' ? (
-              <>
-                <Building2 size={13} className="text-indigo-600" />
-                <span className="text-indigo-900">Client Sponsorship Attestation</span>
-              </>
-            ) : (
-              <>
-                <Award size={13} className="text-purple-600" />
-                <span className="text-purple-900">Freelancer Soulbound Certificate</span>
-              </>
-            )}
+            {/* Certificate Badge Pill */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50/80 border border-purple-200/70 text-xs font-bold font-mono shrink-0">
+              {viewRole === 'client' ? (
+                <>
+                  <Building2 size={13} className="text-indigo-600" />
+                  <span className="text-indigo-950">Client Sponsorship</span>
+                </>
+              ) : (
+                <>
+                  <Award size={13} className="text-purple-600" />
+                  <span className="text-purple-950">Soulbound Proof of Work</span>
+                </>
+              )}
+            </div>
+
+            {/* View Mode Segmented Control */}
+            <div className="flex items-center p-0.5 bg-slate-100/90 border border-slate-200 rounded-xl shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveTab('social')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'social'
+                    ? 'bg-white text-slate-950 shadow-2xs font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Share2 size={12} />
+                <span>Social Card</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('certificate')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'certificate'
+                    ? 'bg-white text-slate-950 shadow-2xs font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <FileText size={12} />
+                <span>Printable PDF</span>
+              </button>
+            </div>
           </div>
 
-          {/* Tab Switcher: Social Card vs Formal PDF Certificate */}
-          <div className="flex items-center p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">
+          {/* Right Action Buttons */}
+          <div className="flex items-center gap-1.5 justify-end flex-wrap">
             <button
               type="button"
-              onClick={() => setActiveTab('social')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeTab === 'social'
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
+              onClick={handleShareTwitter}
+              title="Share to X (Downloads card image & copies to clipboard)"
+              className="bg-[#0f1419] hover:bg-black text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95"
             >
-              <Share2 size={13} />
-              <span>Social Card</span>
+              <Twitter size={12} className="fill-current text-white" />
+              <span>Share on X</span>
             </button>
+
             <button
               type="button"
-              onClick={() => setActiveTab('certificate')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeTab === 'certificate'
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
+              onClick={handleShareLinkedIn}
+              title="Share to LinkedIn (Downloads card image & opens post)"
+              className="bg-[#0077b5] hover:bg-[#006097] text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95"
             >
-              <FileText size={13} />
-              <span>Printable PDF</span>
+              <Linkedin size={12} className="fill-current text-white" />
+              <span>LinkedIn</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadCardImage}
+              disabled={isExporting}
+              title="Download high-resolution PNG Social Card"
+              className="bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200/80 font-extrabold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95"
+            >
+              <Download size={12} />
+              <span>{isExporting ? 'Exporting...' : 'Save PNG'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              title="Copy verified certificate URL"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+            >
+              {copiedLink ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} />}
+              <span>{copiedLink ? 'Copied!' : 'Link'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePrint}
+              title="Download or Print full cryptographic PDF"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all hover:scale-102 active:scale-95"
+            >
+              <Printer size={12} />
+              <span>PDF</span>
             </button>
           </div>
         </div>
 
-        {/* Social Sharing & Print Buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={handleShareTwitter}
-            className="bg-[#0f1419] hover:bg-black text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer"
-          >
-            <Twitter size={13} className="fill-current text-white" />
-            <span>Share on X</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleShareLinkedIn}
-            className="bg-[#0077b5] hover:bg-[#006097] text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer"
-          >
-            <Linkedin size={13} className="fill-current text-white" />
-            <span>LinkedIn</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="bg-white hover:bg-slate-50 text-slate-700 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 border border-slate-200 shadow-2xs transition-all cursor-pointer"
-          >
-            {copiedLink ? <CheckCheck size={13} className="text-emerald-600" /> : <Copy size={13} />}
-            <span>{copiedLink ? 'Link Copied!' : 'Copy Link'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-purple-500/20 transition-all hover:scale-105"
-          >
-            <Printer size={14} />
-            <span>Download PDF</span>
-          </button>
-        </div>
+        {/* Dynamic Image Ready Notification Toast */}
+        {shareToast && (
+          <div className="p-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 text-purple-900 rounded-xl text-xs flex items-center justify-between gap-2 animate-fadeIn shadow-2xs">
+            <div className="flex items-center gap-2">
+              <Sparkles size={14} className="text-purple-600 shrink-0" />
+              <span className="font-semibold">{shareToast}</span>
+            </div>
+            <button 
+              type="button" 
+              onClick={() => setShareToast(null)} 
+              className="font-bold text-purple-700 hover:text-purple-900 underline text-[11px] cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── TAB 1: SOCIAL MEDIA SHARE CARD (1200x630 HIGH-IMPACT DESIGN) ───────────── */}
@@ -236,11 +331,14 @@ export const JobAttestationReport: React.FC = () => {
         <div className="max-w-4xl mx-auto space-y-4 no-print animate-fadeIn">
           
           {/* Card Wrapper */}
-          <div className={`rounded-3xl p-6 sm:p-10 border-2 shadow-2xl relative overflow-hidden font-sans text-white transition-all ${
-            viewRole === 'client' 
-              ? 'bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#1E1B4B] border-indigo-500/40' 
-              : 'bg-gradient-to-br from-[#0B0A1A] via-[#13112E] to-[#1A0B2E] border-purple-500/40'
-          }`}>
+          <div 
+            ref={cardRef}
+            className={`rounded-3xl p-6 sm:p-10 border-2 shadow-2xl relative overflow-hidden font-sans text-white transition-all ${
+              viewRole === 'client' 
+                ? 'bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#1E1B4B] border-indigo-500/40' 
+                : 'bg-gradient-to-br from-[#0B0A1A] via-[#13112E] to-[#1A0B2E] border-purple-500/40'
+            }`}
+          >
             
             {/* Ambient Background Glow Mesh */}
             <div className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 ${
