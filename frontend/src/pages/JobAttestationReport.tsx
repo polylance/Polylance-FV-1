@@ -7,7 +7,8 @@ import {
   Printer, ArrowLeft, Building2, Sparkles, Clock, Globe, 
   Copy, Check, ExternalLink, Share2, Twitter, Linkedin,
   Coins, Briefcase, Zap, Star, Lock, QrCode, ArrowUpRight,
-  Download, Eye, Layers, UserCheck, CheckCheck
+  Download, Eye, Layers, UserCheck, CheckCheck, Shield, User,
+  FileBadge, CheckSquare, HeartHandshake, Flame
 } from 'lucide-react';
 import { truncateAddress, generateDeterministicHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
@@ -15,11 +16,10 @@ import { generateIpfsCid } from '../utils/ipfs';
 export const JobAttestationReport: React.FC = () => {
   const { id: jobIdParam } = useParams<{ id: string }>();
   const { jobs, profiles } = usePolyLanceData();
-  const { address: userAddress } = useWeb3();
+  const { address: userAddress, currentRole } = useWeb3();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<'social' | 'certificate'>('social');
-  const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Find job by ID or contract address
@@ -29,7 +29,7 @@ export const JobAttestationReport: React.FC = () => {
     return jobs.find(j => j.id.toLowerCase() === lower || j.contractAddress?.toLowerCase() === lower) || jobs[0] || null;
   }, [jobs, jobIdParam]);
 
-  // Client and Freelancer Profiles
+  // Client and Freelancer Addresses & Profiles
   const clientAddr = job?.client || '0x71c8366420a092c55660830e8115e9a44390001';
   const freelancerAddr = job?.freelancer || job?.applications?.[0]?.applicant || '0x88aa0398b91a150b041da819bc954bb356e009dd';
   
@@ -42,35 +42,45 @@ export const JobAttestationReport: React.FC = () => {
   const clientName = clientProfile?.displayName || truncateAddress(clientAddr);
   const freelancerName = freelancerProfile?.displayName || truncateAddress(freelancerAddr);
 
+  // Auto-detect perspective (Client vs Freelancer), but allow toggling
+  const isUserClient = useMemo(() => {
+    if (!userAddress) return currentRole === 'client';
+    const lowerUser = userAddress.toLowerCase();
+    if (job?.client && job.client.toLowerCase() === lowerUser) return true;
+    if (job?.freelancer && job.freelancer.toLowerCase() === lowerUser) return false;
+    return currentRole === 'client';
+  }, [userAddress, currentRole, job]);
+
+  const [viewRole, setViewRole] = useState<'freelancer' | 'client'>(() => isUserClient ? 'client' : 'freelancer');
+
   const amountUsdc = parseFloat(job?.amountUsdc || '1500');
   const contractAddress = job?.contractAddress || '0x42f8366420a092c55660830e8115e9a443900990';
   const sbtTokenId = `#SBT-WORK-${(job?.id || 'PL-001').slice(0, 8).toUpperCase()}`;
-  const certificateId = `PL-CERT-${(job?.id || '001').slice(0, 6).toUpperCase()}-${contractAddress.slice(2, 6).toUpperCase()}`;
+  const certificateId = `PL-${viewRole === 'client' ? 'PATRON' : 'CERT'}-${(job?.id || '001').slice(0, 6).toUpperCase()}-${contractAddress.slice(2, 6).toUpperCase()}`;
 
   const completionDate = job?.events?.find(e => e.step === 'Completed')?.timestamp 
     ? new Date(job.events.find(e => e.step === 'Completed')!.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // Cryptographic IPFS CID and Oracle Signature
+  // Cryptographic IPFS CID and Oracle Signature (Explicitly sanitized: NEVER leaks private deliverable links)
   const mockIpfsHash = useMemo(() => {
     return generateIpfsCid({
       standard: 'ERC-5192 Soulbound Attestation',
-      type: 'JOB_PROOF_OF_WORK_CERTIFICATE_V2',
+      type: viewRole === 'client' ? 'CLIENT_ESCROW_PATRONAGE_V2' : 'FREELANCER_PROOF_OF_WORK_V2',
       jobId: job?.id || 'JOB-001',
       jobTitle: job?.title || 'Verified Web3 Milestone Deliverable',
       settledAmountUsdc: amountUsdc,
       client: clientAddr,
       freelancer: freelancerAddr,
       contractAddress,
-      proofSummary: job?.proof?.description || 'Milestone deliverables verified, tested, and accepted with 0 disputes.',
-      externalLink: job?.proof?.externalLink || 'https://github.com/polylance/deliverable',
+      proofSummary: 'Milestone deliverables verified, peer-tested, and cryptographically settled with 0% dispute friction.',
       timestamp: Date.now()
     });
-  }, [job, amountUsdc, clientAddr, freelancerAddr, contractAddress]);
+  }, [job, amountUsdc, clientAddr, freelancerAddr, contractAddress, viewRole]);
 
   const mockOracleSignature = useMemo(() => {
-    return generateDeterministicHash(`polylance-sbt-attestation-oracle:${job?.id || 'job'}:${contractAddress}`);
-  }, [job, contractAddress]);
+    return generateDeterministicHash(`polylance-oracle-attestation:${viewRole}:${job?.id || 'job'}:${contractAddress}`);
+  }, [job, contractAddress, viewRole]);
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://polylance.app/#/jobs/${job?.id}/attestation`;
 
@@ -81,13 +91,22 @@ export const JobAttestationReport: React.FC = () => {
   };
 
   const handleShareTwitter = () => {
-    const text = encodeURIComponent(
-      `🚀 Proof of Work Attested & Settled on @PolyLanceProtocol!\n\n` +
-      `📌 Job: "${job?.title || 'Web3 Deliverable'}"\n` +
-      `💰 Payout: $${amountUsdc.toLocaleString()} USDC Settled on @0xPolygon\n` +
-      `📜 Verified Soulbound Token (ERC-5192): ${sbtTokenId}\n\n` +
-      `Verify cryptographic attestation:`
-    );
+    const text = viewRole === 'client'
+      ? encodeURIComponent(
+          `🏛️ Trusted Milestone Settlement on @PolyLanceProtocol!\n\n` +
+          `Proud to sponsor & settle "${job?.title || 'Web3 Project'}" for $${amountUsdc.toLocaleString()} USDC with verified talent @${freelancerName}!\n\n` +
+          `🔒 100% Sovereign MultiSig Escrow • 0% Protocol Fees\n` +
+          `📜 Verified Patron Certificate: ${certificateId}\n\n` +
+          `Verify on-chain:`
+        )
+      : encodeURIComponent(
+          `🚀 Proof of Work Attested & Settled on @PolyLanceProtocol!\n\n` +
+          `📌 Completed: "${job?.title || 'Web3 Milestone'}"\n` +
+          `💰 Payout: $${amountUsdc.toLocaleString()} USDC Settled on @0xPolygon\n` +
+          `📜 Soulbound Token (ERC-5192): ${sbtTokenId}\n` +
+          `🤝 Attested Client: @${clientName}\n\n` +
+          `Verify cryptographic attestation:`
+        );
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(shareUrl)}`, '_blank');
   };
 
@@ -102,25 +121,25 @@ export const JobAttestationReport: React.FC = () => {
 
   if (!job) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4 font-sans">
         <Award size={48} className="text-purple-600 animate-bounce" />
         <h2 className="text-xl font-bold text-slate-900 font-headline">Escrow Contract Not Found</h2>
         <p className="text-xs text-slate-500 max-w-sm">
           Unable to locate the specified job or Soulbound Token certificate.
         </p>
-        <Link to="/dashboard" className="px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold">
-          Return to Dashboard
+        <Link to="/workspace" className="px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold shadow-md">
+          Return to Workspace
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100/70 py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-purple-600 selection:text-white">
+    <div className="min-h-screen bg-slate-100/80 py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-purple-600 selection:text-white">
       
       {/* ── Action & Mode Switcher Bar (Hidden in Print) ────────────────────────── */}
       <div className="max-w-4xl mx-auto mb-6 flex flex-wrap items-center justify-between gap-3 no-print">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link 
             to={`/jobs/${job.id}`}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-2xs transition-colors"
@@ -128,31 +147,59 @@ export const JobAttestationReport: React.FC = () => {
             <ArrowLeft size={14} /> Back to Escrow
           </Link>
 
-          {/* Tab Switcher */}
+          {/* Certificate Perspective Toggle (Freelancer vs Client) */}
+          <div className="flex items-center p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setViewRole('freelancer')}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewRole === 'freelancer'
+                  ? 'bg-purple-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Award size={13} />
+              <span>Freelancer Token</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewRole('client')}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewRole === 'client'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Building2 size={13} />
+              <span>Client Patronage</span>
+            </button>
+          </div>
+
+          {/* Tab Switcher: Social Card vs Formal PDF Certificate */}
           <div className="flex items-center p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">
             <button
               type="button"
               onClick={() => setActiveTab('social')}
               className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'social'
-                  ? 'bg-purple-600 text-white shadow-2xs'
+                  ? 'bg-slate-900 text-white shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <Share2 size={13} />
-              <span>Social Share Card</span>
+              <span>Social Card</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('certificate')}
               className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'certificate'
-                  ? 'bg-purple-600 text-white shadow-2xs'
+                  ? 'bg-slate-900 text-white shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <FileText size={13} />
-              <span>Printable Certificate</span>
+              <span>Printable PDF</span>
             </button>
           </div>
         </div>
@@ -197,14 +244,21 @@ export const JobAttestationReport: React.FC = () => {
         </div>
       </div>
 
-      {/* ── TAB 1: SOCIAL MEDIA CARD VIEW (1200x630 ASPECT OPTIMIZED) ─────────────── */}
+      {/* ── TAB 1: SOCIAL MEDIA SHARE CARD (1200x630 HIGH-IMPACT DESIGN) ───────────── */}
       {activeTab === 'social' && (
         <div className="max-w-4xl mx-auto space-y-4 no-print animate-fadeIn">
           
-          <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-10 border-2 border-purple-500/40 shadow-2xl relative overflow-hidden font-sans">
+          {/* Card Wrapper */}
+          <div className={`rounded-3xl p-6 sm:p-10 border-2 shadow-2xl relative overflow-hidden font-sans text-white transition-all ${
+            viewRole === 'client' 
+              ? 'bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#1E1B4B] border-indigo-500/40' 
+              : 'bg-gradient-to-br from-[#0B0A1A] via-[#13112E] to-[#1A0B2E] border-purple-500/40'
+          }`}>
             
-            {/* Ambient Background Mesh */}
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+            {/* Ambient Background Glow Mesh */}
+            <div className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 ${
+              viewRole === 'client' ? 'bg-indigo-600/25' : 'bg-purple-600/25'
+            }`} />
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-600/15 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
             <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-40" />
 
@@ -213,13 +267,21 @@ export const JobAttestationReport: React.FC = () => {
               {/* Card Top Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/30">
-                    <Award size={22} />
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-lg ${
+                    viewRole === 'client'
+                      ? 'bg-gradient-to-tr from-indigo-600 to-cyan-500 shadow-indigo-500/30'
+                      : 'bg-gradient-to-tr from-purple-600 to-pink-500 shadow-purple-500/30'
+                  }`}>
+                    {viewRole === 'client' ? <Building2 size={22} /> : <Award size={22} />}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono font-black tracking-widest text-purple-300 uppercase bg-purple-500/20 px-2 py-0.5 rounded-full border border-purple-400/30">
-                        ERC-5192 SOULBOUND PROOF OF WORK
+                      <span className={`text-[10px] font-mono font-black tracking-widest uppercase px-2 py-0.5 rounded-full border ${
+                        viewRole === 'client'
+                          ? 'text-indigo-300 bg-indigo-500/20 border-indigo-400/30'
+                          : 'text-purple-300 bg-purple-500/20 border-purple-400/30'
+                      }`}>
+                        {viewRole === 'client' ? 'VERIFIED ESCROW PATRON & PROJECT SPONSOR' : 'ERC-5192 SOULBOUND PROOF OF WORK'}
                       </span>
                       <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
                         ● 100% SETTLED
@@ -231,48 +293,70 @@ export const JobAttestationReport: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="font-mono text-right text-xs text-purple-300">
+                <div className="font-mono text-right text-xs">
                   <span className="text-[10px] text-slate-400 block uppercase font-bold">Certificate ID</span>
                   <span className="font-black text-white">{certificateId}</span>
                 </div>
               </div>
 
-              {/* Job Title & Verified Amount Pill */}
+              {/* Dynamic Job Headline / Sponsor Highlight */}
               <div className="space-y-2">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-purple-400 font-bold block">
-                  Completed & Verified Deliverable Milestone:
+                  {viewRole === 'client' ? 'Trusted Project Awarded & 100% Settled Milestone:' : 'Completed & Verified Deliverable Milestone:'}
                 </span>
                 <h1 className="font-headline font-black text-2xl sm:text-3xl text-white tracking-tight leading-tight">
                   {job.title}
                 </h1>
+                {viewRole === 'client' && (
+                  <p className="text-xs text-indigo-200/90 font-medium leading-relaxed max-w-2xl">
+                    🌟 <strong>Escrow Sponsorship:</strong> Fully funded, verified, and released without dispute to verified talent <strong>@{freelancerName}</strong> on Polygon PoS.
+                  </p>
+                )}
               </div>
 
-              {/* 3 Metric High-Impact Pills */}
+              {/* 3 Metric High-Impact Stat Boxes */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">Settled Escrow Payout</span>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
+                    {viewRole === 'client' ? 'Total Capital Sponsored' : 'Settled Escrow Payout'}
+                  </span>
                   <p className="text-2xl font-black text-emerald-400 font-headline">${amountUsdc.toLocaleString()} USDC</p>
-                  <span className="text-[10px] font-mono text-slate-400 block">0% Protocol Extraction</span>
+                  <span className="text-[10px] font-mono text-slate-400 block">0% Protocol Fee Extraction</span>
                 </div>
 
                 <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">Soulbound Token ID</span>
-                  <p className="text-lg font-black text-purple-300 font-mono truncate">{sbtTokenId}</p>
-                  <span className="text-[10px] font-mono text-slate-400 block">Locked to Freelancer Safe</span>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
+                    {viewRole === 'client' ? 'Verified Talent Partner' : 'Soulbound Token ID'}
+                  </span>
+                  {viewRole === 'client' ? (
+                    <>
+                      <p className="text-lg font-black text-indigo-300 font-mono truncate">@{freelancerName}</p>
+                      <span className="text-[10px] font-mono text-slate-400 block">{truncateAddress(freelancerAddr)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-lg font-black text-purple-300 font-mono truncate">{sbtTokenId}</p>
+                      <span className="text-[10px] font-mono text-slate-400 block">Locked to Freelancer Safe</span>
+                    </>
+                  )}
                 </div>
 
                 <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">Settlement SLA</span>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
+                    {viewRole === 'client' ? 'Client Reliability SLA' : 'Settlement SLA'}
+                  </span>
                   <p className="text-xl font-black text-white font-headline">0% Disputes • Instant</p>
                   <span className="text-[10px] font-mono text-slate-400 block">{completionDate}</span>
                 </div>
               </div>
 
-              {/* Two Parties Summary (Freelancer & Client) */}
+              {/* Two Parties Summary (Talent & Client Sponsor) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 
                 {/* Talent Box */}
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
+                <div className={`p-3.5 rounded-2xl border flex items-center gap-3 ${
+                  viewRole === 'freelancer' ? 'bg-purple-900/30 border-purple-400/40 ring-1 ring-purple-400/30' : 'bg-white/5 border-white/10'
+                }`}>
                   <div className="w-10 h-10 rounded-xl bg-purple-600/30 border border-purple-400/40 text-purple-300 flex items-center justify-center font-bold text-sm shrink-0">
                     {freelancerProfile?.avatarUrl ? (
                       <img src={freelancerProfile.avatarUrl} alt={freelancerName} className="w-full h-full object-cover rounded-xl" />
@@ -281,14 +365,21 @@ export const JobAttestationReport: React.FC = () => {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[9.5px] font-mono text-purple-400 font-bold uppercase block">Attested Talent</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9.5px] font-mono text-purple-400 font-bold uppercase block">Attested Talent</span>
+                      {viewRole === 'freelancer' && (
+                        <span className="text-[8.5px] font-bold bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded">Recipient</span>
+                      )}
+                    </div>
                     <h4 className="font-bold text-white text-xs truncate">{freelancerName}</h4>
                     <span className="text-[10px] font-mono text-slate-400 truncate block">{truncateAddress(freelancerAddr)}</span>
                   </div>
                 </div>
 
-                {/* Client Box */}
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
+                {/* Client Sponsor Box */}
+                <div className={`p-3.5 rounded-2xl border flex items-center gap-3 ${
+                  viewRole === 'client' ? 'bg-indigo-900/30 border-indigo-400/40 ring-1 ring-indigo-400/30' : 'bg-white/5 border-white/10'
+                }`}>
                   <div className="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-400/40 text-indigo-300 flex items-center justify-center font-bold text-sm shrink-0">
                     {clientProfile?.avatarUrl ? (
                       <img src={clientProfile.avatarUrl} alt={clientName} className="w-full h-full object-cover rounded-xl" />
@@ -297,7 +388,12 @@ export const JobAttestationReport: React.FC = () => {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[9.5px] font-mono text-indigo-400 font-bold uppercase block">Attested Escrow Client</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9.5px] font-mono text-indigo-400 font-bold uppercase block">Attested Escrow Client</span>
+                      {viewRole === 'client' && (
+                        <span className="text-[8.5px] font-bold bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 rounded">Sponsor</span>
+                      )}
+                    </div>
                     <h4 className="font-bold text-white text-xs truncate">{clientName}</h4>
                     <span className="text-[10px] font-mono text-slate-400 truncate block">{truncateAddress(clientAddr)}</span>
                   </div>
@@ -326,46 +422,47 @@ export const JobAttestationReport: React.FC = () => {
 
           </div>
 
-          <div className="p-4 rounded-2xl bg-white border border-slate-200 flex items-center justify-between text-xs text-slate-600">
+          {/* Social Tip Pill */}
+          <div className="p-4 rounded-2xl bg-white border border-slate-200 flex items-center justify-between text-xs text-slate-600 shadow-2xs">
             <span className="font-medium">
-              💡 Tip: Click <strong>"Share on X"</strong> or <strong>"LinkedIn"</strong> above to showcase your authenticated proof of work directly to your network.
+              💡 Tip: Click <strong>"Share on X"</strong> or <strong>"LinkedIn"</strong> above to showcase your verified {viewRole === 'client' ? 'sponsorship credential' : 'proof of work'} directly to your network.
             </span>
             <button
               type="button"
               onClick={() => setActiveTab('certificate')}
               className="text-purple-600 hover:text-purple-800 font-bold underline shrink-0 cursor-pointer"
             >
-              View Printable Certificate &rarr;
+              View Printable PDF &rarr;
             </button>
           </div>
 
         </div>
       )}
 
-      {/* ── TAB 2 / PRINT: FORMAL SOVEREIGN ATTESTATION CERTIFICATE ───────────────── */}
+      {/* ── TAB 2 / PRINT: FORMAL CRYPTOGRAPHIC ATTESTATION CERTIFICATE ───────────── */}
       <div 
-        className={`attestation-sheet shadow-2xl rounded-3xl border border-slate-200 bg-white p-5 sm:p-7 max-w-4xl mx-auto space-y-3.5 relative overflow-hidden gpu-layer ${activeTab === 'social' ? 'hidden print:block' : 'block'}`}
+        className={`attestation-sheet shadow-2xl rounded-3xl border border-slate-200 bg-white p-5 sm:p-8 max-w-4xl mx-auto space-y-4 relative overflow-hidden gpu-layer ${activeTab === 'social' ? 'hidden print:block' : 'block'}`}
         style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
       >
         
         {/* ── SECTION 1: OFFICIAL HEADER ────────────────────────────────────────── */}
-        <div className="border-b-2 border-slate-100 pb-2.5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 relative z-10 page-break-inside-avoid">
-          <div className="space-y-0.5">
+        <div className="border-b-2 border-slate-100 pb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 relative z-10 page-break-inside-avoid">
+          <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="p-1 bg-purple-600 text-white rounded-md shadow-2xs">
-                <Award size={14} />
+              <span className={`p-1 text-white rounded-md shadow-2xs ${viewRole === 'client' ? 'bg-indigo-600' : 'bg-purple-600'}`}>
+                {viewRole === 'client' ? <Building2 size={14} /> : <Award size={14} />}
               </span>
               <span className="text-[9.5px] font-mono font-black tracking-widest text-purple-900 uppercase bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                Official PolyLance ERC-5192 Soulbound Attestation
+                {viewRole === 'client' ? 'Official PolyLance Client Sponsorship Attestation' : 'Official PolyLance ERC-5192 Soulbound Attestation'}
               </span>
               <span className="text-[9.5px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                 ● 100% Settled & Released
               </span>
             </div>
             <h1 className="font-headline text-base sm:text-lg font-black text-slate-900 tracking-tight uppercase">
-              Proof of Work & Escrow Attestation Certificate
+              {viewRole === 'client' ? 'Web3 Client Trust & Escrow Sponsorship Certificate' : 'Proof of Work & Escrow Attestation Certificate'}
             </h1>
-            <p className="text-[10px] text-slate-500 font-mono">
+            <p className="text-[10.5px] text-slate-500 font-mono">
               Immutable Cryptographic Milestone Settlement & Soulbound Token Ledger
             </p>
           </div>
@@ -387,36 +484,42 @@ export const JobAttestationReport: React.FC = () => {
         </div>
 
         {/* ── SECTION 2: SBT TOKEN & MILESTONE BANNER ───────────────────────────── */}
-        <div className="bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 text-white p-3.5 sm:p-4 rounded-2xl border border-purple-500/30 shadow-md space-y-2.5 font-mono relative z-10 page-break-inside-avoid">
+        <div className={`text-white p-4 rounded-2xl border shadow-md space-y-2.5 font-mono relative z-10 page-break-inside-avoid ${
+          viewRole === 'client'
+            ? 'bg-gradient-to-br from-indigo-900 via-slate-900 to-purple-950 border-indigo-500/30'
+            : 'bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 border-purple-500/30'
+        }`}>
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300 shadow-inner">
+              <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-purple-300 shadow-inner">
                 <Lock size={13} />
               </div>
               <div>
                 <span className="text-[8.5px] uppercase font-black tracking-widest text-purple-300 block">
-                  SOULBOUND ERC-5192 IDENTIFIER
+                  {viewRole === 'client' ? 'ESCROW SPONSORSHIP RECORD' : 'SOULBOUND ERC-5192 IDENTIFIER'}
                 </span>
                 <h3 className="font-headline text-xs sm:text-sm font-black text-white">{sbtTokenId}</h3>
               </div>
             </div>
             <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-              <CheckCircle2 size={10} /> NON-TRANSFERABLE ASSET
+              <CheckCircle2 size={10} /> NON-TRANSFERABLE REPUTATION ASSET
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-            <div className="bg-white/5 p-2 rounded-xl border border-white/10 space-y-0.5">
-              <span className="text-[8.5px] uppercase text-purple-300/80 block font-bold">Settled Payout</span>
+            <div className="bg-white/5 p-2.5 rounded-xl border border-white/10 space-y-0.5">
+              <span className="text-[8.5px] uppercase text-purple-300/80 block font-bold">
+                {viewRole === 'client' ? 'Sponsored Escrow' : 'Settled Payout'}
+              </span>
               <span className="font-black text-emerald-400 text-sm sm:text-base block font-headline">${amountUsdc.toLocaleString()} USDC</span>
-              <span className="text-[8.5px] text-purple-200/70 block">0% Protocol Maintenance</span>
+              <span className="text-[8.5px] text-purple-200/70 block">0% Protocol Extraction</span>
             </div>
-            <div className="bg-white/5 p-2 rounded-xl border border-white/10 space-y-0.5">
+            <div className="bg-white/5 p-2.5 rounded-xl border border-white/10 space-y-0.5">
               <span className="text-[8.5px] uppercase text-purple-300/80 block font-bold">Escrow Smart Contract</span>
               <span className="font-black text-purple-200 text-xs truncate block font-mono">{truncateAddress(contractAddress)}</span>
-              <span className="text-[8.5px] text-purple-300/70 block">Polygon PoS Clone Escrow</span>
+              <span className="text-[8.5px] text-purple-300/70 block">Polygon PoS MultiSig Escrow</span>
             </div>
-            <div className="bg-white/5 p-2 rounded-xl border border-white/10 space-y-0.5">
+            <div className="bg-white/5 p-2.5 rounded-xl border border-white/10 space-y-0.5">
               <span className="text-[8.5px] uppercase text-purple-300/80 block font-bold">Dispute SLA Ratio</span>
               <span className="font-black text-white text-xs block">0.0% (Clean Record)</span>
               <span className="text-[8.5px] text-emerald-300 block">100% Milestone Approved</span>
@@ -424,33 +527,43 @@ export const JobAttestationReport: React.FC = () => {
           </div>
         </div>
 
-        {/* ── SECTION 3: PROJECT DELIVERABLE PROOF SUMMARY ──────────────────────── */}
-        <div className="bg-slate-50 p-3 sm:p-3.5 rounded-2xl border border-slate-200 space-y-1.5 relative z-10 page-break-inside-avoid">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-1">
-            <span className="text-[9.5px] font-mono font-bold text-purple-900 uppercase">Verified Milestone Scope</span>
-            <span className="text-[9.5px] font-mono text-slate-500 font-bold">Category: Smart Contract & Web3</span>
+        {/* ── SECTION 3: PROJECT DELIVERABLE DETAILS (NO SENSITIVE SUBMITTED LINKS) ── */}
+        <div className="bg-slate-50 p-3.5 sm:p-4 rounded-2xl border border-slate-200 space-y-2 relative z-10 page-break-inside-avoid">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+            <span className="text-[9.5px] font-mono font-bold text-purple-900 uppercase">
+              {viewRole === 'client' ? 'Verified Escrow Project Scope' : 'Verified Milestone Deliverable'}
+            </span>
+            <span className="text-[9.5px] font-mono text-slate-500 font-bold">
+              Category: {job.category || 'Smart Contract & Web3'}
+            </span>
           </div>
 
-          <h3 className="font-headline font-black text-sm text-slate-900 leading-snug">{job.title}</h3>
+          <h3 className="font-headline font-black text-sm sm:text-base text-slate-900 leading-snug">{job.title}</h3>
           
-          <p className="text-[11px] text-slate-700 leading-relaxed font-sans line-clamp-2">
-            {job.proof?.description || job.description || 'Full milestone deliverable executed, peer-reviewed, and settled autonomously on Polygon smart escrows.'}
+          <p className="text-[11px] text-slate-700 leading-relaxed font-sans">
+            {job.description || 'Full milestone deliverable executed, peer-reviewed, and settled autonomously on Polygon smart escrows.'}
           </p>
 
-          {job.proof?.externalLink && (
-            <div className="flex items-center gap-1.5 pt-0.5 font-mono text-[10.5px] text-purple-700">
-              <ExternalLink size={12} />
-              <span>Deliverable Link / PR: <strong className="text-slate-900 break-all">{job.proof.externalLink}</strong></span>
-            </div>
-          )}
+          {/* Privacy Protection Notice: Deliverable links are confidential and sealed between parties */}
+          <div className="flex items-center justify-between gap-2 pt-1 font-mono text-[10px] text-slate-500 border-t border-slate-200">
+            <span className="flex items-center gap-1">
+              <ShieldCheck size={12} className="text-emerald-600 shrink-0" />
+              <span>Milestone Execution Proof: <strong>Cryptographically Verified & Sealed On-Chain</strong></span>
+            </span>
+            <span className="text-[9px] bg-slate-200/80 px-2 py-0.5 rounded text-slate-700 font-bold">
+              Confidential Delivery Sealed
+            </span>
+          </div>
         </div>
 
-        {/* ── SECTION 4: ATTESTED PARTIES LEDGER (FREELANCER & CLIENT) ─────────── */}
+        {/* ── SECTION 4: ATTESTED PARTIES (FREELANCER & CLIENT) ─────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-10 page-break-inside-avoid">
           
           {/* Freelancer Column */}
-          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5 font-mono text-xs">
-            <span className="text-[9.5px] uppercase font-black text-purple-900 border-b border-slate-200 pb-1 block">
+          <div className={`p-3.5 rounded-2xl border space-y-1.5 font-mono text-xs ${
+            viewRole === 'freelancer' ? 'bg-purple-50/70 border-purple-200' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <span className="text-[9.5px] uppercase font-black text-purple-900 border-b border-purple-200/60 pb-1 block">
               Attested Freelancer (Proof of Work Provider)
             </span>
             <div className="flex items-center justify-between">
@@ -472,8 +585,10 @@ export const JobAttestationReport: React.FC = () => {
           </div>
 
           {/* Client Column */}
-          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5 font-mono text-xs">
-            <span className="text-[9.5px] uppercase font-black text-indigo-900 border-b border-slate-200 pb-1 block">
+          <div className={`p-3.5 rounded-2xl border space-y-1.5 font-mono text-xs ${
+            viewRole === 'client' ? 'bg-indigo-50/70 border-indigo-200' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <span className="text-[9.5px] uppercase font-black text-indigo-900 border-b border-indigo-200/60 pb-1 block">
               Attested Escrow Client (Capital Provider)
             </span>
             <div className="flex items-center justify-between">
@@ -497,7 +612,7 @@ export const JobAttestationReport: React.FC = () => {
         </div>
 
         {/* ── SECTION 5: CRYPTOGRAPHIC SIGNATURE & IPFS CID BLOCK ───────────────── */}
-        <div className="border-t-2 border-slate-200 pt-2.5 grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs relative z-10 page-break-inside-avoid">
+        <div className="border-t-2 border-slate-200 pt-3 grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs relative z-10 page-break-inside-avoid">
           <div className="space-y-1">
             <span className="text-slate-900 uppercase font-black block text-[10px] tracking-wider">
               Cryptographic Proof Integrity & IPFS CID
