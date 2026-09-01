@@ -482,41 +482,7 @@ export const JobDetail: React.FC = () => {
 
           </div>
 
-          {/* Official Job SBT Attestation Banner when Completed */}
-          {job.status === 'Completed' && (
-            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white border-2 border-purple-500/40 shadow-xl space-y-4 animate-fade-in relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-              <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0">
-                    <Award size={24} />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                        ● Attested & Settled
-                      </span>
-                      <span className="text-xs text-purple-200 font-mono">ERC-5192 Soulbound Token</span>
-                    </div>
-                    <h3 className="font-headline font-black text-base sm:text-lg text-white">
-                      Official Job SBT Attestation & Proof of Work Report
-                    </h3>
-                    <p className="text-xs text-purple-200/80 font-sans max-w-xl">
-                      Cryptographic attestation minted for this completed job. Share proof of work or verified payment solvency on Twitter, LinkedIn, and social media.
-                    </p>
-                  </div>
-                </div>
 
-                <Link
-                  to={`/jobs/${job.id}/attestation`}
-                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-purple-600/30 flex items-center gap-2 shrink-0 transition-all hover:scale-105"
-                >
-                  <Share2 size={15} />
-                  <span>View & Share SBT Cert</span>
-                </Link>
-              </div>
-            </div>
-          )}
 
           {/* 10-Day Retention & Database Cleaning Alert for Client */}
           {isClient && (Date.now() - (job.createdAt || Date.now()) >= 10 * 24 * 60 * 60 * 1000) && job.status === 'Open' && (

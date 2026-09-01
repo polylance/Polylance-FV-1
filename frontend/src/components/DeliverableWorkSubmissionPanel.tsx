@@ -709,25 +709,25 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       {/* ========================================================================= */}
       {currentJob.status === 'Completed' ? (
         <div className="space-y-5 animate-fadeIn">
-          {/* COMPLETED JOB SBT ATTESTATION BANNER */}
-          <div className="p-6 rounded-3xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white border-2 border-purple-500/40 shadow-xl space-y-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shadow-inner shrink-0">
-                  <Award size={28} className="text-purple-300 animate-pulse" />
+          {/* COMPLETED JOB SBT ATTESTATION BANNER (COMPACT & PROPORTIONAL) */}
+          <div className="p-4 sm:p-4.5 rounded-2xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white border border-purple-500/30 shadow-md relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-60 h-60 bg-purple-500/15 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
+            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0">
+                  <Award size={18} className="text-purple-300" />
                 </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono font-black uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
                       ● 100% Escrow Settled
                     </span>
-                    <span className="text-xs text-purple-200 font-mono">ERC-5192 Soulbound Token</span>
+                    <span className="text-[10px] text-purple-200/80 font-mono">ERC-5192 Soulbound Token</span>
                   </div>
-                  <h3 className="font-headline font-black text-xl text-white">
+                  <h3 className="font-headline font-bold text-sm sm:text-base text-white tracking-tight">
                     Official Soulbound Token (SBT) Certificate Issued
                   </h3>
-                  <p className="text-xs text-purple-200/90 font-sans max-w-xl leading-relaxed">
+                  <p className="text-[11px] sm:text-xs text-purple-200/80 font-sans max-w-xl leading-relaxed">
                     This project is officially completed and permanent on-chain proof of work has been minted to Polygon. Both parties can share and verify the cryptographic attestation.
                   </p>
                 </div>
@@ -736,11 +736,11 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               <button
                 type="button"
                 onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
-                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-purple-600/30 flex items-center gap-2 shrink-0 transition-all hover:scale-105 cursor-pointer"
+                className="px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-600/25 flex items-center gap-1.5 shrink-0 transition-all hover:scale-102 cursor-pointer active:scale-95"
               >
-                <Award size={16} />
+                <Award size={14} />
                 <span>View SBT Certificate & Share</span>
-                <ExternalLink size={13} />
+                <ExternalLink size={12} />
               </button>
             </div>
           </div>
