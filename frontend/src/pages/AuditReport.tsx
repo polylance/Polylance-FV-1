@@ -215,70 +215,73 @@ export const AuditReport: React.FC = () => {
         }
       `}</style>
 
-      {/* ── Unified Glassmorphism Toolbar Card (Hidden in Print) ──────────────── */}
-      <div className="max-w-4xl mx-auto mb-6 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-2.5 sm:p-3 shadow-xs space-y-2.5 no-print">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-          
-          {/* Left Group: Navigation & Scope Badge */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <Link 
-              to="/dashboard"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 rounded-xl transition-all shadow-2xs shrink-0"
-            >
-              <ArrowLeft size={14} /> <span>Back to Dashboard</span>
-            </Link>
+      {/* ── Top Navigation (Back Button Outside Card) ─────────────────────────── */}
+      <div className="max-w-4xl mx-auto mb-3 flex items-center justify-between no-print">
+        <Link 
+          to="/dashboard"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
+        >
+          <ArrowLeft size={14} /> <span>Back to Dashboard</span>
+        </Link>
+      </div>
 
+      {/* ── Unified Glassmorphism Toolbar Card (Hidden in Print) ──────────────── */}
+      <div className="max-w-4xl mx-auto mb-6 bg-white border border-slate-200/90 rounded-2xl p-3 shadow-xs space-y-3 no-print">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          
+          {/* Left Group: Scope Badge & View Mode Toggle */}
+          <div className="flex items-center gap-2.5 flex-wrap">
             {/* Audit Type Badge Pill */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50/80 border border-purple-200/70 text-xs font-bold font-mono shrink-0">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-xs font-bold font-mono">
               {auditPerspective === 'client' ? (
                 <>
                   <Building2 size={13} className="text-indigo-600" />
-                  <span className="text-indigo-950">Client Sponsor Audit</span>
+                  <span className="text-indigo-900">Client Sponsor Audit</span>
                 </>
               ) : (
                 <>
                   <Award size={13} className="text-purple-600" />
-                  <span className="text-purple-950">Developer Talent Audit</span>
+                  <span className="text-purple-900">Developer Talent Audit</span>
                 </>
               )}
             </div>
 
             {/* View Mode Segmented Control */}
-            <div className="flex items-center p-0.5 bg-slate-100/90 border border-slate-200 rounded-xl shrink-0">
+            <div className="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-xl">
               <button
                 type="button"
                 onClick={() => setActiveTab('social')}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'social'
                     ? 'bg-white text-slate-950 shadow-2xs font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Share2 size={12} />
+                <Share2 size={13} />
                 <span>Social Card</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('certificate')}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'certificate'
                     ? 'bg-white text-slate-950 shadow-2xs font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <FileText size={12} />
+                <FileText size={13} />
                 <span>Printable PDF</span>
               </button>
             </div>
           </div>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-1.5 justify-end flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-start md:justify-end">
             <button
               type="button"
               onClick={handleShareTwitter}
               title="Share to X (Downloads card image & copies to clipboard)"
-              className="bg-[#0f1419] hover:bg-black text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95"
+              className="bg-[#0f1419] hover:bg-black text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
             >
               <Twitter size={12} className="fill-current text-white" />
               <span>Share on X</span>
@@ -288,7 +291,7 @@ export const AuditReport: React.FC = () => {
               type="button"
               onClick={handleShareLinkedIn}
               title="Share to LinkedIn (Downloads card image & opens post)"
-              className="bg-[#0077b5] hover:bg-[#006097] text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95"
+              className="bg-[#0077b5] hover:bg-[#006097] text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
             >
               <Linkedin size={12} className="fill-current text-white" />
               <span>LinkedIn</span>
@@ -299,7 +302,7 @@ export const AuditReport: React.FC = () => {
               onClick={handleDownloadCardImage}
               disabled={isExporting}
               title="Download high-resolution PNG Social Card"
-              className="bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200/80 font-extrabold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95"
+              className="bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
             >
               <Download size={12} />
               <span>{isExporting ? 'Exporting...' : 'Save PNG'}</span>
@@ -309,7 +312,7 @@ export const AuditReport: React.FC = () => {
               type="button"
               onClick={handleCopyLink}
               title="Copy verified audit link"
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
             >
               {copiedLink ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} />}
               <span>{copiedLink ? 'Copied!' : 'Link'}</span>
@@ -319,7 +322,7 @@ export const AuditReport: React.FC = () => {
               type="button"
               onClick={handlePrint}
               title="Download or Print full cryptographic PDF"
-              className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all hover:scale-102 active:scale-95"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all hover:scale-102 active:scale-95 shrink-0"
             >
               <Printer size={12} />
               <span>PDF</span>
@@ -345,65 +348,65 @@ export const AuditReport: React.FC = () => {
         )}
       </div>
 
-      {/* ── TAB 1: SOCIAL MEDIA CARD VIEW (1200x630 DESIGN) ───────────────────────── */}
+      {/* ── TAB 1: SOCIAL MEDIA CARD VIEW (LIGHT THEME - 1200x630 DESIGN) ─────────── */}
       {activeTab === 'social' && (
         <div className="max-w-4xl mx-auto space-y-4 no-print animate-fadeIn">
           
           <div 
             ref={cardRef}
-            className={`rounded-3xl p-6 sm:p-10 border-2 shadow-2xl relative overflow-hidden font-sans text-white transition-all ${
+            className={`rounded-3xl p-6 sm:p-10 border-2 shadow-xl relative overflow-hidden font-sans text-slate-900 transition-all ${
               auditPerspective === 'client'
-                ? 'bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#1E1B4B] border-indigo-500/40'
-                : 'bg-gradient-to-br from-[#0B0A1A] via-[#13112E] to-[#1A0B2E] border-purple-500/40'
+                ? 'bg-gradient-to-br from-white via-slate-50 to-indigo-50/60 border-indigo-200/90'
+                : 'bg-gradient-to-br from-white via-slate-50 to-purple-50/60 border-purple-200/90'
             }`}
           >
             
-            {/* Ambient Background Glow Mesh */}
+            {/* Ambient Background Glow Mesh (Light) */}
             <div className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 ${
-              auditPerspective === 'client' ? 'bg-indigo-600/25' : 'bg-purple-600/25'
+              auditPerspective === 'client' ? 'bg-indigo-200/30' : 'bg-purple-200/30'
             }`} />
-            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-600/15 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
-            <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-40" />
+            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-100/40 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
+            <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-20" />
 
             <div className="relative z-10 space-y-6">
               
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-lg ${
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-md ${
                     auditPerspective === 'client'
-                      ? 'bg-gradient-to-tr from-indigo-600 to-cyan-500 shadow-indigo-500/30'
-                      : 'bg-gradient-to-tr from-purple-600 to-pink-500 shadow-purple-500/30'
+                      ? 'bg-gradient-to-tr from-indigo-600 to-cyan-600 shadow-indigo-500/20'
+                      : 'bg-gradient-to-tr from-purple-600 to-indigo-600 shadow-purple-500/20'
                   }`}>
                     {auditPerspective === 'client' ? <Building2 size={22} /> : <ShieldCheck size={22} />}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-mono font-black tracking-widest uppercase px-2 py-0.5 rounded-full border ${
+                      <span className={`text-[10px] font-mono font-black tracking-widest uppercase px-2.5 py-0.5 rounded-full border ${
                         auditPerspective === 'client'
-                          ? 'text-indigo-300 bg-indigo-500/20 border-indigo-400/30'
-                          : 'text-purple-300 bg-purple-500/20 border-purple-400/30'
+                          ? 'text-indigo-800 bg-indigo-100 border-indigo-200'
+                          : 'text-purple-800 bg-purple-100 border-purple-200'
                       }`}>
                         {auditPerspective === 'client' ? 'VERIFIED WEB3 ESCROW PATRON AUDIT' : 'ERC-5192 SOULBOUND REPUTATION AUDIT'}
                       </span>
-                      <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
                         ● LIVE & ATTESTED
                       </span>
                     </div>
-                    <span className="font-headline font-black text-sm text-slate-200 block mt-0.5">
+                    <span className="font-headline font-black text-sm text-slate-900 block mt-0.5">
                       PolyLance Sovereign Oracle Protocol
                     </span>
                   </div>
                 </div>
 
                 <div className="font-mono text-right text-xs">
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Audit ID</span>
-                  <span className="font-black text-white">{mockCertificateId}</span>
+                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Audit ID</span>
+                  <span className="font-black text-slate-900 text-sm">{mockCertificateId}</span>
                 </div>
               </div>
 
               {/* Profile Card Summary */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
                 <div className="flex items-center gap-3.5">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-headline font-black text-2xl flex items-center justify-center shadow-md shrink-0">
                     {profile?.avatarUrl ? (
@@ -414,26 +417,26 @@ export const AuditReport: React.FC = () => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="font-headline text-lg sm:text-xl font-black text-white">{displayName}</h2>
+                      <h2 className="font-headline text-lg sm:text-xl font-black text-slate-900">{displayName}</h2>
                       {profile?.githubVerified && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-400/30">
-                          <CheckCircle2 size={11} className="text-purple-400" /> @{profile.githubUsername}
+                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">
+                          <CheckCircle2 size={11} className="text-purple-600" /> @{profile.githubUsername}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs font-bold text-purple-300 mt-0.5">{title}</p>
-                    <span className="text-[10px] font-mono text-slate-400 block mt-0.5">{truncateAddress(targetAddress)}</span>
+                    <p className="text-xs font-bold text-purple-700 mt-0.5">{title}</p>
+                    <span className="text-[10px] font-mono text-slate-500 block mt-0.5">{truncateAddress(targetAddress)}</span>
                   </div>
                 </div>
 
                 <div className="text-left sm:text-right font-mono space-y-0.5">
-                  <span className="text-[9.5px] uppercase text-slate-400 block font-bold">
+                  <span className="text-[9.5px] uppercase text-slate-500 block font-bold">
                     {auditPerspective === 'client' ? 'Client Trust Index' : 'PLREP Skill Index'}
                   </span>
-                  <p className="text-2xl font-black text-emerald-400 font-headline">
+                  <p className="text-2xl font-black text-emerald-600 font-headline">
                     {auditPerspective === 'client' ? `${clientReliabilityScore} / 10.0` : `${devReputationScore} PTS`}
                   </p>
-                  <span className="text-[9.5px] text-purple-300 font-bold block">
+                  <span className="text-[9.5px] text-purple-700 font-bold block">
                     {auditPerspective === 'client' ? '100% Sovereign Settlement' : 'Top Tier Verified Developer'}
                   </span>
                 </div>
@@ -441,31 +444,31 @@ export const AuditReport: React.FC = () => {
 
               {/* 3 Metric Stat Boxes */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
+                <div className="bg-white border border-slate-200/90 p-4 rounded-2xl space-y-1 shadow-xs">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">
                     {auditPerspective === 'client' ? 'Capital Sponsored & Released' : 'Lifetime Proof of Work Handled'}
                   </span>
-                  <p className="text-2xl font-black text-emerald-400 font-headline">
+                  <p className="text-2xl font-black text-emerald-600 font-headline">
                     ${(auditPerspective === 'client' ? clientVolumeDistributed : devVolumeHandled).toLocaleString()} USDC
                   </p>
                   <span className="text-[10px] font-mono text-slate-400 block">0% Protocol Extraction</span>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
+                <div className="bg-white border border-slate-200/90 p-4 rounded-2xl space-y-1 shadow-xs">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">
                     {auditPerspective === 'client' ? 'Rehire / Retention Rate' : 'Milestone Delivery SLA'}
                   </span>
-                  <p className="text-2xl font-black text-white font-headline">
+                  <p className="text-2xl font-black text-slate-900 font-headline">
                     {auditPerspective === 'client' ? clientRehireRate : `${devSuccessRate}%`}
                   </p>
                   <span className="text-[10px] font-mono text-slate-400 block">0.0% Dispute Escalation</span>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
+                <div className="bg-white border border-slate-200/90 p-4 rounded-2xl space-y-1 shadow-xs">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">
                     {auditPerspective === 'client' ? 'Completed Escrow Projects' : 'Completed Smart Contracts'}
                   </span>
-                  <p className="text-2xl font-black text-purple-300 font-headline">
+                  <p className="text-2xl font-black text-purple-900 font-headline">
                     {(auditPerspective === 'client' ? completedClientJobs.length : completedFreelancerJobs.length) || (auditPerspective === 'client' ? clientJobs.length : freelancerJobs.length) || 1}
                   </p>
                   <span className="text-[10px] font-mono text-slate-400 block">Verified On-Chain Milestones</span>
@@ -473,19 +476,19 @@ export const AuditReport: React.FC = () => {
               </div>
 
               {/* Badges Footer */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/10 text-xs font-mono">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200/80 text-xs font-mono">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1 text-[10.5px] font-bold bg-purple-500/20 text-purple-200 px-2.5 py-1 rounded-lg border border-purple-400/30">
-                    <CheckCircle2 size={11} className="text-emerald-400" /> Polygon PoS (137)
+                  <span className="inline-flex items-center gap-1 text-[10.5px] font-bold bg-purple-100 text-purple-900 px-2.5 py-1 rounded-lg border border-purple-200">
+                    <CheckCircle2 size={11} className="text-emerald-600" /> Polygon PoS (137)
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[10.5px] font-bold bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/15">
-                    <ShieldCheck size={11} className="text-cyan-400" /> Non-Custodial MultiSig Identity
+                  <span className="inline-flex items-center gap-1 text-[10.5px] font-bold bg-slate-100 text-slate-800 px-2.5 py-1 rounded-lg border border-slate-200">
+                    <ShieldCheck size={11} className="text-indigo-600" /> Non-Custodial MultiSig Identity
                   </span>
                 </div>
 
-                <div className="text-slate-400 text-[10.5px]">
+                <div className="text-slate-500 text-[10.5px]">
                   <span>Attested via: </span>
-                  <strong className="text-purple-300 font-mono">{truncateAddress('0x42f8366420a092c55660830e8115e9a443900990')}</strong>
+                  <strong className="text-purple-700 font-mono">{truncateAddress('0x42f8366420a092c55660830e8115e9a443900990')}</strong>
                 </div>
               </div>
 
