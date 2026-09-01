@@ -369,8 +369,8 @@ export const Navbar: React.FC = () => {
                   {hasActiveJobs && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
                 </NavLink>
 
-                {/* 3. Post Job (Cyan - For Clients directly in main top bar) */}
-                {currentRole === 'client' && (
+                {/* 3. Post Job (Cyan - For Clients and Admins directly in main top bar) */}
+                {(currentRole === 'client' || currentRole === 'admin') && (
                   <NavLink to="/jobs/post" active={isActive('/jobs/post')} accent="cyan">
                     <PlusCircle size={13} className={isActive('/jobs/post') ? 'text-cyan-600' : 'text-slate-400'} />
                     Post Job

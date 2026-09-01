@@ -36,6 +36,16 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
   prsCount = 0,
   soulboundCount = 0,
 }) => {
+  const modalContentRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      if (modalContentRef.current) {
+        modalContentRef.current.scrollTop = 0;
+      }
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const displayName = profile?.displayName || truncateAddress(applicantAddress);
@@ -57,6 +67,7 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
         />
 
         <motion.div
+          ref={modalContentRef}
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}

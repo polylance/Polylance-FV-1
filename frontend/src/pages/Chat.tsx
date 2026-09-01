@@ -194,22 +194,21 @@ export const Chat: React.FC = () => {
   const userAddr = (address || '').toLowerCase();
   const isClientRole = currentRole === 'client';
 
-  // Securely filter jobs for conversation sidebar
+  // Securely filter jobs strictly to channels the user participates in
   const myChats = jobs.filter((j) => {
-    if (isAdmin) return true; // Admin has platform governance oversight
-    const isClient = j.client.toLowerCase() === userAddr || isClientRole;
-    const isFreelancer = j.freelancer?.toLowerCase() === userAddr;
-    const hasApplied = (j.applications || []).some((a) => a.applicant.toLowerCase() === userAddr);
-    const isJudgeOnDispute = isJudgeRole && j.status === 'Disputed';
+    const isClient = Boolean(userAddr && j.client?.toLowerCase() === userAddr);
+    const isFreelancer = Boolean(userAddr && j.freelancer?.toLowerCase() === userAddr);
+    const hasApplied = Boolean(userAddr && (j.applications || []).some((a) => a.applicant?.toLowerCase() === userAddr));
+    const isDisputeJudge = (isJudgeRole || isAdmin) && j.status === 'Disputed';
 
-    return isClient || isFreelancer || hasApplied || isJudgeOnDispute;
+    return isClient || isFreelancer || hasApplied || isDisputeJudge;
   });
 
   // Construct distinct 1-on-1 Escrow Chat Channels for all candidates and assigned developers
   const escrowChannels: EscrowChatChannel[] = [];
 
   myChats.forEach((job) => {
-    const isJobClient = job.client.toLowerCase() === userAddr || isClientRole;
+    const isJobClient = Boolean(userAddr && job.client?.toLowerCase() === userAddr);
 
     if (isJobClient) {
       if (job.status === 'Open') {

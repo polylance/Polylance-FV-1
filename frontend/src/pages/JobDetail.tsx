@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useWeb3 } from '../context/Web3Context';
-import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { usePolyLanceData, getBackendSyncUrl } from '../context/PolyLanceDataContext';
 import { EscrowTimeline } from '../components/EscrowTimeline';
 import { ApplicantTable } from '../components/ApplicantTable';
 import { DisputePanel } from '../components/DisputePanel';
@@ -11,7 +11,7 @@ import { DisputeReason, UserProfile } from '../types';
 import { truncateAddress, formatDaysRemaining, formatTimeAgo, getDeterministicSbtId } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
 import { getJobInactivityStatus } from '../utils/inactivity';
-import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles, ArrowUpRight, Calendar, Trash2, RefreshCw, Share2 } from 'lucide-react';
+import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles, ArrowUpRight, Calendar, Trash2, RefreshCw, Share2, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ErrorState } from '../components/UIStates';
 import { ActionStatusModal, ActionModalDetail } from '../components/ActionStatusModal';
@@ -20,10 +20,6 @@ import { FormattedJobDescription } from '../components/FormattedJobDescription';
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  React.useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [id]);
 
   const { address, isConnected, isArbitrator, currentRole, connectWallet } = useWeb3();
   const {
@@ -42,6 +38,57 @@ export const JobDetail: React.FC = () => {
     sendPreAcceptMessage,
     profiles,
   } = usePolyLanceData();
+
+  const [isResolvingJob, setIsResolvingJob] = useState(() => {
+    return !jobs.some(
+      (j) =>
+        (j.id && j.id.toLowerCase() === id?.toLowerCase()) ||
+        (j.contractAddress && j.contractAddress.toLowerCase() === id?.toLowerCase())
+    );
+  });
+
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    let mounted = true;
+    const existing = jobs.find(
+      (j) =>
+        (j.id && j.id.toLowerCase() === id?.toLowerCase()) ||
+        (j.contractAddress && j.contractAddress.toLowerCase() === id?.toLowerCase())
+    );
+
+    if (existing) {
+      setIsResolvingJob(false);
+      return;
+    }
+
+    setIsResolvingJob(true);
+    const syncUrl = getBackendSyncUrl();
+    const headers: Record<string, string> = {};
+    if (address) headers['x-wallet-address'] = address.toLowerCase();
+
+    fetch(`${syncUrl}/api/sync`, { headers })
+      .then((r) => r.json())
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) {
+          setTimeout(() => {
+            if (mounted) setIsResolvingJob(false);
+          }, 600);
+        }
+      });
+
+    const timer = setTimeout(() => {
+      if (mounted) setIsResolvingJob(false);
+    }, 2500);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, [id, jobs.length, address]);
 
   const handleKeepJobActive = async () => {
     if (!job) return;
@@ -101,12 +148,27 @@ export const JobDetail: React.FC = () => {
     title: '',
   });
 
-  const job = jobs.find((j) => j.id === id || j.contractAddress.toLowerCase() === id?.toLowerCase());
+  const job = jobs.find((j) => (j.id && j.id.toLowerCase() === id?.toLowerCase()) || (j.contractAddress && j.contractAddress.toLowerCase() === id?.toLowerCase()));
   const chatMessages = job?.chatMessages || [
     { sender: 'Client' as const, text: 'Welcome! Let us finalize the project scope and deliverables before funding.', timestamp: job?.createdAt || Date.now() - 3600000 }
   ];
 
   if (!job) {
+    if (isResolvingJob) {
+      return (
+        <div className="max-w-xl mx-auto py-24 text-center space-y-4 font-sans">
+          <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto border border-purple-100 shadow-sm animate-pulse">
+            <RefreshCw className="animate-spin" size={24} />
+          </div>
+          <h2 className="text-xl font-headline font-bold text-slate-900">
+            Synchronizing Escrow Contract...
+          </h2>
+          <p className="text-xs text-slate-500 font-mono">
+            Fetching verified on-chain job data and escrow state across the PolyLance network for ID: {id}
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="max-w-xl mx-auto py-16">
         <ErrorState
@@ -607,6 +669,21 @@ export const JobDetail: React.FC = () => {
                         <span>Open Messages</span>
                         <ArrowUpRight size={14} />
                       </button>
+                    </div>
+                  )}
+
+                  {/* Candidate Overview Table for Freelancers */}
+                  {(job.applications || []).length > 0 && (
+                    <div className="pt-2">
+                      <ApplicantTable
+                        jobId={job.id}
+                        jobAmount={job.amountUsdc}
+                        jobReviewPeriodDays={job.reviewPeriodDays}
+                        applications={job.applications}
+                        category={job.category}
+                        onSelect={() => {}}
+                        isClient={false}
+                      />
                     </div>
                   )}
                 </div>

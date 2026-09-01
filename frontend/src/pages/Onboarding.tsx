@@ -88,14 +88,14 @@ export const Onboarding: React.FC = () => {
     );
 
     if (duplicateAddress) {
+      const adminGh = (import.meta.env.VITE_ADMIN_GITHUB_USERNAME || '').toLowerCase().trim();
+      const judgeGh = (import.meta.env.VITE_JUDGE_GITHUB_USERNAME || '').toLowerCase().trim();
       const isPrivileged =
-        isAdminAddress(address || '') ||
-        isJudgeAddress(address || '') ||
-        (import.meta.env.VITE_ADMIN_GITHUB_USERNAME && lowerUsername === import.meta.env.VITE_ADMIN_GITHUB_USERNAME.toLowerCase().trim()) ||
-        (import.meta.env.VITE_JUDGE_GITHUB_USERNAME && lowerUsername === import.meta.env.VITE_JUDGE_GITHUB_USERNAME.toLowerCase().trim());
+        (isAdminAddress(address || '') && adminGh === lowerUsername) ||
+        (isJudgeAddress(address || '') && judgeGh === lowerUsername);
 
       if (!isPrivileged) {
-        setGithubError(`The GitHub account @${githubUsername.trim()} is already connected to another wallet address (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})! Only one wallet connection per GitHub username is allowed for Sybil resistance. Please link a different GitHub account.`);
+        setGithubError(`Security Shield: The GitHub account @${githubUsername.trim()} is already bound to another wallet (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})! Only one wallet connection per GitHub username is permitted for Sybil resistance. Unauthorized reassignment is blocked.`);
         return;
       }
     }

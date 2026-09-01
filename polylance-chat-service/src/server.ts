@@ -563,17 +563,21 @@ export function sanitizeSharedStateForRequester(
     // Private chats and active negotiation thread: for parties, applicants, dispute judge, or admin
     const canAccessPrivateJobChat = isAdmin || isParty || hasApplied || isDisputeJudge;
 
-    // Applications: only the job client or admin can see all applicants; applicants see only their own application
+    // Applications: client or admin sees full applications including proposalText;
+    // other callers see the applicants list with sensitive proposal text hidden
     let sanitizedApplications: any[] = [];
+    const rawApps = job.applications || [];
     if (isAdmin || (reqAddr && clientAddr === reqAddr)) {
-      sanitizedApplications = job.applications || [];
-    } else if (reqAddr) {
-      sanitizedApplications = (job.applications || []).filter(
-        (a: any) => a && a.applicant && a.applicant.toLowerCase().trim() === reqAddr
-      );
+      sanitizedApplications = rawApps;
     } else {
-      // Unauthenticated visitor / console caller gets zero application dumps
-      sanitizedApplications = [];
+      sanitizedApplications = rawApps.map((a: any) => {
+        if (!a) return a;
+        const isOwn = reqAddr && a.applicant && a.applicant.toLowerCase().trim() === reqAddr;
+        if (isOwn) return a;
+        // Strip sensitive proposal text, preserve applicant overview for counters & public cards
+        const { proposalText: _pt, ...publicApp } = a;
+        return publicApp;
+      });
     }
 
     // Proof of work: Only visible to authorized contract parties (client / hired freelancer / admin)
@@ -646,14 +650,13 @@ export function sanitizeSharedStateForRequester(
   }
 
   // 3. Sanitize User Profiles:
-  // If caller is unauthenticated (!reqAddr), DO NOT dump all user profiles!
-  // If caller is authenticated, return their own profile and public directory summaries.
+  // Return public directory view for all callers worldwide, protecting private credentials
   const sanitizedProfiles: Record<string, any> = {};
-  if (state.profiles && reqAddr) {
+  if (state.profiles) {
     for (const [addr, p] of Object.entries(state.profiles)) {
       if (!p) continue;
       const lowerKey = addr.toLowerCase().trim();
-      const isOwner = lowerKey === reqAddr;
+      const isOwner = Boolean(reqAddr && lowerKey === reqAddr);
       if (isAdmin || isOwner) {
         sanitizedProfiles[addr] = p;
       } else {

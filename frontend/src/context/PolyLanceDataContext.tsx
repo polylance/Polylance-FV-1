@@ -2193,12 +2193,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             updatedPrev[addr].githubUsername?.toLowerCase().trim() === lowerUsername
         );
         if (duplicateAddress) {
+          const adminGh = (import.meta.env.VITE_ADMIN_GITHUB_USERNAME || '').toLowerCase().trim();
+          const judgeGh = (import.meta.env.VITE_JUDGE_GITHUB_USERNAME || '').toLowerCase().trim();
           const isPrivileged =
-            isAdminAddress(lowerAddress) ||
-            isJudgeAddress(lowerAddress) ||
-            lowerUsername === 'akhilmuvva' ||
-            lowerUsername === 'sunny200551' ||
-            lowerUsername === 'stevenson20';
+            (isAdminAddress(lowerAddress) && adminGh === lowerUsername) ||
+            (isJudgeAddress(lowerAddress) && judgeGh === lowerUsername);
 
           if (isPrivileged) {
             // Unbind GitHub username from previous/stale duplicate address to reassign to authorized wallet
@@ -2207,7 +2206,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             oldProf.githubVerified = false;
             updatedPrev[duplicateAddress] = oldProf;
           } else {
-            console.warn(`Verification Error: The GitHub account @${profileData.githubUsername} is already linked to another wallet address (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)})! Only one wallet connection per GitHub username is allowed for Sybil resistance.`);
+            console.warn(`Security Shield: The GitHub account @${profileData.githubUsername} is already linked to another wallet (${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)}) and is protected against reassignment.`);
             return prev;
           }
         }
