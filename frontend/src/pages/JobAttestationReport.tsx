@@ -42,7 +42,7 @@ export const JobAttestationReport: React.FC = () => {
   const clientName = clientProfile?.displayName || truncateAddress(clientAddr);
   const freelancerName = freelancerProfile?.displayName || truncateAddress(freelancerAddr);
 
-  // Auto-detect perspective (Client vs Freelancer), but allow toggling
+  // Strictly scope perspective: Client gets Client Patronage Report, Freelancer gets Proof-of-Work Report
   const isUserClient = useMemo(() => {
     if (!userAddress) return currentRole === 'client';
     const lowerUser = userAddress.toLowerCase();
@@ -51,7 +51,7 @@ export const JobAttestationReport: React.FC = () => {
     return currentRole === 'client';
   }, [userAddress, currentRole, job]);
 
-  const [viewRole, setViewRole] = useState<'freelancer' | 'client'>(() => isUserClient ? 'client' : 'freelancer');
+  const viewRole: 'freelancer' | 'client' = isUserClient ? 'client' : 'freelancer';
 
   const amountUsdc = parseFloat(job?.amountUsdc || '1500');
   const contractAddress = job?.contractAddress || '0x42f8366420a092c55660830e8115e9a443900990';
@@ -147,32 +147,19 @@ export const JobAttestationReport: React.FC = () => {
             <ArrowLeft size={14} /> Back to Escrow
           </Link>
 
-          {/* Certificate Perspective Toggle (Freelancer vs Client) */}
-          <div className="flex items-center p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setViewRole('freelancer')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewRole === 'freelancer'
-                  ? 'bg-purple-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <Award size={13} />
-              <span>Freelancer Token</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewRole('client')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewRole === 'client'
-                  ? 'bg-indigo-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <Building2 size={13} />
-              <span>Client Patronage</span>
-            </button>
+          {/* Certificate Badge Pill */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 shadow-2xs text-xs font-bold font-mono">
+            {viewRole === 'client' ? (
+              <>
+                <Building2 size={13} className="text-indigo-600" />
+                <span className="text-indigo-900">Client Sponsorship Attestation</span>
+              </>
+            ) : (
+              <>
+                <Award size={13} className="text-purple-600" />
+                <span className="text-purple-900">Freelancer Soulbound Certificate</span>
+              </>
+            )}
           </div>
 
           {/* Tab Switcher: Social Card vs Formal PDF Certificate */}

@@ -33,13 +33,8 @@ export const AuditReport: React.FC = () => {
   const completedFreelancerJobs = freelancerJobs.filter(j => j.status === 'Completed');
   const completedClientJobs = clientJobs.filter(j => j.status === 'Completed');
 
-  const isFreelancer = freelancerJobs.length > 0 || Boolean(profile?.githubUsername) || currentRole === 'freelancer';
-  const isClient = clientJobs.length > 0 || currentRole === 'client';
-
-  const [auditPerspective, setAuditPerspective] = useState<'developer' | 'client'>(() => {
-    if (clientJobs.length > freelancerJobs.length || currentRole === 'client') return 'client';
-    return 'developer';
-  });
+  const isClient = (clientJobs.length > 0 && freelancerJobs.length === 0) || currentRole === 'client';
+  const auditPerspective: 'developer' | 'client' = isClient ? 'client' : 'developer';
 
   // Compute developer statistics
   const devReputationScore = profile?.primaryScore || Math.max(750, (completedFreelancerJobs.length * 120) + 700);
@@ -173,32 +168,19 @@ export const AuditReport: React.FC = () => {
             <ArrowLeft size={14} /> Back to Dashboard
           </Link>
 
-          {/* Perspective Toggle (Developer vs Client) */}
-          <div className="flex items-center p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setAuditPerspective('developer')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                auditPerspective === 'developer'
-                  ? 'bg-purple-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <Award size={13} />
-              <span>Developer Audit</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setAuditPerspective('client')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                auditPerspective === 'client'
-                  ? 'bg-indigo-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <Building2 size={13} />
-              <span>Client Sponsor Audit</span>
-            </button>
+          {/* Audit Type Badge Pill */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 shadow-2xs text-xs font-bold font-mono">
+            {auditPerspective === 'client' ? (
+              <>
+                <Building2 size={13} className="text-indigo-600" />
+                <span className="text-indigo-900">Client Sponsor Audit</span>
+              </>
+            ) : (
+              <>
+                <Award size={13} className="text-purple-600" />
+                <span className="text-purple-900">Developer Talent Audit</span>
+              </>
+            )}
           </div>
 
           {/* Tab Switcher: Social Card vs Formal PDF */}
