@@ -650,25 +650,14 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
         {/* Right side: Action Button + Checklist Art (Properly Contained) */}
         <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto justify-between sm:justify-end pr-0 lg:pr-1">
-          {currentJob.status === 'Completed' ? (
-            <button
-              type="button"
-              onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-md shadow-purple-600/20 flex items-center gap-1.5 transition-all hover:scale-105 cursor-pointer"
-            >
-              <Award size={15} />
-              <span>View SBT Certificate</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => navigate(`/chat?jobId=${currentJob.id}`)}
-              className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer shrink-0 active:scale-95"
-            >
-              <MessageSquare size={14} />
-              <span>Open Messages Hub</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => navigate(`/chat?jobId=${currentJob.id}`)}
+            className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer shrink-0 active:scale-95"
+          >
+            <MessageSquare size={14} />
+            <span>Open Messages Hub</span>
+          </button>
           
           <div className="hidden sm:flex items-center justify-center shrink-0 w-24 h-20 overflow-hidden">
             <ChecklistIllustration />
@@ -807,28 +796,39 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
             {/* Attached Files / Media Artifacts */}
             {currentJob.proof?.evidenceFiles && currentJob.proof.evidenceFiles.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <span className="font-mono text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">
                   Attached Deliverables & IPFS Proof Files ({currentJob.proof.evidenceFiles.length})
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {currentJob.proof.evidenceFiles.map((file: DeliverableFile, idx: number) => (
-                    <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 flex items-center justify-between gap-3 shadow-2xs hover:border-purple-300 transition-colors">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
-                          <FileText size={15} />
+                    <div 
+                      key={idx} 
+                      className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 flex items-center justify-between gap-3 shadow-2xs hover:border-purple-300 hover:shadow-xs transition-all"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+                          <FileText size={18} />
                         </div>
-                        <div className="min-w-0">
-                          <span className="font-bold text-xs text-slate-800 truncate block">{file.name}</span>
-                          <span className="text-[10px] font-mono text-slate-400 block">{(file.size / 1024).toFixed(1)} KB • IPFS</span>
+                        <div className="min-w-0 flex-1">
+                          <span className="font-bold text-xs sm:text-sm text-slate-900 truncate block" title={file.name}>
+                            {file.name}
+                          </span>
+                          <span className="text-[10.5px] font-mono text-slate-500 flex items-center gap-1.5 whitespace-nowrap mt-0.5">
+                            <span>{(file.size / 1024).toFixed(1)} KB</span>
+                            <span>•</span>
+                            <span className="text-[9.5px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200/60">
+                              IPFS
+                            </span>
+                          </span>
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => openOrDownloadIpfsFile(file.cid, file.name)}
-                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-purple-400 text-purple-700 font-bold text-[11px] flex items-center gap-1 shadow-2xs cursor-pointer"
+                        className="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-extrabold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer shrink-0 active:scale-95"
                       >
-                        <Download size={12} />
+                        <Download size={13} />
                         <span>Download</span>
                       </button>
                     </div>
