@@ -153,11 +153,10 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
     // Update terms on-chain / context
     await updateJobTerms(jobId, negotiatedAmount, negotiatedDays);
     setIsTermsUpdatedSuccess(true);
-    setTimeout(() => {
-      onSelect(negotiatingApplicant.applicant);
-      setNegotiatingApplicant(null);
-      setIsTermsUpdatedSuccess(false);
-    }, 600);
+    await onSelect(negotiatingApplicant.applicant);
+    setNegotiatingApplicant(null);
+    setIsTermsUpdatedSuccess(false);
+    navigate(`/workspace?jobId=${jobId}`);
   };
 
   if (applications.length === 0) {
@@ -391,7 +390,10 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
 
                       <button
                         type="button"
-                        onClick={() => onSelect(app.applicant)}
+                        onClick={async () => {
+                          await onSelect(app.applicant);
+                          if (jobId) navigate(`/workspace?jobId=${jobId}`);
+                        }}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
                       >
                         <UserCheck size={14} />

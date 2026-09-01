@@ -593,7 +593,10 @@ export const JobDetail: React.FC = () => {
                   jobReviewPeriodDays={job.reviewPeriodDays}
                   applications={job.applications}
                   category={job.category}
-                  onSelect={(freelancerAddr) => selectFreelancer(job.id, freelancerAddr)}
+                  onSelect={async (freelancerAddr) => {
+                    await selectFreelancer(job.id, freelancerAddr);
+                    navigate(`/workspace?jobId=${job.id}`);
+                  }}
                   isClient={true}
                 />
               ) : (

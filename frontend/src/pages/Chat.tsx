@@ -1376,9 +1376,10 @@ export const Chat: React.FC = () => {
                             {isClient && activeApplicantAddr && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  selectFreelancer(activeJob.id, activeApplicantAddr);
+                                onClick={async () => {
+                                  await selectFreelancer(activeJob.id, activeApplicantAddr);
                                   confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+                                  navigate(`/workspace?jobId=${activeJob.id}`);
                                 }}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
                               >
@@ -1645,6 +1646,7 @@ export const Chat: React.FC = () => {
                                           isClient ? 'Client' : 'Freelancer',
                                           activeApplicantAddr
                                         );
+                                        navigate(`/workspace?jobId=${activeJob.id}`);
                                       }}
                                       onReject={async (propId, reason) => {
                                         await respondToNegotiationProposal(

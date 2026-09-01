@@ -38,8 +38,8 @@ export const JobWorkspace: React.FC = () => {
       const statusInfo = getJobInactivityStatus(job);
       if (statusInfo.isExpired) return false;
 
-      if (isClientRole) {
-        return (job.client && job.client.toLowerCase() === userAddr) || !job.client;
+      if (isClientRole || currentRole === 'admin') {
+        return (job.client && job.client.toLowerCase() === userAddr) || !job.client || currentRole === 'admin';
       }
       
       // Freelancer: strictly selected, assigned, or working on

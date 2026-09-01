@@ -317,6 +317,22 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
       (curr.modificationRequests || []).forEach((m: any) => m && modMap.set(m.id || `${m.requestedAt}`, m));
       (inJob.modificationRequests || []).forEach((m: any) => m && modMap.set(m.id || `${m.requestedAt}`, m));
 
+      // Merge negotiation proposals safely
+      const propMap = new Map<string, any>();
+      (curr.negotiationProposals || []).forEach((p: any) => p && propMap.set(p.id, p));
+      (inJob.negotiationProposals || []).forEach((p: any) => {
+        if (!p) return;
+        const existing = propMap.get(p.id);
+        if (!existing) {
+          propMap.set(p.id, p);
+        } else {
+          propMap.set(p.id, { ...existing, ...p });
+        }
+      });
+      const mergedProposals = Array.from(propMap.values()).sort(
+        (a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0)
+      );
+
       const merged = {
         ...curr,
         ...inJob,
@@ -328,7 +344,11 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
         amountUsdc: inJob.amountUsdc || curr.amountUsdc,
         amountEth: inJob.amountEth || curr.amountEth,
         paymentTokenSymbol: inJob.paymentTokenSymbol || curr.paymentTokenSymbol,
+        reviewPeriodDays: inJob.reviewPeriodDays || curr.reviewPeriodDays,
+        negotiatedAmount: inJob.negotiatedAmount || curr.negotiatedAmount,
+        negotiatedDeadlineDays: inJob.negotiatedDeadlineDays !== undefined ? inJob.negotiatedDeadlineDays : curr.negotiatedDeadlineDays,
         applications: Array.from(appMap.values()),
+        negotiationProposals: mergedProposals,
         chatMessages: mergedMsgs,
         preAcceptMessages: mergedPreMsgs,
         chatClearedAt: chatClearedAt || undefined,
