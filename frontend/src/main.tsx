@@ -4,6 +4,22 @@ import './index.css'
 import App from './App.tsx'
 
 if (typeof window !== 'undefined') {
+  const bumpMaxListeners = () => {
+    try {
+      const eth = (window as any).ethereum;
+      if (eth) {
+        if (typeof eth.setMaxListeners === 'function') eth.setMaxListeners(100);
+        if (Array.isArray(eth.providers)) {
+          eth.providers.forEach((p: any) => {
+            if (p && typeof p.setMaxListeners === 'function') p.setMaxListeners(100);
+          });
+        }
+      }
+    } catch {}
+  };
+  bumpMaxListeners();
+  window.addEventListener('ethereum#initialized', bumpMaxListeners, { once: true });
+
   console.info(
     "%c🛡️ PolyLance Sovereign Security Guard Active\n%cNotice: Autonomous multisig authorization and rate-limiting shields protect all platform state. Entering unauthorized scripts in this console will be rejected by decentralized contract guards.",
     "color: #7C3AED; font-size: 14px; font-weight: bold;",
