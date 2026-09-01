@@ -186,31 +186,49 @@ export const AuditReport: React.FC = () => {
       
       {/* CSS print overrides */}
       <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 8mm 10mm !important;
+        }
         @media print {
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          body {
+          html, body {
             background: white !important;
             padding: 0 !important;
             margin: 0 !important;
+            font-size: 11px !important;
           }
           .no-print {
             display: none !important;
           }
           .audit-sheet {
             box-shadow: none !important;
-            border: 1px solid #E2E8F0 !important;
-            padding: 24px !important;
-            margin: 0 !important;
+            border: 2px solid #CBD5E1 !important;
+            padding: 18px 22px !important;
+            margin: 0 auto !important;
             max-width: 100% !important;
             width: 100% !important;
-            overflow: visible !important;
           }
-          .page-break-inside-avoid {
+          .job-card-item {
             break-inside: avoid !important;
             page-break-inside: avoid !important;
+          }
+          .seal-section-block {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .seal-grid {
+            display: grid !important;
+            grid-template-columns: 5fr 3.2fr 3.8fr !important;
+            gap: 10px !important;
+            align-items: center !important;
+          }
+          .print-watermark {
+            opacity: 0.08 !important;
+            display: block !important;
           }
         }
       `}</style>
@@ -512,55 +530,71 @@ export const AuditReport: React.FC = () => {
         </div>
       )}
 
-      {/* ── TAB 2 / PRINT: FORMAL AUDIT SHEET ───────────────────────────────────── */}
+      {/* ── TAB 2 / PRINT: FORMAL AUDIT CERTIFICATE SHEET ────────────────────────── */}
       <div 
-        className={`audit-sheet shadow-2xl rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 max-w-4xl mx-auto space-y-6 relative overflow-hidden gpu-layer ${activeTab === 'social' ? 'hidden print:block' : 'block'}`}
+        className={`audit-sheet shadow-2xl rounded-3xl border-4 border-slate-200/80 bg-white p-5 sm:p-7 max-w-4xl mx-auto space-y-3.5 relative overflow-hidden gpu-layer text-slate-900 ${activeTab === 'social' ? 'hidden print:block' : 'block'}`}
         style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
       >
-        
-        {/* ── SECTION 1: HEADER & CERTIFICATE BANNER ────────────────────────── */}
-        <div className="border-b-2 border-slate-100 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`p-1.5 text-white rounded-lg shadow-2xs ${auditPerspective === 'client' ? 'bg-indigo-600' : 'bg-purple-600'}`}>
-                {auditPerspective === 'client' ? <Building2 size={16} /> : <ShieldCheck size={16} />}
-              </span>
-              <span className="text-[10px] font-mono font-black tracking-widest text-purple-900 uppercase bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                {auditPerspective === 'client' ? 'Official PolyLance Client Trust Attestation' : 'Official PolyLance Protocol Attestation'}
-              </span>
-              <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                ● Live & Verified
-              </span>
+        {/* Certificate Security Corner Brackets */}
+        <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-purple-400/60 pointer-events-none" />
+        <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-purple-400/60 pointer-events-none" />
+        <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-purple-400/60 pointer-events-none" />
+        <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-purple-400/60 pointer-events-none" />
+
+        {/* Ambient Paper Security Watermark (Large centered PolyLance Logo) */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-[0.05] print-watermark z-0">
+          <img src="/polylanceLogo.png" alt="PolyLance Watermark Seal" className="w-80 h-80 object-contain filter grayscale" />
+        </div>
+
+        {/* ── SECTION 1: OFFICIAL HEADER ────────────────────────────────────── */}
+        <div className="border-b-2 border-slate-100 pb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 relative z-10 page-break-inside-avoid">
+          <div className="flex items-center gap-3">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 ${
+              auditPerspective === 'client'
+                ? 'bg-gradient-to-tr from-indigo-600 to-cyan-600 shadow-indigo-500/20'
+                : 'bg-gradient-to-tr from-purple-600 to-indigo-700 shadow-purple-500/20'
+            }`}>
+              {auditPerspective === 'client' ? <Building2 size={22} /> : <ShieldCheck size={22} />}
             </div>
-            <h1 className="font-headline text-xl sm:text-2xl font-black text-slate-900 tracking-tight uppercase">
-              {auditPerspective === 'client' ? 'Web3 Client Trust & Escrow Sponsorship Audit' : 'Trust & Performance Audit Report'}
-            </h1>
-            <p className="text-[11px] text-slate-500 font-mono">
-              Cryptographic Proof of Work & Sovereign Escrow History Ledger
-            </p>
+            <div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[9px] font-mono font-black tracking-widest text-purple-900 uppercase bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                  {auditPerspective === 'client' ? 'OFFICIAL CLIENT SPONSORSHIP AUDIT' : 'OFFICIAL ORACLE REPUTATION AUDIT'}
+                </span>
+                <span className="text-[9px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
+                  ● LIVE & ATTESTED
+                </span>
+              </div>
+              <h1 className="font-headline text-base sm:text-lg font-black text-slate-950 tracking-tight uppercase mt-0.5">
+                {auditPerspective === 'client' ? 'Client Trust & Escrow Solvency Audit' : 'Developer Trust & Proof of Work Audit'}
+              </h1>
+              <p className="text-[9.5px] text-slate-500 font-mono">
+                Decentralized Oracle Verified • Polygon PoS Sovereign Ledger
+              </p>
+            </div>
           </div>
 
-          <div className="font-mono text-xs text-left md:text-right space-y-0.5 bg-slate-50 md:bg-transparent p-2.5 md:p-0 rounded-xl border md:border-none border-slate-200 w-full md:w-auto">
+          <div className="font-mono text-xs text-left md:text-right space-y-0.5 bg-slate-50 md:bg-transparent p-2 md:p-0 rounded-xl border md:border-none border-slate-200 w-full md:w-auto shrink-0">
             <div className="flex md:justify-end items-center gap-1.5">
-              <span className="text-slate-500 text-[10px] uppercase font-bold">Audit ID:</span>
-              <span className="font-black text-purple-900">{mockCertificateId}</span>
+              <span className="text-slate-500 text-[9.5px] uppercase font-bold">Audit ID:</span>
+              <span className="font-black text-purple-900 text-xs">{mockCertificateId}</span>
             </div>
             <div className="flex md:justify-end items-center gap-1.5">
-              <span className="text-slate-500 text-[10px] uppercase font-bold">Network:</span>
-              <span className="font-bold text-slate-800">Polygon PoS (137)</span>
+              <span className="text-slate-500 text-[9.5px] uppercase font-bold">Network:</span>
+              <span className="font-bold text-slate-800 text-xs">Polygon PoS (137)</span>
             </div>
             <div className="flex md:justify-end items-center gap-1.5">
-              <span className="text-slate-500 text-[10px] uppercase font-bold">Attested At:</span>
-              <span className="font-bold text-slate-800">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <span className="text-slate-500 text-[9.5px] uppercase font-bold">Attested At:</span>
+              <span className="font-bold text-slate-800 text-xs">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </div>
           </div>
         </div>
 
         {/* ── SECTION 2: PARTICIPANT IDENTITY OVERVIEW ──────────────────────── */}
-        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3 relative z-10">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 space-y-2.5 relative z-10 shadow-xs">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-headline font-black text-xl flex items-center justify-center shadow-sm shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-headline font-black text-lg flex items-center justify-center shadow-md shrink-0">
                 {profile?.avatarUrl ? (
                   <img src={profile.avatarUrl} alt={displayName} className="w-full h-full object-cover rounded-2xl" />
                 ) : (
@@ -569,44 +603,44 @@ export const AuditReport: React.FC = () => {
               </div>
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <h2 className="font-headline text-base sm:text-lg font-extrabold text-slate-900">{displayName}</h2>
+                  <h2 className="font-headline text-sm sm:text-base font-black text-slate-900">{displayName}</h2>
                   {profile?.githubVerified && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">
-                      <CheckCircle2 size={11} className="text-purple-600" /> GitHub Verified
+                    <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">
+                      <CheckCircle2 size={10} className="text-purple-600" /> GitHub Verified
                     </span>
                   )}
                 </div>
-                <p className="text-xs font-bold text-purple-700">{title}</p>
-                <div className="flex items-center gap-2 text-[11px] font-mono text-slate-600 pt-0.5">
-                  <span>Wallet:</span>
-                  <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
+                <p className="text-[11.5px] font-bold text-purple-700">{title}</p>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-slate-600 pt-0.5">
+                  <span className="text-slate-400">Wallet:</span>
+                  <span className="font-bold text-slate-900 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-[10px]">
                     {targetAddress}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white p-3 rounded-xl border border-slate-200 text-left sm:text-right space-y-0.5 font-mono text-xs w-full sm:w-auto shadow-2xs">
-              <span className="text-[9.5px] text-slate-500 uppercase font-bold block">
+            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-left sm:text-right space-y-0.5 font-mono text-xs w-full sm:w-auto shadow-2xs">
+              <span className="text-[9px] text-slate-500 uppercase font-bold block">
                 {auditPerspective === 'client' ? 'Sponsor Reliability' : 'Contract Hourly Rate'}
               </span>
-              <p className="text-sm font-black text-emerald-700">
+              <p className="text-sm font-black text-emerald-700 font-headline">
                 {auditPerspective === 'client' ? '10.0 / 10.0 SLA' : `$${profile?.hourlyRateUsdc || 85} USDC / hr`}
               </p>
-              <span className="text-[9.5px] text-purple-700 font-bold block">0% Protocol Fee Compliant</span>
+              <span className="text-[9px] text-purple-700 font-bold block">0% Protocol Fee Compliant</span>
             </div>
           </div>
 
-          <p className="text-xs text-slate-700 leading-relaxed font-sans border-t border-slate-200 pt-2.5">
+          <p className="text-[11.5px] text-slate-700 leading-relaxed font-sans border-t border-slate-100 pt-2">
             {bio}
           </p>
 
           {/* Skill Badges */}
           {profile?.skills && profile.skills.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <span className="text-[10.5px] font-bold text-slate-500 mr-1">Attested Skills:</span>
-              {profile.skills.map((s, idx) => (
-                <span key={idx} className="px-2 py-0.5 bg-white border border-slate-200 text-slate-800 text-[10.5px] font-bold rounded-lg shadow-3xs flex items-center gap-1">
+              <span className="text-[10px] font-bold text-slate-500 mr-1">Attested Skills:</span>
+              {profile.skills.slice(0, 6).map((s, idx) => (
+                <span key={idx} className="px-2 py-0.5 bg-slate-50 border border-slate-200 text-slate-800 text-[10px] font-bold rounded-lg shadow-3xs flex items-center gap-1">
                   <CheckCircle2 size={10} className="text-purple-600" />
                   {s}
                 </span>
@@ -615,230 +649,266 @@ export const AuditReport: React.FC = () => {
           )}
         </div>
 
-        {/* ── SECTION 3: SBT CRYPTOGRAPHIC LEDGER CARD ─────────────────────── */}
-        <div className={`text-white p-5 sm:p-6 rounded-2xl border shadow-lg space-y-4 font-mono relative z-10 page-break-inside-avoid ${
-          auditPerspective === 'client'
-            ? 'bg-gradient-to-br from-indigo-900 via-slate-900 to-purple-950 border-indigo-500/30'
-            : 'bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 border-purple-500/30'
-        }`}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300 shadow-inner">
-                <Award size={18} />
+        {/* ── SECTION 3: SBT CRYPTOGRAPHIC LEDGER CARD (LIGHT THEME) ────────── */}
+        <div className="p-3.5 rounded-2xl border border-purple-200/80 bg-gradient-to-r from-purple-50/70 via-slate-50 to-indigo-50/70 space-y-2.5 font-mono relative z-10 page-break-inside-avoid shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200/60 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-800 shadow-2xs">
+                <Award size={15} />
               </div>
               <div>
-                <span className="text-[9px] uppercase font-black tracking-widest text-purple-300 block">
+                <span className="text-[8.5px] uppercase font-black tracking-wider text-purple-800 block">
                   DECENTRALIZED IDENTITY ATTESTATION
                 </span>
-                <h3 className="font-headline text-sm sm:text-base font-black text-white">
+                <h3 className="font-headline text-xs sm:text-sm font-black text-slate-950">
                   {auditPerspective === 'client' ? 'Verified Escrow Sponsor Credential' : 'ERC-5192 Soulbound Reputation Token (SBT)'}
                 </h3>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                <Lock size={11} />
-                LOCKED & NON-TRANSFERABLE
-              </span>
-            </div>
+            <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+              <Lock size={10} className="text-emerald-700" />
+              LOCKED & NON-TRANSFERABLE
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div className="bg-white/5 p-3 rounded-xl border border-white/10 space-y-0.5">
-              <span className="text-[9.5px] uppercase text-purple-300/80 block font-bold">Credential Identifier</span>
-              <span className="font-black text-white text-xs tracking-wide block">{sbtTokenId}</span>
-              <span className="text-[9px] text-purple-200/70 block">Standard: ERC-5192 / EIP-5484</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200/90 space-y-0.5 shadow-2xs">
+              <span className="text-[8.5px] uppercase text-slate-500 block font-bold">Credential Identifier</span>
+              <span className="font-black text-slate-900 text-[11px] tracking-wide block font-mono">{sbtTokenId}</span>
+              <span className="text-[8.5px] text-purple-700 block font-mono">Standard: ERC-5192 / EIP-5484</span>
             </div>
-            <div className="bg-white/5 p-3 rounded-xl border border-white/10 space-y-0.5">
-              <span className="text-[9.5px] uppercase text-purple-300/80 block font-bold">Reputation Tier</span>
-              <span className="font-black text-amber-300 text-xs block">
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200/90 space-y-0.5 shadow-2xs">
+              <span className="text-[8.5px] uppercase text-slate-500 block font-bold">Reputation Tier</span>
+              <span className="font-black text-amber-600 text-xs block">
                 {auditPerspective === 'client' ? 'Diamond Escrow Patron' : devReputationScore >= 900 ? 'Platinum Elite (Top 1%)' : 'Gold Sovereign (Top 5%)'}
               </span>
-              <span className="text-[9px] text-amber-200/70 block">
+              <span className="text-[8.5px] text-slate-500 block font-mono">
                 {auditPerspective === 'client' ? '100% Solvency Index' : `Index: ${devReputationScore} PLREP`}
               </span>
             </div>
-            <div className="bg-white/5 p-3 rounded-xl border border-white/10 space-y-0.5">
-              <span className="text-[9.5px] uppercase text-purple-300/80 block font-bold">Attestation Smart Contract</span>
-              <span className="font-black text-purple-200 text-[11px] truncate block font-mono">
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200/90 space-y-0.5 shadow-2xs">
+              <span className="text-[8.5px] uppercase text-slate-500 block font-bold">Attestation Smart Contract</span>
+              <span className="font-black text-slate-900 text-[10.5px] truncate block font-mono">
                 {truncateAddress('0x42f8366420a092c55660830e8115e9a443900990')}
               </span>
-              <span className="text-[9px] text-purple-300/70 block">Polygon PoS Sovereign Ledger</span>
-            </div>
-          </div>
-
-          <div className="space-y-1.5 pt-1 border-t border-white/10">
-            <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider block">
-              Cryptographically Attested Badges & Guarantees:
-            </span>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded-lg bg-white/10 text-white text-[10.5px] font-bold border border-white/15 flex items-center gap-1">
-                <CheckCircle2 size={11} className="text-emerald-400" />
-                {auditPerspective === 'client' ? 'Escrow Funding Guaranteed On-Chain' : 'Proof of Work Delivery Verified'}
-              </span>
-              <span className="px-2 py-0.5 rounded-lg bg-white/10 text-white text-[10.5px] font-bold border border-white/15 flex items-center gap-1">
-                <CheckCircle2 size={11} className="text-emerald-400" />
-                0% Protocol Fee Peer-to-Peer Enforced
-              </span>
-              <span className="px-2 py-0.5 rounded-lg bg-white/10 text-white text-[10.5px] font-bold border border-white/15 flex items-center gap-1">
-                <CheckCircle2 size={11} className="text-emerald-400" />
-                Safe MultiSig Sovereign Identity
-              </span>
-              <span className="px-2 py-0.5 rounded-lg bg-white/10 text-white text-[10.5px] font-bold border border-white/15 flex items-center gap-1">
-                <CheckCircle2 size={11} className="text-emerald-400" />
-                0.0% Dispute Escalation Ratio
-              </span>
-              {profile?.githubVerified && (
-                <span className="px-2 py-0.5 rounded-lg bg-white/10 text-white text-[10.5px] font-bold border border-white/15 flex items-center gap-1">
-                  <CheckCircle2 size={11} className="text-purple-300" />
-                  GitHub Oracle Certified
-                </span>
-              )}
+              <span className="text-[8.5px] text-purple-700 block font-mono">Polygon PoS Sovereign Ledger</span>
             </div>
           </div>
         </div>
 
         {/* ── SECTION 4: KEY METRICS MATRIX ─────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-10 page-break-inside-avoid">
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 text-center space-y-0.5 shadow-2xs">
-            <span className="text-slate-500 text-[9.5px] uppercase font-black block">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 relative z-10 page-break-inside-avoid">
+          <div className="bg-white p-3 rounded-2xl border border-slate-200 text-center space-y-0.5 shadow-2xs">
+            <span className="text-slate-500 text-[9px] uppercase font-black block">
               {auditPerspective === 'client' ? 'Client Trust Score' : 'Reputation Score'}
             </span>
-            <p className="text-xl font-black text-purple-700">
+            <p className="text-lg font-black text-purple-700 font-headline">
               {auditPerspective === 'client' ? `${clientReliabilityScore}/10` : devReputationScore}
             </p>
-            <span className="text-[9.5px] text-slate-500 font-bold block">
+            <span className="text-[9px] text-slate-500 font-bold block font-mono">
               {auditPerspective === 'client' ? 'Sponsor Reliability' : 'PLREP Oracle Index'}
             </span>
           </div>
 
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 text-center space-y-0.5 shadow-2xs">
-            <span className="text-slate-500 text-[9.5px] uppercase font-black block">
+          <div className="bg-white p-3 rounded-2xl border border-slate-200 text-center space-y-0.5 shadow-2xs">
+            <span className="text-slate-500 text-[9px] uppercase font-black block">
               {auditPerspective === 'client' ? 'Capital Sponsored' : 'Lifetime Volume Handled'}
             </span>
-            <p className="text-xl font-black text-emerald-700">
+            <p className="text-lg font-black text-emerald-700 font-headline">
               ${(auditPerspective === 'client' ? clientVolumeDistributed : devVolumeHandled).toLocaleString()}
             </p>
-            <span className="text-[9.5px] text-slate-500 font-bold block">USDC Smart Escrows</span>
+            <span className="text-[9px] text-slate-500 font-bold block font-mono">USDC Smart Escrows</span>
           </div>
 
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 text-center space-y-0.5 shadow-2xs">
-            <span className="text-slate-500 text-[9.5px] uppercase font-black block">
+          <div className="bg-white p-3 rounded-2xl border border-slate-200 text-center space-y-0.5 shadow-2xs">
+            <span className="text-slate-500 text-[9px] uppercase font-black block">
               {auditPerspective === 'client' ? 'Rehire Retention' : 'Escrow Success SLA'}
             </span>
-            <p className="text-xl font-black text-slate-900">
+            <p className="text-lg font-black text-slate-900 font-headline">
               {auditPerspective === 'client' ? clientRehireRate : `${devSuccessRate}%`}
             </p>
-            <span className="text-[9.5px] text-slate-500 font-bold block">0% Escalations</span>
+            <span className="text-[9px] text-slate-500 font-bold block font-mono">0% Escalations</span>
           </div>
 
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 text-center space-y-0.5 shadow-2xs">
-            <span className="text-slate-500 text-[9.5px] uppercase font-black block">
+          <div className="bg-white p-3 rounded-2xl border border-slate-200 text-center space-y-0.5 shadow-2xs">
+            <span className="text-slate-500 text-[9px] uppercase font-black block">
               {auditPerspective === 'client' ? 'Total Escrows Posted' : 'Completed Contracts'}
             </span>
-            <p className="text-xl font-black text-purple-700">
+            <p className="text-lg font-black text-purple-700 font-headline">
               {(auditPerspective === 'client' ? completedClientJobs.length : completedFreelancerJobs.length) || 1}
             </p>
-            <span className="text-[9.5px] text-slate-500 font-bold block">100% Settled</span>
+            <span className="text-[9px] text-slate-500 font-bold block font-mono">100% Settled</span>
           </div>
         </div>
 
-        {/* ── SECTION 5: ESCROW CONTRACT HISTORY (NO PRIVATE DELIVERY LINKS) ──── */}
-        <div className="space-y-3 relative z-10 page-break-inside-avoid">
+        {/* ── SECTION 5: REALTIME ESCROW CONTRACTS & SETTLED JOBS ────────── */}
+        <div className="space-y-2.5 relative z-10">
           <div className="flex items-center justify-between border-b border-slate-200 pb-2">
             <div className="flex items-center gap-2">
-              <span className="p-1 bg-purple-100 text-purple-800 rounded-md">
+              <span className="p-1.5 bg-purple-100 text-purple-800 rounded-lg">
                 <FileCheck size={14} />
               </span>
-              <h3 className="font-headline text-sm font-extrabold text-slate-900 uppercase">
-                {auditPerspective === 'client' ? 'Verified Client Escrow Portfolio' : 'Verified Proof of Work Contract Ledger'}
-              </h3>
+              <div>
+                <h3 className="font-headline text-xs sm:text-sm font-extrabold text-slate-900 uppercase">
+                  {auditPerspective === 'client' ? 'Verified Client Escrow Portfolio & Contracts' : 'Verified Proof of Work & Settled Contracts Ledger'}
+                </h3>
+                <p className="text-[10px] text-slate-500 font-mono">
+                  Cryptographically attested smart escrows on Polygon PoS MultiSig
+                </p>
+              </div>
             </div>
-            <span className="text-xs font-mono font-bold text-slate-500">
-              Showing {(auditPerspective === 'client' ? clientJobs : freelancerJobs).length} Escrows
+            <span className="text-[11px] font-mono font-bold text-purple-900 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200 shrink-0">
+              {(auditPerspective === 'client' ? clientJobs : freelancerJobs).length || jobs.length} Total Escrows
             </span>
           </div>
 
           <div className="space-y-2">
-            {((auditPerspective === 'client' ? clientJobs : freelancerJobs).length > 0
-              ? (auditPerspective === 'client' ? clientJobs : freelancerJobs)
-              : jobs.slice(0, 3)
-            ).map((j, idx) => {
-              const amount = parseFloat(j.amountUsdc || '0');
-              const isDisputed = j.status === 'Disputed' || (j.dispute && !j.dispute.resolved);
-              return (
-                <div 
-                  key={j.id || idx}
-                  className="p-3 rounded-xl border border-slate-200 bg-white hover:border-purple-300 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-sans"
-                >
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-slate-900 truncate max-w-sm">{j.title}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-mono font-bold border ${
-                        j.status === 'Completed'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : isDisputed
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : 'bg-purple-50 text-purple-700 border-purple-200'
-                      }`}>
-                        {j.status === 'Completed' ? '● Settled' : j.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[10.5px] font-mono text-slate-500">
-                      <span>Contract: {truncateAddress(j.contractAddress || '0x42f8...990')}</span>
-                      <span>•</span>
-                      <span>Category: {j.category || 'Web3'}</span>
-                      <span>•</span>
-                      <span className="text-emerald-700 font-bold">Execution Sealed</span>
-                    </div>
-                  </div>
+            {(() => {
+              const allRelevantJobs = (auditPerspective === 'client' ? clientJobs : freelancerJobs);
+              const targetList = allRelevantJobs.length > 0 ? allRelevantJobs : jobs;
 
-                  <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
-                    <div className="text-left sm:text-right font-mono">
-                      <span className="font-black text-slate-900 text-sm">${amount.toLocaleString()} USDC</span>
-                      <span className="text-[9.5px] text-slate-500 block">0% Protocol Fees</span>
-                    </div>
-                    <Link
-                      to={`/jobs/${j.id}/attestation`}
-                      className="p-1.5 text-purple-700 hover:text-purple-900 hover:bg-purple-50 rounded-lg transition-colors"
-                      title="View Milestone Attestation"
-                    >
-                      <ArrowUpRight size={16} />
-                    </Link>
+              if (targetList.length === 0) {
+                return (
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 text-center text-xs text-slate-500 font-mono">
+                    No active or completed contracts found for this address.
                   </div>
-                </div>
-              );
-            })}
+                );
+              }
+
+              return targetList.map((j, idx) => {
+                const amount = parseFloat(j.amountUsdc || '0');
+                const isDisputed = j.status === 'Disputed' || (j.dispute && !j.dispute.resolved);
+                const isCompleted = j.status === 'Completed';
+                const isFunded = j.status === 'Funded';
+                
+                return (
+                  <div 
+                    key={j.id || idx}
+                    className="job-card-item p-3 rounded-2xl border border-slate-200/90 bg-white hover:border-purple-300 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-sans shadow-2xs hover:shadow-xs"
+                  >
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-headline font-bold text-slate-900 truncate max-w-sm text-xs sm:text-sm">{j.title}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9.5px] font-mono font-bold border ${
+                          isCompleted
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : isDisputed
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : isFunded
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-purple-50 text-purple-700 border-purple-200'
+                        }`}>
+                          {isCompleted ? '● Settled' : isDisputed ? '⚠️ Disputed' : isFunded ? '● Funded & Active' : `● ${j.status || 'Open'}`}
+                        </span>
+                        {j.category && (
+                          <span className="px-2 py-0.5 rounded-md text-[9px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            {j.category}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 text-[10.5px] font-mono text-slate-500 flex-wrap">
+                        <span>Contract: <strong className="text-slate-800">{truncateAddress(j.contractAddress || '0x42f8...990')}</strong></span>
+                        <span>•</span>
+                        <span className="text-emerald-700 font-bold flex items-center gap-1">
+                          <CheckCircle2 size={11} /> Execution Sealed On-Chain
+                        </span>
+                        <span>•</span>
+                        <span>Polygon MultiSig Safe</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
+                      <div className="text-left sm:text-right font-mono">
+                        <span className="font-headline font-black text-slate-950 text-sm sm:text-base">${amount.toLocaleString()} USDC</span>
+                        <span className="text-[9.5px] text-purple-700 font-bold block">0% Protocol Extraction</span>
+                      </div>
+                      <Link
+                        to={`/jobs/${j.id}/attestation`}
+                        className="p-2 text-purple-700 hover:text-purple-950 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-all no-print flex items-center gap-1 font-bold text-[11px]"
+                        title="View Individual Milestone Attestation"
+                      >
+                        <span>Attestation</span>
+                        <ArrowUpRight size={13} />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
 
-        {/* ── SECTION 6: ORACLE SIGNATURE & IPFS INTEGRITY ──────────────────── */}
-        <div className="border-t-2 border-slate-200 pt-3 grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs relative z-10 page-break-inside-avoid">
-          <div className="space-y-1">
-            <span className="text-slate-900 uppercase font-black block text-[10.5px] tracking-wider">
-              Cryptographic Audit Integrity & IPFS CID
-            </span>
-            <p className="text-slate-600 leading-relaxed font-sans text-[10px]">
-              This performance audit is compiled deterministically from Ethereum/Polygon smart contracts, decentralized SBT attestations, and Safe MultiSig execution states.
-            </p>
-            <div className="text-[9.5px] break-all text-purple-950 bg-purple-50 p-1.5 rounded-xl border border-purple-200 font-mono font-black">
+        {/* ── SECTION 6: CRYPTOGRAPHIC SIGNATURE, OFFICIAL EMBOSSED SEAL & QR CODE ── */}
+        <div className="seal-section-block border-t-2 border-slate-200 pt-3.5 grid grid-cols-1 md:grid-cols-12 seal-grid gap-3 font-mono text-xs relative z-10">
+          
+          {/* Left Column: Cryptographic Proof Integrity */}
+          <div className="md:col-span-5 space-y-1 flex flex-col justify-between">
+            <div>
+              <span className="text-slate-900 uppercase font-black block text-[9.5px] tracking-wider">
+                Cryptographic Audit Integrity & IPFS CID
+              </span>
+              <p className="text-slate-500 leading-relaxed font-sans text-[10px] mt-0.5">
+                This performance audit is compiled deterministically from Ethereum/Polygon smart contracts, decentralized SBT attestations, and Safe MultiSig execution states.
+              </p>
+            </div>
+            <div className="text-[9px] break-all text-purple-950 bg-purple-50 p-1.5 rounded-xl border border-purple-200 font-mono font-black shadow-2xs">
               IPFS CID: {mockIpfsHash}
             </div>
           </div>
 
-          <div className="flex flex-col justify-end items-start md:items-end gap-1 md:text-right">
-            <div>
-              <span className="text-slate-900 uppercase font-black block text-[10.5px] tracking-wider">
-                PolyLance Sovereign Oracle Protocol Signature
-              </span>
-              <p className="font-black text-slate-800 break-all text-[9.5px] mt-0.5 font-mono">{mockAuditHash}</p>
-            </div>
+          {/* Center Column: Official Protocol Seal Stamp (Embossed Emblem with Logo Watermark) */}
+          <div className="md:col-span-3 flex flex-col items-center justify-center text-center p-2 rounded-2xl bg-gradient-to-b from-purple-50/70 to-slate-50 border border-purple-200/90 shadow-xs relative overflow-hidden">
             
-            <div className="flex items-center gap-1.5 border-t border-slate-200 pt-1 w-full justify-start md:justify-end">
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-              <span className="font-black text-slate-900 text-[10.5px]">Decentralized Oracle Verified & Sealed</span>
+            {/* Watermark Logo Behind Seal */}
+            <img 
+              src="/polylanceLogo.png" 
+              alt="PolyLance Seal Stamp" 
+              className="absolute inset-0 m-auto w-24 h-24 object-contain opacity-20 pointer-events-none filter grayscale mix-blend-multiply" 
+            />
+
+            {/* Official Circular Seal Emblem */}
+            <div className="w-14 h-14 rounded-full border-2 border-dashed border-purple-500 flex flex-col items-center justify-center bg-white shadow-2xs relative z-10 p-0.5">
+              <div className="w-full h-full rounded-full border border-purple-300 flex flex-col items-center justify-center bg-purple-50">
+                <ShieldCheck size={16} className="text-purple-700" />
+                <span className="text-[6px] font-black text-purple-950 uppercase tracking-tighter mt-0.5">POLYLANCE</span>
+                <span className="text-[5px] font-bold text-emerald-700 uppercase">AUDITED</span>
+              </div>
             </div>
+            <span className="text-[8px] font-mono text-purple-950 font-black uppercase mt-1 tracking-tight relative z-10">
+              Official Oracle Seal
+            </span>
+            <span className="text-[7px] font-mono text-slate-500 font-bold relative z-10">Polygon Protocol Verified</span>
           </div>
+
+          {/* Right Column: CertifiedPass Scan QR Code & Oracle Signature */}
+          <div className="md:col-span-4 flex flex-col justify-between items-start md:items-end gap-1.5 text-left md:text-right">
+            
+            {/* QR Code & CertifiedPass Badge */}
+            <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200/90 shadow-xs">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(shareUrl)}`}
+                alt="Scan to Verify on CertifiedPass"
+                className="w-12 h-12 rounded-lg"
+              />
+              <div className="text-left font-mono">
+                <span className="text-[7.5px] uppercase tracking-wider text-purple-800 font-black block">CertifiedPass™</span>
+                <span className="text-[8.5px] font-bold text-slate-800 block">Scan to Verify</span>
+                <span className="text-[7px] text-slate-400 block">Universal Trust QR</span>
+              </div>
+            </div>
+
+            {/* Oracle Signature Block */}
+            <div className="w-full">
+              <div className="flex items-center justify-between md:justify-end gap-1.5 border-t border-slate-200 pt-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+                <span className="font-black text-slate-900 text-[9.5px]">Oracle Verified & Sealed</span>
+              </div>
+              <p className="font-black text-slate-700 break-all text-[8px] mt-0.5 font-mono">{mockAuditHash}</p>
+            </div>
+
+          </div>
+
         </div>
 
       </div>

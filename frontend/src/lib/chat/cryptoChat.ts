@@ -13,7 +13,11 @@ export function connectCryptoChatSocket(address: string, signature: string, mess
   const serverUrl = import.meta.env.VITE_CHAT_SERVICE_URL || "http://localhost:3001";
   return io(serverUrl, {
     auth: { address, signature, message },
-    transports: ["websocket", "polling"],
+    transports: ["polling", "websocket"],
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000,
+    timeout: 10000,
   });
 }
 

@@ -743,15 +743,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       if (!syncSocket || !syncSocket.connected) {
         syncSocket = socketIO(syncUrl, {
-          transports: ['websocket', 'polling'],
-          withCredentials: true,
+          transports: ['polling', 'websocket'],
           reconnection: true,
-          reconnectionAttempts: 4,
-          timeout: 3000,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 2000,
+          timeout: 10000,
         });
 
         syncSocket.on('connect_error', () => {
-          // Fallback seamlessly to background REST polling
+          // Fallback seamlessly to background REST polling without noisy crashes
         });
 
         syncSocket.on('realtime-sync', (payload: any) => {
