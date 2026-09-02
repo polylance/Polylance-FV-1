@@ -1,17 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Job, DisputeReason, DeliverableFile } from '../types';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { ProofOfWorkUploader } from './ProofOfWorkUploader';
 import { getIpfsGatewayUrl, generateIpfsCid, getCachedIpfsFile, storeIpfsFile, openOrDownloadIpfsFile, CachedIpfsFile } from '../utils/ipfs';
-import { truncateAddress } from '../utils/formatters';
+import { truncateAddress, getCanonicalCertificateId, getCertifiedPassVerifyUrl } from '../utils/formatters';
 import { 
   Sparkles, CheckCircle2, Clock, FileText, ExternalLink, Link2,
   Send, Scale, RefreshCw, Layers, TrendingUp, MessageSquare, 
   ChevronRight, Calendar, UserCheck, Eye, XCircle, Info, Copy,
   Check, Filter, ArrowUpDown, ChevronDown, DollarSign, Flag,
-  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award
+  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award, CheckCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -197,6 +197,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
   const { currentRole, address, isConnected } = useWeb3();
   const { 
     jobs,
+    profiles,
     submitWork, 
     postProgressUpdate, 
     requestTimeExtension, 
@@ -243,9 +244,21 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     return '0 of 1 Completed';
   }, [currentJob.status, currentJob.proof, latestProgressUpdate]);
 
-  const isClient = isConnected && address && address.toLowerCase() === currentJob.client.toLowerCase();
-  const isFreelancer = isConnected && address && currentJob.freelancer && address.toLowerCase() === currentJob.freelancer.toLowerCase();
-  const showFreelancerWorkspace = currentRole === 'freelancer' || isFreelancer;
+  const isClient = Boolean(isConnected && address && currentJob.client && address.toLowerCase() === currentJob.client.toLowerCase());
+  const isFreelancer = Boolean(
+    isConnected && address && (
+      (currentJob.freelancer && address.toLowerCase() === currentJob.freelancer.toLowerCase()) ||
+      (currentJob.applications || []).some(a => a.applicant && a.applicant.toLowerCase() === address.toLowerCase())
+    )
+  );
+  // Strictly isolate views: if user is the client, ALWAYS render client workspace.
+  const showFreelancerWorkspace = isFreelancer || (!isClient && currentRole === 'freelancer');
+
+  // Resolved Freelancer metadata for client oversight
+  const freelancerAddr = currentJob.freelancer || (currentJob.applications && currentJob.applications.length > 0 ? currentJob.applications[0].applicant : '');
+  const freelancerProfileKey = Object.keys(profiles || {}).find(k => k.toLowerCase() === (freelancerAddr || '').toLowerCase());
+  const freelancerProfile = freelancerProfileKey ? profiles[freelancerProfileKey] : null;
+  const freelancerDisplayName = freelancerProfile?.displayName || (freelancerAddr ? truncateAddress(freelancerAddr) : 'Assigned Freelancer');
 
   const [copiedEscrowId, setCopiedEscrowId] = useState(false);
   const [freelancerTab, setFreelancerTab] = useState<'submit' | 'status' | 'extension'>('submit');
@@ -290,11 +303,20 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     return { value: `$${amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, symbol: sym };
   };
 
+  const [copiedSbtCertId, setCopiedSbtCertId] = useState(false);
+
   const handleCopyEscrowId = () => {
     const addr = currentJob.contractAddress || '0xce138927189a0b18278291028710298102985487';
-    navigator.clipboard.writeText(addr);
+    navigator.clipboard.writeText(addr.trim());
     setCopiedEscrowId(true);
     setTimeout(() => setCopiedEscrowId(false), 2000);
+  };
+
+  const handleCopySbtCertId = () => {
+    const certId = getCanonicalCertificateId(currentJob.id, currentJob.contractAddress);
+    navigator.clipboard.writeText(certId.trim());
+    setCopiedSbtCertId(true);
+    setTimeout(() => setCopiedSbtCertId(false), 2000);
   };
 
   // Automatically ensure all deliverable files from the proof are cached in local memory
@@ -712,18 +734,39 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           {/* COMPLETED JOB SBT ATTESTATION BANNER (COMPACT & PROPORTIONAL) */}
           <div className="p-4 sm:p-4.5 rounded-2xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white border border-purple-500/30 shadow-md relative overflow-hidden">
             <div className="absolute top-0 right-0 w-60 h-60 bg-purple-500/15 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
-            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0">
+            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4">
+              <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0 mt-0.5 sm:mt-0">
                   <Award size={18} className="text-purple-300" />
                 </div>
-                <div className="space-y-0.5 min-w-0">
+                <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
                       ● 100% Escrow Settled
                     </span>
                     <span className="text-[10px] text-purple-200/80 font-mono">ERC-5192 Soulbound Token</span>
+                    
+                    {/* Canonical Certificate ID Badge with click-to-copy */}
+                    {(() => {
+                      const certId = getCanonicalCertificateId(currentJob.id, currentJob.contractAddress);
+                      return (
+                        <button
+                          type="button"
+                          onClick={handleCopySbtCertId}
+                          title="Click to copy canonical Certificate ID"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-900/60 hover:bg-purple-800/80 border border-purple-400/40 text-[9.5px] font-mono font-bold text-purple-200 hover:text-white transition-colors cursor-pointer"
+                        >
+                          <span>{certId}</span>
+                          {copiedSbtCertId ? (
+                            <CheckCheck size={10} className="text-emerald-400 shrink-0" />
+                          ) : (
+                            <Copy size={9} className="text-purple-300 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })()}
                   </div>
+
                   <h3 className="font-headline font-bold text-sm sm:text-base text-white tracking-tight">
                     Official Soulbound Token (SBT) Certificate Issued
                   </h3>
@@ -733,15 +776,47 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
-                className="px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-600/25 flex items-center gap-1.5 shrink-0 transition-all hover:scale-102 cursor-pointer active:scale-95"
-              >
-                <Award size={14} />
-                <span>View SBT Certificate & Share</span>
-                <ExternalLink size={12} />
-              </button>
+              {/* Action Buttons Group */}
+              <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto justify-start lg:justify-end shrink-0">
+                {(() => {
+                  const certId = getCanonicalCertificateId(currentJob.id, currentJob.contractAddress);
+                  const verifyUrl = getCertifiedPassVerifyUrl(certId);
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleCopySbtCertId}
+                        title="Copy canonical Certificate ID"
+                        className="px-2.5 py-2 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-200 hover:text-white border border-purple-400/30 text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0 active:scale-95"
+                      >
+                        {copiedSbtCertId ? <CheckCheck size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                        <span>{copiedSbtCertId ? 'Copied ID!' : 'Copy SBT ID'}</span>
+                      </button>
+
+                      <a
+                        href={verifyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Verify on CertifiedPass"
+                        className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0 hover:scale-102 active:scale-95"
+                      >
+                        <span>Verify on CertifiedPass</span>
+                        <ExternalLink size={11} />
+                      </a>
+                    </>
+                  );
+                })()}
+
+                <button
+                  type="button"
+                  onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
+                  className="px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-600/25 flex items-center gap-1.5 shrink-0 transition-all hover:scale-102 cursor-pointer active:scale-95"
+                >
+                  <Award size={14} />
+                  <span>View Certificate</span>
+                  <ExternalLink size={12} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1189,6 +1264,146 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             </div>
           </div>
 
+          {/* ASSIGNED FREELANCER IDENTITY & COLLABORATION CARD */}
+          <div className="bg-gradient-to-r from-purple-50/80 via-indigo-50/40 to-slate-50 border border-purple-200/90 rounded-2xl p-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-headline font-black text-lg flex items-center justify-center shadow-sm shrink-0">
+                  {freelancerProfile?.avatarUrl ? (
+                    <img src={freelancerProfile.avatarUrl} alt={freelancerDisplayName} className="w-full h-full object-cover rounded-2xl" />
+                  ) : (
+                    freelancerDisplayName.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-headline font-black text-sm sm:text-base text-slate-900 truncate">
+                      {freelancerDisplayName}
+                    </h4>
+                    <span className="text-[9.5px] font-mono font-bold uppercase text-purple-900 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200 shrink-0">
+                      ● Assigned Talent
+                    </span>
+                    {freelancerProfile?.githubVerified && (
+                      <span className="text-[9.5px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
+                        GitHub Verified {freelancerProfile.primaryScore ? `(${freelancerProfile.primaryScore}/100)` : ''}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-mono text-slate-500 mt-0.5">
+                    <span>Wallet: <strong>{freelancerAddr ? truncateAddress(freelancerAddr) : 'Unassigned'}</strong></span>
+                    {currentJob.contractAddress && (
+                      <>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="hidden sm:inline">Contract: <strong>{truncateAddress(currentJob.contractAddress)}</strong></span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons with Freelancer */}
+              <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto justify-start sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const params = new URLSearchParams({ jobId: currentJob.id });
+                    if (freelancerAddr) params.set('applicant', freelancerAddr);
+                    navigate(`/chat?${params.toString()}`);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+                >
+                  <MessageSquare size={13} />
+                  <span>Chat with Talent</span>
+                </button>
+                {freelancerAddr && (
+                  <Link
+                    to={`/profile/${freelancerAddr}`}
+                    className="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs flex items-center gap-1 transition-all shadow-2xs"
+                  >
+                    <span>Profile</span>
+                    <ExternalLink size={11} />
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* JOB SPECIFICATIONS & DELIVERABLE REQUIREMENTS CARD */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-mono font-bold uppercase text-purple-700 tracking-wider">
+                  Project Scope & Specifications
+                </span>
+                <h3 className="font-headline font-black text-base text-slate-900">
+                  {currentJob.title}
+                </h3>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl border border-slate-200">
+                  Category: {currentJob.category || 'Web3 Engineering'}
+                </span>
+                <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-xl border border-emerald-200">
+                  Escrow: ${parseFloat(currentJob.amountUsdc || '0').toLocaleString()} USDC
+                </span>
+              </div>
+            </div>
+
+            {/* Formatted Job Description */}
+            <div className="text-xs text-slate-700 leading-relaxed font-sans">
+              <FormattedJobDescription description={currentJob.description} />
+            </div>
+          </div>
+
+          {/* LIVE PROGRESS STATUS & MILESTONE TRACKER */}
+          {latestProgressUpdate && (
+            <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-white border border-blue-200 rounded-2xl p-4 shadow-xs space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-200/70 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <TrendingUp size={12} />
+                  </div>
+                  <span className="font-headline font-black text-xs sm:text-sm text-slate-900">
+                    Latest Working Progress from Developer ({latestProgressUpdate.progressPercent || 75}%)
+                  </span>
+                </div>
+                <span className="text-[10.5px] font-mono text-blue-900 font-bold">
+                  Posted {formatActivityTime(latestProgressUpdate.timestamp)}
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-blue-100 rounded-full h-2.5 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2.5 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(5, latestProgressUpdate.progressPercent || 75))}%` }}
+                />
+              </div>
+
+              {/* Note / Memo */}
+              {latestProgressUpdate.statusNote && (
+                <p className="text-xs text-slate-700 italic bg-white/90 p-2.5 rounded-xl border border-blue-100 leading-relaxed">
+                  "{latestProgressUpdate.statusNote}"
+                </p>
+              )}
+
+              {/* Demo URL button if provided */}
+              {latestProgressUpdate.demoUrl && (
+                <div className="pt-1">
+                  <a
+                    href={latestProgressUpdate.demoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs transition-all hover:scale-102"
+                  >
+                    <span>Open Live Preview / Staging Build</span>
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* PENDING TIME EXTENSION PROPOSAL(S) FOR CLIENT TO ACCEPT/DECLINE */}
           {pendingExtensionRequests.length > 0 && (
             <div className="space-y-3">
@@ -1269,7 +1484,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     Awaiting Freelancer Deliverables
                   </h3>
                   <p className="text-[11px] text-slate-600 font-medium leading-relaxed max-w-lg">
-                    The hired freelancer is currently working on the project. Once deliverables are uploaded to IPFS, you can inspect the files and approve payout.
+                    The hired freelancer is currently working on the project milestones. Once deliverables are uploaded to IPFS, you can inspect the files, review code, and approve escrow payout.
                   </p>
                 </div>
               </div>

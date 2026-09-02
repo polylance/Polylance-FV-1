@@ -14,12 +14,44 @@ import {
   ExternalLink,
   Scale,
   Clock,
-  Sparkles
+  Sparkles,
+  Zap,
+  CheckCircle2,
+  Filter,
+  AlertTriangle
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSubmissionPanel';
 import { EmptyState } from '../components/UIStates';
+
+export type JobCategoryFilter = 'all' | 'ongoing' | 'awaiting_release' | 'disputed' | 'negotiating' | 'completed';
+
+// Priority sorting helper:
+// 1. Awaiting fund release (Submitted - urgent review & release)
+// 2. Ongoing & In Progress (Funded, Selected)
+// 3. Disputed (Escrow arbitration)
+// 4. Negotiating / Terms (Open)
+// 5. Completed & Settled
+// 6. Cancelled
+const getJobPriorityScore = (status: string): number => {
+  switch (status) {
+    case 'Submitted':
+      return 1; // 1st priority: Awaiting Fund Release / Review
+    case 'Funded':
+      return 2; // Ongoing active escrow
+    case 'Selected':
+      return 3; // Talent selected / working
+    case 'Disputed':
+      return 4; // Dispute case under review
+    case 'Open':
+      return 5; // Terms discussion & negotiation
+    case 'Completed':
+      return 6; // Settled archive
+    default:
+      return 7;
+  }
+};
 
 export const JobWorkspace: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,24 +62,30 @@ export const JobWorkspace: React.FC = () => {
   const userAddr = (address || '').toLowerCase();
   const isClientRole = currentRole === 'client';
 
-  // Filter jobs relevant to current user:
-  // For Freelancers: ONLY show the jobs where the freelancer is selected/assigned and currently working on
-  // For Clients: show the client's own created jobs
+  // Filter jobs strictly relevant to current user:
+  // For Freelancers: ONLY show the jobs where this wallet is assigned or actively selected/working
+  // For Clients: ONLY show the client's own created/issued jobs for this wallet
   const myJobs = useMemo(() => {
+    if (!userAddr) return [];
+
     return jobs.filter((job) => {
       const statusInfo = getJobInactivityStatus(job);
       if (statusInfo.isExpired) return false;
 
-      if (isClientRole || currentRole === 'admin') {
-        return (job.client && job.client.toLowerCase() === userAddr) || !job.client || currentRole === 'admin';
+      if (isClientRole) {
+        // CLIENT: Strict match - ONLY show jobs issued by this connected client wallet
+        return Boolean(job.client && job.client.toLowerCase() === userAddr);
       }
       
-      // Freelancer: strictly selected, assigned, or working on
+      // FREELANCER: Strict match - ONLY show jobs where this connected wallet is the assigned freelancer or selected applicant
       const isAssigned = Boolean(job.freelancer && job.freelancer.toLowerCase() === userAddr);
-      const isSelected = (job.status === 'Selected' || job.status === 'Funded' || job.status === 'Submitted' || job.status === 'Completed' || job.status === 'Disputed') &&
-        (isAssigned || (job.clientAgreedTerms && job.freelancerAgreedTerms && (job.applications || []).some((a) => a.applicant.toLowerCase() === userAddr)));
+      const isSelectedApplicant = Boolean(
+        (job.status === 'Selected' || job.status === 'Funded' || job.status === 'Submitted' || job.status === 'Completed' || job.status === 'Disputed') &&
+        job.applications &&
+        job.applications.some((a) => a.applicant && a.applicant.toLowerCase() === userAddr)
+      );
 
-      return isAssigned || isSelected;
+      return isAssigned || isSelectedApplicant;
     });
   }, [jobs, userAddr, isClientRole]);
 
@@ -65,26 +103,36 @@ export const JobWorkspace: React.FC = () => {
   });
 
   useEffect(() => {
-    if (queryJobId) {
+    if (queryJobId && myJobs.some(j => j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase())) {
       setSelectedJobId(queryJobId);
     } else if (!selectedJobId && myJobs.length > 0) {
       setSelectedJobId(myJobs[0].id);
     } else if (selectedJobId && !myJobs.some(j => j.id === selectedJobId || j.contractAddress?.toLowerCase() === selectedJobId?.toLowerCase())) {
       if (myJobs.length > 0) {
         setSelectedJobId(myJobs[0].id);
+      } else {
+        setSelectedJobId(null);
       }
     }
   }, [queryJobId, myJobs, selectedJobId]);
 
   const activeJob = useMemo(() => {
-    return myJobs.find(
-      (j) => j.id === selectedJobId || j.contractAddress?.toLowerCase() === selectedJobId?.toLowerCase()
-    ) || (myJobs.length > 0 ? myJobs[0] : null);
-  }, [myJobs, selectedJobId]);
+    if (myJobs.length === 0) return null;
+
+    const targetId = selectedJobId || queryJobId;
+    if (targetId) {
+      const matchingJob = myJobs.find(
+        (j) => j.id === targetId || j.contractAddress?.toLowerCase() === targetId.toLowerCase()
+      );
+      if (matchingJob) return matchingJob;
+    }
+    return myJobs[0];
+  }, [myJobs, selectedJobId, queryJobId]);
 
   // ── Job Switcher Dropdown ──
   const [isJobDropdownOpen, setIsJobDropdownOpen] = useState(false);
   const [jobSearchQuery, setJobSearchQuery] = useState('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<JobCategoryFilter>('all');
   const triggerBtnRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +154,7 @@ export const JobWorkspace: React.FC = () => {
   const closeDropdown = useCallback(() => {
     setIsJobDropdownOpen(false);
     setJobSearchQuery('');
+    setSelectedCategoryFilter('all');
   }, []);
 
   const toggleDropdown = useCallback(() => {
@@ -154,17 +203,77 @@ export const JobWorkspace: React.FC = () => {
     };
   }, [isJobDropdownOpen]);
 
+  // Category counts across user's relevant jobs
+  const categoryCounts = useMemo(() => {
+    let ongoing = 0;
+    let awaitingRelease = 0;
+    let disputed = 0;
+    let negotiating = 0;
+    let completed = 0;
+
+    myJobs.forEach((j) => {
+      if (j.status === 'Submitted') {
+        awaitingRelease++;
+      } else if (j.status === 'Funded' || j.status === 'Selected') {
+        ongoing++;
+      } else if (j.status === 'Disputed') {
+        disputed++;
+      } else if (j.status === 'Open') {
+        negotiating++;
+      } else if (j.status === 'Completed') {
+        completed++;
+      }
+    });
+
+    return {
+      all: myJobs.length,
+      ongoing,
+      awaiting_release: awaitingRelease,
+      disputed,
+      negotiating,
+      completed,
+    };
+  }, [myJobs]);
+
+  // Priority-Sorted and Filtered projects list
   const filteredMyJobs = useMemo(() => {
+    let list = myJobs;
+
+    // 1. Category Filter
+    if (selectedCategoryFilter === 'ongoing') {
+      list = list.filter((j) => j.status === 'Funded' || j.status === 'Selected');
+    } else if (selectedCategoryFilter === 'awaiting_release') {
+      list = list.filter((j) => j.status === 'Submitted');
+    } else if (selectedCategoryFilter === 'disputed') {
+      list = list.filter((j) => j.status === 'Disputed');
+    } else if (selectedCategoryFilter === 'negotiating') {
+      list = list.filter((j) => j.status === 'Open');
+    } else if (selectedCategoryFilter === 'completed') {
+      list = list.filter((j) => j.status === 'Completed');
+    }
+
+    // 2. Search Query Filter
     const q = jobSearchQuery.trim().toLowerCase();
-    if (!q) return myJobs;
-    return myJobs.filter(
-      (j) =>
-        j.title.toLowerCase().includes(q) ||
-        j.id.toLowerCase().includes(q) ||
-        j.amountUsdc.includes(q) ||
-        j.status.toLowerCase().includes(q)
-    );
-  }, [myJobs, jobSearchQuery]);
+    if (q) {
+      list = list.filter((j) => {
+        const titleMatch = j.title.toLowerCase().includes(q);
+        const idMatch = j.id.toLowerCase().includes(q);
+        const amountMatch = j.amountUsdc.includes(q);
+        const statusMatch = j.status.toLowerCase().includes(q);
+        const categoryMatch = Boolean(j.category && j.category.toLowerCase().includes(q));
+        const contractMatch = Boolean(j.contractAddress && j.contractAddress.toLowerCase().includes(q));
+        return titleMatch || idMatch || amountMatch || statusMatch || categoryMatch || contractMatch;
+      });
+    }
+
+    // 3. Priority Sorting: Awaiting Release (1st) -> Ongoing (2nd) -> Disputed (3rd) -> Open (4th) -> Completed (5th)
+    return [...list].sort((a, b) => {
+      const scoreA = getJobPriorityScore(a.status);
+      const scoreB = getJobPriorityScore(b.status);
+      if (scoreA !== scoreB) return scoreA - scoreB;
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+  }, [myJobs, selectedCategoryFilter, jobSearchQuery]);
 
   if (!isConnected) {
     return (
@@ -203,7 +312,7 @@ export const JobWorkspace: React.FC = () => {
     );
   }
 
-  const isClient = activeJob.client.toLowerCase() === userAddr || isClientRole;
+  const isClient = Boolean(userAddr && activeJob.client && activeJob.client.toLowerCase() === userAddr);
   const counterpartAddress = isClient ? (activeJob.freelancer || activeJob.applications?.[0]?.applicant || '') : activeJob.client;
   const counterpartKey = Object.keys(profiles).find((k) => k.toLowerCase() === counterpartAddress.toLowerCase());
   const counterpartProfile = counterpartKey ? profiles[counterpartKey] : null;
@@ -308,7 +417,7 @@ export const JobWorkspace: React.FC = () => {
 
       {/* ── MAIN WORKSPACE CONTENT ── */}
       <div className="space-y-6">
-        {activeJob.status === 'Funded' || activeJob.status === 'Submitted' || activeJob.status === 'Disputed' || activeJob.status === 'Completed' || (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ? (
+        {activeJob.status === 'Funded' || activeJob.status === 'Submitted' || activeJob.status === 'Disputed' || activeJob.status === 'Completed' || activeJob.status === 'Selected' || Boolean(activeJob.freelancer) || (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ? (
           <DeliverableWorkSubmissionPanel job={activeJob} />
         ) : (
           <div className="bg-white border border-purple-200/80 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
@@ -324,7 +433,7 @@ export const JobWorkspace: React.FC = () => {
                       Not Confirmed • Under Negotiation
                     </span>
                     <span className="text-[10px] font-mono uppercase font-bold text-slate-400">
-                      Stage: {activeJob.status === 'Selected' ? 'Talent Selected (Awaiting Escrow Funding)' : 'Candidate Review & Terms Discussion'}
+                      Stage: Candidate Review & Terms Discussion
                     </span>
                   </div>
                   <h3 className="font-headline font-black text-xl text-slate-900">
@@ -429,30 +538,155 @@ export const JobWorkspace: React.FC = () => {
             position: 'fixed',
             top: dropdownPos.top,
             left: dropdownPos.left,
-            width: dropdownPos.width,
+            width: Math.max(dropdownPos.width, 360),
             zIndex: 9999,
           }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden"
+          className="bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden animate-fadeIn"
         >
-          {/* Sticky Search */}
-          <div className="sticky top-0 bg-white border-b border-slate-100 p-3">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search by title, ID, amount, or status..."
-                value={jobSearchQuery}
-                onChange={(e) => setJobSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400"
-                autoFocus
-              />
-              {jobSearchQuery && (
+          {/* Sticky Search & Filter Header */}
+          <div className="sticky top-0 bg-white border-b border-slate-100 z-10">
+            {/* Search Input */}
+            <div className="p-3 pb-2">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search by title, ID, amount, counterpart, status..."
+                  value={jobSearchQuery}
+                  onChange={(e) => setJobSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400"
+                  autoFocus
+                />
+                {jobSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setJobSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Category Filter Pills (Strictly Organized with Counts) */}
+            <div className="px-3 pb-2.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar select-none bg-slate-50/70 border-t border-slate-100/80 pt-2">
+              <button
+                type="button"
+                onClick={() => setSelectedCategoryFilter('all')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  selectedCategoryFilter === 'all'
+                    ? 'bg-purple-600 text-white shadow-2xs'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <span>All</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
+                  selectedCategoryFilter === 'all' ? 'bg-purple-800 text-purple-100' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {categoryCounts.all}
+                </span>
+              </button>
+
+              {categoryCounts.ongoing > 0 && (
                 <button
                   type="button"
-                  onClick={() => setJobSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  onClick={() => setSelectedCategoryFilter('ongoing')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    selectedCategoryFilter === 'ongoing'
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'bg-white text-emerald-800 hover:bg-emerald-50 border border-emerald-200'
+                  }`}
+                  title="Funded escrows and active in-progress contracts"
                 >
-                  <X size={12} />
+                  <Zap size={11} className={selectedCategoryFilter === 'ongoing' ? 'text-white' : 'text-emerald-600'} />
+                  <span>Ongoing</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
+                    selectedCategoryFilter === 'ongoing' ? 'bg-emerald-800 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {categoryCounts.ongoing}
+                  </span>
+                </button>
+              )}
+
+              {categoryCounts.awaiting_release > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategoryFilter('awaiting_release')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    selectedCategoryFilter === 'awaiting_release'
+                      ? 'bg-indigo-600 text-white shadow-2xs'
+                      : 'bg-white text-indigo-800 hover:bg-indigo-50 border border-indigo-200'
+                  }`}
+                  title="Deliverables submitted awaiting client approval & fund release"
+                >
+                  <Clock size={11} className={selectedCategoryFilter === 'awaiting_release' ? 'text-white' : 'text-indigo-600'} />
+                  <span>Awaiting Release</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
+                    selectedCategoryFilter === 'awaiting_release' ? 'bg-indigo-800 text-indigo-100' : 'bg-indigo-100 text-indigo-800'
+                  }`}>
+                    {categoryCounts.awaiting_release}
+                  </span>
+                </button>
+              )}
+
+              {categoryCounts.completed > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategoryFilter('completed')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    selectedCategoryFilter === 'completed'
+                      ? 'bg-slate-700 text-white shadow-2xs'
+                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <CheckCircle2 size={11} className={selectedCategoryFilter === 'completed' ? 'text-white' : 'text-slate-500'} />
+                  <span>Completed</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
+                    selectedCategoryFilter === 'completed' ? 'bg-slate-900 text-slate-200' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {categoryCounts.completed}
+                  </span>
+                </button>
+              )}
+
+              {categoryCounts.negotiating > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategoryFilter('negotiating')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    selectedCategoryFilter === 'negotiating'
+                      ? 'bg-amber-600 text-white shadow-2xs'
+                      : 'bg-white text-amber-800 hover:bg-amber-50 border border-amber-200'
+                  }`}
+                >
+                  <MessageSquare size={11} className={selectedCategoryFilter === 'negotiating' ? 'text-white' : 'text-amber-600'} />
+                  <span>Negotiating</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
+                    selectedCategoryFilter === 'negotiating' ? 'bg-amber-800 text-amber-100' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {categoryCounts.negotiating}
+                  </span>
+                </button>
+              )}
+
+              {categoryCounts.disputed > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategoryFilter('disputed')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    selectedCategoryFilter === 'disputed'
+                      ? 'bg-rose-600 text-white shadow-2xs'
+                      : 'bg-white text-rose-800 hover:bg-rose-50 border border-rose-200'
+                  }`}
+                >
+                  <Scale size={11} className={selectedCategoryFilter === 'disputed' ? 'text-white' : 'text-rose-600'} />
+                  <span>Disputed</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
+                    selectedCategoryFilter === 'disputed' ? 'bg-rose-800 text-rose-100' : 'bg-rose-100 text-rose-800'
+                  }`}>
+                    {categoryCounts.disputed}
+                  </span>
                 </button>
               )}
             </div>
@@ -462,11 +696,63 @@ export const JobWorkspace: React.FC = () => {
           <div className="overflow-y-auto max-h-80 p-2 space-y-1">
             {filteredMyJobs.length > 0 ? (
               <>
-                <div className="px-2 pt-2 pb-1 text-[10px] font-mono font-bold uppercase text-purple-700 tracking-wider">
-                  {isClientRole ? 'My Project Escrows' : 'My Assigned Working Contracts'} ({filteredMyJobs.length})
+                <div className="px-2 pt-1.5 pb-1 text-[10px] font-mono font-bold uppercase text-purple-700 tracking-wider flex items-center justify-between">
+                  <span>{isClientRole ? 'My Project Escrows' : 'My Working Contracts'} ({filteredMyJobs.length})</span>
+                  <span className="text-[9.5px] text-slate-400 font-normal">Sorted by Priority</span>
                 </div>
                 {filteredMyJobs.map((j) => {
                   const isSelected = j.id === activeJob.id;
+                  const isClientJob = (j.client && j.client.toLowerCase() === userAddr) || isClientRole;
+                  const counterpart = isClientJob ? (j.freelancer || j.applications?.[0]?.applicant || '') : j.client;
+                  const counterpartProfileKey = Object.keys(profiles || {}).find(k => k.toLowerCase() === counterpart.toLowerCase());
+                  const counterpartProfile = counterpartProfileKey ? profiles[counterpartProfileKey] : null;
+                  const counterpartLabel = counterpartProfile?.displayName || (counterpart ? truncateAddress(counterpart) : 'Unassigned');
+
+                  // Custom badge design per status
+                  let badgeNode = null;
+                  if (j.status === 'Submitted') {
+                    badgeNode = (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-black uppercase bg-indigo-100 text-indigo-900 border border-indigo-300 shrink-0">
+                        <Clock size={10} className="text-indigo-700" />
+                        Awaiting Release
+                      </span>
+                    );
+                  } else if (j.status === 'Funded') {
+                    badgeNode = (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300 shrink-0">
+                        <Zap size={10} className="text-emerald-700" />
+                        Funded Escrow
+                      </span>
+                    );
+                  } else if (j.status === 'Selected') {
+                    badgeNode = (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-black uppercase bg-blue-100 text-blue-900 border border-blue-300 shrink-0">
+                        <Zap size={10} className="text-blue-700" />
+                        In Progress
+                      </span>
+                    );
+                  } else if (j.status === 'Disputed') {
+                    badgeNode = (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-black uppercase bg-rose-100 text-rose-900 border border-rose-300 shrink-0">
+                        <Scale size={10} className="text-rose-700" />
+                        Disputed
+                      </span>
+                    );
+                  } else if (j.status === 'Completed') {
+                    badgeNode = (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                        <CheckCircle2 size={10} className="text-slate-500" />
+                        Completed
+                      </span>
+                    );
+                  } else {
+                    badgeNode = (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                        Negotiating
+                      </span>
+                    );
+                  }
+
                   return (
                     <button
                       key={j.id}
@@ -478,33 +764,49 @@ export const JobWorkspace: React.FC = () => {
                       }}
                       className={`w-full p-3 rounded-xl text-left flex items-center justify-between gap-3 transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-purple-600 text-white shadow-sm'
-                          : 'hover:bg-purple-50 text-slate-800'
+                          ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400'
+                          : 'hover:bg-purple-50/70 text-slate-800 bg-white border border-slate-100 hover:border-purple-200'
                       }`}
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs truncate font-bold leading-tight">{j.title}</p>
-                        <span className={`text-[10.5px] font-mono ${isSelected ? 'text-purple-100' : 'text-slate-500'}`}>
-                          ${j.amountUsdc} USDC • {j.category || 'General'} • #{j.id.slice(0, 6)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs truncate font-bold leading-tight">{j.title}</p>
+                        </div>
+                        <div className={`flex items-center gap-2 text-[10.5px] font-mono mt-1 ${isSelected ? 'text-purple-100' : 'text-slate-500'}`}>
+                          <span className="font-extrabold text-emerald-600">{isSelected ? `$${j.amountUsdc} USDC` : `$${j.amountUsdc} USDC`}</span>
+                          <span>•</span>
+                          <span className="truncate">{counterpartLabel}</span>
+                          <span className="hidden sm:inline">•</span>
+                          <span className="hidden sm:inline">#{j.id.slice(0, 6)}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className={`text-[9.5px] font-mono px-2 py-0.5 rounded-full border ${
-                          isSelected ? 'bg-purple-700 text-white border-purple-500' : 'bg-white text-slate-700 border-slate-200'
-                        }`}>
-                          {j.status}
-                        </span>
-                        {isSelected && <Check size={13} className="text-white shrink-0" />}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!isSelected && badgeNode}
+                        {isSelected && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9.5px] font-mono font-bold uppercase bg-purple-700 text-purple-100 px-2 py-0.5 rounded-full border border-purple-500">
+                              Active
+                            </span>
+                            <Check size={14} className="text-white shrink-0" />
+                          </div>
+                        )}
                       </div>
                     </button>
                   );
                 })}
               </>
             ) : (
-              <div className="py-8 text-center text-xs text-slate-400 font-mono">
-                {jobSearchQuery
-                  ? `No active contracts matching "${jobSearchQuery}".`
-                  : 'No active assigned contracts found for this wallet.'}
+              <div className="py-8 text-center text-xs text-slate-400 font-mono space-y-1">
+                <p>No project escrows match the selected filter.</p>
+                {selectedCategoryFilter !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategoryFilter('all')}
+                    className="text-purple-600 font-bold hover:underline cursor-pointer text-[11px] block mx-auto mt-1"
+                  >
+                    View All Projects ({categoryCounts.all})
+                  </button>
+                )}
               </div>
             )}
           </div>

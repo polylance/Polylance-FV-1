@@ -16,8 +16,11 @@ import {
   initCertifiedPassDatabase, 
   syncSBTToCertifiedPass, 
   syncAuditToCertifiedPass, 
+  syncAllStateToCertifiedPass,
   getCertifiedCertificate, 
-  certifiedPassClient 
+  certifiedPassClient,
+  formatCanonicalCertId,
+  formatUsdcString
 } from "./certifiedPassSync.js";
 
 dotenv.config();
@@ -191,34 +194,9 @@ async function executeDatabaseSync(payload: any) {
     }
 
     // 3. Dedicated replication of SBT Certs and Audit data to CertifiedPass Database
-    if (certifiedPassClient && payload && Array.isArray(payload.jobs)) {
+    if (certifiedPassClient && payload) {
       try {
-        for (const job of payload.jobs) {
-          if (job && (job.status === 'Completed' || job.status === 'Resolved')) {
-            const certId = `PL-SBT-JOB-${job.id}-${String(job.contractAddress || job.client || '').slice(0, 6)}`;
-            syncSBTToCertifiedPass({
-              id: certId,
-              jobId: String(job.id),
-              jobTitle: job.title || 'Verified PolyLance Deliverable Milestone',
-              category: job.category || 'Web3 Engineering',
-              settledAmountUsdc: parseFloat(job.amountUsdc || job.budgetUsdc || '0') || 0,
-              freelancerAddress: String(job.freelancer || ''),
-              freelancerName: job.freelancerName || 'Verified Developer',
-              freelancerGithub: job.freelancerGithub || null,
-              clientAddress: String(job.client || ''),
-              clientName: job.clientName || 'Escrow Patron',
-              sbtTokenId: `SBT-${job.id}`,
-              ipfsCid: job.ipfsCid || `QmPL${job.id}AttestationProofCID77`,
-              oracleSignature: job.oracleSignature || `0x42f8366420a092c55660830e8115e9a443900990`,
-              contractAddress: job.contractAddress || null,
-              metadata: {
-                settlementDate: job.updatedAt || new Date().toISOString(),
-                slaDisputes: 0,
-                status: 'VERIFIED_100_PERCENT_SETTLED',
-              },
-            }).catch(() => {});
-          }
-        }
+        await syncAllStateToCertifiedPass(payload.jobs || [], payload.profiles || {});
       } catch (certErr: any) {
         console.warn("[CERTIFIED_PASS_DB] Background sync notice:", certErr?.message || certErr);
       }
@@ -1378,60 +1356,144 @@ app.post("/api/unlock", async (req: Request, res: Response) => {
 // ── CERTIFIEDPASS DEDICATED VERIFICATION API ENDPOINTS ───────────────────────
 
 /**
- * Public Certificate Verification by Cert ID (for QR codes & CertifiedPass portal)
+ * Helper to clean and parse any scanned QR payload or URL into an identifier
+ */
+function extractVerificationKey(rawInput: string): string {
+  if (!rawInput) return '';
+  let str = decodeURIComponent(rawInput).trim();
+  
+  // If a full URL is passed, extract query parameter or path ID
+  if (str.includes('http://') || str.includes('https://') || str.includes('#/')) {
+    try {
+      const urlObj = new URL(str.replace('#/', ''));
+      const certParam = urlObj.searchParams.get('certId') || urlObj.searchParams.get('id');
+      if (certParam) return certParam.trim();
+    } catch {}
+
+    const matchJobs = str.match(/jobs\/([^\/\?#]+)/i) || str.match(/attestation\/([^\/\?#]+)/i);
+    if (matchJobs && matchJobs[1]) return matchJobs[1].trim();
+
+    const matchAudit = str.match(/audit\/([^\/\?#]+)/i) || str.match(/audit-report\/([^\/\?#]+)/i);
+    if (matchAudit && matchAudit[1]) return matchAudit[1].trim();
+  }
+
+  return str;
+}
+
+/**
+ * Public Universal Certificate & Audit Verification by Cert ID / URL / Job ID / Address
  */
 app.get("/api/certifiedpass/verify/:certId", async (req: Request, res: Response) => {
   try {
-    const certId = String(req.params.certId || '');
+    const rawParam = String(req.params.certId || '');
+    const certId = extractVerificationKey(rawParam);
+
     if (!certId) {
-      res.status(400).json({ error: "Certificate ID is required" });
+      res.status(400).json({ verified: false, status: "UNVERIFIED", error: "Certificate ID or URL is required" });
       return;
     }
 
-    const cert = await getCertifiedCertificate(certId);
-    if (!cert) {
-      // Fallback check against active in-memory sharedState jobs
-      const job = (sharedState.jobs || []).find((j: any) => 
-        j && (
-          `PL-SBT-JOB-${j.id}-${String(j.contractAddress || j.client || '').slice(0, 6)}` === certId ||
-          String(j.id) === certId
-        )
-      );
+    const certResult = await getCertifiedCertificate(certId);
+    if (certResult && certResult.record) {
+      const isAudit = certResult.type === 'AUDIT_REPORT';
+      const rec = certResult.record;
+      const canonicalCertId = rec.id;
+      const certifiedPassVerifyUrl = `https://certifiedpass.app/verify?certId=${encodeURIComponent(canonicalCertId)}`;
+      
+      const polyLanceUrl = isAudit 
+        ? `https://polylance.app/#/audit/${rec.targetAddress}`
+        : `https://polylance.app/#/jobs/${rec.jobId}/attestation`;
 
-      if (job && (job.status === 'Completed' || job.status === 'Resolved')) {
-        res.json({
-          verified: true,
-          source: 'POLYLANCE_LIVE_STATE',
-          certificate: {
-            id: certId,
-            jobId: String(job.id),
-            jobTitle: job.title,
-            settledAmountUsdc: parseFloat(job.amountUsdc || job.budgetUsdc || '0') || 0,
-            freelancerAddress: job.freelancer,
-            freelancerName: job.freelancerName,
-            clientAddress: job.client,
-            clientName: job.clientName,
-            sbtTokenId: `SBT-${job.id}`,
-            ipfsCid: job.ipfsCid || `QmPL${job.id}AttestationProofCID77`,
-            oracleSignature: job.oracleSignature || `0x42f8366420a092c55660830e8115e9a443900990`,
-            status: 'VERIFIED_100_PERCENT_SETTLED',
-            completedAt: job.updatedAt || new Date().toISOString(),
-          }
-        });
-        return;
-      }
-
-      res.status(404).json({ verified: false, error: "Certificate record not found or unverified" });
+      res.json({
+        verified: true,
+        status: rec.status || 'VERIFIED',
+        type: isAudit ? 'PROTOCOL_AUDIT_REPORT' : 'SOULBOUND_MILESTONE_ATTESTATION',
+        source: 'CERTIFIED_PASS_SECURE_STORAGE',
+        polyLanceUrl,
+        certifiedPassVerifyUrl,
+        certificate: {
+          id: canonicalCertId,
+          jobId: rec.jobId || null,
+          title: rec.jobTitle || rec.displayName || 'PolyLance Verified Credential',
+          category: rec.category || null,
+          settledAmountUsdc: rec.settledAmountUsdc || '$0.00 USDC',
+          lifetimeVolumeUsdc: rec.lifetimeVolumeUsdc ? parseFloat(rec.lifetimeVolumeUsdc) : null,
+          trustScore: rec.trustIndexScore || null,
+          freelancerAddress: rec.freelancerAddress || null,
+          freelancerName: rec.freelancerName || null,
+          freelancerGithub: rec.freelancerGithub || null,
+          clientAddress: rec.clientAddress || null,
+          clientName: rec.clientName || null,
+          targetAddress: rec.targetAddress || null,
+          sbtTokenId: rec.sbtTokenId || null,
+          contractAddress: rec.contractAddress || null,
+          ipfsCid: rec.ipfsCid || null,
+          oracleSignature: rec.oracleSignature || null,
+          network: 'Polygon PoS (Chain ID 137)',
+          status: rec.status || 'VERIFIED',
+          completedAt: rec.completedAt || rec.createdAt || new Date().toISOString(),
+        }
+      });
       return;
     }
 
-    res.json({
-      verified: true,
-      source: 'CERTIFIED_PASS_SECURE_STORAGE',
-      certificate: cert,
+    // Fallback: check against live sharedState in memory
+    const cleanLower = certId.toLowerCase();
+    const strippedJobId = certId.replace(/^PL-SBT-JOB-/, '').split('-')[0].trim().toLowerCase();
+
+    const liveJob = (sharedState.jobs || []).find((j: any) => 
+      j && (
+        String(j.id).toLowerCase() === cleanLower ||
+        String(j.id).toLowerCase() === strippedJobId ||
+        `PL-SBT-JOB-${j.id}`.toLowerCase() === cleanLower ||
+        formatCanonicalCertId(j.id, j.contractAddress).toLowerCase() === cleanLower ||
+        String(j.contractAddress || '').toLowerCase() === cleanLower
+      )
+    );
+
+    if (liveJob) {
+      const isSettled = liveJob.status === 'Completed' || liveJob.status === 'Resolved';
+      const canonicalCertId = formatCanonicalCertId(liveJob.id, liveJob.contractAddress);
+      const certifiedPassVerifyUrl = `https://certifiedpass.app/verify?certId=${encodeURIComponent(canonicalCertId)}`;
+      const rawAmt = parseFloat(liveJob.amountUsdc || liveJob.budgetUsdc || '0') || 0;
+
+      res.json({
+        verified: isSettled,
+        status: isSettled ? 'VERIFIED' : liveJob.status,
+        type: 'SOULBOUND_MILESTONE_ATTESTATION',
+        source: 'POLYLANCE_LIVE_PROTOCOL_STATE',
+        polyLanceUrl: `https://polylance.app/#/jobs/${liveJob.id}/attestation`,
+        certifiedPassVerifyUrl,
+        certificate: {
+          id: canonicalCertId,
+          jobId: String(liveJob.id),
+          title: liveJob.title,
+          category: liveJob.category || 'Web3 Engineering',
+          settledAmountUsdc: formatUsdcString(rawAmt),
+          freelancerAddress: liveJob.freelancer,
+          freelancerName: liveJob.freelancerName || 'Verified Developer',
+          clientAddress: liveJob.client,
+          clientName: liveJob.clientName || 'Escrow Patron',
+          sbtTokenId: `SBT-${liveJob.id}`,
+          contractAddress: liveJob.contractAddress,
+          ipfsCid: liveJob.ipfsCid || `QmPL${liveJob.id}AttestationProofCID77`,
+          oracleSignature: liveJob.oracleSignature || `0x42f8366420a092c55660830e8115e9a443900990`,
+          network: 'Polygon PoS (Chain ID 137)',
+          status: isSettled ? 'VERIFIED' : liveJob.status,
+          completedAt: liveJob.updatedAt || new Date().toISOString(),
+        }
+      });
+      return;
+    }
+
+    res.status(404).json({
+      verified: false,
+      status: 'UNVERIFIED',
+      error: 'Certificate record not found on the PolyLance ledger',
+      searchedIdentifier: certId
     });
   } catch (err: any) {
-    res.status(500).json({ error: "Verification lookup failed", details: err?.message || err });
+    res.status(500).json({ verified: false, status: 'ERROR', error: "Verification lookup failed", details: err?.message || err });
   }
 });
 
@@ -1440,22 +1502,38 @@ app.get("/api/certifiedpass/verify/:certId", async (req: Request, res: Response)
  */
 app.get("/api/certifiedpass/audit/:address", async (req: Request, res: Response) => {
   try {
-    const address = String(req.params.address || '').toLowerCase().trim();
+    const rawParam = String(req.params.address || '');
+    const address = extractVerificationKey(rawParam).toLowerCase();
+
     if (!address) {
-      res.status(400).json({ error: "Wallet address is required" });
+      res.status(400).json({ verified: false, status: "UNVERIFIED", error: "Wallet address is required" });
       return;
     }
 
-    if (certifiedPassClient) {
-      const records = (await certifiedPassClient.$queryRawUnsafe(
-        `SELECT * FROM "CertifiedAuditRecord" WHERE LOWER("targetAddress") = $1 LIMIT 1;`,
-        address
-      ).catch(() => [])) as any[];
-
-      if (records && records.length > 0) {
-        res.json({ verified: true, audit: records[0] });
-        return;
-      }
+    const auditResult = await getCertifiedCertificate(address);
+    if (auditResult && auditResult.record) {
+      const rec = auditResult.record;
+      res.json({
+        verified: true,
+        status: rec.status || 'VERIFIED',
+        type: 'PROTOCOL_AUDIT_REPORT',
+        source: 'CERTIFIED_PASS_SECURE_STORAGE',
+        polyLanceUrl: `https://polylance.app/#/audit/${rec.targetAddress}`,
+        audit: {
+          id: rec.id,
+          targetAddress: rec.targetAddress,
+          displayName: rec.displayName || 'Verified Member',
+          roleType: rec.roleType,
+          trustIndexScore: rec.trustIndexScore || '10.0',
+          lifetimeVolumeUsdc: rec.lifetimeVolumeUsdc ? parseFloat(rec.lifetimeVolumeUsdc) : 0,
+          slaSuccessRate: rec.slaSuccessRate || '100%',
+          completedMilestonesCount: rec.completedMilestonesCount || 0,
+          ipfsCid: rec.ipfsCid,
+          oracleSignature: rec.oracleSignature,
+          network: 'Polygon PoS (Chain ID 137)',
+        }
+      });
+      return;
     }
 
     // Fallback: derive from live sharedState profile & jobs
@@ -1466,10 +1544,14 @@ app.get("/api/certifiedpass/audit/:address", async (req: Request, res: Response)
 
     res.json({
       verified: true,
+      status: 'VERIFIED',
+      type: 'PROTOCOL_AUDIT_REPORT',
       source: 'POLYLANCE_LIVE_STATE',
+      polyLanceUrl: `https://polylance.app/#/audit/${address}`,
       audit: {
+        id: `PL-AUD-${address.slice(2, 10).toUpperCase()}`,
         targetAddress: address,
-        displayName: profile.displayName || 'Verified Member',
+        displayName: profile.displayName || `Member ${address.slice(0, 6)}`,
         roleType: devJobs.length >= clientJobs.length ? 'DEVELOPER' : 'CLIENT',
         trustIndexScore: profile.githubVerified ? '10.0' : '9.8',
         lifetimeVolumeUsdc: totalVolume,
@@ -1477,11 +1559,11 @@ app.get("/api/certifiedpass/audit/:address", async (req: Request, res: Response)
         completedMilestonesCount: devJobs.filter((j: any) => j.status === 'Completed').length,
         ipfsCid: `QmPLAuditProof${address.slice(2, 10)}`,
         oracleSignature: `0x42f8366420a092c55660830e8115e9a443900990`,
-        status: 'VERIFIED'
+        network: 'Polygon PoS (Chain ID 137)',
       }
     });
   } catch (err: any) {
-    res.status(500).json({ error: "Audit lookup failed", details: err?.message || err });
+    res.status(500).json({ verified: false, status: 'ERROR', error: "Audit lookup failed", details: err?.message || err });
   }
 });
 

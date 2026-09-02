@@ -11,8 +11,9 @@ import {
   Download, Eye, Layers, UserCheck, CheckCheck, Shield, User,
   FileBadge, CheckSquare, HeartHandshake, Flame, Image as ImageIcon
 } from 'lucide-react';
-import { truncateAddress, generateDeterministicHash } from '../utils/formatters';
+import { truncateAddress, generateDeterministicHash, getCanonicalCertificateId, getCertifiedPassVerifyUrl } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
+import polylanceLogoImg from '../assets/polylanceLogo.png';
 
 export const JobAttestationReport: React.FC = () => {
   const { id: jobIdParam } = useParams<{ id: string }>();
@@ -22,6 +23,7 @@ export const JobAttestationReport: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'social' | 'certificate'>('social');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCertId, setCopiedCertId] = useState(false);
   const [shareToast, setShareToast] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -60,7 +62,8 @@ export const JobAttestationReport: React.FC = () => {
   const amountUsdc = parseFloat(job?.amountUsdc || '1500');
   const contractAddress = job?.contractAddress || '0x42f8366420a092c55660830e8115e9a443900990';
   const sbtTokenId = `#SBT-WORK-${(job?.id || 'PL-001').slice(0, 8).toUpperCase()}`;
-  const certificateId = `PL-${viewRole === 'client' ? 'PATRON' : 'CERT'}-${(job?.id || '001').slice(0, 6).toUpperCase()}-${contractAddress.slice(2, 6).toUpperCase()}`;
+  const certificateId = getCanonicalCertificateId(job?.id, job?.contractAddress);
+  const certifiedPassVerifyUrl = getCertifiedPassVerifyUrl(certificateId);
 
   const completionDate = job?.events?.find(e => e.step === 'Completed')?.timestamp 
     ? new Date(job.events.find(e => e.step === 'Completed')!.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -92,6 +95,14 @@ export const JobAttestationReport: React.FC = () => {
     navigator.clipboard.writeText(shareUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleCopyCertId = () => {
+    navigator.clipboard.writeText(certificateId.trim());
+    setCopiedCertId(true);
+    setShareToast(`📋 Canonical Certificate ID copied: ${certificateId}`);
+    setTimeout(() => setCopiedCertId(false), 2500);
+    setTimeout(() => setShareToast(null), 4000);
   };
 
   const handleDownloadCardImage = async () => {
@@ -256,11 +267,10 @@ export const JobAttestationReport: React.FC = () => {
       </div>
 
       {/* ── Unified Glassmorphism Toolbar Card (Hidden in Print) ──────────────── */}
-      <div className="max-w-4xl mx-auto mb-6 bg-white border border-slate-200/90 rounded-2xl p-3 shadow-xs space-y-3 no-print">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          
-          {/* Left Group: Scope Badge & View Mode Toggle */}
-          <div className="flex items-center gap-2.5 flex-wrap">
+      <div className="max-w-4xl mx-auto mb-6 bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs space-y-3 no-print">
+        {/* Tier 1: Identity / Scope Badge, Cert ID & View Mode Toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100">
+          <div className="flex items-center gap-2 flex-wrap">
             {/* Certificate Badge Pill */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-xs font-bold font-mono">
               {viewRole === 'client' ? (
@@ -276,37 +286,75 @@ export const JobAttestationReport: React.FC = () => {
               )}
             </div>
 
-            {/* View Mode Segmented Control */}
-            <div className="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setActiveTab('social')}
-                className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'social'
-                    ? 'bg-white text-slate-950 shadow-2xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Share2 size={13} />
-                <span>Social Card</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('certificate')}
-                className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'certificate'
-                    ? 'bg-white text-slate-950 shadow-2xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <FileText size={13} />
-                <span>Printable PDF</span>
-              </button>
-            </div>
+            {/* Quick Copy Canonical ID Badge */}
+            <button
+              type="button"
+              onClick={handleCopyCertId}
+              title="Click to copy canonical Certificate ID"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 text-slate-700 hover:text-purple-950 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
+            >
+              <span>{certificateId}</span>
+              {copiedCertId ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={11} className="text-slate-400" />}
+            </button>
           </div>
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-start md:justify-end">
+          {/* View Mode Segmented Control */}
+          <div className="flex items-center p-1 bg-slate-100 border border-slate-200/90 rounded-xl shrink-0 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTab('social')}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'social'
+                  ? 'bg-white text-slate-950 shadow-xs font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Share2 size={13} />
+              <span>Social Card</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('certificate')}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'certificate'
+                  ? 'bg-white text-slate-950 shadow-xs font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FileText size={13} />
+              <span>Printable PDF</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tier 2: Action Buttons (Verification & Sharing Groups with Natural Wrapping) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-0.5">
+          {/* Group 1: CertifiedPass & ID Copy */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={handleCopyCertId}
+              title="Copy canonical Certificate ID: PL-SBT-JOB-<jobId>-<shortHash>"
+              className="bg-purple-100 hover:bg-purple-200 text-purple-950 font-black px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 border border-purple-300 shadow-2xs shrink-0"
+            >
+              {copiedCertId ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} className="text-purple-700" />}
+              <span>{copiedCertId ? 'Copied ID!' : 'Copy Cert ID'}</span>
+            </button>
+
+            <a
+              href={certifiedPassVerifyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Verify certificate directly on CertifiedPass"
+              className="bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
+            >
+              <span>Verify on CertifiedPass</span>
+              <ExternalLink size={11} />
+            </a>
+          </div>
+
+          {/* Group 2: Social Sharing & Export Actions */}
+          <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
             <button
               type="button"
               onClick={handleShareTwitter}
@@ -432,7 +480,15 @@ export const JobAttestationReport: React.FC = () => {
 
                 <div className="font-mono text-right text-xs">
                   <span className="text-[10px] text-slate-500 block uppercase font-bold">Certificate ID</span>
-                  <span className="font-black text-slate-900 text-sm">{certificateId}</span>
+                  <button
+                    type="button"
+                    onClick={handleCopyCertId}
+                    title="Click to copy canonical Certificate ID"
+                    className="inline-flex items-center gap-1.5 font-black text-slate-900 text-sm hover:text-purple-700 bg-white/80 hover:bg-purple-50 px-2 py-0.5 rounded-lg border border-slate-200 hover:border-purple-300 transition-colors cursor-pointer"
+                  >
+                    <span>{certificateId}</span>
+                    {copiedCertId ? <CheckCheck size={13} className="text-emerald-600" /> : <Copy size={13} className="text-slate-400 hover:text-purple-600" />}
+                  </button>
                 </div>
               </div>
 
@@ -589,7 +645,7 @@ export const JobAttestationReport: React.FC = () => {
 
         {/* Ambient Paper Security Watermark (Large centered PolyLance Logo) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-[0.05] print-watermark z-0">
-          <img src="/polylanceLogo.png" alt="PolyLance Watermark Seal" className="w-80 h-80 object-contain filter grayscale" />
+          <img src={polylanceLogoImg} alt="PolyLance Watermark Seal" className="w-80 h-80 object-contain filter grayscale" />
         </div>
 
         {/* ── SECTION 1: OFFICIAL HEADER & ACCREDITATION ─────────────────────────── */}
@@ -623,7 +679,15 @@ export const JobAttestationReport: React.FC = () => {
           <div className="font-mono text-xs text-left md:text-right space-y-0.5 bg-slate-50 md:bg-transparent p-2 md:p-0 rounded-xl border md:border-none border-slate-200 w-full md:w-auto shrink-0">
             <div className="flex md:justify-end items-center gap-1.5">
               <span className="text-slate-500 text-[9.5px] uppercase font-bold">Certificate ID:</span>
-              <span className="font-black text-purple-900 text-xs">{certificateId}</span>
+              <button
+                type="button"
+                onClick={handleCopyCertId}
+                title="Click to copy canonical Certificate ID"
+                className="inline-flex items-center gap-1 font-black text-purple-900 text-xs hover:text-purple-700 bg-white md:bg-transparent px-1.5 py-0.5 rounded border md:border-none border-slate-200 cursor-pointer"
+              >
+                <span>{certificateId}</span>
+                {copiedCertId ? <CheckCheck size={11} className="text-emerald-600 shrink-0" /> : <Copy size={10} className="text-slate-400 shrink-0" />}
+              </button>
             </div>
             <div className="flex md:justify-end items-center gap-1.5">
               <span className="text-slate-500 text-[9.5px] uppercase font-bold">Network:</span>
@@ -782,7 +846,7 @@ export const JobAttestationReport: React.FC = () => {
             
             {/* Watermark Logo Behind Seal */}
             <img 
-              src="/polylanceLogo.png" 
+              src={polylanceLogoImg} 
               alt="PolyLance Seal Stamp" 
               className="absolute inset-0 m-auto w-24 h-24 object-contain opacity-20 pointer-events-none filter grayscale mix-blend-multiply" 
             />
@@ -805,18 +869,24 @@ export const JobAttestationReport: React.FC = () => {
           <div className="md:col-span-4 flex flex-col justify-between items-start md:items-end gap-1.5 text-left md:text-right">
             
             {/* QR Code & CertifiedPass Badge */}
-            <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200/90 shadow-xs">
+            <a
+              href={certifiedPassVerifyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Click to Verify on CertifiedPass"
+              className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group"
+            >
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(shareUrl)}`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(certifiedPassVerifyUrl)}`}
                 alt="Scan to Verify on CertifiedPass"
-                className="w-12 h-12 rounded-lg"
+                className="w-12 h-12 rounded-lg shrink-0"
               />
               <div className="text-left font-mono">
-                <span className="text-[7.5px] uppercase tracking-wider text-purple-800 font-black block">CertifiedPass™</span>
-                <span className="text-[8.5px] font-bold text-slate-800 block">Scan to Verify</span>
+                <span className="text-[7.5px] uppercase tracking-wider text-purple-800 font-black block group-hover:underline">CertifiedPass™ ↗</span>
+                <span className="text-[8.5px] font-bold text-slate-800 block">Scan / Click to Verify</span>
                 <span className="text-[7px] text-slate-400 block">Universal Trust QR</span>
               </div>
-            </div>
+            </a>
 
             {/* Oracle Signature Block */}
             <div className="w-full">

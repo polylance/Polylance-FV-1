@@ -7,7 +7,7 @@
  */
 export const LOGO_CONFIG = {
   // Relative web path to the logo image in the `public` directory
-  customImagePath: '/polylanceLogo.png',
+  customImagePath: `${import.meta.env.BASE_URL}polylanceLogo.png`,
 
   // Set to `true` to use image file, or `false` to use vector SVG
   useCustomImage: true,

@@ -58,3 +58,22 @@ export function getDeterministicSbtId(jobId: string | undefined): number {
   }
   return (Math.abs(hash) % 8999) + 1000;
 }
+
+/**
+ * Returns canonical CertifiedPass Certificate ID: PL-SBT-JOB-<jobId>-<shortContractOrJobHash>
+ */
+export function getCanonicalCertificateId(jobId?: string | number, contractAddress?: string): string {
+  if (!jobId) return 'PL-SBT-JOB-001-0x001';
+  const clean = String(jobId).trim().replace(/^PL-SBT-JOB-/, '');
+  // Extract clean short hash without punctuation or spaces
+  const shortHash = (contractAddress ? String(contractAddress).trim().replace(/[^a-zA-Z0-9]/g, '') : clean.replace(/[^a-zA-Z0-9]/g, '')).slice(0, 6);
+  return `PL-SBT-JOB-${clean}-${shortHash}`;
+}
+
+/**
+ * Formats canonical CertifiedPass Universal Verification URL
+ */
+export function getCertifiedPassVerifyUrl(certId: string): string {
+  const clean = String(certId || '').trim();
+  return `https://certifiedpass.app/verify?certId=${encodeURIComponent(clean)}`;
+}

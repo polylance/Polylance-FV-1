@@ -3,9 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
-import { truncateAddress, getDeterministicSbtId } from '../utils/formatters';
+import { truncateAddress, getDeterministicSbtId, getCanonicalCertificateId, getCertifiedPassVerifyUrl } from '../utils/formatters';
 import { scoreGithubUser } from '../utils/githubOracle';
-import { Award, CheckCircle2, ShieldCheck, FolderGit2, ExternalLink, Building2, Star, Zap, Activity, Scale, Search, History } from 'lucide-react';
+import { Award, CheckCircle2, ShieldCheck, FolderGit2, ExternalLink, Building2, Star, Zap, Activity, Scale, Search, History, Copy, CheckCheck } from 'lucide-react';
 
 export const Profile: React.FC = () => {
   const { address: targetAddress } = useParams<{ address: string }>();
@@ -535,45 +535,60 @@ export const Profile: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {completedFreelancerJobs.length > 0 ? (
-                completedFreelancerJobs.map((j) => (
-                  <div
-                    key={j.id}
-                    className="bg-gradient-to-br from-purple-50/40 via-white to-slate-50 p-5 rounded-2xl border border-purple-200/80 space-y-3 relative overflow-hidden group hover:border-purple-400 hover:shadow-xs transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-black text-purple-900 bg-purple-100/80 px-2.5 py-0.5 rounded-lg border border-purple-200">
-                        SBT #{j.sbtTokenId || getDeterministicSbtId(j.id)}
-                      </span>
-                      <span className="text-xs font-mono font-black text-emerald-700">
-                        ${parseFloat(j.amountUsdc || '0').toLocaleString()} USDC
-                      </span>
-                    </div>
+                completedFreelancerJobs.map((j) => {
+                  const certId = getCanonicalCertificateId(j.id, j.contractAddress);
+                  const verifyUrl = getCertifiedPassVerifyUrl(certId);
 
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 line-clamp-1 font-headline">
-                        {j.title}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                        Client: {truncateAddress(j.client)}
-                      </p>
-                    </div>
+                  return (
+                    <div
+                      key={j.id}
+                      className="bg-gradient-to-br from-purple-50/40 via-white to-slate-50 p-5 rounded-2xl border border-purple-200/80 space-y-3 relative overflow-hidden group hover:border-purple-400 hover:shadow-xs transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-black text-purple-900 bg-purple-100/80 px-2.5 py-0.5 rounded-lg border border-purple-200">
+                          SBT #{j.sbtTokenId || getDeterministicSbtId(j.id)}
+                        </span>
+                        <span className="text-xs font-mono font-black text-emerald-700">
+                          ${parseFloat(j.amountUsdc || '0').toLocaleString()} USDC
+                        </span>
+                      </div>
 
-                    <div className="pt-2 border-t border-purple-100/80 flex items-center justify-between text-[11px] font-mono">
-                      <span className="text-slate-400">
-                        Minted: {new Date(j.submittedAt || j.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                      <a
-                        href={`https://polygonscan.com/address/${j.contractAddress}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1 hover:underline"
-                      >
-                        <span>PolygonScan</span>
-                        <ExternalLink size={11} />
-                      </a>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 line-clamp-1 font-headline">
+                          {j.title}
+                        </h4>
+                        <div className="flex items-center justify-between mt-1 text-[11px] font-mono">
+                          <span className="text-slate-500">
+                            Client: {truncateAddress(j.client)}
+                          </span>
+                          <span className="text-[10px] text-purple-800 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+                            {certId}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-purple-100/80 flex items-center justify-between text-[11px] font-mono flex-wrap gap-2">
+                        <Link
+                          to={`/jobs/${j.id}/attestation`}
+                          className="text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1 hover:underline"
+                        >
+                          <span>View Attestation</span>
+                          <ExternalLink size={10} />
+                        </Link>
+
+                        <a
+                          href={verifyUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 hover:underline"
+                        >
+                          <span>Verify on CertifiedPass</span>
+                          <ExternalLink size={10} />
+                        </a>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="col-span-2 text-center py-8 text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 font-sans space-y-1">
                   <Award className="w-8 h-8 text-slate-400 mx-auto mb-1" />
