@@ -22,6 +22,9 @@ export const getSyncEndpoints = (): string[] => {
   if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
     list.push(envUrl.replace(/\/$/, ''));
   }
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    list.push('http://localhost:3001');
+  }
   list.push('https://polylance-fv-1.onrender.com');
 
   return Array.from(new Set(list.filter(Boolean)));
@@ -31,6 +34,9 @@ export const getBackendSyncUrl = (): string => {
   const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
   if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
     return envUrl.replace(/\/$/, '');
+  }
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:3001';
   }
   return 'https://polylance-fv-1.onrender.com';
 };
@@ -298,18 +304,31 @@ const normalizeJob = (job: Job): Job => {
 
 const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
   const map = new Map<string, Job>();
+  const idIndex = new Map<string, string>(); // maps id / contractAddress to mapKey
+
   (existing || []).forEach((j) => {
+    if (!j) return;
     const norm = normalizeJob(j);
     const key = (norm.contractAddress || norm.id).toLowerCase();
     map.set(key, norm);
+    if (norm.id) idIndex.set(String(norm.id).toLowerCase(), key);
+    if (norm.contractAddress) idIndex.set(String(norm.contractAddress).toLowerCase(), key);
   });
 
   (incoming || []).forEach((inJobRaw) => {
+    if (!inJobRaw) return;
     const inJob = normalizeJob(inJobRaw);
-    const key = (inJob.contractAddress || inJob.id).toLowerCase();
-    const curr = map.get(key);
+    const inId = inJob.id ? String(inJob.id).toLowerCase() : '';
+    const inContract = inJob.contractAddress ? String(inJob.contractAddress).toLowerCase() : '';
+    const key = inContract || inId;
+    if (!key) return;
+
+    const matchedKey = (inContract && idIndex.get(inContract)) || (inId && idIndex.get(inId)) || key;
+    const curr = map.get(matchedKey);
     if (!curr) {
       map.set(key, inJob);
+      if (inId) idIndex.set(inId, key);
+      if (inContract) idIndex.set(inContract, key);
     } else {
       // Merge applications
       const appMap = new Map<string, Application>();

@@ -119,6 +119,16 @@ export async function initCertifiedPassDatabase() {
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     `);
+        // Privacy protection: Ensure no sensitive financial/settlement figures are stored in the CertifiedPass DB
+        await certifiedPassClient.$executeRawUnsafe(`
+      UPDATE "CertifiedSBTRecord" 
+      SET "settledAmountUsdc" = 'PROTECTED (Confidential Settlement)'
+      WHERE "settledAmountUsdc" IS NOT NULL AND "settledAmountUsdc" NOT LIKE 'PROTECTED%';
+
+      UPDATE "CertifiedAuditRecord"
+      SET "lifetimeVolumeUsdc" = 0
+      WHERE "lifetimeVolumeUsdc" IS NOT NULL AND "lifetimeVolumeUsdc" > 0;
+    `).catch(() => { });
         // 3. Verification Log Table (for CertifiedPass Scan tracking)
         await certifiedPassClient.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "CertifiedVerificationLog" (
@@ -130,7 +140,7 @@ export async function initCertifiedPassDatabase() {
       );
     `);
         isInitialized = true;
-        console.log('✅ [CERTIFIED_PASS_DB] All CertifiedPass verification tables are ready & active!');
+        console.log('✅ [CERTIFIED_PASS_DB] All CertifiedPass verification tables are ready & active (Privacy Protection Enabled)!');
     }
     catch (err) {
         console.warn('[CERTIFIED_PASS_DB] Table provisioning warning:', err?.message || err);
@@ -138,6 +148,7 @@ export async function initCertifiedPassDatabase() {
 }
 /**
  * Copies and syncs SBT Attestation Data into the dedicated CertifiedPass Database
+ * NOTE: Settled amounts are protected and NOT stored in the database for privacy.
  */
 export async function syncSBTToCertifiedPass(sbtData) {
     if (!certifiedPassClient)
@@ -148,11 +159,19 @@ export async function syncSBTToCertifiedPass(sbtData) {
         const canonicalId = sbtData.id && sbtData.id.startsWith('PL-SBT-JOB-') && sbtData.id.split('-').length >= 4
             ? sbtData.id.trim()
             : formatCanonicalCertId(cleanJobId, sbtData.contractAddress);
-        const formattedUsdc = formatUsdcString(sbtData.settledAmountUsdc);
+        // SENSITIVE DATA PRIVACY: Protect the settled amount so sensitive financial data is never stored in CertifiedPass DB
+        const protectedSettlement = 'PROTECTED (Confidential Settlement)';
         const cleanSbtTokenId = sbtData.sbtTokenId || `SBT-${cleanJobId}`;
         const status = sbtData.status || 'VERIFIED';
         const freelancerAddr = (sbtData.freelancerAddress || '0x88aa0398b91a150b041da819bc954bb356e009dd').trim().toLowerCase();
         const clientAddr = (sbtData.clientAddress || '0x71c8366420a092c55660830e8115e9a44390001').trim().toLowerCase();
+        // Sanitize metadata
+        const sanitizedMetadata = { ...(sbtData.metadata || {}) };
+        delete sanitizedMetadata.settledAmount;
+        delete sanitizedMetadata.settledAmountUsdc;
+        delete sanitizedMetadata.amountUsdc;
+        delete sanitizedMetadata.budgetUsdc;
+        sanitizedMetadata.settledAmountUsdc = protectedSettlement;
         await certifiedPassClient.$executeRawUnsafe(`
       INSERT INTO "CertifiedSBTRecord" (
         "id", "jobId", "jobTitle", "category", "settledAmountUsdc",
@@ -173,8 +192,8 @@ export async function syncSBTToCertifiedPass(sbtData) {
         "status" = EXCLUDED."status",
         "metadata" = EXCLUDED."metadata",
         "updatedAt" = CURRENT_TIMESTAMP;
-      `, canonicalId, cleanJobId, sbtData.jobTitle, sbtData.category || 'Web3 Engineering', formattedUsdc, freelancerAddr, sbtData.freelancerName || 'Verified Developer', sbtData.freelancerGithub || null, clientAddr, sbtData.clientName || 'Escrow Patron', cleanSbtTokenId, sbtData.ipfsCid || `QmPL${cleanJobId}AttestationProofCID77`, sbtData.oracleSignature || `0x42f8366420a092c55660830e8115e9a443900990`, sbtData.contractAddress || null, status, JSON.stringify(sbtData.metadata || {}));
-        console.log(`[CERTIFIED_PASS_DB] Successfully replicated SBT Certificate ${canonicalId} to CertifiedPass DB`);
+      `, canonicalId, cleanJobId, sbtData.jobTitle, sbtData.category || 'Web3 Engineering', protectedSettlement, freelancerAddr, sbtData.freelancerName || 'Verified Developer', sbtData.freelancerGithub || null, clientAddr, sbtData.clientName || 'Escrow Patron', cleanSbtTokenId, sbtData.ipfsCid || `QmPL${cleanJobId}AttestationProofCID77`, sbtData.oracleSignature || `0x42f8366420a092c55660830e8115e9a443900990`, sbtData.contractAddress || null, status, JSON.stringify(sanitizedMetadata));
+        console.log(`[CERTIFIED_PASS_DB] Successfully replicated SBT Certificate ${canonicalId} (Amount Protected) to CertifiedPass DB`);
     }
     catch (err) {
         console.warn(`[CERTIFIED_PASS_DB] Error copying SBT ${sbtData.id || sbtData.jobId}:`, err?.message || err);
@@ -190,6 +209,9 @@ export async function syncAuditToCertifiedPass(auditData) {
         await initCertifiedPassDatabase();
         const cleanTargetAddr = auditData.targetAddress.trim().toLowerCase();
         const auditId = auditData.id || `PL-AUD-${cleanTargetAddr.slice(2, 10).toUpperCase()}`;
+        // Sanitize report to protect sensitive volume data
+        const sanitizedReport = { ...(auditData.fullReport || {}) };
+        delete sanitizedReport.lifetimeVolumeUsdc;
         await certifiedPassClient.$executeRawUnsafe(`
       INSERT INTO "CertifiedAuditRecord" (
         "id", "targetAddress", "displayName", "roleType",
@@ -208,8 +230,9 @@ export async function syncAuditToCertifiedPass(auditData) {
         "status" = EXCLUDED."status",
         "auditData" = EXCLUDED."auditData",
         "updatedAt" = CURRENT_TIMESTAMP;
-      `, auditId, cleanTargetAddr, auditData.displayName || 'Verified Member', auditData.roleType, auditData.trustIndexScore || '10.0', auditData.lifetimeVolumeUsdc || 0, auditData.slaSuccessRate || '100%', auditData.completedMilestonesCount || 0, auditData.ipfsCid || null, auditData.oracleSignature || null, auditData.status || 'VERIFIED', JSON.stringify(auditData.fullReport || {}));
-        console.log(`[CERTIFIED_PASS_DB] Successfully replicated Audit Report ${auditId} to CertifiedPass DB`);
+      `, auditId, cleanTargetAddr, auditData.displayName || 'Verified Member', auditData.roleType, auditData.trustIndexScore || '10.0', 0, // Privacy protected: sensitive financial volume is not stored in CertifiedPass DB
+        auditData.slaSuccessRate || '100%', auditData.completedMilestonesCount || 0, auditData.ipfsCid || null, auditData.oracleSignature || null, auditData.status || 'VERIFIED', JSON.stringify(sanitizedReport));
+        console.log(`[CERTIFIED_PASS_DB] Successfully replicated Audit Report ${auditId} (Volume Protected) to CertifiedPass DB`);
     }
     catch (err) {
         console.warn(`[CERTIFIED_PASS_DB] Error copying Audit ${auditData.id}:`, err?.message || err);
@@ -239,6 +262,8 @@ export async function getCertifiedCertificate(identifier) {
           OR LOWER("contractAddress") = $2 
           OR LOWER("sbtTokenId") = $2 
           OR "sbtTokenId" = 'SBT-' || $3
+          OR LOWER("freelancerAddress") = $2
+          OR LOWER("clientAddress") = $2
           OR "ipfsCid" = $1
           OR "id" ILIKE '%' || $1 || '%'
        LIMIT 1;`, cleanId, cleanLower, strippedJobId, strippedLower);
@@ -287,15 +312,13 @@ export async function syncAllStateToCertifiedPass(jobs, profiles) {
                     continue;
                 const cleanJobId = String(job.id).trim().replace(/^PL-SBT-JOB-/, '');
                 const certId = formatCanonicalCertId(cleanJobId, job.contractAddress);
-                const rawAmount = parseFloat(job.amountUsdc || job.budgetUsdc || '0') || 0;
-                const formattedUsdc = formatUsdcString(rawAmount);
                 const sbtTokenId = `SBT-${cleanJobId}`;
                 await syncSBTToCertifiedPass({
                     id: certId,
                     jobId: cleanJobId,
                     jobTitle: job.title || 'Verified PolyLance Deliverable Milestone',
                     category: job.category || 'Web3 Engineering',
-                    settledAmountUsdc: formattedUsdc,
+                    settledAmountUsdc: 'PROTECTED (Confidential Settlement)',
                     freelancerAddress: String(job.freelancer || '0x88aa0398b91a150b041da819bc954bb356e009dd'),
                     freelancerName: job.freelancerName || 'Verified Developer',
                     freelancerGithub: job.freelancerGithub || null,
@@ -311,7 +334,7 @@ export async function syncAllStateToCertifiedPass(jobs, profiles) {
                         slaDisputes: 0,
                         status: job.status === 'Completed' || job.status === 'Resolved' ? 'VERIFIED' : job.status,
                         polyLanceUrl: `https://polylance.app/#/jobs/${cleanJobId}/attestation`,
-                        certifiedPassVerifyUrl: `https://certifiedpass.app/verify?certId=${encodeURIComponent(certId)}`
+                        certifiedPassVerifyUrl: `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(certId)}&partner=polylance`
                     }
                 });
             }
@@ -324,14 +347,13 @@ export async function syncAllStateToCertifiedPass(jobs, profiles) {
                 const lower = addr.toLowerCase();
                 const auditId = `PL-AUD-${lower.slice(2, 10).toUpperCase()}`;
                 const userJobs = (jobs || []).filter(j => j && (String(j.freelancer || '').toLowerCase() === lower || String(j.client || '').toLowerCase() === lower));
-                const totalVol = userJobs.reduce((acc, j) => acc + (parseFloat(j.amountUsdc || '0') || 0), 0);
                 await syncAuditToCertifiedPass({
                     id: auditId,
                     targetAddress: lower,
                     displayName: prof.displayName || `Member ${lower.slice(0, 6)}`,
                     roleType: prof.role === 'client' ? 'CLIENT' : 'DEVELOPER',
                     trustIndexScore: prof.githubVerified ? '10.0' : '9.8',
-                    lifetimeVolumeUsdc: totalVol,
+                    lifetimeVolumeUsdc: 0, // Privacy protected
                     slaSuccessRate: '100%',
                     completedMilestonesCount: userJobs.filter(j => j.status === 'Completed').length,
                     ipfsCid: `QmPLAuditProof${lower.slice(2, 10)}`,
@@ -341,7 +363,7 @@ export async function syncAllStateToCertifiedPass(jobs, profiles) {
                         profile: prof,
                         jobsCount: userJobs.length,
                         polyLanceUrl: `https://polylance.app/#/audit/${lower}`,
-                        certifiedPassVerifyUrl: `https://certifiedpass.app/verify?certId=${encodeURIComponent(auditId)}`
+                        certifiedPassVerifyUrl: `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`
                     }
                 });
             }

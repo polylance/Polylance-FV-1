@@ -75,5 +75,5 @@ export function getCanonicalCertificateId(jobId?: string | number, contractAddre
  */
 export function getCertifiedPassVerifyUrl(certId: string): string {
   const clean = String(certId || '').trim();
-  return `https://certifiedpass.app/verify?certId=${encodeURIComponent(clean)}`;
+  return `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(clean)}&partner=polylance`;
 }
