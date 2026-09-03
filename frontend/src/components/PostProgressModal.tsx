@@ -41,8 +41,8 @@ export const PostProgressModal: React.FC<PostProgressModalProps> = ({
               <span className="text-[10px] font-mono font-bold uppercase text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
                 Milestone Progress
               </span>
-              <h3 className="font-headline font-black text-base text-slate-900 mt-0.5">
-                Share Work Progress
+              <h3 className="font-headline font-black text-base text-slate-900 mt-0.5 truncate max-w-[240px]" title={jobTitle}>
+                {jobTitle ? `Progress: ${jobTitle}` : 'Share Work Progress'}
               </h3>
             </div>
           </div>

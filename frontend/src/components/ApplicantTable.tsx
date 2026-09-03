@@ -17,7 +17,6 @@ import {
   Award,
   Users,
   MessageSquare,
-  Zap,
   Smile,
   Shield,
   ShieldCheck,

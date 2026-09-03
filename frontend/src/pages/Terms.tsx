@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  FileText, ShieldCheck, Scale, Gavel, Award, Lock, CheckCircle2, 
-  HelpCircle, ChevronRight, Sparkles, ArrowRight, ShieldAlert, Cpu
+  Scale, Award, Lock, CheckCircle2, 
+  ChevronRight, Sparkles, ArrowRight, Cpu
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 

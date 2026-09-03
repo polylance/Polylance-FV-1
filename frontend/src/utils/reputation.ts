@@ -24,7 +24,7 @@ export const calculateReputationScores = (
   profileObj?: UserProfile | null,
   sbtCount: number = 0,
   isJudgeAccount: boolean = false,
-  judgeAddr: string = ''
+  _judgeAddr: string = ''
 ): ReputationScores => {
   if (!targetAddress) {
     return {

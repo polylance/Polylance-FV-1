@@ -14,7 +14,6 @@ export interface CachedIpfsFile {
 const memoryIpfsCache = new Map<string, CachedIpfsFile>();
 
 const PINATA_JWT = import.meta.env.VITE_PINATA_JWT;
-const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs/';
 
 /**
  * Upload JSON payload directly to Pinata IPFS
@@ -213,7 +212,7 @@ export async function fetchIpfsJsonWithFallback<T = any>(cid: string): Promise<T
         });
         return data as T;
       }
-    } catch (err) {
+    } catch (_err) {
       // Gateway timed out or failed, try next gateway in array
       continue;
     }
