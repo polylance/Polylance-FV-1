@@ -731,15 +731,15 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       {/* ========================================================================= */}
       {currentJob.status === 'Completed' ? (
         <div className="space-y-5 animate-fadeIn">
-          {/* COMPLETED JOB SBT ATTESTATION BANNER (COMPACT & PROPORTIONAL) */}
-          <div className="p-4 sm:p-4.5 rounded-2xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white border border-purple-500/30 shadow-md relative overflow-hidden">
+          {/* COMPLETED JOB SBT ATTESTATION BANNER (COMPACT, PROPORTIONAL & RESPONSIVE) */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white border border-purple-500/30 shadow-md relative overflow-hidden">
             <div className="absolute top-0 right-0 w-60 h-60 bg-purple-500/15 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
-            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4">
-              <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0 mt-0.5 sm:mt-0">
+            <div className="relative z-10 flex flex-col gap-3.5">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0 mt-0.5">
                   <Award size={18} className="text-purple-300" />
                 </div>
-                <div className="space-y-1 min-w-0 flex-1">
+                <div className="space-y-1.5 min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
                       ● 100% Escrow Settled
@@ -767,17 +767,17 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     })()}
                   </div>
 
-                  <h3 className="font-headline font-bold text-sm sm:text-base text-white tracking-tight">
+                  <h3 className="font-headline font-bold text-base text-white tracking-tight">
                     Official Soulbound Token (SBT) Certificate Issued
                   </h3>
-                  <p className="text-[11px] sm:text-xs text-purple-200/80 font-sans max-w-xl leading-relaxed">
+                  <p className="text-xs text-purple-200/80 font-sans leading-relaxed">
                     This project is officially completed and permanent on-chain proof of work has been minted to Polygon. Both parties can share and verify the cryptographic attestation.
                   </p>
                 </div>
               </div>
 
               {/* Action Buttons Group */}
-              <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto justify-start lg:justify-end shrink-0">
+              <div className="flex items-center gap-2 flex-wrap w-full pt-2 border-t border-purple-800/40">
                 {(() => {
                   const certId = getCanonicalCertificateId(currentJob.id, currentJob.contractAddress);
                   const verifyUrl = getCertifiedPassVerifyUrl(certId);
@@ -787,7 +787,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                         type="button"
                         onClick={handleCopySbtCertId}
                         title="Copy canonical Certificate ID"
-                        className="px-2.5 py-2 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-200 hover:text-white border border-purple-400/30 text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0 active:scale-95"
+                        className="px-3 py-1.5 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-200 hover:text-white border border-purple-400/30 text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
                       >
                         {copiedSbtCertId ? <CheckCheck size={12} className="text-emerald-400" /> : <Copy size={12} />}
                         <span>{copiedSbtCertId ? 'Copied ID!' : 'Copy SBT ID'}</span>
@@ -798,7 +798,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Verify on CertifiedPass"
-                        className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0 hover:scale-102 active:scale-95"
+                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs hover:scale-102 active:scale-95"
                       >
                         <span>Verify on CertifiedPass</span>
                         <ExternalLink size={11} />
@@ -810,7 +810,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 <button
                   type="button"
                   onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
-                  className="px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-600/25 flex items-center gap-1.5 shrink-0 transition-all hover:scale-102 cursor-pointer active:scale-95"
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-600/25 flex items-center gap-1.5 transition-all hover:scale-102 cursor-pointer active:scale-95 sm:ml-auto"
                 >
                   <Award size={14} />
                   <span>View Certificate</span>
@@ -819,6 +819,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               </div>
             </div>
           </div>
+
 
           {/* Final Submitted Deliverables & Proof of Work Card */}
           <div className="bg-white border border-purple-200/80 rounded-3xl p-6 shadow-sm space-y-5">
