@@ -89,7 +89,9 @@ export const JobAttestationReport: React.FC = () => {
     return generateDeterministicHash(`polylance-oracle-attestation:${viewRole}:${job?.id || 'job'}:${contractAddress}`);
   }, [job, contractAddress, viewRole]);
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://polylance.app/#/jobs/${job?.id}/attestation`;
+  const shareUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}${window.location.pathname}#/attestation/${job?.id || 'job'}`
+    : `https://polylance.app/#/attestation/${job?.id || 'job'}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl);
@@ -873,12 +875,12 @@ export const JobAttestationReport: React.FC = () => {
               href={certifiedPassVerifyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              title="Click to Verify on CertifiedPass"
+              title="Scan QR to open PolyLance Report / Click to Verify on CertifiedPass"
               className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group"
             >
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(certifiedPassVerifyUrl)}`}
-                alt="Scan to Verify on CertifiedPass"
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(shareUrl)}`}
+                alt="Scan with Camera to Open PolyLance Report"
                 className="w-12 h-12 rounded-lg shrink-0"
               />
               <div className="text-left font-mono">
