@@ -7,6 +7,16 @@ export function truncateAddress(addr: string | undefined): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
+/**
+ * Formats POL amount to 3 decimal digits (.000)
+ */
+export function formatPolBalance(val: string | number | undefined): string {
+  if (val === undefined || val === null || val === '') return '0.000';
+  const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^0-9.-]/g, '')) || 0;
+  return num.toFixed(3);
+}
+
+
 export function formatTimeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
   if (seconds < 60) return `${seconds}s ago`;
