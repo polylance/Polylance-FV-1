@@ -262,52 +262,64 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [walletIsConnected, walletAddress, getActiveProvider]);
 
-  // Real-time polling & MetaMask event subscription (accountsChanged, chainChanged)
+  // Real-time polling for wallet balances
   useEffect(() => {
     refreshBalances();
     const interval = setInterval(() => {
       refreshBalances();
-    }, 4000);
-
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-      const eth = (window as any).ethereum;
-      const handleAccountsChanged = (accounts: string[]) => {
-        browserProviderRef.current = null;
-        if (!accounts || accounts.length === 0) {
-          setBalanceNative('0.00');
-          setBalanceUsdc('0.00');
-          setIsArbitrator(false);
-          setIsTreasuryAdmin(false);
-          setReputationCount(0);
-          setCurrentRole('visitor');
-          if (typeof window !== 'undefined') localStorage.removeItem('polylance_demo_role');
-        } else {
-          const newAddress = accounts[0];
-          refreshBalances(newAddress);
-          loadRealOnChainState(newAddress);
-        }
-      };
-
-      const handleChainChanged = () => {
-        browserProviderRef.current = null;
-        refreshBalances();
-        if (walletAddress) {
-          loadRealOnChainState(walletAddress);
-        }
-      };
-
-      eth.on?.('accountsChanged', handleAccountsChanged);
-      eth.on?.('chainChanged', handleChainChanged);
-
-      return () => {
-        clearInterval(interval);
-        eth.removeListener?.('accountsChanged', handleAccountsChanged);
-        eth.removeListener?.('chainChanged', handleChainChanged);
-      };
-    }
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [refreshBalances, walletAddress, loadRealOnChainState]);
+  }, [refreshBalances]);
+
+  // MetaMask event subscription (accountsChanged, chainChanged)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !(window as any).ethereum) return;
+    const eth = (window as any).ethereum;
+
+    const handleAccountsChanged = (accounts: string[]) => {
+      browserProviderRef.current = null;
+      if (!accounts || accounts.length === 0) {
+        setBalanceNative('0.00');
+        setBalanceUsdc('0.00');
+        setIsArbitrator(false);
+        setIsTreasuryAdmin(false);
+        setReputationCount(0);
+        setCurrentRole('visitor');
+        if (typeof window !== 'undefined') localStorage.removeItem('polylance_demo_role');
+      } else {
+        const newAddress = accounts[0];
+        refreshBalances(newAddress);
+        loadRealOnChainState(newAddress);
+      }
+    };
+
+    const handleChainChanged = () => {
+      browserProviderRef.current = null;
+      refreshBalances();
+      if (walletAddress) {
+        loadRealOnChainState(walletAddress);
+      }
+    };
+
+    const removeListenerSafely = (event: string, handler: any) => {
+      try {
+        if (typeof eth.removeListener === 'function') {
+          eth.removeListener(event, handler);
+        } else if (typeof eth.off === 'function') {
+          eth.off(event, handler);
+        }
+      } catch {}
+    };
+
+    eth.on?.('accountsChanged', handleAccountsChanged);
+    eth.on?.('chainChanged', handleChainChanged);
+
+    return () => {
+      removeListenerSafely('accountsChanged', handleAccountsChanged);
+      removeListenerSafely('chainChanged', handleChainChanged);
+    };
+  }, [walletAddress, loadRealOnChainState, refreshBalances]);
 
   // Sync state between wallet connection and mock role settings
   useEffect(() => {
