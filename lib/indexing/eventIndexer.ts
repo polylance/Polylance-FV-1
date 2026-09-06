@@ -10,20 +10,20 @@ export interface JobEventRecord {
 }
 
 const JOB_ESCROW_ABI = [
-  "event JobPosted(address client, string descriptionIpfsHash, address paymentToken)",
-  "event ApplicationSubmitted(address applicant)",
-  "event FreelancerSelected(address freelancer)",
+  "event JobPosted(address indexed client, string descriptionIpfsHash, address indexed paymentToken)",
+  "event ApplicationSubmitted(address indexed applicant)",
+  "event FreelancerSelected(address indexed freelancer)",
   "event SelectionDeclined()",
-  "event TermsProposed(address by, bytes32 termsHash)",
+  "event TermsProposed(address indexed by, bytes32 termsHash)",
   "event JobFunded(uint256 amount)",
   "event WorkSubmitted(string title, uint256 evidenceCount)",
   "event PaymentReleased(uint256 toFreelancer, uint256 fee)",
   "event AutoReleased()",
   "event JobCancelled(uint256 refund)",
-  "event CancelConsentGiven(address by)",
-  "event DisputeRaised(address by, uint8 reason, string evidenceIpfsHash)",
-  "event DisputeResponseSubmitted(address by, string responseIpfsHash)",
-  "event DisputeResolved(uint256 freelancerBps, address judge, string reasoningIpfsHash)",
+  "event CancelConsentGiven(address indexed by)",
+  "event DisputeRaised(address indexed by, uint8 reason, string evidenceIpfsHash)",
+  "event DisputeResponseSubmitted(address indexed by, string responseIpfsHash)",
+  "event DisputeResolved(uint256 freelancerBps, address indexed judge, string reasoningIpfsHash)",
 ];
 
 const JOB_FACTORY_ABI = [

@@ -266,12 +266,19 @@ const broadcastSync = (data: {
   } catch (err) {}
 
   // 3. Multi-Endpoint Dual Write to Cloud Databases (Render PostgreSQL)
-  const endpoints = getSyncEndpoints();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (activeAddr) {
-    headers['x-wallet-address'] = activeAddr;
+  if (!activeAddr || !ethers.isAddress(activeAddr)) {
+    return;
   }
-  const query = activeAddr ? `?address=${encodeURIComponent(activeAddr)}` : '';
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return;
+  }
+
+  const endpoints = getSyncEndpoints();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-wallet-address': activeAddr,
+  };
+  const query = `?address=${encodeURIComponent(activeAddr)}`;
   endpoints.forEach((ep) => {
     fetch(`${ep}/api/sync${query}`, {
       method: 'POST',

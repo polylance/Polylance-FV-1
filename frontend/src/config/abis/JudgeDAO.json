@@ -8,7 +8,7 @@
       },
       {
         "internalType": "contract TimelockController",
-        "name": "_timelock",
+        "name": "timelockController_",
         "type": "address"
       }
     ],

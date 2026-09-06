@@ -46,8 +46,8 @@ contract JobFactory is AccessControl, ReentrancyGuard {
         jobContract = Clones.clone(jobImplementation);
         isJob[jobContract] = true;
         allJobs.push(jobContract);
-        JobEscrow(jobContract).initialize(msg.sender, descriptionIpfsHash, DEFAULT_REVIEW_PERIOD, paymentToken);
         emit JobDeployed(jobContract, msg.sender, paymentToken);
+        JobEscrow(jobContract).initialize(msg.sender, descriptionIpfsHash, DEFAULT_REVIEW_PERIOD, paymentToken);
     }
 
     function getAllJobs() external view returns (address[] memory) {

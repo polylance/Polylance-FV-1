@@ -168,6 +168,14 @@ export const JobDetail: React.FC = () => {
     { sender: 'Client' as const, text: 'Welcome! Let us finalize the project scope and deliverables before funding.', timestamp: job?.createdAt || Date.now() - 3600000 }
   ];
 
+  React.useEffect(() => {
+    if (job?.id) {
+      try {
+        localStorage.setItem('polylance_last_opened_job', job.id);
+      } catch {}
+    }
+  }, [job?.id]);
+
   if (!job) {
     if (isResolvingJob) {
       return (
@@ -288,14 +296,6 @@ export const JobDetail: React.FC = () => {
       onPrimaryAction: () => navigate('/dashboard'),
     });
   };
-
-  React.useEffect(() => {
-    if (job?.id) {
-      try {
-        localStorage.setItem('polylance_last_opened_job', job.id);
-      } catch {}
-    }
-  }, [job?.id]);
 
   const handleFundJobAction = (jobId: string) => {
     setIsFundEscrowModalOpen(true);

@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import * as dotenv from "dotenv";
 import { Wallet } from "ethers";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const KNOWN_PUBLIC_TEST_KEYS = [
   "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", // Hardhat default account #0

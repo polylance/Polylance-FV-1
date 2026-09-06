@@ -16,7 +16,7 @@ contract JudgeDAO is
     GovernorVotesQuorumFraction,
     GovernorTimelockControl
 {
-    constructor(IVotes _reputationSBT, TimelockController _timelock)
+    constructor(IVotes _reputationSBT, TimelockController timelockController_)
         Governor("PolyLance Judge DAO")
         GovernorSettings(
             1 days, // votingDelay (1 day = 86400 blocks)
@@ -25,7 +25,7 @@ contract JudgeDAO is
         )
         GovernorVotes(_reputationSBT)
         GovernorVotesQuorumFraction(20) // 20% of total ReputationSBT supply at snapshot
-        GovernorTimelockControl(_timelock)
+        GovernorTimelockControl(timelockController_)
     {}
 
     // ── Required Overrides ──
@@ -55,6 +55,42 @@ contract JudgeDAO is
         returns (uint256)
     {
         return super.proposalThreshold();
+    }
+
+    function clock()
+        public
+        view
+        override(Governor, GovernorVotes)
+        returns (uint48)
+    {
+        return super.clock();
+    }
+
+    function CLOCK_MODE()
+        public
+        view
+        override(Governor, GovernorVotes)
+        returns (string memory)
+    {
+        return super.CLOCK_MODE();
+    }
+
+    function _quorumReached(uint256 proposalId)
+        internal
+        view
+        override(Governor, GovernorCountingSimple)
+        returns (bool)
+    {
+        return super._quorumReached(proposalId);
+    }
+
+    function _voteSucceeded(uint256 proposalId)
+        internal
+        view
+        override(Governor, GovernorCountingSimple)
+        returns (bool)
+    {
+        return super._voteSucceeded(proposalId);
     }
 
     function state(uint256 proposalId)
