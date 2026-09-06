@@ -8,6 +8,8 @@ import JobFactoryABI from '../config/abis/JobFactory.json';
 import ReputationSBTABI from '../config/abis/ReputationSBT.json';
 import { detectPrivilegedRole, isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 
+import { PAYMENT_TOKENS } from '../config/paymentTokens';
+
 export const DEMO_WALLETS = {
   visitor: {
     address: '',
@@ -30,21 +32,6 @@ export const DEMO_WALLETS = {
     isTreasuryAdmin: false,
     reputationCount: 0,
   },
-  judge: {
-    address: import.meta.env.VITE_JUDGE_ADDRESS as string || '',
-    label: 'Judge / Arbitrator',
-    isArbitrator: true,
-    isTreasuryAdmin: false,
-    reputationCount: 0,
-  },
-  admin: {
-    // Primary admin demo address — loaded from env only, never hardcoded
-    address: import.meta.env.VITE_ADMIN_ADDRESS_2 as string || '',
-    label: 'Treasury Admin (Safe Multisig)',
-    isArbitrator: false,
-    isTreasuryAdmin: true,
-    reputationCount: 0,
-  },
 };
 
 interface Web3ContextType {
@@ -53,6 +40,9 @@ interface Web3ContextType {
   isArbitrator: boolean;
   isTreasuryAdmin: boolean;
   reputationCount: number;
+  balanceNative: string;
+  balanceUsdc: string;
+  refreshBalances: () => Promise<void>;
   loading: boolean;
   error: string | null;
   currentRole: DemoRole;
@@ -82,6 +72,8 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isArbitrator, setIsArbitrator] = useState(false);
   const [isTreasuryAdmin, setIsTreasuryAdmin] = useState(false);
   const [reputationCount, setReputationCount] = useState(0);
+  const [balanceNative, setBalanceNative] = useState<string>('0.00');
+  const [balanceUsdc, setBalanceUsdc] = useState<string>('0.00');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,6 +97,39 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     return fallbackProviderRef.current;
   };
+
+  const refreshBalances = useCallback(async () => {
+    const targetAddr = walletIsConnected ? walletAddress : '';
+    if (!targetAddr || !ethers.isAddress(targetAddr)) {
+      setBalanceNative('0.00');
+      setBalanceUsdc('0.00');
+      return;
+    }
+    try {
+      const p = getActiveProvider();
+      const balWei = await p.getBalance(targetAddr).catch(() => 0n);
+      setBalanceNative(parseFloat(ethers.formatEther(balWei)).toFixed(4));
+
+      const usdcAddress = PAYMENT_TOKENS.USDC.address;
+      if (usdcAddress && usdcAddress !== ethers.ZeroAddress) {
+        const usdcContract = new ethers.Contract(
+          usdcAddress,
+          ["function balanceOf(address) view returns (uint256)"],
+          p
+        );
+        const usdcRaw = await usdcContract.balanceOf(targetAddr).catch(() => 0n);
+        setBalanceUsdc(parseFloat(ethers.formatUnits(usdcRaw, PAYMENT_TOKENS.USDC.decimals)).toFixed(2));
+      }
+    } catch (e) {
+      console.warn("Failed to fetch wallet balances:", e);
+    }
+  }, [walletIsConnected, walletAddress]);
+
+  useEffect(() => {
+    refreshBalances();
+    const interval = setInterval(refreshBalances, 15000);
+    return () => clearInterval(interval);
+  }, [refreshBalances]);
 
   const getAbi = (imported: any) => (Array.isArray(imported) ? imported : imported.abi ?? imported);
 
@@ -262,6 +287,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     isArbitrator,
     isTreasuryAdmin,
     reputationCount,
+    balanceNative,
+    balanceUsdc,
+    refreshBalances,
     loading,
     error,
     currentRole,
@@ -277,6 +305,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     isArbitrator,
     isTreasuryAdmin,
     reputationCount,
+    balanceNative,
+    balanceUsdc,
+    refreshBalances,
     loading,
     error,
     currentRole,
@@ -300,6 +331,9 @@ const SAFE_FALLBACK_WEB3_CONTEXT: Web3ContextType = {
   isArbitrator: false,
   isTreasuryAdmin: false,
   reputationCount: 0,
+  balanceNative: '0.00',
+  balanceUsdc: '0.00',
+  refreshBalances: async () => {},
   loading: false,
   error: null,
   currentRole: 'visitor',
