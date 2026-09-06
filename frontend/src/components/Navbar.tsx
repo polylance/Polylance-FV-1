@@ -448,7 +448,7 @@ export const Navbar: React.FC = () => {
                     </motion.span>
                   </button>
 
-                  {/* Apple-glass dropdown */}
+                  {/* Solid Opaque High-Z Dropdown */}
                   <AnimatePresence>
                     {isMoreOpen && (
                       <motion.div
@@ -456,7 +456,10 @@ export const Navbar: React.FC = () => {
                         initial="hidden"
                         animate="visible"
                         exit="exit"
-                        className="absolute top-full right-0 mt-2 w-48 rounded-2xl p-1.5 space-y-0.5 z-50 apple-glass-strong shadow-xl"
+                        className="absolute top-full right-0 mt-2.5 w-52 rounded-2xl p-1.5 space-y-0.5 z-[100] bg-white border border-slate-200 shadow-2xl overflow-hidden"
+                        style={{
+                          boxShadow: '0 20px 40px -12px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06)',
+                        }}
                       >
                         {/* Admin shortcuts in dropdown */}
                         {currentRole === 'admin' && (
