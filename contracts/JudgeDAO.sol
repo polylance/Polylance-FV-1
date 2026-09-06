@@ -57,42 +57,6 @@ contract JudgeDAO is
         return super.proposalThreshold();
     }
 
-    function clock()
-        public
-        view
-        override(Governor, GovernorVotes)
-        returns (uint48)
-    {
-        return super.clock();
-    }
-
-    function CLOCK_MODE()
-        public
-        view
-        override(Governor, GovernorVotes)
-        returns (string memory)
-    {
-        return super.CLOCK_MODE();
-    }
-
-    function _quorumReached(uint256 proposalId)
-        internal
-        view
-        override(Governor, GovernorCountingSimple)
-        returns (bool)
-    {
-        return super._quorumReached(proposalId);
-    }
-
-    function _voteSucceeded(uint256 proposalId)
-        internal
-        view
-        override(Governor, GovernorCountingSimple)
-        returns (bool)
-    {
-        return super._voteSucceeded(proposalId);
-    }
-
     function state(uint256 proposalId)
         public
         view

@@ -29,6 +29,21 @@ if (typeof window !== 'undefined') {
     }
   });
 
+  // Filter out upstream browser wallet extension internal warnings (e.g. MetaMask contentscript ObjectMultiplex / EventEmitter warnings)
+  const origWarn = console.warn;
+  console.warn = (...args: any[]) => {
+    const text = typeof args[0] === 'string' ? args[0] : '';
+    if (
+      text.includes('MaxListenersExceededWarning') ||
+      text.includes('ObjectMultiplex') ||
+      text.includes('app-init-liveness') ||
+      text.includes('background-liveness')
+    ) {
+      return;
+    }
+    origWarn.apply(console, args);
+  };
+
   const bumpMaxListeners = () => {
     try {
       const eth = (window as any).ethereum;

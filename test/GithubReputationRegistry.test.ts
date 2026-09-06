@@ -24,10 +24,11 @@ describe("GithubReputationRegistry", function () {
     secScores: bigint[],
     uid: string
   ): string {
-    return ethers.solidityPackedKeccak256(
+    const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
       ["uint256", "address", "address", "bytes32", "uint256", "bytes32[]", "uint256[]", "bytes32"],
       [chainId, registryAddress, userAddr, primCat, primScore, secCats, secScores, uid]
     );
+    return ethers.keccak256(encoded);
   }
 
   beforeEach(async function () {
