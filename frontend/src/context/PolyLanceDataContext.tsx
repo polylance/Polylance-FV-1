@@ -1055,75 +1055,126 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const getAbi = (imported: any) => (Array.isArray(imported) ? imported : imported.abi ?? imported);
 
-  // 1. Sync on-chain jobs
+  // 1. Sync on-chain jobs directly from JobFactory and escrow clones
   const syncOnChainJobs = useCallback(async () => {
-    if (!provider) return;
+    if (!provider || !CONTRACTS.JobFactory || CONTRACTS.JobFactory === ethers.ZeroAddress) return;
     try {
+      // Verify that JobFactory contract code exists on current connected network
+      const code = await provider.getCode(CONTRACTS.JobFactory).catch(() => '0x');
+      if (!code || code === '0x' || code === '0x0') {
+        return;
+      }
+
       const factory = new ethers.Contract(CONTRACTS.JobFactory, getAbi(JobFactoryABI), provider);
-      if (!factory.filters || typeof factory.filters.JobPosted !== 'function') return;
-      const filter = factory.filters.JobPosted();
-      const logs = await factory.queryFilter(filter);
+      
+      // Query all deployed jobs directly from the factory contract
+      let deployedAddrs: string[] = [];
+      try {
+        if (typeof factory.getAllJobs === 'function') {
+          deployedAddrs = await factory.getAllJobs();
+        }
+      } catch (e: any) {
+        // Silently skip if contract interface mismatch or empty return (BAD_DATA)
+        if (e?.code !== 'BAD_DATA' && !e?.message?.includes('could not decode result data')) {
+          console.debug('factory.getAllJobs() notice, falling back to event scan:', e);
+        }
+      }
 
-      const parsedJobs: Job[] = await Promise.all(
-        logs.map(async (log: any) => {
-          const jobAddr = log.args[0] || log.args.jobAddress;
-          const client = log.args[1] || log.args.client;
-          const paymentToken = log.args[3] || log.args.paymentToken || ethers.ZeroAddress;
+      // If getAllJobs returned empty, query JobDeployed events
+      if (deployedAddrs.length === 0 && factory.filters && typeof factory.filters.JobDeployed === 'function') {
+        const filter = factory.filters.JobDeployed();
+        const logs = await factory.queryFilter(filter).catch(() => []);
+        deployedAddrs = logs.map((l: any) => l.args?.[0] || l.args?.jobContract).filter(Boolean);
+      }
 
-          const escrow = new ethers.Contract(jobAddr, getAbi(JobEscrowABI), provider);
-          const [statusRaw, freelancer, amountRaw, reviewPeriod, submittedAt, termsHash] = await Promise.all([
-            escrow.status().catch(() => 0n),
-            escrow.freelancer().catch(() => ethers.ZeroAddress),
-            escrow.amount().catch(() => 0n),
-            escrow.reviewPeriod().catch(() => 7n * 86400n),
-            escrow.submittedAt().catch(() => 0n),
-            escrow.termsHash().catch(() => ''),
-          ]);
+      if (deployedAddrs.length === 0) return;
 
-          const statusMap: JobStatus[] = ['Open', 'Selected', 'Submitted', 'Disputed', 'Completed', 'Cancelled'];
-          const status = statusMap[Number(statusRaw)] || 'Open';
+      const parsedJobs: Job[] = (
+        await Promise.all(
+          deployedAddrs.map(async (jobAddr: string) => {
+            if (!jobAddr || !ethers.isAddress(jobAddr)) return null;
+            try {
+              const escrow = new ethers.Contract(jobAddr, getAbi(JobEscrowABI), provider);
+              const [client, statusRaw, freelancer, amountRaw, reviewPeriod, submittedAt, termsHash, paymentToken] = await Promise.all([
+                escrow.client().catch(() => ethers.ZeroAddress),
+                escrow.status().catch(() => 0n),
+                escrow.freelancer().catch(() => ethers.ZeroAddress),
+                escrow.amount().catch(() => 0n),
+                escrow.reviewPeriod().catch(() => 7n * 86400n),
+                escrow.submittedAt().catch(() => 0n),
+                escrow.termsHash().catch(() => ''),
+                escrow.paymentToken().catch(() => ethers.ZeroAddress),
+              ]);
 
-          const tokenConfig = getTokenByAddress(paymentToken);
-          const formattedAmount = ethers.formatUnits(amountRaw, tokenConfig.decimals);
+              if (!client || client === ethers.ZeroAddress) return null;
 
-          return {
-            id: jobAddr.slice(0, 14),
-            contractAddress: jobAddr,
-            client,
-            freelancer: freelancer === ethers.ZeroAddress ? undefined : freelancer,
-            amountEth: tokenConfig.symbol === 'MATIC' ? formattedAmount : (parseFloat(formattedAmount) / 2800).toFixed(4),
-            amountUsdc: formattedAmount,
-            paymentToken,
-            paymentTokenSymbol: tokenConfig.symbol,
-            paymentTokenDecimals: tokenConfig.decimals,
-            status,
-            title: `Job ${jobAddr.slice(0, 6)}...${jobAddr.slice(-4)}`,
-            description: `On-chain JobEscrow clone deployed at ${jobAddr}`,
-            category: 'web3',
-            reviewPeriodDays: Math.round(Number(reviewPeriod) / 86400) || 7,
-            createdAt: Date.now() - 3600000,
-            submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : undefined,
-            termsHash: termsHash || undefined,
-            applications: [],
-            events: [
-              { step: 'Posted', title: `Job Posted (${tokenConfig.symbol} Escrow)`, timestamp: Date.now() - 3600000, txHash: log.transactionHash, status: 'completed', actor: 'Client' },
-              { step: 'Funded', title: 'Fund Escrow', timestamp: Number(amountRaw) > 0 ? Date.now() - 1800000 : 0, txHash: '', status: Number(amountRaw) > 0 ? 'completed' : 'pending' },
-            ],
-          };
-        })
-      );
+              const statusMap: JobStatus[] = ['Open', 'Selected', 'Submitted', 'Disputed', 'Completed', 'Cancelled'];
+              let status = statusMap[Number(statusRaw)] || 'Open';
+              if (status === 'Selected' && Number(amountRaw) > 0) {
+                status = 'Funded';
+              }
+
+              const tokenConfig = getTokenByAddress(paymentToken);
+              const formattedAmount = ethers.formatUnits(amountRaw, tokenConfig.decimals);
+
+              // Preserve any existing local metadata (title, description, category, proposals)
+              const existingMatch = jobs.find(
+                (j) => j.id?.toLowerCase() === jobAddr.slice(0, 14).toLowerCase() ||
+                       j.contractAddress?.toLowerCase() === jobAddr.toLowerCase()
+              );
+
+              return {
+                id: existingMatch?.id || jobAddr.slice(0, 14),
+                contractAddress: jobAddr,
+                client,
+                freelancer: freelancer === ethers.ZeroAddress ? undefined : freelancer,
+                amountEth: tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL' 
+                  ? formattedAmount 
+                  : (parseFloat(formattedAmount) / 2800).toFixed(4),
+                amountUsdc: formattedAmount,
+                paymentToken,
+                paymentTokenSymbol: tokenConfig.symbol,
+                paymentTokenDecimals: tokenConfig.decimals,
+                status,
+                title: existingMatch?.title || `Smart Contract Escrow ${jobAddr.slice(0, 6)}...${jobAddr.slice(-4)}`,
+                description: existingMatch?.description || `Decentralized JobEscrow verified on Polygon. Escrow contract: ${jobAddr}`,
+                category: existingMatch?.category || 'web3',
+                reviewPeriodDays: Math.round(Number(reviewPeriod) / 86400) || 7,
+                createdAt: existingMatch?.createdAt || Date.now() - 3600000,
+                submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : existingMatch?.submittedAt,
+                termsHash: termsHash || existingMatch?.termsHash,
+                applications: existingMatch?.applications || [],
+                events: existingMatch?.events || [
+                  { step: 'Posted', title: `Job Posted (${tokenConfig.symbol} Escrow)`, timestamp: Date.now() - 3600000, txHash: '', status: 'completed', actor: 'Client' },
+                  { step: 'Funded', title: 'Fund Escrow', timestamp: Number(amountRaw) > 0 ? Date.now() - 1800000 : 0, txHash: '', status: Number(amountRaw) > 0 ? 'completed' : 'pending' },
+                ],
+              } as Job;
+            } catch (err) {
+              return null;
+            }
+          })
+        )
+      ).filter((j): j is Job => j !== null);
 
       if (parsedJobs.length > 0) {
-        setJobs((prev) => mergeJobsList(parsedJobs, prev));
+        setJobsRaw((prev) => {
+          const merged = mergeJobsList(prev, parsedJobs);
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('polylance_jobs', JSON.stringify(merged));
+            }
+          } catch {}
+          return [...merged];
+        });
       }
     } catch (err) {
       console.warn('Real-time on-chain job sync warning:', err);
     }
-  }, [provider]);
+  }, [provider, jobs]);
 
   useEffect(() => {
     syncOnChainJobs();
-    const interval = setInterval(syncOnChainJobs, 30000);
+    const interval = setInterval(syncOnChainJobs, 20000);
     return () => clearInterval(interval);
   }, [syncOnChainJobs]);
 
@@ -1160,9 +1211,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         const tx = await factory.postJob(descriptionIpfsHash, tokenConfig.address);
         const receipt = await tx.wait();
         txHash = receipt.hash;
-        const log = receipt.logs.find((l: any) => l.fragment && l.fragment.name === 'JobPosted');
+        const log = receipt.logs.find((l: any) => l.fragment && (l.fragment.name === 'JobDeployed' || l.fragment.name === 'JobPosted'));
         if (log) {
-          contractAddr = log.args[0] || log.args.jobAddress;
+          contractAddr = log.args[0] || log.args.jobContract || log.args.jobAddress;
         }
       }
     } catch (err) {
