@@ -353,6 +353,13 @@
   },
   {
     "inputs": [],
+    "name": "collectFee",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getAllJobs",
     "outputs": [
       {

@@ -4,6 +4,31 @@ import './index.css'
 import App from './App.tsx'
 
 if (typeof window !== 'undefined') {
+  // Global error guard against Chrome Web Vitals extension crash during Back-Forward Cache (bfcache) navigation
+  window.addEventListener('error', (event) => {
+    const msg = event?.message || '';
+    if (
+      msg.includes("Cannot read properties of undefined (reading 'startTime')") ||
+      msg.includes('reportAllChanges') ||
+      (event?.error?.stack && event.error.stack.includes('reportAllChanges'))
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    }
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const reasonMsg = event?.reason?.message || '';
+    if (
+      reasonMsg.includes("reading 'startTime'") ||
+      (event?.reason?.stack && event.reason.stack.includes('reportAllChanges'))
+    ) {
+      event.preventDefault();
+      return true;
+    }
+  });
+
   const bumpMaxListeners = () => {
     try {
       const eth = (window as any).ethereum;
@@ -30,12 +55,23 @@ if (typeof window !== 'undefined') {
 import '@rainbow-me/rainbowkit/styles.css';
 import { RainbowKitProvider, connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { metaMaskWallet, coinbaseWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
-import { WagmiProvider, createConfig, http } from 'wagmi';
+import { WagmiProvider, createConfig, http, fallback } from 'wagmi';
 import { polygonAmoy, polygon, mainnet } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const projectId = (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '').trim();
 const hasValidProjectId = Boolean(projectId && projectId !== '00000000000000000000000000000000' && projectId.length >= 32);
+
+// Clean up stale WalletConnect session keys if project ID is not configured
+if (typeof window !== 'undefined' && !hasValidProjectId) {
+  try {
+    Object.keys(localStorage).forEach((k) => {
+      if (k.startsWith('wc@2') || k.startsWith('@w3m') || k.startsWith('-walletlink')) {
+        localStorage.removeItem(k);
+      }
+    });
+  } catch {}
+}
 
 const walletsList = [
   metaMaskWallet,
@@ -63,9 +99,18 @@ const config = createConfig({
   connectors,
   chains: [polygonAmoy, polygon, mainnet],
   transports: {
-    [polygonAmoy.id]: http('https://polygon-amoy-bor-rpc.publicnode.com'),
-    [polygon.id]: http('https://polygon-bor-rpc.publicnode.com'),
-    [mainnet.id]: http('https://cloudflare-eth.com'),
+    [polygonAmoy.id]: fallback([
+      http('https://polygon-amoy-bor-rpc.publicnode.com'),
+      http('https://rpc-amoy.polygon.technology'),
+    ]),
+    [polygon.id]: fallback([
+      http('https://polygon-bor-rpc.publicnode.com'),
+      http('https://polygon-rpc.com'),
+    ]),
+    [mainnet.id]: fallback([
+      http('https://ethereum-rpc.publicnode.com'),
+      http('https://eth.llamarpc.com'),
+    ]),
   },
 });
 

@@ -9,7 +9,7 @@ import {
   Paperclip, Smile, MoreVertical, Copy, Shield, Download, AlertTriangle, ChevronRight, ChevronLeft, X, Zap, Trash2, Users,
   RotateCcw, UserPlus, PanelRightClose, PanelRightOpen, Info, TrendingUp, Calendar, RefreshCw
 } from 'lucide-react';
-import { truncateAddress } from '../utils/formatters';
+import { truncateAddress, formatWeb3ErrorMessage } from '../utils/formatters';
 import { JudgeRecord, JudgeMessage, DisputeReason } from '../types';
 import confetti from 'canvas-confetti';
 import { EmptyState } from '../components/UIStates';
@@ -486,32 +486,50 @@ export const Chat: React.FC = () => {
     );
   };
 
-  const handleFund = () => {
+  const handleFund = async () => {
     if (!activeJob) return;
-    fundJob(activeJob.id);
-    confetti({ particleCount: 75, spread: 60 });
-    sendChatMessage(
-      activeJob.id,
-      `💰 Escrow vault funded successfully. Budget of $${parseFloat(activeJob.amountUsdc).toLocaleString()} USDC is locked.`,
-      'Judge',
-      undefined,
-      activeApplicantAddr,
-      address
-    );
+    try {
+      await fundJob(activeJob.id);
+      confetti({ particleCount: 75, spread: 60 });
+      sendChatMessage(
+        activeJob.id,
+        `💰 Escrow vault funded successfully. Budget of $${parseFloat(activeJob.amountUsdc).toLocaleString()} USDC is locked.`,
+        'Judge',
+        undefined,
+        activeApplicantAddr,
+        address
+      );
+    } catch (err: any) {
+      console.error('Failed to fund escrow in chat:', err);
+      setAlertModalOptions({
+        title: 'Escrow Funding Failed',
+        message: formatWeb3ErrorMessage(err),
+        type: 'error',
+      });
+    }
   };
 
-  const handleRelease = () => {
+  const handleRelease = async () => {
     if (!activeJob) return;
-    releasePayment(activeJob.id);
-    confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
-    sendChatMessage(
-      activeJob.id,
-      `🎉 Escrow Milestone approved. Funds released to Developer's wallet. SBT minted!`,
-      'Judge',
-      undefined,
-      activeApplicantAddr,
-      address
-    );
+    try {
+      await releasePayment(activeJob.id);
+      confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+      sendChatMessage(
+        activeJob.id,
+        `🎉 Escrow Milestone approved. Funds released to Developer's wallet. SBT minted!`,
+        'Judge',
+        undefined,
+        activeApplicantAddr,
+        address
+      );
+    } catch (err: any) {
+      console.error('Failed to release payment in chat:', err);
+      setAlertModalOptions({
+        title: 'Payment Release Failed',
+        message: formatWeb3ErrorMessage(err),
+        type: 'error',
+      });
+    }
   };
 
   const handleSubmitDeliverable = (e: React.FormEvent) => {

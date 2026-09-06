@@ -8,7 +8,7 @@ import { ApplicantTable } from '../components/ApplicantTable';
 import { DisputePanel } from '../components/DisputePanel';
 import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSubmissionPanel';
 import { DisputeReason, UserProfile } from '../types';
-import { truncateAddress, formatDaysRemaining, formatTimeAgo, getDeterministicSbtId } from '../utils/formatters';
+import { truncateAddress, formatDaysRemaining, formatTimeAgo, getDeterministicSbtId, formatWeb3ErrorMessage } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles, ArrowUpRight, Calendar, Trash2, RefreshCw, Share2, Loader2 } from 'lucide-react';
@@ -16,6 +16,8 @@ import confetti from 'canvas-confetti';
 import { ErrorState } from '../components/UIStates';
 import { ActionStatusModal, ActionModalDetail } from '../components/ActionStatusModal';
 import { FormattedJobDescription } from '../components/FormattedJobDescription';
+import { FundEscrowModal } from '../components/FundEscrowModal';
+import { PaymentReleasedModal } from '../components/PaymentReleasedModal';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +40,10 @@ export const JobDetail: React.FC = () => {
     sendPreAcceptMessage,
     profiles,
   } = usePolyLanceData();
+
+  const [isFundEscrowModalOpen, setIsFundEscrowModalOpen] = useState(false);
+  const [isPaymentReleasedModalOpen, setIsPaymentReleasedModalOpen] = useState(false);
+  const [releasedTxHash, setReleasedTxHash] = useState<string | undefined>(undefined);
 
   const [isResolvingJob, setIsResolvingJob] = useState(() => {
     return !jobs.some(
@@ -64,15 +70,24 @@ export const JobDetail: React.FC = () => {
       return;
     }
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsResolvingJob(false);
+      return;
+    }
+
     setIsResolvingJob(true);
     const syncUrl = getBackendSyncUrl();
     const headers: Record<string, string> = {};
     if (address) headers['x-wallet-address'] = address.toLowerCase();
 
-    fetch(`${syncUrl}/api/sync`, { headers })
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+    fetch(`${syncUrl}/api/sync`, { headers, signal: controller.signal })
       .then((r) => r.json())
       .catch(() => {})
       .finally(() => {
+        clearTimeout(timeoutId);
         if (mounted) {
           setTimeout(() => {
             if (mounted) setIsResolvingJob(false);
@@ -274,24 +289,21 @@ export const JobDetail: React.FC = () => {
     });
   };
 
+  React.useEffect(() => {
+    if (job?.id) {
+      try {
+        localStorage.setItem('polylance_last_opened_job', job.id);
+      } catch {}
+    }
+  }, [job?.id]);
+
   const handleFundJobAction = (jobId: string) => {
-    fundJob(jobId);
-    confetti({ particleCount: 110, spread: 80, origin: { y: 0.6 } });
-    const payoutStr = getFormattedPayout(job.amountUsdc, job.paymentTokenSymbol, job.amountEth);
-    setActionModal({
-      isOpen: true,
-      title: 'Escrow Deposit Funded Successfully',
-      subtitle: `Milestone funds (${payoutStr}) are now locked in the standalone JobEscrow smart contract.`,
-      icon: 'payment',
-      badgeText: 'ESCROW ACTIVE',
-      details: [
-        { label: 'Escrow Locked', value: payoutStr, isBadge: true },
-        { label: 'Escrow Clone', value: truncateAddress(job.contractAddress), isMono: true, explorerUrl: `https://polygonscan.com/address/${job.contractAddress}` },
-        { label: 'Next Step', value: 'Freelancer Deliverables In Progress' },
-      ],
-      primaryActionText: 'Awesome! Take me to Dashboard',
-      onPrimaryAction: () => navigate('/dashboard'),
-    });
+    setIsFundEscrowModalOpen(true);
+  };
+
+  const handleConfirmFund = async () => {
+    if (!job) return;
+    await fundJob(job.id);
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -301,24 +313,23 @@ export const JobDetail: React.FC = () => {
     setChatInput('');
   };
 
-  const handleReleasePayment = () => {
-    releasePayment(job.id);
-    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-    const payoutStr = getFormattedPayout(job.amountUsdc, job.paymentTokenSymbol, job.amountEth);
-    setActionModal({
-      isOpen: true,
-      title: 'Payment Released & SBT Minted',
-      subtitle: 'Escrow funds have been transferred directly to the freelancer, and an on-chain reputation SBT has been minted.',
-      icon: 'payment',
-      badgeText: 'TRANSACTION SETTLED',
-      details: [
-        { label: 'Amount Released', value: payoutStr, isBadge: true },
-        { label: 'Freelancer', value: truncateAddress(job.freelancer || ''), isMono: true },
-        { label: 'Contract', value: truncateAddress(job.contractAddress), isMono: true, explorerUrl: `https://polygonscan.com/address/${job.contractAddress}` },
-      ],
-      primaryActionText: 'View Soulbound Attestation Certificate',
-      onPrimaryAction: () => navigate(`/jobs/${job.id}/attestation`),
-    });
+  const handleReleasePayment = async () => {
+    if (!job) return;
+    try {
+      await releasePayment(job.id);
+      const tx = job.events?.find(e => e.step === 'Completed')?.txHash;
+      setReleasedTxHash(tx);
+      setIsPaymentReleasedModalOpen(true);
+    } catch (err: any) {
+      console.error('Failed to release payment:', err);
+      setActionModal({
+        isOpen: true,
+        title: 'Payment Release Failed',
+        subtitle: formatWeb3ErrorMessage(err),
+        icon: 'dispute',
+        badgeText: 'TRANSACTION CANCELLED',
+      });
+    }
   };
 
   const handleRaiseDisputeSubmit = (e: React.FormEvent) => {
@@ -1318,6 +1329,24 @@ export const JobDetail: React.FC = () => {
           </div>
         </div>,
         document.body
+      )}
+
+      {job && (
+        <>
+          <FundEscrowModal
+            isOpen={isFundEscrowModalOpen}
+            onClose={() => setIsFundEscrowModalOpen(false)}
+            job={job}
+            onConfirmFund={handleConfirmFund}
+          />
+          <PaymentReleasedModal
+            isOpen={isPaymentReleasedModalOpen}
+            onClose={() => setIsPaymentReleasedModalOpen(false)}
+            job={job}
+            txHash={releasedTxHash}
+            onViewAttestation={() => navigate(`/jobs/${job.id}/attestation`)}
+          />
+        </>
       )}
     </div>
   );

@@ -53,6 +53,37 @@ export function generateDeterministicHash(seed: string = Date.now().toString()):
   return ethers.keccak256(ethers.toUtf8Bytes(seed));
 }
 
+export function formatWeb3ErrorMessage(err: any): string {
+  if (!err) return 'Transaction failed. Please try again.';
+  const rawMsg = String(err?.message || err?.shortMessage || err?.data?.message || err || '');
+  const code = err?.code ?? err?.error?.code ?? err?.info?.error?.code;
+
+  if (
+    code === 'ACTION_REJECTED' ||
+    code === 4001 ||
+    rawMsg.includes('ACTION_REJECTED') ||
+    rawMsg.includes('user rejected') ||
+    rawMsg.includes('User denied') ||
+    rawMsg.includes('User rejected the request')
+  ) {
+    return 'Transaction signature rejected in wallet.';
+  }
+
+  if (rawMsg.includes('insufficient funds') || rawMsg.includes('exceeds balance')) {
+    return 'Insufficient funds in wallet for gas and amount.';
+  }
+
+  if (rawMsg.includes('CALL_EXCEPTION') || rawMsg.includes('execution reverted')) {
+    return 'Contract transaction execution reverted on-chain.';
+  }
+
+  if (rawMsg.includes('network') || rawMsg.includes('Wrong network')) {
+    return 'Network mismatch. Please verify wallet is connected to the right Polygon chain.';
+  }
+
+  return rawMsg.length > 120 ? `${rawMsg.slice(0, 117)}...` : rawMsg;
+}
+
 export function getPolygonScanUrl(txHash: string): string {
   const baseUrl = NETWORK_CONFIG.blockExplorerUrl || 'https://amoy.polygonscan.com';
   return `${baseUrl}/tx/${txHash}`;

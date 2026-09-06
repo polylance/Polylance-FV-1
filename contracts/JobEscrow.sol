@@ -2,9 +2,14 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IJobFactory.sol";
 
-contract JobEscrow is Initializable {
+contract JobEscrow is Initializable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     enum JobStatus { Open, Selected, Submitted, Disputed, Completed, Cancelled }
     enum DisputeReason { QUALITY, NON_DELIVERY, SCOPE_DISAGREEMENT, PAYMENT_DISPUTE, OTHER }
 
@@ -29,9 +34,18 @@ contract JobEscrow is Initializable {
         bool resolved;
     }
 
+    struct TimeExtensionRequest {
+        uint256 requestedDays;
+        string reasonIpfsHash;
+        uint256 requestedAt;
+        bool responded;
+        bool approved;
+    }
+
     address public factory;
     address public client;
     address public freelancer;
+    address public paymentToken; // address(0) = native MATIC, otherwise ERC20 token address
     uint256 public amount;
     JobStatus public status;
     string  public descriptionIpfsHash;
@@ -47,8 +61,10 @@ contract JobEscrow is Initializable {
     ProofOfWork public proof;
     Dispute public dispute;
     string public disputeResponseIpfsHash;
+    TimeExtensionRequest[] public extensionRequests;
+    string[] public progressUpdateHashes; // append-only log of progress updates
 
-    event JobPosted(address client, string descriptionIpfsHash);
+    event JobPosted(address client, string descriptionIpfsHash, address paymentToken);
     event ApplicationSubmitted(address applicant);
     event FreelancerSelected(address freelancer);
     event SelectionDeclined();
@@ -62,28 +78,57 @@ contract JobEscrow is Initializable {
     event DisputeRaised(address by, DisputeReason reason, string evidenceIpfsHash);
     event DisputeResponseSubmitted(address by, string responseIpfsHash);
     event DisputeResolved(uint256 freelancerBps, address judge, string reasoningIpfsHash);
+    event ProgressUpdatePosted(uint256 indexed jobId, string updateIpfsHash, uint256 timestamp);
+    event TimeExtensionRequested(uint256 indexed requestIndex, uint256 requestedDays, string reasonIpfsHash);
+    event TimeExtensionResponded(uint256 indexed requestIndex, bool approved);
+    event ModificationRequested(string noteIpfsHash, uint256 timestamp);
 
     modifier onlyParty() {
         require(msg.sender == client || msg.sender == freelancer, "Not a party to this job");
         _;
     }
 
-    function initialize(address _client, string calldata _descriptionIpfsHash, uint256 _reviewPeriod) external initializer {
+    function initialize(
+        address _client,
+        string calldata _descriptionIpfsHash,
+        uint256 _reviewPeriod
+    ) external initializer {
+        initialize(_client, _descriptionIpfsHash, _reviewPeriod, address(0));
+    }
+
+    function initialize(
+        address _client,
+        string calldata _descriptionIpfsHash,
+        uint256 _reviewPeriod,
+        address _paymentToken
+    ) public initializer {
         require(_client != address(0), "Invalid client address");
         factory = msg.sender;
         client = _client;
         descriptionIpfsHash = _descriptionIpfsHash;
         reviewPeriod = _reviewPeriod;
+        paymentToken = _paymentToken;
         status = JobStatus.Open;
-        emit JobPosted(_client, _descriptionIpfsHash);
+        emit JobPosted(_client, _descriptionIpfsHash, _paymentToken);
     }
 
-    // ── Funding — can happen anytime while Open or Selected, freelancer not required yet ──
-    function fundJob() external payable {
+    // ── Funding — native MATIC or ERC-20 token ──
+    function fundJob(uint256 tokenAmount) external payable nonReentrant {
         require(msg.sender == client, "Only client funds");
         require(status == JobStatus.Open || status == JobStatus.Selected, "Wrong status");
-        amount += msg.value;
-        emit JobFunded(msg.value);
+
+        if (paymentToken == address(0)) {
+            require(msg.value > 0, "Must send MATIC");
+            require(tokenAmount == 0, "Do not pass tokenAmount for native jobs");
+            amount += msg.value;
+            emit JobFunded(msg.value);
+        } else {
+            require(msg.value == 0, "Do not send MATIC for token jobs");
+            require(tokenAmount > 0, "Must specify token amount");
+            IERC20(paymentToken).safeTransferFrom(msg.sender, address(this), tokenAmount);
+            amount += tokenAmount;
+            emit JobFunded(tokenAmount);
+        }
     }
 
     // ── Applications ──
@@ -131,13 +176,13 @@ contract JobEscrow is Initializable {
         emit TermsProposed(msg.sender, _termsHash);
     }
 
-    function cancelJob() external {
+    function cancelJob() external nonReentrant {
         require(msg.sender == client, "Only client cancels");
         require(status == JobStatus.Open, "Too late to cancel unilaterally");
         _refund();
     }
 
-    function proposeMutualCancel() external onlyParty {
+    function proposeMutualCancel() external onlyParty nonReentrant {
         require(status == JobStatus.Selected, "Wrong status");
         cancelConsent[msg.sender] = true;
         emit CancelConsentGiven(msg.sender);
@@ -150,8 +195,52 @@ contract JobEscrow is Initializable {
         status = JobStatus.Cancelled;
         uint256 refund = amount;
         amount = 0;
-        if (refund > 0) payable(client).transfer(refund);
+        if (refund > 0) _safeTransfer(client, refund);
         emit JobCancelled(refund);
+    }
+
+    // ── Extended Workflow & Progress Tracking ──
+    function postProgressUpdate(string calldata updateIpfsHash) external {
+        require(msg.sender == freelancer, "Only freelancer posts progress");
+        require(status == JobStatus.Selected, "Job not in progress");
+        progressUpdateHashes.push(updateIpfsHash);
+        emit ProgressUpdatePosted(0, updateIpfsHash, block.timestamp);
+    }
+
+    function requestTimeExtension(uint256 requestedDays, string calldata reasonIpfsHash) external {
+        require(msg.sender == freelancer, "Only freelancer requests extension");
+        require(status == JobStatus.Selected, "Job not in progress");
+        require(requestedDays > 0 && requestedDays <= 90, "Unreasonable extension request");
+
+        extensionRequests.push(TimeExtensionRequest({
+            requestedDays: requestedDays,
+            reasonIpfsHash: reasonIpfsHash,
+            requestedAt: block.timestamp,
+            responded: false,
+            approved: false
+        }));
+        emit TimeExtensionRequested(extensionRequests.length - 1, requestedDays, reasonIpfsHash);
+    }
+
+    function respondToTimeExtension(uint256 requestIndex, bool approve) external {
+        require(msg.sender == client, "Only client responds");
+        require(requestIndex < extensionRequests.length, "Invalid request");
+        TimeExtensionRequest storage req = extensionRequests[requestIndex];
+        require(!req.responded, "Already responded");
+
+        req.responded = true;
+        req.approved = approve;
+        if (approve) {
+            reviewPeriod += req.requestedDays * 1 days;
+        }
+        emit TimeExtensionResponded(requestIndex, approve);
+    }
+
+    function requestModifications(string calldata noteIpfsHash) external {
+        require(msg.sender == client, "Only client requests modifications");
+        require(status == JobStatus.Submitted, "Nothing to modify yet");
+        status = JobStatus.Selected;
+        emit ModificationRequested(noteIpfsHash, block.timestamp);
     }
 
     // ── Work submission & review ──
@@ -166,13 +255,13 @@ contract JobEscrow is Initializable {
         emit WorkSubmitted(title, evidenceHashes.length);
     }
 
-    function releasePayment() external {
+    function releasePayment() external nonReentrant {
         require(msg.sender == client, "Only client releases");
         require(status == JobStatus.Submitted, "Not submitted");
         _completeJob(10000); // 100% to freelancer
     }
 
-    function claimAutoRelease() external {
+    function claimAutoRelease() external nonReentrant {
         require(status == JobStatus.Submitted, "Not awaiting review");
         require(block.timestamp >= submittedAt + reviewPeriod, "Review period still active");
         _completeJob(10000);
@@ -196,7 +285,7 @@ contract JobEscrow is Initializable {
         emit DisputeResponseSubmitted(msg.sender, responseIpfsHash);
     }
 
-    function resolveDispute(uint256 freelancerBps, string calldata reasoningIpfsHash) external {
+    function resolveDispute(uint256 freelancerBps, string calldata reasoningIpfsHash) external nonReentrant {
         require(
             IJobFactory(factory).hasRole(IJobFactory(factory).ARBITRATOR_ROLE(), msg.sender),
             "Not an arbitrator"
@@ -211,18 +300,37 @@ contract JobEscrow is Initializable {
 
     function _completeJob(uint256 freelancerBps) internal {
         status = JobStatus.Completed;
-        uint256 fee = (amount * PLATFORM_FEE_BPS) / 10000;
-        uint256 distributable = amount - fee;
+        uint256 totalAmount = amount;
+        amount = 0;
+        uint256 fee = (totalAmount * PLATFORM_FEE_BPS) / 10000;
+        uint256 distributable = totalAmount - fee;
         uint256 toFreelancer = (distributable * freelancerBps) / 10000;
         uint256 toClient = distributable - toFreelancer;
 
-        if (fee > 0) IJobFactory(factory).collectFee{value: fee}();
-        if (toFreelancer > 0) payable(freelancer).transfer(toFreelancer);
-        if (toClient > 0) payable(client).transfer(toClient);
+        if (fee > 0) {
+            if (paymentToken == address(0)) {
+                IJobFactory(factory).collectFee{value: fee}(address(0), fee);
+            } else {
+                IERC20(paymentToken).safeTransfer(factory, fee);
+                IJobFactory(factory).collectFee(paymentToken, fee);
+            }
+        }
+        if (toFreelancer > 0) _safeTransfer(freelancer, toFreelancer);
+        if (toClient > 0) _safeTransfer(client, toClient);
 
         if (freelancerBps > 0) {
             IJobFactory(factory).mintReputationSBT(freelancer, address(this));
         }
         emit PaymentReleased(toFreelancer, fee);
+    }
+
+    function _safeTransfer(address to, uint256 transferAmount) internal {
+        if (transferAmount == 0) return;
+        if (paymentToken == address(0)) {
+            (bool ok, ) = payable(to).call{value: transferAmount}("");
+            require(ok, "Transfer failed");
+        } else {
+            IERC20(paymentToken).safeTransfer(to, transferAmount);
+        }
     }
 }

@@ -3,7 +3,9 @@ import { PrismaClient } from "@prisma/client";
 import { Server } from "socket.io";
 
 const JobFactoryABI = [
-  "event JobPosted(address indexed jobAddress, address indexed client, string ipfsHash, address paymentToken)"
+  "event JobDeployed(address indexed jobContract, address indexed client, address paymentToken)",
+  "event JobPosted(address indexed jobAddress, address indexed client, string ipfsHash, address paymentToken)",
+  "function getAllJobs() external view returns (address[])"
 ];
 
 const JobEscrowABI = [
@@ -11,6 +13,7 @@ const JobEscrowABI = [
   "function freelancer() external view returns (address)",
   "event PaymentReleased(uint256 toFreelancer, uint256 fee)",
   "event AutoReleased()",
+  "event DisputeResolved(uint256 freelancerBps, address judge, string reasoningIpfsHash)",
   "event DisputeResolved(uint256 toFreelancer, uint256 toClient, uint256 fee)"
 ];
 
@@ -26,6 +29,7 @@ export async function startPaymentListener(prisma: PrismaClient, io: Server) {
     const activeSubscriptions = new Set<string>();
 
     const attachJobListeners = (jobAddress: string) => {
+      if (!jobAddress || !ethers.isAddress(jobAddress)) return;
       const normalizedAddr = jobAddress.toLowerCase();
       if (activeSubscriptions.has(normalizedAddr)) return;
       activeSubscriptions.add(normalizedAddr);
@@ -33,16 +37,20 @@ export async function startPaymentListener(prisma: PrismaClient, io: Server) {
       const job = new ethers.Contract(jobAddress, JobEscrowABI, provider);
 
       const unlockDeletion = async () => {
-        const registry = await prisma.conversationKeyRegistry.findUnique({ where: { jobAddress } });
-        if (!registry) return;
+        try {
+          const registry = await prisma.conversationKeyRegistry.findUnique({ where: { jobAddress } });
+          if (!registry) return;
 
-        await prisma.conversationKeyRegistry.update({
-          where: { jobAddress },
-          data: { deletionEligible: true },
-        });
+          await prisma.conversationKeyRegistry.update({
+            where: { jobAddress },
+            data: { deletionEligible: true },
+          });
 
-        io.to(jobAddress).emit("deletion-unlocked", { jobAddress });
-        console.log(`[CHAT SERVICE] Deletion unlocked for ${jobAddress} — payment confirmed on-chain`);
+          io.to(jobAddress).emit("deletion-unlocked", { jobAddress });
+          console.log(`[CHAT SERVICE] Deletion unlocked for ${jobAddress} — payment confirmed on-chain`);
+        } catch (dbErr) {
+          console.warn(`[CHAT SERVICE] Could not update deletion status for ${jobAddress}:`, dbErr);
+        }
       };
 
       job.on("PaymentReleased", unlockDeletion);
@@ -50,22 +58,37 @@ export async function startPaymentListener(prisma: PrismaClient, io: Server) {
       job.on("DisputeResolved", unlockDeletion);
     };
 
-    // 1. Scan historical JobPosted events on startup
+    // 1. Scan historical jobs via getAllJobs() directly (reliable across all RPC providers)
     try {
-      const historicalLogs = await factory.queryFilter(factory.filters.JobPosted());
-      for (const log of historicalLogs) {
-        const eventLog = log as ethers.EventLog;
-        if (eventLog.args && eventLog.args[0]) {
-          attachJobListeners(eventLog.args[0]);
-        }
+      const allJobs: string[] = await factory.getAllJobs().catch(() => []);
+      if (Array.isArray(allJobs) && allJobs.length > 0) {
+        allJobs.forEach(attachJobListeners);
+        console.log(`[CHAT SERVICE] Attached listeners for ${allJobs.length} jobs via getAllJobs()`);
       }
-      console.log(`[CHAT SERVICE] Initialized historical payment listeners for ${historicalLogs.length} on-chain jobs`);
     } catch (e) {
-      console.warn("[CHAT SERVICE] Historical log scan skipped or RPC unavailable");
+      console.warn("[CHAT SERVICE] getAllJobs scan skipped or failed:", e);
     }
 
-    // 2. Listen to real-time JobPosted events going forward
-    factory.on("JobPosted", (jobAddress: string) => {
+    // 2. Scan historical logs via queryFilter as backup
+    try {
+      if (factory.filters && factory.filters.JobDeployed) {
+        const historicalLogs = await factory.queryFilter(factory.filters.JobDeployed()).catch(() => []);
+        for (const log of historicalLogs) {
+          const eventLog = log as ethers.EventLog;
+          if (eventLog.args && eventLog.args[0]) {
+            attachJobListeners(eventLog.args[0]);
+          }
+        }
+      }
+    } catch (e) {
+      // queryFilter fallback
+    }
+
+    // 3. Listen to real-time JobDeployed / JobPosted events going forward
+    factory.on?.("JobDeployed", (jobAddress: string) => {
+      attachJobListeners(jobAddress);
+    });
+    factory.on?.("JobPosted", (jobAddress: string) => {
       attachJobListeners(jobAddress);
     });
 

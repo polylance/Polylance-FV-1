@@ -183,6 +183,13 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                 continue;
                                             }
 
+                                            let is_party = wallet == conv.client_address.to_lowercase() || wallet == conv.freelancer_address.to_lowercase();
+                                            if !is_party {
+                                                let err = serde_json::to_string(&ServerNotice::Error { message: "Not authorized to post to this job conversation".into() }).unwrap();
+                                                let _ = sender.send(Message::Text(err)).await;
+                                                continue;
+                                            }
+
                                             match crypto::encrypt_message(&content, &state.encryption_key) {
                                                 Ok(encrypted) => {
                                                     match db::save_message(&state.pool, &conv.id, &wallet, &encrypted).await {
@@ -196,7 +203,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                             };
 
                                                             let notice = ServerNotice::NewMessage(dto);
-                                                            let _ = sender.send(Message::Text(serde_json::to_string(&notice).unwrap())).await;
+                                                            let payload = serde_json::to_string(&notice).unwrap();
+                                                            let _ = state.tx_events.send((job_address.clone(), payload));
                                                         }
                                                         Err(e) => {
                                                             let err = serde_json::to_string(&ServerNotice::Error { message: format!("Failed to save message: {}", e) }).unwrap();
@@ -224,7 +232,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                 job_address: job_address.clone(),
                                                 by: wallet.clone(),
                                             };
-                                            let _ = sender.send(Message::Text(serde_json::to_string(&notice).unwrap())).await;
+                                            let payload = serde_json::to_string(&notice).unwrap();
+                                            let _ = state.tx_events.send((job_address.clone(), payload));
                                         }
                                         Ok(false) => {
                                             let err = serde_json::to_string(&ServerNotice::Error { message: "Cannot delete — payment has not been released yet or not found".into() }).unwrap();
@@ -244,13 +253,15 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 }
             }
 
-            // Handle background broadcast events (e.g. deletion-unlocked)
-            Ok((target_job, event_type)) = rx_events.recv() => {
+            // Handle background broadcast events (e.g. deletion-unlocked, new-message, conversation-deleted)
+            Ok((target_job, event_payload)) = rx_events.recv() => {
                 if let Some(ref current_job) = active_job_address {
                     if current_job.to_lowercase() == target_job.to_lowercase() {
-                        if event_type == "deletion-unlocked" {
+                        if event_payload == "deletion-unlocked" {
                             let notice = ServerNotice::DeletionUnlocked { job_address: target_job };
                             let _ = sender.send(Message::Text(serde_json::to_string(&notice).unwrap())).await;
+                        } else {
+                            let _ = sender.send(Message::Text(event_payload)).await;
                         }
                     }
                 }

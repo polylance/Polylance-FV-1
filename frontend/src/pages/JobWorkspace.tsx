@@ -98,6 +98,10 @@ export const JobWorkspace: React.FC = () => {
   const queryJobId = searchParams.get('jobId');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(() => {
     if (queryJobId) return queryJobId;
+    const lastOpened = typeof window !== 'undefined' ? localStorage.getItem('polylance_last_opened_job') : null;
+    if (lastOpened && myJobs.some(j => j.id === lastOpened || j.contractAddress?.toLowerCase() === lastOpened.toLowerCase())) {
+      return lastOpened;
+    }
     if (myJobs.length > 0) return myJobs[0].id;
     return null;
   });
@@ -105,10 +109,18 @@ export const JobWorkspace: React.FC = () => {
   useEffect(() => {
     if (queryJobId && myJobs.some(j => j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase())) {
       setSelectedJobId(queryJobId);
-    } else if (!selectedJobId && myJobs.length > 0) {
-      setSelectedJobId(myJobs[0].id);
+    } else if (!selectedJobId) {
+      const lastOpened = typeof window !== 'undefined' ? localStorage.getItem('polylance_last_opened_job') : null;
+      if (lastOpened && myJobs.some(j => j.id === lastOpened || j.contractAddress?.toLowerCase() === lastOpened.toLowerCase())) {
+        setSelectedJobId(lastOpened);
+      } else if (myJobs.length > 0) {
+        setSelectedJobId(myJobs[0].id);
+      }
     } else if (selectedJobId && !myJobs.some(j => j.id === selectedJobId || j.contractAddress?.toLowerCase() === selectedJobId?.toLowerCase())) {
-      if (myJobs.length > 0) {
+      const lastOpened = typeof window !== 'undefined' ? localStorage.getItem('polylance_last_opened_job') : null;
+      if (lastOpened && myJobs.some(j => j.id === lastOpened || j.contractAddress?.toLowerCase() === lastOpened.toLowerCase())) {
+        setSelectedJobId(lastOpened);
+      } else if (myJobs.length > 0) {
         setSelectedJobId(myJobs[0].id);
       } else {
         setSelectedJobId(null);
@@ -128,6 +140,15 @@ export const JobWorkspace: React.FC = () => {
     }
     return myJobs[0];
   }, [myJobs, selectedJobId, queryJobId]);
+
+  // Persist active job to localStorage so returning visitors resume this exact workspace
+  useEffect(() => {
+    if (activeJob?.id) {
+      try {
+        localStorage.setItem('polylance_last_opened_job', activeJob.id);
+      } catch {}
+    }
+  }, [activeJob?.id]);
 
   // ── Job Switcher Dropdown ──
   const [isJobDropdownOpen, setIsJobDropdownOpen] = useState(false);

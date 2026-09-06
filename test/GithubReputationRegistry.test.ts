@@ -14,11 +14,9 @@ describe("GithubReputationRegistry", function () {
   const secondaryCategories = [ethers.encodeBytes32String("web")];
   const secondaryScores = [400n];
 
-  /**
-   * Build the same message hash the contract builds:
-   *   keccak256(abi.encodePacked(user, primary, primaryScore, secondaries, secondaryScores, uid))
-   */
   function buildMessageHash(
+    chainId: bigint,
+    registryAddress: string,
     userAddr: string,
     primCat: string,
     primScore: bigint,
@@ -26,21 +24,16 @@ describe("GithubReputationRegistry", function () {
     secScores: bigint[],
     uid: string
   ): string {
-    const abiCoder = ethers.AbiCoder.defaultAbiCoder();
-    const encoded = abiCoder.encode(
-      ["address", "bytes32", "uint256", "bytes32[]", "uint256[]", "bytes32"],
-      [userAddr, primCat, primScore, secCats, secScores, uid]
+    return ethers.solidityPackedKeccak256(
+      ["uint256", "address", "address", "bytes32", "uint256", "bytes32[]", "uint256[]", "bytes32"],
+      [chainId, registryAddress, userAddr, primCat, primScore, secCats, secScores, uid]
     );
-    return ethers.keccak256(encoded);
   }
 
   beforeEach(async function () {
     [oracle, user, attacker] = await ethers.getSigners();
     registry = await ethers.deployContract("GithubReputationRegistry");
     await registry.waitForDeployment();
-
-    // Grant ORACLE_OPERATOR_ROLE to oracle (deployer already has it by default)
-    // Just use the deployer (oracle) who already has the role from constructor
   });
 
   function makeUID(): string {
@@ -48,7 +41,10 @@ describe("GithubReputationRegistry", function () {
   }
 
   async function makeValidAttestation(userAddr: string, uid: string) {
+    const chainId = (await ethers.provider.getNetwork()).chainId;
     const msgHash = buildMessageHash(
+      chainId,
+      await registry.getAddress(),
       userAddr,
       primaryCategory,
       primaryScore,
@@ -56,9 +52,7 @@ describe("GithubReputationRegistry", function () {
       secondaryScores,
       uid
     );
-    // oracle (signer[0]) signs the eth-prefixed hash
-    const signature = await oracle.signMessage(ethers.getBytes(msgHash));
-    return signature;
+    return await oracle.signMessage(ethers.getBytes(msgHash));
   }
 
   // ── Valid oracle signature ──────────────────────────────────────────────────
@@ -91,7 +85,10 @@ describe("GithubReputationRegistry", function () {
 
   it("rejects a signature from a non-oracle address", async function () {
     const uid = makeUID();
+    const chainId = (await ethers.provider.getNetwork()).chainId;
     const msgHash = buildMessageHash(
+      chainId,
+      await registry.getAddress(),
       user.address,
       primaryCategory,
       primaryScore,

@@ -49,7 +49,7 @@ describe("HiddenEdgeCases & Security Bounds", function () {
 
     it("should prevent transfer of soulbound tokens via transferFrom", async function () {
       // Create a job and complete it to get an SBT
-      const tx = await factory.connect(client).postJob(JOB_DESCRIPTION);
+      const tx = await factory.connect(client).postJob(JOB_DESCRIPTION, ethers.ZeroAddress);
       const receipt = await tx.wait();
       const event = receipt?.logs
         .map((log) => {
@@ -62,7 +62,7 @@ describe("HiddenEdgeCases & Security Bounds", function () {
 
       await job.connect(freelancer).applyToJob(PROPOSAL_HASH);
       await job.connect(client).selectFreelancer(freelancer.address);
-      await job.connect(client).fundJob({ value: ethers.parseEther("1.0") });
+      await job.connect(client).fundJob(0, { value: ethers.parseEther("1.0") });
       await job.connect(freelancer).submitWork("Title", "Desc", ["QmProof"]);
       await job.connect(client).releasePayment();
 
@@ -93,7 +93,7 @@ describe("HiddenEdgeCases & Security Bounds", function () {
 
     it("should enforce TREASURY_ADMIN_ROLE for treasury withdrawals", async function () {
       // Complete job to accumulate fee
-      const tx = await factory.connect(client).postJob(JOB_DESCRIPTION);
+      const tx = await factory.connect(client).postJob(JOB_DESCRIPTION, ethers.ZeroAddress);
       const receipt = await tx.wait();
       const event = receipt?.logs
         .map((log) => {
@@ -104,7 +104,7 @@ describe("HiddenEdgeCases & Security Bounds", function () {
       const job = await ethers.getContractAt("JobEscrow", event!.args.jobContract) as JobEscrow;
       await job.connect(freelancer).applyToJob(PROPOSAL_HASH);
       await job.connect(client).selectFreelancer(freelancer.address);
-      await job.connect(client).fundJob({ value: ethers.parseEther("10.0") });
+      await job.connect(client).fundJob(0, { value: ethers.parseEther("10.0") });
       await job.connect(freelancer).submitWork("Title", "Desc", ["QmProof"]);
       await job.connect(client).releasePayment();
 
@@ -113,7 +113,7 @@ describe("HiddenEdgeCases & Security Bounds", function () {
 
       // Non-admin withdrawal fails
       await expect(
-        factory.connect(attacker).withdrawTreasury(attacker.address, fee)
+        factory.connect(attacker).withdrawTreasury(ethers.ZeroAddress, attacker.address, fee)
       ).to.be.revertedWithCustomError(factory, "AccessControlUnauthorizedAccount");
 
       // Grant TREASURY_ADMIN_ROLE to admin
@@ -122,12 +122,12 @@ describe("HiddenEdgeCases & Security Bounds", function () {
 
       // Withdrawal exceeding balance fails
       await expect(
-        factory.connect(admin).withdrawTreasury(admin.address, fee + 1n)
+        factory.connect(admin).withdrawTreasury(ethers.ZeroAddress, admin.address, fee + 1n)
       ).to.be.revertedWith("Insufficient treasury balance");
 
       // Successful withdrawal
       const recipientBefore = await ethers.provider.getBalance(admin.address);
-      const withdrawTx = await factory.connect(admin).withdrawTreasury(admin.address, fee);
+      const withdrawTx = await factory.connect(admin).withdrawTreasury(ethers.ZeroAddress, admin.address, fee);
       const withdrawReceipt = await withdrawTx.wait();
       const gasUsed = withdrawReceipt!.gasUsed * withdrawReceipt!.gasPrice;
 
@@ -143,7 +143,7 @@ describe("HiddenEdgeCases & Security Bounds", function () {
     let job: JobEscrow;
 
     beforeEach(async function () {
-      const tx = await factory.connect(client).postJob(JOB_DESCRIPTION);
+      const tx = await factory.connect(client).postJob(JOB_DESCRIPTION, ethers.ZeroAddress);
       const receipt = await tx.wait();
       const event = receipt?.logs
         .map((log) => {
@@ -162,7 +162,7 @@ describe("HiddenEdgeCases & Security Bounds", function () {
 
     it("should prevent non-client from funding job", async function () {
       await expect(
-        job.connect(attacker).fundJob({ value: ethers.parseEther("1.0") })
+        job.connect(attacker).fundJob(0, { value: ethers.parseEther("1.0") })
       ).to.be.revertedWith("Only client funds");
     });
 
@@ -204,7 +204,7 @@ describe("HiddenEdgeCases & Security Bounds", function () {
     it("should allow arbitrator to resolve dispute with 0% to freelancer (100% refund to client)", async function () {
       await job.connect(freelancer).applyToJob(PROPOSAL_HASH);
       await job.connect(client).selectFreelancer(freelancer.address);
-      await job.connect(client).fundJob({ value: ethers.parseEther("2.0") });
+      await job.connect(client).fundJob(0, { value: ethers.parseEther("2.0") });
       await job.connect(freelancer).submitWork("Title", "Desc", ["QmProof"]);
       await job.connect(client).raiseDispute(0, "QmClientEv");
 

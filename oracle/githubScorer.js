@@ -178,6 +178,8 @@ async function scoreGithubProfile(username) {
  *   the same thing.
  */
 async function signAttestation(
+  chainId,
+  registryAddress,
   userAddress,
   primaryCategory,
   primaryScore,
@@ -185,8 +187,10 @@ async function signAttestation(
   secondaryScores,
   attestationUID
 ) {
-  // Build type + value arrays for solidityPackedKeccak256
+  // Build type + value arrays for solidityPackedKeccak256 matching on-chain digest
   const types = [
+    "uint256",
+    "address",
     "address",
     "bytes32",
     "uint256",
@@ -195,6 +199,8 @@ async function signAttestation(
     "bytes32",
   ];
   const values = [
+    BigInt(chainId || process.env.CHAIN_ID || 80002),
+    registryAddress || process.env.REGISTRY_ADDRESS || "0x0165878A594ca255338adfa4d48449f69242Eb8F",
     userAddress,
     categoryToBytes32(primaryCategory),
     BigInt(primaryScore),
@@ -203,9 +209,7 @@ async function signAttestation(
     attestationUID,
   ];
 
-  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
-  const encoded = abiCoder.encode(types, values);
-  const messageHash = ethers.keccak256(encoded);
+  const messageHash = ethers.solidityPackedKeccak256(types, values);
   const ethSignedHash = ethers.hashMessage(ethers.getBytes(messageHash));
   const signature = await oracleWallet.signMessage(ethers.getBytes(messageHash));
 
@@ -215,10 +219,10 @@ async function signAttestation(
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const [githubUsername, userWalletAddress] = process.argv.slice(2);
+  const [githubUsername, userWalletAddress, customRegistryAddr, customChainId] = process.argv.slice(2);
 
   if (!githubUsername || !userWalletAddress) {
-    console.error("Usage: node oracle/githubScorer.js <githubUsername> <userWalletAddress>");
+    console.error("Usage: node oracle/githubScorer.js <githubUsername> <userWalletAddress> [registryAddress] [chainId]");
     process.exit(1);
   }
 
@@ -236,7 +240,12 @@ async function main() {
     ethers.toUtf8Bytes(`${userWalletAddress}:${githubUsername}:${nonce}`)
   );
 
+  const registryAddress = customRegistryAddr || process.env.REGISTRY_ADDRESS || "0x0165878A594ca255338adfa4d48449f69242Eb8F";
+  const chainId = customChainId || process.env.CHAIN_ID || 80002;
+
   const { signature } = await signAttestation(
+    chainId,
+    registryAddress,
     userWalletAddress,
     profile.primaryCategory,
     profile.primaryScore,

@@ -33,7 +33,7 @@ describe("ReentrancyGuard", function () {
     await sbt.grantRole(MINTER_ROLE, await factory.getAddress());
 
     // 2. Client creates Job Escrow via Factory
-    const tx = await factory.connect(client).postJob("QmJobDescriptionHash");
+    const tx = await factory.connect(client).postJob("QmJobDescriptionHash", ethers.ZeroAddress);
     const receipt = await tx.wait();
     
     // Find clone address from JobDeployed event
@@ -66,7 +66,7 @@ describe("ReentrancyGuard", function () {
     await attackerContract.connect(attackerWallet).proposeTerms(termsHash);
 
     // 6. Fund the job
-    await escrowContract.connect(client).fundJob({ value: ethers.parseEther("1.0") });
+    await escrowContract.connect(client).fundJob(0, { value: ethers.parseEther("1.0") });
   });
 
   it("should prevent reentrancy during claimAutoRelease", async function () {

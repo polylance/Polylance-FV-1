@@ -1,6 +1,7 @@
 import { ethers } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
+import { getPolygonGasOverrides } from "./checkGasPrice";
 
 export interface DeploymentAddresses {
   JobEscrowImplementation: string;
@@ -19,6 +20,7 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
   const [deployer] = await ethers.getSigners();
   const networkObj = await ethers.provider.getNetwork();
   const network = networkObj.name === "unknown" ? "hardhat" : networkObj.name;
+  const gasOverrides = await getPolygonGasOverrides(network);
 
   const deploymentsDir = path.join(__dirname, "..", "deployments");
   fs.mkdirSync(deploymentsDir, { recursive: true });
@@ -49,7 +51,7 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
   } else {
     console.log("1/7 Deploying JobEscrow implementation...");
     const JobEscrow = await ethers.getContractFactory("JobEscrow");
-    const jobEscrowImpl = await JobEscrow.deploy();
+    const jobEscrowImpl = await JobEscrow.deploy(gasOverrides);
     await jobEscrowImpl.waitForDeployment();
     jobEscrowImplAddr = await jobEscrowImpl.getAddress();
     console.log("    ✓", jobEscrowImplAddr);
@@ -64,7 +66,7 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
   } else {
     console.log("2/7 Deploying ReputationSBT...");
     const ReputationSBT = await ethers.getContractFactory("ReputationSBT");
-    const sbt = await ReputationSBT.deploy(deployer.address);
+    const sbt = await ReputationSBT.deploy(deployer.address, gasOverrides);
     await sbt.waitForDeployment();
     sbtAddr = await sbt.getAddress();
     console.log("    ✓", sbtAddr);
@@ -83,16 +85,16 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
       console.log("    ✓ Confirmed MINTER_ROLE is already held by JobFactory on ReputationSBT");
     } else {
       console.log("    Granting MINTER_ROLE to JobFactory...");
-      let tx = await sbtContract.grantRole(MINTER_ROLE, factoryAddr);
+      let tx = await sbtContract.grantRole(MINTER_ROLE, factoryAddr, gasOverrides);
       await tx.wait();
-      tx = await sbtContract.revokeRole(MINTER_ROLE, deployer.address);
+      tx = await sbtContract.revokeRole(MINTER_ROLE, deployer.address, gasOverrides);
       await tx.wait();
       console.log("    ✓ MINTER_ROLE moved to JobFactory, revoked from deployer");
     }
   } else {
     console.log("3/7 Deploying JobFactory...");
     const JobFactory = await ethers.getContractFactory("JobFactory");
-    const factory = await JobFactory.deploy(jobEscrowImplAddr, sbtAddr);
+    const factory = await JobFactory.deploy(jobEscrowImplAddr, sbtAddr, gasOverrides);
     await factory.waitForDeployment();
     factoryAddr = await factory.getAddress();
     console.log("    ✓", factoryAddr);
@@ -101,9 +103,9 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
 
     const sbtContract = await ethers.getContractAt("ReputationSBT", sbtAddr);
     const MINTER_ROLE = await sbtContract.MINTER_ROLE();
-    let tx = await sbtContract.grantRole(MINTER_ROLE, factoryAddr);
+    let tx = await sbtContract.grantRole(MINTER_ROLE, factoryAddr, gasOverrides);
     await tx.wait();
-    tx = await sbtContract.revokeRole(MINTER_ROLE, deployer.address);
+    tx = await sbtContract.revokeRole(MINTER_ROLE, deployer.address, gasOverrides);
     await tx.wait();
     console.log("    ✓ MINTER_ROLE moved to JobFactory, revoked from deployer");
   }
@@ -115,7 +117,7 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
   } else {
     console.log("4/7 Deploying ProfileRegistry...");
     const ProfileRegistry = await ethers.getContractFactory("ProfileRegistry");
-    const profileRegistry = await ProfileRegistry.deploy();
+    const profileRegistry = await ProfileRegistry.deploy(gasOverrides);
     await profileRegistry.waitForDeployment();
     profileRegistryAddr = await profileRegistry.getAddress();
     console.log("    ✓", profileRegistryAddr);
@@ -130,7 +132,7 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
   } else {
     console.log("5/7 Deploying GithubReputationRegistry...");
     const GithubReputationRegistry = await ethers.getContractFactory("GithubReputationRegistry");
-    const githubRegistry = await GithubReputationRegistry.deploy();
+    const githubRegistry = await GithubReputationRegistry.deploy(gasOverrides);
     await githubRegistry.waitForDeployment();
     githubRegistryAddr = await githubRegistry.getAddress();
     console.log("    ✓", githubRegistryAddr);
@@ -149,7 +151,8 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
       172800, // 2 days minDelay
       [],     // proposers (granted to JudgeDAO below)
       [ethers.ZeroAddress], // executors (open execution once delay expires)
-      deployer.address
+      deployer.address,
+      gasOverrides
     );
     await timelock.waitForDeployment();
     timelockAddr = await timelock.getAddress();
@@ -165,7 +168,7 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
   } else {
     console.log("7/7 Deploying JudgeDAO...");
     const JudgeDAO = await ethers.getContractFactory("JudgeDAO");
-    const judgeDAO = await JudgeDAO.deploy(sbtAddr, timelockAddr);
+    const judgeDAO = await JudgeDAO.deploy(sbtAddr, timelockAddr, gasOverrides);
     await judgeDAO.waitForDeployment();
     judgeDAOAddr = await judgeDAO.getAddress();
     console.log("    ✓", judgeDAOAddr);
@@ -174,7 +177,7 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
 
     const timelockContract = await ethers.getContractAt("TimelockController", timelockAddr);
     const PROPOSER_ROLE = await timelockContract.PROPOSER_ROLE();
-    const tx = await timelockContract.grantRole(PROPOSER_ROLE, judgeDAOAddr);
+    const tx = await timelockContract.grantRole(PROPOSER_ROLE, judgeDAOAddr, gasOverrides);
     await tx.wait();
     console.log("    ✓ PROPOSER_ROLE on TimelockController granted to JudgeDAO");
   }
@@ -193,6 +196,14 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
   };
 
   fs.writeFileSync(manifestPath, JSON.stringify(addresses, null, 2));
+
+  // Sync to frontend config directory
+  const frontendConfigDir = path.join(__dirname, "..", "frontend", "src", "config");
+  if (fs.existsSync(frontendConfigDir)) {
+    const frontendManifestPath = path.join(frontendConfigDir, `${network}_addresses.json`);
+    fs.writeFileSync(frontendManifestPath, JSON.stringify(addresses, null, 2));
+    console.log("  Synced manifest to frontend:", frontendManifestPath);
+  }
 
   if (network === "amoy" || network === "polygonAmoy") {
     const rootPath = path.join(__dirname, "..", "amoy_deployment_addresses.json");

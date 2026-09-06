@@ -13,13 +13,13 @@ export interface CachedIpfsFile {
 
 const memoryIpfsCache = new Map<string, CachedIpfsFile>();
 
-const PINATA_JWT = import.meta.env.VITE_PINATA_JWT;
+const FILEBASE_API_KEY = import.meta.env.VITE_FILEBASE_API_KEY;
 
 /**
- * Upload JSON payload directly to Pinata IPFS
+ * Upload JSON payload directly to Filebase IPFS
  */
-export async function pinJsonToPinata(body: Record<string, any>, name: string = 'payload.json'): Promise<string> {
-  if (!PINATA_JWT) {
+export async function pinJsonToFilebase(body: Record<string, any>, name: string = 'payload.json'): Promise<string> {
+  if (!FILEBASE_API_KEY) {
     const fallbackCid = generateIpfsCid(body);
     storeIpfsFile(fallbackCid, {
       cid: fallbackCid,
@@ -33,21 +33,21 @@ export async function pinJsonToPinata(body: Record<string, any>, name: string = 
   }
 
   try {
-    const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+    const blob = new Blob([JSON.stringify(body)], { type: 'application/json' });
+    const formData = new FormData();
+    formData.append('file', blob, name);
+
+    const res = await fetch('https://rpc.filebase.io/ipfs/upload', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${PINATA_JWT}`,
+        Authorization: `Bearer ${FILEBASE_API_KEY}`,
       },
-      body: JSON.stringify({
-        pinataMetadata: { name },
-        pinataContent: body,
-      }),
+      body: formData,
     });
 
-    if (!res.ok) throw new Error(`Pinata error: ${res.statusText}`);
+    if (!res.ok) throw new Error(`Filebase error: ${res.statusText}`);
     const data = await res.json();
-    const cid = data.IpfsHash;
+    const cid = data.cid || data.Hash || data.IpfsHash;
 
     storeIpfsFile(cid, {
       cid,
@@ -60,17 +60,17 @@ export async function pinJsonToPinata(body: Record<string, any>, name: string = 
 
     return cid;
   } catch (err) {
-    console.warn('Pinata upload fallback to local CID:', err);
+    console.warn('Filebase upload fallback to local CID:', err);
     const fallbackCid = generateIpfsCid(body);
     return fallbackCid;
   }
 }
 
 /**
- * Upload File / Blob directly to Pinata IPFS
+ * Upload File / Blob directly to Filebase IPFS
  */
-export async function pinFileToPinata(file: File | Blob, filename: string): Promise<string> {
-  if (!PINATA_JWT) {
+export async function pinFileToFilebase(file: File | Blob, filename: string): Promise<string> {
+  if (!FILEBASE_API_KEY) {
     const fallbackCid = generateIpfsCid({ name: filename, size: file.size, timestamp: Date.now() });
     return fallbackCid;
   }
@@ -79,22 +79,19 @@ export async function pinFileToPinata(file: File | Blob, filename: string): Prom
     const formData = new FormData();
     formData.append('file', file, filename);
 
-    const metadata = JSON.stringify({ name: filename });
-    formData.append('pinataMetadata', metadata);
-
-    const res = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+    const res = await fetch('https://rpc.filebase.io/ipfs/upload', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${PINATA_JWT}`,
+        Authorization: `Bearer ${FILEBASE_API_KEY}`,
       },
       body: formData,
     });
 
-    if (!res.ok) throw new Error(`Pinata file error: ${res.statusText}`);
+    if (!res.ok) throw new Error(`Filebase file error: ${res.statusText}`);
     const data = await res.json();
-    return data.IpfsHash;
+    return data.cid || data.Hash || data.IpfsHash;
   } catch (err) {
-    console.warn('Pinata file upload fallback:', err);
+    console.warn('Filebase file upload fallback:', err);
     return generateIpfsCid({ name: filename, size: file.size, timestamp: Date.now() });
   }
 }
@@ -150,9 +147,9 @@ export function getCachedIpfsFile(cid: string): CachedIpfsFile | null {
 }
 
 export const IPFS_GATEWAYS = [
-  import.meta.env.VITE_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/',
+  import.meta.env.VITE_FILEBASE_GATEWAY || 'https://ipfs.filebase.io/ipfs/',
   'https://ipfs.io/ipfs/',
+  'https://cloudflare-ipfs.com/ipfs/',
   'https://dweb.link/ipfs/',
   'https://w3s.link/ipfs/',
 ];
@@ -172,7 +169,7 @@ export function getIpfsGatewayUrl(cid: string): string {
 }
 
 /**
- * Multi-Gateway Resilient JSON Fetcher (Tries Pinata, Cloudflare, IPFS.io, dweb.link)
+ * Multi-Gateway Resilient JSON Fetcher (Tries Filebase, IPFS.io, Cloudflare, dweb.link)
  */
 export async function fetchIpfsJsonWithFallback<T = any>(cid: string): Promise<T | null> {
   if (!cid) return null;

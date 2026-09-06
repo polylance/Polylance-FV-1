@@ -26,7 +26,8 @@ import {
   Settings,
   Grid,
   Power,
-  Wallet
+  Wallet,
+  AlertTriangle
 } from 'lucide-react';
 import { truncateAddress, formatPolBalance } from '../utils/formatters';
 import { dropdownVariants, transition } from '../lib/motion';
@@ -202,7 +203,18 @@ const DropdownLink: React.FC<DropdownLinkProps> = ({ to, icon, label, onClick, a
 // Main Navbar
 // ──────────────────────────────────────────────────────────────────────────────
 export const Navbar: React.FC = () => {
-  const { isConnected, address, currentRole, disconnectWallet, balanceNative, balanceUsdc } = useWeb3();
+  const { 
+    isConnected, 
+    address, 
+    currentRole, 
+    disconnectWallet, 
+    balanceNative, 
+    balanceUsdc,
+    isWrongNetwork,
+    targetChainName,
+    targetChainId,
+    switchToTargetNetwork
+  } = useWeb3();
   const { jobs } = usePolyLanceData();
   const location = useLocation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -281,6 +293,29 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
+      {/* ── Wrong Network Alert Banner (MetaMask Network Guard) ────────────────────── */}
+      {isWrongNetwork && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-xs font-medium px-4 py-2 flex items-center justify-between shadow-sm no-print relative z-50">
+          <div className="flex items-center gap-2 max-w-5xl">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+            </span>
+            <span>
+              <strong>Wrong Network Detected:</strong> Your wallet is connected to an unsupported chain. Please switch to <strong>{targetChainName}</strong> (Chain ID: {targetChainId}) to interact with PolyLance smart contracts and real payments.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={switchToTargetNetwork}
+            className="px-3.5 py-1 bg-white text-orange-800 hover:bg-orange-50 font-bold rounded-lg text-xs shadow-xs transition-all cursor-pointer shrink-0 ml-3 flex items-center gap-1.5"
+          >
+            <AlertTriangle size={13} className="text-orange-600" />
+            <span>Switch to {targetChainName}</span>
+          </button>
+        </div>
+      )}
+
       {/* ── Scroll-aware Liquid Glass Header with Full Backdrop Blur (iOS 26 Frosted Glass) ───────── */}
       <header
         className="sticky top-0 z-50 w-full py-2 border-b border-slate-200/50 transition-all duration-300 no-print"
@@ -499,22 +534,35 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-2 shrink-0">
           {isConnected && address ? (
             <div className="flex items-center gap-2">
-              {/* Real-Time Live Wallet Money Pill (Clickable -> Full Balance Breakdown Modal) */}
-              <button
-                type="button"
-                onClick={() => setIsBalanceModalOpen(true)}
-                title="Click to view full wallet & balance details"
-                className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-white/85 hover:bg-purple-50/80 border border-purple-200/80 hover:border-purple-300 text-slate-800 shadow-2xs transition-all cursor-pointer group"
-              >
-                <div className="flex items-center gap-1.5 text-purple-700 group-hover:text-purple-900">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                  <span>{formatPolBalance(balanceNative)} POL</span>
-                </div>
-                <span className="text-slate-300">|</span>
-                <div className="text-emerald-700 group-hover:text-emerald-900">
-                  <span>${balanceUsdc} USDC</span>
-                </div>
-              </button>
+              {/* Network Warning Pill if wrong network */}
+              {isWrongNetwork ? (
+                <button
+                  type="button"
+                  onClick={switchToTargetNetwork}
+                  title={`Click to switch wallet network to ${targetChainName}`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 shadow-2xs transition-all cursor-pointer animate-pulse"
+                >
+                  <AlertTriangle size={13} className="text-amber-600 shrink-0" />
+                  <span>Switch to {targetChainName}</span>
+                </button>
+              ) : (
+                /* Real-Time Live Wallet Money Pill (Clickable -> Full Balance Breakdown Modal) */
+                <button
+                  type="button"
+                  onClick={() => setIsBalanceModalOpen(true)}
+                  title="Click to view full wallet & balance details"
+                  className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-white/85 hover:bg-purple-50/80 border border-purple-200/80 hover:border-purple-300 text-slate-800 shadow-2xs transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center gap-1.5 text-purple-700 group-hover:text-purple-900">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    <span>{formatPolBalance(balanceNative)} POL</span>
+                  </div>
+                  <span className="text-slate-300">|</span>
+                  <div className="text-emerald-700 group-hover:text-emerald-900">
+                    <span>${balanceUsdc} USDC</span>
+                  </div>
+                </button>
+              )}
 
               {/* User Account Profile Pill */}
               <Link

@@ -5,7 +5,7 @@ import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { ProofOfWorkUploader } from './ProofOfWorkUploader';
 import { getIpfsGatewayUrl, generateIpfsCid, getCachedIpfsFile, storeIpfsFile, openOrDownloadIpfsFile, CachedIpfsFile } from '../utils/ipfs';
-import { truncateAddress, getCanonicalCertificateId, getCertifiedPassVerifyUrl } from '../utils/formatters';
+import { truncateAddress, getCanonicalCertificateId, getCertifiedPassVerifyUrl, formatWeb3ErrorMessage } from '../utils/formatters';
 import { 
   Sparkles, CheckCircle2, Clock, FileText, ExternalLink, Link2,
   Send, Scale, RefreshCw, Layers, TrendingUp, MessageSquare, 
@@ -18,6 +18,7 @@ import confetti from 'canvas-confetti';
 import { ActionStatusModal, ActionModalDetail } from './ActionStatusModal';
 import { RaiseDisputeModal } from './RaiseDisputeModal';
 import { FormattedJobDescription } from './FormattedJobDescription';
+import { PaymentReleasedModal } from './PaymentReleasedModal';
 
 interface DeliverableWorkSubmissionPanelProps {
   job: Job;
@@ -280,6 +281,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [isFullLogExpanded, setIsFullLogExpanded] = useState(false);
   const [previewFile, setPreviewFile] = useState<CachedIpfsFile | null>(null);
+  const [isPaymentReleasedModalOpen, setIsPaymentReleasedModalOpen] = useState(false);
 
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
@@ -434,23 +436,20 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     });
   };
 
-  const handleApproveWork = () => {
-    releasePayment(currentJob.id);
-    confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
-    setActionModal({
-      isOpen: true,
-      title: 'Milestone Escrow Payout Released',
-      subtitle: `Successfully authorized payout of ${currentJob.amountUsdc} USDC to the freelancer on Polygon.`,
-      icon: 'payment',
-      badgeText: 'ESCROW SETTLED ON-CHAIN',
-      details: [
-        { label: 'AMOUNT PAID', value: `${currentJob.amountUsdc} USDC`, isBadge: true },
-        { label: 'BENEFICIARY', value: truncateAddress(currentJob.freelancer || ''), isMono: true },
-        { label: 'CONTRACT', value: truncateAddress(currentJob.contractAddress), isMono: true },
-      ],
-      primaryActionText: 'View Settled Contract',
-      onPrimaryAction: () => navigate(`/jobs/${currentJob.id}`),
-    });
+  const handleApproveWork = async () => {
+    try {
+      await releasePayment(currentJob.id);
+      setIsPaymentReleasedModalOpen(true);
+    } catch (err: any) {
+      console.error('Failed to release payment:', err);
+      setActionModal({
+        isOpen: true,
+        title: 'Payment Release Failed',
+        subtitle: formatWeb3ErrorMessage(err),
+        icon: 'dispute',
+        badgeText: 'TRANSACTION CANCELLED',
+      });
+    }
   };
 
   const handleEscalateToJudge = (e: React.FormEvent) => {
@@ -2140,6 +2139,14 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           </div>
         </div>
       )}
+
+      {/* Payment Released Celebratory Modal */}
+      <PaymentReleasedModal
+        isOpen={isPaymentReleasedModalOpen}
+        onClose={() => setIsPaymentReleasedModalOpen(false)}
+        job={currentJob}
+        onViewAttestation={() => navigate(`/jobs/${currentJob.id}/attestation`)}
+      />
     </div>
   );
 };

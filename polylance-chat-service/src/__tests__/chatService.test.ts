@@ -297,6 +297,8 @@ describe("PolyLance Hardened Chat — E2E Socket Security & Crypto Invariants", 
     const testClient = "0x7777111177771111777711117777111177771111";
     const testFreelancer = "0x8888222288882222888822228888222288882222";
     const testJudge = "0xb8aa0398b91a150b041da819bc954bb356e009dd";
+    process.env.ADMIN_ADDRESS = testJudge;
+    process.env.JUDGE_ADDRESS = testJudge;
 
     await fetch(`${SERVER_URL}/api/sync`, {
       method: "POST",

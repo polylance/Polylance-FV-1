@@ -6,7 +6,7 @@ interface DemoModeContextType {
   isDemoMode: boolean;
   demoRole: DemoRole;
   setDemoRole: (role: DemoRole) => void;
-  demoWalletInfo: typeof DEMO_WALLETS[DemoRole];
+  demoWalletInfo: typeof DEMO_WALLETS[keyof typeof DEMO_WALLETS];
 }
 
 const DemoModeContext = createContext<DemoModeContextType | undefined>(undefined);
@@ -38,7 +38,7 @@ export const DemoModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isDemoMode,
         demoRole,
         setDemoRole,
-        demoWalletInfo: DEMO_WALLETS[demoRole],
+        demoWalletInfo: (DEMO_WALLETS as any)[demoRole] || DEMO_WALLETS.freelancer,
       }}
     >
       {children}

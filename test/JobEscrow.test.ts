@@ -44,7 +44,7 @@ describe("JobEscrow", function () {
   }
 
   async function deployAndGetJob(): Promise<JobEscrow> {
-    const tx = await factory.connect(client).postJob(JOB_DESCRIPTION);
+    const tx = await factory.connect(client).postJob(JOB_DESCRIPTION, ethers.ZeroAddress);
     const receipt = await tx.wait();
     const event = receipt?.logs
       .map((log) => {
@@ -73,7 +73,7 @@ describe("JobEscrow", function () {
       expect(await job.status()).to.equal(1); // Selected
 
       // Fund
-      await job.connect(client).fundJob({ value: JOB_AMOUNT });
+      await job.connect(client).fundJob(0, { value: JOB_AMOUNT });
       expect(await job.amount()).to.equal(JOB_AMOUNT);
 
       // Terms — both parties sign
@@ -119,7 +119,7 @@ describe("JobEscrow", function () {
 
       await job.connect(freelancer).applyToJob(PROPOSAL_HASH);
       await job.connect(client).selectFreelancer(freelancer.address);
-      await job.connect(client).fundJob({ value: JOB_AMOUNT });
+      await job.connect(client).fundJob(0, { value: JOB_AMOUNT });
       await job.connect(freelancer).submitWork("Work", "Done", ["QmEv"]);
 
       // Should revert before review period
@@ -146,7 +146,7 @@ describe("JobEscrow", function () {
 
       await job.connect(freelancer).applyToJob(PROPOSAL_HASH);
       await job.connect(client).selectFreelancer(freelancer.address);
-      await job.connect(client).fundJob({ value: JOB_AMOUNT });
+      await job.connect(client).fundJob(0, { value: JOB_AMOUNT });
 
       // Only client consents — should NOT cancel yet
       await expect(job.connect(client).proposeMutualCancel())
@@ -166,7 +166,7 @@ describe("JobEscrow", function () {
 
     it("unilateral cancel by client should work when Open", async function () {
       const job = await deployAndGetJob();
-      await job.connect(client).fundJob({ value: JOB_AMOUNT });
+      await job.connect(client).fundJob(0, { value: JOB_AMOUNT });
 
       await expect(job.connect(client).cancelJob())
         .to.emit(job, "JobCancelled")
@@ -194,7 +194,7 @@ describe("JobEscrow", function () {
 
       await job.connect(freelancer).applyToJob(PROPOSAL_HASH);
       await job.connect(client).selectFreelancer(freelancer.address);
-      await job.connect(client).fundJob({ value: JOB_AMOUNT });
+      await job.connect(client).fundJob(0, { value: JOB_AMOUNT });
       await job.connect(freelancer).submitWork("Work", "Done", ["QmEv"]);
 
       // Client raises dispute

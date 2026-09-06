@@ -8,18 +8,30 @@ import { truncateAddress, formatTimeAgo } from '../utils/formatters';
 import { scoreGithubUser } from '../utils/githubOracle';
 import { calculateReputationScores, getReputationTier } from '../utils/reputation';
 import { getJobInactivityStatus } from '../utils/inactivity';
-import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, TrendingUp, ShieldCheck, CheckCircle2, FileText, MessageSquare, Clock, AlertTriangle, Trash2, RefreshCw } from 'lucide-react';
+import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, TrendingUp, ShieldCheck, CheckCircle2, FileText, MessageSquare, Clock, AlertTriangle, Trash2, RefreshCw, Wallet, Sparkles, ArrowRight, DollarSign } from 'lucide-react';
 import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 import { EmptyState } from '../components/UIStates';
+import { InsufficientFundsModal } from '../components/InsufficientFundsModal';
 
 export const Dashboard: React.FC = () => {
-  const { address, currentRole, isArbitrator } = useWeb3();
+  const { address, currentRole, isArbitrator, balanceNative, balanceUsdc, refreshBalances } = useWeb3();
   const { jobs, profiles, updateProfile, deleteJob, renewJob } = usePolyLanceData();
   const navigate = useNavigate();
 
   const activeAddress = address;
   const isClientRole = currentRole === 'client';
   const [activeHubTab, setActiveHubTab] = React.useState<'contracts' | 'applications' | 'posted' | 'explore'>('contracts');
+  const [isRefreshingBalances, setIsRefreshingBalances] = React.useState(false);
+  const [isTopUpModalOpen, setIsTopUpModalOpen] = React.useState(false);
+
+  const lastOpenedJobId = typeof window !== 'undefined' ? localStorage.getItem('polylance_last_opened_job') : null;
+  const lastOpenedJob = lastOpenedJobId ? jobs.find(j => j.id === lastOpenedJobId || j.contractAddress?.toLowerCase() === lastOpenedJobId.toLowerCase()) : null;
+
+  const handleRefreshBalances = async () => {
+    setIsRefreshingBalances(true);
+    await refreshBalances();
+    setTimeout(() => setIsRefreshingBalances(false), 500);
+  };
 
   const userProfileKey = activeAddress ? Object.keys(profiles).find(k => k.toLowerCase() === activeAddress.toLowerCase()) : null;
   const userProfile = ((userProfileKey ? profiles[userProfileKey] : null) || {
@@ -68,8 +80,14 @@ export const Dashboard: React.FC = () => {
     }
   }, [activeAddress, userProfile.githubUsername, userProfile.githubVerified]);
 
-  const myClientJobs = jobs.filter((j) => j.client.toLowerCase() === activeAddress.toLowerCase());
-  const myFreelancerJobs = jobs.filter((j) => j.freelancer?.toLowerCase() === activeAddress.toLowerCase());
+  const myClientJobs = jobs.filter((j) => Boolean(j.client && activeAddress && j.client.toLowerCase() === activeAddress.toLowerCase()));
+  const myFreelancerJobs = jobs.filter((j) => Boolean(j.freelancer && activeAddress && j.freelancer.toLowerCase() === activeAddress.toLowerCase()));
+
+  // Ongoing client projects: Selected, Funded, Submitted, Disputed
+  const ongoingClientJobs = myClientJobs.filter((j) => ['Selected', 'Funded', 'Submitted', 'Disputed'].includes(j.status));
+  // Platform ongoing jobs fallback (shows platform escrows if wallet has not created ongoing jobs yet)
+  const platformOngoingJobs = jobs.filter((j) => ['Selected', 'Funded', 'Submitted', 'Disputed'].includes(j.status));
+  const effectiveOngoingJobs = ongoingClientJobs.length > 0 ? ongoingClientJobs : platformOngoingJobs;
 
   // Collect all applications sent by this address across all jobs
   const myApplications = jobs.flatMap((j) =>
@@ -199,6 +217,108 @@ export const Dashboard: React.FC = () => {
 
       </div>
 
+      {/* RESUME LAST OPENED WORKSPACE CARD */}
+      {lastOpenedJob && (
+        <motion.div
+          variants={staggerItem}
+          className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-blue-950 via-indigo-950 to-purple-950 text-white hard-shadow relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 border border-blue-400/30"
+        >
+          <div className="space-y-1.5 z-10">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-400/20 border border-blue-300/30 text-[10px] font-mono font-bold text-blue-200 uppercase tracking-wider flex items-center gap-1">
+                <Clock size={11} /> Resume Last Opened Workspace
+              </span>
+              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase ${
+                lastOpenedJob.status === 'Funded' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                lastOpenedJob.status === 'Submitted' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                'bg-white/10 text-white/90 border border-white/20'
+              }`}>
+                {lastOpenedJob.status}
+              </span>
+            </div>
+            <h2 className="text-xl font-black font-heading line-clamp-1 text-white">
+              {lastOpenedJob.title}
+            </h2>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-blue-200/80 font-mono">
+              <span>Budget: <strong className="text-white">${lastOpenedJob.amountUsdc || lastOpenedJob.amountEth} {lastOpenedJob.paymentTokenSymbol || 'USDC'}</strong></span>
+              <span>•</span>
+              <span>Contract: {truncateAddress(lastOpenedJob.contractAddress)}</span>
+              {lastOpenedJob.freelancer && (
+                <>
+                  <span>•</span>
+                  <span>Freelancer: {truncateAddress(lastOpenedJob.freelancer)}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 z-10">
+            <Link
+              to={`/workspace?jobId=${lastOpenedJob.id}`}
+              className="px-5 py-2.5 rounded-xl bg-white hover:bg-blue-50 text-slate-900 font-bold text-xs flex items-center gap-2 transition-transform hover:scale-102 hard-shadow shadow-white/10"
+            >
+              <span>Open In Workspace</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </motion.div>
+      )}
+
+      {/* REAL-TIME LIVE WALLET LIQUIDITY CARD */}
+      <div className="glass-panel p-5 sm:p-6 border-slate-200 bg-white hard-shadow flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-700 shrink-0">
+            <Wallet size={24} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-headline text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+                Real-Time Wallet Liquidity
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold flex items-center gap-1 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                LIVE SYNC
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-sans">
+              Live cryptographic balances available on Polygon for escrow funding & transactions.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6 font-mono">
+          <div className="text-right">
+            <span className="text-[10px] text-slate-500 uppercase font-bold block">Native POL (Gas / Escrow)</span>
+            <span className="text-lg font-black text-slate-900">{balanceNative} POL</span>
+          </div>
+
+          <div className="h-8 w-px bg-slate-200 hidden sm:block" />
+
+          <div className="text-right">
+            <span className="text-[10px] text-slate-500 uppercase font-bold block">Stablecoin USDC</span>
+            <span className="text-lg font-black text-emerald-700">${balanceUsdc} USDC</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefreshBalances}
+              disabled={isRefreshingBalances}
+              title="Refresh wallet balances on-chain"
+              className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+            >
+              <RefreshCw size={15} className={isRefreshingBalances ? 'animate-spin text-purple-600' : ''} />
+            </button>
+            <button
+              onClick={() => setIsTopUpModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <DollarSign size={14} />
+              <span>Top-Up</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* CLIENT ENTERPRISE OVERVIEW DASHBOARD */}
       {isClientRole ? (
         <div className="space-y-8">
@@ -315,6 +435,116 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </section>
               )}
+
+              {/* ONGOING CLIENT PROJECTS & ACTIVE ESCROWS */}
+              <section className="glass-panel p-6 border-blue-200 bg-white hard-shadow space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Briefcase size={18} className="text-blue-600" />
+                    <h3 className="text-base font-extrabold text-slate-900 font-heading">
+                      Ongoing Client Projects & Active Escrows ({effectiveOngoingJobs.length})
+                    </h3>
+                  </div>
+                  <Link
+                    to="/workspace"
+                    className="text-xs font-mono text-blue-600 font-bold hover:underline flex items-center gap-1"
+                  >
+                    <span>Full Workspace</span>
+                    <ArrowRight size={13} />
+                  </Link>
+                </div>
+
+                {effectiveOngoingJobs.length === 0 ? (
+                  <div className="py-6 text-center space-y-2">
+                    <p className="text-xs text-slate-500 font-mono">No active ongoing escrows in progress.</p>
+                    <Link
+                      to="/jobs/post"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold shadow-xs hover:bg-blue-700"
+                    >
+                      <PlusCircle size={14} /> Post an Escrow Project
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3">
+                    {effectiveOngoingJobs.map((job) => {
+                      const isFunded = job.status === 'Funded';
+                      const isSubmitted = job.status === 'Submitted';
+                      const isSelected = job.status === 'Selected';
+                      const isDisputed = job.status === 'Disputed';
+
+                      return (
+                        <div
+                          key={job.id}
+                          onClick={() => navigate(`/workspace?jobId=${job.id}`)}
+                          className="bg-slate-50/80 hover:bg-blue-50/40 p-4 rounded-xl border border-slate-200 hover:border-blue-300 transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        >
+                          <div className="space-y-1.5 max-w-lg">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-1">
+                                {job.title}
+                              </span>
+                              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase ${
+                                isFunded ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                                isSubmitted ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                                isDisputed ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                                'bg-purple-100 text-purple-800 border border-purple-200'
+                              }`}>
+                                {job.status}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-600 font-mono">
+                              <span className="font-bold text-emerald-700">
+                                ${job.amountUsdc || job.amountEth} {job.paymentTokenSymbol || 'USDC'} Escrow
+                              </span>
+                              <span>•</span>
+                              <span>
+                                Freelancer: <strong className="text-slate-800">{truncateAddress(job.freelancer || (job.applications?.[0]?.applicant ?? 'Unassigned'))}</strong>
+                              </span>
+                              <span>•</span>
+                              <span>
+                                {isFunded ? '⚡ Work in progress' : isSubmitted ? '🔔 Deliverable under review' : isSelected ? '💳 Ready to fund' : '⚖️ Under DAO arbitration'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 self-end sm:self-auto shrink-0">
+                            {isSelected && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/jobs/${job.id}`);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
+                              >
+                                <DollarSign size={13} />
+                                <span>Fund Escrow</span>
+                              </button>
+                            )}
+
+                            {isSubmitted && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/jobs/${job.id}`);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
+                              >
+                                <Clock size={13} />
+                                <span>Review & Release</span>
+                              </button>
+                            )}
+
+                            <div className="p-2 rounded-xl bg-white border border-slate-200 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-colors text-slate-600">
+                              <ArrowUpRight size={15} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
 
               {/* All Posted Contracts Grid */}
               <section className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
@@ -906,6 +1136,16 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Top-up Assistant Modal */}
+      <InsufficientFundsModal
+        isOpen={isTopUpModalOpen}
+        onClose={() => setIsTopUpModalOpen(false)}
+        requiredAmount="10.0"
+        tokenSymbol="POL"
+        currentBalance={balanceNative}
+        onFundsReceived={() => setIsTopUpModalOpen(false)}
+      />
     </div>
   );
 };

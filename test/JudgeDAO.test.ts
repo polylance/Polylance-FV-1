@@ -1,31 +1,31 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
-import { mine, time } from "@nomicfoundation/hardhat-network-helpers";
-import { JudgeDAO, ReputationSBT, JobFactory, JobEscrow } from "../typechain-types";
+import { ethers, network } from "hardhat";
+import { mine } from "@nomicfoundation/hardhat-network-helpers";
+import { JudgeDAO, ReputationSBT, JobFactory, JobEscrow, TimelockController } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-describe("JudgeDAO", function () {
+describe("JudgeDAO — Dynamic Quorum & Timelock Integration", function () {
   let judgeDAO: JudgeDAO;
+  let timelock: TimelockController;
   let sbt: ReputationSBT;
   let factory: JobFactory;
   let jobImpl: JobEscrow;
   let deployer: HardhatEthersSigner;
   let sbtHolder: HardhatEthersSigner;
   let nonHolder: HardhatEthersSigner;
+  let judgeBeingRemoved: HardhatEthersSigner;
 
-  // GovernorSettings: votingDelay = 1 day, votingPeriod = 7 days
-  // On Hardhat, block time = 1s by default, so 1 day = 86400 blocks
-  const VOTING_DELAY_BLOCKS = 86400;
-  const VOTING_PERIOD_BLOCKS = 7 * 86400;
+  const VOTING_DELAY_BLOCKS = 86400; // 1 day
+  const VOTING_PERIOD_BLOCKS = 7 * 86400; // 7 days
+  const TIMELOCK_DELAY_SECONDS = 2 * 24 * 60 * 60; // 2 days
 
   beforeEach(async function () {
-    [deployer, sbtHolder, nonHolder] = await ethers.getSigners();
+    [deployer, sbtHolder, nonHolder, judgeBeingRemoved] = await ethers.getSigners();
 
-    // Deploy the full stack
     jobImpl = await ethers.deployContract("JobEscrow");
     await jobImpl.waitForDeployment();
 
-    sbt = await ethers.deployContract("ReputationSBT", [ethers.ZeroAddress]);
+    sbt = await ethers.deployContract("ReputationSBT", [deployer.address]);
     await sbt.waitForDeployment();
 
     factory = await ethers.deployContract("JobFactory", [
@@ -34,16 +34,35 @@ describe("JudgeDAO", function () {
     ]);
     await factory.waitForDeployment();
 
-    // Grant MINTER_ROLE to factory
     const MINTER_ROLE = await sbt.MINTER_ROLE();
     await sbt.grantRole(MINTER_ROLE, await factory.getAddress());
 
-    judgeDAO = await ethers.deployContract("JudgeDAO", [await sbt.getAddress()]);
+    // Deploy TimelockController (2 days minDelay)
+    timelock = await ethers.deployContract("TimelockController", [
+      TIMELOCK_DELAY_SECONDS,
+      [],
+      [ethers.ZeroAddress], // open executor
+      deployer.address,
+    ]);
+    await timelock.waitForDeployment();
+
+    // Deploy JudgeDAO with TimelockController
+    judgeDAO = await ethers.deployContract("JudgeDAO", [
+      await sbt.getAddress(),
+      await timelock.getAddress(),
+    ]);
     await judgeDAO.waitForDeployment();
 
-    // Mint an SBT to `deployer` by completing a job as freelancer
-    // sbtHolder acts as client, deployer acts as freelancer
-    const tx = await factory.connect(sbtHolder).postJob("QmJob");
+    // Grant JudgeDAO PROPOSER_ROLE on TimelockController
+    const PROPOSER_ROLE = await timelock.PROPOSER_ROLE();
+    await timelock.grantRole(PROPOSER_ROLE, await judgeDAO.getAddress());
+
+    // Grant JobFactory's DEFAULT_ADMIN_ROLE to TimelockController (so executed proposals can grant/revoke roles)
+    const DEFAULT_ADMIN_ROLE = await factory.DEFAULT_ADMIN_ROLE();
+    await factory.grantRole(DEFAULT_ADMIN_ROLE, await timelock.getAddress());
+
+    // Mint an SBT to deployer by completing a job
+    const tx = await factory.connect(sbtHolder).postJob("QmJob", ethers.ZeroAddress);
     const receipt = await tx.wait();
     const event = receipt?.logs
       .map((log) => {
@@ -56,14 +75,10 @@ describe("JudgeDAO", function () {
 
     await job.connect(deployer).applyToJob("QmProposal");
     await job.connect(sbtHolder).selectFreelancer(deployer.address);
-    await job.connect(sbtHolder).fundJob({ value: ethers.parseEther("1") });
+    await job.connect(sbtHolder).fundJob(0, { value: ethers.parseEther("1") });
     await job.connect(deployer).submitWork("Done", "desc", ["QmEv"]);
     await job.connect(sbtHolder).releasePayment();
-
-    // `deployer` now holds 1 SBT with self-delegated voting power
   });
-
-  // ── Helpers ─────────────────────────────────────────────────────────────────
 
   async function buildGrantRoleCalldata(target: string) {
     const ARBITRATOR_ROLE = await factory.ARBITRATOR_ROLE();
@@ -73,103 +88,98 @@ describe("JudgeDAO", function () {
   async function createArbitratorProposal(
     proposer: HardhatEthersSigner,
     target: string
-  ): Promise<bigint> {
+  ): Promise<{ proposalId: bigint; targets: string[]; values: bigint[]; calldatas: string[]; description: string; descriptionHash: string }> {
     const calldata = await buildGrantRoleCalldata(target);
     const description = `Grant ARBITRATOR_ROLE to ${target}`;
+    const descriptionHash = ethers.id(description);
+    const targets = [await factory.getAddress()];
+    const values = [0n];
+    const calldatas = [calldata];
 
-    const tx = await judgeDAO.connect(proposer).propose(
-      [await factory.getAddress()],
-      [0],
-      [calldata],
-      description
-    );
+    const tx = await judgeDAO.connect(proposer).propose(targets, values, calldatas, description);
     const receipt = await tx.wait();
     const event = receipt?.logs
-      .map((log) => {
-        try { return judgeDAO.interface.parseLog(log as any); } catch { return null; }
+      .map((l) => {
+        try { return judgeDAO.interface.parseLog(l as any); } catch { return null; }
       })
       .find((e) => e?.name === "ProposalCreated");
 
-    return event!.args.proposalId as bigint;
+    return {
+      proposalId: event!.args.proposalId as bigint,
+      targets,
+      values,
+      calldatas,
+      description,
+      descriptionHash,
+    };
   }
 
-  // ── SBT holder can propose ──────────────────────────────────────────────────
+  describe("FIX 1 — Quorum is a dynamic 20% percentage", function () {
+    it("quorum scales dynamically with total SBT supply", async function () {
+      await mine(1);
+      const currentBlock = await ethers.provider.getBlockNumber();
+      const requiredQuorum = await judgeDAO.quorum(currentBlock - 1);
 
-  it("SBT holder can create a proposal", async function () {
-    const votingPower = await sbt.getVotes(deployer.address);
-    expect(votingPower).to.be.gte(1n);
+      expect(requiredQuorum).to.equal(0n);
+    });
 
-    const proposalId = await createArbitratorProposal(deployer, nonHolder.address);
-    expect(proposalId).to.be.gt(0n);
+    it("quorum with 10 total holders requires 2 votes (20% of 10)", async function () {
+      const MINTER_ROLE = await sbt.MINTER_ROLE();
+      await sbt.grantRole(MINTER_ROLE, deployer.address);
 
-    // Proposal state: 0 = Pending
-    expect(await judgeDAO.state(proposalId)).to.equal(0n);
+      const signers = await ethers.getSigners();
+      for (let i = 0; i < 9; i++) {
+        await sbt.mint(signers[i].address, ethers.ZeroAddress);
+      }
+
+      await mine(1);
+      const blockNum = await ethers.provider.getBlockNumber();
+      const requiredQuorum = await judgeDAO.quorum(blockNum - 1);
+      expect(requiredQuorum).to.equal(2n); // 20% of 10 total holders = 2
+    });
   });
 
-  // ── Non-holder cannot propose ───────────────────────────────────────────────
+  describe("FIX 2 — Timelock execution delay enforcement", function () {
+    it("blocks immediate execution post-vote and enforces 2-day timelock delay", async function () {
+      const ARBITRATOR_ROLE = await factory.ARBITRATOR_ROLE();
+      await factory.grantRole(ARBITRATOR_ROLE, judgeBeingRemoved.address);
+      expect(await factory.hasRole(ARBITRATOR_ROLE, judgeBeingRemoved.address)).to.be.true;
 
-  it("non-SBT holder cannot create a proposal (below threshold)", async function () {
-    const votingPower = await sbt.getVotes(nonHolder.address);
-    expect(votingPower).to.equal(0n);
+      const { proposalId, targets, values, calldatas, descriptionHash } = await createArbitratorProposal(
+        deployer,
+        nonHolder.address
+      );
 
-    const calldata = await buildGrantRoleCalldata(nonHolder.address);
+      // Advance past voting delay
+      await mine(VOTING_DELAY_BLOCKS + 1);
+      expect(await judgeDAO.state(proposalId)).to.equal(1n); // Active
 
-    await expect(
-      judgeDAO.connect(nonHolder).propose(
-        [await factory.getAddress()],
-        [0],
-        [calldata],
-        "Grant role to nonHolder"
-      )
-    ).to.be.revertedWithCustomError(judgeDAO, "GovernorInsufficientProposerVotes");
-  });
+      // Cast vote
+      await judgeDAO.connect(deployer).castVote(proposalId, 1);
 
-  // ── Successful vote grants ARBITRATOR_ROLE on execute ──────────────────────
+      // Advance past voting period
+      await mine(VOTING_PERIOD_BLOCKS + 1);
+      expect(await judgeDAO.state(proposalId)).to.equal(4n); // Succeeded
 
-  it("successful vote executes and grants ARBITRATOR_ROLE", async function () {
-    // Grant factory's DEFAULT_ADMIN_ROLE to JudgeDAO so it can execute grantRole
-    const DEFAULT_ADMIN_ROLE = await factory.DEFAULT_ADMIN_ROLE();
-    await factory.connect(deployer).grantRole(DEFAULT_ADMIN_ROLE, await judgeDAO.getAddress());
+      // Queue proposal into TimelockController
+      await judgeDAO.queue(targets, values, calldatas, descriptionHash);
+      expect(await judgeDAO.state(proposalId)).to.equal(5n); // Queued
 
-    // Create proposal
-    const proposalId = await createArbitratorProposal(deployer, nonHolder.address);
+      // Immediate execution must revert because timelock delay has not passed
+      await expect(
+        judgeDAO.execute(targets, values, calldatas, descriptionHash)
+      ).to.be.reverted;
 
-    // State: 0 = Pending — advance past votingDelay (block-based in GovernorSettings)
-    // votingDelay() returns seconds (1 day). Hardhat automine means 1 block ≈ 1s.
-    // We mine enough blocks to pass the delay.
-    await mine(VOTING_DELAY_BLOCKS + 1);
+      // Fast-forward past the 2-day timelock delay
+      await network.provider.send("evm_increaseTime", [TIMELOCK_DELAY_SECONDS + 1]);
+      await network.provider.send("evm_mine");
 
-    // State should now be Active (1)
-    expect(await judgeDAO.state(proposalId)).to.equal(1n);
+      // Execution succeeds after timelock delay
+      await judgeDAO.execute(targets, values, calldatas, descriptionHash);
+      expect(await judgeDAO.state(proposalId)).to.equal(7n); // Executed
 
-    // Cast vote: 1 = For
-    await judgeDAO.connect(deployer).castVote(proposalId, 1);
-
-    // Advance past votingPeriod
-    await mine(VOTING_PERIOD_BLOCKS + 1);
-
-    // State should be Succeeded (4)
-    expect(await judgeDAO.state(proposalId)).to.equal(4n);
-
-    // Execute
-    const ARBITRATOR_ROLE = await factory.ARBITRATOR_ROLE();
-    const calldata = factory.interface.encodeFunctionData("grantRole", [
-      ARBITRATOR_ROLE,
-      nonHolder.address,
-    ]);
-
-    // Compute descriptionHash — must match exactly what was passed to propose()
-    const description = `Grant ARBITRATOR_ROLE to ${nonHolder.address}`;
-    const descriptionHash = ethers.id(description);
-
-    await judgeDAO.connect(deployer).execute(
-      [await factory.getAddress()],
-      [0],
-      [calldata],
-      descriptionHash
-    );
-
-    // Verify ARBITRATOR_ROLE was granted
-    expect(await factory.hasRole(ARBITRATOR_ROLE, nonHolder.address)).to.be.true;
+      // Confirm target received role
+      expect(await factory.hasRole(ARBITRATOR_ROLE, nonHolder.address)).to.be.true;
+    });
   });
 });

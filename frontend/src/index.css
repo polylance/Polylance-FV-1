@@ -99,7 +99,6 @@ body::before {
     radial-gradient(circle at 85% 15%, rgba(6, 207, 232, 0.06) 0%, transparent 45%),
     radial-gradient(circle at 15% 85%, rgba(37, 99, 235, 0.04) 0%, transparent 45%),
     radial-gradient(circle at 50% 50%, rgba(147, 51, 234, 0.02) 0%, transparent 60%);
-  transform: translateZ(0);
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -134,14 +133,13 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 18px;
   box-shadow: var(--shadow-md);
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
-  transform: translateZ(0);
 }
 
 .glass-panel:hover,
 .glass-panel-interactive:hover {
   background: var(--bg-card-hover);
   border-color: var(--primary);
-  transform: translateY(-2px) translateZ(0);
+  transform: translateY(-2px);
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08), 0 0 12px rgba(6, 207, 232, 0.10);
 }
 
@@ -381,7 +379,6 @@ h1, h2, h3, h4, h5, h6 {
 /* Page Animations & Modal Entrances */
 .page-transition {
   animation: pageFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
 }
 
 @keyframes pageFadeIn {
@@ -397,7 +394,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-fade-in {
   animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
 }
 
 @keyframes modalFadeIn {
@@ -613,48 +609,41 @@ select:focus {
   transition: opacity 160ms ease, transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Liquid glass surface — navbar/dropdown/modal */
+/* Liquid glass surface — fast and buttery smooth on all CPU/GPU devices */
 .liquid-glass {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.85),
-    rgba(255, 255, 255, 0.65)
+    rgba(255, 255, 255, 0.92),
+    rgba(255, 255, 255, 0.82)
   );
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.75);
   box-shadow:
-    0 10px 35px rgba(31, 38, 135, 0.08),
+    0 8px 24px rgba(31, 38, 135, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
 }
 
-/* GPU Hardware Acceleration & Silky 60fps Smooth Compositing */
-.gpu-layer,
+/* Lightweight smooth rendering without GPU layer thrashing */
 .glass-panel,
 .nav-pill-item,
 .apple-button {
-  transform: translate3d(0, 0, 0);
-  -webkit-transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+  contain: layout style;
 }
 
 /* Hero ambient light — subtle radial decoration */
 .hero-ambient {
   background:
-    radial-gradient(circle at 20% 20%, rgba(37,99,235,0.08) 0%, transparent 35%),
-    radial-gradient(circle at 80% 20%, rgba(6,207,232,0.10) 0%, transparent 35%),
-    radial-gradient(circle at 50% 80%, rgba(147,51,234,0.04) 0%, transparent 40%);
-  transform: translate3d(0, 0, 0);
+    radial-gradient(circle at 20% 20%, rgba(37,99,235,0.06) 0%, transparent 35%),
+    radial-gradient(circle at 80% 20%, rgba(6,207,232,0.08) 0%, transparent 35%),
+    radial-gradient(circle at 50% 80%, rgba(147,51,234,0.03) 0%, transparent 40%);
 }
 
-/* Mobile-friendly: reduce blur on smaller devices */
+/* Mobile-friendly: fast lightweight blur */
 @media (max-width: 768px) {
   .liquid-glass {
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
 }
 
