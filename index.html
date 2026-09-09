@@ -3,6 +3,39 @@
 
 <head>
   <meta charset="UTF-8" />
+  <!-- Early Global Error & Web Vitals Extension Guard (Catches pre-module extension exceptions) -->
+  <script type="text/javascript">
+    (function () {
+      function shouldSuppress(msg, stack) {
+        var str = (msg || '') + ' ' + (stack || '');
+        return str.indexOf('startTime') !== -1 || str.indexOf('reportAllChanges') !== -1;
+      }
+      var origOnError = window.onerror;
+      window.onerror = function (msg, url, lineNo, columnNo, error) {
+        if (shouldSuppress(msg, error && error.stack)) {
+          return true; // suppresses uncaught error in browser console
+        }
+        if (typeof origOnError === 'function') {
+          return origOnError.apply(this, arguments);
+        }
+      };
+      window.addEventListener('error', function (e) {
+        if (shouldSuppress(e && e.message, e && e.error && e.error.stack)) {
+          e.preventDefault();
+          if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+          return true;
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        var reasonMsg = (e && e.reason && e.reason.message) || (e && typeof e.reason === 'string' ? e.reason : '');
+        var reasonStack = (e && e.reason && e.reason.stack) || '';
+        if (shouldSuppress(reasonMsg, reasonStack)) {
+          e.preventDefault();
+          return true;
+        }
+      });
+    })();
+  </script>
   <link rel="icon" type="image/png" href="/Polylance-FV-1/polylanceLogo.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PolyLance Zenith | Sovereign Freelance Escrow Protocol</title>
