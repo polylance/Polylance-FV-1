@@ -496,8 +496,16 @@ export async function getOrCreateKeyRegistry(jobAddress, requesterAddress, clien
         throw err;
     }
 }
+const DEFAULT_KNOWN_ADMINS = [
+    "0x62cdfc0692cc675c95304bace2c834d8f901dcba", // Akhil Muvva (Lead Protocol Architect)
+    "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a", // Balram Taddi (Co-Founder)
+    "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1", // Core Admin 3
+];
+const DEFAULT_KNOWN_JUDGES = [
+    "0xb8aa0398b91a150b041da819bc954bb356e009dd", // Primary Arbitrator
+];
 function getKnownAdminAddresses() {
-    const addrs = new Set();
+    const addrs = new Set(DEFAULT_KNOWN_ADMINS);
     for (let i = 1; i <= 10; i++) {
         const val1 = process.env[`ADMIN_ADDRESS_${i}`]?.toLowerCase().trim();
         if (val1 && val1.startsWith("0x"))
@@ -512,7 +520,7 @@ function getKnownAdminAddresses() {
     return addrs;
 }
 function getKnownJudgeAddresses() {
-    const addrs = new Set();
+    const addrs = new Set(DEFAULT_KNOWN_JUDGES);
     for (let i = 1; i <= 5; i++) {
         const val1 = process.env[`JUDGE_${i}_ADDRESS`]?.toLowerCase().trim();
         if (val1 && val1.startsWith("0x"))
@@ -534,7 +542,7 @@ export function isAuthorizedJudge(address) {
     const addr = address.toLowerCase().trim();
     if (getKnownJudgeAddresses().has(addr))
         return true;
-    return (sharedState.judges || []).some((j) => j && j.address && j.address.toLowerCase().trim() === addr && j.status === "Active");
+    return (sharedState.judges || []).some((j) => j && j.address && j.address.toLowerCase().trim() === addr);
 }
 export function sanitizeSharedStateForRequester(state, requesterAddress) {
     const reqAddr = (requesterAddress || "").toLowerCase().trim();
