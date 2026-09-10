@@ -11,7 +11,7 @@ import { DisputeReason, UserProfile } from '../types';
 import { truncateAddress, formatDaysRemaining, formatTimeAgo, getDeterministicSbtId, formatWeb3ErrorMessage } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
 import { getJobInactivityStatus } from '../utils/inactivity';
-import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles, ArrowUpRight, Calendar, Trash2, RefreshCw, Share2, Loader2 } from 'lucide-react';
+import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles, ArrowUpRight, Calendar, Trash2, RefreshCw, Share2, Loader2, Lock, Briefcase } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ErrorState } from '../components/UIStates';
 import { ActionStatusModal, ActionModalDetail } from '../components/ActionStatusModal';
@@ -353,6 +353,97 @@ export const JobDetail: React.FC = () => {
   };
 
   const inactivityStatus = getJobInactivityStatus(job);
+
+  // CONFIDENTIALITY & DATA PRIVACY PROTECTION:
+  // If a client selects a freelancer for their work, do NOT show confidential job details to other freelancers.
+  // Full job specifications, deliverables, and workspace are strictly reserved for the client and selected freelancer.
+  const hasSelectedFreelancer = Boolean(job.freelancer);
+  const isAuthorizedParty = isClient || isFreelancer || (Boolean(isArbitrator) && job.status === 'Disputed');
+  const isConfidentialRestricted = hasSelectedFreelancer && !isAuthorizedParty;
+
+  if (isConfidentialRestricted) {
+    return (
+      <div className="space-y-8 py-6 max-w-4xl mx-auto font-sans">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Link to="/jobs" className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 font-mono font-bold">
+            <ArrowLeft size={14} /> Back to Find Jobs
+          </Link>
+          <span className="badge-status bg-purple-100 text-purple-900 border border-purple-200 font-mono text-xs font-bold px-3 py-1 rounded-full">
+            ● Talent Selected • Private Workspace
+          </span>
+        </div>
+
+        <div className="glass-panel p-8 sm:p-10 border-purple-200 bg-white hard-shadow text-center space-y-5 rounded-3xl relative overflow-hidden">
+          <div className="w-16 h-16 rounded-2xl bg-purple-100 border border-purple-200 text-purple-700 flex items-center justify-center mx-auto shadow-xs">
+            <Lock size={32} />
+          </div>
+
+          <div className="space-y-1.5 max-w-lg mx-auto">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-200 inline-block">
+              Confidential Contract Workspace
+            </span>
+            <h2 className="font-headline text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Access Restricted to Contract Parties
+            </h2>
+          </div>
+
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
+            The client has selected a verified freelancer for this work. To protect proprietary specifications, intellectual property, and milestone deliverables, full job details and escrow management are strictly confidential between the client (<strong className="text-slate-900">{clientDisplayName}</strong>) and the selected talent (<strong className="text-slate-900">{freelancerDisplayName}</strong>).
+          </p>
+
+          {/* Public Non-Confidential Escrow Summary */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-2.5 font-mono text-xs max-w-lg mx-auto">
+            <div className="flex justify-between items-center text-slate-600">
+              <span className="text-[11px]">Job Title:</span>
+              <strong className="text-slate-900 truncate max-w-[220px]">{job.title}</strong>
+            </div>
+            <div className="flex justify-between items-center text-slate-600">
+              <span className="text-[11px]">Category:</span>
+              <span className="font-bold text-slate-800 uppercase text-[10.5px] bg-slate-200/60 px-2 py-0.5 rounded">
+                {job.category || 'Web3'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-slate-600">
+              <span className="text-[11px]">Contract Status:</span>
+              <span className="font-bold text-purple-700 uppercase text-[10.5px] bg-purple-50 border border-purple-200 px-2 py-0.5 rounded">
+                {job.status === 'Completed' ? 'Completed & Settled' : 'Assigned & Active'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-slate-600">
+              <span className="text-[11px]">Escrow ID:</span>
+              <span className="text-slate-700 font-bold">{truncateAddress(job.contractAddress || job.id)}</span>
+            </div>
+          </div>
+
+          {/* If the viewer previously applied */}
+          {hasApplied && (
+            <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-xs text-blue-900 max-w-lg mx-auto flex items-center gap-2.5 text-left">
+              <ShieldCheck size={18} className="text-blue-600 shrink-0" />
+              <span>
+                You submitted a proposal for this role. The client has finalized selection with another candidate. Thank you for your application!
+              </span>
+            </div>
+          )}
+
+          <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              to="/jobs"
+              className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
+            >
+              <Briefcase size={14} />
+              <span>Browse Open Jobs</span>
+            </Link>
+            <Link
+              to="/workspace"
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+            >
+              <span>Go to My Workspace</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">

@@ -30,10 +30,10 @@ export const FindJobs: React.FC = () => {
     { id: 'mobile', label: 'Mobile Apps', sub: 'Swift, Kotlin, Dart' },
   ];
 
-  // Only active Open jobs that have not expired (> 14 days client inactivity) are listed on Find Jobs marketplace.
+  // Only active Open jobs with NO freelancer selected and not expired (> 14 days) are listed on marketplace.
   const filteredJobs = jobs.filter((job) => {
     const statusInfo = getJobInactivityStatus(job);
-    const isOpen = job.status === 'Open' && !statusInfo.isExpired;
+    const isOpen = job.status === 'Open' && !job.freelancer && !statusInfo.isExpired;
     const matchesCategory = selectedCategory === 'all' || job.category === selectedCategory;
     const matchesSearch =
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

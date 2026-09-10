@@ -77,15 +77,12 @@ export const JobWorkspace: React.FC = () => {
         return Boolean(job.client && job.client.toLowerCase() === userAddr);
       }
       
-      // FREELANCER: Strict match - ONLY show jobs where this connected wallet is the assigned freelancer or selected applicant
-      const isAssigned = Boolean(job.freelancer && job.freelancer.toLowerCase() === userAddr);
-      const isSelectedApplicant = Boolean(
-        (job.status === 'Selected' || job.status === 'Funded' || job.status === 'Submitted' || job.status === 'Completed' || job.status === 'Disputed') &&
-        job.applications &&
-        job.applications.some((a) => a.applicant && a.applicant.toLowerCase() === userAddr)
-      );
-
-      return isAssigned || isSelectedApplicant;
+      // FREELANCER: Strict match - When a freelancer is selected, ONLY that selected freelancer can view the job workspace!
+      if (job.freelancer) {
+        return job.freelancer.toLowerCase() === userAddr;
+      }
+      // If no freelancer has been selected yet (open selection), show only to applicants who applied
+      return Boolean(job.applications && job.applications.some((a) => a.applicant && a.applicant.toLowerCase() === userAddr));
     });
   }, [jobs, userAddr, isClientRole]);
 

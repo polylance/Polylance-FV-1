@@ -194,14 +194,16 @@ export const Chat: React.FC = () => {
   const userAddr = (address || '').toLowerCase();
   const isClientRole = currentRole === 'client';
 
-  // Securely filter jobs strictly to channels the user participates in
+  // Securely filter jobs strictly to channels the user participates in:
+  // Once a freelancer is selected, ONLY that selected talent, the client, and dispute arbiters have access!
   const myChats = jobs.filter((j) => {
     const isClient = Boolean(userAddr && j.client?.toLowerCase() === userAddr);
-    const isFreelancer = Boolean(userAddr && j.freelancer?.toLowerCase() === userAddr);
-    const hasApplied = Boolean(userAddr && (j.applications || []).some((a) => a.applicant?.toLowerCase() === userAddr));
+    const isSelectedFreelancer = Boolean(userAddr && j.freelancer?.toLowerCase() === userAddr);
+    // Unselected applicants only see chat if NO freelancer has been selected yet (open selection)
+    const hasAppliedAndOpen = Boolean(userAddr && !j.freelancer && (j.applications || []).some((a) => a.applicant?.toLowerCase() === userAddr));
     const isDisputeJudge = (isJudgeRole || isAdmin) && j.status === 'Disputed';
 
-    return isClient || isFreelancer || hasApplied || isDisputeJudge;
+    return isClient || isSelectedFreelancer || hasAppliedAndOpen || isDisputeJudge;
   });
 
   // Construct distinct 1-on-1 Escrow Chat Channels for all candidates and assigned developers
