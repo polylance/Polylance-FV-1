@@ -775,11 +775,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const isOnline = typeof navigator === 'undefined' || navigator.onLine;
       if (isOnline && Date.now() >= backendSyncOfflineUntil && (!syncSocket || !syncSocket.connected)) {
         syncSocket = socketIO(syncUrl, {
-          transports: ['websocket', 'polling'],
+          transports: ['polling', 'websocket'],
+          withCredentials: true,
           reconnection: true,
-          reconnectionAttempts: 3,
-          reconnectionDelay: 5000,
-          timeout: 8000,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 3000,
+          timeout: 10000,
         });
 
         syncSocket.on('connect_error', () => {
