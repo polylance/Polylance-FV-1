@@ -18,7 +18,12 @@ import {
   Zap,
   CheckCircle2,
   Filter,
-  AlertTriangle
+  AlertTriangle,
+  FileText,
+  SlidersHorizontal,
+  User,
+  Link2,
+  ChevronRight
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
 import { getJobInactivityStatus } from '../utils/inactivity';
@@ -153,21 +158,35 @@ export const JobWorkspace: React.FC = () => {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<JobCategoryFilter>('all');
   const triggerBtnRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Position for fixed dropdown
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  const openDropdown = useCallback(() => {
+  const calculateDropdownPos = useCallback(() => {
     if (triggerBtnRef.current) {
       const rect = triggerBtnRef.current.getBoundingClientRect();
-      setDropdownPos({
+      const targetWidth = Math.min(Math.max(rect.width, 580), window.innerWidth - 32);
+      let left = rect.left + window.scrollX;
+      if (left + targetWidth > window.innerWidth - 16) {
+        left = Math.max(16, window.innerWidth - targetWidth - 16);
+      }
+      return {
         top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-      });
+        left,
+        width: targetWidth,
+      };
+    }
+    return null;
+  }, []);
+
+  const openDropdown = useCallback(() => {
+    const pos = calculateDropdownPos();
+    if (pos) {
+      setDropdownPos(pos);
     }
     setIsJobDropdownOpen(true);
-  }, []);
+  }, [calculateDropdownPos]);
 
   const closeDropdown = useCallback(() => {
     setIsJobDropdownOpen(false);
@@ -182,6 +201,23 @@ export const JobWorkspace: React.FC = () => {
       openDropdown();
     }
   }, [isJobDropdownOpen, openDropdown, closeDropdown]);
+
+  // Keyboard shortcut Cmd/Ctrl + K to toggle/focus search in Job Workspace
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (!isJobDropdownOpen) {
+          openDropdown();
+        }
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 50);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isJobDropdownOpen, openDropdown]);
 
   // Close on click outside
   useEffect(() => {
@@ -204,13 +240,9 @@ export const JobWorkspace: React.FC = () => {
   useEffect(() => {
     if (!isJobDropdownOpen) return;
     const reposition = () => {
-      if (triggerBtnRef.current) {
-        const rect = triggerBtnRef.current.getBoundingClientRect();
-        setDropdownPos({
-          top: rect.bottom + window.scrollY + 8,
-          left: rect.left + window.scrollX,
-          width: rect.width,
-        });
+      const pos = calculateDropdownPos();
+      if (pos) {
+        setDropdownPos(pos);
       }
     };
     window.addEventListener('scroll', reposition, true);
@@ -219,7 +251,7 @@ export const JobWorkspace: React.FC = () => {
       window.removeEventListener('scroll', reposition, true);
       window.removeEventListener('resize', reposition);
     };
-  }, [isJobDropdownOpen]);
+  }, [isJobDropdownOpen, calculateDropdownPos]);
 
   // Category counts across user's relevant jobs
   const categoryCounts = useMemo(() => {
@@ -364,42 +396,53 @@ export const JobWorkspace: React.FC = () => {
               ref={triggerBtnRef}
               type="button"
               onClick={toggleDropdown}
-              className={`w-full flex items-center justify-between gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer group shadow-sm ${
+              className={`relative overflow-hidden w-full flex items-center justify-between gap-4 p-4 rounded-3xl border text-left transition-all cursor-pointer group shadow-xs hover:shadow-md ${
                 isJobDropdownOpen
-                  ? 'bg-purple-50 border-purple-300 ring-2 ring-purple-100'
-                  : 'bg-slate-50 hover:bg-purple-50/40 border-slate-200 hover:border-purple-300'
+                  ? 'bg-gradient-to-r from-blue-50/70 via-white to-blue-50/30 border-purple-300 ring-2 ring-purple-100'
+                  : 'bg-gradient-to-r from-blue-50/40 via-white to-blue-50/20 hover:bg-slate-50 border-slate-200 hover:border-purple-300'
               }`}
               title="Click to switch active project workspace"
             >
-              <div className="min-w-0 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm uppercase">
-                  {activeJob.title.slice(0, 2)}
+              {/* Ambient top-right soft glow */}
+              <div className="absolute -top-10 -right-10 w-36 h-36 bg-blue-100/40 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="relative z-10 min-w-0 flex items-center gap-3.5 flex-1">
+                {/* Blue squircle icon badge per Image 2 */}
+                <div className="w-12 h-12 rounded-2xl bg-blue-100/70 border border-blue-200/60 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                  <FileText size={24} className="text-blue-600 stroke-[2.2]" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-headline font-black text-sm text-slate-900 truncate group-hover:text-purple-700 transition-colors">
+                    <span className="font-headline font-bold text-base text-slate-900 truncate group-hover:text-purple-700 transition-colors">
                       {activeJob.title}
                     </span>
-                    <span className={`badge-status badge-${activeJob.status.toLowerCase()} text-[9.5px] px-2 py-0.5 shrink-0`}>
-                      {activeJob.status}
-                    </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] font-mono text-slate-500 mt-0.5">
-                    <span className="text-emerald-700 font-extrabold">${activeJob.amountUsdc} USDC</span>
-                    <span>•</span>
-                    <span className="truncate">Counterpart: <strong className="text-slate-700 font-semibold">{counterpartName}</strong></span>
-                    <span className="hidden sm:inline text-slate-300">•</span>
-                    <span className="hidden sm:inline text-slate-400">ID: #{activeJob.id.slice(0, 8)}</span>
+                  <div className="flex items-center flex-wrap gap-2.5 sm:gap-3 text-xs font-mono mt-1 text-slate-500">
+                    <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600">
+                      <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shadow-2xs">$</span>
+                      <span>${activeJob.amountUsdc} USDC</span>
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <span className="inline-flex items-center gap-1.5 text-slate-600">
+                      <User size={13} className="text-slate-400" />
+                      <span className="truncate">{counterpartName}</span>
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <span className="inline-flex items-center gap-1.5 text-slate-500">
+                      <Link2 size={13} className="text-slate-400" />
+                      <span>#{truncateAddress(activeJob.contractAddress || activeJob.id)}</span>
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-mono font-bold text-purple-700 bg-white border border-purple-200 px-2.5 py-1 rounded-xl group-hover:border-purple-300">
-                  Switch Job <ChevronDown size={13} className={`transition-transform duration-200 ${isJobDropdownOpen ? 'rotate-180' : ''}`} />
+              <div className="relative z-10 flex items-center gap-3 shrink-0">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-mono font-bold text-xs uppercase tracking-wider shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>ACTIVE</span>
                 </span>
-                <div className="md:hidden p-1.5 text-slate-400 group-hover:text-purple-600">
-                  <ChevronDown size={18} className={`transition-transform duration-200 ${isJobDropdownOpen ? 'rotate-180' : ''}`} />
+                <div className="w-8 h-8 rounded-full bg-blue-50/80 group-hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors shadow-2xs">
+                  <ChevronDown size={16} className={`stroke-[2.5] transition-transform duration-200 ${isJobDropdownOpen ? 'rotate-180' : ''}`} />
                 </div>
               </div>
             </button>
@@ -556,71 +599,97 @@ export const JobWorkspace: React.FC = () => {
             position: 'fixed',
             top: dropdownPos.top,
             left: dropdownPos.left,
-            width: Math.max(dropdownPos.width, 360),
+            width: dropdownPos.width,
             zIndex: 9999,
           }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden animate-fadeIn"
+          className="bg-white/95 rounded-3xl border border-slate-200/90 shadow-2xl overflow-hidden animate-fadeIn backdrop-blur-md"
         >
-          {/* Sticky Search & Filter Header */}
-          <div className="sticky top-0 bg-white border-b border-slate-100 z-10">
-            {/* Search Input */}
-            <div className="p-3 pb-2">
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search by title, ID, amount, counterpart, status..."
-                  value={jobSearchQuery}
-                  onChange={(e) => setJobSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400"
-                  autoFocus
-                />
-                {jobSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setJobSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
+          {/* Top Search Bar with ⌘ K */}
+          <div className="p-4 pb-3 border-b border-slate-100 bg-white">
+            <div className="relative flex items-center">
+              <Search size={18} className="absolute left-4 text-slate-400 pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search by title, ID, amount, counterpart, status..."
+                value={jobSearchQuery}
+                onChange={(e) => setJobSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-14 py-3 text-xs sm:text-sm bg-white border border-slate-200/90 rounded-2xl focus:border-purple-300 focus:ring-3 focus:ring-purple-100/80 outline-none transition-all font-sans text-slate-800 placeholder:text-slate-400 shadow-2xs"
+                autoFocus
+              />
+              {jobSearchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setJobSearchQuery('')}
+                  className="absolute right-3.5 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              ) : (
+                <div className="absolute right-3.5 pointer-events-none flex items-center">
+                  <kbd className="text-[11px] font-mono text-slate-400 bg-slate-100/90 border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs font-semibold">
+                    ⌘ K
+                  </kbd>
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* Category Filter Pills (Strictly Organized with Counts) */}
-            <div className="px-3 pb-2.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar select-none bg-slate-50/70 border-t border-slate-100/80 pt-2">
+          {/* Filter Pills and Sort Row matching Image 2 */}
+          <div className="px-4 py-3 border-b border-slate-100/80 bg-slate-50/40 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
+            {/* Filter pills */}
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setSelectedCategoryFilter('all')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                   selectedCategoryFilter === 'all'
-                    ? 'bg-purple-600 text-white shadow-2xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    ? 'bg-purple-100/90 text-purple-700 border border-purple-200/70'
+                    : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                 }`}
               >
                 <span>All</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
-                  selectedCategoryFilter === 'all' ? 'bg-purple-800 text-purple-100' : 'bg-slate-100 text-slate-600'
+                <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                  selectedCategoryFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-slate-200/80 text-slate-700'
                 }`}>
                   {categoryCounts.all}
                 </span>
               </button>
 
+              {categoryCounts.completed > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategoryFilter('completed')}
+                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
+                    selectedCategoryFilter === 'completed'
+                      ? 'bg-purple-100/90 text-purple-700 border border-purple-200/70'
+                      : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
+                  }`}
+                >
+                  <CheckCircle2 size={14} className={selectedCategoryFilter === 'completed' ? 'text-purple-600' : 'text-slate-500'} />
+                  <span>Completed</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                    selectedCategoryFilter === 'completed' ? 'bg-purple-600 text-white' : 'bg-slate-200/80 text-slate-700'
+                  }`}>
+                    {categoryCounts.completed}
+                  </span>
+                </button>
+              )}
+
               {categoryCounts.ongoing > 0 && (
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryFilter('ongoing')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                     selectedCategoryFilter === 'ongoing'
-                      ? 'bg-emerald-600 text-white shadow-2xs'
-                      : 'bg-white text-emerald-800 hover:bg-emerald-50 border border-emerald-200'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                   }`}
-                  title="Funded escrows and active in-progress contracts"
                 >
-                  <Zap size={11} className={selectedCategoryFilter === 'ongoing' ? 'text-white' : 'text-emerald-600'} />
+                  <Zap size={14} className={selectedCategoryFilter === 'ongoing' ? 'text-emerald-700' : 'text-emerald-600'} />
                   <span>Ongoing</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
-                    selectedCategoryFilter === 'ongoing' ? 'bg-emerald-800 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                    selectedCategoryFilter === 'ongoing' ? 'bg-emerald-600 text-white' : 'bg-slate-200/80 text-slate-700'
                   }`}>
                     {categoryCounts.ongoing}
                   </span>
@@ -631,39 +700,18 @@ export const JobWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryFilter('awaiting_release')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                     selectedCategoryFilter === 'awaiting_release'
-                      ? 'bg-indigo-600 text-white shadow-2xs'
-                      : 'bg-white text-indigo-800 hover:bg-indigo-50 border border-indigo-200'
+                      ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                      : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                   }`}
-                  title="Deliverables submitted awaiting client approval & fund release"
                 >
-                  <Clock size={11} className={selectedCategoryFilter === 'awaiting_release' ? 'text-white' : 'text-indigo-600'} />
+                  <Clock size={14} className={selectedCategoryFilter === 'awaiting_release' ? 'text-indigo-700' : 'text-indigo-600'} />
                   <span>Awaiting Release</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
-                    selectedCategoryFilter === 'awaiting_release' ? 'bg-indigo-800 text-indigo-100' : 'bg-indigo-100 text-indigo-800'
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                    selectedCategoryFilter === 'awaiting_release' ? 'bg-indigo-600 text-white' : 'bg-slate-200/80 text-slate-700'
                   }`}>
                     {categoryCounts.awaiting_release}
-                  </span>
-                </button>
-              )}
-
-              {categoryCounts.completed > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategoryFilter('completed')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    selectedCategoryFilter === 'completed'
-                      ? 'bg-slate-700 text-white shadow-2xs'
-                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  <CheckCircle2 size={11} className={selectedCategoryFilter === 'completed' ? 'text-white' : 'text-slate-500'} />
-                  <span>Completed</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
-                    selectedCategoryFilter === 'completed' ? 'bg-slate-900 text-slate-200' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {categoryCounts.completed}
                   </span>
                 </button>
               )}
@@ -672,16 +720,16 @@ export const JobWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryFilter('negotiating')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                     selectedCategoryFilter === 'negotiating'
-                      ? 'bg-amber-600 text-white shadow-2xs'
-                      : 'bg-white text-amber-800 hover:bg-amber-50 border border-amber-200'
+                      ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                      : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                   }`}
                 >
-                  <MessageSquare size={11} className={selectedCategoryFilter === 'negotiating' ? 'text-white' : 'text-amber-600'} />
+                  <MessageSquare size={14} className={selectedCategoryFilter === 'negotiating' ? 'text-amber-700' : 'text-amber-600'} />
                   <span>Negotiating</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
-                    selectedCategoryFilter === 'negotiating' ? 'bg-amber-800 text-amber-100' : 'bg-amber-100 text-amber-800'
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                    selectedCategoryFilter === 'negotiating' ? 'bg-amber-600 text-white' : 'bg-slate-200/80 text-slate-700'
                   }`}>
                     {categoryCounts.negotiating}
                   </span>
@@ -692,127 +740,133 @@ export const JobWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryFilter('disputed')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                     selectedCategoryFilter === 'disputed'
-                      ? 'bg-rose-600 text-white shadow-2xs'
-                      : 'bg-white text-rose-800 hover:bg-rose-50 border border-rose-200'
+                      ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                      : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                   }`}
                 >
-                  <Scale size={11} className={selectedCategoryFilter === 'disputed' ? 'text-white' : 'text-rose-600'} />
+                  <Scale size={14} className={selectedCategoryFilter === 'disputed' ? 'text-rose-700' : 'text-rose-600'} />
                   <span>Disputed</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${
-                    selectedCategoryFilter === 'disputed' ? 'bg-rose-800 text-rose-100' : 'bg-rose-100 text-rose-800'
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                    selectedCategoryFilter === 'disputed' ? 'bg-rose-600 text-white' : 'bg-slate-200/80 text-slate-700'
                   }`}>
                     {categoryCounts.disputed}
                   </span>
                 </button>
               )}
             </div>
+
+            {/* Sort trigger button matching Image 2 */}
+            <div className="shrink-0">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-medium shadow-2xs transition-all select-none">
+                <SlidersHorizontal size={14} className="text-slate-600" />
+                <span>Sorted by Priority</span>
+                <ChevronDown size={14} className="text-slate-400" />
+              </div>
+            </div>
           </div>
 
-          {/* Scrollable job list */}
-          <div className="overflow-y-auto max-h-80 p-2 space-y-1">
+          {/* Section Header: My Working Contracts (X) */}
+          <div className="px-5 pt-4 pb-2 flex items-center justify-between select-none">
+            <h3 className="font-headline font-bold text-slate-900 text-base sm:text-lg tracking-tight">
+              {isClientRole ? 'My Project Escrows' : 'My Working Contracts'} ({filteredMyJobs.length})
+            </h3>
+            <span className="text-xs text-slate-400 font-sans">
+              Sorted by Priority
+            </span>
+          </div>
+
+          {/* Scrollable job list matching Image 2 */}
+          <div className="overflow-y-auto max-h-[380px] p-3 pt-1 space-y-2.5">
             {filteredMyJobs.length > 0 ? (
-              <>
-                <div className="px-2 pt-1.5 pb-1 text-[10px] font-mono font-bold uppercase text-purple-700 tracking-wider flex items-center justify-between">
-                  <span>{isClientRole ? 'My Project Escrows' : 'My Working Contracts'} ({filteredMyJobs.length})</span>
-                  <span className="text-[9.5px] text-slate-400 font-normal">Sorted by Priority</span>
-                </div>
-                {filteredMyJobs.map((j) => {
-                  const isSelected = j.id === activeJob.id;
-                  const isClientJob = (j.client && j.client.toLowerCase() === userAddr) || isClientRole;
-                  const counterpart = isClientJob ? (j.freelancer || j.applications?.[0]?.applicant || '') : j.client;
-                  const counterpartProfileKey = Object.keys(profiles || {}).find(k => k.toLowerCase() === counterpart.toLowerCase());
-                  const counterpartProfile = counterpartProfileKey ? profiles[counterpartProfileKey] : null;
-                  const counterpartLabel = counterpartProfile?.displayName || (counterpart ? truncateAddress(counterpart) : 'Unassigned');
+              filteredMyJobs.map((j) => {
+                const isSelected = j.id === activeJob.id;
+                const isClientJob = (j.client && j.client.toLowerCase() === userAddr) || isClientRole;
+                const counterpart = isClientJob ? (j.freelancer || j.applications?.[0]?.applicant || '') : j.client;
+                const counterpartProfileKey = Object.keys(profiles || {}).find(k => k.toLowerCase() === counterpart.toLowerCase());
+                const counterpartProfile = counterpartProfileKey ? profiles[counterpartProfileKey] : null;
+                const counterpartLabel = counterpartProfile?.displayName || (counterpart ? truncateAddress(counterpart) : 'Unassigned');
 
-                  // Custom badge design per status
-                  let badgeNode = null;
-                  if (j.status === 'Submitted') {
-                    badgeNode = (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-black uppercase bg-indigo-100 text-indigo-900 border border-indigo-300 shrink-0">
-                        <Clock size={10} className="text-indigo-700" />
-                        Awaiting Release
-                      </span>
-                    );
-                  } else if (j.status === 'Funded') {
-                    badgeNode = (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300 shrink-0">
-                        <Zap size={10} className="text-emerald-700" />
-                        Funded Escrow
-                      </span>
-                    );
-                  } else if (j.status === 'Selected') {
-                    badgeNode = (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-black uppercase bg-blue-100 text-blue-900 border border-blue-300 shrink-0">
-                        <Zap size={10} className="text-blue-700" />
-                        In Progress
-                      </span>
-                    );
-                  } else if (j.status === 'Disputed') {
-                    badgeNode = (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-black uppercase bg-rose-100 text-rose-900 border border-rose-300 shrink-0">
-                        <Scale size={10} className="text-rose-700" />
-                        Disputed
-                      </span>
-                    );
-                  } else if (j.status === 'Completed') {
-                    badgeNode = (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
-                        <CheckCircle2 size={10} className="text-slate-500" />
-                        Completed
-                      </span>
-                    );
-                  } else {
-                    badgeNode = (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
-                        Negotiating
-                      </span>
-                    );
-                  }
+                return (
+                  <button
+                    key={j.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedJobId(j.id);
+                      setSearchParams({ jobId: j.id });
+                      closeDropdown();
+                    }}
+                    className={`relative w-full p-4 sm:p-5 rounded-2xl text-left flex items-center justify-between gap-4 transition-all cursor-pointer overflow-hidden group shadow-xs hover:shadow-md ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-blue-50/50 via-white to-blue-50/20 border-2 border-purple-300 ring-2 ring-purple-100/80'
+                        : 'bg-white hover:bg-slate-50/80 border border-slate-200/80'
+                    }`}
+                  >
+                    {/* Ambient top-right glow matching Image 2 */}
+                    <div className="absolute -top-10 -right-10 w-44 h-44 bg-blue-100/40 rounded-full blur-2xl pointer-events-none" />
 
-                  return (
-                    <button
-                      key={j.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedJobId(j.id);
-                        setSearchParams({ jobId: j.id });
-                        closeDropdown();
-                      }}
-                      className={`w-full p-3 rounded-xl text-left flex items-center justify-between gap-3 transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400'
-                          : 'hover:bg-purple-50/70 text-slate-800 bg-white border border-slate-100 hover:border-purple-200'
-                      }`}
-                    >
+                    {/* Left Document Icon Badge */}
+                    <div className="relative z-10 flex items-center gap-4 min-w-0 flex-1">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-100/70 border border-blue-200/60 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        <FileText size={26} className="text-blue-600 stroke-[2.2]" />
+                      </div>
+
+                      {/* Center Information */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-xs truncate font-bold leading-tight">{j.title}</p>
+                          <h4 className="font-headline font-bold text-base sm:text-lg text-slate-900 tracking-tight truncate group-hover:text-purple-700 transition-colors">
+                            {j.title}
+                          </h4>
                         </div>
-                        <div className={`flex items-center gap-2 text-[10.5px] font-mono mt-1 ${isSelected ? 'text-purple-100' : 'text-slate-500'}`}>
-                          <span className="font-extrabold text-emerald-600">{isSelected ? `$${j.amountUsdc} USDC` : `$${j.amountUsdc} USDC`}</span>
-                          <span>•</span>
-                          <span className="truncate">{counterpartLabel}</span>
-                          <span className="hidden sm:inline">•</span>
-                          <span className="hidden sm:inline">#{j.id.slice(0, 6)}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!isSelected && badgeNode}
-                        {isSelected && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[9.5px] font-mono font-bold uppercase bg-purple-700 text-purple-100 px-2 py-0.5 rounded-full border border-purple-500">
-                              Active
+
+                        {/* Meta row matching Image 2 */}
+                        <div className="flex items-center flex-wrap gap-2.5 sm:gap-3 text-xs font-mono mt-1.5">
+                          {/* Amount in Emerald */}
+                          <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600">
+                            <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shadow-2xs">
+                              $
                             </span>
-                            <Check size={14} className="text-white shrink-0" />
-                          </div>
-                        )}
+                            <span>${j.amountUsdc} USDC</span>
+                          </span>
+
+                          {/* Divider */}
+                          <span className="text-slate-300 font-light">|</span>
+
+                          {/* Counterpart / Client with User icon */}
+                          <span className="inline-flex items-center gap-1.5 text-slate-600 font-medium">
+                            <User size={13} className="text-slate-400" />
+                            <span className="truncate">{counterpartLabel}</span>
+                          </span>
+
+                          {/* Divider */}
+                          <span className="text-slate-300 font-light">|</span>
+
+                          {/* Contract / Hash with Link icon */}
+                          <span className="inline-flex items-center gap-1.5 text-slate-500 font-mono">
+                            <Link2 size={13} className="text-slate-400" />
+                            <span>#{truncateAddress(j.contractAddress || j.id)}</span>
+                          </span>
+                        </div>
                       </div>
-                    </button>
-                  );
-                })}
-              </>
+                    </div>
+
+                    {/* Right Section: Status Pill & Action Chevron */}
+                    <div className="relative z-10 flex items-center gap-3 shrink-0">
+                      {/* Active status pill per Image 2 */}
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-mono font-bold text-xs uppercase tracking-wider shadow-2xs">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>{isSelected ? 'ACTIVE' : j.status.toUpperCase()}</span>
+                      </span>
+
+                      {/* Chevron action button in rounded circle */}
+                      <div className="w-9 h-9 rounded-full bg-blue-50/80 group-hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors shadow-2xs">
+                        <ChevronRight size={18} className="stroke-[2.5]" />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
             ) : (
               <div className="py-8 text-center text-xs text-slate-400 font-mono space-y-1">
                 <p>No project escrows match the selected filter.</p>

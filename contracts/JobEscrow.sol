@@ -8,6 +8,11 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IJobFactory.sol";
 
 contract JobEscrow is Initializable, ReentrancyGuard {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     using SafeERC20 for IERC20;
 
     enum JobStatus { Open, Selected, Submitted, Disputed, Completed, Cancelled }
@@ -171,6 +176,7 @@ contract JobEscrow is Initializable, ReentrancyGuard {
         require(status == JobStatus.Selected, "Wrong status");
         acceptedTermsBy[msg.sender] = true;
         if (acceptedTermsBy[client] && acceptedTermsBy[freelancer]) {
+            require(termsHash == bytes32(0) || termsHash == _termsHash, "Terms hash mismatch: both parties must agree on the same terms");
             termsHash = _termsHash;
         }
         emit TermsProposed(msg.sender, _termsHash);
@@ -281,6 +287,7 @@ contract JobEscrow is Initializable, ReentrancyGuard {
     function submitDisputeResponse(string calldata responseIpfsHash) external onlyParty {
         require(msg.sender != dispute.raisedBy, "This is the response, not the original");
         require(status == JobStatus.Disputed, "No active dispute");
+        require(bytes(disputeResponseIpfsHash).length == 0, "Response already submitted");
         disputeResponseIpfsHash = responseIpfsHash;
         emit DisputeResponseSubmitted(msg.sender, responseIpfsHash);
     }

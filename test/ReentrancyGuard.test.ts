@@ -1,30 +1,31 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
-import { JobEscrow, JobFactory, ReputationSBT, ReentrancyAttacker } from "../typechain-types";
+import { ethers, network } from "hardhat";
+import { JobFactory, ReputationSBT, JobEscrow, ReentrancyAttacker } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-describe("ReentrancyGuard", function () {
+describe("ReentrancyGuard: real exploit attempts", function () {
   let factory: JobFactory;
   let sbt: ReputationSBT;
-  let implementation: JobEscrow;
-  let admin: HardhatEthersSigner;
+  let job: JobEscrow;
+  let attacker: ReentrancyAttacker;
   let client: HardhatEthersSigner;
-  let attackerWallet: HardhatEthersSigner;
-  let attackerContract: ReentrancyAttacker;
-  let escrowContract: JobEscrow;
+  let judge1: HardhatEthersSigner;
+
+  const REVIEW_PERIOD = 7 * 24 * 60 * 60; // 7 days
 
   beforeEach(async function () {
-    [admin, client, attackerWallet] = await ethers.getSigners();
+    const [deployer, clientSigner, judgeSigner] = await ethers.getSigners();
+    client = clientSigner;
+    judge1 = judgeSigner;
 
-    // 1. Deploy contracts
-    implementation = await ethers.deployContract("JobEscrow");
-    await implementation.waitForDeployment();
+    const jobImpl = await ethers.deployContract("JobEscrow");
+    await jobImpl.waitForDeployment();
 
-    sbt = await ethers.deployContract("ReputationSBT", [ethers.ZeroAddress]);
+    sbt = await ethers.deployContract("ReputationSBT", [deployer.address]);
     await sbt.waitForDeployment();
 
     factory = await ethers.deployContract("JobFactory", [
-      await implementation.getAddress(),
+      await jobImpl.getAddress(),
       await sbt.getAddress(),
     ]);
     await factory.waitForDeployment();
@@ -32,60 +33,70 @@ describe("ReentrancyGuard", function () {
     const MINTER_ROLE = await sbt.MINTER_ROLE();
     await sbt.grantRole(MINTER_ROLE, await factory.getAddress());
 
-    // 2. Client creates Job Escrow via Factory
-    const tx = await factory.connect(client).postJob("QmJobDescriptionHash", ethers.ZeroAddress);
-    const receipt = await tx.wait();
-    
-    // Find clone address from JobDeployed event
-    const event = receipt?.logs
-      .map((log: any) => {
-        try {
-          return factory.interface.parseLog(log);
-        } catch {
-          return null;
-        }
-      })
-      .find((e) => e && e.name === "JobDeployed");
+    const ARBITRATOR_ROLE = await factory.ARBITRATOR_ROLE();
+    await factory.grantRole(ARBITRATOR_ROLE, judge1.address);
 
-    const cloneAddr = event?.args?.[0];
-    escrowContract = await ethers.getContractAt("JobEscrow", cloneAddr) as unknown as JobEscrow;
+    // Deploy the real attacker contract — plays the role of a malicious freelancer
+    attacker = await ethers.deployContract("ReentrancyAttacker");
+    await attacker.waitForDeployment();
 
-    // 3. Deploy Reentrancy Attacker contract, passing clone address
-    attackerContract = await ethers.deployContract("ReentrancyAttacker", [cloneAddr]) as unknown as ReentrancyAttacker;
-    await attackerContract.waitForDeployment();
+    // Post and fund a real job
+    await factory.connect(client).postJob("ipfs://job-description", ethers.ZeroAddress);
+    const jobs = await factory.getAllJobs();
+    job = await ethers.getContractAt("JobEscrow", jobs[0]) as JobEscrow;
+    await attacker.setTarget(jobs[0]);
 
-    // 4. Attacker contract applies to job
-    await attackerContract.connect(attackerWallet).applyToJob("QmProposalHash");
-    
-    // Client selects attacker contract address
-    await escrowContract.connect(client).selectFreelancer(await attackerContract.getAddress());
+    await job.connect(client).fundJob(0, { value: ethers.parseEther("1.0") });
 
-    // 5. Agree on terms
-    const termsHash = ethers.keccak256(ethers.toUtf8Bytes("Terms v1"));
-    await escrowContract.connect(client).proposeTerms(termsHash);
-    await attackerContract.connect(attackerWallet).proposeTerms(termsHash);
-
-    // 6. Fund the job
-    await escrowContract.connect(client).fundJob(0, { value: ethers.parseEther("1.0") });
+    // Attacker contract applies as freelancer
+    await attacker.triggerApply();
   });
 
-  it("should prevent reentrancy during claimAutoRelease", async function () {
-    // 1. Submit work via attacker contract
-    await attackerContract.connect(attackerWallet).submitWork("Verdict", "Explanation", ["hash1"]);
+  it("blocks re-entrant releasePayment call during payout (nonReentrant holds)", async function () {
+    const attackerAddress = await attacker.getAddress();
+    await job.connect(client).selectFreelancer(attackerAddress);
+    await attacker.triggerSubmitWork();
 
-    // 2. Increase block time to pass the review period (default 7 days)
-    await ethers.provider.send("evm_increaseTime", [7 * 24 * 3600 + 10]);
-    await ethers.provider.send("evm_mine", []);
+    await attacker.setAttackMode(1); // attempt to re-enter releasePayment
 
-    // 3. Enable reentrancy in attacker contract
-    await attackerContract.connect(attackerWallet).setShouldReenter(true);
+    // The outer call must succeed (legitimate release), but the re-entrant attempt inside receive() must be blocked
+    await job.connect(client).releasePayment();
 
-    // 4. Try to attack. The reentrant call should revert.
-    await expect(
-      attackerContract.connect(attackerWallet).attackAutoRelease()
-    ).to.be.reverted;
+    expect(await attacker.reentryAttempts()).to.equal(1n);
+    expect(await attacker.reentryReverted()).to.be.true;
 
-    // Verify contract remains in Submitted state and balance is intact
-    expect(await escrowContract.status()).to.equal(2); // 2 = Submitted
+    // Critical assertion: the job's remaining balance reflects exactly ONE payout having occurred
+    const jobBalanceAfter = await ethers.provider.getBalance(await job.getAddress());
+    expect(jobBalanceAfter).to.equal(0n); // fully paid out once, no dust, no double-pay
+  });
+
+  it("blocks re-entrant claimAutoRelease during payout", async function () {
+    const attackerAddress = await attacker.getAddress();
+    await job.connect(client).selectFreelancer(attackerAddress);
+    await attacker.triggerSubmitWork();
+
+    await network.provider.send("evm_increaseTime", [REVIEW_PERIOD + 1]);
+    await network.provider.send("evm_mine");
+
+    await attacker.setAttackMode(2); // attempt to re-enter claimAutoRelease
+    await job.connect(client).claimAutoRelease();
+
+    expect(await attacker.reentryReverted()).to.be.true;
+    expect(await job.status()).to.equal(4n); // Completed, exactly once
+  });
+
+  it("blocks re-entrant call during dispute resolution payout", async function () {
+    const attackerAddress = await attacker.getAddress();
+    await job.connect(client).selectFreelancer(attackerAddress);
+    await attacker.triggerSubmitWork();
+    await job.connect(client).raiseDispute(0, "ipfs://evidence");
+
+    await attacker.setAttackMode(1); // attacker tries to re-enter during the judge's payout tx
+
+    await job.connect(judge1).resolveDispute(10000, "ipfs://reasoning");
+
+    expect(await attacker.reentryReverted()).to.be.true;
+    // Confirm no double-payout happened via resolveDispute's own path
+    expect(await job.status()).to.equal(4n);
   });
 });

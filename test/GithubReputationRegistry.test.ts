@@ -141,6 +141,33 @@ describe("GithubReputationRegistry", function () {
     ).to.be.revertedWith("Already used");
   });
 
+  it("rejects a signature signed for a different chainId (Section 6 fix)", async function () {
+    const uid = makeUID();
+    const wrongChainId = 999999n;
+    const msgHash = buildMessageHash(
+      wrongChainId,
+      await registry.getAddress(),
+      user.address,
+      primaryCategory,
+      primaryScore,
+      secondaryCategories,
+      secondaryScores,
+      uid
+    );
+    const sig = await oracle.signMessage(ethers.getBytes(msgHash));
+
+    await expect(
+      registry.connect(user).submitSkillVerification(
+        primaryCategory,
+        primaryScore,
+        secondaryCategories,
+        secondaryScores,
+        uid,
+        sig
+      )
+    ).to.be.revertedWith("Not an authorized oracle");
+  });
+
   // ── Mismatched arrays rejected ──────────────────────────────────────────────
 
   it("rejects mismatched secondary array lengths", async function () {
