@@ -30,10 +30,15 @@ export const JobAttestationReport: React.FC = () => {
 
   // Find job by ID or contract address
   const job = useMemo(() => {
-    if (!jobIdParam) return jobs[0] || null;
+    if (!jobIdParam) {
+      // Return first completed job if available
+      return jobs.find(j => j.status === 'Completed') || null;
+    }
     const lower = jobIdParam.toLowerCase();
-    return jobs.find(j => j.id.toLowerCase() === lower || j.contractAddress?.toLowerCase() === lower) || jobs[0] || null;
+    return jobs.find(j => j.id.toLowerCase() === lower || j.contractAddress?.toLowerCase() === lower) || null;
   }, [jobs, jobIdParam]);
+
+  const isCompleted = job?.status === 'Completed';
 
   // Client and Freelancer Addresses & Profiles
   const clientAddr = job?.client || '0x71c8366420a092c55660830e8115e9a44390001';
@@ -199,9 +204,77 @@ export const JobAttestationReport: React.FC = () => {
         <p className="text-xs text-slate-500 max-w-sm">
           Unable to locate the specified job or Soulbound Token certificate.
         </p>
-        <Link to="/workspace" className="px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold shadow-md">
-          Return to Workspace
+        <Link to="/jobs" className="px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold shadow-md">
+          Browse All Jobs
         </Link>
+      </div>
+    );
+  }
+
+  // STRICT REQUIREMENT: Only issue & show SBT cert if the job is successfully completed.
+  if (!isCompleted) {
+    return (
+      <div className="min-h-[85vh] py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 via-purple-50/20 to-slate-50 font-sans">
+        <div className="max-w-xl mx-auto space-y-5">
+          <Link
+            to={`/jobs/${job.id}`}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
+          >
+            <ArrowLeft size={14} /> <span>Back to Job Workspace</span>
+          </Link>
+
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-2xs">
+              <Clock size={32} />
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full border border-amber-200 inline-block">
+                ● Attestation Pending • Job {job.status || 'Ongoing'}
+              </span>
+              <h2 className="font-headline text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Soulbound SBT Certificate Not Issued
+              </h2>
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
+              Official ERC-5192 Soulbound Token (SBT) reputation certificates are cryptographically minted and issued <strong className="text-slate-900">only after a job is 100% completed</strong>, milestone deliverables are approved, and escrow is released on Polygon.
+            </p>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-2 font-mono text-xs">
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Job Title:</span>
+                <strong className="text-slate-900 truncate max-w-[220px]">{job.title}</strong>
+              </div>
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Current Escrow Status:</span>
+                <span className="font-bold text-purple-700 uppercase bg-purple-50 px-2 py-0.5 rounded border border-purple-200 text-[11px]">
+                  {job.status === 'Funded' ? 'Funded & In Progress' : job.status || 'Ongoing'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Escrow Deposit:</span>
+                <strong className="text-emerald-700 font-bold">${parseFloat(job.amountUsdc || '0').toFixed(2)} USDC</strong>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
+              <Link
+                to={`/jobs/${job.id}`}
+                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
+              >
+                <Briefcase size={14} />
+                <span>Open Active Escrow Workspace</span>
+              </Link>
+              <Link
+                to="/jobs"
+                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+              >
+                <span>Browse All Jobs</span>
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

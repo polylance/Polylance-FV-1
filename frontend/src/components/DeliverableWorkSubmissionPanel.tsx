@@ -246,14 +246,19 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
   }, [currentJob.status, currentJob.proof, latestProgressUpdate]);
 
   const isClient = Boolean(isConnected && address && currentJob.client && address.toLowerCase() === currentJob.client.toLowerCase());
-  const isFreelancer = Boolean(
-    isConnected && address && (
-      (currentJob.freelancer && address.toLowerCase() === currentJob.freelancer.toLowerCase()) ||
-      (currentJob.applications || []).some(a => a.applicant && a.applicant.toLowerCase() === address.toLowerCase())
-    )
+  
+  // STRICT ASSIGNED FREELANCER: ONLY the user whose address matches currentJob.freelancer is the assigned talent
+  const isAssignedFreelancer = Boolean(
+    isConnected && address && currentJob.freelancer && address.toLowerCase() === currentJob.freelancer.toLowerCase()
   );
-  // Strictly isolate views: if user is the client, ALWAYS render client workspace.
-  const showFreelancerWorkspace = isFreelancer || (!isClient && currentRole === 'freelancer');
+
+  // Check if current connected user submitted an application
+  const isApplicant = Boolean(
+    isConnected && address && (currentJob.applications || []).some(a => a.applicant && a.applicant.toLowerCase() === address.toLowerCase())
+  );
+
+  // Strictly isolate views: ONLY the assigned freelancer sees the active submission workspace
+  const showFreelancerWorkspace = isAssignedFreelancer;
 
   // Resolved Freelancer metadata for client oversight
   const freelancerAddr = currentJob.freelancer || (currentJob.applications && currentJob.applications.length > 0 ? currentJob.applications[0].applicant : '');
@@ -262,6 +267,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
   const freelancerDisplayName = freelancerProfile?.displayName || (freelancerAddr ? truncateAddress(freelancerAddr) : 'Assigned Freelancer');
 
   const [copiedEscrowId, setCopiedEscrowId] = useState(false);
+  const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [freelancerTab, setFreelancerTab] = useState<'submit' | 'status' | 'extension'>('submit');
   const [progressPercent, setProgressPercent] = useState<number>(75);
   const [statusNote, setStatusNote] = useState('');
@@ -985,23 +991,63 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               </div>
             )}
 
-            {currentJob.proof && !latestModificationRequest ? (
-              <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-200 text-xs space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-purple-900 flex items-center gap-1.5">
-                    <CheckCircle2 size={14} className="text-emerald-600" />
-                    Work Already Submitted (Awaiting Approval)
-                  </span>
-                  <span className="text-purple-700 font-mono text-[10px]">
-                    {new Date(currentJob.proof.submittedAt).toLocaleDateString()}
-                  </span>
+            {/* Gating for Selection Phase / Awaiting Escrow Funding */}
+            {currentJob.status === 'Selected' ? (
+              <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50/40 to-slate-50 border-2 border-purple-200 shadow-xs text-center space-y-2.5">
+                <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto shadow-2xs">
+                  <Clock size={24} />
                 </div>
-                <p className="text-purple-800 font-medium text-[11px]">{currentJob.proof.description}</p>
+                <h4 className="font-headline font-bold text-slate-900 text-sm">Escrow Funding in Progress</h4>
+                <p className="text-xs text-slate-600 font-sans max-w-md mx-auto leading-relaxed">
+                  You are the selected talent for this project! Deliverable uploads and milestone verification will unlock immediately once the client funds the smart contract escrow on Polygon.
+                </p>
               </div>
-            ) : null}
+            ) : (
+              <>
+                {/* Submitted Deliverables Card (Awaiting Client Review) */}
+                {currentJob.proof && !latestModificationRequest ? (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50/40 to-slate-50 border border-purple-200 text-xs space-y-2.5 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-purple-100 pb-2">
+                      <span className="font-extrabold text-purple-900 flex items-center gap-1.5 text-xs sm:text-sm">
+                        <CheckCircle2 size={15} className="text-emerald-600" />
+                        Deliverables Submitted • Under Client Review
+                      </span>
+                      <span className="text-purple-700 font-mono text-[10px]">
+                        Submitted: {new Date(currentJob.proof.submittedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Deliverable Title:</span>
+                      <strong className="text-slate-900 text-xs block">{currentJob.proof.title}</strong>
+                      <p className="text-slate-600 text-[11px] leading-relaxed pt-0.5">{currentJob.proof.description}</p>
+                    </div>
+                    {currentJob.proof.externalLink && (
+                      <div className="flex items-center gap-2 text-xs font-mono text-purple-800 bg-white p-2.5 rounded-xl border border-purple-100">
+                        <Link2 size={13} className="text-purple-600 shrink-0" />
+                        <a href={currentJob.proof.externalLink} target="_blank" rel="noopener noreferrer" className="hover:underline truncate font-bold">
+                          {currentJob.proof.externalLink}
+                        </a>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pt-1 border-t border-purple-100 text-[11px]">
+                      <span className="text-slate-500">Waiting for client to inspect files and release escrow payout.</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowUpdateForm(!showUpdateForm)}
+                        className="text-purple-700 hover:text-purple-900 font-bold underline cursor-pointer text-xs"
+                      >
+                        {showUpdateForm ? 'Hide Uploader' : 'Update / Re-submit Deliverables'}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
 
-            {/* Main Primary Deliverables Submission Form */}
-            <ProofOfWorkUploader onSubmit={handleWorkSubmit} />
+                {/* Main Primary Deliverables Submission Form: Only shown when no submission exists, client asked for revisions, or freelancer toggled update */}
+                {(!currentJob.proof || latestModificationRequest || showUpdateForm) && (
+                  <ProofOfWorkUploader onSubmit={handleWorkSubmit} />
+                )}
+              </>
+            )}
           </div>
 
           {/* Side Column (4 cols): Quick Project Actions & Messaging Coordination */}
@@ -1184,10 +1230,35 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         </div>
       ) : (
         /* ========================================================================= */
-        /* CLIENT SIDE VIEW */
+        /* CLIENT & OVERSIGHT VIEW */
         /* ========================================================================= */
         <div className="space-y-4">
           
+          {/* APPLICANT OVERSIGHT NOTICE (FOR APPLICANTS NOT SELECTED OR AWAITING SELECTION) */}
+          {isApplicant && !isAssignedFreelancer && (
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-blue-50 border border-blue-200 text-xs text-blue-900 flex items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <UserCheck size={16} />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold block">Application Submitted • Status Oversight</span>
+                  <span className="text-[11px] text-blue-700 truncate block">
+                    {currentJob.freelancer
+                      ? `Another talent (${freelancerDisplayName}) was selected by the client for this escrow.`
+                      : 'The client is currently reviewing candidate proposals for this escrow.'}
+                  </span>
+                </div>
+              </div>
+              <Link
+                to="/jobs"
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-blue-50 text-blue-800 border border-blue-200 font-bold text-[11px] shrink-0 transition-colors"
+              >
+                Browse Other Jobs
+              </Link>
+            </div>
+          )}
+
           {/* Escrow Stat 4-Grid Bar (CLIENT ONLY - WITH CRISP SUBTLE STROKE) */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-2 rounded-2xl bg-slate-50 border border-black/10">
             
@@ -1726,31 +1797,42 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        onClick={handleApproveWork}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all hover:scale-105"
-                      >
-                        <CheckCircle2 size={13} />
-                        Approve & Release Funds (${grossAmount.toFixed(2)} USDC • Net: ${netDevPayout.toFixed(2)} USDC)
-                      </button>
+                    {isClient ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={handleApproveWork}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all hover:scale-105"
+                        >
+                          <CheckCircle2 size={13} />
+                          Approve & Release Funds (${grossAmount.toFixed(2)} USDC • Net: ${netDevPayout.toFixed(2)} USDC)
+                        </button>
 
-                      <button
-                        onClick={() => setIsModifyingOpen(!isModifyingOpen)}
-                        className="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 border border-amber-300 cursor-pointer"
-                      >
-                        <RefreshCw size={12} />
-                        Request Fixes
-                      </button>
+                        <button
+                          onClick={() => setIsModifyingOpen(!isModifyingOpen)}
+                          className="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 border border-amber-300 cursor-pointer"
+                        >
+                          <RefreshCw size={12} />
+                          Request Fixes
+                        </button>
 
-                      <button
-                        onClick={() => setIsDisputeOpen(!isDisputeOpen)}
-                        className="bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 border border-rose-300 cursor-pointer"
-                      >
-                        <Scale size={12} />
-                        Raise Dispute
-                      </button>
-                    </div>
+                        <button
+                          onClick={() => setIsDisputeOpen(!isDisputeOpen)}
+                          className="bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 border border-rose-300 cursor-pointer"
+                        >
+                          <Scale size={12} />
+                          Raise Dispute
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-purple-50/80 border border-purple-200 text-xs text-purple-900 flex items-center gap-2">
+                        <Info size={14} className="text-purple-600 shrink-0" />
+                        <span>
+                          {isApplicant
+                            ? 'You submitted an application for this contract. The client is currently reviewing submitted deliverables.'
+                            : 'Deliverables are under client review. Escrow payout release will occur upon client inspection.'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })()}

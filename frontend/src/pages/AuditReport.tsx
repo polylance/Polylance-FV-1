@@ -545,7 +545,7 @@ export const AuditReport: React.FC = () => {
                     {auditPerspective === 'client' ? 'Completed Escrow Projects' : 'Completed Smart Contracts'}
                   </span>
                   <p className="text-2xl font-black text-purple-900 font-headline">
-                    {(auditPerspective === 'client' ? completedClientJobs.length : completedFreelancerJobs.length) || (auditPerspective === 'client' ? clientJobs.length : freelancerJobs.length) || 1}
+                    {auditPerspective === 'client' ? completedClientJobs.length : completedFreelancerJobs.length}
                   </p>
                   <span className="text-[10px] font-mono text-slate-400 block">Verified On-Chain Milestones</span>
                 </div>
@@ -798,10 +798,10 @@ export const AuditReport: React.FC = () => {
 
           <div className="bg-white p-3 rounded-2xl border border-slate-200 text-center space-y-0.5 shadow-2xs">
             <span className="text-slate-500 text-[9px] uppercase font-black block">
-              {auditPerspective === 'client' ? 'Total Escrows Posted' : 'Completed Contracts'}
+              {auditPerspective === 'client' ? 'Total Settled Escrows' : 'Completed Contracts'}
             </span>
             <p className="text-lg font-black text-purple-700 font-headline">
-              {(auditPerspective === 'client' ? completedClientJobs.length : completedFreelancerJobs.length) || 1}
+              {auditPerspective === 'client' ? completedClientJobs.length : completedFreelancerJobs.length}
             </p>
             <span className="text-[9px] text-slate-500 font-bold block font-mono">100% Settled</span>
           </div>
@@ -816,7 +816,7 @@ export const AuditReport: React.FC = () => {
               </span>
               <div>
                 <h3 className="font-headline text-xs sm:text-sm font-extrabold text-slate-900 uppercase">
-                  {auditPerspective === 'client' ? 'Verified Client Escrow Portfolio & Contracts' : 'Verified Proof of Work & Settled Contracts Ledger'}
+                  {auditPerspective === 'client' ? 'Verified Client Escrow Portfolio & Settled Contracts' : 'Verified Proof of Work & Settled Contracts Ledger'}
                 </h3>
                 <p className="text-[10px] text-slate-500 font-mono">
                   Cryptographically attested smart escrows on Polygon PoS MultiSig
@@ -824,19 +824,23 @@ export const AuditReport: React.FC = () => {
               </div>
             </div>
             <span className="text-[11px] font-mono font-bold text-purple-900 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200 shrink-0">
-              {(auditPerspective === 'client' ? clientJobs : freelancerJobs).length || jobs.length} Total Escrows
+              {(auditPerspective === 'client' ? completedClientJobs : completedFreelancerJobs).length} Settled Escrows
             </span>
           </div>
 
           <div className="space-y-2">
             {(() => {
-              const allRelevantJobs = (auditPerspective === 'client' ? clientJobs : freelancerJobs);
-              const targetList = allRelevantJobs.length > 0 ? allRelevantJobs : jobs;
+              // STRICT REQUIREMENT: Only completed and settled jobs appear in official audit reports
+              const targetList = (auditPerspective === 'client' ? completedClientJobs : completedFreelancerJobs);
 
               if (targetList.length === 0) {
                 return (
-                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 text-center text-xs text-slate-500 font-mono">
-                    No active or completed contracts found for this address.
+                  <div className="p-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 text-center space-y-1.5 font-sans">
+                    <ShieldCheck className="w-8 h-8 text-slate-400 mx-auto mb-1" />
+                    <h4 className="font-headline font-bold text-slate-800 text-xs">No Completed & Settled Escrows Audited Yet</h4>
+                    <p className="text-[11px] text-slate-500 font-mono max-w-md mx-auto leading-relaxed">
+                      Official audit reports strictly document contracts that are 100% completed and settled on-chain. Ongoing jobs, pending deliverables, or selection-phase listings are not audited.
+                    </p>
                   </div>
                 );
               }
