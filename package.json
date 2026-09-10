@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm --prefix frontend run dev\" \"npm --prefix polylance-chat-service run dev\"",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix polylance-chat-service run dev",
-    "build": "npm --prefix frontend run build",
+    "build": "node scripts/build-frontend.js",
     "build:backend": "npm --prefix polylance-chat-service run build",
     "build:all": "npm --prefix frontend run build && npm --prefix polylance-chat-service run build",
     "postinstall": "npm --prefix frontend install",

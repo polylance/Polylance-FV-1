@@ -5,6 +5,14 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/Polylance-FV-1/assets/(.*)",
+      "destination": "/assets/$1"
+    },
+    {
+      "source": "/Polylance-FV-1/(.*)",
+      "destination": "/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

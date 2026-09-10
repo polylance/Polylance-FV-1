@@ -2,9 +2,17 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "installCommand": "npm --prefix frontend install",
-  "buildCommand": "npm --prefix frontend run build",
+  "buildCommand": "node scripts/build-frontend.js",
   "outputDirectory": "frontend/dist",
   "rewrites": [
+    {
+      "source": "/Polylance-FV-1/assets/(.*)",
+      "destination": "/assets/$1"
+    },
+    {
+      "source": "/Polylance-FV-1/(.*)",
+      "destination": "/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
