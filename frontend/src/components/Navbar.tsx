@@ -210,6 +210,7 @@ export const Navbar: React.FC = () => {
     disconnectWallet, 
     balanceNative, 
     balanceUsdc,
+    balanceUsdt,
     isWrongNetwork,
     targetChainName,
     targetChainId,
@@ -561,6 +562,10 @@ export const Navbar: React.FC = () => {
                   <div className="text-emerald-700 group-hover:text-emerald-900">
                     <span>${balanceUsdc} USDC</span>
                   </div>
+                  <span className="text-slate-300">|</span>
+                  <div className="text-teal-700 group-hover:text-teal-900">
+                    <span>${balanceUsdt} USDT</span>
+                  </div>
                 </button>
               )}
 
@@ -704,6 +709,8 @@ export const Navbar: React.FC = () => {
                       <span className="text-purple-700 font-bold">{formatPolBalance(balanceNative)} POL</span>
                       <span className="text-slate-300">|</span>
                       <span className="text-emerald-700 font-bold">${balanceUsdc} USDC</span>
+                      <span className="text-slate-300">|</span>
+                      <span className="text-teal-700 font-bold">${balanceUsdt} USDT</span>
                     </div>
                   </button>
                   <MobileLink to="/dashboard" icon={<LayoutDashboard size={14} className="text-blue-500" />} label="Dashboard" onClick={() => setIsMobileOpen(false)} accent="blue" />

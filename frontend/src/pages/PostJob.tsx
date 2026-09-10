@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { RocketIcon, RocketIconHandle } from '../components/RocketIcon';
 import { generateIpfsCid } from '../utils/ipfs';
-import { SUPPORTED_FIAT, SUPPORTED_CRYPTO, getActiveRates } from '../utils/currency';
+import { SUPPORTED_FIAT, SUPPORTED_CRYPTO, getActiveRates, useLiveCurrencyRates, fetchLiveExchangeRates } from '../utils/currency';
 import { FormattedJobDescription } from '../components/FormattedJobDescription';
 
 export const PostJob: React.FC = () => {
@@ -79,7 +79,7 @@ export const PostJob: React.FC = () => {
     Number(reviewPeriodDays) > 0
   );
 
-  const rates = getActiveRates();
+  const rates = useLiveCurrencyRates();
   const tokenPriceUsd = rates.cryptoPrices[selectedToken] || 1.0;
   const fiatRateVsUsd = rates.fiatRates[selectedFiat] || 1.0;
 
@@ -651,9 +651,14 @@ export const PostJob: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="w-4.5 h-4.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200/80 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => fetchLiveExchangeRates()}
+                    title="Refresh live exchange rates"
+                    className="w-4.5 h-4.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200/80 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-xs shrink-0 cursor-pointer"
+                  >
                     <RefreshCw size={8} className="text-indigo-600" />
-                  </div>
+                  </button>
 
                   <div className="text-right shrink-0">
                     <span className="text-[7px] font-bold text-indigo-600 uppercase tracking-normal block font-mono leading-none mb-0.5 text-right">

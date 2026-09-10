@@ -5,7 +5,7 @@ import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { SkillCategory } from '../types';
 import { Search, Filter, Briefcase, ArrowRight, ShieldCheck, Award, CheckCircle2, Globe, Clock } from 'lucide-react';
-import { SUPPORTED_FIAT, convertCryptoToFiat } from '../utils/currency';
+import { SUPPORTED_FIAT, convertCryptoToFiat, useLiveCurrencyRates } from '../utils/currency';
 import { truncateAddress, formatTimeAgo } from '../utils/formatters';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { staggerContainer, staggerItem, scrollReveal, transition } from '../lib/motion';
@@ -18,6 +18,7 @@ export const FindJobs: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<SkillCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFiat, setSelectedFiat] = useState('INR');
+  useLiveCurrencyRates();
 
   const isClientRole = currentRole === 'client';
 

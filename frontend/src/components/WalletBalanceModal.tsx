@@ -28,7 +28,7 @@ interface WalletBalanceModalProps {
 }
 
 export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, onClose }) => {
-  const { address, balanceNative, balanceUsdc, refreshBalances, currentRole } = useWeb3();
+  const { address, balanceNative, balanceUsdc, balanceUsdt, refreshBalances, currentRole } = useWeb3();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,6 +56,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
   // Safe numeric parsing for display
   const polNum = parseFloat(balanceNative || '0');
   const usdcNum = parseFloat(balanceUsdc || '0');
+  const usdtNum = parseFloat(balanceUsdt || '0');
 
   return (
     <AnimatePresence>
@@ -216,6 +217,41 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                   <div className="text-[10px] text-emerald-600 font-sans">Settled Value</div>
                   <div className="text-xs font-bold font-mono text-emerald-900">
                     ${usdcNum.toFixed(2)} USD
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stablecoin USDT Card */}
+            <div className="p-4 rounded-2xl bg-teal-50/50 border border-teal-200/70 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-extrabold text-sm shadow-xs font-mono">
+                    ₮
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-800">Tether USD (USDT)</div>
+                    <div className="text-[10px] text-slate-500 font-mono">Multi-Chain Stablecoin</div>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold text-teal-800 bg-teal-100/70 px-2 py-0.5 rounded-full border border-teal-300">
+                  1:1 USD Peg
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-teal-200/50 flex items-baseline justify-between">
+                <div>
+                  <div className="text-2xl font-black font-mono text-teal-900 tracking-tight">
+                    ${usdtNum.toFixed(2)} <span className="text-sm font-bold text-teal-700">USDT</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-teal-700/80 mt-0.5">
+                    Exact: <span className="font-semibold text-teal-900">${balanceUsdt} USDT</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-teal-600 font-sans">Settled Value</div>
+                  <div className="text-xs font-bold font-mono text-teal-900">
+                    ${usdtNum.toFixed(2)} USD
                   </div>
                 </div>
               </div>

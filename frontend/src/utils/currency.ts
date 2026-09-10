@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 export interface FiatCurrency {
   code: string;
   name: string;
@@ -66,52 +68,144 @@ let activeRates: ConversionRates = {
   lastUpdated: Date.now()
 };
 
-// Async fetch utility to fetch latest rates dynamically
+const rateListeners = new Set<(rates: ConversionRates) => void>();
+
+export function subscribeToRates(callback: (rates: ConversionRates) => void): () => void {
+  rateListeners.add(callback);
+  return () => {
+    rateListeners.delete(callback);
+  };
+}
+
+function notifyRateListeners() {
+  rateListeners.forEach((cb) => {
+    try {
+      cb({ ...activeRates });
+    } catch {}
+  });
+}
+
+// Async fetch utility to fetch latest rates dynamically with primary Binance oracle and CoinGecko fallback
 export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
   try {
     // 1. Fetch Fiat rates vs USD
-    const fiatRes = await fetch('https://open.er-api.com/v6/latest/USD');
-    if (fiatRes.ok) {
-      const fiatData = await fiatRes.ok ? await fiatRes.json() : null;
-      if (fiatData && fiatData.rates) {
-        SUPPORTED_FIAT.forEach(f => {
-          if (fiatData.rates[f.code]) {
-            activeRates.fiatRates[f.code] = fiatData.rates[f.code];
-            f.rateVsUsd = fiatData.rates[f.code];
-          }
-        });
+    try {
+      const fiatRes = await fetch('https://open.er-api.com/v6/latest/USD');
+      if (fiatRes.ok) {
+        const fiatData = await fiatRes.json();
+        if (fiatData && fiatData.rates) {
+          SUPPORTED_FIAT.forEach(f => {
+            if (fiatData.rates[f.code]) {
+              activeRates.fiatRates[f.code] = fiatData.rates[f.code];
+              f.rateVsUsd = fiatData.rates[f.code];
+            }
+          });
+        }
       }
+    } catch (fiatErr) {
+      console.warn('Fiat rate fetch notice:', fiatErr);
     }
 
-    // 2. Fetch Crypto prices in USD from CoinGecko
-    const cryptoRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=usd-coin,tether,ethereum,matic-network,bitcoin&vs_currencies=usd');
-    if (cryptoRes.ok) {
-      const cryptoData = await cryptoRes.json();
-      const mappings: Record<string, string> = {
-        'usd-coin': 'USDC',
-        'tether': 'USDT',
-        'ethereum': 'ETH',
-        'matic-network': 'POL',
-        'bitcoin': 'BTC'
-      };
-      Object.entries(mappings).forEach(([cgId, tokenCode]) => {
-        if (cryptoData[cgId] && cryptoData[cgId].usd) {
-          activeRates.cryptoPrices[tokenCode] = cryptoData[cgId].usd;
-          const token = SUPPORTED_CRYPTO.find(c => c.id === tokenCode);
-          if (token) token.priceUsd = cryptoData[cgId].usd;
+    // 2. Fetch Crypto prices in USD (Primary: Binance real-time public ticker - zero rate limit, CORS allowed)
+    let cryptoSuccess = false;
+    try {
+      const binanceRes = await fetch(
+        'https://api.binance.com/api/v3/ticker/price?symbols=%5B%22USDCUSDT%22,%22BTCUSDT%22,%22ETHUSDT%22,%22POLUSDT%22%5D'
+      );
+      if (binanceRes.ok) {
+        const binanceData: Array<{ symbol: string; price: string }> = await binanceRes.json();
+        activeRates.cryptoPrices.USDT = 1.0;
+        binanceData.forEach((item) => {
+          const p = parseFloat(item.price);
+          if (!isNaN(p) && p > 0) {
+            if (item.symbol === 'USDCUSDT') {
+              activeRates.cryptoPrices.USDC = parseFloat(p.toFixed(4));
+            } else if (item.symbol === 'BTCUSDT') {
+              activeRates.cryptoPrices.BTC = p;
+            } else if (item.symbol === 'ETHUSDT') {
+              activeRates.cryptoPrices.ETH = p;
+            } else if (item.symbol === 'POLUSDT') {
+              activeRates.cryptoPrices.POL = p;
+            }
+          }
+        });
+
+        SUPPORTED_CRYPTO.forEach((c) => {
+          if (activeRates.cryptoPrices[c.id]) {
+            c.priceUsd = activeRates.cryptoPrices[c.id];
+          }
+        });
+        cryptoSuccess = true;
+      }
+    } catch {}
+
+    // Fallback: CoinGecko public simple price
+    if (!cryptoSuccess) {
+      try {
+        const cryptoRes = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=usd-coin,tether,ethereum,matic-network,bitcoin&vs_currencies=usd'
+        );
+        if (cryptoRes.ok) {
+          const cryptoData = await cryptoRes.json();
+          const mappings: Record<string, string> = {
+            'usd-coin': 'USDC',
+            'tether': 'USDT',
+            'ethereum': 'ETH',
+            'matic-network': 'POL',
+            'bitcoin': 'BTC'
+          };
+          Object.entries(mappings).forEach(([cgId, tokenCode]) => {
+            if (cryptoData[cgId] && cryptoData[cgId].usd) {
+              activeRates.cryptoPrices[tokenCode] = cryptoData[cgId].usd;
+              const token = SUPPORTED_CRYPTO.find(c => c.id === tokenCode);
+              if (token) token.priceUsd = cryptoData[cgId].usd;
+            }
+          });
         }
-      });
+      } catch (cgErr) {
+        console.warn('CoinGecko fallback notice:', cgErr);
+      }
     }
     
     activeRates.lastUpdated = Date.now();
+    notifyRateListeners();
   } catch (err) {
-    console.warn('Failed to fetch live exchange rates, using static fallback cache:', err);
+    console.warn('Failed to fetch live exchange rates, using active cache:', err);
   }
   return activeRates;
 }
 
+let pollingTimer: any = null;
+export function startRatePolling(intervalMs = 15000) {
+  if (pollingTimer) return;
+  fetchLiveExchangeRates();
+  pollingTimer = setInterval(() => {
+    fetchLiveExchangeRates();
+  }, intervalMs);
+}
+
 export function getActiveRates(): ConversionRates {
   return activeRates;
+}
+
+/**
+ * React hook to automatically subscribe to realtime exchange rates
+ */
+export function useLiveCurrencyRates(): ConversionRates {
+  const [rates, setRates] = useState<ConversionRates>(() => ({ ...activeRates }));
+
+  useEffect(() => {
+    const unsub = subscribeToRates((newRates) => {
+      setRates({ ...newRates });
+    });
+    // Trigger rate fetch if stale (>15 seconds)
+    if (Date.now() - activeRates.lastUpdated > 15000) {
+      fetchLiveExchangeRates();
+    }
+    return unsub;
+  }, []);
+
+  return rates;
 }
 
 /**

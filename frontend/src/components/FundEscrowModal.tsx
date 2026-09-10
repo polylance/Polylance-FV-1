@@ -22,7 +22,7 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
   job,
   onConfirmFund,
 }) => {
-  const { address, balanceNative, balanceUsdc, isWrongNetwork, targetChainName, switchToTargetNetwork } = useWeb3();
+  const { address, balanceNative, balanceUsdc, balanceUsdt, isWrongNetwork, targetChainName, switchToTargetNetwork } = useWeb3();
   const [isFunding, setIsFunding] = useState(false);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
   const totalRequired = principalAmount + platformFee;
 
   // Real-time balance check
-  const currentBalance = isNative ? balanceNative : balanceUsdc;
+  const currentBalance = isNative ? balanceNative : tokenSymbol === 'USDT' ? balanceUsdt : balanceUsdc;
   const currentBalNum = parseFloat(currentBalance) || 0;
   const hasSufficientFunds = currentBalNum >= totalRequired;
   const shortfall = Math.max(0, totalRequired - currentBalNum);

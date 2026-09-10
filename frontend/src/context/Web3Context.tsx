@@ -42,6 +42,7 @@ export interface Web3ContextType {
   reputationCount: number;
   balanceNative: string;
   balanceUsdc: string;
+  balanceUsdt: string;
   refreshBalances: () => Promise<void>;
   isWrongNetwork: boolean;
   targetChainId: number;
@@ -120,6 +121,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const [reputationCount, setReputationCount] = useState(0);
   const [balanceNative, setBalanceNative] = useState<string>('0.00');
   const [balanceUsdc, setBalanceUsdc] = useState<string>('0.00');
+  const [balanceUsdt, setBalanceUsdt] = useState<string>('0.00');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -240,6 +242,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!targetAddr || !ethers.isAddress(targetAddr)) {
       setBalanceNative('0.00');
       setBalanceUsdc('0.00');
+      setBalanceUsdt('0.00');
       return;
     }
     try {
@@ -256,6 +259,17 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         );
         const usdcRaw = await usdcContract.balanceOf(targetAddr).catch(() => 0n);
         setBalanceUsdc(parseFloat(ethers.formatUnits(usdcRaw, PAYMENT_TOKENS.USDC.decimals)).toFixed(2));
+      }
+
+      const usdtAddress = PAYMENT_TOKENS.USDT.address;
+      if (usdtAddress && usdtAddress !== ethers.ZeroAddress) {
+        const usdtContract = new ethers.Contract(
+          usdtAddress,
+          ["function balanceOf(address) view returns (uint256)"],
+          p
+        );
+        const usdtRaw = await usdtContract.balanceOf(targetAddr).catch(() => 0n);
+        setBalanceUsdt(parseFloat(ethers.formatUnits(usdtRaw, PAYMENT_TOKENS.USDT.decimals)).toFixed(2));
       }
     } catch (e) {
       console.warn("Failed to fetch wallet balances:", e);
@@ -282,6 +296,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!accounts || accounts.length === 0) {
         setBalanceNative('0.00');
         setBalanceUsdc('0.00');
+        setBalanceUsdt('0.00');
         setIsArbitrator(false);
         setIsTreasuryAdmin(false);
         setReputationCount(0);
@@ -384,6 +399,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     reputationCount,
     balanceNative,
     balanceUsdc,
+    balanceUsdt,
     refreshBalances,
     isWrongNetwork,
     targetChainId: CHAIN_ID,
@@ -406,6 +422,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     reputationCount,
     balanceNative,
     balanceUsdc,
+    balanceUsdt,
     refreshBalances,
     isWrongNetwork,
     switchToTargetNetwork,
@@ -435,6 +452,7 @@ const SAFE_FALLBACK_WEB3_CONTEXT: Web3ContextType = {
   reputationCount: 0,
   balanceNative: '0.00',
   balanceUsdc: '0.00',
+  balanceUsdt: '0.00',
   refreshBalances: async () => {},
   isWrongNetwork: false,
   targetChainId: CHAIN_ID,

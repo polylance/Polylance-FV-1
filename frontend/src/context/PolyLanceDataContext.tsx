@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, DeliverableFile, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage, NegotiationProposal, ChatMessage } from '../types';
 import { generateMockTxHash, generateDeterministicHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
-import { fetchLiveExchangeRates } from '../utils/currency';
+import { fetchLiveExchangeRates, startRatePolling } from '../utils/currency';
 import { CONTRACTS } from '../config/contracts';
 import { PAYMENT_TOKENS, getTokenBySymbol, getTokenByAddress } from '../config/paymentTokens';
 import JobFactoryABI from '../config/abis/JobFactory.json';
@@ -1248,7 +1248,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [syncOnChainJobs]);
 
   useEffect(() => {
-    fetchLiveExchangeRates().catch((err) => console.warn('Failed to load rates on boot:', err));
+    startRatePolling(15000);
   }, []);
 
   const treasuryState: TreasuryState = React.useMemo(() => ({
