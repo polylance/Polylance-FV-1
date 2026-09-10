@@ -551,21 +551,11 @@ export const Navbar: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsBalanceModalOpen(true)}
-                  title="Click to view full wallet & balance details"
-                  className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-white/85 hover:bg-purple-50/80 border border-purple-200/80 hover:border-purple-300 text-slate-800 shadow-2xs transition-all cursor-pointer group"
+                  title="Click to view full wallet & all token balances (POL, USDC, USDT)"
+                  className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-white/85 hover:bg-purple-50/80 border border-purple-200/80 hover:border-purple-300 text-purple-700 shadow-2xs transition-all cursor-pointer group"
                 >
-                  <div className="flex items-center gap-1.5 text-purple-700 group-hover:text-purple-900">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                    <span>{formatPolBalance(balanceNative)} POL</span>
-                  </div>
-                  <span className="text-slate-300">|</span>
-                  <div className="text-emerald-700 group-hover:text-emerald-900">
-                    <span>${balanceUsdc} USDC</span>
-                  </div>
-                  <span className="text-slate-300">|</span>
-                  <div className="text-teal-700 group-hover:text-teal-900">
-                    <span>${balanceUsdt} USDT</span>
-                  </div>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  <span className="group-hover:text-purple-900">{formatPolBalance(balanceNative)} POL</span>
                 </button>
               )}
 
@@ -705,12 +695,9 @@ export const Navbar: React.FC = () => {
                       <Wallet size={13} className="text-purple-600" />
                       Live Wallet:
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                       <span className="text-purple-700 font-bold">{formatPolBalance(balanceNative)} POL</span>
-                      <span className="text-slate-300">|</span>
-                      <span className="text-emerald-700 font-bold">${balanceUsdc} USDC</span>
-                      <span className="text-slate-300">|</span>
-                      <span className="text-teal-700 font-bold">${balanceUsdt} USDT</span>
                     </div>
                   </button>
                   <MobileLink to="/dashboard" icon={<LayoutDashboard size={14} className="text-blue-500" />} label="Dashboard" onClick={() => setIsMobileOpen(false)} accent="blue" />
