@@ -1,0 +1,2 @@
+# Cloudflare Pages SPA rewrite: pass all non-file routes to index.html
+/*    /index.html   200
