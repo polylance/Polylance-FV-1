@@ -15,6 +15,7 @@ import { CONTRACTS } from '../config/contracts';
 import { generateIpfsCid } from '../utils/ipfs';
 import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
+import { getUserBytecodeMatrix } from '../utils/githubOracle';
 
 export const AuditReport: React.FC = () => {
   const { address: targetAddressParam } = useParams<{ address: string }>();
@@ -102,11 +103,13 @@ export const AuditReport: React.FC = () => {
   }, [perspectiveOverride, allowedPerspectives, defaultPerspective]);
 
   // Compute developer statistics
-  const devReputationScore = profile?.primaryScore || Math.max(750, (completedFreelancerJobs.length * 120) + 700);
   const devVolumeHandled = completedFreelancerJobs.reduce((sum, j) => {
     const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
     return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
   }, 0);
+
+  const bytecodeMatrix = getUserBytecodeMatrix(profile, completedFreelancerJobs.length, devVolumeHandled);
+  const devReputationScore = bytecodeMatrix.primaryScore;
   
   const devSuccessRate = completedFreelancerJobs.length > 0
     ? Math.round((completedFreelancerJobs.filter(j => !j.dispute || (j.dispute.resolved && (j.dispute.rulingBps ?? 0) >= 5000)).length / completedFreelancerJobs.length) * 100)

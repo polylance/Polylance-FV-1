@@ -8,6 +8,7 @@ import {
 import { UserProfile, Application } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { transition } from '../lib/motion';
+import { getUserBytecodeMatrix } from '../utils/githubOracle';
 
 interface UserProfileBioModalProps {
   isOpen: boolean;
@@ -53,7 +54,11 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
   const skills: string[] = profile?.skills && profile.skills.length > 0 ? profile.skills : (applicantData?.applicantSkills || ['Solidity', 'React', 'Smart Contracts']);
   const isVerified = Boolean(profile?.githubVerified || applicantData?.githubVerified);
   const githubUsername = profile?.githubUsername || 'verified-dev';
-  const score = profile?.primaryScore || applicantData?.githubScore || 85;
+
+  const bytecodeMatrix = getUserBytecodeMatrix(
+    profile || { address: applicantAddress, skills, githubVerified: isVerified },
+    completedCount
+  );
 
   return (
     <AnimatePresence>
@@ -95,8 +100,11 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
                   {applicantAddress}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[11px] font-bold font-mono text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md">
-                    ⭐ {score}/100 Score
+                  <span className="text-[11px] font-bold font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md">
+                    ⭐ {bytecodeMatrix.primaryScore}/1000 Score
+                  </span>
+                  <span className="text-[11px] font-bold font-mono text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md">
+                    {bytecodeMatrix.reputationTier}
                   </span>
                   <span className="text-[11px] font-bold font-mono text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
                     🛡️ {soulboundCount} SBT Badges
@@ -168,6 +176,37 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
                 <span className="text-[10px] text-slate-500 font-mono font-bold uppercase block">PRs Merged</span>
                 <span className="font-headline font-black text-slate-900 text-lg block">{prsCount}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Audited Code Byte Matrix */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <h4 className="font-headline font-bold text-xs text-slate-700 uppercase tracking-wider">
+                Audited Code Byte Matrix
+              </h4>
+              <span className="text-[10.5px] font-mono font-bold text-purple-900">
+                {bytecodeMatrix.totalBytes.toLocaleString()} Bytes
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 font-mono text-xs">
+              {bytecodeMatrix.languagesWithPercentages.map((item) => (
+                <div key={item.language} className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1 shadow-3xs">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="font-bold text-slate-800">{item.language}</span>
+                    <span className="text-slate-500">{item.percentage}%</span>
+                  </div>
+                  <span className="text-purple-700 font-extrabold text-[11px] block">
+                    {item.bytes.toLocaleString()} Bytes
+                  </span>
+                  <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

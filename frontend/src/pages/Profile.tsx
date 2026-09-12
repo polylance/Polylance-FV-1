@@ -4,7 +4,7 @@ import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
 import { truncateAddress, getDeterministicSbtId, getCanonicalCertificateId, getCertifiedPassVerifyUrl } from '../utils/formatters';
-import { scoreGithubUser } from '../utils/githubOracle';
+import { scoreGithubUser, getUserBytecodeMatrix } from '../utils/githubOracle';
 import { Award, CheckCircle2, ShieldCheck, FolderGit2, ExternalLink, Building2, Star, Zap, Activity, Scale, Search, History, Copy, CheckCheck } from 'lucide-react';
 
 export const Profile: React.FC = () => {
@@ -61,6 +61,13 @@ export const Profile: React.FC = () => {
 
   const freelancerJobs = jobs.filter((j) => j.freelancer?.toLowerCase() === profileAddr?.toLowerCase());
   const completedFreelancerJobs = freelancerJobs.filter((j) => j.status === 'Completed');
+
+  const devVolumeHandled = completedFreelancerJobs.reduce((sum, j) => {
+    const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
+    return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
+  }, 0);
+
+  const bytecodeMatrix = getUserBytecodeMatrix(userProfile, completedFreelancerJobs.length, devVolumeHandled);
 
   return (
     <div className="space-y-8 py-6 max-w-4xl mx-auto">
@@ -399,68 +406,103 @@ export const Profile: React.FC = () => {
               )}
             </div>
 
-            {/* Section 7 GitHub Verification Skill Breakdown Card */}
-            {userProfile.githubVerified && (
-              <div className="glass-panel p-5 border-slate-200 bg-slate-50 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono text-emerald-800 font-bold flex items-center gap-1.5">
-                    <CheckCircle2 size={16} /> GitHub Verified: @{userProfile.githubUsername}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-mono font-bold">
-                    Attested: {new Date(userProfile.verifiedAt || Date.now()).toLocaleDateString()}
-                  </span>
-                </div>
+            {/* Section 7 Audited Code Byte Matrix & Reputation Card for ALL Users */}
+            <div className="glass-panel p-5 border-slate-200 bg-slate-50 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-emerald-800 font-bold flex items-center gap-1.5">
+                  {userProfile.githubVerified ? (
+                    <>
+                      <CheckCircle2 size={16} className="text-emerald-600" />
+                      <span>GitHub Verified: @{userProfile.githubUsername}</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck size={16} className="text-purple-600" />
+                      <span>Polygon Sovereign Oracle: Smart Contract & Bytecode Attested</span>
+                    </>
+                  )}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono font-bold">
+                  {userProfile.githubVerified
+                    ? `Attested: ${new Date(userProfile.verifiedAt || Date.now()).toLocaleDateString()}`
+                    : 'Attested: On-Chain Live'}
+                </span>
+              </div>
 
-                {/* Primary Category Headline Badge */}
-                <div className="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between shadow-xs">
-                  <div>
+              {/* Primary Category Headline Badge & Real-Time Score */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div>
+                  <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase font-mono text-slate-500 font-bold tracking-wider">
                       Primary Skill Focus
                     </span>
-                    <h4 className="text-lg font-bold text-slate-900 capitalize font-heading">
-                      {userProfile.primaryCategory || 'web3'}
-                    </h4>
+                    <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200">
+                      {bytecodeMatrix.tierLabel}
+                    </span>
                   </div>
-                  <div className="text-right">
+                  <h4 className="text-lg font-bold text-slate-900 capitalize font-heading mt-0.5">
+                    {bytecodeMatrix.primaryCategory || userProfile.primaryCategory || 'web3'}
+                  </h4>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-black text-emerald-700 font-mono">
-                      {userProfile.primaryScore || 850}
+                      {bytecodeMatrix.primaryScore}
                     </span>
                     <span className="text-xs text-slate-500 font-mono font-bold"> / 1000</span>
                   </div>
-                </div>
-
-                {/* SKILL MATRIX VARIANT matching profile_skill_matrix_variant */}
-                <div className="space-y-3 pt-1 font-mono text-xs">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                    Audited Code Byte Matrix:
+                  <span className="text-[10px] font-mono text-emerald-600 font-bold flex items-center justify-end gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Realtime Score
                   </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {(() => {
-                      const usedLanguages = Object.entries(userProfile.languageBytes || {}).filter(
-                        (entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0
-                      );
-
-                      if (usedLanguages.length === 0) {
-                        return (
-                          <div className="col-span-full bg-slate-50 p-3 rounded-xl border border-slate-200 text-center text-slate-500">
-                            Verified on-chain via GitHub Oracle
-                          </div>
-                        );
-                      }
-
-                      return usedLanguages.map(([lang, bytes]) => (
-                        <div key={lang} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                          <span className="text-[10px] text-slate-500 uppercase block font-bold">{lang}</span>
-                          <span className="font-extrabold text-purple-900">
-                            {bytes.toLocaleString()} Bytes
-                          </span>
-                        </div>
-                      ));
-                    })()}
-                  </div>
                 </div>
               </div>
-            )}
+
+              {/* Audited Code Byte Matrix */}
+              <div className="space-y-3 pt-1 font-mono text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Audited Code Byte Matrix:
+                  </span>
+                  <span className="text-[11px] font-extrabold text-purple-900">
+                    Total: {bytecodeMatrix.totalBytes.toLocaleString()} Bytes
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {bytecodeMatrix.languagesWithPercentages.map((item) => (
+                    <div key={item.language} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold">{item.language}</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700">
+                          {item.percentage}%
+                        </span>
+                      </div>
+                      <div className="font-extrabold text-purple-900 text-sm">
+                        {item.bytes.toLocaleString()} Bytes
+                      </div>
+                      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 text-[10px] text-slate-500">
+                  <span>
+                    Cryptographic Attestation Hash:{' '}
+                    <code className="text-slate-800 font-bold bg-slate-100 px-1 py-0.5 rounded">
+                      {bytecodeMatrix.attestationHash.slice(0, 10)}...{bytecodeMatrix.attestationHash.slice(-8)}
+                    </code>
+                  </span>
+                  <span className="text-purple-700 font-bold">
+                    {completedFreelancerJobs.length} Settled Escrow Contract{completedFreelancerJobs.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             {/* Skill Tags */}
             <div className="space-y-2">
@@ -625,6 +667,13 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
 }) => {
   const [auditType, setAuditType] = useState<'freelancer' | 'client'>('freelancer');
 
+  const devVolumeHandled = (completedFreelancerJobs || []).reduce((sum, j) => {
+    const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
+    return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
+  }, 0);
+
+  const bytecodeMatrix = getUserBytecodeMatrix(userProfile, (completedFreelancerJobs || []).length, devVolumeHandled);
+
   return (
     <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-5">
       <div className="border-b border-slate-100 pb-3 flex flex-wrap justify-between items-center gap-4">
@@ -683,39 +732,39 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
             </div>
           </div>
 
-          {/* GitHub Verification */}
-          {userProfile.githubVerified && (
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs text-left">
-              <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                <span className="text-slate-600 font-bold">GitHub Attested Developer Score</span>
-                <span className="text-emerald-700 font-extrabold text-sm">{userProfile.primaryScore || 850} / 1000</span>
+          {/* Audited Developer Score & Bytecode Matrix */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs text-left">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+              <div>
+                <span className="text-slate-700 font-bold block">
+                  {userProfile.githubVerified ? 'GitHub Attested Developer Score' : 'Sovereign Oracle Developer Score'}
+                </span>
+                <span className="text-[10px] text-slate-500 font-normal">
+                  {bytecodeMatrix.tierLabel}
+                </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] text-center text-slate-700 font-mono">
-                {(() => {
-                  const usedLanguages = Object.entries(userProfile.languageBytes || {}).filter(
-                    (entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0
-                  );
-
-                  if (usedLanguages.length === 0) {
-                    return (
-                      <div className="col-span-full bg-slate-50 p-2 rounded-lg border border-slate-200 text-center text-slate-500">
-                        Verified Developer Attestation
-                      </div>
-                    );
-                  }
-
-                  return usedLanguages.map(([lang, bytes]) => (
-                    <div key={lang} className="bg-white p-2.5 rounded-lg border border-slate-200">
-                      <span className="block font-bold text-slate-800">{lang}</span>
-                      <span className="text-purple-700 font-bold">
-                        {Math.round(bytes / 1024).toLocaleString()}k Bytes
-                      </span>
-                    </div>
-                  ));
-                })()}
+              <div className="text-right">
+                <span className="text-emerald-700 font-extrabold text-sm block">{bytecodeMatrix.primaryScore} / 1000</span>
+                <span className="text-[9px] text-emerald-600 font-bold">● Realtime</span>
               </div>
             </div>
-          )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] text-center text-slate-700 font-mono">
+              {bytecodeMatrix.languagesWithPercentages.map((item) => (
+                <div key={item.language} className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
+                  <div className="flex justify-between items-center text-[9px]">
+                    <span className="font-bold text-slate-800">{item.language}</span>
+                    <span className="text-slate-500">{item.percentage}%</span>
+                  </div>
+                  <span className="text-purple-700 font-bold block text-[11px]">
+                    {item.bytes.toLocaleString()} Bytes
+                  </span>
+                  <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${item.percentage}%`, backgroundColor: item.color }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       ) : (
         /* CLIENT AUDIT REPORT WIDGET */

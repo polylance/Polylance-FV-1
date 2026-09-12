@@ -5,7 +5,7 @@ import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
 import { truncateAddress, formatTimeAgo } from '../utils/formatters';
-import { scoreGithubUser } from '../utils/githubOracle';
+import { scoreGithubUser, getUserBytecodeMatrix } from '../utils/githubOracle';
 import { calculateReputationScores, getReputationTier } from '../utils/reputation';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, TrendingUp, ShieldCheck, CheckCircle2, FileText, MessageSquare, Clock, AlertTriangle, Trash2, RefreshCw, Wallet, Sparkles, ArrowRight, DollarSign } from 'lucide-react';
@@ -103,6 +103,9 @@ export const Dashboard: React.FC = () => {
     const net = gross * 0.975; // 0% commission, 2.5% platform maintenance fee
     return sum + net;
   }, 0);
+
+  const bytecodeMatrix = getUserBytecodeMatrix(userProfile, completedFreelanceJobs.length, totalEarnedUsdc);
+
   const clientTotalEscrow = myClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
   const completedClientJobs = myClientJobs.filter((j) => j.status === 'Completed');
   const clientTotalSpent = completedClientJobs.reduce((sum, j) => {
@@ -1080,58 +1083,64 @@ export const Dashboard: React.FC = () => {
                 </Link>
               </div>
 
-              {/* GitHub Verified Skill Score */}
-              {userProfile.githubVerified ? (
-                <div className="glass-panel p-6 border-cyan-200 bg-white hard-shadow space-y-3 font-mono text-xs">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <CheckCircle2 size={16} className="text-emerald-700" /> GitHub E-KYC Attestation
-                    </span>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-bold">
-                      Score: {userProfile.primaryScore || 850}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {(() => {
-                      const usedLanguages = Object.entries(userProfile.languageBytes || {}).filter(
-                        (entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0
-                      );
-
-                      if (usedLanguages.length === 0) {
-                        return (
-                          <div className="text-slate-500 py-2 text-center">
-                            Verified on-chain via GitHub Oracle
-                          </div>
-                        );
-                      }
-
-                      return usedLanguages.map(([lang, bytes]) => (
-                        <div key={lang} className="flex justify-between items-center py-0.5">
-                          <span className="text-slate-600 font-medium">{lang}</span>
-                          <span className="font-bold text-purple-900">
-                            {bytes.toLocaleString()} Bytes
-                          </span>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                </div>
-              ) : (
-                <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-3 font-mono text-xs text-center">
-                  <span className="font-bold text-slate-900 flex items-center justify-center gap-1.5">
-                    GitHub Not Attested
+              {/* Audited Code-Byte Matrix & Developer Score */}
+              <div className="glass-panel p-6 border-cyan-200 bg-white hard-shadow space-y-3 font-mono text-xs">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                    {userProfile.githubVerified ? (
+                      <>
+                        <CheckCircle2 size={16} className="text-emerald-700" /> GitHub E-KYC Attestation
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck size={16} className="text-purple-700" /> Sovereign On-Chain Attestation
+                      </>
+                    )}
                   </span>
-                  <p className="text-[11px] text-slate-505 font-sans leading-relaxed">
-                    Sync your GitHub account in onboarding to verify your developer reputation scores.
-                  </p>
-                  <Link
-                    to="/onboarding"
-                    className="gradient-btn-primary w-full py-2.5 rounded-xl font-headline font-bold text-xs shadow-md block text-center"
-                  >
-                    Sync GitHub Account
-                  </Link>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-bold">
+                      Score: {bytecodeMatrix.primaryScore} / 1000
+                    </span>
+                    <span className="text-[9px] bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded font-bold">
+                      {bytecodeMatrix.reputationTier}
+                    </span>
+                  </div>
                 </div>
-              )}
+
+                <div className="space-y-2">
+                  {bytecodeMatrix.languagesWithPercentages.map((item) => (
+                    <div key={item.language} className="space-y-1">
+                      <div className="flex justify-between items-center py-0.5">
+                        <span className="text-slate-700 font-medium flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                          {item.language}
+                        </span>
+                        <span className="font-bold text-purple-900">
+                          {item.bytes.toLocaleString()} Bytes ({item.percentage}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {!userProfile.githubVerified && (
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-500">Link GitHub for +40 pts:</span>
+                    <Link
+                      to="/onboarding"
+                      className="text-[10px] font-bold text-purple-700 hover:text-purple-900 underline"
+                    >
+                      Connect GitHub &rarr;
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

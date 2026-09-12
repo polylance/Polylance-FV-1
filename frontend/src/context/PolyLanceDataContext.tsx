@@ -522,6 +522,10 @@ const mergeProfilesMap = (existing: Record<string, UserProfile>, incoming: Recor
         githubUsername: inProf.githubUsername || curr.githubUsername,
         githubVerified: inProf.githubVerified ?? curr.githubVerified,
         primaryScore: inProf.primaryScore || curr.primaryScore,
+        primaryCategory: inProf.primaryCategory || curr.primaryCategory,
+        languageBytes: (inProf.languageBytes && Object.keys(inProf.languageBytes).length > 0)
+          ? inProf.languageBytes
+          : curr.languageBytes,
         reputationSbtCount: inProf.reputationSbtCount ?? curr.reputationSbtCount,
       };
     }
