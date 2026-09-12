@@ -73,7 +73,7 @@ interface PolyLanceDataContextType {
   addJudge: (address: string, name: string, notes?: string, addedBy?: string) => void;
   removeJudge: (address: string) => void;
   toggleJudgeStatus: (address: string) => void;
-  postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
+  postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
   deleteJob: (jobId: string) => Promise<boolean>;
   renewJob: (jobId: string) => Promise<boolean>;
   applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => Promise<void>;
@@ -1264,7 +1264,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   }), [treasuryBalanceUsdc, treasuryBalanceEth, treasuryProposals]);
 
   const postJob = async (
-    jobData: { title: string; description: string; category: any; amountUsdc: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number },
+    jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number },
     clientAddress: string
   ): Promise<Job> => {
     const tokenSymbol = jobData.paymentTokenSymbol || 'USDC';
@@ -1286,9 +1286,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           const tx = await factory.postJob(descriptionIpfsHash, tokenConfig.address);
           const receipt = await tx.wait();
           txHash = receipt.hash;
-          const log = receipt.logs.find((l: any) => l.fragment && (l.fragment.name === 'JobDeployed' || l.fragment.name === 'JobPosted'));
-          if (log) {
-            contractAddr = log.args[0] || log.args.jobContract || log.args.jobAddress;
+          const factoryInterface = new ethers.Interface(getAbi(JobFactoryABI));
+          for (const l of receipt.logs) {
+            try {
+              const parsed = factoryInterface.parseLog(l);
+              if (parsed && (parsed.name === 'JobDeployed' || parsed.name === 'JobPosted')) {
+                contractAddr = parsed.args.jobContract || parsed.args[0];
+                break;
+              }
+            } catch {}
           }
         }
       }
@@ -1310,9 +1316,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       txHash = generateMockTxHash();
     }
 
-    const ethAmount = tokenConfig.symbol === 'MATIC'
-      ? jobData.amountUsdc
-      : (parseFloat(jobData.amountUsdc) / 2800).toFixed(4);
+    const ethAmount = jobData.amountEth || (
+      tokenConfig.symbol === 'MATIC' || tokenConfig.symbol === 'POL'
+        ? jobData.amountUsdc
+        : (parseFloat(jobData.amountUsdc) / 2800).toFixed(4)
+    );
 
     const newJob: Job = {
       id: contractAddr.slice(0, 14),
@@ -1554,6 +1562,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const fundJob = async (jobId: string) => {
     let txHash = '';
     const job = jobs.find((j) => matchJob(j, jobId));
+    if (!job) throw new Error('Job not found');
 
     if (isConnected && isWrongNetwork) {
       throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to fund this escrow.`);
@@ -1561,17 +1570,62 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       const signer = await getSigner();
-      if (signer && job && ethers.isAddress(job.contractAddress)) {
+      if (signer && job) {
+        let targetContractAddress = job.contractAddress;
+
         // Check if contract is deployed on chain
-        const deployedCode = await provider.getCode(job.contractAddress).catch(() => '0x');
-        const hasLiveContract = deployedCode && deployedCode !== '0x';
+        let hasLiveContract = false;
+        if (targetContractAddress && ethers.isAddress(targetContractAddress)) {
+          const deployedCode = await provider.getCode(targetContractAddress).catch(() => '0x');
+          hasLiveContract = Boolean(deployedCode && deployedCode !== '0x');
+        }
+
+        // If the contract is NOT yet deployed on chain, deploy it now via JobFactory!
+        if (!hasLiveContract) {
+          const factoryCode = await provider.getCode(CONTRACTS.JobFactory).catch(() => '0x');
+          if (factoryCode && factoryCode !== '0x') {
+            console.log('Deploying escrow contract on-chain via JobFactory before funding...');
+            const factory = new ethers.Contract(CONTRACTS.JobFactory, getAbi(JobFactoryABI), signer);
+            const descIpfs = generateIpfsCid({ title: job.title, description: job.description });
+            const tokenAddress = (job.paymentToken && job.paymentToken !== ethers.ZeroAddress) ? job.paymentToken : ethers.ZeroAddress;
+            const postTx = await factory.postJob(descIpfs, tokenAddress);
+            const postReceipt = await postTx.wait();
+
+            const factoryInterface = new ethers.Interface(getAbi(JobFactoryABI));
+            for (const l of postReceipt.logs) {
+              try {
+                const parsed = factoryInterface.parseLog(l);
+                if (parsed && (parsed.name === 'JobDeployed' || parsed.name === 'JobPosted')) {
+                  targetContractAddress = parsed.args.jobContract || parsed.args[0];
+                  break;
+                }
+              } catch {}
+            }
+
+            if (targetContractAddress && ethers.isAddress(targetContractAddress)) {
+              hasLiveContract = true;
+              job.contractAddress = targetContractAddress;
+              if (job.freelancer && ethers.isAddress(job.freelancer)) {
+                try {
+                  const escrowInit = new ethers.Contract(targetContractAddress, getAbi(JobEscrowABI), signer);
+                  const selectTx = await escrowInit.selectFreelancer(job.freelancer);
+                  await selectTx.wait();
+                } catch (selectErr) {
+                  console.warn('Auto-selecting freelancer on deployed escrow:', selectErr);
+                }
+              }
+            }
+          }
+        }
 
         if (hasLiveContract) {
-          const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
+          const escrow = new ethers.Contract(targetContractAddress, getAbi(JobEscrowABI), signer);
           const tokenConfig = getTokenByAddress(job.paymentToken);
+          const isNative = !job.paymentToken || job.paymentToken === ethers.ZeroAddress || tokenConfig.symbol === 'MATIC' || tokenConfig.symbol === 'POL' || job.paymentTokenSymbol === 'POL' || job.paymentTokenSymbol === 'MATIC';
 
-          if (job.paymentToken === ethers.ZeroAddress || tokenConfig.symbol === 'MATIC') {
-            const val = ethers.parseUnits(job.amountEth || job.amountUsdc || '0.01', 18);
+          if (isNative) {
+            const rawAmount = job.amountEth || job.amountUsdc || '0.05';
+            const val = ethers.parseUnits(parseFloat(rawAmount).toFixed(6), 18);
             const tx = await escrow.fundJob(0, { value: val });
             const receipt = await tx.wait();
             txHash = receipt.hash;
@@ -1584,9 +1638,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const amountParsed = ethers.parseUnits(job.amountUsdc || '100', tokenConfig.decimals);
 
             const signerAddr = await signer.getAddress();
-            const currentAllowance: bigint = await tokenContract.allowance(signerAddr, job.contractAddress).catch(() => 0n);
+            const currentAllowance: bigint = await tokenContract.allowance(signerAddr, targetContractAddress).catch(() => 0n);
             if (currentAllowance < amountParsed) {
-              const approveTx = await tokenContract.approve(job.contractAddress, amountParsed);
+              const approveTx = await tokenContract.approve(targetContractAddress, amountParsed);
               await approveTx.wait();
             }
 
@@ -1594,11 +1648,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const receipt = await fundTx.wait();
             txHash = receipt.hash;
           }
+        } else if (isConnected) {
+          throw new Error('Could not find or deploy an on-chain escrow contract on Polygon Amoy. Please ensure you have testnet POL in your wallet for gas.');
         }
       }
     } catch (err: any) {
       console.error('Escrow funding error:', err);
-      // Re-throw if a real live wallet was attempting transaction on chain
       if (isConnected) {
         throw err;
       }
@@ -1618,6 +1673,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         });
         return {
           ...j,
+          contractAddress: (job && job.contractAddress) || j.contractAddress,
           status: 'Funded' as const,
           clientAgreedTerms: true,
           freelancerAgreedTerms: true,

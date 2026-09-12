@@ -11,12 +11,12 @@ const manifest =
       : amoyAddresses;
 
 export const CONTRACTS = {
-  JobFactory: manifest.JobFactory,
-  ReputationSBT: manifest.ReputationSBT,
-  ProfileRegistry: manifest.ProfileRegistry,
-  GithubReputationRegistry: manifest.GithubReputationRegistry,
-  JudgeDAO: manifest.JudgeDAO,
-  TimelockController: manifest.TimelockController,
+  JobFactory: (import.meta.env.VITE_JOB_FACTORY_ADDRESS || manifest.JobFactory) as string,
+  ReputationSBT: (import.meta.env.VITE_REPUTATION_SBT_ADDRESS || manifest.ReputationSBT) as string,
+  ProfileRegistry: (import.meta.env.VITE_PROFILE_REGISTRY_ADDRESS || manifest.ProfileRegistry) as string,
+  GithubReputationRegistry: (import.meta.env.VITE_GITHUB_REGISTRY_ADDRESS || manifest.GithubReputationRegistry) as string,
+  JudgeDAO: (import.meta.env.VITE_JUDGE_DAO_ADDRESS || manifest.JudgeDAO) as string,
+  TimelockController: (import.meta.env.VITE_TIMELOCK_ADDRESS || manifest.TimelockController) as string,
 } as const;
 
 export const CONTRACT_ADDRESSES = CONTRACTS;

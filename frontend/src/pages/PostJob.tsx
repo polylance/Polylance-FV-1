@@ -127,7 +127,8 @@ export const PostJob: React.FC = () => {
           description,
           category,
           amountUsdc: usdEquivalent,
-          paymentTokenSymbol: selectedToken === 'POL' ? 'MATIC' : (selectedToken as any),
+          amountEth: ((selectedToken as string) === 'POL' || (selectedToken as string) === 'MATIC') ? tokenAmount : undefined,
+          paymentTokenSymbol: ((selectedToken as string) === 'POL' || (selectedToken as string) === 'MATIC') ? 'MATIC' : (selectedToken as any),
           reviewPeriodDays: parsedReviewPeriod,
         },
         address
