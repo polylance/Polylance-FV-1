@@ -192,7 +192,7 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
         skills: ['Solidity', 'TypeScript', 'React', 'Smart Contracts', 'Governance'],
         githubUsername: adminGithub,
         githubVerified: true,
-        primaryScore: 820,
+        primaryScore: 0,
         reputationSbtCount: 0,
         role: 'admin',
       };
@@ -213,7 +213,7 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
       skills: ['TypeScript', 'React', 'Smart Contracts', 'Node.js', 'Solidity'],
       githubUsername: judgeGithub,
       githubVerified: Boolean(judgeGithub),
-      primaryScore: 850,
+      primaryScore: 0,
       reputationSbtCount: 0,
       role: 'judge',
     };
@@ -521,9 +521,9 @@ const mergeProfilesMap = (existing: Record<string, UserProfile>, incoming: Recor
         skills: inProf.skills?.length ? inProf.skills : curr.skills,
         githubUsername: inProf.githubUsername || curr.githubUsername,
         githubVerified: inProf.githubVerified ?? curr.githubVerified,
-        primaryScore: inProf.primaryScore || curr.primaryScore,
+        primaryScore: typeof inProf.primaryScore === 'number' ? inProf.primaryScore : curr.primaryScore,
         primaryCategory: inProf.primaryCategory || curr.primaryCategory,
-        languageBytes: (inProf.languageBytes && Object.keys(inProf.languageBytes).length > 0)
+        languageBytes: inProf.languageBytes !== undefined
           ? inProf.languageBytes
           : curr.languageBytes,
         reputationSbtCount: inProf.reputationSbtCount ?? curr.reputationSbtCount,

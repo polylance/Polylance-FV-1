@@ -32,11 +32,11 @@ export const Profile: React.FC = () => {
     if (userProfile.githubVerified && userProfile.githubUsername) {
       scoreGithubUser(userProfile.githubUsername, profileAddr)
         .then((res) => {
-          if (res && res.primaryScore) {
+          if (res && typeof res.primaryScore === 'number') {
             updateProfile({
               primaryScore: res.primaryScore,
               secondaryScores: res.secondaryScores,
-              languageBytes: res.languageBytes,
+              languageBytes: res.languageBytes || {},
               verifiedAt: res.verifiedAt,
             }, profileAddr);
           }
@@ -468,27 +468,36 @@ export const Profile: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {bytecodeMatrix.languagesWithPercentages.map((item) => (
-                    <div key={item.language} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] text-slate-500 uppercase font-bold">{item.language}</span>
-                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700">
-                          {item.percentage}%
-                        </span>
+                {bytecodeMatrix.languagesWithPercentages.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {bytecodeMatrix.languagesWithPercentages.map((item) => (
+                      <div key={item.language} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] text-slate-500 uppercase font-bold">{item.language}</span>
+                          <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700">
+                            {item.percentage}%
+                          </span>
+                        </div>
+                        <div className="font-extrabold text-purple-900 text-sm">
+                          {item.bytes.toLocaleString()} Bytes
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
+                          />
+                        </div>
                       </div>
-                      <div className="font-extrabold text-purple-900 text-sm">
-                        {item.bytes.toLocaleString()} Bytes
-                      </div>
-                      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-5 rounded-xl bg-white border border-slate-200 text-center space-y-1.5">
+                    <p className="text-xs font-bold text-slate-700">No Audited Code Detected</p>
+                    <p className="text-[11px] text-slate-500 font-sans">
+                      This profile has 0 public commits/repositories detected on GitHub and 0 on-chain escrow deliverables.
+                    </p>
+                  </div>
+                )}
 
                 <div className="pt-2 border-t border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 text-[10px] text-slate-500">
                   <span>
@@ -748,22 +757,29 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
                 <span className="text-[9px] text-emerald-600 font-bold">● Realtime</span>
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] text-center text-slate-700 font-mono">
-              {bytecodeMatrix.languagesWithPercentages.map((item) => (
-                <div key={item.language} className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
-                  <div className="flex justify-between items-center text-[9px]">
-                    <span className="font-bold text-slate-800">{item.language}</span>
-                    <span className="text-slate-500">{item.percentage}%</span>
+            {bytecodeMatrix.languagesWithPercentages.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] text-center text-slate-700 font-mono">
+                {bytecodeMatrix.languagesWithPercentages.map((item) => (
+                  <div key={item.language} className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
+                    <div className="flex justify-between items-center text-[9px]">
+                      <span className="font-bold text-slate-800">{item.language}</span>
+                      <span className="text-slate-500">{item.percentage}%</span>
+                    </div>
+                    <span className="text-purple-700 font-bold block text-[11px]">
+                      {item.bytes.toLocaleString()} Bytes
+                    </span>
+                    <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${item.percentage}%`, backgroundColor: item.color }} />
+                    </div>
                   </div>
-                  <span className="text-purple-700 font-bold block text-[11px]">
-                    {item.bytes.toLocaleString()} Bytes
-                  </span>
-                  <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${item.percentage}%`, backgroundColor: item.color }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-lg bg-white border border-slate-200 text-center space-y-1">
+                <p className="text-[11px] font-bold text-slate-700">No Audited Code Detected</p>
+                <p className="text-[10px] text-slate-400 font-sans">0 GitHub repositories / 0 on-chain escrow deliverables</p>
+              </div>
+            )}
           </div>
         </div>
       ) : (

@@ -317,7 +317,7 @@ export const AuditReport: React.FC = () => {
           userTitle: profile?.title || 'Senior Web3 Systems Engineer & Verified Contributor',
           scoreLabel: 'PLREP Skill Index',
           scoreVal: `${devReputationScore} PTS`,
-          scoreSub: 'Top Tier Verified Developer',
+          scoreSub: devReputationScore >= 900 ? 'Platinum Elite Developer' : devReputationScore >= 750 ? 'Gold Sovereign Developer' : devReputationScore >= 500 ? 'Silver Verified Developer' : devReputationScore > 0 ? 'Bronze Contributor' : 'Starter Developer',
           stat1Label: 'Lifetime Proof of Work Handled',
           stat1Val: `$${devVolumeHandled.toLocaleString()} USDC`,
           stat1Sub: '0% Protocol Extraction',
@@ -329,10 +329,10 @@ export const AuditReport: React.FC = () => {
           stat3Sub: 'Verified On-Chain Milestones',
           accentColor: 'purple',
           badges: [
-            'ERC-5192 Soulbound Achiever',
-            'Top 1% Polygon Engineer',
-            'GitHub Cryptographic Proof',
-            '100% Clean Delivery SLA'
+            devReputationScore >= 500 ? 'ERC-5192 Soulbound Achiever' : 'PolyLance Registered Contributor',
+            devReputationScore >= 750 ? 'Top 5% Polygon Engineer' : 'Polygon Web3 Engineer',
+            profile?.githubVerified ? 'GitHub Cryptographic Proof' : 'Sovereign Wallet Proof',
+            completedFreelancerJobs.length > 0 ? `${devSuccessRate}% Clean Delivery SLA` : 'Ready for Escrows'
           ],
           attestationNarrative: 'Autonomous smart contract escrow verification. This engineer holds immutable, non-transferable ERC-5192 credentials attesting to decentralized project milestones delivered with clean peer-review consensus and verified on-chain code artifacts.',
           socialGradient: 'from-white via-slate-50 to-purple-50/60 border-purple-200/90',
@@ -1100,7 +1100,13 @@ export const AuditReport: React.FC = () => {
               <span className="text-[8.5px] uppercase text-slate-500 block font-bold">Reputation Tier</span>
               <span className="font-black text-amber-600 text-xs block">
                 {auditPerspective === 'client' && 'Diamond Escrow Patron'}
-                {auditPerspective === 'freelancer' && (devReputationScore >= 900 ? 'Platinum Elite (Top 1%)' : 'Gold Sovereign (Top 5%)')}
+                {auditPerspective === 'freelancer' && (
+                  devReputationScore >= 900 ? 'Platinum Elite (Top 1%)' :
+                  devReputationScore >= 750 ? 'Gold Sovereign (Top 5%)' :
+                  devReputationScore >= 500 ? 'Silver Contributor' :
+                  devReputationScore > 0 ? 'Bronze Verified' :
+                  'Unranked / Starter'
+                )}
                 {auditPerspective === 'judge' && 'Elected Chief Arbitrator'}
                 {auditPerspective === 'admin' && 'Root MultiSig Administrator'}
               </span>

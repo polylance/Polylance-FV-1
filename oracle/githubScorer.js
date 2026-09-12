@@ -139,10 +139,10 @@ async function scoreGithubProfile(username) {
   }
 
   if (Object.keys(categoryScores).length === 0) {
-    // No scoreable repos — return a minimal profile
+    // No scoreable repos — return 0 score and empty secondary categories
     return {
       primaryCategory: "other",
-      primaryScore: 1,
+      primaryScore: 0,
       secondaryCategories: [],
       secondaryScores: [],
     };

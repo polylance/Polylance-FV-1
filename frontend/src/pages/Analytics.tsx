@@ -419,36 +419,45 @@ export const Analytics: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-4 font-mono text-xs">
-                {bytecodeMatrix.languagesWithPercentages.map((item) => (
-                  <div key={item.language} className="space-y-1.5">
-                    <div className="flex justify-between text-slate-800 font-bold">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                        {item.language}
-                      </span>
-                      <span className="text-slate-600">
-                        <strong className="text-slate-900">{item.bytes.toLocaleString()} Bytes</strong> ({item.percentage}%)
-                      </span>
+              {bytecodeMatrix.languagesWithPercentages.length > 0 ? (
+                <div className="space-y-4 font-mono text-xs">
+                  {bytecodeMatrix.languagesWithPercentages.map((item) => (
+                    <div key={item.language} className="space-y-1.5">
+                      <div className="flex justify-between text-slate-800 font-bold">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                          {item.language}
+                        </span>
+                        <span className="text-slate-600">
+                          <strong className="text-slate-900">{item.bytes.toLocaleString()} Bytes</strong> ({item.percentage}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))}
 
-                <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[10.5px] text-slate-500">
-                  <span>
-                    Attestation Hash: <code className="bg-slate-100 px-1.5 py-0.5 rounded font-bold text-slate-800">{bytecodeMatrix.attestationHash.slice(0, 10)}...{bytecodeMatrix.attestationHash.slice(-8)}</code>
-                  </span>
-                  <span className="text-purple-700 font-bold">
-                    Total: {bytecodeMatrix.totalBytes.toLocaleString()} Bytes Attested
-                  </span>
+                  <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[10.5px] text-slate-500">
+                    <span>
+                      Attestation Hash: <code className="bg-slate-100 px-1.5 py-0.5 rounded font-bold text-slate-800">{bytecodeMatrix.attestationHash.slice(0, 10)}...{bytecodeMatrix.attestationHash.slice(-8)}</code>
+                    </span>
+                    <span className="text-purple-700 font-bold">
+                      Total: {bytecodeMatrix.totalBytes.toLocaleString()} Bytes Attested
+                    </span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-6 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1.5">
+                  <p className="font-bold text-slate-700 text-xs">No Audited Code Detected</p>
+                  <p className="text-[11px] text-slate-500 font-sans">
+                    This developer has 0 public commits/repositories on GitHub and 0 on-chain escrow deliverables.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Earnings history widget */}

@@ -189,25 +189,32 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
                 {bytecodeMatrix.totalBytes.toLocaleString()} Bytes
               </span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 font-mono text-xs">
-              {bytecodeMatrix.languagesWithPercentages.map((item) => (
-                <div key={item.language} className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1 shadow-3xs">
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="font-bold text-slate-800">{item.language}</span>
-                    <span className="text-slate-500">{item.percentage}%</span>
+            {bytecodeMatrix.languagesWithPercentages.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 font-mono text-xs">
+                {bytecodeMatrix.languagesWithPercentages.map((item) => (
+                  <div key={item.language} className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1 shadow-3xs">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="font-bold text-slate-800">{item.language}</span>
+                      <span className="text-slate-500">{item.percentage}%</span>
+                    </div>
+                    <span className="text-purple-700 font-extrabold text-[11px] block">
+                      {item.bytes.toLocaleString()} Bytes
+                    </span>
+                    <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
+                      />
+                    </div>
                   </div>
-                  <span className="text-purple-700 font-extrabold text-[11px] block">
-                    {item.bytes.toLocaleString()} Bytes
-                  </span>
-                  <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-0.5">
+                <p className="text-xs font-bold text-slate-600">No Audited Code Detected</p>
+                <p className="text-[10.5px] text-slate-400 font-sans">0 GitHub repositories / 0 on-chain escrow deliverables</p>
+              </div>
+            )}
           </div>
 
           {/* Linked GitHub & Social Attestation */}
