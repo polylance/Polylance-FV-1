@@ -29,7 +29,7 @@ import { calculateReputationScores, formatEarnings } from '../utils/reputation';
 
 export const Reputation: React.FC = () => {
   const { address, isArbitrator, currentRole, reputationCount: onChainReputationCount } = useWeb3();
-  const { profiles, jobs } = usePolyLanceData();
+  const { profiles, jobs, judges } = usePolyLanceData();
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'monthly'>('all');
 
   useEffect(() => {
@@ -50,8 +50,8 @@ export const Reputation: React.FC = () => {
     address || '',
     jobs,
     userProfile,
-    Number(onChainReputationCount || 0),
-    Boolean(isArbitrator),
+    onChainReputationCount || userProfile?.reputationSbtCount || 0,
+    isArbitrator,
     judgeAddr
   );
 
@@ -63,8 +63,78 @@ export const Reputation: React.FC = () => {
   const userVolume = userScores.totalVolume;
   const userCompletedJobsCount = userScores.completedJobsCount;
 
+  // Combine all registered profiles and active protocol participants (clients, freelancers, judges)
+  const allParticipantProfiles: UserProfile[] = React.useMemo(() => {
+    const map = new Map<string, UserProfile>();
+
+    // 1. All explicitly registered user profiles
+    Object.values(profiles || {}).forEach((p) => {
+      if (p && p.address) {
+        map.set(p.address.toLowerCase().trim(), p);
+      }
+    });
+
+    // 2. Active freelancers and clients from jobs
+    (jobs || []).forEach((j) => {
+      if (j.freelancer) {
+        const lower = j.freelancer.toLowerCase().trim();
+        if (!map.has(lower)) {
+          map.set(lower, {
+            address: lower,
+            displayName: `${lower.slice(0, 6)}...${lower.slice(-4)}`,
+            bio: 'Verified Web3 Talent on PolyLance protocol.',
+            avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${lower}`,
+            ipfsHash: '',
+            skills: ['Smart Contracts', 'Polygon'],
+            githubVerified: false,
+            role: 'freelancer',
+            reputationSbtCount: 0,
+          });
+        }
+      }
+      if (j.client) {
+        const lower = j.client.toLowerCase().trim();
+        if (!map.has(lower)) {
+          map.set(lower, {
+            address: lower,
+            displayName: `${lower.slice(0, 6)}...${lower.slice(-4)}`,
+            bio: 'Verified PolyLance Project Creator & Escrow Client.',
+            avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${lower}`,
+            ipfsHash: '',
+            skills: ['Protocol Governance'],
+            githubVerified: false,
+            role: 'client',
+            reputationSbtCount: 0,
+          });
+        }
+      }
+    });
+
+    // 3. Decentralized DAO Judges
+    (judges || []).forEach((j) => {
+      if (j.address) {
+        const lower = j.address.toLowerCase().trim();
+        if (!map.has(lower)) {
+          map.set(lower, {
+            address: lower,
+            displayName: j.name || `${lower.slice(0, 6)}...${lower.slice(-4)}`,
+            bio: j.notes || 'Decentralized Tribunal Arbitrator.',
+            avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${lower}`,
+            ipfsHash: '',
+            skills: ['Arbitration', 'Audit'],
+            githubVerified: false,
+            role: 'judge',
+            reputationSbtCount: 0,
+          });
+        }
+      }
+    });
+
+    return Array.from(map.values());
+  }, [profiles, jobs, judges]);
+
   // Compute leaderboard across all registered profiles with the unified reputation system
-  const leaderboardData = Object.values(profiles)
+  const leaderboardData = allParticipantProfiles
     .map((profile) => {
       const isYou = profile.address?.toLowerCase() === address?.toLowerCase();
       const lower = profile.address?.toLowerCase();
@@ -81,15 +151,19 @@ export const Reputation: React.FC = () => {
 
       const roleDisplay = profile.title 
         ? profile.title
-        : profile.skills && profile.skills.length > 0
-          ? `${profile.skills[0]} Engineer`
-          : profile.primaryCategory === 'web3' 
-            ? 'Web3 Engineer' 
-            : profile.primaryCategory === 'frontend' 
-              ? 'Frontend Developer' 
-              : profile.primaryCategory === 'backend' 
-                ? 'Backend Developer' 
-                : 'Smart Contract Developer';
+        : profile.role === 'client'
+          ? 'Protocol Client'
+          : profile.role === 'judge'
+            ? 'Tribunal Arbitrator'
+            : profile.skills && profile.skills.length > 0
+              ? `${profile.skills[0]} Engineer`
+              : profile.primaryCategory === 'web3' 
+                ? 'Web3 Engineer' 
+                : profile.primaryCategory === 'frontend' 
+                  ? 'Frontend Developer' 
+                  : profile.primaryCategory === 'backend' 
+                    ? 'Backend Developer' 
+                    : 'Smart Contract Developer';
 
       const formatEarnings = (val: number): string => {
         if (!val || val <= 0) return '$0.0k';
@@ -116,7 +190,7 @@ export const Reputation: React.FC = () => {
       };
     })
     .concat(
-      address && !Object.keys(profiles).some(k => k.toLowerCase() === address.toLowerCase())
+      address && !allParticipantProfiles.some(p => p.address?.toLowerCase() === address.toLowerCase())
         ? [
             {
               rank: 0,

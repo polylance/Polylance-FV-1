@@ -1,4 +1,7 @@
 import { ethers } from "ethers";
+import { CHAIN_ID } from "./contracts";
+
+const isAmoy = CHAIN_ID === 80002 || !import.meta.env.VITE_NETWORK || import.meta.env.VITE_NETWORK === "amoy";
 
 export const PAYMENT_TOKENS = {
   MATIC: {
@@ -12,18 +15,16 @@ export const PAYMENT_TOKENS = {
     decimals: 18,
   },
   USDC: {
-    address:
-      (import.meta.env.VITE_NETWORK === "amoy" || import.meta.env.VITE_CHAIN_ID === "80002")
-        ? "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582" // real Amoy testnet USDC
-        : "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // real Polygon mainnet USDC
+    address: isAmoy
+      ? "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582" // real Polygon Amoy USDC
+      : "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // real Polygon mainnet USDC
     symbol: "USDC",
     decimals: 6,
   },
   USDT: {
-    address:
-      (import.meta.env.VITE_NETWORK === "amoy" || import.meta.env.VITE_CHAIN_ID === "80002")
-        ? "0x1b1B50a9F7C00E1bE6ec554f11E1077E682A31a7" // real Amoy testnet USDT
-        : "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", // real Polygon mainnet Tether USD (USDT)
+    address: isAmoy
+      ? "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582" // testnet ERC20 token for Amoy testing
+      : "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", // real Polygon mainnet Tether USD (USDT)
     symbol: "USDT",
     decimals: 6,
   },

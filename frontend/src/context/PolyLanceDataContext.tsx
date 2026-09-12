@@ -681,7 +681,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const computed = typeof val === 'function' ? val(prev) : val;
       const next = normalizeProfiles(computed);
       if (typeof window !== 'undefined') localStorage.setItem('polylance_profiles', JSON.stringify(next));
-      broadcastSync({ profiles: next });
+      const sender = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
+      broadcastSync({ profiles: next }, sender);
       return next;
     });
   };
@@ -883,12 +884,29 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               broadcastSync({ jobs: currentLocalJobs });
             }
 
+            let currentLocalProfiles: Record<string, UserProfile> = {};
+            try {
+              const savedProf = localStorage.getItem('polylance_profiles');
+              if (savedProf) currentLocalProfiles = JSON.parse(savedProf);
+            } catch {}
+
             if (payload.profiles && Object.keys(payload.profiles).length > 0) {
               setProfilesRaw((curr) => {
                 const merged = mergeProfilesMap(curr, payload.profiles);
                 try { localStorage.setItem('polylance_profiles', JSON.stringify(merged)); } catch {}
                 return { ...merged };
               });
+              if (Object.keys(currentLocalProfiles).length > 0) {
+                const missingOnServer: Record<string, UserProfile> = {};
+                for (const [k, p] of Object.entries(currentLocalProfiles)) {
+                  if (!payload.profiles[k]) missingOnServer[k] = p;
+                }
+                if (Object.keys(missingOnServer).length > 0 && currentAddr && ethers.isAddress(currentAddr)) {
+                  broadcastSync({ profiles: missingOnServer }, currentAddr);
+                }
+              }
+            } else if (Object.keys(currentLocalProfiles).length > 0 && currentAddr && ethers.isAddress(currentAddr)) {
+              broadcastSync({ profiles: currentLocalProfiles }, currentAddr);
             }
 
             if (Array.isArray(payload.daoProposals) && payload.daoProposals.length > 0) {
@@ -1001,6 +1019,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Periodic synchronization check and window focus listener for multi-account / cross-context real-time sync
     const syncFromRemoteBackend = async () => {
+      if (Date.now() < backendSyncOfflineUntil) return;
       const endpoints = getSyncEndpoints();
       const activeAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
       const reqHeaders: Record<string, string> = {};
@@ -1012,12 +1031,16 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       for (const ep of endpoints) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4500);
-          const r = await fetch(`${ep}/api/sync${query}`, { signal: controller.signal, headers: reqHeaders });
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          const r = await fetch(`${ep}/api/sync${query}`, { signal: controller.signal, headers: reqHeaders }).catch(() => null);
           clearTimeout(timeoutId);
-          if (!r.ok) continue;
-          const payload = await r.json();
+          if (!r || !r.ok) {
+            backendSyncOfflineUntil = Date.now() + 25000;
+            continue;
+          }
+          const payload = await r.json().catch(() => null);
           if (payload) {
+            backendSyncOfflineUntil = 0;
             if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
               setJobsRaw((curr) => {
                 const merged = mergeJobsList(curr, payload.jobs);
@@ -1042,7 +1065,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             return; // Successfully updated from live cloud database
           }
         } catch (err) {
-          // Continue to next endpoint
+          backendSyncOfflineUntil = Date.now() + 25000;
           continue;
         }
       }
@@ -1051,7 +1074,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const pollInterval = setInterval(() => {
       syncFromStorage();
-      syncFromRemoteBackend();
+      if (Date.now() >= backendSyncOfflineUntil) {
+        syncFromRemoteBackend();
+      }
     }, 30000);
 
     window.addEventListener('focus', () => {
@@ -2630,12 +2655,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         reputationSbtCount: 0,
       };
 
+      const updatedSingle = {
+        ...existing,
+        ...profileData,
+        address: lowerAddress,
+      };
+
       const finalMerged = {
         ...updatedPrev,
-        [lowerAddress]: {
-          ...existing,
-          ...profileData,
-        },
+        [lowerAddress]: updatedSingle,
       };
 
       try {
@@ -2643,6 +2671,25 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           localStorage.setItem('polylance_profiles', JSON.stringify(finalMerged));
         }
       } catch {}
+
+      // Explicitly broadcast and dual-write to cloud databases
+      broadcastSync({ profiles: { [lowerAddress]: updatedSingle } }, lowerAddress);
+
+      // Direct multi-endpoint POST for guaranteed server persistence
+      const syncEndpoints = getSyncEndpoints();
+      const postPayload = JSON.stringify({
+        profiles: { [lowerAddress]: updatedSingle },
+      });
+      syncEndpoints.forEach((ep) => {
+        fetch(`${ep}/api/sync?address=${encodeURIComponent(lowerAddress)}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': lowerAddress,
+          },
+          body: postPayload,
+        }).catch(() => {});
+      });
 
       return finalMerged;
     });
