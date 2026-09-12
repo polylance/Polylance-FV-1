@@ -16,14 +16,14 @@ export const PAYMENT_TOKENS = {
   },
   USDC: {
     address: isAmoy
-      ? "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582" // real Polygon Amoy USDC
+      ? ((import.meta.env.VITE_USDC_ADDRESS as string) || "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582") // real Polygon Amoy USDC
       : "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // real Polygon mainnet USDC
     symbol: "USDC",
     decimals: 6,
   },
   USDT: {
     address: isAmoy
-      ? "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582" // testnet ERC20 token for Amoy testing
+      ? ((import.meta.env.VITE_USDT_ADDRESS as string) || "0xA02779919E324b17BE41c52dBE6c9F241E93623D") // Distinct Amoy USDT address / configurable via VITE_USDT_ADDRESS
       : "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", // real Polygon mainnet Tether USD (USDT)
     symbol: "USDT",
     decimals: 6,

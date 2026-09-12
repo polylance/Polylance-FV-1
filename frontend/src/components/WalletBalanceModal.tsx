@@ -9,14 +9,14 @@ import {
   Wallet,
   User,
   Activity,
-  Layers,
-  Sparkles
+  ChevronRight
 } from 'lucide-react';
 import { useWeb3 } from '../context/Web3Context';
 import { truncateAddress } from '../utils/formatters';
 import { NETWORK_CONFIG } from '../config/contracts';
 import { useLiveCurrencyRates } from '../utils/currency';
 import { useNavigate } from 'react-router-dom';
+import polylanceLogoImg from '../assets/polylanceLogo.png';
 
 interface WalletBalanceModalProps {
   isOpen: boolean;
@@ -24,7 +24,7 @@ interface WalletBalanceModalProps {
 }
 
 export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, onClose }) => {
-  const { address, balanceNative, balanceUsdc, balanceUsdt, refreshBalances, currentRole } = useWeb3();
+  const { address, balanceNative, balanceUsdc, balanceUsdt, refreshBalances } = useWeb3();
   const rates = useLiveCurrencyRates();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
@@ -69,235 +69,311 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-slate-950/65 backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm"
         />
 
-        {/* Modal Card */}
+        {/* Modal Card matching Image 3 */}
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 15 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 15 }}
           transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-          className="relative w-full max-w-md max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-purple-100/80 flex flex-col overflow-hidden z-10"
+          className="relative w-full max-w-[460px] max-h-[94vh] bg-white rounded-[32px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.18)] border border-slate-100 p-6 sm:p-7 flex flex-col gap-3.5 overflow-hidden z-10 font-sans text-slate-900"
         >
-          {/* Header Gradient */}
-          <div className="relative p-4 sm:p-5 pb-3.5 bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 text-white overflow-hidden shrink-0">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/20 rounded-full blur-2xl pointer-events-none -mr-10 -mt-10" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/15 rounded-full blur-xl pointer-events-none -ml-8 -mb-8" />
-
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shadow-inner">
-                  <Wallet size={16} className="text-purple-300" />
-                </div>
-                <div>
-                  <h3 className="font-headline font-bold text-base text-white leading-tight">
-                    Wallet & Balances
-                  </h3>
-                  <p className="text-[11px] text-purple-200/80 font-sans">
-                    Live on-chain assets & tokens
-                  </p>
+          {/* Header Section */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              {/* Wallet Gradient Badge */}
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#3b82f6] via-[#6366f1] to-[#8b5cf6] p-[2px] shadow-sm shadow-indigo-500/20 shrink-0 flex items-center justify-center">
+                <div className="w-full h-full rounded-[14px] bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center text-white">
+                  <Wallet size={22} strokeWidth={2} />
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight leading-snug">
+                  Wallet &amp; Balances
+                </h3>
+                <p className="text-xs text-slate-400 font-medium">
+                  Live on-chain assets &amp; tokens
+                </p>
+
+                {/* Connected Address Pill */}
+                <div
+                  onClick={handleCopyAddress}
+                  title="Click to copy address"
+                  className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200/60 rounded-full text-xs font-mono text-slate-700 transition-colors cursor-pointer select-none"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="font-semibold">{address ? truncateAddress(address) : 'Not Connected'}</span>
+                  <span className="text-slate-400 hover:text-slate-600">
+                    {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Header: 3D Cubes + Round Control Buttons */}
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleRefresh}
                   title="Refresh Balances"
-                  className={`p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer ${
+                  className={`w-9 h-9 rounded-full bg-slate-100/90 hover:bg-slate-200/80 text-slate-600 flex items-center justify-center transition-all cursor-pointer ${
                     refreshing ? 'animate-spin' : ''
                   }`}
                 >
-                  <RefreshCw size={13} />
+                  <RefreshCw size={15} />
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                  title="Close"
+                  className="w-9 h-9 rounded-full bg-slate-100/90 hover:bg-slate-200/80 text-slate-600 flex items-center justify-center transition-all cursor-pointer"
                 >
-                  <X size={15} />
+                  <X size={16} />
                 </button>
               </div>
-            </div>
 
-            {/* Connected Address Pill */}
-            <div className="relative z-10 mt-3 p-2 rounded-xl bg-white/10 border border-white/15 flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                <span className="font-mono text-[11px] font-semibold text-white truncate">
-                  {address ? truncateAddress(address) : 'Not Connected'}
+              {/* 3D Isometric Translucent Cubes Illustration */}
+              <div className="flex flex-col items-end pr-0.5 pt-0.5 opacity-85 pointer-events-none select-none">
+                <svg width="74" height="42" viewBox="0 0 100 56" fill="none" className="overflow-visible">
+                  {/* Cube 1 (top back) */}
+                  <g transform="translate(34, 0) scale(0.65)" opacity="0.45">
+                    <polygon points="30,5 55,18 30,31 5,18" fill="#c7d2fe" />
+                    <polygon points="5,18 30,31 30,58 5,45" fill="#818cf8" />
+                    <polygon points="30,31 55,18 55,45 30,58" fill="#a5b4fc" />
+                  </g>
+                  {/* Cube 2 (right middle) */}
+                  <g transform="translate(56, 12) scale(0.72)" opacity="0.65">
+                    <polygon points="30,5 55,18 30,31 5,18" fill="#bae6fd" />
+                    <polygon points="5,18 30,31 30,58 5,45" fill="#38bdf8" />
+                    <polygon points="30,31 55,18 55,45 30,58" fill="#7dd3fc" />
+                  </g>
+                  {/* Cube 3 (front left) */}
+                  <g transform="translate(14, 16) scale(0.82)" opacity="0.8">
+                    <polygon points="30,5 55,18 30,31 5,18" fill="#e0e7ff" />
+                    <polygon points="5,18 30,31 30,58 5,45" fill="#6366f1" />
+                    <polygon points="30,31 55,18 55,45 30,58" fill="#818cf8" />
+                  </g>
+                </svg>
+                <span className="text-[7.5px] font-mono tracking-widest text-slate-400 font-bold uppercase -mt-0.5">
+                  YOUR ASSETS. ON-CHAIN.
                 </span>
-              </div>
-              <div className="flex items-center gap-1 shrink-0 ml-2">
-                <button
-                  type="button"
-                  onClick={handleCopyAddress}
-                  title="Copy Wallet Address"
-                  className="px-2 py-0.5 rounded-lg bg-white/15 hover:bg-white/25 text-[10px] font-mono font-bold flex items-center gap-1 text-purple-200 hover:text-white transition-colors cursor-pointer"
-                >
-                  {copied ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
-                  <span>{copied ? 'Copied' : 'Copy'}</span>
-                </button>
-                <a
-                  href={explorerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="View on Block Explorer"
-                  className="p-1 rounded-lg bg-white/15 hover:bg-white/25 text-purple-200 hover:text-white transition-colors"
-                >
-                  <ExternalLink size={11} />
-                </a>
               </div>
             </div>
           </div>
 
-          {/* Balance Cards Body */}
-          <div className="p-4 sm:p-5 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
-            {/* Net Total Portfolio Valuation Banner */}
-            <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-50/90 via-indigo-50/80 to-emerald-50/70 border border-purple-100 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block font-mono">
-                  Total Wallet Value
-                </span>
-                <div className="text-lg sm:text-xl font-black font-mono text-slate-900 tracking-tight">
-                  ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-                  <span className="text-[11px] font-semibold text-slate-500 font-sans">USD</span>
-                </div>
-              </div>
-              <div className="px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-800 text-[9.5px] font-mono font-bold flex items-center gap-1 border border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          {/* Total Wallet Value Card */}
+          <div className="relative overflow-hidden rounded-2xl border border-blue-100/90 bg-gradient-to-r from-[#eff6ff] via-[#f5f8ff] to-[#f5f3ff] p-4 sm:p-5 shadow-3xs">
+            {/* Ambient Sinusoidal Flow Wave SVG */}
+            <svg className="absolute right-0 bottom-0 w-60 h-24 pointer-events-none opacity-80" viewBox="0 0 240 100" fill="none">
+              <defs>
+                <linearGradient id="totalWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#bfdbfe" stopOpacity="0.15" />
+                  <stop offset="60%" stopColor="#c7d2fe" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#ddd6fe" stopOpacity="0.45" />
+                </linearGradient>
+                <linearGradient id="totalWaveStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#93c5fd" stopOpacity="0.5" />
+                  <stop offset="50%" stopColor="#818cf8" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#a855f7" stopOpacity="0.9" />
+                </linearGradient>
+              </defs>
+              <path d="M0 72 C 45 72, 65 30, 110 46 C 150 60, 175 22, 240 38 L 240 100 L 0 100 Z" fill="url(#totalWaveGrad)" />
+              <path d="M0 72 C 45 72, 65 30, 110 46 C 150 60, 175 22, 240 38" stroke="url(#totalWaveStroke)" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+
+            <div className="relative z-10 flex items-center justify-between">
+              <span className="text-[13px] font-semibold text-slate-500 tracking-tight font-sans">
+                Total Wallet Value
+              </span>
+              <div className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/90 text-emerald-700 text-[11px] font-semibold flex items-center gap-1.5 shadow-3xs">
+                <Activity size={12} className="text-emerald-600" />
                 <span>Live Sync</span>
               </div>
             </div>
 
-            {/* Asset Rows List */}
-            <div className="space-y-2">
-              {/* Native POL Card */}
-              <div className="p-3 rounded-2xl bg-slate-50/90 hover:bg-slate-100/90 border border-slate-200/80 flex items-center justify-between transition-all">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-purple-100 border border-purple-200 text-purple-700 flex items-center justify-center font-bold text-[11px] shadow-2xs shrink-0">
-                    POL
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-800">Polygon Native</span>
-                      <span className="text-[8.5px] font-mono font-bold text-purple-700 bg-purple-100/60 px-1.5 py-0.2 rounded border border-purple-200">
-                        Primary
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono truncate">
-                      Gas & Protocol Settlement
-                    </div>
-                  </div>
-                </div>
+            <div className="relative z-10 my-2">
+              <span className="text-3xl font-black text-slate-900 font-sans tracking-tight">
+                ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <span className="text-sm font-semibold text-slate-500 ml-1.5 font-sans">USD</span>
+            </div>
 
-                <div className="text-right shrink-0">
-                  <div className="text-sm font-black font-mono text-slate-900">
-                    {polNum.toFixed(3)} <span className="text-xs font-bold text-purple-600">POL</span>
+            <div className="relative z-10 flex items-center gap-2 text-xs">
+              <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Live Sync
+              </span>
+              <span className="text-slate-300">•</span>
+              <span className="text-slate-400 font-medium">Updated just now</span>
+            </div>
+          </div>
+
+          {/* Asset Rows List */}
+          <div className="space-y-2.5">
+            {/* 1. Native POL */}
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-purple-300 hover:shadow-xs flex items-center justify-between transition-all group">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#7c3aed] to-[#9333ea] flex items-center justify-center text-white shadow-sm shadow-purple-500/20 shrink-0">
+                  <svg width="22" height="22" viewBox="0 0 40 40" fill="currentColor">
+                    <path d="M28.3 15.6c-.6-.4-1.4-.4-2 0l-4.5 2.6-2.5 1.5-4.5 2.6c-.6.4-1.4.4-2 0l-3.5-2c-.6-.4-1-.1-1 .6v4.1c0 .7.4 1.3 1 1.6l3.5 2c.6.4 1.4.4 2 0l4.5-2.6 2.5-1.5 4.5-2.6c.6-.4 1.4-.4 2 0l3.5 2c.6.4 1 .1 1-.6v-4.1c0-.7-.4-1.3-1-1.6l-3.5-2.1z" />
+                    <path d="M28.3 6.6c-.6-.4-1.4-.4-2 0l-4.5 2.6-2.5 1.5-4.5 2.6c-.6.4-1.4.4-2 0l-3.5-2c-.6-.4-1-.1-1 .6v4.1c0 .7.4 1.3 1 1.6l3.5 2c.6.4 1.4.4 2 0l4.5-2.6 2.5-1.5 4.5-2.6c.6-.4 1.4-.4 2 0l3.5 2c.6.4 1 .1 1-.6V9.9c0-.7-.4-1.3-1-1.6l-3.5-1.7z" opacity="0.8" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-900">Polygon Native</span>
+                    <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/70">
+                      Primary
+                    </span>
                   </div>
-                  <div className="text-[10px] font-mono text-slate-500">
+                  <p className="text-xs text-slate-400 mt-0.5">Gas &amp; Protocol Settlement</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="text-right">
+                  <div className="text-sm font-bold text-slate-900">
+                    {polNum.toFixed(3)} <span className="font-extrabold text-[#2563eb]">POL</span>
+                  </div>
+                  <div className="text-xs text-slate-400 font-mono">
                     ≈ ${polUsd.toFixed(2)} USD
                   </div>
                 </div>
+                <div className="w-7 h-7 rounded-full bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors ml-1">
+                  <ChevronRight size={16} />
+                </div>
+              </div>
+            </div>
+
+            {/* 2. USD Coin (USDC) */}
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-blue-300 hover:shadow-xs flex items-center justify-between transition-all group">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-full bg-[#2775CA] flex items-center justify-center text-white font-extrabold text-lg shadow-sm shadow-blue-500/20 shrink-0 font-sans">
+                  $
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-900">USD Coin</span>
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/70">
+                      USDC
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">1:1 Stable Escrow Token</p>
+                </div>
               </div>
 
-              {/* Stablecoin USDC Card */}
-              <div className="p-3 rounded-2xl bg-blue-50/40 hover:bg-blue-50/70 border border-blue-200/70 flex items-center justify-between transition-all">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-blue-100 border border-blue-200 text-blue-700 flex items-center justify-center font-black text-sm shadow-2xs shrink-0">
-                    $
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="text-right">
+                  <div className="text-sm font-bold text-slate-900">
+                    ${usdcNum.toFixed(2)} <span className="font-extrabold text-[#2563eb]">USDC</span>
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-800">USD Coin</span>
-                      <span className="text-[8.5px] font-mono font-bold text-blue-700 bg-blue-100/60 px-1.5 py-0.2 rounded border border-blue-200">
-                        USDC
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono truncate">
-                      1:1 Stable Escrow Token
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <div className="text-sm font-black font-mono text-blue-900">
-                    ${usdcNum.toFixed(2)} <span className="text-xs font-bold text-blue-700">USDC</span>
-                  </div>
-                  <div className="text-[10px] font-mono text-blue-600/80">
+                  <div className="text-xs text-slate-400 font-mono">
                     Exact: ${balanceUsdc}
                   </div>
                 </div>
+                <div className="w-7 h-7 rounded-full bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors ml-1">
+                  <ChevronRight size={16} />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Tether USD (USDT) */}
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-teal-300 hover:shadow-xs flex items-center justify-between transition-all group">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-full bg-[#26A17B] flex items-center justify-center text-white font-black text-lg shadow-sm shadow-teal-500/20 shrink-0 font-sans">
+                  ₮
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-900">Tether USD</span>
+                    <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200/70">
+                      USDT
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">Multi-Chain Stablecoin</p>
+                </div>
               </div>
 
-              {/* Stablecoin USDT Card */}
-              <div className="p-3 rounded-2xl bg-teal-50/40 hover:bg-teal-50/70 border border-teal-200/70 flex items-center justify-between transition-all">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-teal-100 border border-teal-200 text-teal-700 flex items-center justify-center font-extrabold text-sm shadow-2xs shrink-0 font-mono">
-                    ₮
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="text-right">
+                  <div className="text-sm font-bold text-slate-900">
+                    ${usdtNum.toFixed(2)} <span className="font-extrabold text-[#059669]">USDT</span>
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-800">Tether USD</span>
-                      <span className="text-[8.5px] font-mono font-bold text-teal-700 bg-teal-100/60 px-1.5 py-0.2 rounded border border-teal-200">
-                        USDT
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono truncate">
-                      Multi-Chain Stablecoin
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <div className="text-sm font-black font-mono text-teal-900">
-                    ${usdtNum.toFixed(2)} <span className="text-xs font-bold text-teal-700">USDT</span>
-                  </div>
-                  <div className="text-[10px] font-mono text-teal-600/80">
+                  <div className="text-xs text-slate-400 font-mono">
                     Exact: ${balanceUsdt}
                   </div>
                 </div>
+                <div className="w-7 h-7 rounded-full bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors ml-1">
+                  <ChevronRight size={16} />
+                </div>
               </div>
             </div>
+          </div>
 
-            {/* Network & Protocol Details Strip */}
-            <div className="p-2.5 px-3 rounded-xl bg-slate-100/80 border border-slate-200 text-xs flex items-center justify-between text-slate-600 font-sans">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Layers size={13} className="text-purple-600 shrink-0" />
-                <span className="text-[11px] font-mono font-semibold text-slate-700 truncate">
-                  {NETWORK_CONFIG.chainName || 'Polygon'} ({NETWORK_CONFIG.chainId})
-                </span>
+          {/* Network Connection Strip */}
+          <div className="p-3 rounded-2xl bg-[#f8fafc] border border-slate-200/80 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-xl bg-purple-600 flex items-center justify-center text-white shrink-0 shadow-3xs">
+                <svg width="15" height="15" viewBox="0 0 40 40" fill="currentColor">
+                  <path d="M28.3 15.6c-.6-.4-1.4-.4-2 0l-4.5 2.6-2.5 1.5-4.5 2.6c-.6.4-1.4.4-2 0l-3.5-2c-.6-.4-1-.1-1 .6v4.1c0 .7.4 1.3 1 1.6l3.5 2c.6.4 1.4.4 2 0l4.5-2.6 2.5-1.5 4.5-2.6c.6-.4 1.4-.4 2 0l3.5 2c.6.4 1 .1 1-.6v-4.1c0-.7-.4-1.3-1-1.6l-3.5-2.1z" />
+                </svg>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                <Activity size={13} className="text-emerald-600 shrink-0" />
-                <span className="font-mono font-bold uppercase text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded text-[10px]">
-                  {currentRole || 'User'}
-                </span>
-              </div>
+              <span className="text-xs font-semibold text-slate-700 truncate">
+                {NETWORK_CONFIG.chainName || 'Polygon Amoy Testnet'} ({NETWORK_CONFIG.chainId || '80002'})
+              </span>
             </div>
 
-            {/* Footer Navigation Buttons */}
-            <div className="pt-1.5 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  navigate(`/profile/${address}`);
-                }}
-                className="flex-1 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center gap-1.5 border border-purple-200 transition-colors cursor-pointer"
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Connected
+              </span>
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View on Polygonscan"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
               >
-                <User size={13} />
-                <span>View Full Profile</span>
-              </button>
+                <ExternalLink size={14} />
+              </a>
+            </div>
+          </div>
 
-              <button
-                type="button"
-                onClick={onClose}
-                className="py-2 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
-              >
-                Close
-              </button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                navigate(`/profile/${address}`);
+              }}
+              className="flex-1 py-3 px-4 rounded-2xl border border-purple-200/90 bg-purple-50/50 hover:bg-purple-100/70 text-purple-700 font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 shadow-3xs"
+            >
+              <User size={15} />
+              <span>View Full Profile</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="py-3 px-8 rounded-2xl bg-[#0f172a] hover:bg-[#1e293b] text-white font-bold text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-sm"
+            >
+              <X size={15} />
+              <span>Close</span>
+            </button>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between text-slate-400 text-[9.5px] font-mono tracking-widest pt-1 px-1 select-none">
+            <span>SECURE &bull; TRANSPARENT &bull; ON-CHAIN</span>
+            <div className="flex items-center gap-1.5 text-slate-500 font-sans font-semibold">
+              <span className="text-[11px] tracking-normal font-medium">Powered by <strong className="text-slate-700 font-bold">PolyLance</strong></span>
+              <img src={polylanceLogoImg} alt="PolyLance" className="w-4 h-4 object-contain" />
             </div>
           </div>
         </motion.div>

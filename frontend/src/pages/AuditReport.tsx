@@ -8,17 +8,18 @@ import {
   Printer, ArrowLeft, Building2, Sparkles, Clock, Globe, GitFork, 
   FileCheck, Shield, ChevronRight, Copy, Check, ExternalLink,
   Coins, Briefcase, Zap, Star, Lock, QrCode, ArrowUpRight,
-  Share2, Twitter, Linkedin, CheckCheck, HeartHandshake, Download
+  Share2, CheckCheck, HeartHandshake, Download
 } from 'lucide-react';
 import { truncateAddress, generateDeterministicHash, getCertifiedPassVerifyUrl } from '../utils/formatters';
 import { CONTRACTS } from '../config/contracts';
 import { generateIpfsCid } from '../utils/ipfs';
+import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
 
 export const AuditReport: React.FC = () => {
   const { address: targetAddressParam } = useParams<{ address: string }>();
   const { jobs, profiles, daoProposals, treasury, treasuryBalanceUsdc, treasuryHistory, judges } = usePolyLanceData();
-  const { address: activeAddress, currentRole } = useWeb3();
+  const { address: activeAddress, currentRole, isArbitrator, isTreasuryAdmin } = useWeb3();
   const [activeTab, setActiveTab] = useState<'social' | 'certificate'>('social');
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -40,16 +41,65 @@ export const AuditReport: React.FC = () => {
   const completedFreelancerJobs = freelancerJobs.filter(j => j.status === 'Completed');
   const completedClientJobs = clientJobs.filter(j => j.status === 'Completed');
 
+  // Determine role permissions strictly:
+  // - Freelancers: ONLY freelancer audit report
+  // - Clients: ONLY client audit report
+  // - Judges: client, freelancer, judge reports
+  // - Admins: client, freelancer, judge, and admin reports
+  const isUserAdmin = Boolean(
+    currentRole === 'admin' || 
+    isTreasuryAdmin || 
+    (activeAddress && isAdminAddress(activeAddress)) ||
+    (targetAddress && isAdminAddress(targetAddress))
+  );
+
+  const isUserJudge = Boolean(
+    currentRole === 'judge' || 
+    isArbitrator || 
+    (activeAddress && isJudgeAddress(activeAddress)) ||
+    (targetAddress && isJudgeAddress(targetAddress)) ||
+    (judges && judges.some(j => (j.address || '').toLowerCase() === activeAddress?.toLowerCase() || (j.address || '').toLowerCase() === targetAddress))
+  );
+
+  const isUserClient = Boolean(
+    !isUserAdmin && !isUserJudge && (
+      currentRole === 'client' || 
+      profile?.role === 'client' || 
+      (clientJobs.length > 0 && freelancerJobs.length === 0)
+    )
+  );
+
+  const allowedPerspectives: Array<'client' | 'freelancer' | 'judge' | 'admin'> = useMemo(() => {
+    if (isUserAdmin) {
+      return ['client', 'freelancer', 'judge', 'admin'];
+    }
+    if (isUserJudge) {
+      return ['client', 'freelancer', 'judge'];
+    }
+    if (isUserClient) {
+      return ['client'];
+    }
+    return ['freelancer'];
+  }, [isUserAdmin, isUserJudge, isUserClient]);
+
   const [perspectiveOverride, setPerspectiveOverride] = useState<'client' | 'freelancer' | 'judge' | 'admin' | null>(null);
 
   const defaultPerspective: 'client' | 'freelancer' | 'judge' | 'admin' = useMemo(() => {
-    if (currentRole === 'judge') return 'judge';
-    if (currentRole === 'admin') return 'admin';
-    if (currentRole === 'client' || (clientJobs.length > 0 && freelancerJobs.length === 0)) return 'client';
+    if (isUserAdmin) return 'admin';
+    if (isUserJudge) return 'judge';
+    if (isUserClient) return 'client';
     return 'freelancer';
-  }, [currentRole, clientJobs.length, freelancerJobs.length]);
+  }, [isUserAdmin, isUserJudge, isUserClient]);
 
-  const auditPerspective = perspectiveOverride || defaultPerspective;
+  const auditPerspective: 'client' | 'freelancer' | 'judge' | 'admin' = useMemo(() => {
+    if (perspectiveOverride && allowedPerspectives.includes(perspectiveOverride)) {
+      return perspectiveOverride;
+    }
+    if (allowedPerspectives.includes(defaultPerspective)) {
+      return defaultPerspective;
+    }
+    return allowedPerspectives[0] || 'freelancer';
+  }, [perspectiveOverride, allowedPerspectives, defaultPerspective]);
 
   // Compute developer statistics
   const devReputationScore = profile?.primaryScore || Math.max(750, (completedFreelancerJobs.length * 120) + 700);
@@ -504,59 +554,86 @@ export const AuditReport: React.FC = () => {
 
       {/* ── Unified Modern Header & Action Bar (Hidden in Print) ──────────────── */}
       <div className="max-w-4xl mx-auto mb-6 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3.5 no-print">
-        {/* Tier 1: 4-Perspective Report Selector + View Mode Switcher */}
+        {/* Tier 1: Role Report Selector / Indicator + View Mode Switcher */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          {/* 4-Role Perspective Selector Pill Bar */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100/90 border border-slate-200/80 rounded-xl overflow-x-auto scrollbar-none">
-            <button
-              type="button"
-              onClick={() => setPerspectiveOverride('client')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                auditPerspective === 'client'
-                  ? 'bg-white text-indigo-950 shadow-xs font-extrabold border border-indigo-200'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Building2 size={13} className={auditPerspective === 'client' ? 'text-indigo-600' : 'text-slate-500'} />
-              <span>Client Report</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPerspectiveOverride('freelancer')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                auditPerspective === 'freelancer'
-                  ? 'bg-white text-purple-950 shadow-xs font-extrabold border border-purple-200'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Award size={13} className={auditPerspective === 'freelancer' ? 'text-purple-600' : 'text-slate-500'} />
-              <span>Freelancer Report</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPerspectiveOverride('judge')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                auditPerspective === 'judge'
-                  ? 'bg-white text-amber-950 shadow-xs font-extrabold border border-amber-200'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Shield size={13} className={auditPerspective === 'judge' ? 'text-amber-600' : 'text-slate-500'} />
-              <span>Judge Report</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPerspectiveOverride('admin')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                auditPerspective === 'admin'
-                  ? 'bg-white text-slate-950 shadow-xs font-extrabold border border-cyan-300'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Lock size={13} className={auditPerspective === 'admin' ? 'text-cyan-600' : 'text-slate-500'} />
-              <span>Admin Style Report</span>
-            </button>
-          </div>
+          {/* If only 1 allowed perspective (Freelancer or Client), show a sleek role indicator */}
+          {allowedPerspectives.length === 1 ? (
+            <div className="flex items-center gap-2">
+              {allowedPerspectives[0] === 'client' ? (
+                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-indigo-50 border border-indigo-200/90 rounded-xl text-indigo-950 text-xs font-bold shrink-0 shadow-3xs">
+                  <Building2 size={15} className="text-indigo-600" />
+                  <span>Client Audit Report</span>
+                  <span className="text-[10px] font-mono text-indigo-700 font-semibold bg-indigo-100/80 px-2 py-0.5 rounded-full border border-indigo-200/60">Verified Client</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-purple-50 border border-purple-200/90 rounded-xl text-purple-950 text-xs font-bold shrink-0 shadow-3xs">
+                  <Award size={15} className="text-purple-600" />
+                  <span>Freelancer Audit Report</span>
+                  <span className="text-[10px] font-mono text-purple-700 font-semibold bg-purple-100/80 px-2 py-0.5 rounded-full border border-purple-200/60">Verified Talent</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Multi-perspective selector for Judges (client, freelancer, judge) and Admins (client, freelancer, judge, admin) */
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 border border-slate-200/80 rounded-xl overflow-x-auto scrollbar-none flex-nowrap shrink-0">
+              {allowedPerspectives.includes('client') && (
+                <button
+                  type="button"
+                  onClick={() => setPerspectiveOverride('client')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    auditPerspective === 'client'
+                      ? 'bg-white text-indigo-950 shadow-xs font-extrabold border border-indigo-200'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Building2 size={13} className={auditPerspective === 'client' ? 'text-indigo-600' : 'text-slate-500'} />
+                  <span>Client Report</span>
+                </button>
+              )}
+              {allowedPerspectives.includes('freelancer') && (
+                <button
+                  type="button"
+                  onClick={() => setPerspectiveOverride('freelancer')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    auditPerspective === 'freelancer'
+                      ? 'bg-white text-purple-950 shadow-xs font-extrabold border border-purple-200'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Award size={13} className={auditPerspective === 'freelancer' ? 'text-purple-600' : 'text-slate-500'} />
+                  <span>Freelancer Report</span>
+                </button>
+              )}
+              {allowedPerspectives.includes('judge') && (
+                <button
+                  type="button"
+                  onClick={() => setPerspectiveOverride('judge')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    auditPerspective === 'judge'
+                      ? 'bg-white text-amber-950 shadow-xs font-extrabold border border-amber-200'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Shield size={13} className={auditPerspective === 'judge' ? 'text-amber-600' : 'text-slate-500'} />
+                  <span>Judge Report</span>
+                </button>
+              )}
+              {allowedPerspectives.includes('admin') && (
+                <button
+                  type="button"
+                  onClick={() => setPerspectiveOverride('admin')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    auditPerspective === 'admin'
+                      ? 'bg-white text-cyan-950 shadow-xs font-extrabold border border-cyan-300'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Lock size={13} className={auditPerspective === 'admin' ? 'text-cyan-600' : 'text-slate-500'} />
+                  <span className="whitespace-nowrap font-bold">Admin Report</span>
+                </button>
+              )}
+            </div>
+          )}
 
           {/* View Mode Segmented Control */}
           <div className="flex items-center p-1 bg-slate-100/90 border border-slate-200/80 rounded-xl shrink-0 self-start md:self-auto">
@@ -611,40 +688,19 @@ export const AuditReport: React.FC = () => {
           </div>
 
           {/* Right: Harmonious Action Toolbar */}
-          <div className="flex items-center gap-1.5 flex-wrap justify-start sm:justify-end">
+          <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
             {/* Primary Action: Verify on CertifiedPass */}
             <a
               href={certifiedPassVerifyUrl}
               target="_blank"
               rel="noopener noreferrer"
               title="Verify audit report directly on CertifiedPass"
-              className="h-9 px-3.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0"
+              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-900 shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 active:scale-98"
             >
+              <ShieldCheck size={14} className="text-purple-200" />
               <span>Verify on CertifiedPass</span>
-              <ExternalLink size={12} className="opacity-90" />
+              <ExternalLink size={12} className="opacity-80" />
             </a>
-
-            {/* Share on X */}
-            <button
-              type="button"
-              onClick={handleShareTwitter}
-              title="Share to X (Downloads card image & copies to clipboard)"
-              className="h-9 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-white bg-slate-50 hover:bg-black border border-slate-200 hover:border-black transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
-            >
-              <Twitter size={13} className="fill-current" />
-              <span>Share on X</span>
-            </button>
-
-            {/* Share on LinkedIn */}
-            <button
-              type="button"
-              onClick={handleShareLinkedIn}
-              title="Share to LinkedIn (Downloads card image & opens post)"
-              className="h-9 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-[#0077b5] bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
-            >
-              <Linkedin size={13} className="fill-current text-[#0077b5]" />
-              <span>LinkedIn</span>
-            </button>
 
             {/* Save PNG */}
             <button
@@ -652,7 +708,7 @@ export const AuditReport: React.FC = () => {
               onClick={handleDownloadCardImage}
               disabled={isExporting}
               title="Download high-resolution PNG Social Card"
-              className="h-9 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-purple-800 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-3.5 rounded-xl text-xs font-bold text-purple-900 hover:text-purple-950 bg-purple-50 hover:bg-purple-100/80 border border-purple-200/90 shadow-3xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 active:scale-98"
             >
               <Download size={13} className="text-purple-600" />
               <span>{isExporting ? 'Saving...' : 'Save PNG'}</span>
@@ -663,10 +719,10 @@ export const AuditReport: React.FC = () => {
               type="button"
               onClick={handleCopyLink}
               title="Copy verified audit link"
-              className="h-9 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-purple-800 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-3.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 shadow-3xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 active:scale-98"
             >
-              {copiedLink ? <CheckCheck size={13} className="text-emerald-600" /> : <Copy size={13} />}
-              <span>{copiedLink ? 'Copied!' : 'Link'}</span>
+              {copiedLink ? <CheckCheck size={13} className="text-emerald-600" /> : <Copy size={13} className="text-slate-500" />}
+              <span>{copiedLink ? 'Link Copied!' : 'Copy Link'}</span>
             </button>
 
             {/* Print / PDF */}
@@ -674,10 +730,10 @@ export const AuditReport: React.FC = () => {
               type="button"
               onClick={handlePrint}
               title="Download or Print full cryptographic PDF"
-              className="h-9 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-3.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 shadow-3xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 active:scale-98"
             >
-              <Printer size={13} className="text-slate-600" />
-              <span>PDF</span>
+              <Printer size={13} className="text-slate-500" />
+              <span>Print PDF</span>
             </button>
           </div>
         </div>
@@ -863,7 +919,7 @@ export const AuditReport: React.FC = () => {
 
           <div className="p-4 rounded-2xl bg-white border border-slate-200 flex items-center justify-between text-xs text-slate-600 shadow-2xs">
             <span className="font-medium">
-              💡 Tip: Click <strong>"Share on X"</strong> or <strong>"LinkedIn"</strong> above to showcase your verified {auditPerspective === 'client' ? 'client sponsorship trust score' : 'talent proof of work reputation'} to the world.
+              💡 Tip: Click <strong>"Save PNG"</strong> or <strong>"Copy Link"</strong> above to showcase your verified {auditPerspective === 'client' ? 'client sponsorship trust score' : 'talent proof of work reputation'} to the world.
             </span>
             <button
               type="button"

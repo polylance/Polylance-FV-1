@@ -259,10 +259,17 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         );
         const usdcRaw = await usdcContract.balanceOf(targetAddr).catch(() => 0n);
         setBalanceUsdc(parseFloat(ethers.formatUnits(usdcRaw, PAYMENT_TOKENS.USDC.decimals)).toFixed(2));
+      } else {
+        setBalanceUsdc('0.00');
       }
 
       const usdtAddress = PAYMENT_TOKENS.USDT.address;
-      if (usdtAddress && usdtAddress !== ethers.ZeroAddress) {
+      // CRITICAL: Ensure USDT contract is not identical to USDC to prevent duplicate balance counting
+      if (
+        usdtAddress && 
+        usdtAddress !== ethers.ZeroAddress && 
+        usdtAddress.toLowerCase() !== usdcAddress.toLowerCase()
+      ) {
         const usdtContract = new ethers.Contract(
           usdtAddress,
           ["function balanceOf(address) view returns (uint256)"],
@@ -270,6 +277,8 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         );
         const usdtRaw = await usdtContract.balanceOf(targetAddr).catch(() => 0n);
         setBalanceUsdt(parseFloat(ethers.formatUnits(usdtRaw, PAYMENT_TOKENS.USDT.decimals)).toFixed(2));
+      } else {
+        setBalanceUsdt('0.00');
       }
     } catch (e) {
       console.warn("Failed to fetch wallet balances:", e);
