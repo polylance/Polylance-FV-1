@@ -73,7 +73,7 @@ interface PolyLanceDataContextType {
   addJudge: (address: string, name: string, notes?: string, addedBy?: string) => void;
   removeJudge: (address: string) => void;
   toggleJudgeStatus: (address: string) => void;
-  postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
+  postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
   deleteJob: (jobId: string) => Promise<boolean>;
   renewJob: (jobId: string) => Promise<boolean>;
   applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => Promise<void>;
@@ -1264,10 +1264,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   }), [treasuryBalanceUsdc, treasuryBalanceEth, treasuryProposals]);
 
   const postJob = async (
-    jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number },
+    jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC'; reviewPeriodDays: number },
     clientAddress: string
   ): Promise<Job> => {
-    const tokenSymbol = jobData.paymentTokenSymbol || 'POL';
+    const tokenSymbol = (jobData.paymentTokenSymbol || 'POL').toUpperCase();
     const tokenConfig = getTokenBySymbol(tokenSymbol);
     const descriptionIpfsHash = generateIpfsCid({ title: jobData.title, description: jobData.description });
     let contractAddr = '';
@@ -1286,7 +1286,26 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           const isNativeToken = tokenConfig.symbol === 'MATIC' || tokenConfig.symbol === 'POL';
           const tokenAddress = isNativeToken ? ethers.ZeroAddress : tokenConfig.address;
           
-          console.log('Calling JobFactory.postJob on Polygon Amoy...');
+          if (!isNativeToken && tokenAddress !== ethers.ZeroAddress) {
+            try {
+              const isApproved = await factory.approvedPaymentTokens(tokenAddress).catch(() => false);
+              if (!isApproved) {
+                const signerAddr = await signer.getAddress();
+                const isAdmin = await factory.hasRole(ethers.ZeroHash, signerAddr).catch(() => false);
+                if (isAdmin) {
+                  console.log(`Auto-approving ${tokenConfig.symbol} (${tokenAddress}) on JobFactory...`);
+                  const approveTx = await factory.setApprovedPaymentToken(tokenAddress, true);
+                  await approveTx.wait();
+                } else {
+                  console.warn(`Token ${tokenConfig.symbol} (${tokenAddress}) is not pre-approved on JobFactory.`);
+                }
+              }
+            } catch (checkErr) {
+              console.warn('Payment token approval check notice:', checkErr);
+            }
+          }
+
+          console.log(`Calling JobFactory.postJob on Polygon Amoy for ${tokenConfig.symbol} (${tokenAddress})...`);
           const tx = await factory.postJob(descriptionIpfsHash, tokenAddress);
           const receipt = await tx.wait();
           txHash = receipt.hash;
@@ -1316,6 +1335,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err: any) {
       console.error('Real contract postJob error:', err);
       if (isConnected) {
+        const rawErrStr = String(err?.message || err?.shortMessage || err || '');
+        if (rawErrStr.includes('Payment token not approved')) {
+          throw new Error(
+            `The token ${tokenConfig.symbol} is awaiting protocol admin approval on Polygon Amoy. Please select POL (which is natively approved) or have the protocol admin call setApprovedPaymentToken.`
+          );
+        }
         throw err;
       }
     }

@@ -39,7 +39,7 @@ import { SUPPORTED_FIAT, SUPPORTED_CRYPTO, getActiveRates, useLiveCurrencyRates,
 import { FormattedJobDescription } from '../components/FormattedJobDescription';
 
 export const PostJob: React.FC = () => {
-  const { address, isConnected, connectWallet, currentRole, balanceNative } = useWeb3();
+  const { address, isConnected, connectWallet, currentRole, balanceNative, balanceUsdc, balanceUsdt } = useWeb3();
   const { postJob } = usePolyLanceData();
   const navigate = useNavigate();
   const rocketRef = useRef<RocketIconHandle>(null);
@@ -102,6 +102,20 @@ export const PostJob: React.FC = () => {
     }
   }, [fiatInputVal, selectedToken, selectedFiat, activeTab, tokenPriceUsd, fiatRateVsUsd]);
 
+  const handleSelectToken = (tokenId: 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'POL') => {
+    if (tokenId === selectedToken) return;
+    setSelectedToken(tokenId);
+    if (tokenId === 'POL' || tokenId === 'ETH') {
+      if (parseFloat(tokenAmount) >= 20 || !tokenAmount) {
+        setTokenAmount('0.05');
+      }
+    } else if (tokenId === 'USDC' || tokenId === 'USDT') {
+      if (parseFloat(tokenAmount) <= 2 || !tokenAmount) {
+        setTokenAmount('50');
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) {
@@ -118,6 +132,7 @@ export const PostJob: React.FC = () => {
 
     const usdEquivalent = (parseFloat(tokenAmount) * tokenPriceUsd).toFixed(2);
     const parsedReviewPeriod = typeof reviewPeriodDays === 'number' ? reviewPeriodDays : (parseInt(reviewPeriodDays) || 7);
+    const isNativeToken = (selectedToken as string) === 'POL' || (selectedToken as string) === 'MATIC';
 
     setIsSubmitting(true);
     try {
@@ -127,8 +142,8 @@ export const PostJob: React.FC = () => {
           description,
           category,
           amountUsdc: usdEquivalent,
-          amountEth: ((selectedToken as string) === 'POL' || (selectedToken as string) === 'MATIC') ? tokenAmount : undefined,
-          paymentTokenSymbol: ((selectedToken as string) === 'POL' || (selectedToken as string) === 'MATIC') ? 'MATIC' : (selectedToken as any),
+          amountEth: isNativeToken ? tokenAmount : undefined,
+          paymentTokenSymbol: selectedToken as any,
           reviewPeriodDays: parsedReviewPeriod,
         },
         address
@@ -329,7 +344,7 @@ export const PostJob: React.FC = () => {
                     <button
                       key={token.id}
                       type="button"
-                      onClick={() => setSelectedToken(token.id)}
+                      onClick={() => handleSelectToken(token.id)}
                       className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-300 relative overflow-hidden cursor-pointer ${
                         selectedToken === token.id
                           ? 'bg-slate-900 border-slate-900 text-white shadow-lg scale-105'
@@ -454,7 +469,11 @@ export const PostJob: React.FC = () => {
                         <div className="inline-flex items-center gap-1 text-slate-500 font-mono font-medium">
                           <span>Wallet:</span>
                           <span className="font-bold text-slate-900">
-                            {selectedToken === 'POL' ? balanceNative : balanceNative} {selectedToken === 'POL' ? 'POL' : selectedToken}
+                            {selectedToken === 'USDC'
+                              ? `${balanceUsdc} USDC`
+                              : selectedToken === 'USDT'
+                                ? `${balanceUsdt} USDT`
+                                : `${balanceNative} ${selectedToken}`}
                           </span>
                         </div>
                       )}

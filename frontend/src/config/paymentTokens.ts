@@ -22,7 +22,7 @@ export const PAYMENT_TOKENS = {
   USDT: {
     address:
       (import.meta.env.VITE_NETWORK === "amoy" || import.meta.env.VITE_CHAIN_ID === "80002")
-        ? "0x1B1b50A9f7c00e1BE6Ec554F11E1077e682A31a7" // real Amoy testnet USDT
+        ? "0x1b1B50a9F7C00E1bE6ec554f11E1077E682A31a7" // real Amoy testnet USDT
         : "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", // real Polygon mainnet Tether USD (USDT)
     symbol: "USDT",
     decimals: 6,
