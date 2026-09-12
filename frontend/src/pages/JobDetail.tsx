@@ -8,7 +8,7 @@ import { ApplicantTable } from '../components/ApplicantTable';
 import { DisputePanel } from '../components/DisputePanel';
 import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSubmissionPanel';
 import { DisputeReason, UserProfile } from '../types';
-import { truncateAddress, formatDaysRemaining, formatTimeAgo, getDeterministicSbtId, formatWeb3ErrorMessage } from '../utils/formatters';
+import { truncateAddress, formatDaysRemaining, formatTimeAgo, getDeterministicSbtId, formatWeb3ErrorMessage, getPolygonScanAddressUrl } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles, ArrowUpRight, Calendar, Trash2, RefreshCw, Share2, Loader2, Lock, Briefcase } from 'lucide-react';
@@ -290,7 +290,7 @@ export const JobDetail: React.FC = () => {
       details: [
         { label: 'Agreement Status', value: 'Terms Accepted', isBadge: true },
         { label: 'Milestone Payout', value: payoutStr },
-        { label: 'Escrow Address', value: truncateAddress(job.contractAddress), isMono: true, explorerUrl: `https://polygonscan.com/address/${job.contractAddress}` },
+        { label: 'Escrow Address', value: truncateAddress(job.contractAddress), isMono: true, explorerUrl: getPolygonScanAddressUrl(job.contractAddress) },
       ],
       primaryActionText: 'Awesome! Take me to Dashboard',
       onPrimaryAction: () => navigate('/dashboard'),

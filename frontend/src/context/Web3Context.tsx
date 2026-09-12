@@ -62,7 +62,7 @@ export interface Web3ContextType {
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
 
 export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { address: walletAddress, isConnected: walletIsConnected } = useAccount();
+  const { address: walletAddress, isConnected: walletIsConnected, connector } = useAccount();
   const connectedChainId = useChainId();
   const { switchChain } = useSwitchChain();
   const { disconnect } = useDisconnect();
@@ -377,16 +377,30 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getSigner = useCallback(async (): Promise<ethers.Signer | null> => {
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-      try {
-        const bp = new ethers.BrowserProvider((window as any).ethereum);
-        return await bp.getSigner();
-      } catch (err) {
-        console.warn('Failed to get signer:', err);
+    try {
+      let rawProvider: any = null;
+      if (connector && typeof connector.getProvider === 'function') {
+        try {
+          rawProvider = await connector.getProvider();
+        } catch (connErr) {
+          console.warn('Could not get provider from wagmi connector:', connErr);
+        }
       }
+      if (!rawProvider && typeof window !== 'undefined' && (window as any).ethereum) {
+        rawProvider = (window as any).ethereum;
+      }
+      if (rawProvider) {
+        const bp = new ethers.BrowserProvider(rawProvider, 'any');
+        if (walletAddress && ethers.isAddress(walletAddress)) {
+          return await bp.getSigner(walletAddress);
+        }
+        return await bp.getSigner();
+      }
+    } catch (err) {
+      console.warn('Failed to get signer:', err);
     }
     return null;
-  }, []);
+  }, [connector, walletAddress]);
 
   const address = walletIsConnected ? walletAddress || '' : '';
   const isConnected = Boolean(walletIsConnected);

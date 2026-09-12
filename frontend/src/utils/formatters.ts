@@ -89,6 +89,11 @@ export function getPolygonScanUrl(txHash: string): string {
   return `${baseUrl}/tx/${txHash}`;
 }
 
+export function getPolygonScanAddressUrl(address: string): string {
+  const baseUrl = NETWORK_CONFIG.blockExplorerUrl || 'https://amoy.polygonscan.com';
+  return `${baseUrl}/address/${address}`;
+}
+
 export function getDeterministicSbtId(jobId: string | undefined): number {
   if (!jobId) return 1001;
   let hash = 0;

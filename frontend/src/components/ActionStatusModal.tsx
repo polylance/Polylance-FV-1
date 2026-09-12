@@ -6,6 +6,7 @@ import {
   ArrowRight, ShieldCheck, Calendar, Briefcase, FileText, Copy, 
   ExternalLink, Check, DollarSign, Box, CheckCircle
 } from 'lucide-react';
+import { getPolygonScanAddressUrl } from '../utils/formatters';
 
 export interface ActionModalDetail {
   label: string;
@@ -360,7 +361,7 @@ export const ActionStatusModal: React.FC<ActionStatusModalProps> = ({
                           {(() => {
                             const addrDetail = details.find(d => d.label.toLowerCase().includes('escrow') || d.label.toLowerCase().includes('contract') || d.label.toLowerCase().includes('address'));
                             const addrValue = addrDetail ? addrDetail.value : '0xce13...5487';
-                            const explorerUrl = addrDetail?.explorerUrl || `https://polygonscan.com/address/${addrValue}`;
+                            const explorerUrl = addrDetail?.explorerUrl || getPolygonScanAddressUrl(addrValue);
 
                             return (
                               <div className="flex-1 min-w-0 flex items-center justify-between gap-2">

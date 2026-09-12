@@ -1267,7 +1267,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'MATIC'; reviewPeriodDays: number },
     clientAddress: string
   ): Promise<Job> => {
-    const tokenSymbol = jobData.paymentTokenSymbol || 'USDC';
+    const tokenSymbol = jobData.paymentTokenSymbol || 'POL';
     const tokenConfig = getTokenBySymbol(tokenSymbol);
     const descriptionIpfsHash = generateIpfsCid({ title: jobData.title, description: jobData.description });
     let contractAddr = '';
@@ -1283,9 +1283,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         const code = await provider.getCode(CONTRACTS.JobFactory).catch(() => '0x');
         if (code && code !== '0x') {
           const factory = new ethers.Contract(CONTRACTS.JobFactory, getAbi(JobFactoryABI), signer);
-          const tx = await factory.postJob(descriptionIpfsHash, tokenConfig.address);
+          const isNativeToken = tokenConfig.symbol === 'MATIC' || tokenConfig.symbol === 'POL';
+          const tokenAddress = isNativeToken ? ethers.ZeroAddress : tokenConfig.address;
+          
+          console.log('Calling JobFactory.postJob on Polygon Amoy...');
+          const tx = await factory.postJob(descriptionIpfsHash, tokenAddress);
           const receipt = await tx.wait();
           txHash = receipt.hash;
+          console.log(`JobFactory.postJob confirmed! TxHash: ${txHash}`);
+
           const factoryInterface = new ethers.Interface(getAbi(JobFactoryABI));
           for (const l of receipt.logs) {
             try {
@@ -1293,6 +1299,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               if (parsed && (parsed.name === 'JobDeployed' || parsed.name === 'JobPosted')) {
                 contractAddr = parsed.args.jobContract || parsed.args[0];
                 break;
+              }
+            } catch {}
+          }
+
+          if (!contractAddr) {
+            try {
+              const allJobsList = await factory.getAllJobs();
+              if (allJobsList && allJobsList.length > 0) {
+                contractAddr = allJobsList[allJobsList.length - 1];
               }
             } catch {}
           }
@@ -1313,7 +1328,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch {
         contractAddr = ethers.Wallet.createRandom().address;
       }
-      txHash = generateMockTxHash();
+      if (!isConnected) {
+        txHash = generateMockTxHash();
+      }
     }
 
     const ethAmount = jobData.amountEth || (
@@ -1587,7 +1604,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             console.log('Deploying escrow contract on-chain via JobFactory before funding...');
             const factory = new ethers.Contract(CONTRACTS.JobFactory, getAbi(JobFactoryABI), signer);
             const descIpfs = generateIpfsCid({ title: job.title, description: job.description });
-            const tokenAddress = (job.paymentToken && job.paymentToken !== ethers.ZeroAddress) ? job.paymentToken : ethers.ZeroAddress;
+            const isNativeTok = !job.paymentToken || job.paymentToken === ethers.ZeroAddress || job.paymentTokenSymbol === 'POL' || job.paymentTokenSymbol === 'MATIC';
+            const tokenAddress = isNativeTok ? ethers.ZeroAddress : job.paymentToken;
             const postTx = await factory.postJob(descIpfs, tokenAddress);
             const postReceipt = await postTx.wait();
 
@@ -1602,16 +1620,28 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               } catch {}
             }
 
+            if (!targetContractAddress) {
+              try {
+                const allJobsList = await factory.getAllJobs();
+                if (allJobsList && allJobsList.length > 0) {
+                  targetContractAddress = allJobsList[allJobsList.length - 1];
+                }
+              } catch {}
+            }
+
             if (targetContractAddress && ethers.isAddress(targetContractAddress)) {
               hasLiveContract = true;
               job.contractAddress = targetContractAddress;
               if (job.freelancer && ethers.isAddress(job.freelancer)) {
                 try {
                   const escrowInit = new ethers.Contract(targetContractAddress, getAbi(JobEscrowABI), signer);
-                  const selectTx = await escrowInit.selectFreelancer(job.freelancer);
-                  await selectTx.wait();
+                  const hasApplied = await escrowInit.hasApplied(job.freelancer).catch(() => false);
+                  if (hasApplied) {
+                    const selectTx = await escrowInit.selectFreelancer(job.freelancer);
+                    await selectTx.wait();
+                  }
                 } catch (selectErr) {
-                  console.warn('Auto-selecting freelancer on deployed escrow:', selectErr);
+                  console.warn('Auto-selecting freelancer notice:', selectErr);
                 }
               }
             }
@@ -1624,11 +1654,17 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           const isNative = !job.paymentToken || job.paymentToken === ethers.ZeroAddress || tokenConfig.symbol === 'MATIC' || tokenConfig.symbol === 'POL' || job.paymentTokenSymbol === 'POL' || job.paymentTokenSymbol === 'MATIC';
 
           if (isNative) {
-            const rawAmount = job.amountEth || job.amountUsdc || '0.05';
-            const val = ethers.parseUnits(parseFloat(rawAmount).toFixed(6), 18);
+            const rawAmount = job.amountEth || (job.amountUsdc ? (parseFloat(job.amountUsdc) / 2800).toFixed(4) : '0.05');
+            const numericVal = parseFloat(rawAmount);
+            const safeAmount = (numericVal > 0 ? numericVal : 0.05).toFixed(6);
+            const val = ethers.parseEther(safeAmount);
+
+            console.log(`Executing real on-chain escrow funding of ${safeAmount} POL to ${targetContractAddress}...`);
             const tx = await escrow.fundJob(0, { value: val });
             const receipt = await tx.wait();
             txHash = receipt.hash;
+            console.log(`On-chain escrow successfully funded! TxHash: ${txHash}`);
+            await refreshBalances().catch(() => {});
           } else {
             const erc20Abi = [
               'function approve(address spender, uint256 amount) external returns (bool)',
@@ -1647,6 +1683,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const fundTx = await escrow.fundJob(amountParsed);
             const receipt = await fundTx.wait();
             txHash = receipt.hash;
+            await refreshBalances().catch(() => {});
           }
         } else if (isConnected) {
           throw new Error('Could not find or deploy an on-chain escrow contract on Polygon Amoy. Please ensure you have testnet POL in your wallet for gas.');
@@ -1660,6 +1697,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     if (!txHash) {
+      if (isConnected) {
+        throw new Error('On-chain funding transaction failed or was rejected. No funds were deducted.');
+      }
       txHash = generateMockTxHash();
     }
 
@@ -1999,9 +2039,30 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (hasLiveContract) {
           const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
+          
+          // Verify on-chain status before releasing
+          const onChainStatus = await escrow.status().catch(() => -1);
+          // If status is Selected (1), ensure status is Submitted (2) on-chain
+          if (Number(onChainStatus) === 1) {
+            try {
+              const submitTx = await escrow.submitWork(
+                'Completed Deliverables',
+                'Deliverables verified and accepted by client',
+                [generateIpfsCid({ title: 'Completed Deliverables', timestamp: Date.now() })]
+              );
+              await submitTx.wait();
+            } catch (submitErr) {
+              console.warn('Auto-submitting work on-chain notice:', submitErr);
+            }
+          }
+
+          console.log(`Executing real on-chain payment release from escrow ${job.contractAddress}...`);
           const tx = await escrow.releasePayment();
           const receipt = await tx.wait();
           txHash = receipt.hash;
+          sbtTxHash = receipt.hash; // Real SBT is minted on-chain in this exact transaction!
+          console.log(`Payment successfully released on-chain! TxHash: ${txHash}`);
+          await refreshBalances().catch(() => {});
         }
       }
     } catch (err: any) {
@@ -2011,8 +2072,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
 
-    if (!txHash) txHash = generateMockTxHash();
-    if (!sbtTxHash) sbtTxHash = generateMockTxHash();
+    if (!txHash) {
+      if (isConnected) {
+        throw new Error('On-chain payment release failed or was rejected. Escrow funds remain locked.');
+      }
+      txHash = generateMockTxHash();
+    }
+    if (!sbtTxHash) sbtTxHash = txHash || generateMockTxHash();
 
     setJobs((prev) =>
       prev.map((j) => {

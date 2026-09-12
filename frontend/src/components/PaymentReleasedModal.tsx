@@ -7,6 +7,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Job } from '../types';
 import { modalOverlayVariants, modalContentVariants, transition } from '../lib/motion';
+import { getPolygonScanUrl, getPolygonScanAddressUrl } from '../utils/formatters';
 
 interface PaymentReleasedModalProps {
   isOpen: boolean;
@@ -50,8 +51,8 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
   };
 
   const explorerUrl = txHash 
-    ? `https://polygonscan.com/tx/${txHash}` 
-    : (job.contractAddress ? `https://polygonscan.com/address/${job.contractAddress}` : '#');
+    ? getPolygonScanUrl(txHash)
+    : (job.contractAddress ? getPolygonScanAddressUrl(job.contractAddress) : '#');
 
   return (
     <AnimatePresence>

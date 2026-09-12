@@ -39,7 +39,7 @@ import { SUPPORTED_FIAT, SUPPORTED_CRYPTO, getActiveRates, useLiveCurrencyRates,
 import { FormattedJobDescription } from '../components/FormattedJobDescription';
 
 export const PostJob: React.FC = () => {
-  const { address, isConnected, connectWallet, currentRole } = useWeb3();
+  const { address, isConnected, connectWallet, currentRole, balanceNative } = useWeb3();
   const { postJob } = usePolyLanceData();
   const navigate = useNavigate();
   const rocketRef = useRef<RocketIconHandle>(null);
@@ -64,9 +64,9 @@ export const PostJob: React.FC = () => {
     }
   }, [createdJobId]);
 
-  // Advanced Multi-Currency & Interactive 3D Conversion State
-  const [selectedToken, setSelectedToken] = useState<'USDC' | 'USDT' | 'BTC' | 'ETH' | 'POL'>('USDC');
-  const [tokenAmount, setTokenAmount] = useState('2500');
+  // Advanced Multi-Currency & Interactive 3D Conversion State (Default: POL on Polygon Amoy)
+  const [selectedToken, setSelectedToken] = useState<'USDC' | 'USDT' | 'BTC' | 'ETH' | 'POL'>('POL');
+  const [tokenAmount, setTokenAmount] = useState('0.05');
   const [selectedFiat, setSelectedFiat] = useState('INR');
   const [activeTab, setActiveTab] = useState<'crypto' | 'fiat'>('crypto');
   const [fiatInputVal, setFiatInputVal] = useState('208750');
@@ -397,19 +397,68 @@ export const PostJob: React.FC = () => {
                 </div>
 
                 {activeTab === 'crypto' ? (
-                  <div className="flex items-center gap-3 border border-slate-200/80 rounded-2xl px-4 py-3 bg-white focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-50/50 transition-all duration-200 shadow-sm">
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="any"
-                      value={tokenAmount}
-                      onChange={(e) => setTokenAmount(e.target.value)}
-                      className="w-full bg-transparent border-none text-slate-900 font-mono font-bold outline-none text-sm focus:ring-0"
-                    />
-                    <span className="px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-xs font-extrabold font-mono">
-                      {selectedToken}
-                    </span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 border border-slate-200/80 rounded-2xl px-4 py-3 bg-white focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-50/50 transition-all duration-200 shadow-sm">
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="any"
+                        value={tokenAmount}
+                        onChange={(e) => setTokenAmount(e.target.value)}
+                        className="w-full bg-transparent border-none text-slate-900 font-mono font-bold outline-none text-sm focus:ring-0"
+                      />
+                      <span className="px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-xs font-extrabold font-mono">
+                        {selectedToken}
+                      </span>
+                    </div>
+
+                    {/* Quick Preset Amount Buttons & Live Wallet Balance */}
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 text-[11px]">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-slate-400 font-medium">Presets:</span>
+                        {(selectedToken === 'POL' || selectedToken === 'ETH') ? (
+                          ['0.02', '0.05', '0.1', '0.25', '0.5'].map((amt) => (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => setTokenAmount(amt)}
+                              className={`px-2 py-0.5 rounded-md font-mono font-bold transition-all cursor-pointer ${
+                                tokenAmount === amt
+                                  ? 'bg-purple-600 text-white shadow-xs'
+                                  : 'bg-slate-100 hover:bg-purple-50 text-slate-700 hover:text-purple-700 border border-slate-200'
+                              }`}
+                            >
+                              {amt} {selectedToken}
+                            </button>
+                          ))
+                        ) : (
+                          ['50', '100', '250', '500', '1000'].map((amt) => (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => setTokenAmount(amt)}
+                              className={`px-2 py-0.5 rounded-md font-mono font-bold transition-all cursor-pointer ${
+                                tokenAmount === amt
+                                  ? 'bg-purple-600 text-white shadow-xs'
+                                  : 'bg-slate-100 hover:bg-purple-50 text-slate-700 hover:text-purple-700 border border-slate-200'
+                              }`}
+                            >
+                              ${amt}
+                            </button>
+                          ))
+                        )}
+                      </div>
+
+                      {isConnected && (
+                        <div className="inline-flex items-center gap-1 text-slate-500 font-mono font-medium">
+                          <span>Wallet:</span>
+                          <span className="font-bold text-slate-900">
+                            {selectedToken === 'POL' ? balanceNative : balanceNative} {selectedToken === 'POL' ? 'POL' : selectedToken}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 border border-slate-200/80 rounded-2xl px-4 py-3 bg-white focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-50/50 transition-all duration-200 shadow-sm">
