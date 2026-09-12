@@ -17,7 +17,7 @@ import polylanceLogoImg from '../assets/polylanceLogo.png';
 
 export const AuditReport: React.FC = () => {
   const { address: targetAddressParam } = useParams<{ address: string }>();
-  const { jobs, profiles } = usePolyLanceData();
+  const { jobs, profiles, daoProposals, treasury, treasuryBalanceUsdc, treasuryHistory, judges } = usePolyLanceData();
   const { address: activeAddress, currentRole } = useWeb3();
   const [activeTab, setActiveTab] = useState<'social' | 'certificate'>('social');
   const [copied, setCopied] = useState(false);
@@ -72,8 +72,95 @@ export const AuditReport: React.FC = () => {
     return sum + (parseFloat(j.amountUsdc || '0') * paidFraction);
   }, 0);
 
-  const clientRehireRate = completedClientJobs.length > 0 ? '94%' : '100%';
+  const clientRehireRate = useMemo(() => {
+    if (completedClientJobs.length <= 1) return '100%';
+    const uniqueFreelancers = new Set(completedClientJobs.map(j => j.freelancer?.toLowerCase()).filter(Boolean));
+    const repeatCount = completedClientJobs.length - uniqueFreelancers.size;
+    return `${Math.round((repeatCount / (completedClientJobs.length - 1)) * 100)}%`;
+  }, [completedClientJobs]);
+
   const displayName = profile?.displayName || `${targetAddress.slice(0, 6)}...${targetAddress.slice(-4)}`;
+
+  // ── REAL-TIME JUDGE METRICS ──────────────────────────────────────────────
+  const disputedJobs = useMemo(() => {
+    return jobs.filter(j => j.status === 'Disputed' || (j.dispute && j.dispute.resolved));
+  }, [jobs]);
+
+  const resolvedDisputes = useMemo(() => {
+    return disputedJobs.filter(j => j.dispute?.resolved);
+  }, [disputedJobs]);
+
+  const activeDisputes = useMemo(() => {
+    return disputedJobs.filter(j => j.status === 'Disputed' && !j.dispute?.resolved);
+  }, [disputedJobs]);
+
+  const judgeScoreVal = useMemo(() => {
+    if (disputedJobs.length === 0) return '10.0 / 10.0';
+    const ratio = resolvedDisputes.length / disputedJobs.length;
+    return `${(ratio * 10).toFixed(1)} / 10.0`;
+  }, [disputedJobs.length, resolvedDisputes.length]);
+
+  const judgeScoreSub = useMemo(() => {
+    if (disputedJobs.length === 0) return 'Pristine Zero-Dispute Record';
+    return `${resolvedDisputes.length} of ${disputedJobs.length} Disputes Resolved`;
+  }, [disputedJobs.length, resolvedDisputes.length]);
+
+  const judgeCasesVal = useMemo(() => {
+    return `${resolvedDisputes.length} Case${resolvedDisputes.length === 1 ? '' : 's'}`;
+  }, [resolvedDisputes.length]);
+
+  const judgeCasesSub = useMemo(() => {
+    if (activeDisputes.length > 0) return `${activeDisputes.length} Active in Tribunal`;
+    if (disputedJobs.length === 0) return 'All Milestones Settled Cleanly';
+    return '100% Quorum Ratified';
+  }, [activeDisputes.length, disputedJobs.length]);
+
+  const judgeConsensusVal = useMemo(() => {
+    if (daoProposals && daoProposals.length > 0) {
+      const executed = daoProposals.filter(p => p.status === 'Executed').length;
+      return `${Math.round((executed / daoProposals.length) * 100)}%`;
+    }
+    if (disputedJobs.length > 0) {
+      return `${Math.round((resolvedDisputes.length / disputedJobs.length) * 100)}%`;
+    }
+    return '100%';
+  }, [daoProposals, disputedJobs.length, resolvedDisputes.length]);
+
+  const judgeVelocityVal = useMemo(() => {
+    if (resolvedDisputes.length > 0) {
+      const totalElapsedHours = resolvedDisputes.reduce((acc, j) => {
+        const start = j.dispute?.raisedAt || j.createdAt || 0;
+        const end = j.completedAt || Date.now();
+        const diffHours = Math.max(0.5, (end - start) / (1000 * 60 * 60));
+        return acc + diffHours;
+      }, 0);
+      const avg = totalElapsedHours / resolvedDisputes.length;
+      return avg < 24 ? `< ${Math.max(1, Math.round(avg))} Hours` : `< ${(avg / 24).toFixed(1)} Days`;
+    }
+    return '< 24 Hours SLA';
+  }, [resolvedDisputes]);
+
+  // ── REAL-TIME ADMIN METRICS ──────────────────────────────────────────────
+  const activeEscrowJobs = useMemo(() => {
+    return jobs.filter(j => ['Funded', 'Submitted', 'Disputed'].includes(j.status));
+  }, [jobs]);
+
+  const lockedEscrowUsdc = useMemo(() => {
+    return activeEscrowJobs.reduce((sum, j) => sum + (parseFloat(j.amountUsdc || '0') || 0), 0);
+  }, [activeEscrowJobs]);
+
+  const allTimeSettledUsdc = useMemo(() => {
+    return jobs.filter(j => j.status === 'Completed').reduce((sum, j) => sum + (parseFloat(j.amountUsdc || '0') || 0), 0);
+  }, [jobs]);
+
+  const protocolTotalVolume = allTimeSettledUsdc + lockedEscrowUsdc + (treasuryBalanceUsdc || 0);
+
+  const deployedClonesCount = useMemo(() => {
+    return jobs.filter(j => j.contractAddress && j.contractAddress !== '0x0000000000000000000000000000000000000000').length;
+  }, [jobs]);
+
+  const totalVerifiedContracts = 5 + deployedClonesCount;
+  const adminSignersCount = treasury?.signers?.length || 3;
 
   const perspectiveData = useMemo(() => {
     switch (auditPerspective) {
@@ -115,25 +202,25 @@ export const AuditReport: React.FC = () => {
           tagline: 'JudgeDAO Judicial Council • Sovereign Evidence Reviewer',
           userTitle: 'Elected DAO Arbitrator & Sovereign Juror',
           scoreLabel: 'Judicial Impartiality Index',
-          scoreVal: '9.9 / 10.0',
-          scoreSub: 'Zero Overturned Appeals',
+          scoreVal: judgeScoreVal,
+          scoreSub: judgeScoreSub,
           stat1Label: 'Disputes Presided & Resolved',
-          stat1Val: `${Math.max(12, jobs.filter(j => j.status === 'Disputed' || (j.dispute && j.dispute.resolved)).length * 4)} Cases`,
-          stat1Sub: 'Cryptographic IPFS Evidence',
+          stat1Val: judgeCasesVal,
+          stat1Sub: judgeCasesSub,
           stat2Label: 'DAO Consensus Alignment',
-          stat2Val: '98.4%',
-          stat2Sub: 'Quorum Ratified Decisions',
+          stat2Val: judgeConsensusVal,
+          stat2Sub: `${daoProposals?.length || 0} Quorum Ratified Proposals`,
           stat3Label: 'Avg Resolution Velocity',
-          stat3Val: '< 16.5 Hours',
+          stat3Val: judgeVelocityVal,
           stat3Sub: 'Rapid SLA Adjudication',
           accentColor: 'amber',
           badges: [
-            'Elected DAO Tribunal Chair',
+            'Elected DAO Tribunal Arbitrator',
             'Impartial Judicial Record',
             'Evidence Review Specialist',
-            '50,000 PLREP Staked Juror'
+            resolvedDisputes.length > 0 ? `${resolvedDisputes.length} Disputes Presided` : 'Pristine Zero-Dispute Record'
           ],
-          attestationNarrative: 'Certified by JudgeDAO Governance Protocol. This arbitrator has demonstrated uncompromised impartiality in reviewing cryptographic evidence, IPFS proof hashes, and milestone contracts. All rulings have been cryptographically ratified on-chain with unanimous DAO quorum and zero overturning appeals.',
+          attestationNarrative: 'Certified by JudgeDAO Governance Protocol. This arbitrator operates on cryptographic evidence, IPFS proof hashes, and milestone contracts. All rulings are cryptographically recorded on-chain with DAO quorum alignment and decentralized dispute ledger verification.',
           socialGradient: 'from-white via-slate-50 to-amber-50/60 border-amber-200/90',
           sealColor: 'from-amber-600 to-orange-600',
         };
@@ -146,22 +233,22 @@ export const AuditReport: React.FC = () => {
           userTitle: 'Protocol Governance Administrator & Timelock Guardian',
           scoreLabel: 'Security Audit Rating',
           scoreVal: '100% Passed',
-          scoreSub: 'Slither Verified / 0 High Vulns',
-          stat1Label: 'Protocol Escrow TVL Protected',
-          stat1Val: '$142,500 USDC',
-          stat1Sub: 'Non-Custodial Smart Vaults',
-          stat2Label: 'Timelock Multisig Delay',
-          stat2Val: '48 Hours',
-          stat2Sub: 'Cryptographic Timelock Guard',
+          scoreSub: 'Slither Audited • 0 Critical Issues',
+          stat1Label: 'Protocol Escrow Volume Protected',
+          stat1Val: `$${protocolTotalVolume.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC`,
+          stat1Sub: lockedEscrowUsdc > 0 ? `$${lockedEscrowUsdc.toLocaleString()} USDC Locked in Escrow` : 'Non-Custodial Smart Vaults',
+          stat2Label: 'Treasury Reserves & Delay',
+          stat2Val: `$${(treasuryBalanceUsdc || 0).toLocaleString()} USDC`,
+          stat2Sub: `${adminSignersCount} MultiSig Signers • 48h Delay`,
           stat3Label: 'Verified Smart Contracts',
-          stat3Val: '5 Contracts',
-          stat3Sub: 'Polygon Amoy Bytecode Verified',
+          stat3Val: `${totalVerifiedContracts} Contract${totalVerifiedContracts === 1 ? '' : 's'}`,
+          stat3Sub: `5 Core + ${deployedClonesCount} Cloned Escrows`,
           accentColor: 'cyan',
           badges: [
             'Timelock Multisig Guardian',
             'Open-Source Bytecode Verified',
             'Non-Custodial Escrow Vaults',
-            'Decentralized Protocol Admin'
+            `${totalVerifiedContracts} Deployed Contracts Overseen`
           ],
           attestationNarrative: 'Platform Architecture & Governance Attestation. Overseer of decentralized smart contract factory clones, autonomous fee distribution pools, and timelock governance controllers. Zero single points of failure, zero private key backdoors, and 100% verifiable open-source bytecode on Polygonscan.',
           socialGradient: 'from-white via-slate-50 to-cyan-50/60 border-cyan-200/90',
@@ -199,7 +286,12 @@ export const AuditReport: React.FC = () => {
           sealColor: 'from-purple-600 to-indigo-600',
         };
     }
-  }, [auditPerspective, clientReliabilityScore, clientVolumeDistributed, clientRehireRate, completedClientJobs.length, devReputationScore, devVolumeHandled, devSuccessRate, completedFreelancerJobs.length, profile?.title, jobs]);
+  }, [
+    auditPerspective, clientReliabilityScore, clientVolumeDistributed, clientRehireRate, completedClientJobs.length,
+    devReputationScore, devVolumeHandled, devSuccessRate, completedFreelancerJobs.length, profile?.title,
+    judgeScoreVal, judgeScoreSub, judgeCasesVal, judgeCasesSub, judgeConsensusVal, judgeVelocityVal, daoProposals?.length, resolvedDisputes.length,
+    protocolTotalVolume, lockedEscrowUsdc, treasuryBalanceUsdc, adminSignersCount, totalVerifiedContracts, deployedClonesCount
+  ]);
 
   const title = perspectiveData.userTitle;
   const bio = profile?.bio || 'Verified decentralized participant operating with autonomous smart contracts, cryptographic escrow milestones, and 0% protocol fee peer-to-peer settlements on PolyLance.';
@@ -299,6 +391,24 @@ export const AuditReport: React.FC = () => {
           `📜 Verified Audit ID: ${mockCertificateId}\n\n` +
           `Verify sovereign trust score:`
         )
+      : auditPerspective === 'judge'
+      ? encodeURIComponent(
+          `⚖️ Official Tribunal Arbitrator Audit on @PolyLanceProtocol!\n\n` +
+          `🛡️ Impartiality Index: ${perspectiveData.scoreVal}\n` +
+          `⚖️ Cases Arbitrated: ${perspectiveData.stat1Val}\n` +
+          `🤝 Consensus Alignment: ${perspectiveData.stat2Val}\n` +
+          `📜 Audit ID: ${mockCertificateId}\n\n` +
+          `Verify judicial impartiality:`
+        )
+      : auditPerspective === 'admin'
+      ? encodeURIComponent(
+          `🔐 Protocol Governance & Security Architecture Audit on @PolyLanceProtocol!\n\n` +
+          `🛡️ Security Status: ${perspectiveData.scoreVal}\n` +
+          `💰 TVL Protected: ${perspectiveData.stat1Val}\n` +
+          `📜 Verified Contracts: ${perspectiveData.stat3Val}\n` +
+          `📜 Audit ID: ${mockCertificateId}\n\n` +
+          `Verify protocol architecture:`
+        )
       : encodeURIComponent(
           `🛡️ Sovereign Web3 Developer Audit on @PolyLanceProtocol!\n\n` +
           `⚡ PLREP Score: ${devReputationScore}\n` +
@@ -392,77 +502,64 @@ export const AuditReport: React.FC = () => {
         </Link>
       </div>
 
-      {/* ── Unified Glassmorphism Toolbar Card (Hidden in Print) ──────────────── */}
-      <div className="max-w-4xl mx-auto mb-6 bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs space-y-3 no-print">
-        {/* Tier 1: Identity / Scope Badge, Audit ID & View Mode Toggle */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100">
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* 4-Role Perspective Selector Pill Bar */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 border border-slate-200/90 rounded-xl overflow-x-auto">
-              <button
-                type="button"
-                onClick={() => setPerspectiveOverride('client')}
-                className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                  auditPerspective === 'client'
-                    ? 'bg-white text-indigo-950 shadow-xs font-extrabold border border-indigo-200'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Building2 size={13} className={auditPerspective === 'client' ? 'text-indigo-600' : 'text-slate-500'} />
-                <span>Client Report</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPerspectiveOverride('freelancer')}
-                className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                  auditPerspective === 'freelancer'
-                    ? 'bg-white text-purple-950 shadow-xs font-extrabold border border-purple-200'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Award size={13} className={auditPerspective === 'freelancer' ? 'text-purple-600' : 'text-slate-500'} />
-                <span>Freelancer Report</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPerspectiveOverride('judge')}
-                className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                  auditPerspective === 'judge'
-                    ? 'bg-white text-amber-950 shadow-xs font-extrabold border border-amber-200'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Shield size={13} className={auditPerspective === 'judge' ? 'text-amber-600' : 'text-slate-500'} />
-                <span>Judge Report</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPerspectiveOverride('admin')}
-                className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                  auditPerspective === 'admin'
-                    ? 'bg-white text-slate-950 shadow-xs font-extrabold border border-cyan-300'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Lock size={13} className={auditPerspective === 'admin' ? 'text-cyan-600' : 'text-slate-500'} />
-                <span>Admin Style Report</span>
-              </button>
-            </div>
-
-            {/* Quick Copy Canonical Audit ID Badge */}
+      {/* ── Unified Modern Header & Action Bar (Hidden in Print) ──────────────── */}
+      <div className="max-w-4xl mx-auto mb-6 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3.5 no-print">
+        {/* Tier 1: 4-Perspective Report Selector + View Mode Switcher */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          {/* 4-Role Perspective Selector Pill Bar */}
+          <div className="flex items-center gap-1 p-1 bg-slate-100/90 border border-slate-200/80 rounded-xl overflow-x-auto scrollbar-none">
             <button
               type="button"
-              onClick={handleCopyCertId}
-              title="Click to copy canonical Audit Certificate ID"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 text-slate-700 hover:text-purple-950 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
+              onClick={() => setPerspectiveOverride('client')}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                auditPerspective === 'client'
+                  ? 'bg-white text-indigo-950 shadow-xs font-extrabold border border-indigo-200'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              <span>{mockCertificateId}</span>
-              {copiedCertId ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={11} className="text-slate-400" />}
+              <Building2 size={13} className={auditPerspective === 'client' ? 'text-indigo-600' : 'text-slate-500'} />
+              <span>Client Report</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPerspectiveOverride('freelancer')}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                auditPerspective === 'freelancer'
+                  ? 'bg-white text-purple-950 shadow-xs font-extrabold border border-purple-200'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Award size={13} className={auditPerspective === 'freelancer' ? 'text-purple-600' : 'text-slate-500'} />
+              <span>Freelancer Report</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPerspectiveOverride('judge')}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                auditPerspective === 'judge'
+                  ? 'bg-white text-amber-950 shadow-xs font-extrabold border border-amber-200'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Shield size={13} className={auditPerspective === 'judge' ? 'text-amber-600' : 'text-slate-500'} />
+              <span>Judge Report</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPerspectiveOverride('admin')}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                auditPerspective === 'admin'
+                  ? 'bg-white text-slate-950 shadow-xs font-extrabold border border-cyan-300'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Lock size={13} className={auditPerspective === 'admin' ? 'text-cyan-600' : 'text-slate-500'} />
+              <span>Admin Style Report</span>
             </button>
           </div>
 
           {/* View Mode Segmented Control */}
-          <div className="flex items-center p-1 bg-slate-100 border border-slate-200/90 rounded-xl shrink-0 self-start sm:self-auto">
+          <div className="flex items-center p-1 bg-slate-100/90 border border-slate-200/80 rounded-xl shrink-0 self-start md:self-auto">
             <button
               type="button"
               onClick={() => setActiveTab('social')}
@@ -490,82 +587,96 @@ export const AuditReport: React.FC = () => {
           </div>
         </div>
 
-        {/* Tier 2: Action Buttons (Verification & Sharing Groups with Natural Wrapping) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-0.5">
-          {/* Group 1: CertifiedPass & ID Copy */}
+        {/* Tier 2: Canonical Audit ID Badge (Left) + Unified Action Buttons (Right) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Left: Audit ID & Verification Status */}
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={handleCopyCertId}
-              title="Copy canonical Audit Certificate ID"
-              className="bg-purple-100 hover:bg-purple-200 text-purple-950 font-black px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 border border-purple-300 shadow-2xs shrink-0"
-            >
-              {copiedCertId ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} className="text-purple-700" />}
-              <span>{copiedCertId ? 'Copied ID!' : 'Copy Audit ID'}</span>
-            </button>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-mono shadow-3xs">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Audit ID</span>
+              <span className="font-extrabold text-slate-900 tracking-wide">{mockCertificateId}</span>
+              <button
+                type="button"
+                onClick={handleCopyCertId}
+                title="Copy Audit ID"
+                className="p-1 -mr-1 hover:bg-purple-100 rounded-md text-slate-400 hover:text-purple-700 transition-colors cursor-pointer"
+              >
+                {copiedCertId ? <CheckCheck size={13} className="text-emerald-600" /> : <Copy size={13} />}
+              </button>
+            </div>
 
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Polygon Amoy Verified
+            </span>
+          </div>
+
+          {/* Right: Harmonious Action Toolbar */}
+          <div className="flex items-center gap-1.5 flex-wrap justify-start sm:justify-end">
+            {/* Primary Action: Verify on CertifiedPass */}
             <a
               href={certifiedPassVerifyUrl}
               target="_blank"
               rel="noopener noreferrer"
               title="Verify audit report directly on CertifiedPass"
-              className="bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-3.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0"
             >
               <span>Verify on CertifiedPass</span>
-              <ExternalLink size={11} />
+              <ExternalLink size={12} className="opacity-90" />
             </a>
-          </div>
 
-          {/* Group 2: Social Sharing & Export Actions */}
-          <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
+            {/* Share on X */}
             <button
               type="button"
               onClick={handleShareTwitter}
               title="Share to X (Downloads card image & copies to clipboard)"
-              className="bg-[#0f1419] hover:bg-black text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-white bg-slate-50 hover:bg-black border border-slate-200 hover:border-black transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
             >
-              <Twitter size={12} className="fill-current text-white" />
+              <Twitter size={13} className="fill-current" />
               <span>Share on X</span>
             </button>
 
+            {/* Share on LinkedIn */}
             <button
               type="button"
               onClick={handleShareLinkedIn}
               title="Share to LinkedIn (Downloads card image & opens post)"
-              className="bg-[#0077b5] hover:bg-[#006097] text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-[#0077b5] bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
             >
-              <Linkedin size={12} className="fill-current text-white" />
+              <Linkedin size={13} className="fill-current text-[#0077b5]" />
               <span>LinkedIn</span>
             </button>
 
+            {/* Save PNG */}
             <button
               type="button"
               onClick={handleDownloadCardImage}
               disabled={isExporting}
               title="Download high-resolution PNG Social Card"
-              className="bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-purple-800 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
             >
-              <Download size={12} />
-              <span>{isExporting ? 'Exporting...' : 'Save PNG'}</span>
+              <Download size={13} className="text-purple-600" />
+              <span>{isExporting ? 'Saving...' : 'Save PNG'}</span>
             </button>
 
+            {/* Copy Link */}
             <button
               type="button"
               onClick={handleCopyLink}
               title="Copy verified audit link"
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-purple-800 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
             >
-              {copiedLink ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} />}
+              {copiedLink ? <CheckCheck size={13} className="text-emerald-600" /> : <Copy size={13} />}
               <span>{copiedLink ? 'Copied!' : 'Link'}</span>
             </button>
 
+            {/* Print / PDF */}
             <button
               type="button"
               onClick={handlePrint}
               title="Download or Print full cryptographic PDF"
-              className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all hover:scale-102 active:scale-95 shrink-0"
+              className="h-9 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
             >
-              <Printer size={12} />
+              <Printer size={13} className="text-slate-600" />
               <span>PDF</span>
             </button>
           </div>
@@ -598,13 +709,20 @@ export const AuditReport: React.FC = () => {
             className={`rounded-3xl p-6 sm:p-10 border-2 shadow-xl relative overflow-hidden font-sans text-slate-900 transition-all ${
               auditPerspective === 'client'
                 ? 'bg-gradient-to-br from-white via-slate-50 to-indigo-50/60 border-indigo-200/90'
+                : auditPerspective === 'judge'
+                ? 'bg-gradient-to-br from-white via-slate-50 to-amber-50/60 border-amber-200/90'
+                : auditPerspective === 'admin'
+                ? 'bg-gradient-to-br from-white via-slate-50 to-cyan-50/60 border-cyan-200/90'
                 : 'bg-gradient-to-br from-white via-slate-50 to-purple-50/60 border-purple-200/90'
             }`}
           >
             
             {/* Ambient Background Glow Mesh (Light) */}
             <div className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 ${
-              auditPerspective === 'client' ? 'bg-indigo-200/30' : 'bg-purple-200/30'
+              auditPerspective === 'client' ? 'bg-indigo-200/30' :
+              auditPerspective === 'judge' ? 'bg-amber-200/30' :
+              auditPerspective === 'admin' ? 'bg-cyan-200/30' :
+              'bg-purple-200/30'
             }`} />
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-100/40 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
             <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-20" />
@@ -1008,8 +1126,8 @@ export const AuditReport: React.FC = () => {
             <span className="text-[11px] font-mono font-bold text-purple-900 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200 shrink-0">
               {auditPerspective === 'client' && `${completedClientJobs.length} Settled Escrows`}
               {auditPerspective === 'freelancer' && `${completedFreelancerJobs.length} Settled Contracts`}
-              {auditPerspective === 'judge' && 'Arbitration Council Active'}
-              {auditPerspective === 'admin' && '5 Contracts Verified'}
+              {auditPerspective === 'judge' && `${disputedJobs.length} Disputes Presided`}
+              {auditPerspective === 'admin' && `${totalVerifiedContracts} Contracts Verified`}
             </span>
           </div>
 
@@ -1063,7 +1181,7 @@ export const AuditReport: React.FC = () => {
                       <Shield className="w-8 h-8 text-amber-500 mx-auto mb-1" />
                       <h4 className="font-headline font-bold text-slate-800 text-xs">Tribunal Active — Pristine Protocol Record</h4>
                       <p className="text-[11px] text-slate-500 font-mono max-w-md mx-auto leading-relaxed">
-                        All escrow milestones on PolyLance are currently settled cleanly between clients and developers. Tribunal stands ready with 50,000 PLREP staked quorum.
+                        All escrow milestones on PolyLance are currently settled cleanly between clients and developers with 0 disputes. The Tribunal Arbitrators stand ready on-chain for rapid dispute resolution.
                       </p>
                     </div>
                   );
@@ -1095,108 +1213,6 @@ export const AuditReport: React.FC = () => {
               }
 
               // CLIENT OR FREELANCER PERSPECTIVE
-              const targetList = (auditPerspective === 'client' ? completedClientJobs : completedFreelancerJobs);
-
-              if (targetList.length === 0) {
-                return (
-                  <div className="p-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 text-center space-y-1.5 font-sans">
-                    <ShieldCheck className="w-8 h-8 text-slate-400 mx-auto mb-1" />
-                    <h4 className="font-headline font-bold text-slate-800 text-xs">No Completed & Settled Escrows Audited Yet</h4>
-                    <p className="text-[11px] text-slate-500 font-mono max-w-md mx-auto leading-relaxed">
-                      Official audit reports strictly document contracts that are 100% completed and settled on-chain. Ongoing jobs, pending deliverables, or selection-phase listings are not audited.
-                    </p>
-                  </div>
-                );
-              }
-
-              return targetList.map((j, idx) => {
-                const amount = parseFloat(j.amountUsdc || '0');
-                const isDisputed = j.status === 'Disputed' || (j.dispute && !j.dispute.resolved);
-                const isCompleted = j.status === 'Completed';
-                const isFunded = j.status === 'Funded';
-                
-                return (
-                  <div 
-                    key={j.id || idx}
-                    className="job-card-item p-3 rounded-2xl border border-slate-200/90 bg-white hover:border-purple-300 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-sans shadow-2xs hover:shadow-xs"
-                  >
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-headline font-bold text-slate-900 truncate max-w-sm text-xs sm:text-sm">{j.title}</span>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9.5px] font-mono font-bold border ${
-                          isCompleted
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : isDisputed
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : isFunded
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : 'bg-purple-50 text-purple-700 border-purple-200'
-                        }`}>
-                          {isCompleted ? '● Settled' : isDisputed ? '⚠️ Disputed' : isFunded ? '● Funded & Active' : `● ${j.status || 'Open'}`}
-                        </span>
-                        {j.category && (
-                          <span className="px-2 py-0.5 rounded-md text-[9px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                            {j.category}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3 text-[10.5px] font-mono text-slate-500 flex-wrap">
-                        <span>Contract: <strong className="text-slate-800">{truncateAddress(j.contractAddress || '0x42f8...990')}</strong></span>
-                        <span>•</span>
-                        <span className="text-emerald-700 font-bold flex items-center gap-1">
-                          <CheckCircle2 size={11} /> Execution Sealed On-Chain
-                        </span>
-                        <span>•</span>
-                        <span>Polygon MultiSig Safe</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
-                      <div className="text-left sm:text-right font-mono">
-                        <span className="font-headline font-black text-slate-950 text-sm sm:text-base">${amount.toLocaleString()} USDC</span>
-                        <span className="text-[9.5px] text-purple-700 font-bold block">0% Protocol Extraction</span>
-                      </div>
-                      <Link
-                        to={`/jobs/${j.id}/attestation`}
-                        className="p-2 text-purple-700 hover:text-purple-950 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-all no-print flex items-center gap-1 font-bold text-[11px]"
-                        title="View Individual Milestone Attestation"
-                      >
-                        <span>Attestation</span>
-                        <ArrowUpRight size={13} />
-                      </Link>
-                    </div>
-                  </div>
-                );
-              });
-            })()}
-          </div>
-        </div>
-
-        {/* ── SECTION 5: REALTIME ESCROW CONTRACTS & SETTLED JOBS ────────── */}
-        <div className="space-y-2.5 relative z-10">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-purple-100 text-purple-800 rounded-lg">
-                <FileCheck size={14} />
-              </span>
-              <div>
-                <h3 className="font-headline text-xs sm:text-sm font-extrabold text-slate-900 uppercase">
-                  {auditPerspective === 'client' ? 'Verified Client Escrow Portfolio & Settled Contracts' : 'Verified Proof of Work & Settled Contracts Ledger'}
-                </h3>
-                <p className="text-[10px] text-slate-500 font-mono">
-                  Cryptographically attested smart escrows on Polygon PoS MultiSig
-                </p>
-              </div>
-            </div>
-            <span className="text-[11px] font-mono font-bold text-purple-900 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200 shrink-0">
-              {(auditPerspective === 'client' ? completedClientJobs : completedFreelancerJobs).length} Settled Escrows
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            {(() => {
-              // STRICT REQUIREMENT: Only completed and settled jobs appear in official audit reports
               const targetList = (auditPerspective === 'client' ? completedClientJobs : completedFreelancerJobs);
 
               if (targetList.length === 0) {
