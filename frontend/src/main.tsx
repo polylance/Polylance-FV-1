@@ -144,10 +144,10 @@ const config = createConfig({
   chains: [polygonAmoy, polygon, mainnet],
   transports: {
     [polygonAmoy.id]: fallback([
+      http('https://polygon-amoy-bor-rpc.publicnode.com'),
+      http('https://polygon-amoy.gateway.tenderly.co'),
       http('https://polygon-amoy.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B'),
       http('https://80002.rpc.thirdweb.com'),
-      http('https://polygon-amoy.drpc.org'),
-      http('https://polygon-amoy-bor-rpc.publicnode.com'),
     ]),
     [polygon.id]: fallback([
       http('https://polygon.drpc.org'),

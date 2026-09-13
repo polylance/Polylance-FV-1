@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { ethers } from 'ethers';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, DeliverableFile, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage, NegotiationProposal, ChatMessage } from '../types';
 import { generateMockTxHash, generateDeterministicHash } from '../utils/formatters';
@@ -555,6 +555,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     return INITIAL_JOBS;
   });
+
+  const jobsRef = useRef(jobs);
+  useEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
+  const isSyncingOnChainRef = useRef(false);
 
   // Periodic background check to automatically purge jobs reaching 14 days without client action
   useEffect(() => {
@@ -1156,6 +1162,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   // 1. Sync on-chain jobs directly from JobFactory and escrow clones
   const syncOnChainJobs = useCallback(async () => {
     if (!provider || !CONTRACTS.JobFactory || CONTRACTS.JobFactory === ethers.ZeroAddress) return;
+    if (isSyncingOnChainRef.current) return;
+    isSyncingOnChainRef.current = true;
     try {
       // Verify that JobFactory contract code exists on current connected network
       const code = await provider.getCode(CONTRACTS.JobFactory).catch(() => '0x');
@@ -1187,72 +1195,71 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (deployedAddrs.length === 0) return;
 
-      const parsedJobs: Job[] = (
-        await Promise.all(
-          deployedAddrs.map(async (jobAddr: string) => {
-            if (!jobAddr || !ethers.isAddress(jobAddr)) return null;
-            try {
-              const escrow = new ethers.Contract(jobAddr, getAbi(JobEscrowABI), provider);
-              const [client, statusRaw, freelancer, amountRaw, reviewPeriod, submittedAt, termsHash, paymentToken] = await Promise.all([
-                escrow.client().catch(() => ethers.ZeroAddress),
-                escrow.status().catch(() => 0n),
-                escrow.freelancer().catch(() => ethers.ZeroAddress),
-                escrow.amount().catch(() => 0n),
-                escrow.reviewPeriod().catch(() => 7n * 86400n),
-                escrow.submittedAt().catch(() => 0n),
-                escrow.termsHash().catch(() => ''),
-                escrow.paymentToken().catch(() => ethers.ZeroAddress),
-              ]);
+      const currentJobsList = jobsRef.current;
+      const parsedJobs: Job[] = [];
+      // Process sequentially to prevent RPC 429 rate limit triggers
+      for (const jobAddr of deployedAddrs) {
+        if (!jobAddr || !ethers.isAddress(jobAddr)) continue;
+        try {
+          const escrow = new ethers.Contract(jobAddr, getAbi(JobEscrowABI), provider);
+          const [client, statusRaw, freelancer, amountRaw, reviewPeriod, submittedAt, termsHash, paymentToken] = await Promise.all([
+            escrow.client().catch(() => ethers.ZeroAddress),
+            escrow.status().catch(() => 0n),
+            escrow.freelancer().catch(() => ethers.ZeroAddress),
+            escrow.amount().catch(() => 0n),
+            escrow.reviewPeriod().catch(() => 7n * 86400n),
+            escrow.submittedAt().catch(() => 0n),
+            escrow.termsHash().catch(() => ''),
+            escrow.paymentToken().catch(() => ethers.ZeroAddress),
+          ]);
 
-              if (!client || client === ethers.ZeroAddress) return null;
+          if (!client || client === ethers.ZeroAddress) continue;
 
-              const statusMap: JobStatus[] = ['Open', 'Selected', 'Submitted', 'Disputed', 'Completed', 'Cancelled'];
-              let status = statusMap[Number(statusRaw)] || 'Open';
-              if (status === 'Selected' && Number(amountRaw) > 0) {
-                status = 'Funded';
-              }
+          const statusMap: JobStatus[] = ['Open', 'Selected', 'Submitted', 'Disputed', 'Completed', 'Cancelled'];
+          let status = statusMap[Number(statusRaw)] || 'Open';
+          if (status === 'Selected' && Number(amountRaw) > 0) {
+            status = 'Funded';
+          }
 
-              const tokenConfig = getTokenByAddress(paymentToken);
-              const formattedAmount = ethers.formatUnits(amountRaw, tokenConfig.decimals);
+          const tokenConfig = getTokenByAddress(paymentToken);
+          const formattedAmount = ethers.formatUnits(amountRaw, tokenConfig.decimals);
 
-              // Preserve any existing local metadata (title, description, category, proposals)
-              const existingMatch = jobs.find(
-                (j) => j.id?.toLowerCase() === jobAddr.slice(0, 14).toLowerCase() ||
-                       j.contractAddress?.toLowerCase() === jobAddr.toLowerCase()
-              );
+          // Preserve any existing local metadata (title, description, category, proposals)
+          const existingMatch = currentJobsList.find(
+            (j: Job) => j.id?.toLowerCase() === jobAddr.slice(0, 14).toLowerCase() ||
+                   j.contractAddress?.toLowerCase() === jobAddr.toLowerCase()
+          );
 
-              return {
-                id: existingMatch?.id || jobAddr.slice(0, 14),
-                contractAddress: jobAddr,
-                client,
-                freelancer: freelancer === ethers.ZeroAddress ? undefined : freelancer,
-                amountEth: tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL' 
-                  ? formattedAmount 
-                  : (parseFloat(formattedAmount) / 2800).toFixed(4),
-                amountUsdc: formattedAmount,
-                paymentToken,
-                paymentTokenSymbol: tokenConfig.symbol,
-                paymentTokenDecimals: tokenConfig.decimals,
-                status,
-                title: existingMatch?.title || `Smart Contract Escrow ${jobAddr.slice(0, 6)}...${jobAddr.slice(-4)}`,
-                description: existingMatch?.description || `Decentralized JobEscrow verified on Polygon. Escrow contract: ${jobAddr}`,
-                category: existingMatch?.category || 'web3',
-                reviewPeriodDays: Math.round(Number(reviewPeriod) / 86400) || 7,
-                createdAt: existingMatch?.createdAt || Date.now() - 3600000,
-                submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : existingMatch?.submittedAt,
-                termsHash: termsHash || existingMatch?.termsHash,
-                applications: existingMatch?.applications || [],
-                events: existingMatch?.events || [
-                  { step: 'Posted', title: `Job Posted (${tokenConfig.symbol} Escrow)`, timestamp: Date.now() - 3600000, txHash: '', status: 'completed', actor: 'Client' },
-                  { step: 'Funded', title: 'Fund Escrow', timestamp: Number(amountRaw) > 0 ? Date.now() - 1800000 : 0, txHash: '', status: Number(amountRaw) > 0 ? 'completed' : 'pending' },
-                ],
-              } as Job;
-            } catch (err) {
-              return null;
-            }
-          })
-        )
-      ).filter((j): j is Job => j !== null);
+          parsedJobs.push({
+            id: existingMatch?.id || jobAddr.slice(0, 14),
+            contractAddress: jobAddr,
+            client,
+            freelancer: freelancer === ethers.ZeroAddress ? undefined : freelancer,
+            amountEth: tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL' 
+              ? formattedAmount 
+              : (parseFloat(formattedAmount) / 2800).toFixed(4),
+            amountUsdc: formattedAmount,
+            paymentToken,
+            paymentTokenSymbol: tokenConfig.symbol,
+            paymentTokenDecimals: tokenConfig.decimals,
+            status,
+            title: existingMatch?.title || `Smart Contract Escrow ${jobAddr.slice(0, 6)}...${jobAddr.slice(-4)}`,
+            description: existingMatch?.description || `Decentralized JobEscrow verified on Polygon. Escrow contract: ${jobAddr}`,
+            category: existingMatch?.category || 'web3',
+            reviewPeriodDays: Math.round(Number(reviewPeriod) / 86400) || 7,
+            createdAt: existingMatch?.createdAt || Date.now() - 3600000,
+            submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : existingMatch?.submittedAt,
+            termsHash: termsHash || existingMatch?.termsHash,
+            applications: existingMatch?.applications || [],
+            events: existingMatch?.events || [
+              { step: 'Posted', title: `Job Posted (${tokenConfig.symbol} Escrow)`, timestamp: Date.now() - 3600000, txHash: '', status: 'completed', actor: 'Client' },
+              { step: 'Funded', title: 'Fund Escrow', timestamp: Number(amountRaw) > 0 ? Date.now() - 1800000 : 0, txHash: '', status: Number(amountRaw) > 0 ? 'completed' : 'pending' },
+            ],
+          } as Job);
+        } catch {
+          // ignore single job read error
+        }
+      }
 
       if (parsedJobs.length > 0) {
         setJobsRaw((prev) => {
@@ -1267,12 +1274,14 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } catch (err) {
       console.warn('Real-time on-chain job sync warning:', err);
+    } finally {
+      isSyncingOnChainRef.current = false;
     }
-  }, [provider, jobs]);
+  }, [provider]);
 
   useEffect(() => {
     syncOnChainJobs();
-    const interval = setInterval(syncOnChainJobs, 20000);
+    const interval = setInterval(syncOnChainJobs, 30000);
     return () => clearInterval(interval);
   }, [syncOnChainJobs]);
 

@@ -275,32 +275,38 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
           return 0n;
         }),
         (async () => {
-          if (!usdcAddress || usdcAddress === ethers.ZeroAddress) return 0n;
-          const usdcContract = new ethers.Contract(
-            usdcAddress,
-            ["function balanceOf(address) view returns (uint256)"],
-            p
-          );
-          return await usdcContract.balanceOf(targetAddr).catch((err) => {
+          try {
+            if (!usdcAddress || usdcAddress === ethers.ZeroAddress) return 0n;
+            const validUsdc = ethers.getAddress(usdcAddress.toLowerCase());
+            const usdcContract = new ethers.Contract(
+              validUsdc,
+              ["function balanceOf(address) view returns (uint256)"],
+              p
+            );
+            return await usdcContract.balanceOf(targetAddr);
+          } catch (err) {
             console.warn("Failed to fetch USDC balance:", err);
             return 0n;
-          });
+          }
         })(),
         (async () => {
-          if (
-            !usdtAddress ||
-            usdtAddress === ethers.ZeroAddress ||
-            usdtAddress.toLowerCase() === usdcAddress.toLowerCase()
-          ) return 0n;
-          const usdtContract = new ethers.Contract(
-            usdtAddress,
-            ["function balanceOf(address) view returns (uint256)"],
-            p
-          );
-          return await usdtContract.balanceOf(targetAddr).catch((err) => {
+          try {
+            if (
+              !usdtAddress ||
+              usdtAddress === ethers.ZeroAddress ||
+              usdtAddress.toLowerCase() === usdcAddress.toLowerCase()
+            ) return 0n;
+            const validUsdt = ethers.getAddress(usdtAddress.toLowerCase());
+            const usdtContract = new ethers.Contract(
+              validUsdt,
+              ["function balanceOf(address) view returns (uint256)"],
+              p
+            );
+            return await usdtContract.balanceOf(targetAddr);
+          } catch (err) {
             console.warn("Failed to fetch USDT balance:", err);
             return 0n;
-          });
+          }
         })(),
       ]);
 

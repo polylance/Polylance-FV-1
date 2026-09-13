@@ -29,10 +29,10 @@ export const CHAIN_ID =
       : 31337;
 
 export const AMOY_RPC_URLS = [
+  "https://polygon-amoy-bor-rpc.publicnode.com",
+  "https://polygon-amoy.gateway.tenderly.co",
   "https://polygon-amoy.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B",
-  "https://80002.rpc.thirdweb.com",
-  "https://polygon-amoy.drpc.org",
-  "https://polygon-amoy-bor-rpc.publicnode.com"
+  "https://80002.rpc.thirdweb.com"
 ];
 
 export const POLYGON_MAINNET_RPC_URLS = [
