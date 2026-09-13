@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAccount, useDisconnect, useChainId, useSwitchChain } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { ethers } from 'ethers';
-import { CONTRACTS, RPC_URL, CHAIN_ID, NETWORK_CONFIG } from '../config/contracts';
+import { CONTRACTS, RPC_URL, AMOY_RPC_URLS, CHAIN_ID, NETWORK_CONFIG } from '../config/contracts';
 import { DemoRole } from '../types';
 import JobFactoryABI from '../config/abis/JobFactory.json';
 import ReputationSBTABI from '../config/abis/ReputationSBT.json';
@@ -126,7 +126,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   const browserProviderRef = useRef<ethers.BrowserProvider | null>(null);
-  const fallbackProviderRef = useRef<ethers.JsonRpcProvider | null>(null);
+  const fallbackProviderRef = useRef<ethers.Provider | null>(null);
 
   const getActiveProvider = useCallback((): ethers.Provider => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
@@ -141,9 +141,16 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       return browserProviderRef.current;
     }
     if (!fallbackProviderRef.current) {
-      fallbackProviderRef.current = new ethers.JsonRpcProvider(RPC_URL);
+      if (CHAIN_ID === 80002) {
+        const providers = AMOY_RPC_URLS.map(
+          (u) => new ethers.JsonRpcProvider(u, 80002, { staticNetwork: true })
+        );
+        fallbackProviderRef.current = new ethers.FallbackProvider(providers, 1);
+      } else {
+        fallbackProviderRef.current = new ethers.JsonRpcProvider(RPC_URL);
+      }
     }
-    return fallbackProviderRef.current;
+    return fallbackProviderRef.current!;
   }, []);
 
   const getAbi = (imported: any) => (Array.isArray(imported) ? imported : imported.abi ?? imported);

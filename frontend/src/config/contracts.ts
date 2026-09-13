@@ -28,12 +28,19 @@ export const CHAIN_ID =
       ? 80002 
       : 31337;
 
+export const AMOY_RPC_URLS = [
+  "https://polygon-amoy.drpc.org",
+  "https://80002.rpc.thirdweb.com",
+  "https://polygon-amoy.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B",
+  "https://polygon-amoy-bor-rpc.publicnode.com"
+];
+
 export const RPC_URL =
   import.meta.env.VITE_RPC_URL ||
   (network === "polygon"
     ? "https://polygon-bor-rpc.publicnode.com"
     : network === "amoy"
-      ? "https://polygon-amoy-bor-rpc.publicnode.com"
+      ? "https://polygon-amoy.drpc.org"
       : "http://127.0.0.1:8545");
 
 export const NETWORK_CONFIG = {

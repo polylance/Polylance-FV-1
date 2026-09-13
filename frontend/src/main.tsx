@@ -22,6 +22,8 @@ if (typeof window !== 'undefined') {
     const reasonMsg = event?.reason?.message || '';
     if (
       reasonMsg.includes("reading 'startTime'") ||
+      reasonMsg.includes('emitting session_request') ||
+      reasonMsg.includes('without any listeners') ||
       (event?.reason?.stack && event.reason.stack.includes('reportAllChanges'))
     ) {
       event.preventDefault();
@@ -29,7 +31,7 @@ if (typeof window !== 'undefined') {
     }
   });
 
-  // Filter out upstream browser wallet extension internal warnings (e.g. MetaMask contentscript ObjectMultiplex / EventEmitter warnings)
+  // Filter out upstream browser wallet extension internal warnings
   const origWarn = console.warn;
   console.warn = (...args: any[]) => {
     const text = typeof args[0] === 'string' ? args[0] : '';
@@ -37,7 +39,9 @@ if (typeof window !== 'undefined') {
       text.includes('MaxListenersExceededWarning') ||
       text.includes('ObjectMultiplex') ||
       text.includes('app-init-liveness') ||
-      text.includes('background-liveness')
+      text.includes('background-liveness') ||
+      text.includes('deprecated parameters for the initialization function') ||
+      text.includes('feature_collector')
     ) {
       return;
     }
@@ -115,8 +119,10 @@ const config = createConfig({
   chains: [polygonAmoy, polygon, mainnet],
   transports: {
     [polygonAmoy.id]: fallback([
+      http('https://polygon-amoy.drpc.org'),
+      http('https://80002.rpc.thirdweb.com'),
+      http('https://polygon-amoy.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B'),
       http('https://polygon-amoy-bor-rpc.publicnode.com'),
-      http('https://rpc-amoy.polygon.technology'),
     ]),
     [polygon.id]: fallback([
       http('https://polygon-bor-rpc.publicnode.com'),
