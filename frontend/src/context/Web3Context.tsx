@@ -148,12 +148,12 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         const providers = AMOY_RPC_URLS.map(
           (u) => new ethers.JsonRpcProvider(u, 80002, { staticNetwork: true })
         );
-        networkProviderRef.current = new ethers.FallbackProvider(providers, 1);
+        networkProviderRef.current = new ethers.FallbackProvider(providers, 80002);
       } else if (CHAIN_ID === 137) {
         const providers = POLYGON_MAINNET_RPC_URLS.map(
           (u) => new ethers.JsonRpcProvider(u, 137, { staticNetwork: true })
         );
-        networkProviderRef.current = new ethers.FallbackProvider(providers, 1);
+        networkProviderRef.current = new ethers.FallbackProvider(providers, 137);
       } else {
         networkProviderRef.current = new ethers.JsonRpcProvider(RPC_URL);
       }
