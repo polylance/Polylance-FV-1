@@ -150,9 +150,14 @@ export const PostJob: React.FC = () => {
       );
       setIsSubmitting(false);
       setCreatedJobId(newJob.id);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Job submission failed:', err);
       setIsSubmitting(false);
+      setAlertModalOptions({
+        title: 'Post Job Failed',
+        message: err?.message || 'Failed to post job. Please check your wallet connection and try again.',
+        type: 'error',
+      });
     }
   };
 
