@@ -27141,6 +27141,966 @@
           "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
           "timestamp": 1788077993060,
           "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788066905124
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello",
+          "timestamp": 1788066920054
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788067010941
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788067012520
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788067812367
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed terms: $1 USDC with 2 day(s) delivery",
+          "timestamp": 1788068578530,
+          "proposal": {
+            "id": "prop-1788068578530-4won2",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "1",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788068578530
+          }
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "👀",
+          "timestamp": 1788069262603
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1788069596667
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello,,...",
+          "timestamp": 1788070411870,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788070426376,
+          "applicantAddress": "0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "haa",
+          "timestamp": 1788070441998
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey.............",
+          "timestamp": 1788071835655,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "",
+          "timestamp": 1788076378944,
+          "proposal": {
+            "id": "prop-1788076378944-yo7n8",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788076378944
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077030081,
+          "proposal": {
+            "id": "prop-1788077030081-i4gm2",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077030081,
+            "respondedAt": 1788077095413,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077095413,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077981332,
+          "proposal": {
+            "id": "prop-1788077981332-8c01l",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077981332,
+            "respondedAt": 1788077993060,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077993060,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788066905124
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello",
+          "timestamp": 1788066920054
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788067010941
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788067012520
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788067812367
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed terms: $1 USDC with 2 day(s) delivery",
+          "timestamp": 1788068578530,
+          "proposal": {
+            "id": "prop-1788068578530-4won2",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "1",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788068578530
+          }
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "👀",
+          "timestamp": 1788069262603
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1788069596667
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello,,...",
+          "timestamp": 1788070411870,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788070426376,
+          "applicantAddress": "0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "haa",
+          "timestamp": 1788070441998
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey.............",
+          "timestamp": 1788071835655,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "",
+          "timestamp": 1788076378944,
+          "proposal": {
+            "id": "prop-1788076378944-yo7n8",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788076378944
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077030081,
+          "proposal": {
+            "id": "prop-1788077030081-i4gm2",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077030081,
+            "respondedAt": 1788077095413,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077095413,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077981332,
+          "proposal": {
+            "id": "prop-1788077981332-8c01l",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077981332,
+            "respondedAt": 1788077993060,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077993060,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788066905124
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello",
+          "timestamp": 1788066920054
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788067010941
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788067012520
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788067812367
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed terms: $1 USDC with 2 day(s) delivery",
+          "timestamp": 1788068578530,
+          "proposal": {
+            "id": "prop-1788068578530-4won2",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "1",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788068578530
+          }
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "👀",
+          "timestamp": 1788069262603
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1788069596667
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello,,...",
+          "timestamp": 1788070411870,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788070426376,
+          "applicantAddress": "0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "haa",
+          "timestamp": 1788070441998
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey.............",
+          "timestamp": 1788071835655,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "",
+          "timestamp": 1788076378944,
+          "proposal": {
+            "id": "prop-1788076378944-yo7n8",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788076378944
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077030081,
+          "proposal": {
+            "id": "prop-1788077030081-i4gm2",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077030081,
+            "respondedAt": 1788077095413,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077095413,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077981332,
+          "proposal": {
+            "id": "prop-1788077981332-8c01l",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077981332,
+            "respondedAt": 1788077993060,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077993060,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788066905124
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello",
+          "timestamp": 1788066920054
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788067010941
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788067012520
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788067812367
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed terms: $1 USDC with 2 day(s) delivery",
+          "timestamp": 1788068578530,
+          "proposal": {
+            "id": "prop-1788068578530-4won2",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "1",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788068578530
+          }
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "👀",
+          "timestamp": 1788069262603
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1788069596667
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello,,...",
+          "timestamp": 1788070411870,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788070426376,
+          "applicantAddress": "0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "haa",
+          "timestamp": 1788070441998
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey.............",
+          "timestamp": 1788071835655,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "",
+          "timestamp": 1788076378944,
+          "proposal": {
+            "id": "prop-1788076378944-yo7n8",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788076378944
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077030081,
+          "proposal": {
+            "id": "prop-1788077030081-i4gm2",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077030081,
+            "respondedAt": 1788077095413,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077095413,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077981332,
+          "proposal": {
+            "id": "prop-1788077981332-8c01l",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077981332,
+            "respondedAt": 1788077993060,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077993060,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788066905124
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello",
+          "timestamp": 1788066920054
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788067010941
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788067012520
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788067812367
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed terms: $1 USDC with 2 day(s) delivery",
+          "timestamp": 1788068578530,
+          "proposal": {
+            "id": "prop-1788068578530-4won2",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "1",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788068578530
+          }
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "👀",
+          "timestamp": 1788069262603
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1788069596667
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello,,...",
+          "timestamp": 1788070411870,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788070426376,
+          "applicantAddress": "0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "haa",
+          "timestamp": 1788070441998
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey.............",
+          "timestamp": 1788071835655,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "",
+          "timestamp": 1788076378944,
+          "proposal": {
+            "id": "prop-1788076378944-yo7n8",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788076378944
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077030081,
+          "proposal": {
+            "id": "prop-1788077030081-i4gm2",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077030081,
+            "respondedAt": 1788077095413,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077095413,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077981332,
+          "proposal": {
+            "id": "prop-1788077981332-8c01l",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077981332,
+            "respondedAt": 1788077993060,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077993060,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788066905124
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello",
+          "timestamp": 1788066920054
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788067010941
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788067012520
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788067812367
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed terms: $1 USDC with 2 day(s) delivery",
+          "timestamp": 1788068578530,
+          "proposal": {
+            "id": "prop-1788068578530-4won2",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "1",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788068578530
+          }
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "👀",
+          "timestamp": 1788069262603
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1788069596667
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hello,,...",
+          "timestamp": 1788070411870,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788070426376,
+          "applicantAddress": "0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6"
+        },
+        {
+          "sender": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "senderRole": "Freelancer",
+          "text": "haa",
+          "timestamp": 1788070441998
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hey.............",
+          "timestamp": 1788071835655,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "",
+          "timestamp": 1788076378944,
+          "proposal": {
+            "id": "prop-1788076378944-yo7n8",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Pending",
+            "createdAt": 1788076378944
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077030081,
+          "proposal": {
+            "id": "prop-1788077030081-i4gm2",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077030081,
+            "respondedAt": 1788077095413,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077095413,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $2 USDC in 1 days",
+          "timestamp": 1788077981332,
+          "proposal": {
+            "id": "prop-1788077981332-8c01l",
+            "jobId": "0x1b4479973f48",
+            "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+            "proposedBy": "Client",
+            "amountUsdc": "2",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": true,
+            "status": "Accepted",
+            "createdAt": 1788077981332,
+            "respondedAt": 1788077993060,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $2 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788077993060,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
         }
       ],
       "paymentTokenSymbol": "MATIC",
@@ -27806,6 +28766,330 @@
           "sender": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
           "timestamp": 1788269408189,
           "senderRole": "Freelancer",
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788079016345,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Freelancer",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed: $2 USDC in 2 days",
+          "timestamp": 1788110537597,
+          "proposal": {
+            "id": "prop-1788110537597-berm1",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Countered",
+            "createdAt": 1788110537597
+          },
+          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $1 USDC in 1 days",
+          "timestamp": 1788268644016,
+          "proposal": {
+            "id": "prop-1788268644016-n90c2",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+            "proposedBy": "Client",
+            "amountUsdc": "1",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Accepted",
+            "createdAt": 1788268644016,
+            "respondedAt": 1788269408189,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $1 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788269408189,
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788079016345,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Freelancer",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed: $2 USDC in 2 days",
+          "timestamp": 1788110537597,
+          "proposal": {
+            "id": "prop-1788110537597-berm1",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Countered",
+            "createdAt": 1788110537597
+          },
+          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $1 USDC in 1 days",
+          "timestamp": 1788268644016,
+          "proposal": {
+            "id": "prop-1788268644016-n90c2",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+            "proposedBy": "Client",
+            "amountUsdc": "1",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Accepted",
+            "createdAt": 1788268644016,
+            "respondedAt": 1788269408189,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $1 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788269408189,
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788079016345,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Freelancer",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed: $2 USDC in 2 days",
+          "timestamp": 1788110537597,
+          "proposal": {
+            "id": "prop-1788110537597-berm1",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Countered",
+            "createdAt": 1788110537597
+          },
+          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $1 USDC in 1 days",
+          "timestamp": 1788268644016,
+          "proposal": {
+            "id": "prop-1788268644016-n90c2",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+            "proposedBy": "Client",
+            "amountUsdc": "1",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Accepted",
+            "createdAt": 1788268644016,
+            "respondedAt": 1788269408189,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $1 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788269408189,
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788079016345,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Freelancer",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed: $2 USDC in 2 days",
+          "timestamp": 1788110537597,
+          "proposal": {
+            "id": "prop-1788110537597-berm1",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Countered",
+            "createdAt": 1788110537597
+          },
+          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $1 USDC in 1 days",
+          "timestamp": 1788268644016,
+          "proposal": {
+            "id": "prop-1788268644016-n90c2",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+            "proposedBy": "Client",
+            "amountUsdc": "1",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Accepted",
+            "createdAt": 1788268644016,
+            "respondedAt": 1788269408189,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $1 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788269408189,
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788079016345,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Freelancer",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed: $2 USDC in 2 days",
+          "timestamp": 1788110537597,
+          "proposal": {
+            "id": "prop-1788110537597-berm1",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Countered",
+            "createdAt": 1788110537597
+          },
+          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $1 USDC in 1 days",
+          "timestamp": 1788268644016,
+          "proposal": {
+            "id": "prop-1788268644016-n90c2",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+            "proposedBy": "Client",
+            "amountUsdc": "1",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Accepted",
+            "createdAt": 1788268644016,
+            "respondedAt": 1788269408189,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $1 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788269408189,
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788079016345,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "Freelancer",
+          "senderRole": "Freelancer",
+          "text": "📋 Freelancer proposed: $2 USDC in 2 days",
+          "timestamp": 1788110537597,
+          "proposal": {
+            "id": "prop-1788110537597-berm1",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+            "proposedBy": "Freelancer",
+            "amountUsdc": "2",
+            "deadlineDays": 2,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Countered",
+            "createdAt": 1788110537597
+          },
+          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+        },
+        {
+          "sender": "Client",
+          "senderRole": "Client",
+          "text": "📋 Client proposed: $1 USDC in 1 days",
+          "timestamp": 1788268644016,
+          "proposal": {
+            "id": "prop-1788268644016-n90c2",
+            "jobId": "0x91175C581877",
+            "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+            "proposedBy": "Client",
+            "amountUsdc": "1",
+            "deadlineDays": 1,
+            "note": "",
+            "isFinalCall": false,
+            "status": "Accepted",
+            "createdAt": 1788268644016,
+            "respondedAt": 1788269408189,
+            "responseNote": ""
+          },
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "sender": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+          "senderRole": "Freelancer",
+          "text": "🎉 Freelancer ACCEPTED the terms: $1 USDC in 1 days! Full contract terms are updated on-chain.",
+          "timestamp": 1788269408189,
           "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
         },
         {
@@ -37359,6 +38643,294 @@
           "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "timestamp": 1788277430005,
           "senderRole": "Client",
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788197962077
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788198009970,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788198101620,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "ok",
+          "timestamp": 1788273812724,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "then the terms and conditions are ok with you",
+          "timestamp": 1788273836588,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey man",
+          "timestamp": 1788277422345,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "answer me",
+          "timestamp": 1788277430005,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788197962077
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788198009970,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788198101620,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "ok",
+          "timestamp": 1788273812724,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "then the terms and conditions are ok with you",
+          "timestamp": 1788273836588,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey man",
+          "timestamp": 1788277422345,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "answer me",
+          "timestamp": 1788277430005,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788197962077
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788198009970,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788198101620,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "ok",
+          "timestamp": 1788273812724,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "then the terms and conditions are ok with you",
+          "timestamp": 1788273836588,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey man",
+          "timestamp": 1788277422345,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "answer me",
+          "timestamp": 1788277430005,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788197962077
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788198009970,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788198101620,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "ok",
+          "timestamp": 1788273812724,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "then the terms and conditions are ok with you",
+          "timestamp": 1788273836588,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey man",
+          "timestamp": 1788277422345,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "answer me",
+          "timestamp": 1788277430005,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788197962077
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788198009970,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788198101620,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "ok",
+          "timestamp": 1788273812724,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "then the terms and conditions are ok with you",
+          "timestamp": 1788273836588,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey man",
+          "timestamp": 1788277422345,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "answer me",
+          "timestamp": 1788277430005,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hi",
+          "timestamp": 1788197962077
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey",
+          "timestamp": 1788198009970,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "senderRole": "Freelancer",
+          "text": "hi",
+          "timestamp": 1788198101620,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "ok",
+          "timestamp": 1788273812724,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "then the terms and conditions are ok with you",
+          "timestamp": 1788273836588,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hey man",
+          "timestamp": 1788277422345,
+          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
+        },
+        {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "answer me",
+          "timestamp": 1788277430005,
           "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
         },
         {
