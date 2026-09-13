@@ -48,7 +48,7 @@ if (process.argv.includes("--network") && !process.argv.includes("hardhat") && !
   validateDeployerForRealNetwork(keyToValidate, targetNetwork, envVar);
 }
 
-const AMOY_RPC_URL = process.env.AMOY_RPC_URL ?? "https://polygon-amoy.drpc.org";
+const AMOY_RPC_URL = process.env.AMOY_RPC_URL ?? "https://polygon-amoy.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B";
 const POLYGON_MAINNET_RPC_URL = process.env.POLYGON_MAINNET_RPC_URL ?? "https://polygon-bor-rpc.publicnode.com";
 
 const amoyAccounts = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [];

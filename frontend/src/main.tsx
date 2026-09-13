@@ -31,21 +31,46 @@ if (typeof window !== 'undefined') {
     }
   });
 
-  // Filter out upstream browser wallet extension internal warnings
+  // Filter out upstream browser wallet extension and wallet relay internal warnings
+  const formatConsoleArg = (a: any) => {
+    if (!a) return '';
+    if (typeof a === 'string') return a;
+    try {
+      return (a.message || '') + ' ' + (a.stack || '') + ' ' + (typeof a === 'object' ? JSON.stringify(a) : String(a));
+    } catch {
+      return String(a);
+    }
+  };
+
+  const shouldSuppressConsole = (args: any[]) => {
+    for (let i = 0; i < args.length; i++) {
+      const s = formatConsoleArg(args[i]);
+      if (
+        s.includes('MaxListenersExceededWarning') ||
+        s.includes('ObjectMultiplex') ||
+        s.includes('app-init-liveness') ||
+        s.includes('background-liveness') ||
+        s.includes('deprecated parameters for the initialization function') ||
+        s.includes('feature_collector') ||
+        s.includes('emitting session_request') ||
+        s.includes('without any listeners')
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   const origWarn = console.warn;
   console.warn = (...args: any[]) => {
-    const text = typeof args[0] === 'string' ? args[0] : '';
-    if (
-      text.includes('MaxListenersExceededWarning') ||
-      text.includes('ObjectMultiplex') ||
-      text.includes('app-init-liveness') ||
-      text.includes('background-liveness') ||
-      text.includes('deprecated parameters for the initialization function') ||
-      text.includes('feature_collector')
-    ) {
-      return;
-    }
+    if (shouldSuppressConsole(args)) return;
     origWarn.apply(console, args);
+  };
+
+  const origErr = console.error;
+  console.error = (...args: any[]) => {
+    if (shouldSuppressConsole(args)) return;
+    origErr.apply(console, args);
   };
 
   const bumpMaxListeners = () => {
@@ -119,9 +144,9 @@ const config = createConfig({
   chains: [polygonAmoy, polygon, mainnet],
   transports: {
     [polygonAmoy.id]: fallback([
-      http('https://polygon-amoy.drpc.org'),
-      http('https://80002.rpc.thirdweb.com'),
       http('https://polygon-amoy.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B'),
+      http('https://80002.rpc.thirdweb.com'),
+      http('https://polygon-amoy.drpc.org'),
       http('https://polygon-amoy-bor-rpc.publicnode.com'),
     ]),
     [polygon.id]: fallback([
