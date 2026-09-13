@@ -73,6 +73,40 @@ export interface Web3ContextType {
   getSigner: () => Promise<ethers.Signer | null>;
 }
 
+class FailoverJsonRpcProvider extends ethers.AbstractProvider {
+  private urls: string[];
+  private providers: ethers.JsonRpcProvider[];
+  private currentIndex: number = 0;
+  private _networkPromise: Promise<ethers.Network>;
+
+  constructor(urls: string[], chainId: number) {
+    super(chainId);
+    this.urls = urls;
+    this._networkPromise = Promise.resolve(ethers.Network.from(chainId));
+    this.providers = urls.map((u) => new ethers.JsonRpcProvider(u, chainId, { staticNetwork: true }));
+  }
+
+  async _detectNetwork(): Promise<ethers.Network> {
+    return this._networkPromise;
+  }
+
+  async _perform(req: any): Promise<any> {
+    let lastErr: any;
+    for (let attempt = 0; attempt < this.providers.length; attempt++) {
+      const idx = (this.currentIndex + attempt) % this.providers.length;
+      const p = this.providers[idx];
+      try {
+        const result = await p._perform(req);
+        this.currentIndex = idx;
+        return result;
+      } catch (err: any) {
+        lastErr = err;
+      }
+    }
+    throw lastErr;
+  }
+}
+
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
 
 export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -124,8 +158,8 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [currentRole, setCurrentRole] = useState<DemoRole>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('polylance_demo_role');
-      return (saved as DemoRole) || 'visitor';
+      const saved = localStorage.getItem('polylance_demo_role') as DemoRole;
+      if (saved && saved in DEMO_WALLETS) return saved;
     }
     return 'visitor';
   });
@@ -145,15 +179,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const getNetworkProvider = useCallback((): ethers.Provider => {
     if (!networkProviderRef.current) {
       if (CHAIN_ID === 80002) {
-        const providers = AMOY_RPC_URLS.map(
-          (u) => new ethers.JsonRpcProvider(u, 80002, { staticNetwork: true })
-        );
-        networkProviderRef.current = new ethers.FallbackProvider(providers, 80002);
+        networkProviderRef.current = new FailoverJsonRpcProvider(AMOY_RPC_URLS, 80002);
       } else if (CHAIN_ID === 137) {
-        const providers = POLYGON_MAINNET_RPC_URLS.map(
-          (u) => new ethers.JsonRpcProvider(u, 137, { staticNetwork: true })
-        );
-        networkProviderRef.current = new ethers.FallbackProvider(providers, 137);
+        networkProviderRef.current = new FailoverJsonRpcProvider(POLYGON_MAINNET_RPC_URLS, 137);
       } else {
         networkProviderRef.current = new ethers.JsonRpcProvider(RPC_URL);
       }
@@ -256,6 +284,8 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [getActiveProvider]);
 
+  const isRefreshingBalancesRef = useRef(false);
+
   const refreshBalances = useCallback(async (overrideAddress?: string) => {
     const targetAddr = overrideAddress || (walletIsConnected ? walletAddress : (DEMO_WALLETS[currentRole]?.address || ''));
     if (!targetAddr || !ethers.isAddress(targetAddr)) {
@@ -264,6 +294,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       setBalanceUsdt('0.00');
       return;
     }
+    if (isRefreshingBalancesRef.current) return;
+    isRefreshingBalancesRef.current = true;
+
     try {
       const p = getNetworkProvider();
       const usdcAddress = PAYMENT_TOKENS.USDC.address;
@@ -303,8 +336,11 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
               p
             );
             return await usdtContract.balanceOf(targetAddr);
-          } catch (err) {
-            console.warn("Failed to fetch USDT balance:", err);
+          } catch (err: any) {
+            // Silently handle mock addresses that have no deployed bytecode on testnet (0x return data)
+            if (err?.code !== 'BAD_DATA' && err?.code !== 'CALL_EXCEPTION') {
+              console.warn("Failed to fetch USDT balance:", err);
+            }
             return 0n;
           }
         })(),
@@ -319,17 +355,35 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       setBalanceUsdt(formattedUsdt);
     } catch (e) {
       console.warn("Failed to fetch wallet balances:", e);
+    } finally {
+      isRefreshingBalancesRef.current = false;
     }
   }, [walletIsConnected, walletAddress, currentRole, getNetworkProvider]);
 
-  // Real-time polling for wallet balances every 4 seconds
+  // Real-time polling for wallet balances with active document visibility check
   useEffect(() => {
     refreshBalances();
     const interval = setInterval(() => {
-      refreshBalances();
-    }, 4000);
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        refreshBalances();
+      }
+    }, 12000);
 
-    return () => clearInterval(interval);
+    const handleFocus = () => refreshBalances();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshBalances();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [refreshBalances]);
 
   // MetaMask event subscription (accountsChanged, chainChanged)

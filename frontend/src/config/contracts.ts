@@ -30,9 +30,7 @@ export const CHAIN_ID =
 
 export const AMOY_RPC_URLS = [
   "https://polygon-amoy-bor-rpc.publicnode.com",
-  "https://polygon-amoy.gateway.tenderly.co",
-  "https://polygon-amoy.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B",
-  "https://80002.rpc.thirdweb.com"
+  "https://polygon-amoy.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B"
 ];
 
 export const POLYGON_MAINNET_RPC_URLS = [

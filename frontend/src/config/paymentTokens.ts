@@ -23,7 +23,7 @@ export const PAYMENT_TOKENS = {
   },
   USDT: {
     address: isAmoy
-      ? ((import.meta.env.VITE_USDT_ADDRESS as string) || "0xA02779919E324b17be41c52dbE6C9f241E93623D") // Distinct Amoy USDT address / configurable via VITE_USDT_ADDRESS
+      ? ((import.meta.env.VITE_USDT_ADDRESS as string) || "") // Configurable via VITE_USDT_ADDRESS if mock token deployed
       : "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", // real Polygon mainnet Tether USD (USDT)
     symbol: "USDT",
     decimals: 6,
@@ -45,7 +45,7 @@ export function getTokenByAddress(address: string) {
     return PAYMENT_TOKENS.MATIC;
   }
   const match = Object.values(PAYMENT_TOKENS).find(
-    (t) => t.address.toLowerCase() === address.toLowerCase()
+    (t) => Boolean(t.address && t.address !== ethers.ZeroAddress && t.address.toLowerCase() === address.toLowerCase())
   );
   return match ?? PAYMENT_TOKENS.MATIC;
 }
