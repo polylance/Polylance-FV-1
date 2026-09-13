@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAccount, useDisconnect, useChainId, useSwitchChain } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { ethers } from 'ethers';
-import { CONTRACTS, RPC_URL, AMOY_RPC_URLS, CHAIN_ID, NETWORK_CONFIG } from '../config/contracts';
+import { CONTRACTS, RPC_URL, AMOY_RPC_URLS, POLYGON_MAINNET_RPC_URLS, CHAIN_ID, NETWORK_CONFIG } from '../config/contracts';
 import { DemoRole } from '../types';
 import JobFactoryABI from '../config/abis/JobFactory.json';
 import ReputationSBTABI from '../config/abis/ReputationSBT.json';
@@ -10,7 +10,7 @@ import { detectPrivilegedRole, isAdminAddress, isJudgeAddress } from '../utils/a
 
 import { PAYMENT_TOKENS } from '../config/paymentTokens';
 
-export const DEMO_WALLETS = {
+export const DEMO_WALLETS: Record<DemoRole, { address: string; label: string; isArbitrator: boolean; isTreasuryAdmin: boolean; reputationCount: number; }> = {
   visitor: {
     address: '',
     label: 'Anonymous Visitor',
@@ -30,6 +30,20 @@ export const DEMO_WALLETS = {
     label: 'Freelancer (Dev)',
     isArbitrator: false,
     isTreasuryAdmin: false,
+    reputationCount: 0,
+  },
+  judge: {
+    address: import.meta.env.VITE_JUDGE_ADDRESS as string || '',
+    label: 'Arbitrator / Judge',
+    isArbitrator: true,
+    isTreasuryAdmin: false,
+    reputationCount: 0,
+  },
+  admin: {
+    address: import.meta.env.VITE_ADMIN_ADDRESS_1 as string || '',
+    label: 'Protocol Admin',
+    isArbitrator: false,
+    isTreasuryAdmin: true,
     reputationCount: 0,
   },
 };
@@ -126,32 +140,30 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   const browserProviderRef = useRef<ethers.BrowserProvider | null>(null);
-  const fallbackProviderRef = useRef<ethers.Provider | null>(null);
+  const networkProviderRef = useRef<ethers.Provider | null>(null);
 
-  const getActiveProvider = useCallback((): ethers.Provider => {
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-      if (!browserProviderRef.current) {
-        if (typeof (window as any).ethereum.setMaxListeners === 'function') {
-          try {
-            (window as any).ethereum.setMaxListeners(30);
-          } catch {}
-        }
-        browserProviderRef.current = new ethers.BrowserProvider((window as any).ethereum);
-      }
-      return browserProviderRef.current;
-    }
-    if (!fallbackProviderRef.current) {
+  const getNetworkProvider = useCallback((): ethers.Provider => {
+    if (!networkProviderRef.current) {
       if (CHAIN_ID === 80002) {
         const providers = AMOY_RPC_URLS.map(
           (u) => new ethers.JsonRpcProvider(u, 80002, { staticNetwork: true })
         );
-        fallbackProviderRef.current = new ethers.FallbackProvider(providers, 1);
+        networkProviderRef.current = new ethers.FallbackProvider(providers, 1);
+      } else if (CHAIN_ID === 137) {
+        const providers = POLYGON_MAINNET_RPC_URLS.map(
+          (u) => new ethers.JsonRpcProvider(u, 137, { staticNetwork: true })
+        );
+        networkProviderRef.current = new ethers.FallbackProvider(providers, 1);
       } else {
-        fallbackProviderRef.current = new ethers.JsonRpcProvider(RPC_URL);
+        networkProviderRef.current = new ethers.JsonRpcProvider(RPC_URL);
       }
     }
-    return fallbackProviderRef.current!;
+    return networkProviderRef.current;
   }, []);
+
+  const getActiveProvider = useCallback((): ethers.Provider => {
+    return getNetworkProvider();
+  }, [getNetworkProvider]);
 
   const getAbi = (imported: any) => (Array.isArray(imported) ? imported : imported.abi ?? imported);
 
@@ -166,7 +178,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      const provider = getActiveProvider();
+      const provider = getNetworkProvider();
       
       // Verify if contract code exists on the connected network
       const code = await provider.getCode(CONTRACTS.JobFactory).catch(() => '0x');
@@ -245,7 +257,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [getActiveProvider]);
 
   const refreshBalances = useCallback(async (overrideAddress?: string) => {
-    const targetAddr = overrideAddress || (walletIsConnected ? walletAddress : '');
+    const targetAddr = overrideAddress || (walletIsConnected ? walletAddress : (DEMO_WALLETS[currentRole]?.address || ''));
     if (!targetAddr || !ethers.isAddress(targetAddr)) {
       setBalanceNative('0.00');
       setBalanceUsdc('0.00');
@@ -253,51 +265,63 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     try {
-      const p = getActiveProvider();
-      const balWei = await p.getBalance(targetAddr).catch(() => 0n);
-      setBalanceNative(parseFloat(ethers.formatEther(balWei)).toFixed(4));
-
+      const p = getNetworkProvider();
       const usdcAddress = PAYMENT_TOKENS.USDC.address;
-      if (usdcAddress && usdcAddress !== ethers.ZeroAddress) {
-        const usdcContract = new ethers.Contract(
-          usdcAddress,
-          ["function balanceOf(address) view returns (uint256)"],
-          p
-        );
-        const usdcRaw = await usdcContract.balanceOf(targetAddr).catch(() => 0n);
-        setBalanceUsdc(parseFloat(ethers.formatUnits(usdcRaw, PAYMENT_TOKENS.USDC.decimals)).toFixed(2));
-      } else {
-        setBalanceUsdc('0.00');
-      }
-
       const usdtAddress = PAYMENT_TOKENS.USDT.address;
-      // CRITICAL: Ensure USDT contract is not identical to USDC to prevent duplicate balance counting
-      if (
-        usdtAddress && 
-        usdtAddress !== ethers.ZeroAddress && 
-        usdtAddress.toLowerCase() !== usdcAddress.toLowerCase()
-      ) {
-        const usdtContract = new ethers.Contract(
-          usdtAddress,
-          ["function balanceOf(address) view returns (uint256)"],
-          p
-        );
-        const usdtRaw = await usdtContract.balanceOf(targetAddr).catch(() => 0n);
-        setBalanceUsdt(parseFloat(ethers.formatUnits(usdtRaw, PAYMENT_TOKENS.USDT.decimals)).toFixed(2));
-      } else {
-        setBalanceUsdt('0.00');
-      }
+
+      const [balWei, usdcRaw, usdtRaw] = await Promise.all([
+        p.getBalance(targetAddr).catch((err) => {
+          console.warn("Failed to fetch native balance:", err);
+          return 0n;
+        }),
+        (async () => {
+          if (!usdcAddress || usdcAddress === ethers.ZeroAddress) return 0n;
+          const usdcContract = new ethers.Contract(
+            usdcAddress,
+            ["function balanceOf(address) view returns (uint256)"],
+            p
+          );
+          return await usdcContract.balanceOf(targetAddr).catch((err) => {
+            console.warn("Failed to fetch USDC balance:", err);
+            return 0n;
+          });
+        })(),
+        (async () => {
+          if (
+            !usdtAddress ||
+            usdtAddress === ethers.ZeroAddress ||
+            usdtAddress.toLowerCase() === usdcAddress.toLowerCase()
+          ) return 0n;
+          const usdtContract = new ethers.Contract(
+            usdtAddress,
+            ["function balanceOf(address) view returns (uint256)"],
+            p
+          );
+          return await usdtContract.balanceOf(targetAddr).catch((err) => {
+            console.warn("Failed to fetch USDT balance:", err);
+            return 0n;
+          });
+        })(),
+      ]);
+
+      const formattedNative = parseFloat(ethers.formatEther(balWei)).toFixed(4);
+      const formattedUsdc = parseFloat(ethers.formatUnits(usdcRaw, PAYMENT_TOKENS.USDC.decimals)).toFixed(2);
+      const formattedUsdt = parseFloat(ethers.formatUnits(usdtRaw, PAYMENT_TOKENS.USDT.decimals)).toFixed(2);
+
+      setBalanceNative(formattedNative);
+      setBalanceUsdc(formattedUsdc);
+      setBalanceUsdt(formattedUsdt);
     } catch (e) {
       console.warn("Failed to fetch wallet balances:", e);
     }
-  }, [walletIsConnected, walletAddress, getActiveProvider]);
+  }, [walletIsConnected, walletAddress, currentRole, getNetworkProvider]);
 
-  // Real-time polling for wallet balances
+  // Real-time polling for wallet balances every 4 seconds
   useEffect(() => {
     refreshBalances();
     const interval = setInterval(() => {
       refreshBalances();
-    }, 5000);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [refreshBalances]);
@@ -356,8 +380,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (walletIsConnected && walletAddress) {
       loadRealOnChainState(walletAddress);
+      refreshBalances(walletAddress);
     }
-  }, [walletAddress, walletIsConnected, loadRealOnChainState]);
+  }, [walletAddress, walletIsConnected, loadRealOnChainState, refreshBalances]);
 
   const setRole = (role: DemoRole) => {
     setCurrentRole(role);
