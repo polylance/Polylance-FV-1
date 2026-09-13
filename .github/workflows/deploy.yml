@@ -54,4 +54,5 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           folder: frontend/dist
           branch: gh-pages
+          clean: true
 
