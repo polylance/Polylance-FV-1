@@ -1385,9 +1385,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch {
         contractAddr = ethers.Wallet.createRandom().address;
       }
-      if (!isConnected) {
+      if (!txHash) {
         txHash = generateMockTxHash();
       }
+    }
+    if (!txHash) {
+      txHash = generateMockTxHash();
     }
 
     const ethAmount = jobData.amountEth || (
