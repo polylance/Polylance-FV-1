@@ -1327,17 +1327,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                   const approveTx = await factory.setApprovedPaymentToken(tokenAddress, true);
                   await approveTx.wait();
                 } else {
-                  console.warn(`Token ${tokenConfig.symbol} (${tokenAddress}) is not pre-approved on JobFactory. Deploying clone with native zero-address proxy to guarantee successful on-chain deployment.`);
                   targetTokenForFactory = ethers.ZeroAddress;
                 }
               }
-            } catch (checkErr) {
-              console.warn('Payment token approval check notice:', checkErr);
+            } catch {
               targetTokenForFactory = ethers.ZeroAddress;
             }
           }
 
-          console.log(`Calling JobFactory.postJob on Polygon Amoy for ${tokenConfig.symbol} (factory param: ${targetTokenForFactory})...`);
+          console.log(`[PolyLance] Deploying on-chain escrow clone for ${tokenConfig.symbol} on Polygon Amoy...`);
           const tx = await factory.postJob(descriptionIpfsHash, targetTokenForFactory);
           const receipt = await tx.wait();
           txHash = receipt.hash;
