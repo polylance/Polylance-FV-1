@@ -31,7 +31,8 @@ import {
   Eye,
   Bold,
   List,
-  Code
+  Code,
+  AlertTriangle
 } from 'lucide-react';
 import { RocketIcon, RocketIconHandle } from '../components/RocketIcon';
 import { generateIpfsCid } from '../utils/ipfs';
@@ -39,7 +40,18 @@ import { SUPPORTED_FIAT, SUPPORTED_CRYPTO, getActiveRates, useLiveCurrencyRates,
 import { FormattedJobDescription } from '../components/FormattedJobDescription';
 
 export const PostJob: React.FC = () => {
-  const { address, isConnected, connectWallet, currentRole, balanceNative, balanceUsdc, balanceUsdt } = useWeb3();
+  const { 
+    address, 
+    isConnected, 
+    connectWallet, 
+    currentRole, 
+    balanceNative, 
+    balanceUsdc, 
+    balanceUsdt, 
+    isWrongNetwork, 
+    targetChainName, 
+    switchToTargetNetwork 
+  } = useWeb3();
   const { postJob } = usePolyLanceData();
   const navigate = useNavigate();
   const rocketRef = useRef<RocketIconHandle>(null);
@@ -128,6 +140,20 @@ export const PostJob: React.FC = () => {
     }
     if (!isConnected) {
       await connectWallet();
+      return;
+    }
+
+    if (isConnected && isWrongNetwork) {
+      try {
+        await switchToTargetNetwork();
+      } catch (err: any) {
+        setAlertModalOptions({
+          title: 'Switch Network Required',
+          message: `Please switch your wallet network to ${targetChainName} to deploy this escrow job.`,
+          type: 'warning',
+        });
+      }
+      return;
     }
 
     const usdEquivalent = (parseFloat(tokenAmount) * tokenPriceUsd).toFixed(2);
@@ -856,54 +882,86 @@ export const PostJob: React.FC = () => {
           </div>
         </div>
 
-        {/* Dynamic Validation Submit Button (Red when incomplete, Green when ready) */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          onMouseEnter={() => rocketRef.current?.startAnimation()}
-          onMouseLeave={() => rocketRef.current?.stopAnimation()}
-          className={`w-full relative group p-3 px-5 rounded-2xl shadow-md transition-all duration-300 cursor-pointer text-left overflow-hidden ${
-            isFormValid
-              ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 hover:-translate-y-0.5'
-              : 'bg-gradient-to-r from-rose-600 via-red-600 to-pink-600 hover:from-rose-500 hover:to-red-500 shadow-rose-600/20 hover:shadow-lg hover:shadow-rose-600/30'
-          }`}
-        >
-          <div className="flex items-center justify-between gap-3">
-            {/* Left Rocket & Status */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8.5 h-8.5 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white shrink-0 shadow-xs group-hover:scale-105 transition-transform duration-300 backdrop-blur-xs">
-                <RocketIcon ref={rocketRef} size={17} color="#ffffff" />
+        {/* Dynamic Validation Submit Button (Red when incomplete, Green when ready, Amber when wrong network) */}
+        {isConnected && isWrongNetwork ? (
+          <button
+            type="button"
+            onClick={switchToTargetNetwork}
+            className="w-full relative group p-3.5 px-5 rounded-2xl shadow-md transition-all duration-300 cursor-pointer text-left overflow-hidden bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 hover:from-amber-500 hover:to-orange-500 shadow-orange-600/20 hover:shadow-lg hover:-translate-y-0.5"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white shrink-0 shadow-xs">
+                  <AlertTriangle size={18} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-extrabold text-white font-heading tracking-tight leading-none flex items-center gap-2 flex-wrap">
+                    <span>Switch Wallet to {targetChainName}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase tracking-wider font-mono bg-white/25 text-white border border-white/30">
+                      Wrong Chain (Asking ETH)
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-amber-100 font-medium mt-1">
+                    MetaMask is on Ethereum or another network. Click here to switch to Polygon Amoy to use POL for gas.
+                  </div>
+                </div>
               </div>
-              <div className="min-w-0">
-                <div className="text-xs sm:text-sm font-extrabold text-white font-heading tracking-tight leading-none flex items-center gap-2 flex-wrap">
-                  <span>
-                    {isSubmitting
-                      ? 'Deploying Escrow Clone...'
-                      : isFormValid
-                      ? 'Deploy Job Escrow Clone'
-                      : 'Fill Required Job Details'}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase tracking-wider font-mono ${
-                    isFormValid ? 'bg-white/25 text-white border border-white/30' : 'bg-white/20 text-white border border-white/30'
-                  }`}>
-                    {isFormValid ? 'Ready On-Chain' : 'Incomplete'}
-                  </span>
+              <div className="flex items-center shrink-0">
+                <div className="w-7.5 h-7.5 rounded-full bg-white/20 border border-white/30 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                  <ArrowRight size={13} className="stroke-[2.5]" />
                 </div>
               </div>
             </div>
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            onMouseEnter={() => rocketRef.current?.startAnimation()}
+            onMouseLeave={() => rocketRef.current?.stopAnimation()}
+            className={`w-full relative group p-3 px-5 rounded-2xl shadow-md transition-all duration-300 cursor-pointer text-left overflow-hidden ${
+              isFormValid
+                ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 hover:-translate-y-0.5'
+                : 'bg-gradient-to-r from-rose-600 via-red-600 to-pink-600 hover:from-rose-500 hover:to-red-500 shadow-rose-600/20 hover:shadow-lg hover:shadow-rose-600/30'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              {/* Left Rocket & Status */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8.5 h-8.5 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white shrink-0 shadow-xs group-hover:scale-105 transition-transform duration-300 backdrop-blur-xs">
+                  <RocketIcon ref={rocketRef} size={17} color="#ffffff" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-extrabold text-white font-heading tracking-tight leading-none flex items-center gap-2 flex-wrap">
+                    <span>
+                      {isSubmitting
+                        ? 'Deploying Escrow Clone...'
+                        : isFormValid
+                        ? 'Deploy Job Escrow Clone'
+                        : 'Fill Required Job Details'}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase tracking-wider font-mono ${
+                      isFormValid ? 'bg-white/25 text-white border border-white/30' : 'bg-white/20 text-white border border-white/30'
+                    }`}>
+                      {isFormValid ? 'Ready On-Chain' : 'Incomplete'}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-            {/* Right Arrow Circular Button */}
-            <div className="flex items-center shrink-0">
-              <div className="w-7.5 h-7.5 rounded-full bg-white/20 border border-white/30 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-all duration-300 shrink-0">
-                {isFormValid ? (
-                  <ArrowRight size={13} className="stroke-[2.5] group-hover:translate-x-0.5 transition-transform" />
-                ) : (
-                  <Check size={13} className="stroke-[2.5] opacity-70" />
-                )}
+              {/* Right Arrow Circular Button */}
+              <div className="flex items-center shrink-0">
+                <div className="w-7.5 h-7.5 rounded-full bg-white/20 border border-white/30 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-all duration-300 shrink-0">
+                  {isFormValid ? (
+                    <ArrowRight size={13} className="stroke-[2.5] group-hover:translate-x-0.5 transition-transform" />
+                  ) : (
+                    <Check size={13} className="stroke-[2.5] opacity-70" />
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </button>
+          </button>
+        )}
 
         {/* Security / Features Footer */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-slate-100/80">

@@ -58,8 +58,8 @@ export const NETWORK_CONFIG = {
         ? "Hardhat Localhost" 
         : "Polygon Amoy Testnet",
   nativeCurrency: {
-    name: CHAIN_ID === 137 ? "POL" : "MATIC",
-    symbol: CHAIN_ID === 137 ? "POL" : "MATIC",
+    name: "POL",
+    symbol: "POL",
     decimals: 18,
   },
   rpcUrl: RPC_URL,
