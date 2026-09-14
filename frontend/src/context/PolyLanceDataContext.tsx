@@ -477,10 +477,29 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         }
       }
 
+      // Status lifecycle priority order: Completed > Disputed > Submitted > Funded > Selected > Open > Cancelled
+      const getStatusPriority = (st?: JobStatus): number => {
+        if (!st) return 0;
+        switch (st) {
+          case 'Completed': return 6;
+          case 'Disputed': return 5;
+          case 'Submitted': return 4;
+          case 'Funded': return 3;
+          case 'Selected': return 2;
+          case 'Open': return 1;
+          case 'Cancelled': return 0;
+          default: return 0;
+        }
+      };
+
+      const currPriority = getStatusPriority(curr.status);
+      const inPriority = getStatusPriority(inJob.status);
+      const resolvedStatus = inPriority >= currPriority ? (inJob.status || curr.status) : curr.status;
+
       const mergedJob: Job = {
         ...curr,
         ...inJob,
-        status: inJob.status || curr.status,
+        status: resolvedStatus,
         freelancer: inJob.freelancer || curr.freelancer,
         clientAgreedTerms: inJob.clientAgreedTerms !== undefined ? inJob.clientAgreedTerms : curr.clientAgreedTerms,
         freelancerAgreedTerms: inJob.freelancerAgreedTerms !== undefined ? inJob.freelancerAgreedTerms : curr.freelancerAgreedTerms,
@@ -501,6 +520,9 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         progressUpdates: mergedProgressUpdates,
         extensionRequests: mergedExtensionRequests,
         modificationRequests: Array.from(modMap.values()),
+        sbtTokenId: inJob.sbtTokenId || curr.sbtTokenId,
+        completedAt: inJob.completedAt || curr.completedAt,
+        submittedAt: inJob.submittedAt || curr.submittedAt,
         chatClearedAt: chatClearedAt > 0 ? chatClearedAt : undefined,
       };
 
@@ -1245,16 +1267,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!client || client === ethers.ZeroAddress) continue;
 
           const statusMap: JobStatus[] = ['Open', 'Selected', 'Submitted', 'Disputed', 'Completed', 'Cancelled'];
-          let status = statusMap[Number(statusRaw)] || 'Open';
+          const onChainStatusParsed = statusMap[Number(statusRaw)] || 'Open';
           const hasOnChainFunds = Number(amountRaw) > 0;
-          if ((status === 'Open' || status === 'Selected') && hasOnChainFunds) {
-            status = 'Funded';
-          }
 
           const tokenConfig = getTokenByAddress(paymentToken);
           const formattedAmount = ethers.formatUnits(amountRaw, tokenConfig.decimals);
 
-          // Preserve any existing local metadata (title, description, category, proposals)
+          // Preserve any existing local metadata (title, description, category, proposals, proof)
           const existingMatch = currentJobsList.find(
             (j: Job) => j.id?.toLowerCase() === jobAddr.slice(0, 14).toLowerCase() ||
                    j.contractAddress?.toLowerCase() === jobAddr.toLowerCase() ||
@@ -1263,15 +1282,33 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                     Math.abs(parseFloat(j.amountEth || j.amountUsdc || '0') - parseFloat(formattedAmount)) < 0.005)
           );
 
+          // Compute final status intelligently: NEVER downgrade terminal or advanced lifecycle states
+          let finalStatus: JobStatus;
+          if (existingMatch?.status === 'Completed' || onChainStatusParsed === 'Completed') {
+            finalStatus = 'Completed';
+          } else if (existingMatch?.status === 'Disputed' || onChainStatusParsed === 'Disputed') {
+            finalStatus = 'Disputed';
+          } else if (existingMatch?.status === 'Submitted' || onChainStatusParsed === 'Submitted' || existingMatch?.proof) {
+            finalStatus = 'Submitted';
+          } else if (existingMatch?.status === 'Cancelled' || onChainStatusParsed === 'Cancelled') {
+            finalStatus = 'Cancelled';
+          } else if (hasOnChainFunds || existingMatch?.status === 'Funded') {
+            finalStatus = 'Funded';
+          } else {
+            finalStatus = existingMatch?.status || onChainStatusParsed;
+          }
+
           const finalFreelancer = (freelancer && freelancer !== ethers.ZeroAddress) ? freelancer : existingMatch?.freelancer;
-          const finalStatus = hasOnChainFunds ? 'Funded' : (existingMatch?.status || status);
 
           const updatedEvents = existingMatch?.events ? existingMatch.events.map((evt) => {
             if (evt.step === 'Funded' && hasOnChainFunds) {
               return { ...evt, status: 'completed' as const, timestamp: evt.timestamp || Date.now() };
             }
-            if (evt.step === 'Submitted' && hasOnChainFunds && evt.status === 'pending') {
-              return { ...evt, status: 'current' as const };
+            if (evt.step === 'Submitted' && (finalStatus === 'Submitted' || finalStatus === 'Completed')) {
+              return { ...evt, status: 'completed' as const, timestamp: evt.timestamp || Date.now() };
+            }
+            if (evt.step === 'Completed' && finalStatus === 'Completed') {
+              return { ...evt, status: 'completed' as const, timestamp: evt.timestamp || Date.now() };
             }
             return evt;
           }) : [
@@ -1296,12 +1333,24 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             title: existingMatch?.title || `Smart Contract Escrow ${jobAddr.slice(0, 6)}...${jobAddr.slice(-4)}`,
             description: existingMatch?.description || `Decentralized JobEscrow verified on Polygon. Escrow contract: ${jobAddr}`,
             category: existingMatch?.category || 'web3',
-            reviewPeriodDays: Math.round(Number(reviewPeriod) / 86400) || 7,
+            reviewPeriodDays: Math.round(Number(reviewPeriod) / 86400) || existingMatch?.reviewPeriodDays || 7,
             createdAt: existingMatch?.createdAt || Date.now() - 3600000,
             submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : existingMatch?.submittedAt,
+            completedAt: existingMatch?.completedAt,
             termsHash: termsHash || existingMatch?.termsHash,
             applications: existingMatch?.applications || [],
             events: updatedEvents,
+            proof: existingMatch?.proof,
+            progressUpdates: existingMatch?.progressUpdates || [],
+            extensionRequests: existingMatch?.extensionRequests || [],
+            modificationRequests: existingMatch?.modificationRequests || [],
+            dispute: existingMatch?.dispute,
+            chatMessages: existingMatch?.chatMessages || [],
+            preAcceptMessages: existingMatch?.preAcceptMessages || [],
+            negotiationProposals: existingMatch?.negotiationProposals || [],
+            clientAgreedTerms: existingMatch?.clientAgreedTerms,
+            freelancerAgreedTerms: existingMatch?.freelancerAgreedTerms,
+            sbtTokenId: existingMatch?.sbtTokenId,
           } as Job);
         } catch {
           // ignore single job read error
@@ -2326,10 +2375,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           return evt;
         });
 
+        const finalSbtTokenId = j.sbtTokenId || (txHash ? parseInt(txHash.slice(-6), 16) % 10000 || 101 : 101);
         return {
           ...j,
           status: 'Completed',
           completedAt: Date.now(),
+          sbtTokenId: finalSbtTokenId,
+          sbtTxHash: sbtTxHash || txHash,
           events: updatedEvents,
         };
       })

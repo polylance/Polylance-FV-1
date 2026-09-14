@@ -671,10 +671,18 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono font-bold text-[10px] uppercase tracking-wide ${
               currentJob.status === 'Completed'
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : currentJob.status === 'Submitted'
+                ? 'bg-purple-100 text-purple-900 border border-purple-300 shadow-2xs'
+                : 'bg-amber-50 text-amber-700 border border-amber-200'
             }`}>
-              <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${currentJob.status === 'Completed' ? 'bg-emerald-500' : 'bg-emerald-500 animate-pulse'}`} />
-              {currentJob.status === 'Completed' ? 'COMPLETED / SETTLED' : (currentJob.status === 'Funded' || currentJob.status === 'Selected' ? 'FUNDED' : currentJob.status.toUpperCase())}
+              <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${
+                currentJob.status === 'Completed' ? 'bg-emerald-500' : currentJob.status === 'Submitted' ? 'bg-purple-600 animate-pulse' : 'bg-amber-500 animate-pulse'
+              }`} />
+              {currentJob.status === 'Completed' 
+                ? 'COMPLETED / SETTLED' 
+                : currentJob.status === 'Submitted' 
+                ? 'SUBMITTED • UNDER CLIENT REVIEW' 
+                : (currentJob.status === 'Funded' || currentJob.status === 'Selected' ? 'FUNDED' : currentJob.status.toUpperCase())}
             </span>
           </div>
         </div>
@@ -1009,45 +1017,99 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             ) : (
               <>
                 {/* Submitted Deliverables Card (Awaiting Client Review) */}
-                {currentJob.proof && !latestModificationRequest ? (
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50/40 to-slate-50 border border-purple-200 text-xs space-y-2.5 shadow-2xs">
-                    <div className="flex items-center justify-between border-b border-purple-100 pb-2">
-                      <span className="font-extrabold text-purple-900 flex items-center gap-1.5 text-xs sm:text-sm">
-                        <CheckCircle2 size={15} className="text-emerald-600" />
-                        Deliverables Submitted • Under Client Review
-                      </span>
-                      <span className="text-purple-700 font-mono text-[10px]">
-                        Submitted: {new Date(currentJob.proof.submittedAt).toLocaleDateString()}
+                {(currentJob.status === 'Submitted' || Boolean(currentJob.proof)) && !latestModificationRequest ? (
+                  <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50/40 to-slate-50 border-2 border-purple-300/80 text-xs space-y-3.5 shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200/80 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                          <CheckCircle2 size={15} className="text-white" />
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-purple-950 text-xs sm:text-sm block">
+                            Deliverables Submitted • Under Client Review
+                          </span>
+                          <span className="text-[10px] text-purple-700 font-mono">
+                            Escrow milestone is locked & awaiting client payout release
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-purple-800 font-mono text-[10px] bg-purple-100/90 px-2.5 py-1 rounded-full border border-purple-200 font-bold">
+                        Submitted: {new Date(currentJob.proof?.submittedAt || currentJob.submittedAt || Date.now()).toLocaleDateString()}
                       </span>
                     </div>
-                    <div className="space-y-1">
+
+                    <div className="space-y-1 bg-white p-3.5 rounded-xl border border-purple-100/90">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Deliverable Title:</span>
-                      <strong className="text-slate-900 text-xs block">{currentJob.proof.title}</strong>
-                      <p className="text-slate-600 text-[11px] leading-relaxed pt-0.5">{currentJob.proof.description}</p>
+                      <strong className="text-slate-900 text-xs sm:text-sm block font-headline">
+                        {currentJob.proof?.title || currentJob.title || 'Milestone Deliverables'}
+                      </strong>
+                      <p className="text-slate-600 text-[11.5px] leading-relaxed pt-1">
+                        {currentJob.proof?.description || 'Deliverables and verified proof files submitted for client inspection.'}
+                      </p>
                     </div>
-                    {currentJob.proof.externalLink && (
-                      <div className="flex items-center gap-2 text-xs font-mono text-purple-800 bg-white p-2.5 rounded-xl border border-purple-100">
-                        <Link2 size={13} className="text-purple-600 shrink-0" />
-                        <a href={currentJob.proof.externalLink} target="_blank" rel="noopener noreferrer" className="hover:underline truncate font-bold">
-                          {currentJob.proof.externalLink}
-                        </a>
+
+                    {currentJob.proof?.externalLink && (
+                      <div className="flex items-center justify-between gap-2 text-xs font-mono text-purple-800 bg-white p-2.5 rounded-xl border border-purple-100">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Link2 size={13} className="text-purple-600 shrink-0" />
+                          <a href={currentJob.proof.externalLink} target="_blank" rel="noopener noreferrer" className="hover:underline truncate font-bold">
+                            {currentJob.proof.externalLink}
+                          </a>
+                        </div>
+                        <ExternalLink size={12} className="text-purple-500 shrink-0" />
                       </div>
                     )}
-                    <div className="flex items-center justify-between pt-1 border-t border-purple-100 text-[11px]">
-                      <span className="text-slate-500">Waiting for client to inspect files and release escrow payout.</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowUpdateForm(!showUpdateForm)}
-                        className="text-purple-700 hover:text-purple-900 font-bold underline cursor-pointer text-xs"
-                      >
-                        {showUpdateForm ? 'Hide Uploader' : 'Update / Re-submit Deliverables'}
-                      </button>
+
+                    {/* Attached Deliverable Files Badges */}
+                    {currentJob.proof?.evidenceFiles && currentJob.proof.evidenceFiles.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                          Attached IPFS Artifacts ({currentJob.proof.evidenceFiles.length}):
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {currentJob.proof.evidenceFiles.map((file, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => openOrDownloadIpfsFile(file.cid, file.name)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-purple-50 border border-purple-200 text-slate-800 text-[11px] font-medium shadow-2xs transition-all cursor-pointer"
+                            >
+                              <FileText size={12} className="text-purple-600" />
+                              <span className="truncate max-w-[160px] font-bold">{file.name}</span>
+                              <Download size={11} className="text-slate-400" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-purple-200/80 text-[11px]">
+                      <span className="text-slate-500 font-medium">
+                        Waiting for client inspection. Upon client approval, official ERC-5192 Soulbound Token will be issued.
+                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] shadow-2xs transition-all cursor-pointer"
+                        >
+                          <Award size={12} />
+                          <span>View Attestation</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowUpdateForm(!showUpdateForm)}
+                          className="text-purple-700 hover:text-purple-900 font-bold underline cursor-pointer text-xs"
+                        >
+                          {showUpdateForm ? 'Hide Uploader' : 'Update / Re-submit'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : null}
 
                 {/* Main Primary Deliverables Submission Form: Only shown when no submission exists, client asked for revisions, or freelancer toggled update */}
-                {(!currentJob.proof || latestModificationRequest || showUpdateForm) && (
+                {((!currentJob.proof && currentJob.status !== 'Submitted') || latestModificationRequest || showUpdateForm) && (
                   <ProofOfWorkUploader onSubmit={handleWorkSubmit} />
                 )}
               </>

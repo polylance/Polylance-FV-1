@@ -9,15 +9,15 @@ import {
   Copy, Check, ExternalLink, Share2, Twitter, Linkedin,
   Coins, Briefcase, Zap, Star, Lock, QrCode, ArrowUpRight,
   Download, Eye, Layers, UserCheck, CheckCheck, Shield, User,
-  FileBadge, CheckSquare, HeartHandshake, Flame, Image as ImageIcon
+  FileBadge, CheckSquare, HeartHandshake, Flame, Image as ImageIcon, Loader2
 } from 'lucide-react';
-import { truncateAddress, generateDeterministicHash, getCanonicalCertificateId, getCertifiedPassVerifyUrl } from '../utils/formatters';
+import { truncateAddress, generateDeterministicHash, getCanonicalCertificateId, getCertifiedPassVerifyUrl, formatWeb3ErrorMessage } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
 
 export const JobAttestationReport: React.FC = () => {
   const { id: jobIdParam } = useParams<{ id: string }>();
-  const { jobs, profiles } = usePolyLanceData();
+  const { jobs, profiles, releasePayment } = usePolyLanceData();
   const { address: userAddress, currentRole } = useWeb3();
   const navigate = useNavigate();
 
@@ -26,6 +26,9 @@ export const JobAttestationReport: React.FC = () => {
   const [copiedCertId, setCopiedCertId] = useState(false);
   const [shareToast, setShareToast] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isReleasing, setIsReleasing] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   // Find job by ID or contract address
@@ -39,6 +42,23 @@ export const JobAttestationReport: React.FC = () => {
   }, [jobs, jobIdParam]);
 
   const isCompleted = job?.status === 'Completed';
+
+  const handleApproveAndMint = async () => {
+    if (!job) return;
+    setIsReleasing(true);
+    setActionError(null);
+    try {
+      await releasePayment(job.id);
+      setShareToast('🎉 Escrow released & Soulbound SBT Certificate successfully minted!');
+      setTimeout(() => setShareToast(null), 5000);
+      setShowPreview(false);
+    } catch (err: any) {
+      console.error('Error approving and releasing escrow from attestation page:', err);
+      setActionError(formatWeb3ErrorMessage(err));
+    } finally {
+      setIsReleasing(false);
+    }
+  };
 
   // Client and Freelancer Addresses & Profiles
   const clientAddr = job?.client || '0x71c8366420a092c55660830e8115e9a44390001';
@@ -211,8 +231,98 @@ export const JobAttestationReport: React.FC = () => {
     );
   }
 
-  // STRICT REQUIREMENT: Only issue & show SBT cert if the job is successfully completed.
-  if (!isCompleted) {
+  // STRICT REQUIREMENT: Only issue & show SBT cert if the job is successfully completed or in preview mode.
+  if (!isCompleted && !showPreview) {
+    if (job.status === 'Submitted') {
+      return (
+        <div className="min-h-[85vh] py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 via-purple-50/20 to-slate-50 font-sans">
+          <div className="max-w-xl mx-auto space-y-5">
+            <Link
+              to={`/jobs/${job.id}`}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
+            >
+              <ArrowLeft size={14} /> <span>Back to Job Workspace</span>
+            </Link>
+
+            <div className="bg-white border-2 border-purple-300 rounded-3xl p-6 sm:p-8 shadow-sm text-center space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center mx-auto shadow-2xs">
+                <Award size={32} className="text-purple-600 animate-pulse" />
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100/90 px-3 py-1 rounded-full border border-purple-300 inline-block shadow-2xs">
+                  ● Milestone Deliverables Submitted • SBT Attestation Ready
+                </span>
+                <h2 className="font-headline text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Soulbound SBT Ready to Mint
+                </h2>
+              </div>
+
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto font-sans">
+                The talent has completed and submitted all milestone deliverables for review. Once the client approves deliverables and releases escrow payout on Polygon, the official <strong className="text-slate-900">ERC-5192 Soulbound Token reputation certificate</strong> will be minted on-chain.
+              </p>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-2 font-mono text-xs">
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Job Title:</span>
+                  <strong className="text-slate-900 truncate max-w-[220px]">{job.title}</strong>
+                </div>
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Current Escrow Status:</span>
+                  <span className="font-bold text-purple-800 uppercase bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-300 text-[10.5px]">
+                    Submitted • In Client Review
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Escrow Deposit:</span>
+                  <strong className="text-emerald-700 font-bold">${parseFloat(job.amountUsdc || '0').toFixed(2)} USDC</strong>
+                </div>
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Assigned Talent:</span>
+                  <strong className="text-slate-900">{freelancerName}</strong>
+                </div>
+              </div>
+
+              {actionError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium text-left">
+                  ⚠️ {actionError}
+                </div>
+              )}
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleApproveAndMint}
+                  disabled={isReleasing}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer hover:scale-102 active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed"
+                >
+                  {isReleasing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                  <span>{isReleasing ? 'Releasing Escrow & Minting...' : 'Approve Deliverables & Mint SBT'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(true)}
+                  className="px-5 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer hover:scale-102"
+                >
+                  <Eye size={14} />
+                  <span>Preview Certificate</span>
+                </button>
+
+                <Link
+                  to={`/jobs/${job.id}`}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Briefcase size={14} />
+                  <span>Job Workspace</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-[85vh] py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 via-purple-50/20 to-slate-50 font-sans">
         <div className="max-w-xl mx-auto space-y-5">
@@ -238,7 +348,7 @@ export const JobAttestationReport: React.FC = () => {
             </div>
 
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-              Official ERC-5192 Soulbound Token (SBT) reputation certificates are cryptographically minted and issued <strong className="text-slate-900">only after a job is 100% completed</strong>, milestone deliverables are approved, and escrow is released on Polygon.
+              Official ERC-5192 Soulbound Token (SBT) reputation certificates are cryptographically minted and issued <strong className="text-slate-900">only after milestone deliverables are submitted and approved</strong>, and escrow is released on Polygon.
             </p>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-2 font-mono text-xs">
@@ -258,7 +368,7 @@ export const JobAttestationReport: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
+            <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center flex-wrap">
               <Link
                 to={`/jobs/${job.id}`}
                 className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
@@ -266,12 +376,14 @@ export const JobAttestationReport: React.FC = () => {
                 <Briefcase size={14} />
                 <span>Open Active Escrow Workspace</span>
               </Link>
-              <Link
-                to="/jobs"
-                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+              <button
+                type="button"
+                onClick={() => setShowPreview(true)}
+                className="px-4 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Browse All Jobs</span>
-              </Link>
+                <Eye size={14} />
+                <span>Preview Sample Certificate</span>
+              </button>
             </div>
           </div>
         </div>
@@ -330,6 +442,38 @@ export const JobAttestationReport: React.FC = () => {
           }
         }
       `}</style>
+
+      {/* ── Preview Mode Banner (if shown before completed) ─────────────────── */}
+      {showPreview && !isCompleted && (
+        <div className="max-w-4xl mx-auto mb-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white p-3 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md font-sans no-print animate-fadeIn">
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-bold">
+            <Clock size={16} className="shrink-0" />
+            <span>PREVIEW MODE: Deliverables are submitted. Approve milestone to finalize & mint this certificate on Polygon Amoy.</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleApproveAndMint}
+              disabled={isReleasing}
+              className="px-3.5 py-1.5 rounded-xl bg-white text-amber-900 font-extrabold text-xs shadow hover:bg-amber-50 cursor-pointer transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed"
+            >
+              {isReleasing ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+              <span>{isReleasing ? 'Releasing...' : 'Approve & Issue Certificate'}</span>
+            </button>
+            <button
+              onClick={() => setShowPreview(false)}
+              className="px-3 py-1.5 rounded-xl bg-amber-700/80 hover:bg-amber-800 text-white text-xs font-bold cursor-pointer transition-all"
+            >
+              Exit Preview
+            </button>
+          </div>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="max-w-4xl mx-auto mb-3 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium no-print">
+          ⚠️ {actionError}
+        </div>
+      )}
       
       {/* ── Top Navigation (Back Button Outside Card) ─────────────────────────── */}
       <div className="max-w-4xl mx-auto mb-3 flex items-center justify-between no-print">
