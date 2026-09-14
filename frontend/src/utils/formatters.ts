@@ -73,6 +73,22 @@ export function formatWeb3ErrorMessage(err: any): string {
     return 'Insufficient funds in wallet for gas and amount.';
   }
 
+  if (rawMsg.includes('Not submitted')) {
+    return 'The assigned freelancer must submit deliverables on-chain before payment can be released.';
+  }
+
+  if (rawMsg.includes('Only client releases')) {
+    return 'Only the job client can release the escrow payment.';
+  }
+
+  if (rawMsg.includes('Only assigned freelancer')) {
+    return 'Only the assigned freelancer wallet can submit deliverables for this job.';
+  }
+
+  if (rawMsg.includes('Did not apply')) {
+    return 'Freelancer must submit an application before being selected on-chain.';
+  }
+
   if (rawMsg.includes('CALL_EXCEPTION') || rawMsg.includes('execution reverted')) {
     return 'Contract transaction execution reverted on-chain.';
   }

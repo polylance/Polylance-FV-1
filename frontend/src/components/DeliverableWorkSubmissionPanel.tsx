@@ -11,7 +11,7 @@ import {
   Send, Scale, RefreshCw, Layers, TrendingUp, MessageSquare, 
   ChevronRight, Calendar, UserCheck, Eye, XCircle, Info, Copy,
   Check, Filter, ArrowUpDown, ChevronDown, DollarSign, Flag,
-  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award, CheckCheck
+  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award, CheckCheck, Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -288,6 +288,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
   const [isFullLogExpanded, setIsFullLogExpanded] = useState(false);
   const [previewFile, setPreviewFile] = useState<CachedIpfsFile | null>(null);
   const [isPaymentReleasedModalOpen, setIsPaymentReleasedModalOpen] = useState(false);
+  const [isReleasing, setIsReleasing] = useState(false);
 
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
@@ -443,6 +444,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
   };
 
   const handleApproveWork = async () => {
+    setIsReleasing(true);
     try {
       await releasePayment(currentJob.id);
       setIsPaymentReleasedModalOpen(true);
@@ -455,6 +457,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         icon: 'dispute',
         badgeText: 'TRANSACTION CANCELLED',
       });
+    } finally {
+      setIsReleasing(false);
     }
   };
 
@@ -1801,10 +1805,22 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={handleApproveWork}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all hover:scale-105"
+                          disabled={isReleasing}
+                          className={`bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-all ${
+                            isReleasing ? 'opacity-75 cursor-not-allowed' : 'cursor-pointer hover:scale-105'
+                          }`}
                         >
-                          <CheckCircle2 size={13} />
-                          Approve & Release Funds (${grossAmount.toFixed(2)} USDC • Net: ${netDevPayout.toFixed(2)} USDC)
+                          {isReleasing ? (
+                            <>
+                              <Loader2 size={13} className="animate-spin" />
+                              <span>Releasing Escrow & Disbursing Funds...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 size={13} />
+                              <span>Approve & Release Funds (${grossAmount.toFixed(2)} USDC • Net: ${netDevPayout.toFixed(2)} USDC)</span>
+                            </>
+                          )}
                         </button>
 
                         <button
