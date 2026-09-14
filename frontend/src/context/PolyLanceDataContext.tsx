@@ -14,6 +14,7 @@ import { useWeb3 } from './Web3Context';
 import { io as socketIO, Socket } from 'socket.io-client';
 import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 import { getJobInactivityStatus } from '../utils/inactivity';
+import { getPolygonGasOverrides } from '../utils/gas';
 
 export const getSyncEndpoints = (): string[] => {
   const list: string[] = [];
@@ -1346,7 +1347,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                 const isAdmin = await factory.hasRole(ethers.ZeroHash, signerAddr).catch(() => false);
                 if (isAdmin) {
                   console.log(`Auto-approving ${tokenConfig.symbol} (${tokenAddress}) on JobFactory...`);
-                  const approveTx = await factory.setApprovedPaymentToken(tokenAddress, true);
+                  const gasOverrides = await getPolygonGasOverrides(provider);
+                  const approveTx = await factory.setApprovedPaymentToken(tokenAddress, true, gasOverrides);
                   await approveTx.wait();
                 } else {
                   targetTokenForFactory = ethers.ZeroAddress;
@@ -1358,7 +1360,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           }
 
           console.log(`[PolyLance] Deploying on-chain escrow clone for ${tokenConfig.symbol} on Polygon Amoy...`);
-          const tx = await factory.postJob(descriptionIpfsHash, targetTokenForFactory);
+          const gasOverrides = await getPolygonGasOverrides(provider);
+          const tx = await factory.postJob(descriptionIpfsHash, targetTokenForFactory, gasOverrides);
           const receipt = await tx.wait();
           txHash = receipt.hash;
           console.log(`JobFactory.postJob confirmed! TxHash: ${txHash}`);
@@ -1517,7 +1520,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         const code = await provider.getCode(job.contractAddress).catch(() => '0x');
         if (code && code !== '0x') {
           const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
-          const tx = await escrow.applyToJob(proposalCid);
+          const gasOverrides = await getPolygonGasOverrides(provider);
+          const tx = await escrow.applyToJob(proposalCid, gasOverrides);
           await tx.wait();
         }
       }
@@ -1565,7 +1569,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         const code = await provider.getCode(job.contractAddress).catch(() => '0x');
         if (code && code !== '0x') {
           const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
-          const tx = await escrow.selectFreelancer(freelancerAddress);
+          const gasOverrides = await getPolygonGasOverrides(provider);
+          const tx = await escrow.selectFreelancer(freelancerAddress, gasOverrides);
           const receipt = await tx.wait();
           txHash = receipt.hash;
         }
@@ -1615,7 +1620,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (code && code !== '0x') {
           const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
           const termsHash = ethers.id(`${job.id}-${job.amountUsdc}-${job.reviewPeriodDays}`);
-          const tx = await escrow.proposeTerms(termsHash);
+          const gasOverrides = await getPolygonGasOverrides(provider);
+          const tx = await escrow.proposeTerms(termsHash, gasOverrides);
           const receipt = await tx.wait();
           txHash = receipt.hash;
         }
@@ -1693,7 +1699,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                 tokenAddress = ethers.ZeroAddress;
               }
             }
-            const postTx = await factory.postJob(descIpfs, tokenAddress);
+            const gasOverrides = await getPolygonGasOverrides(provider);
+            const postTx = await factory.postJob(descIpfs, tokenAddress, gasOverrides);
             const postReceipt = await postTx.wait();
 
             const factoryInterface = new ethers.Interface(getAbi(JobFactoryABI));
@@ -1724,7 +1731,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                   const escrowInit = new ethers.Contract(targetContractAddress, getAbi(JobEscrowABI), signer);
                   const hasApplied = await escrowInit.hasApplied(job.freelancer).catch(() => false);
                   if (hasApplied) {
-                    const selectTx = await escrowInit.selectFreelancer(job.freelancer);
+                    const selectGas = await getPolygonGasOverrides(provider);
+                    const selectTx = await escrowInit.selectFreelancer(job.freelancer, selectGas);
                     await selectTx.wait();
                   }
                 } catch (selectErr) {
@@ -1754,7 +1762,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const val = ethers.parseEther(safeAmount);
 
             console.log(`Executing real on-chain escrow funding of ${safeAmount} POL to ${targetContractAddress}...`);
-            const tx = await escrow.fundJob(0, { value: val });
+            const gasOverrides = await getPolygonGasOverrides(provider);
+            const tx = await escrow.fundJob(0, { value: val, ...gasOverrides });
             const receipt = await tx.wait();
             txHash = receipt.hash;
             console.log(`On-chain escrow successfully funded! TxHash: ${txHash}`);
@@ -1770,11 +1779,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const signerAddr = await signer.getAddress();
             const currentAllowance: bigint = await tokenContract.allowance(signerAddr, targetContractAddress).catch(() => 0n);
             if (currentAllowance < amountParsed) {
-              const approveTx = await tokenContract.approve(targetContractAddress, amountParsed);
+              const approveGas = await getPolygonGasOverrides(provider);
+              const approveTx = await tokenContract.approve(targetContractAddress, amountParsed, approveGas);
               await approveTx.wait();
             }
 
-            const fundTx = await escrow.fundJob(amountParsed);
+            const fundGas = await getPolygonGasOverrides(provider);
+            const fundTx = await escrow.fundJob(amountParsed, fundGas);
             const receipt = await fundTx.wait();
             txHash = receipt.hash;
             await refreshBalances().catch(() => {});
@@ -1843,10 +1854,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           const safeHashes = (evidenceHashes && evidenceHashes.length > 0)
             ? evidenceHashes
             : [generateIpfsCid({ title, description, timestamp: Date.now() })];
+          const gasOverrides = await getPolygonGasOverrides(provider);
           const tx = await escrow.submitWork(
             title || 'Completed Deliverables',
             description || 'Work delivered as per specification',
-            safeHashes
+            safeHashes,
+            gasOverrides
           );
           const receipt = await tx.wait();
           txHash = receipt.hash;
@@ -1904,7 +1917,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const signer = await getSigner();
       if (signer && job && ethers.isAddress(job.contractAddress)) {
         const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
-        const tx = await escrow.postProgressUpdate(updateIpfsHash);
+        const gasOverrides = await getPolygonGasOverrides(provider);
+        const tx = await escrow.postProgressUpdate(updateIpfsHash, gasOverrides);
         const receipt = await tx.wait();
         txHash = receipt.hash;
       }
@@ -1956,7 +1970,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const signer = await getSigner();
       if (signer && job && ethers.isAddress(job.contractAddress)) {
         const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
-        const tx = await escrow.requestTimeExtension(requestedDays, reasonIpfsHash);
+        const gasOverrides = await getPolygonGasOverrides(provider);
+        const tx = await escrow.requestTimeExtension(requestedDays, reasonIpfsHash, gasOverrides);
         const receipt = await tx.wait();
         txHash = receipt.hash;
       }
@@ -2017,7 +2032,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const signer = await getSigner();
       if (signer && job && ethers.isAddress(job.contractAddress)) {
         const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
-        const tx = await escrow.respondToTimeExtension(requestIndex, approve);
+        const gasOverrides = await getPolygonGasOverrides(provider);
+        const tx = await escrow.respondToTimeExtension(requestIndex, approve, gasOverrides);
         const receipt = await tx.wait();
         txHash = receipt.hash;
       }
@@ -2076,7 +2092,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const signer = await getSigner();
       if (signer && job && ethers.isAddress(job.contractAddress)) {
         const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
-        const tx = await escrow.requestModifications(noteIpfsHash);
+        const gasOverrides = await getPolygonGasOverrides(provider);
+        const tx = await escrow.requestModifications(noteIpfsHash, gasOverrides);
         const receipt = await tx.wait();
         txHash = receipt.hash;
       }
@@ -2139,10 +2156,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           // If status is Selected (1), ensure status is Submitted (2) on-chain
           if (Number(onChainStatus) === 1) {
             try {
+              const submitGas = await getPolygonGasOverrides(provider);
               const submitTx = await escrow.submitWork(
                 'Completed Deliverables',
                 'Deliverables verified and accepted by client',
-                [generateIpfsCid({ title: 'Completed Deliverables', timestamp: Date.now() })]
+                [generateIpfsCid({ title: 'Completed Deliverables', timestamp: Date.now() })],
+                submitGas
               );
               await submitTx.wait();
             } catch (submitErr) {
@@ -2151,7 +2170,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           }
 
           console.log(`Executing real on-chain payment release from escrow ${job.contractAddress}...`);
-          const tx = await escrow.releasePayment();
+          const releaseGas = await getPolygonGasOverrides(provider);
+          const tx = await escrow.releasePayment(releaseGas);
           const receipt = await tx.wait();
           txHash = receipt.hash;
           sbtTxHash = receipt.hash; // Real SBT is minted on-chain in this exact transaction!
@@ -2235,7 +2255,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const signer = await getSigner();
       if (signer && job && ethers.isAddress(job.contractAddress)) {
         const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
-        const tx = await escrow.raiseDispute(evidenceIpfsHash);
+        const gasOverrides = await getPolygonGasOverrides(provider);
+        const tx = await escrow.raiseDispute(evidenceIpfsHash, gasOverrides);
         const receipt = await tx.wait();
         txHash = receipt.hash;
       }
@@ -2304,7 +2325,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (hasLiveContract) {
           const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
           const reasoningCid = generateIpfsCid(reasoningText);
-          const tx = await escrow.resolveDispute(freelancerBps, reasoningCid);
+          const gasOverrides = await getPolygonGasOverrides(provider);
+          const tx = await escrow.resolveDispute(freelancerBps, reasoningCid, gasOverrides);
           const receipt = await tx.wait();
           txHash = receipt.hash;
         }
@@ -2745,7 +2767,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const signer = await getSigner();
       if (signer && typeof proposalId === 'number') {
         const judgeDao = new ethers.Contract(CONTRACTS.JudgeDAO, getAbi(JudgeDAOABI), signer);
-        const tx = await judgeDao.castVote(proposalId, support);
+        const gasOverrides = await getPolygonGasOverrides(provider);
+        const tx = await judgeDao.castVote(proposalId, support, gasOverrides);
         const receipt = await tx.wait();
         txHash = receipt.hash;
       }
