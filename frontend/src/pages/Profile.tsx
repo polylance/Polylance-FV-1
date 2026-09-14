@@ -93,6 +93,11 @@ export const Profile: React.FC = () => {
                     <span className="text-xs bg-purple-100 text-purple-900 border border-purple-300 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1">
                       <ShieldCheck size={14} className="text-purple-700" /> VERIFIED ENTERPRISE
                     </span>
+                    {completedClientJobs.length > 0 && (
+                      <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1">
+                        <Award size={14} className="text-emerald-700" /> {completedClientJobs.length} Patron SBT{completedClientJobs.length === 1 ? '' : 's'} Minted
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs font-mono text-purple-900 font-bold">
                     Organization Safe Wallet: {truncateAddress(userProfile.address)}
@@ -336,6 +341,88 @@ export const Profile: React.FC = () => {
                 ))
               ) : (
                 <p className="text-slate-400 text-xs text-center py-4 font-sans">No escrow transactions recorded on this profile yet.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Soulbound Escrow Patron Tokens Collection */}
+          <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
+                  <Award size={20} className="text-purple-700" /> Soulbound Escrow Patron Tokens ({completedClientJobs.length})
+                </h3>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                  Cryptographically minted, non-transferable on-chain proof of capital funding and payout release
+                </p>
+              </div>
+              <span className="text-[10px] font-mono text-purple-900 bg-purple-100 px-3 py-1 rounded-full border border-purple-200 font-bold flex items-center gap-1">
+                <ShieldCheck size={12} className="text-purple-700" /> Polygon ERC-721 Soulbound
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {completedClientJobs.length > 0 ? (
+                completedClientJobs.map((j) => {
+                  const certId = getCanonicalCertificateId(j.id, j.contractAddress);
+                  const verifyUrl = getCertifiedPassVerifyUrl(certId);
+
+                  return (
+                    <div
+                      key={j.id}
+                      className="bg-gradient-to-br from-purple-50/40 via-white to-slate-50 p-5 rounded-2xl border border-purple-200/80 space-y-3 relative overflow-hidden group hover:border-purple-400 hover:shadow-xs transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-black text-purple-900 bg-purple-100/80 px-2.5 py-0.5 rounded-lg border border-purple-200">
+                          PATRON SBT #{j.sbtTokenId || getDeterministicSbtId(j.id)}
+                        </span>
+                        <span className="text-xs font-mono font-black text-emerald-700">
+                          ${parseFloat(j.amountUsdc || '0').toLocaleString()} USDC
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 line-clamp-1 font-headline">
+                          {j.title}
+                        </h4>
+                        <div className="flex items-center justify-between mt-1 text-[11px] font-mono">
+                          <span className="text-slate-500">
+                            Talent: {truncateAddress(j.freelancer || '')}
+                          </span>
+                          <span className="text-[10px] text-purple-800 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+                            {certId}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-purple-100/80 flex items-center justify-between text-[11px] font-mono flex-wrap gap-2">
+                        <Link
+                          to={`/jobs/${j.id}/attestation`}
+                          className="text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1 hover:underline"
+                        >
+                          <span>View Attestation</span>
+                          <ExternalLink size={10} />
+                        </Link>
+
+                        <a
+                          href={verifyUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 hover:underline"
+                        >
+                          <span>Verify on CertifiedPass</span>
+                          <ExternalLink size={10} />
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="col-span-2 text-center py-8 text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 font-sans space-y-1">
+                  <Award className="w-8 h-8 text-slate-400 mx-auto mb-1" />
+                  <p className="font-bold text-slate-700 text-xs">No Soulbound Patron SBT Attestations Minted Yet</p>
+                  <p className="text-[11px] text-slate-400 font-mono">Fund and release your first escrow milestone to mint a non-transferable patron reputation credential.</p>
+                </div>
               )}
             </div>
           </div>

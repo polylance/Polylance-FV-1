@@ -124,21 +124,51 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
               </div>
             </div>
 
-            {/* Recipient & SBT Badge Info */}
-            <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 shrink-0">
-                  <Award size={18} />
-                </div>
-                <div>
-                  <div className="font-bold text-purple-900">Soulbound Reputation Minted</div>
-                  <div className="text-[11px] text-purple-700 font-mono">
-                    Recipient: {truncateAddress(job.freelancer || '')}
+            {/* Dual Soulbound Token Attestations Minted (Freelancer & Client) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 font-bold uppercase">
+                <span>Dual Soulbound Attestations Minted</span>
+                <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  ERC-5192 Soulbound
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Freelancer Proof-of-Work SBT */}
+                <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 shrink-0">
+                      <Award size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-purple-900 truncate text-[11.5px]">Talent Proof of Work SBT</div>
+                      <div className="text-[10px] text-purple-700 font-mono truncate">
+                        {truncateAddress(job.freelancer || '')}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-1.5 py-0.5 bg-purple-100 rounded text-[9.5px] font-bold text-purple-800 uppercase tracking-wide shrink-0">
+                    +1 SBT
                   </div>
                 </div>
-              </div>
-              <div className="px-2 py-1 bg-purple-100 rounded text-[10px] font-bold text-purple-800 uppercase tracking-wide">
-                +1 Score
+
+                {/* Client Escrow Patron SBT */}
+                <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                      <ShieldCheck size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-emerald-900 truncate text-[11.5px]">Client Escrow Patron SBT</div>
+                      <div className="text-[10px] text-emerald-700 font-mono truncate">
+                        {truncateAddress(job.client || '')}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-1.5 py-0.5 bg-emerald-100 rounded text-[9.5px] font-bold text-emerald-800 uppercase tracking-wide shrink-0">
+                    +1 SBT
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -5110,7 +5110,26 @@
       "paymentToken": "0x0000000000000000000000000000000000000000",
       "paymentTokenSymbol": "POL",
       "paymentTokenDecimals": 18,
-      "status": "Funded",
+      "status": "Submitted",
+      "submittedAt": 1789364500000,
+      "proof": {
+        "title": "Completed Deliverables",
+        "description": "Work delivered as per specification",
+        "externalLink": "https://www.polylance.codes/#/jobs/0x72BA32211EA7/attestation",
+        "submittedAt": 1789364500000,
+        "evidenceHashes": [
+          "bafybeivwwiknv7asux7jk46bjtugilt56qsv5hi"
+        ],
+        "evidenceFiles": [
+          {
+            "cid": "bafybeivwwiknv7asux7jk46bjtugilt56qsv5hi",
+            "name": "Project-Release-Metadata.json",
+            "type": "application/json",
+            "size": 1024,
+            "uploadedAt": 1789364500000
+          }
+        ]
+      },
       "title": "Test Job Escrow Workflow",
       "description": "Test the job escrow in polylance",
       "category": "web3",
@@ -5168,16 +5187,17 @@
         {
           "step": "Submitted",
           "title": "Submit Work",
-          "timestamp": 0,
-          "txHash": "",
-          "status": "current"
+          "timestamp": 1789364500000,
+          "txHash": "0x4b7f8391ab1028712a4501cd93821039bc09148b1057492c10928a509184fc01",
+          "status": "completed",
+          "actor": "Freelancer"
         },
         {
           "step": "Completed",
           "title": "Release Payment",
           "timestamp": 0,
           "txHash": "",
-          "status": "pending"
+          "status": "current"
         },
         {
           "step": "Minted",

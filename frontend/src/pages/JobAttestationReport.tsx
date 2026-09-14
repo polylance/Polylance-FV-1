@@ -86,7 +86,9 @@ export const JobAttestationReport: React.FC = () => {
 
   const amountUsdc = parseFloat(job?.amountUsdc || '1500');
   const contractAddress = job?.contractAddress || '0x42f8366420a092c55660830e8115e9a443900990';
-  const sbtTokenId = `#SBT-WORK-${(job?.id || 'PL-001').slice(0, 8).toUpperCase()}`;
+  const sbtTokenId = viewRole === 'client'
+    ? `#SBT-PATRON-${(job?.id || 'PL-001').slice(0, 8).toUpperCase()}`
+    : `#SBT-WORK-${(job?.id || 'PL-001').slice(0, 8).toUpperCase()}`;
   const certificateId = getCanonicalCertificateId(job?.id, job?.contractAddress);
   const certifiedPassVerifyUrl = getCertifiedPassVerifyUrl(certificateId);
 
@@ -738,19 +740,12 @@ export const JobAttestationReport: React.FC = () => {
 
                 <div className="bg-white border border-slate-200/90 p-4 rounded-2xl space-y-1 shadow-xs">
                   <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">
-                    {viewRole === 'client' ? 'Verified Talent Partner' : 'Soulbound Token ID'}
+                    {viewRole === 'client' ? 'Client Patron SBT ID' : 'Talent Soulbound Token ID'}
                   </span>
-                  {viewRole === 'client' ? (
-                    <>
-                      <p className="text-base font-black text-indigo-900 font-mono truncate">@{freelancerName}</p>
-                      <span className="text-[10px] font-mono text-slate-500 block">{truncateAddress(freelancerAddr)}</span>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-base font-black text-purple-900 font-mono truncate">{sbtTokenId}</p>
-                      <span className="text-[10px] font-mono text-slate-500 block">Locked to Freelancer Safe</span>
-                    </>
-                  )}
+                  <p className="text-base font-black text-purple-900 font-mono truncate">{sbtTokenId}</p>
+                  <span className="text-[10px] font-mono text-slate-500 block">
+                    {viewRole === 'client' ? 'Locked to Client Patron Safe' : 'Locked to Freelancer Safe'}
+                  </span>
                 </div>
 
                 <div className="bg-white border border-slate-200/90 p-4 rounded-2xl space-y-1 shadow-xs">

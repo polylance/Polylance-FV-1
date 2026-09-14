@@ -130,9 +130,9 @@ export const Dashboard: React.FC = () => {
   const myRankIdx = sortedProfiles.findIndex((p) => p.address.toLowerCase() === activeAddress.toLowerCase());
   const myRank = myRankIdx !== -1 ? myRankIdx + 1 : sortedProfiles.length + 1;
 
-  // Dynamic unlocked badges
+  // Dynamic unlocked badges for both Freelancers and Clients
   const unlockedBadges = [];
-  const completedJobsCount = completedFreelanceJobs.length;
+  const completedJobsCount = completedFreelanceJobs.length + completedClientJobs.length;
   if (completedJobsCount >= 1) {
     unlockedBadges.push({
       name: 'Genesis Auditor SBT',
