@@ -238,13 +238,17 @@ export const PostJob: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 space-y-8">
       {/* Redesigned Header */}
-      <div className="text-center space-y-2 max-w-2xl mx-auto">
+      <div className="text-center space-y-3 max-w-2xl mx-auto">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-heading tracking-tight leading-tight">
           Post an <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">On-Chain</span> Escrow Job
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 font-medium">
           Deploys a standalone <span className="font-mono text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded animate-pulse">JobEscrow.sol</span> clone via JobFactory
         </p>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] sm:text-xs font-semibold shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+          <span><strong>100% Free Job Posting:</strong> PolyLance charges $0 platform fee. Only Polygon network gas (~0.005 POL, free on Amoy testnet) is required.</span>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-md rounded-3xl border border-slate-100 shadow-xl p-8 sm:p-10 max-w-3xl mx-auto space-y-8 relative overflow-hidden">

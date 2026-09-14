@@ -4,7 +4,7 @@ import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, P
 import { generateMockTxHash, generateDeterministicHash } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { fetchLiveExchangeRates, startRatePolling } from '../utils/currency';
-import { CONTRACTS } from '../config/contracts';
+import { CONTRACTS, CHAIN_ID } from '../config/contracts';
 import { PAYMENT_TOKENS, getTokenBySymbol, getTokenByAddress } from '../config/paymentTokens';
 import JobFactoryABI from '../config/abis/JobFactory.json';
 import JobEscrowABI from '../config/abis/JobEscrow.json';
@@ -247,7 +247,15 @@ const broadcastSync = (data: {
   treasuryBalanceUsdc?: number;
   treasuryBalanceEth?: number;
 }, senderAddress?: string) => {
-  const activeAddr = (senderAddress || currentConnectedWalletAddress || '').toLowerCase().trim();
+  let activeAddr = (senderAddress || currentConnectedWalletAddress || '').toLowerCase().trim();
+  if (!activeAddr || !ethers.isAddress(activeAddr)) {
+    if (data.jobs && data.jobs[0] && data.jobs[0].client && ethers.isAddress(data.jobs[0].client)) {
+      activeAddr = data.jobs[0].client.toLowerCase().trim();
+    } else if (data.profiles && Object.keys(data.profiles).length > 0) {
+      const firstProf = Object.keys(data.profiles).find((a) => ethers.isAddress(a));
+      if (firstProf) activeAddr = firstProf.toLowerCase().trim();
+    }
+  }
 
   // 1. Cross-Tab Sync via BroadcastChannel
   try {
@@ -475,8 +483,8 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         negotiatedDeadlineDays: inJob.negotiatedDeadlineDays !== undefined ? inJob.negotiatedDeadlineDays : curr.negotiatedDeadlineDays,
         applications: Array.from(appMap.values()),
         negotiationProposals: mergedProposals,
-        chatMessages: mergedMsgs,
-        preAcceptMessages: mergedPreMsgs,
+        chatMessages: mergedMsgs.slice(-150),
+        preAcceptMessages: mergedPreMsgs.slice(-100),
         events: inJob.events?.length ? inJob.events : curr.events,
         dispute: inJob.dispute || curr.dispute,
         proof: inJob.proof || curr.proof,
@@ -534,7 +542,7 @@ const mergeProfilesMap = (existing: Record<string, UserProfile>, incoming: Recor
 };
 
 export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { provider, getSigner, address, isConnected, isWrongNetwork, targetChainName, refreshBalances } = useWeb3();
+  const { provider, getSigner, address, isConnected, isWrongNetwork, targetChainName, switchToTargetNetwork, refreshBalances } = useWeb3();
 
   useEffect(() => {
     setCurrentConnectedWalletAddress(address || '');
@@ -859,11 +867,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     const isNetworkAvailable = typeof navigator === 'undefined' || (navigator.onLine && Date.now() >= backendSyncOfflineUntil);
     if (isNetworkAvailable) {
       const currentAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
-      const initHeaders: Record<string, string> = {};
-      if (currentAddr) {
-        initHeaders['x-wallet-address'] = currentAddr;
-      }
-      const initQuery = currentAddr ? `?address=${encodeURIComponent(currentAddr)}` : '';
+      const effectiveAddr = currentAddr || '0x0000000000000000000000000000000000000000';
+      const initHeaders: Record<string, string> = { 'x-wallet-address': effectiveAddr };
+      const initQuery = `?address=${encodeURIComponent(effectiveAddr)}`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
 
@@ -1032,11 +1038,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (Date.now() < backendSyncOfflineUntil) return;
       const endpoints = getSyncEndpoints();
       const activeAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
-      const reqHeaders: Record<string, string> = {};
-      if (activeAddr) {
-        reqHeaders['x-wallet-address'] = activeAddr;
-      }
-      const query = activeAddr ? `?address=${encodeURIComponent(activeAddr)}` : '';
+      const effectiveAddr = activeAddr || '0x0000000000000000000000000000000000000000';
+      const reqHeaders: Record<string, string> = { 'x-wallet-address': effectiveAddr };
+      const query = `?address=${encodeURIComponent(effectiveAddr)}`;
 
       for (const ep of endpoints) {
         try {
@@ -1312,12 +1316,21 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     let txHash = '';
 
     if (isConnected && isWrongNetwork) {
+      await switchToTargetNetwork().catch(() => {});
       throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to deploy this escrow job.`);
     }
 
     try {
       const signer = await getSigner();
       if (signer) {
+        if (signer.provider) {
+          const signerNet = await signer.provider.getNetwork().catch(() => null);
+          if (signerNet && Number(signerNet.chainId) !== CHAIN_ID) {
+            console.warn(`[PolyLance] Signer on chain ${signerNet.chainId} does not match target ${CHAIN_ID}. Requesting chain switch.`);
+            await switchToTargetNetwork().catch(() => {});
+            throw new Error(`Your wallet is currently connected to another network (Chain ID: ${signerNet.chainId}, e.g. Robinhood Chain / Ethereum). Please switch your wallet to ${targetChainName} to deploy your escrow job using POL.`);
+          }
+        }
         const code = await provider.getCode(CONTRACTS.JobFactory).catch(() => '0x');
         if (code && code !== '0x') {
           const factory = new ethers.Contract(CONTRACTS.JobFactory, getAbi(JobFactoryABI), signer);

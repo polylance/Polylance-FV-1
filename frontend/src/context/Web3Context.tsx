@@ -492,6 +492,15 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       if (rawProvider) {
         const bp = new ethers.BrowserProvider(rawProvider, 'any');
+        try {
+          const net = await bp.getNetwork();
+          if (Number(net.chainId) !== CHAIN_ID) {
+            console.warn(`[Web3Context] Active wallet on chain ${net.chainId}, target is ${CHAIN_ID}. Requesting network switch...`);
+            await switchToTargetNetwork().catch(() => {});
+          }
+        } catch (chainCheckErr) {
+          console.warn('Network check error in getSigner:', chainCheckErr);
+        }
         if (walletAddress && ethers.isAddress(walletAddress)) {
           return await bp.getSigner(walletAddress);
         }

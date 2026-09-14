@@ -291,11 +291,23 @@ function mergeJobsOnServer(existingJobs, incomingJobs) {
                     mergedMsgs.push(m);
                 }
             }
-            // Merge pre-accept messages respecting chatClearedAt
-            const mergedPreMsgs = [
+            // Merge pre-accept messages respecting chatClearedAt with deduplication
+            const deduplicatedPreMsgs = [];
+            const rawPreMsgs = [
                 ...(curr.preAcceptMessages || []),
                 ...(inJob.preAcceptMessages || [])
-            ].filter((m) => !chatClearedAt || (m.timestamp || 0) > chatClearedAt);
+            ].filter((m) => !chatClearedAt || (m.timestamp || 0) > chatClearedAt).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            for (const m of rawPreMsgs) {
+                if (!m)
+                    continue;
+                const isDup = deduplicatedPreMsgs.some((em) => (m.id && em.id && m.id === em.id) ||
+                    (m.proposal && em.proposal && m.proposal.id === em.proposal.id) ||
+                    (em.sender === m.sender && Boolean(m.text) && em.text?.trim() === m.text?.trim() && Math.abs((em.timestamp || 0) - (m.timestamp || 0)) < 3500));
+                if (!isDup)
+                    deduplicatedPreMsgs.push(m);
+            }
+            const mergedPreMsgs = deduplicatedPreMsgs.slice(-100);
+            const cappedMsgs = mergedMsgs.slice(-150);
             // Merge extension requests safely
             const extMap = new Map();
             (curr.extensionRequests || []).forEach((r) => r && extMap.set(r.id || `${r.requestIndex}`, r));
@@ -339,7 +351,7 @@ function mergeJobsOnServer(existingJobs, incomingJobs) {
                 negotiatedDeadlineDays: inJob.negotiatedDeadlineDays !== undefined ? inJob.negotiatedDeadlineDays : curr.negotiatedDeadlineDays,
                 applications: Array.from(appMap.values()),
                 negotiationProposals: mergedProposals,
-                chatMessages: mergedMsgs,
+                chatMessages: cappedMsgs,
                 preAcceptMessages: mergedPreMsgs,
                 events: inJob.events?.length ? inJob.events : (curr.events || []),
                 dispute: inJob.dispute || curr.dispute,
@@ -382,7 +394,8 @@ app.use(cors({
     },
     credentials: true,
 }));
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "25mb" }));
+app.use(express.urlencoded({ limit: "25mb", extended: true }));
 // Security headers middleware
 app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -908,12 +921,12 @@ io.on("connection", (socket) => {
 // REST endpoints for cross-device state synchronization
 app.get("/api/sync", async (req, res) => {
     // If state is empty in memory, try fetching from primary or backup DB
-    if (!sharedState.jobs || sharedState.jobs.length === 0) {
+    if (!sharedState.jobs || sharedState.jobs.length === 0 || !sharedState.profiles || Object.keys(sharedState.profiles).length === 0) {
         await loadStateFromDatabase();
     }
     const requesterAddress = (req.headers["x-wallet-address"] ||
         req.query.address ||
-        "").toLowerCase().trim();
+        "0x0000000000000000000000000000000000000000").toLowerCase().trim();
     const sanitized = sanitizeSharedStateForRequester(sharedState, requesterAddress);
     res.json(sanitized);
 });
