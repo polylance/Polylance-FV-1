@@ -343,13 +343,21 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
     const key = inContract || inId;
     if (!key) return;
 
-    const matchedKey = (inContract && idIndex.get(inContract)) || (inId && idIndex.get(inId)) || key;
+    const matchedKey = (inId && idIndex.get(inId)) || (inContract && idIndex.get(inContract)) || key;
     const curr = map.get(matchedKey);
     if (!curr) {
       map.set(key, inJob);
       if (inId) idIndex.set(inId, key);
       if (inContract) idIndex.set(inContract, key);
     } else {
+      // If contract address was updated from placeholder to deployed clone, remove any orphan generic clone
+      if (inContract && inContract !== (curr.contractAddress || '').toLowerCase()) {
+        const orphanKey = idIndex.get(inContract);
+        if (orphanKey && orphanKey !== matchedKey) {
+          map.delete(orphanKey);
+        }
+      }
+
       // Merge applications
       const appMap = new Map<string, Application>();
       (curr.applications || []).forEach((a) => appMap.set(a.applicant.toLowerCase(), a));
@@ -495,7 +503,12 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         chatClearedAt: chatClearedAt > 0 ? chatClearedAt : undefined,
       };
 
+      if (matchedKey !== key) {
+        map.delete(matchedKey);
+      }
       map.set(key, normalizeJob(mergedJob));
+      if (inId) idIndex.set(inId, key);
+      if (inContract) idIndex.set(inContract, key);
     }
   });
 
@@ -549,6 +562,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setCurrentConnectedWalletAddress(address || '');
     if (address) {
       refreshBalances().catch(() => {});
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('identify', { address });
+      }
     }
   }, [address, refreshBalances]);
 
@@ -793,6 +809,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     // Real-Time Cross-Device WebSocket Sync Setup
     try {
       const isOnline = typeof navigator === 'undefined' || navigator.onLine;
+      const activeAddr = (currentConnectedWalletAddress || address || '').toLowerCase().trim();
       if (isOnline && Date.now() >= backendSyncOfflineUntil && (!syncSocket || !syncSocket.connected)) {
         syncSocket = socketIO(syncUrl, {
           transports: ['polling', 'websocket'],
@@ -801,6 +818,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           reconnectionAttempts: 5,
           reconnectionDelay: 3000,
           timeout: 10000,
+          auth: activeAddr ? { address: activeAddr } : {},
+          query: activeAddr ? { address: activeAddr } : {},
         });
 
         syncSocket.on('connect_error', () => {
@@ -820,6 +839,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         syncSocket.on('connect', () => {
           socketConnectFailures = 0;
           backendSyncOfflineUntil = 0;
+          const currentAddr = (currentConnectedWalletAddress || address || '').toLowerCase().trim();
+          if (currentAddr && syncSocket) {
+            syncSocket.emit('identify', { address: currentAddr });
+          }
         });
 
         syncSocket.on('realtime-sync', (payload: any) => {
@@ -1222,7 +1245,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
           const statusMap: JobStatus[] = ['Open', 'Selected', 'Submitted', 'Disputed', 'Completed', 'Cancelled'];
           let status = statusMap[Number(statusRaw)] || 'Open';
-          if (status === 'Selected' && Number(amountRaw) > 0) {
+          const hasOnChainFunds = Number(amountRaw) > 0;
+          if ((status === 'Open' || status === 'Selected') && hasOnChainFunds) {
             status = 'Funded';
           }
 
@@ -1232,14 +1256,34 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           // Preserve any existing local metadata (title, description, category, proposals)
           const existingMatch = currentJobsList.find(
             (j: Job) => j.id?.toLowerCase() === jobAddr.slice(0, 14).toLowerCase() ||
-                   j.contractAddress?.toLowerCase() === jobAddr.toLowerCase()
+                   j.contractAddress?.toLowerCase() === jobAddr.toLowerCase() ||
+                   (j.client?.toLowerCase() === client.toLowerCase() && 
+                    (j.status === 'Funded' || j.status === 'Selected' || (j.events || []).some(e => e.step === 'Funded' && e.status === 'completed')) &&
+                    Math.abs(parseFloat(j.amountEth || j.amountUsdc || '0') - parseFloat(formattedAmount)) < 0.005)
           );
+
+          const finalFreelancer = (freelancer && freelancer !== ethers.ZeroAddress) ? freelancer : existingMatch?.freelancer;
+          const finalStatus = hasOnChainFunds ? 'Funded' : (existingMatch?.status || status);
+
+          const updatedEvents = existingMatch?.events ? existingMatch.events.map((evt) => {
+            if (evt.step === 'Funded' && hasOnChainFunds) {
+              return { ...evt, status: 'completed' as const, timestamp: evt.timestamp || Date.now() };
+            }
+            if (evt.step === 'Submitted' && hasOnChainFunds && evt.status === 'pending') {
+              return { ...evt, status: 'current' as const };
+            }
+            return evt;
+          }) : [
+            { step: 'Posted', title: `Job Posted (${tokenConfig.symbol} Escrow)`, timestamp: Date.now() - 3600000, txHash: '', status: 'completed', actor: 'Client' },
+            { step: 'Funded', title: 'Fund Escrow', timestamp: hasOnChainFunds ? Date.now() - 1800000 : 0, txHash: '', status: hasOnChainFunds ? 'completed' : 'pending' },
+            { step: 'Submitted', title: 'Submit Work', timestamp: 0, txHash: '', status: hasOnChainFunds ? 'current' : 'pending' },
+          ];
 
           parsedJobs.push({
             id: existingMatch?.id || jobAddr.slice(0, 14),
             contractAddress: jobAddr,
             client,
-            freelancer: freelancer === ethers.ZeroAddress ? undefined : freelancer,
+            freelancer: finalFreelancer,
             amountEth: tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL' 
               ? formattedAmount 
               : (parseFloat(formattedAmount) / 2800).toFixed(4),
@@ -1247,7 +1291,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             paymentToken,
             paymentTokenSymbol: tokenConfig.symbol,
             paymentTokenDecimals: tokenConfig.decimals,
-            status,
+            status: finalStatus,
             title: existingMatch?.title || `Smart Contract Escrow ${jobAddr.slice(0, 6)}...${jobAddr.slice(-4)}`,
             description: existingMatch?.description || `Decentralized JobEscrow verified on Polygon. Escrow contract: ${jobAddr}`,
             category: existingMatch?.category || 'web3',
@@ -1256,10 +1300,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : existingMatch?.submittedAt,
             termsHash: termsHash || existingMatch?.termsHash,
             applications: existingMatch?.applications || [],
-            events: existingMatch?.events || [
-              { step: 'Posted', title: `Job Posted (${tokenConfig.symbol} Escrow)`, timestamp: Date.now() - 3600000, txHash: '', status: 'completed', actor: 'Client' },
-              { step: 'Funded', title: 'Fund Escrow', timestamp: Number(amountRaw) > 0 ? Date.now() - 1800000 : 0, txHash: '', status: Number(amountRaw) > 0 ? 'completed' : 'pending' },
-            ],
+            events: updatedEvents,
           } as Job);
         } catch {
           // ignore single job read error
@@ -1666,6 +1707,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     let txHash = '';
     const job = jobs.find((j) => matchJob(j, jobId));
     if (!job) throw new Error('Job not found');
+    let targetContractAddress = job.contractAddress;
 
     if (isConnected && isWrongNetwork) {
       throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to fund this escrow.`);
@@ -1674,8 +1716,6 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const signer = await getSigner();
       if (signer && job) {
-        let targetContractAddress = job.contractAddress;
-
         // Check if contract is deployed on chain
         let hasLiveContract = false;
         if (targetContractAddress && ethers.isAddress(targetContractAddress)) {
@@ -1810,7 +1850,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) =>
       prev.map((j) => {
-        if (!matchJob(j, jobId)) return j;
+        if (!matchJob(j, jobId) && j.id !== jobId && (!targetContractAddress || j.contractAddress?.toLowerCase() !== targetContractAddress.toLowerCase())) return j;
         const updatedEvents = (j.events || []).map((evt) => {
           if (evt.step === 'Funded') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
           if (evt.step === 'Submitted') return { ...evt, status: 'current' as const };
@@ -1818,7 +1858,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         });
         return {
           ...j,
-          contractAddress: (job && job.contractAddress) || j.contractAddress,
+          contractAddress: targetContractAddress || (job && job.contractAddress) || j.contractAddress,
           status: 'Funded' as const,
           clientAgreedTerms: true,
           freelancerAgreedTerms: true,

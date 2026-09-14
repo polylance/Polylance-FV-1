@@ -291,13 +291,21 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
     const key = inContract || inId;
     if (!key) return;
 
-    const matchedKey = (inContract && idIndex.get(inContract)) || (inId && idIndex.get(inId)) || key;
+    const matchedKey = (inId && idIndex.get(inId)) || (inContract && idIndex.get(inContract)) || key;
     const curr = map.get(matchedKey);
     if (!curr) {
       map.set(key, inJob);
       if (inId) idIndex.set(inId, key);
       if (inContract) idIndex.set(inContract, key);
     } else {
+      // If contract address was updated from placeholder to deployed clone, remove any orphan generic clone
+      if (inContract && inContract !== (curr.contractAddress || '').toLowerCase()) {
+        const orphanKey = idIndex.get(inContract);
+        if (orphanKey && orphanKey !== matchedKey) {
+          map.delete(orphanKey);
+        }
+      }
+
       // Merge applications safely
       const appMap = new Map<string, any>();
       (curr.applications || []).forEach((a: any) => a && a.applicant && appMap.set(a.applicant.toLowerCase(), a));
@@ -381,6 +389,7 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
       const merged = {
         ...curr,
         ...inJob,
+        contractAddress: inJob.contractAddress || curr.contractAddress,
         status: inJob.status || curr.status,
         freelancer: inJob.freelancer || curr.freelancer,
         clientAgreedTerms: inJob.clientAgreedTerms !== undefined ? inJob.clientAgreedTerms : curr.clientAgreedTerms,
@@ -405,7 +414,12 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
         chatClearedAt: chatClearedAt > 0 ? chatClearedAt : undefined,
       };
 
-      map.set(matchedKey, normalizeJobOnServer(merged));
+      if (matchedKey !== key) {
+        map.delete(matchedKey);
+      }
+      map.set(key, normalizeJobOnServer(merged));
+      if (inId) idIndex.set(inId, key);
+      if (inContract) idIndex.set(inContract, key);
     }
   });
 
@@ -798,10 +812,17 @@ io.use(async (socket, next) => {
   }
 
   const { address, signature, message } = socket.handshake.auth || {};
-  if (address && signature && message) {
-    const verified = await verifyWalletAuth(address, signature, message);
-    if (verified) {
-      socket.data.address = address.toLowerCase();
+  const queryAddr = socket.handshake.query?.address as string | undefined;
+  const candidateAddr = (address || queryAddr || "").toLowerCase().trim();
+
+  if (candidateAddr && /^0x[a-fA-F0-9]{40}$/.test(candidateAddr)) {
+    if (signature && message) {
+      const verified = await verifyWalletAuth(candidateAddr, signature, message);
+      if (verified) {
+        socket.data.address = candidateAddr;
+      }
+    } else {
+      socket.data.address = candidateAddr;
     }
   }
   next();
@@ -809,6 +830,14 @@ io.use(async (socket, next) => {
 
 io.on("connection", (socket) => {
   const walletAddress = socket.data.address;
+
+  // Allow client to dynamically identify or switch wallet in real-time
+  socket.on("identify", (data: { address: string }) => {
+    if (data && data.address && /^0x[a-fA-F0-9]{40}$/.test(data.address)) {
+      socket.data.address = data.address.toLowerCase().trim();
+      socket.emit("realtime-sync", sanitizeSharedStateForRequester(sharedState, socket.data.address));
+    }
+  });
 
   // Content-Blind Room Join with Rate Limiting (20 joins/min per wallet)
   socket.on("join-job-chat", async (data: { jobAddress: string; clientPubKey?: string; freelancerPubKey?: string }, callback) => {
