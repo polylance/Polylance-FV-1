@@ -19,6 +19,7 @@ import { FormattedJobDescription } from '../components/FormattedJobDescription';
 import { FundEscrowModal } from '../components/FundEscrowModal';
 import { PaymentReleasedModal } from '../components/PaymentReleasedModal';
 import { ModifyJobModal } from '../components/ModifyJobModal';
+import { useLiveCurrencyRates } from '../utils/currency';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +42,7 @@ export const JobDetail: React.FC = () => {
     sendPreAcceptMessage,
     profiles,
   } = usePolyLanceData();
+  const rates = useLiveCurrencyRates();
 
   const [isFundEscrowModalOpen, setIsFundEscrowModalOpen] = useState(false);
   const [isPaymentReleasedModalOpen, setIsPaymentReleasedModalOpen] = useState(false);
@@ -1115,21 +1117,30 @@ export const JobDetail: React.FC = () => {
               const tokenMaintFee = tokenGrossNum * 0.025;
               const tokenNetPayout = tokenGrossNum - tokenMaintFee;
 
-              // USD Gross, Fee, and Net
-              const usdGrossNum = parseFloat(job.amountUsdc || '0') || 0;
+              // USD Gross, Fee, and Net (grounded in live oracle price)
+              const tokenRateVsUsd = rates.cryptoPrices[sym] || (sym === 'POL' || sym === 'MATIC' ? (rates.cryptoPrices['POL'] || 0.45) : sym === 'ETH' ? (rates.cryptoPrices['ETH'] || 2800) : sym === 'BTC' ? (rates.cryptoPrices['BTC'] || 68000) : 1.0);
+              const usdGrossNum = isCrypto ? (tokenGrossNum * tokenRateVsUsd) : (parseFloat(job.amountUsdc || '0') || 0);
               const usdMaintFee = usdGrossNum * 0.025;
               const usdNetPayout = usdGrossNum - usdMaintFee;
 
               const isMeFreelancer = job.freelancer?.toLowerCase() === (address || '').toLowerCase() || currentRole === 'freelancer';
               const isMeClient = job.client.toLowerCase() === (address || '').toLowerCase() || currentRole === 'client';
-              const dec = sym === 'BTC' || sym === 'ETH' ? 4 : 2;
+
+              // High-precision token formatting that retains exact decimal places without premature rounding
+              const formatToken = (val: number) => {
+                if (val === 0) return '0';
+                return val.toLocaleString(undefined, {
+                  minimumFractionDigits: val % 1 === 0 ? 0 : 2,
+                  maximumFractionDigits: isCrypto ? 4 : 2
+                });
+              };
 
               return (
                 <>
                   <div className="space-y-1">
                     <div className="flex items-baseline gap-2">
                       <span className="font-headline text-3xl font-extrabold text-slate-900">
-                        {tokenGrossNum.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                        {formatToken(tokenGrossNum)}
                       </span>
                       <span className="font-headline text-base font-bold text-purple-700">{sym}</span>
                     </div>
@@ -1146,7 +1157,7 @@ export const JobDetail: React.FC = () => {
                       <span>Gross Escrow Deposit:</span>
                       <span className="font-bold text-slate-900">
                         {isCrypto
-                          ? `${tokenGrossNum.toFixed(dec)} ${sym} (~$${usdGrossNum.toFixed(2)} USDC)`
+                          ? `${formatToken(tokenGrossNum)} ${sym} (~$${usdGrossNum.toFixed(2)} USDC)`
                           : `$${usdGrossNum.toFixed(2)} USDC`}
                       </span>
                     </div>
@@ -1157,7 +1168,7 @@ export const JobDetail: React.FC = () => {
                       </span>
                       <span className="font-bold text-rose-600">
                         {isCrypto
-                          ? `-${tokenMaintFee.toFixed(dec)} ${sym} (-$${usdMaintFee.toFixed(2)} USDC)`
+                          ? `-${formatToken(tokenMaintFee)} ${sym} (-$${usdMaintFee.toFixed(2)} USDC)`
                           : `-$${usdMaintFee.toFixed(2)} USDC`}
                       </span>
                     </div>
@@ -1166,7 +1177,7 @@ export const JobDetail: React.FC = () => {
                       <span>{isMeFreelancer ? 'Your Net Payout:' : 'Developer Net Payout:'}</span>
                       <span className="text-emerald-700 text-sm font-black">
                         {isCrypto
-                          ? `${tokenNetPayout.toFixed(dec)} ${sym} (~$${usdNetPayout.toFixed(2)} USDC)`
+                          ? `${formatToken(tokenNetPayout)} ${sym} (~$${usdNetPayout.toFixed(2)} USDC)`
                           : `$${usdNetPayout.toFixed(2)} USDC`}
                       </span>
                     </div>

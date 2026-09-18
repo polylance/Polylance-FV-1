@@ -1489,7 +1489,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             amountEth: tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL' 
               ? formattedAmount 
               : (parseFloat(formattedAmount) / 2800).toFixed(4),
-            amountUsdc: formattedAmount,
+            amountUsdc: existingMatch?.amountUsdc || (
+              tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL'
+                ? (parseFloat(formattedAmount) * 0.45).toFixed(2)
+                : formattedAmount
+            ),
             paymentToken,
             paymentTokenSymbol: tokenConfig.symbol,
             paymentTokenDecimals: tokenConfig.decimals,
