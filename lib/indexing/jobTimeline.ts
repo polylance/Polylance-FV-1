@@ -9,7 +9,7 @@ export async function getJobTimeline(jobAddress: string) {
       step: e.eventName,
       timestamp: e.timestamp,
       txHash: e.txHash,
-      polygonscanUrl: `https://amoy.polygonscan.com/tx/${e.txHash}`,
+      polygonscanUrl: `https://polygonscan.com/tx/${e.txHash}`,
       details: JSON.parse(
         JSON.stringify(e.args, (_key, value) =>
           typeof value === "bigint" ? value.toString() : value

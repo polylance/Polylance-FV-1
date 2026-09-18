@@ -172,13 +172,13 @@ describe("Event Indexing Service & Analytics Tiers", function () {
   });
 
   describe("PHASE 3 & 4 — Job Timeline & API Routes", function () {
-    it("should construct a chronological job timeline with Polygonscan Amoy URLs", async function () {
+    it("should construct a chronological job timeline with Polygonscan URLs", async function () {
       const timeline = await getJobTimeline(job1Addr);
       expect(timeline.length).to.be.gte(6);
       expect(timeline[0].step).to.equal("JobPosted");
 
       for (const item of timeline) {
-        expect(item.polygonscanUrl).to.include("https://amoy.polygonscan.com/tx/");
+        expect(item.polygonscanUrl).to.include("https://polygonscan.com/tx/");
         expect(item.txHash).to.be.a("string");
       }
     });

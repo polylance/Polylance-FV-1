@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { scoreGithubUser, GithubScoreResult } from '../utils/githubOracle';
-import { Github, CheckCircle2, Loader2, Sparkles, X, ShieldCheck } from 'lucide-react';
+import { Github, CheckCircle2, Loader2, Sparkles, X, ShieldCheck, AlertCircle } from 'lucide-react';
 
 interface GithubVerifyModalProps {
   userAddress: string;
@@ -18,6 +18,7 @@ export const GithubVerifyModal: React.FC<GithubVerifyModalProps> = ({
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GithubScoreResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -26,6 +27,7 @@ export const GithubVerifyModal: React.FC<GithubVerifyModalProps> = ({
     if (!username.trim()) return;
     setLoading(true);
     setResult(null);
+    setError(null);
 
     try {
       // Runs client-side oracle scoring simulator (mirrors oracle/githubScorer.js)
@@ -34,8 +36,9 @@ export const GithubVerifyModal: React.FC<GithubVerifyModalProps> = ({
         setResult(res);
         setLoading(false);
       }, 700);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err?.message || 'Failed to verify GitHub profile. Please check requirements.');
       setLoading(false);
     }
   };
@@ -82,10 +85,24 @@ export const GithubVerifyModal: React.FC<GithubVerifyModalProps> = ({
                 required
                 placeholder="e.g. SatoshiNakamoto"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (error) setError(null);
+                }}
                 className="w-full glass-input"
               />
+              <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
+                <span>Minimum criteria:</span>
+                <span className="text-slate-300 font-mono font-medium">≥5 public repos, ≥50 commits, ≥1 follower, score ≥500</span>
+              </p>
             </div>
+
+            {error && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-2 text-rose-400 text-xs animate-shake">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{error}</span>
+              </div>
+            )}
 
             <button
               type="submit"

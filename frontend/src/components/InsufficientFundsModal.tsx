@@ -182,7 +182,7 @@ export const InsufficientFundsModal: React.FC<InsufficientFundsModalProps> = ({
                       rel="noopener noreferrer"
                       className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 transition-all text-xs font-sans font-bold text-slate-800 flex items-center justify-between group"
                     >
-                      <span>Amoy POL Faucet</span>
+                      <span>Polygon POL Faucet</span>
                       <ArrowUpRight size={14} className="text-slate-400 group-hover:text-purple-600" />
                     </a>
                     <a

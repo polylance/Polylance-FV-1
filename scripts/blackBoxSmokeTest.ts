@@ -27,11 +27,11 @@ async function main() {
     console.log("   ✓ Render Health Bypass Rule active in server.ts");
   }
 
-  console.log("\n2. Checking Polygon Amoy RPC Endpoint Connectivity...");
-  const rpcUrl = "https://polygon-amoy-bor-rpc.publicnode.com";
+  console.log("\n2. Checking Polygon Mainnet RPC Endpoint Connectivity...");
+  const rpcUrl = "https://polygon-bor-rpc.publicnode.com";
   try {
     const rpcRes = await fetchUrl(rpcUrl);
-    console.log(`   ✓ Amoy Public RPC Status: ${rpcRes.status}`);
+    console.log(`   ✓ Polygon Mainnet Public RPC Status: ${rpcRes.status}`);
   } catch (err: any) {
     console.log(`   ⚠️ RPC check warning: ${err.message}`);
   }

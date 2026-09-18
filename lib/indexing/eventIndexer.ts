@@ -40,7 +40,7 @@ export function setIndexerConfig(provider: ethers.Provider, factoryAddress: stri
 
 export function getProvider(): ethers.Provider {
   if (globalProvider) return globalProvider;
-  const rpcUrl = process.env.AMOY_RPC_URL || "https://rpc-amoy.polygon.technology";
+  const rpcUrl = process.env.POLYGON_MAINNET_RPC_URL || process.env.RPC_URL || "https://polygon-bor-rpc.publicnode.com";
   return new ethers.JsonRpcProvider(rpcUrl);
 }
 

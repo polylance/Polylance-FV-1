@@ -14,9 +14,9 @@ services:
       - key: BACKUP_DATABASE_URL
         sync: false
       - key: RPC_URL
-        value: https://rpc-amoy.polygon.technology
+        value: https://polygon-bor-rpc.publicnode.com
       - key: JOB_FACTORY_ADDRESS
-        value: 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+        value: 0xbE74923BBfd72d400a681915dBcf6e6Adc72C317
       - key: ALLOWED_ORIGINS
         value: https://polylance-fv-1.onrender.com,https://polylance.github.io,https://polylance.codes,http://localhost:5173
       - key: NODE_ENV

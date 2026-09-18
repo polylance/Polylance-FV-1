@@ -2,13 +2,13 @@ import localAddresses from "./localhost_addresses.json";
 import amoyAddresses from "./amoy_addresses.json";
 import polygonAddresses from "./polygon_addresses.json";
 
-const network = import.meta.env.VITE_NETWORK ?? "amoy";
+const network = import.meta.env.VITE_NETWORK ?? "polygon";
 const manifest = 
-  network === "polygon" 
-    ? polygonAddresses 
+  network === "amoy" 
+    ? amoyAddresses 
     : network === "localhost" 
       ? localAddresses 
-      : amoyAddresses;
+      : polygonAddresses;
 
 export const CONTRACTS = {
   JobFactory: (import.meta.env.VITE_JOB_FACTORY_ADDRESS || manifest.JobFactory) as string,
@@ -17,16 +17,17 @@ export const CONTRACTS = {
   GithubReputationRegistry: (import.meta.env.VITE_GITHUB_REGISTRY_ADDRESS || manifest.GithubReputationRegistry) as string,
   JudgeDAO: (import.meta.env.VITE_JUDGE_DAO_ADDRESS || manifest.JudgeDAO) as string,
   TimelockController: (import.meta.env.VITE_TIMELOCK_ADDRESS || manifest.TimelockController) as string,
+  JobEscrowImplementation: ((manifest as any).JobEscrowImplementation || "0x88dd19df1b6dBA8D2c53b3976f4ec39B75f17FbB") as string,
 } as const;
 
 export const CONTRACT_ADDRESSES = CONTRACTS;
 
 export const CHAIN_ID = 
-  network === "polygon" 
-    ? 137 
-    : network === "amoy" 
-      ? 80002 
-      : 31337;
+  network === "amoy" 
+    ? 80002 
+    : network === "localhost" 
+      ? 31337 
+      : 137;
 
 export const AMOY_RPC_URLS = [
   "https://polygon-amoy-bor-rpc.publicnode.com",

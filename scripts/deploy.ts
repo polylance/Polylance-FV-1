@@ -229,6 +229,30 @@ export async function deployContracts(): Promise<DeploymentAddresses> {
         2
       )
     );
+  } else if (network === "polygon") {
+    const rootPath = path.join(__dirname, "..", "polygon_deployment_addresses.json");
+    fs.writeFileSync(
+      rootPath,
+      JSON.stringify(
+        {
+          network,
+          chainId: "137",
+          deployedAt: addresses.deployedAt,
+          deployer: deployer.address,
+          contracts: {
+            JobEscrowImpl: jobEscrowImplAddr,
+            ReputationSBT: sbtAddr,
+            JobFactory: factoryAddr,
+            ProfileRegistry: profileRegistryAddr,
+            GithubReputationRegistry: githubRegistryAddr,
+            TimelockController: timelockAddr,
+            JudgeDAO: judgeDAOAddr,
+          },
+        },
+        null,
+        2
+      )
+    );
   }
 
   console.log("\n═══════════════════════════════════════");

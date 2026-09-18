@@ -1,0 +1,15 @@
+{
+  "network": "polygon",
+  "chainId": "137",
+  "deployedAt": "2026-09-18T15:51:28.561Z",
+  "deployer": "0xc0Af73834fc45E88664e94D98B77cde62Fc1139E",
+  "contracts": {
+    "JobEscrowImpl": "0x88dd19df1b6dBA8D2c53b3976f4ec39B75f17FbB",
+    "ReputationSBT": "0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879",
+    "JobFactory": "0xbE74923BBfd72d400a681915dBcf6e6Adc72C317",
+    "ProfileRegistry": "0xA408070979043215C8C91d245973886eA7c09f42",
+    "GithubReputationRegistry": "0x91e103Fd78ccC3233d08f4830587763F72b9D5aB",
+    "TimelockController": "0x45602bE11306651C7FA5c96Bc7fa5051BA4a856f",
+    "JudgeDAO": "0xe991e45907Bd341a036CF4A6a95768af198d4b86"
+  }
+}

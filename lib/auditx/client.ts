@@ -18,7 +18,7 @@ export async function registerJobForMonitoring(jobContractAddress: string): Prom
       },
       body: JSON.stringify({
         address: jobContractAddress,
-        chain: "polygon-amoy",
+        chain: "polygon-mainnet",
         watchFor: ["reentrancy", "scam-flagged-counterparty", "anomalous-value-flow"],
       }),
     });
