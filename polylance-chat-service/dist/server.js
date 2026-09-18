@@ -1298,8 +1298,8 @@ async function handleCertifiedPassVerification(req, res) {
             const canonicalCertId = rec.id;
             const certifiedPassVerifyUrl = `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(canonicalCertId)}&partner=polylance`;
             const polyLanceUrl = isAudit
-                ? `https://polylance.app/#/audit/${rec.targetAddress}`
-                : `https://polylance.app/#/jobs/${rec.jobId}/attestation`;
+                ? `https://polylance.codes/#/audit/${rec.targetAddress}`
+                : `https://polylance.codes/#/jobs/${rec.jobId}/attestation`;
             const responsePayload = {
                 verified: true,
                 status: rec.status || 'VERIFIED',
@@ -1417,7 +1417,7 @@ async function handleCertifiedPassVerification(req, res) {
                     timestamp: liveJob.updatedAt || new Date().toISOString()
                 },
                 source: 'POLYLANCE_LIVE_PROTOCOL_STATE',
-                polyLanceUrl: `https://polylance.app/#/jobs/${liveJob.id}/attestation`,
+                polyLanceUrl: `https://polylance.codes/#/jobs/${liveJob.id}/attestation`,
                 certifiedPassVerifyUrl
             };
             res.json({
@@ -1480,7 +1480,7 @@ async function handleCertifiedPassVerification(req, res) {
                     timestamp: new Date().toISOString()
                 },
                 source: 'POLYLANCE_LIVE_STATE',
-                polyLanceUrl: `https://polylance.app/#/audit/${addr}`,
+                polyLanceUrl: `https://polylance.codes/#/audit/${addr}`,
                 certifiedPassVerifyUrl
             };
             res.json({
@@ -1633,7 +1633,7 @@ async function handleCertifiedPassAudit(req, res) {
                     timestamp: rec.updatedAt || rec.createdAt || new Date().toISOString()
                 },
                 source: 'CERTIFIED_PASS_SECURE_STORAGE',
-                polyLanceUrl: `https://polylance.app/#/audit/${rec.targetAddress}`,
+                polyLanceUrl: `https://polylance.codes/#/audit/${rec.targetAddress}`,
                 certifiedPassVerifyUrl
             };
             res.json({
@@ -1677,7 +1677,7 @@ async function handleCertifiedPassAudit(req, res) {
                 timestamp: new Date().toISOString()
             },
             source: 'POLYLANCE_LIVE_STATE',
-            polyLanceUrl: `https://polylance.app/#/audit/${address}`,
+            polyLanceUrl: `https://polylance.codes/#/audit/${address}`,
             certifiedPassVerifyUrl
         };
         res.json({

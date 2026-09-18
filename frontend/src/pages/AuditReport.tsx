@@ -370,7 +370,7 @@ export const AuditReport: React.FC = () => {
 
   const shareUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}${window.location.pathname}#/audit/${targetAddress}`
-    : `https://polylance.app/#/audit/${targetAddress}`;
+    : `https://polylance.codes/#/audit/${targetAddress}`;
 
   const handlePrint = () => {
     window.print();

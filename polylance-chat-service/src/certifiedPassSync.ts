@@ -438,7 +438,7 @@ export async function syncAllStateToCertifiedPass(jobs: any[], profiles: Record<
             settlementDate: job.updatedAt || new Date().toISOString(),
             slaDisputes: 0,
             status: job.status === 'Completed' || job.status === 'Resolved' ? 'VERIFIED' : job.status,
-            polyLanceUrl: `https://polylance.app/#/jobs/${cleanJobId}/attestation`,
+            polyLanceUrl: `https://polylance.codes/#/jobs/${cleanJobId}/attestation`,
             certifiedPassVerifyUrl: `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(certId)}&partner=polylance`
           }
         });
@@ -468,7 +468,7 @@ export async function syncAllStateToCertifiedPass(jobs: any[], profiles: Record<
           fullReport: {
             profile: prof,
             jobsCount: userJobs.length,
-            polyLanceUrl: `https://polylance.app/#/audit/${lower}`,
+            polyLanceUrl: `https://polylance.codes/#/audit/${lower}`,
             certifiedPassVerifyUrl: `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`
           }
         });

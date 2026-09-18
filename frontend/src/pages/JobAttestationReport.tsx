@@ -118,7 +118,7 @@ export const JobAttestationReport: React.FC = () => {
 
   const shareUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}${window.location.pathname}#/attestation/${job?.id || 'job'}`
-    : `https://polylance.app/#/attestation/${job?.id || 'job'}`;
+    : `https://polylance.codes/#/attestation/${job?.id || 'job'}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl);
