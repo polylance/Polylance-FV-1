@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { 
   Sparkles, ShieldCheck, Lock, Scale, 
-  ArrowRight, Award, Cpu, TrendingUp, Code2, CheckCircle2, Users
+  ArrowRight, Award, Cpu, TrendingUp, Code2, CheckCircle2, Users, LineChart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
@@ -74,11 +74,35 @@ export const Manifesto: React.FC = () => {
       bottomAccent: 'border-b-indigo-600',
       headingColor: 'text-indigo-700',
       checkColor: 'text-indigo-600',
-      bio: 'Protocol Strategist & Chief Security Officer. Mapping the expansion, cross-chain interoperability, and security of PolyLance across the multichain ecosystem.',
+      bio: 'Chief Security Officer. Mapping the expansion, cross-chain interoperability, and security of PolyLance across the multichain ecosystem.',
       strengths: [
         'Cross-Chain Interoperability',
         'Security Strategy',
         'Ecosystem Expansion'
+      ]
+    },
+    {
+      id: 'neeraj',
+      initials: 'NC',
+      name: 'Neeraj Chennamsetty',
+      role: 'CFO',
+      specialty: 'FINANCIAL STRATEGY',
+      icon: LineChart,
+      accentColor: 'amber',
+      specialtyColor: 'text-amber-600',
+      badgeStyle: 'bg-amber-50 text-amber-700 border-amber-100',
+      avatarGradient: 'from-amber-500 via-orange-500 to-yellow-600',
+      avatarShadow: 'shadow-amber-500/25',
+      avatarRing: 'bg-amber-100 border-amber-200',
+      iconStyle: 'bg-amber-50 text-amber-600 border-amber-100',
+      bottomAccent: 'border-b-amber-500',
+      headingColor: 'text-amber-700',
+      checkColor: 'text-amber-600',
+      bio: 'Chief Financial Officer. Spearheading business strategies, capital growth, and sustainable financial architecture for the PolyLance ecosystem.',
+      strengths: [
+        'Business Strategies',
+        'Financial Growth & Modeling',
+        'Treasury & Capital Management'
       ]
     },
     {
@@ -246,8 +270,8 @@ export const Manifesto: React.FC = () => {
             </motion.p>
           </div>
 
-          {/* 4 Team Member Cards Grid (Staggered Scroll Reveal) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+          {/* 5 Executive Team Member Cards Grid (Staggered Scroll Reveal) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 sm:gap-6 text-left">
             {teamMembers.map((m, idx) => {
               const RoleIcon = m.icon;
               return (
