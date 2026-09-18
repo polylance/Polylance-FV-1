@@ -107,14 +107,20 @@ export const JobWorkspace: React.FC = () => {
     if (!activeJob) return;
     const confirmed = window.confirm(`Are you sure you want to delete/remove the job "${activeJob.title}"?`);
     if (!confirmed) return;
-    const ok = await deleteJob(activeJob.id);
+    const deletingId = activeJob.id;
+    const deletingContract = activeJob.contractAddress;
+    const ok = await deleteJob(deletingId);
     if (ok) {
-      const remaining = myJobs.filter(j => j.id !== activeJob.id);
+      try {
+        localStorage.removeItem('polylance_last_opened_job');
+      } catch {}
+      const remaining = myJobs.filter(j => j.id !== deletingId && j.contractAddress !== deletingContract);
       if (remaining.length > 0) {
         setSelectedJobId(remaining[0].id);
         setSearchParams({ jobId: remaining[0].id });
       } else {
         setSelectedJobId(null);
+        setSearchParams({});
       }
     }
   };
@@ -454,8 +460,17 @@ export const JobWorkspace: React.FC = () => {
                     </div>
                     <div className="flex items-center flex-wrap gap-2 text-[11px] sm:text-xs font-mono mt-0.5 text-slate-500">
                       <span className="inline-flex items-center gap-1 font-bold text-emerald-600">
-                        <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-bold shadow-2xs">$</span>
-                        <span>${activeJob.amountUsdc} USDC</span>
+                        <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-bold shadow-2xs">
+                          {activeJob.paymentTokenSymbol === 'POL' || activeJob.paymentTokenSymbol === 'MATIC' ? '⬡' : '$'}
+                        </span>
+                        <span>
+                          {(() => {
+                            const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
+                            const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                            const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
+                            return isCrypto ? `${amt} ${sym}` : `$${amt} USDC`;
+                          })()}
+                        </span>
                       </span>
                       <span className="text-slate-300 hidden sm:inline">|</span>
                       <span className="inline-flex items-center gap-1 text-slate-600">
@@ -583,11 +598,25 @@ export const JobWorkspace: React.FC = () => {
                 <span className="text-[10px] font-mono font-bold uppercase text-slate-400">
                   Current Listed Budget
                 </span>
-                <p className="text-lg font-black text-slate-900 font-headline">
-                  ${activeJob.amountUsdc} <span className="text-xs font-bold text-slate-500 font-sans">USDC</span>
-                </p>
+                <div className="text-lg font-black text-slate-900 font-headline">
+                  {(() => {
+                    const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
+                    const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                    const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
+                    return isCrypto ? (
+                      <>
+                        <span>{amt}</span> <span className="text-xs font-bold text-slate-500 font-sans">{sym}</span>
+                        <span className="text-[11px] font-normal text-slate-400 block font-mono">≈ ${activeJob.amountUsdc} USDC</span>
+                      </>
+                    ) : (
+                      <>
+                        ${amt} <span className="text-xs font-bold text-slate-500 font-sans">USDC</span>
+                      </>
+                    );
+                  })()}
+                </div>
                 <span className="text-[10px] font-mono text-purple-700 block">
-                  {activeJob.negotiatedAmount ? `Negotiated: $${activeJob.negotiatedAmount} USDC` : 'Standard listing price'}
+                  {activeJob.negotiatedAmount ? `Negotiated: ${activeJob.negotiatedAmount} ${activeJob.paymentTokenSymbol || 'USDC'}` : 'Standard listing price'}
                 </span>
               </div>
 
@@ -951,9 +980,16 @@ export const JobWorkspace: React.FC = () => {
                           {/* Amount in Emerald */}
                           <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600">
                             <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shadow-2xs">
-                              $
+                              {j.paymentTokenSymbol === 'POL' || j.paymentTokenSymbol === 'MATIC' ? '⬡' : '$'}
                             </span>
-                            <span>${j.amountUsdc} {j.paymentTokenSymbol || 'USDC'}</span>
+                            <span>
+                              {(() => {
+                                const sym = (j.paymentTokenSymbol || 'USDC').toUpperCase();
+                                const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                                const amt = isCrypto ? (j.amountEth || j.amountUsdc) : j.amountUsdc;
+                                return isCrypto ? `${amt} ${sym}` : `$${amt} USDC`;
+                              })()}
+                            </span>
                           </span>
 
                           {/* Divider */}

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit3, Save, DollarSign, Calendar, Tag, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Job, SkillCategory } from '../types';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { useLiveCurrencyRates } from '../utils/currency';
 
 interface ModifyJobModalProps {
   isOpen: boolean;
@@ -25,6 +26,11 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
   onSuccess,
 }) => {
   const { updateJobDetails } = usePolyLanceData();
+  const rates = useLiveCurrencyRates();
+
+  const sym = (job?.paymentTokenSymbol || 'USDC').toUpperCase();
+  const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+  const tokenPriceUsd = rates.cryptoPrices[sym] || 1.0;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -40,12 +46,13 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
       setTitle(job.title || '');
       setDescription(job.description || '');
       setCategory(job.category || 'web3');
-      setAmountUsdc(job.amountUsdc || '0');
+      const initialAmt = isCrypto ? (job.amountEth || job.amountUsdc || '0') : (job.amountUsdc || '0');
+      setAmountUsdc(initialAmt);
       setReviewPeriodDays(job.reviewPeriodDays || 7);
       setErrorMessage(null);
       setSuccessMessage(null);
     }
-  }, [job, isOpen]);
+  }, [job, isOpen, isCrypto]);
 
   if (!isOpen || !job) return null;
 
@@ -73,13 +80,17 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
       return;
     }
 
+    const finalAmountUsdc = isCrypto ? (numAmount * tokenPriceUsd).toFixed(2) : numAmount.toString();
+    const finalAmountEth = isCrypto ? numAmount.toString() : undefined;
+
     setIsSubmitting(true);
     try {
       const ok = await updateJobDetails(job.id, {
         title: title.trim(),
         description: description.trim(),
         category,
-        amountUsdc: numAmount.toString(),
+        amountUsdc: finalAmountUsdc,
+        amountEth: finalAmountEth,
         reviewPeriodDays,
       });
 
@@ -91,7 +102,8 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
             title: title.trim(),
             description: description.trim(),
             category,
-            amountUsdc: numAmount.toString(),
+            amountUsdc: finalAmountUsdc,
+            amountEth: finalAmountEth || job.amountEth,
             reviewPeriodDays,
           });
         }
@@ -231,7 +243,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
               {/* Budget Amount */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-headline font-bold uppercase tracking-wider text-slate-700">
-                  Target Budget ({job.paymentTokenSymbol || 'USDC'}) <span className="text-rose-500">*</span>
+                  Target Budget ({sym}) <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -240,17 +252,22 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                   <input
                     type="number"
                     step="any"
-                    min="0.01"
+                    min="0.0001"
                     value={amountUsdc}
                     onChange={(e) => setAmountUsdc(e.target.value)}
-                    placeholder="250.00"
+                    placeholder={isCrypto ? '10' : '250.00'}
                     className="w-full pl-9 pr-14 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 font-mono text-sm text-slate-800 transition-all"
                     required
                   />
                   <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-mono font-bold text-slate-500">
-                    {job.paymentTokenSymbol || 'USDC'}
+                    {sym}
                   </div>
                 </div>
+                {isCrypto && (
+                  <span className="text-[10.5px] font-mono text-slate-500 block">
+                    ≈ ${(parseFloat(amountUsdc || '0') * tokenPriceUsd).toFixed(2)} USDC
+                  </span>
+                )}
               </div>
 
               {/* Review Period Days */}

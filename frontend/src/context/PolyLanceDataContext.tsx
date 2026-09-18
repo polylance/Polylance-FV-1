@@ -83,6 +83,7 @@ interface PolyLanceDataContextType {
       description?: string;
       category?: SkillCategory;
       amountUsdc?: string;
+      amountEth?: string;
       reviewPeriodDays?: number;
       paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC';
     }
@@ -381,12 +382,50 @@ const normalizeJob = (job: Job): Job => {
   return next;
 };
 
+const getInitialRecentlyDeleted = (): Set<string> => {
+  const set = new Set<string>();
+  try {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('polylance_recently_deleted_jobs');
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) {
+          arr.forEach((id: string) => {
+            if (id && typeof id === 'string') set.add(id.toLowerCase().trim());
+          });
+        }
+      }
+    }
+  } catch {}
+  return set;
+};
+
+const recentlyDeletedJobIds: Set<string> = getInitialRecentlyDeleted();
+
+const trackDeletedJobId = (id?: string) => {
+  if (!id || typeof id !== 'string') return;
+  const clean = id.toLowerCase().trim();
+  recentlyDeletedJobIds.add(clean);
+  try {
+    if (typeof window !== 'undefined') {
+      const arr = Array.from(recentlyDeletedJobIds).slice(-100);
+      localStorage.setItem('polylance_recently_deleted_jobs', JSON.stringify(arr));
+    }
+  } catch {}
+};
+
+const isRecentlyDeletedJob = (id?: string, contractAddress?: string): boolean => {
+  if (id && recentlyDeletedJobIds.has(String(id).toLowerCase().trim())) return true;
+  if (contractAddress && recentlyDeletedJobIds.has(String(contractAddress).toLowerCase().trim())) return true;
+  return false;
+};
+
 const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
   const map = new Map<string, Job>();
   const idIndex = new Map<string, string>(); // maps id / contractAddress to mapKey
 
   (existing || []).forEach((j) => {
-    if (!j || isDemoOrMockJob(j)) return;
+    if (!j || isDemoOrMockJob(j) || isRecentlyDeletedJob(j.id, j.contractAddress)) return;
     const norm = normalizeJob(j);
     const key = (norm.contractAddress || norm.id).toLowerCase();
     map.set(key, norm);
@@ -395,7 +434,7 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
   });
 
   (incoming || []).forEach((inJobRaw) => {
-    if (!inJobRaw || isDemoOrMockJob(inJobRaw)) return;
+    if (!inJobRaw || isDemoOrMockJob(inJobRaw) || isRecentlyDeletedJob(inJobRaw.id, inJobRaw.contractAddress)) return;
     const inJob = normalizeJob(inJobRaw);
     const inId = inJob.id ? String(inJob.id).toLowerCase() : '';
     const inContract = inJob.contractAddress ? String(inJob.contractAddress).toLowerCase() : '';
@@ -901,7 +940,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             }
             if (payload.deletedJobId) {
               const delId = payload.deletedJobId;
-              setJobsRaw((curr) => curr.filter((j) => !matchJob(j, delId)));
+              trackDeletedJobId(delId);
+              setJobsRaw((curr) => curr.filter((j) => !matchJob(j, delId) && !isRecentlyDeletedJob(j.id, j.contractAddress)));
             }
             if (payload.daoProposals) setDaoProposalsRaw([...payload.daoProposals]);
             if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
@@ -960,6 +1000,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         syncSocket.on('realtime-sync', (payload: any) => {
           if (!payload) return;
+          if (payload.deletedJobId) {
+            const delId = payload.deletedJobId;
+            trackDeletedJobId(delId);
+            setJobsRaw((curr) => curr.filter((j) => !matchJob(j, delId) && !isRecentlyDeletedJob(j.id, j.contractAddress)));
+          }
           if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
             setJobsRaw((curr) => {
               const merged = mergeJobsList(curr, payload.jobs);
@@ -1675,6 +1720,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       description?: string;
       category?: SkillCategory;
       amountUsdc?: string;
+      amountEth?: string;
       reviewPeriodDays?: number;
       paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC';
     }
@@ -1686,11 +1732,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!matchJob(j, jobId)) return j;
           const tokenSymbol = updates.paymentTokenSymbol || (j.paymentTokenSymbol as any) || 'USDC';
           const tokenConfig = getTokenBySymbol(tokenSymbol);
+          const symUpper = String(tokenSymbol).toUpperCase();
+          const isCrypto = symUpper === 'MATIC' || symUpper === 'POL' || symUpper === 'ETH' || symUpper === 'BTC';
 
           const newAmountUsdc = updates.amountUsdc !== undefined ? updates.amountUsdc : j.amountUsdc;
-          const ethAmount = (tokenConfig.symbol === 'MATIC' || tokenConfig.symbol === 'POL')
-            ? newAmountUsdc
-            : (parseFloat(newAmountUsdc) / 2800).toFixed(4);
+          const ethAmount = updates.amountEth !== undefined
+            ? updates.amountEth
+            : (isCrypto ? (j.amountEth || newAmountUsdc) : (parseFloat(newAmountUsdc) / 2800).toFixed(4));
 
           const modJob: Job = {
             ...j,
@@ -1727,12 +1775,14 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (updatedJob) {
         broadcastSync({ jobs: [updatedJob] });
-        const syncUrl = getBackendSyncUrl();
-        fetch(`${syncUrl}/api/jobs/${encodeURIComponent(jobId)}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates),
-        }).catch(() => {});
+        const endpoints = getSyncEndpoints();
+        endpoints.forEach((ep) => {
+          fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates),
+          }).catch(() => {});
+        });
       }
       return true;
     } catch (err) {
@@ -1744,15 +1794,25 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const deleteJob = async (jobId: string): Promise<boolean> => {
     try {
       const target = jobsRef.current.find(j => matchJob(j, jobId));
-      // If contract is deployed and client is connected, try to call on-chain cancelJob if status is Open
+      const clientAddr = target?.client || currentConnectedWalletAddress || address || '';
+
+      // Persist to local recentlyDeletedJobIds set
+      trackDeletedJobId(jobId);
+      if (target?.id) trackDeletedJobId(target.id);
+      if (target?.contractAddress) trackDeletedJobId(target.contractAddress);
+
+      // If contract is deployed on-chain and client is connected, call on-chain cancelJob if status is Open
       if (target?.contractAddress && ethers.isAddress(target.contractAddress) && target.status === 'Open') {
         try {
-          const signer = await getSigner();
-          if (signer) {
-            const escrow = new ethers.Contract(target.contractAddress, getAbi(JobEscrowABI), signer);
-            const gasOverrides = await getPolygonGasOverrides(provider);
-            const tx = await escrow.cancelJob(gasOverrides);
-            await tx.wait();
+          const code = await provider?.getCode(target.contractAddress).catch(() => '0x');
+          if (code && code !== '0x') {
+            const signer = await getSigner();
+            if (signer) {
+              const escrow = new ethers.Contract(target.contractAddress, getAbi(JobEscrowABI), signer);
+              const gasOverrides = await getPolygonGasOverrides(provider);
+              const tx = await escrow.cancelJob(gasOverrides);
+              await tx.wait();
+            }
           }
         } catch (chainErr) {
           console.warn('On-chain cancel notice (will proceed with local/database removal):', chainErr);
@@ -1760,17 +1820,45 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       setJobsRaw((prev) => {
-        const next = prev.filter((j) => !matchJob(j, jobId));
+        const next = prev.filter((j) => !matchJob(j, jobId) && !isRecentlyDeletedJob(j.id, j.contractAddress));
         if (typeof window !== 'undefined') localStorage.setItem('polylance_jobs', JSON.stringify(next));
         return next;
       });
 
-      broadcastSync({ deletedJobId: jobId });
+      // Broadcast sync with client address sender
+      broadcastSync({ deletedJobId: jobId }, clientAddr);
+      if (target?.id && target.id !== jobId) {
+        broadcastSync({ deletedJobId: target.id }, clientAddr);
+      }
+      if (target?.contractAddress && target.contractAddress !== jobId) {
+        broadcastSync({ deletedJobId: target.contractAddress }, clientAddr);
+      }
 
-      const syncUrl = getBackendSyncUrl();
-      fetch(`${syncUrl}/api/jobs/${encodeURIComponent(jobId)}`, {
-        method: 'DELETE',
-      }).catch((err) => console.warn('Backend delete job notice:', err));
+      // Dual-write DELETE with authentication headers and query params across all sync endpoints
+      const endpoints = getSyncEndpoints();
+      const headers: Record<string, string> = {
+        'x-wallet-address': clientAddr,
+      };
+      const query = `?address=${encodeURIComponent(clientAddr)}`;
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}${query}`, {
+          method: 'DELETE',
+          headers,
+        }).catch((err) => console.warn('Backend delete job notice:', err));
+
+        if (target?.id && target.id !== jobId) {
+          fetch(`${ep}/api/jobs/${encodeURIComponent(target.id)}${query}`, {
+            method: 'DELETE',
+            headers,
+          }).catch(() => {});
+        }
+        if (target?.contractAddress && target.contractAddress !== jobId) {
+          fetch(`${ep}/api/jobs/${encodeURIComponent(target.contractAddress)}${query}`, {
+            method: 'DELETE',
+            headers,
+          }).catch(() => {});
+        }
+      });
 
       return true;
     } catch (err) {

@@ -149,9 +149,15 @@ export const FindJobs: React.FC = () => {
           </div>
         ) : (
           filteredJobs.map((job) => {
-            const payToken = job.paymentTokenSymbol || 'USDC';
-            const payAmount = job.amountUsdc;
-            const converted = convertCryptoToFiat(parseFloat(payAmount), payToken, selectedFiat);
+            const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
+            const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+            const payToken = sym;
+            const payAmountNum = parseFloat(isCrypto ? (job.amountEth || job.amountUsdc || '0') : (job.amountUsdc || '0')) || 0;
+            const usdAmountNum = parseFloat(job.amountUsdc || '0') || 0;
+            const dec = sym === 'BTC' || sym === 'ETH' ? 4 : 2;
+            const converted = convertCryptoToFiat(payAmountNum, payToken, selectedFiat);
+            const netToken = payAmountNum * 0.975;
+            const netUsd = usdAmountNum * 0.975;
             return (
               <motion.div
                 key={job.id}
@@ -202,12 +208,19 @@ export const FindJobs: React.FC = () => {
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
                   <div className="min-w-0 flex-1">
                     <span className="text-[9.5px] uppercase font-mono text-slate-400 font-bold block">Budget / Escrow</span>
-                    <div className="font-mono font-extrabold text-sm text-emerald-700">
-                      {parseFloat(payAmount).toLocaleString(undefined, { maximumFractionDigits: 4 })}{' '}
+                    <div className="font-mono font-extrabold text-sm text-emerald-700 flex items-baseline flex-wrap gap-1">
+                      <span>{payAmountNum.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                       <span className="text-xs font-normal text-slate-500">{payToken}</span>
+                      {isCrypto && (
+                        <span className="text-[10px] font-normal text-slate-400">
+                          (≈ ${usdAmountNum.toFixed(2)} USDC)
+                        </span>
+                      )}
                     </div>
                     <span className="text-[9.5px] text-purple-700 font-bold font-mono block truncate">
-                      Net: ${(parseFloat(payAmount) * 0.975).toFixed(2)} USDC (2.5% fee)
+                      {isCrypto
+                        ? `Net: ${netToken.toFixed(dec)} ${payToken} (~$${netUsd.toFixed(2)} USDC, 2.5% fee)`
+                        : `Net: $${netUsd.toFixed(2)} USDC (2.5% fee)`}
                     </span>
                   </div>
 

@@ -824,8 +824,21 @@ export const JobDetail: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
                       <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs space-y-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase block">Escrow Payout</span>
-                        <span className="text-lg font-black text-emerald-700">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span>
-                        <span className="text-[10px] text-slate-500 block">({job.amountEth || '...'} {job.paymentTokenSymbol || 'MATIC'})</span>
+                        {(() => {
+                          const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
+                          const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                          const tokenAmt = isCrypto ? (job.amountEth || job.amountUsdc) : job.amountUsdc;
+                          return (
+                            <>
+                              <span className="text-lg font-black text-emerald-700">
+                                {isCrypto ? `${tokenAmt} ${sym}` : `$${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC`}
+                              </span>
+                              {isCrypto && (
+                                <span className="text-[10px] text-slate-500 block">≈ ${parseFloat(job.amountUsdc || '0').toFixed(2)} USDC</span>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                       <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs space-y-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase block">Review Window SLA</span>
@@ -914,7 +927,14 @@ export const JobDetail: React.FC = () => {
                       <div className="space-y-1">
                         <h4 className="font-headline text-sm font-bold text-slate-900">Next Step: Fund Escrow Deposit</h4>
                         <p className="text-xs text-slate-600">
-                          Lock ${job.amountUsdc} USDC in the smart contract escrow to start the project.
+                          {(() => {
+                            const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
+                            const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                            const tokenAmt = isCrypto ? (job.amountEth || job.amountUsdc) : job.amountUsdc;
+                            return isCrypto
+                              ? `Lock ${tokenAmt} ${sym} (~$${job.amountUsdc} USDC) in the smart contract escrow to start the project.`
+                              : `Lock $${job.amountUsdc} USDC in the smart contract escrow to start the project.`;
+                          })()}
                         </p>
                       </div>
 
@@ -1086,53 +1106,78 @@ export const JobDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <div className="flex items-baseline gap-2">
-                <span className="font-headline text-3xl font-extrabold text-slate-900">
-                  {parseFloat(job.amountUsdc).toLocaleString(undefined, { maximumFractionDigits: 6 })}
-                </span>
-                <span className="font-headline text-base font-bold text-purple-700">{job.paymentTokenSymbol || 'USDC'}</span>
-              </div>
-              {job.paymentTokenSymbol && job.paymentTokenSymbol !== 'USDC' && (
-                <span className="text-[10px] text-slate-500 font-mono block">
-                  ≈ ${parseFloat(job.amountUsdc).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
-                </span>
-              )}
-            </div>
-
-            {/* Maintenance Fee & Net Payout Breakdown */}
             {(() => {
-              const gross = parseFloat(job.amountUsdc || '0');
-              const maintenanceFee = gross * 0.025;
-              const netPayout = gross - maintenanceFee;
+              const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
+              const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+
+              // Token Gross, Fee, and Net
+              const tokenGrossNum = parseFloat(isCrypto ? (job.amountEth || job.amountUsdc || '0') : (job.amountUsdc || '0')) || 0;
+              const tokenMaintFee = tokenGrossNum * 0.025;
+              const tokenNetPayout = tokenGrossNum - tokenMaintFee;
+
+              // USD Gross, Fee, and Net
+              const usdGrossNum = parseFloat(job.amountUsdc || '0') || 0;
+              const usdMaintFee = usdGrossNum * 0.025;
+              const usdNetPayout = usdGrossNum - usdMaintFee;
+
               const isMeFreelancer = job.freelancer?.toLowerCase() === (address || '').toLowerCase() || currentRole === 'freelancer';
               const isMeClient = job.client.toLowerCase() === (address || '').toLowerCase() || currentRole === 'client';
+              const dec = sym === 'BTC' || sym === 'ETH' ? 4 : 2;
 
               return (
-                <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs font-mono">
-                  <div className="flex justify-between items-center text-slate-600">
-                    <span>Gross Escrow Deposit:</span>
-                    <span className="font-bold text-slate-900">${gross.toFixed(2)} USDC</span>
+                <>
+                  <div className="space-y-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-headline text-3xl font-extrabold text-slate-900">
+                        {tokenGrossNum.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                      </span>
+                      <span className="font-headline text-base font-bold text-purple-700">{sym}</span>
+                    </div>
+                    {isCrypto && (
+                      <span className="text-xs text-slate-500 font-mono block font-semibold">
+                        ≈ ${usdGrossNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <span>Platform Maintenance Fee (2.5%):</span>
-                    </span>
-                    <span className="font-bold text-rose-600">-${maintenanceFee.toFixed(2)} USDC</span>
-                  </div>
+                  {/* Maintenance Fee & Net Payout Breakdown */}
+                  <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs font-mono">
+                    <div className="flex justify-between items-center text-slate-600">
+                      <span>Gross Escrow Deposit:</span>
+                      <span className="font-bold text-slate-900">
+                        {isCrypto
+                          ? `${tokenGrossNum.toFixed(dec)} ${sym} (~$${usdGrossNum.toFixed(2)} USDC)`
+                          : `$${usdGrossNum.toFixed(2)} USDC`}
+                      </span>
+                    </div>
 
-                  <div className="flex justify-between items-center p-2.5 rounded-xl bg-purple-50/80 border border-purple-200 text-purple-950 font-bold">
-                    <span>{isMeFreelancer ? 'Your Net Payout:' : 'Developer Net Payout:'}</span>
-                    <span className="text-emerald-700 text-sm font-black">${netPayout.toFixed(2)} USDC</span>
-                  </div>
+                    <div className="flex justify-between items-center text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <span>Platform Maintenance Fee (2.5%):</span>
+                      </span>
+                      <span className="font-bold text-rose-600">
+                        {isCrypto
+                          ? `-${tokenMaintFee.toFixed(dec)} ${sym} (-$${usdMaintFee.toFixed(2)} USDC)`
+                          : `-$${usdMaintFee.toFixed(2)} USDC`}
+                      </span>
+                    </div>
 
-                  <p className="text-[10px] font-sans text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-200/80">
-                    {isMeClient
-                      ? '💡 0% Commission — 2.5% platform maintenance fee is deducted upon payout release and routed to the decentralized DAO treasury.'
-                      : '💡 0% Commission — Net amount received after 2.5% platform maintenance fee.'}
-                  </p>
-                </div>
+                    <div className="flex justify-between items-center p-2.5 rounded-xl bg-purple-50/80 border border-purple-200 text-purple-950 font-bold">
+                      <span>{isMeFreelancer ? 'Your Net Payout:' : 'Developer Net Payout:'}</span>
+                      <span className="text-emerald-700 text-sm font-black">
+                        {isCrypto
+                          ? `${tokenNetPayout.toFixed(dec)} ${sym} (~$${usdNetPayout.toFixed(2)} USDC)`
+                          : `$${usdNetPayout.toFixed(2)} USDC`}
+                      </span>
+                    </div>
+
+                    <p className="text-[10px] font-sans text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-200/80">
+                      {isMeClient
+                        ? '💡 0% Commission — 2.5% platform maintenance fee is deducted upon payout release and routed to the decentralized DAO treasury.'
+                        : '💡 0% Commission — Net amount received after 2.5% platform maintenance fee.'}
+                    </p>
+                  </div>
+                </>
               );
             })()}
 
