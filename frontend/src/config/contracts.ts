@@ -36,9 +36,8 @@ export const AMOY_RPC_URLS = [
 
 export const POLYGON_MAINNET_RPC_URLS = [
   "https://polygon-bor-rpc.publicnode.com",
-  "https://polygon.drpc.org",
-  "https://137.rpc.thirdweb.com",
-  "https://polygon-rpc.com"
+  "https://polygon.gateway.tenderly.co",
+  "https://137.rpc.thirdweb.com"
 ];
 
 export const RPC_URL =

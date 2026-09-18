@@ -146,9 +146,8 @@ const config = createConfig({
   transports: {
     [polygon.id]: fallback([
       http('https://polygon-bor-rpc.publicnode.com'),
-      http('https://polygon.drpc.org'),
+      http('https://polygon.gateway.tenderly.co'),
       http('https://137.rpc.thirdweb.com'),
-      http('https://polygon-rpc.com'),
     ]),
     [mainnet.id]: fallback([
       http('https://ethereum-rpc.publicnode.com'),

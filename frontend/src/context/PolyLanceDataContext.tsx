@@ -1390,9 +1390,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       
       // Query all deployed jobs directly from the factory contract
       let deployedAddrs: string[] = [];
+      let getAllJobsSucceeded = false;
       try {
         if (typeof factory.getAllJobs === 'function') {
           deployedAddrs = await factory.getAllJobs();
+          getAllJobsSucceeded = true;
         }
       } catch (e: any) {
         // Silently skip if contract interface mismatch or empty return (BAD_DATA)
@@ -1401,11 +1403,17 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
 
-      // If getAllJobs returned empty, query JobDeployed events
-      if (deployedAddrs.length === 0 && factory.filters && typeof factory.filters.JobDeployed === 'function') {
-        const filter = factory.filters.JobDeployed();
-        const logs = await factory.queryFilter(filter).catch(() => []);
-        deployedAddrs = logs.map((l: any) => l.args?.[0] || l.args?.jobContract).filter(Boolean);
+      // If getAllJobs threw/failed (not just empty array), query recent JobDeployed events bounded to last 2000 blocks
+      if (!getAllJobsSucceeded && deployedAddrs.length === 0 && factory.filters && typeof factory.filters.JobDeployed === 'function') {
+        try {
+          const currentBlock = await provider.getBlockNumber().catch(() => 0);
+          if (currentBlock > 0) {
+            const fromBlock = Math.max(0, currentBlock - 2000);
+            const filter = factory.filters.JobDeployed();
+            const logs = await factory.queryFilter(filter, fromBlock, currentBlock).catch(() => []);
+            deployedAddrs = logs.map((l: any) => l.args?.[0] || l.args?.jobContract).filter(Boolean);
+          }
+        } catch {}
       }
 
       if (deployedAddrs.length === 0) return;
@@ -1604,7 +1612,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                 const isAdmin = await factory.hasRole(ethers.ZeroHash, signerAddr).catch(() => false);
                 if (isAdmin) {
                   console.log(`Auto-approving ${tokenConfig.symbol} (${tokenAddress}) on JobFactory...`);
-                  const approveTx = await factory.setApprovedPaymentToken(tokenAddress, true, gasOverrides);
+                  const approveTx = await factory.setApprovedPaymentToken(tokenAddress, true, { ...gasOverrides, gasLimit: 120000n });
                   await approveTx.wait();
                 } else {
                   targetTokenForFactory = ethers.ZeroAddress;
@@ -1616,7 +1624,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           }
 
           console.log(`[PolyLance] Deploying on-chain escrow clone for ${tokenConfig.symbol} on Polygon Mainnet...`);
-          const tx = await factory.postJob(descriptionIpfsHash, targetTokenForFactory, gasOverrides);
+          const tx = await factory.postJob(descriptionIpfsHash, targetTokenForFactory, { ...gasOverrides, gasLimit: 700000n });
           const receipt = await tx.wait();
           txHash = receipt.hash;
           console.log(`JobFactory.postJob confirmed! TxHash: ${txHash}`);
@@ -2095,7 +2103,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               }
             }
             const gasOverrides = await getPolygonGasOverrides(provider);
-            const postTx = await factory.postJob(descIpfs, tokenAddress, gasOverrides);
+            const postTx = await factory.postJob(descIpfs, tokenAddress, { ...gasOverrides, gasLimit: 700000n });
             const postReceipt = await postTx.wait();
 
             const factoryInterface = new ethers.Interface(getAbi(JobFactoryABI));
@@ -2127,7 +2135,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                   const hasApplied = await escrowInit.hasApplied(job.freelancer).catch(() => false);
                   if (hasApplied) {
                     const selectGas = await getPolygonGasOverrides(provider);
-                    const selectTx = await escrowInit.selectFreelancer(job.freelancer, selectGas);
+                    const selectTx = await escrowInit.selectFreelancer(job.freelancer, { ...selectGas, gasLimit: 150000n });
                     await selectTx.wait();
                   }
                 } catch (selectErr) {
@@ -2159,7 +2167,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
             console.log(`Executing real on-chain escrow funding of ${safeAmount} POL to ${targetContractAddress}...`);
             const gasOverrides = await getPolygonGasOverrides(provider);
-            const tx = await escrow.fundJob(0, { value: val, ...gasOverrides });
+            const tx = await escrow.fundJob(0, { value: val, ...gasOverrides, gasLimit: 300000n });
             const receipt = await tx.wait();
             txHash = receipt.hash;
             console.log(`On-chain escrow successfully funded! TxHash: ${txHash}`);
@@ -2195,14 +2203,14 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             if (currentAllowance < amountParsed) {
               console.log(`Approving ${ethers.formatUnits(amountParsed, decimals)} ${tokenSymbol} for escrow contract ${targetContractAddress}...`);
               const approveGas = await getPolygonGasOverrides(provider);
-              const approveTx = await tokenContract.approve(targetContractAddress, amountParsed, approveGas);
+              const approveTx = await tokenContract.approve(targetContractAddress, amountParsed, { ...approveGas, gasLimit: 120000n });
               await approveTx.wait();
               console.log(`Token approval confirmed!`);
             }
 
             console.log(`Executing real on-chain escrow funding of ${ethers.formatUnits(amountParsed, decimals)} ${tokenSymbol} to ${targetContractAddress}...`);
             const fundGas = await getPolygonGasOverrides(provider);
-            const fundTx = await escrow.fundJob(amountParsed, fundGas);
+            const fundTx = await escrow.fundJob(amountParsed, { ...fundGas, gasLimit: 350000n });
             const receipt = await fundTx.wait();
             txHash = receipt.hash;
             console.log(`On-chain escrow successfully funded with ${tokenSymbol}! TxHash: ${txHash}`);

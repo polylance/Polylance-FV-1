@@ -12,27 +12,34 @@ export interface GasOverrides {
  * "transaction gas price below minimum: gas tip cap 1500000000, minimum needed 25000000000".
  */
 export async function getPolygonGasOverrides(provider?: ethers.Provider | null): Promise<GasOverrides> {
-  const MIN_PRIORITY_WEI = ethers.parseUnits('32', 'gwei'); // 32 Gwei (comfortably exceeds the 25 Gwei node requirement)
-  const MIN_MAX_FEE_WEI = ethers.parseUnits('65', 'gwei');  // 65 Gwei
+  const MIN_PRIORITY_WEI = ethers.parseUnits('35', 'gwei'); // 35 Gwei (exceeds Polygon's 25-30 Gwei tip cap requirement)
+  const MIN_MAX_FEE_WEI = ethers.parseUnits('450', 'gwei');  // 450 Gwei (comfortably clears Polygon's ~250-380 Gwei base fee)
 
   try {
+    let feeData: ethers.FeeData | null = null;
     if (provider && typeof provider.getFeeData === 'function') {
-      const feeData = await provider.getFeeData().catch(() => null);
-      if (feeData) {
-        const priorityFee = feeData.maxPriorityFeePerGas && feeData.maxPriorityFeePerGas > MIN_PRIORITY_WEI
-          ? feeData.maxPriorityFeePerGas
-          : MIN_PRIORITY_WEI;
+      feeData = await provider.getFeeData().catch(() => null);
+    }
+    if (!feeData) {
+      // Fallback directly to public Bor RPC if active provider fails
+      const borProvider = new ethers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com', 137, { staticNetwork: true });
+      feeData = await borProvider.getFeeData().catch(() => null);
+    }
 
-        const baseMaxFee = feeData.maxFeePerGas || MIN_MAX_FEE_WEI;
-        const maxFee = baseMaxFee > priorityFee
-          ? baseMaxFee + priorityFee
-          : priorityFee * 2n;
+    if (feeData) {
+      const priorityFee = feeData.maxPriorityFeePerGas && feeData.maxPriorityFeePerGas > MIN_PRIORITY_WEI
+        ? feeData.maxPriorityFeePerGas
+        : MIN_PRIORITY_WEI;
 
-        return {
-          maxPriorityFeePerGas: priorityFee,
-          maxFeePerGas: maxFee > MIN_MAX_FEE_WEI ? maxFee : MIN_MAX_FEE_WEI,
-        };
-      }
+      const baseMaxFee = feeData.maxFeePerGas || MIN_MAX_FEE_WEI;
+      // Buffer maxFeePerGas by 1.35x to absorb rapid base fee volatility on Polygon PoS
+      const bufferedMaxFee = (baseMaxFee * 135n) / 100n;
+      const finalMaxFee = bufferedMaxFee > MIN_MAX_FEE_WEI ? bufferedMaxFee : MIN_MAX_FEE_WEI;
+
+      return {
+        maxPriorityFeePerGas: priorityFee,
+        maxFeePerGas: finalMaxFee > priorityFee * 2n ? finalMaxFee : priorityFee * 2n,
+      };
     }
   } catch (e) {
     console.debug('Gas estimation fallback:', e);
