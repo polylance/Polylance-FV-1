@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, ShieldCheck, ArrowRight, Wallet, AlertTriangle, 
-  CheckCircle2, Loader2, Sparkles, ExternalLink, Info
+  CheckCircle2, Loader2, Sparkles, ExternalLink, Info, RefreshCw
 } from 'lucide-react';
 import { useWeb3 } from '../context/Web3Context';
 import { Job } from '../types';
@@ -22,10 +22,18 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
   job,
   onConfirmFund,
 }) => {
-  const { address, balanceNative, balanceUsdc, balanceUsdt, isWrongNetwork, targetChainName, switchToTargetNetwork } = useWeb3();
+  const { address, balanceNative, balanceUsdc, balanceUsdt, isWrongNetwork, targetChainName, switchToTargetNetwork, refreshBalances } = useWeb3();
   const [isFunding, setIsFunding] = useState(false);
+  const [isRefreshingBal, setIsRefreshingBal] = useState(false);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Refresh live balances when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      refreshBalances().catch(() => {});
+    }
+  }, [isOpen, refreshBalances]);
 
   // Determine token and amounts
   const isNative = !job.paymentToken || job.paymentToken === '0x0000000000000000000000000000000000000000' || job.paymentTokenSymbol === 'POL' || job.paymentTokenSymbol === 'MATIC';
@@ -34,10 +42,12 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
     ? parseFloat(job.amountEth || '0.05') 
     : parseFloat(job.amountUsdc || '100');
   
-  // Platform fee: 2.5%
+  // Platform fee: 2.5% deducted from the escrow principal upon milestone completion
+  // In JobEscrow.sol, client deposits principalAmount, and fee is collected on payout
   const feeRate = 0.025;
   const platformFee = principalAmount * feeRate;
-  const totalRequired = principalAmount + platformFee;
+  const netFreelancerPayout = principalAmount - platformFee;
+  const totalRequired = principalAmount;
 
   // Real-time balance check
   const currentBalance = isNative ? balanceNative : tokenSymbol === 'USDT' ? balanceUsdt : balanceUsdc;
@@ -45,13 +55,22 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
   const hasSufficientFunds = currentBalNum >= totalRequired;
   const shortfall = Math.max(0, totalRequired - currentBalNum);
 
+  const handleManualRefresh = async () => {
+    try {
+      setIsRefreshingBal(true);
+      await refreshBalances();
+    } finally {
+      setIsRefreshingBal(false);
+    }
+  };
+
   const handleFundClick = async () => {
     setErrorMsg(null);
     if (isWrongNetwork) {
       setErrorMsg(`Please switch your wallet to ${targetChainName} to fund this escrow.`);
       return;
     }
-    if (!hasSufficientFunds) {
+    if (!hasSufficientFunds && currentBalNum > 0) {
       setShowInsufficientModal(true);
       return;
     }
@@ -134,18 +153,22 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
               {/* Financial Breakdown Table */}
               <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100 overflow-hidden text-xs">
                 <div className="p-3.5 flex justify-between items-center">
-                  <span className="text-slate-600 font-sans">Principal Escrow (100% to freelancer on approval):</span>
+                  <span className="text-slate-600 font-sans">Principal Escrow Deposit:</span>
                   <span className="font-bold font-mono text-slate-900">{principalAmount.toFixed(4)} {tokenSymbol}</span>
                 </div>
                 <div className="p-3.5 flex justify-between items-center bg-slate-50/50">
                   <div className="flex items-center gap-1.5 text-slate-600 font-sans">
                     <span>Protocol Maintenance Fee (2.5%):</span>
-                    <span title="Supports autonomous smart contract verification and DAO treasury"><Info size={12} className="text-slate-400" /></span>
+                    <span title="Deducted upon milestone completion payout to support autonomous smart contract verification and DAO treasury"><Info size={12} className="text-slate-400" /></span>
                   </div>
-                  <span className="font-medium font-mono text-slate-700">+{platformFee.toFixed(4)} {tokenSymbol}</span>
+                  <span className="font-medium font-mono text-slate-500">-{platformFee.toFixed(4)} {tokenSymbol} (on completion)</span>
                 </div>
-                <div className="p-4 flex justify-between items-center bg-blue-50/50 font-bold">
-                  <span className="text-slate-900 font-heading text-sm">Total Deposit Required:</span>
+                <div className="p-3.5 flex justify-between items-center bg-emerald-50/40">
+                  <span className="text-emerald-800 font-sans font-medium">Net Disbursed to Talent on Approval:</span>
+                  <span className="font-bold font-mono text-emerald-700">{netFreelancerPayout.toFixed(4)} {tokenSymbol}</span>
+                </div>
+                <div className="p-4 flex justify-between items-center bg-blue-50/50 font-bold border-t border-blue-100">
+                  <span className="text-slate-900 font-heading text-sm">Total Deposit Required to Lock:</span>
                   <span className="text-base font-black font-mono text-blue-700">{totalRequired.toFixed(4)} {tokenSymbol}</span>
                 </div>
               </div>
@@ -159,7 +182,18 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Wallet size={16} />
                   <div>
-                    <div className="font-semibold">Your Live Balance:</div>
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <span>Your Live Balance:</span>
+                      <button
+                        type="button"
+                        onClick={handleManualRefresh}
+                        disabled={isRefreshingBal}
+                        className="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                        title="Refresh balance from blockchain"
+                      >
+                        <RefreshCw size={11} className={isRefreshingBal ? 'animate-spin' : ''} />
+                      </button>
+                    </div>
                     <div className="font-mono text-xs">{currentBalNum.toFixed(4)} {tokenSymbol}</div>
                   </div>
                 </div>
@@ -171,6 +205,7 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
                   </div>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => setShowInsufficientModal(true)}
                     className="flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                   >
@@ -216,8 +251,8 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
                     </>
                   ) : (
                     <>
-                      <AlertTriangle size={15} />
-                      <span>Need Funds Top-Up ({shortfall.toFixed(3)} {tokenSymbol})</span>
+                      <span>Lock & Fund Escrow ({totalRequired.toFixed(3)} {tokenSymbol})</span>
+                      <ArrowRight size={15} />
                     </>
                   )}
                 </button>

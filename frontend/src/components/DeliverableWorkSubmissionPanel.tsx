@@ -205,6 +205,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     respondToTimeExtension, 
     requestModifications, 
     releasePayment, 
+    claimAutoRelease,
     raiseDispute 
   } = usePolyLanceData();
 
@@ -459,6 +460,26 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       });
     } finally {
       setIsReleasing(false);
+    }
+  };
+
+  const [isClaimingAutoRelease, setIsClaimingAutoRelease] = useState(false);
+  const handleClaimAutoRelease = async () => {
+    setIsClaimingAutoRelease(true);
+    try {
+      await claimAutoRelease(currentJob.id);
+      setIsPaymentReleasedModalOpen(true);
+    } catch (err: any) {
+      console.error('Failed to claim auto release:', err);
+      setActionModal({
+        isOpen: true,
+        title: 'Auto-Release Claim Failed',
+        subtitle: formatWeb3ErrorMessage(err),
+        icon: 'dispute',
+        badgeText: 'CLAIM REJECTED',
+      });
+    } finally {
+      setIsClaimingAutoRelease(false);
     }
   };
 
@@ -1901,13 +1922,38 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                         </button>
                       </div>
                     ) : (
-                      <div className="p-3 rounded-xl bg-purple-50/80 border border-purple-200 text-xs text-purple-900 flex items-center gap-2">
-                        <Info size={14} className="text-purple-600 shrink-0" />
-                        <span>
-                          {isApplicant
-                            ? 'You submitted an application for this contract. The client is currently reviewing submitted deliverables.'
-                            : 'Deliverables are under client review. Escrow payout release will occur upon client inspection.'}
-                        </span>
+                      <div className="space-y-2">
+                        <div className="p-3 rounded-xl bg-purple-50/80 border border-purple-200 text-xs text-purple-900 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <Info size={14} className="text-purple-600 shrink-0" />
+                            <span>
+                              Deliverables are under client review (Review SLA: {currentJob.reviewPeriodDays || 7} Days). If the client does not take action within this window, you can claim autonomous auto-release directly to your wallet.
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleClaimAutoRelease}
+                            disabled={isClaimingAutoRelease}
+                            className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0 ${
+                              isClaimingAutoRelease
+                                ? 'bg-purple-200 text-purple-700 cursor-not-allowed'
+                                : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer hover:scale-105'
+                            }`}
+                            title="Claim autonomous on-chain auto-release if review period has passed"
+                          >
+                            {isClaimingAutoRelease ? (
+                              <>
+                                <Loader2 size={12} className="animate-spin" />
+                                <span>Claiming On-Chain...</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 size={12} />
+                                <span>Claim Auto-Release (${grossAmount.toFixed(2)} USDC)</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

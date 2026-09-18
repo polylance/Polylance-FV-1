@@ -145,10 +145,10 @@ const config = createConfig({
   chains: [polygon, mainnet],
   transports: {
     [polygon.id]: fallback([
-      http('https://polygon-mainnet.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B'),
+      http('https://polygon-bor-rpc.publicnode.com'),
       http('https://polygon.drpc.org'),
       http('https://137.rpc.thirdweb.com'),
-      http('https://polygon-bor-rpc.publicnode.com'),
+      http('https://polygon-rpc.com'),
     ]),
     [mainnet.id]: fallback([
       http('https://ethereum-rpc.publicnode.com'),

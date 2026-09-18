@@ -2140,15 +2140,16 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (hasLiveContract) {
           const escrow = new ethers.Contract(targetContractAddress, getAbi(JobEscrowABI), signer);
-          const escrowPaymentToken: string = await escrow.paymentToken().catch(() => ethers.ZeroAddress);
+          const escrowPaymentToken: string = await escrow.paymentToken().catch(() => '');
           const tokenConfig = getTokenByAddress(job.paymentToken);
-          const isNative = !job.paymentToken || 
-            job.paymentToken === ethers.ZeroAddress || 
-            tokenConfig.symbol === 'MATIC' || 
-            tokenConfig.symbol === 'POL' || 
-            job.paymentTokenSymbol === 'POL' || 
-            job.paymentTokenSymbol === 'MATIC' ||
-            escrowPaymentToken === ethers.ZeroAddress;
+          
+          // Accurately determine if this job is an ERC-20 token job (USDC, USDT, etc.) vs native POL/MATIC
+          const isTokenEscrow = Boolean(
+            (escrowPaymentToken && escrowPaymentToken !== ethers.ZeroAddress) ||
+            (job.paymentToken && job.paymentToken !== ethers.ZeroAddress && tokenConfig.symbol !== 'POL' && tokenConfig.symbol !== 'MATIC') ||
+            (job.paymentTokenSymbol && job.paymentTokenSymbol !== 'POL' && job.paymentTokenSymbol !== 'MATIC')
+          );
+          const isNative = !isTokenEscrow;
 
           if (isNative) {
             const rawAmount = job.amountEth || (job.amountUsdc ? (parseFloat(job.amountUsdc) / 2800).toFixed(4) : '0.05');
@@ -2164,25 +2165,47 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             console.log(`On-chain escrow successfully funded! TxHash: ${txHash}`);
             await refreshBalances().catch(() => {});
           } else {
+            const activeTokenAddress = (escrowPaymentToken && escrowPaymentToken !== ethers.ZeroAddress)
+              ? escrowPaymentToken
+              : (job.paymentToken && job.paymentToken !== ethers.ZeroAddress)
+                ? job.paymentToken
+                : tokenConfig.address || PAYMENT_TOKENS.USDC.address;
+
             const erc20Abi = [
               'function approve(address spender, uint256 amount) external returns (bool)',
               'function allowance(address owner, address spender) external view returns (uint256)',
+              'function balanceOf(address account) external view returns (uint256)',
+              'function decimals() external view returns (uint8)',
+              'function symbol() external view returns (string)'
             ];
-            const tokenContract = new ethers.Contract(job.paymentToken, erc20Abi, signer);
-            const amountParsed = ethers.parseUnits(job.amountUsdc || '100', tokenConfig.decimals);
+            const tokenContract = new ethers.Contract(activeTokenAddress, erc20Abi, signer);
+            const decimals = tokenConfig?.decimals || 6;
+            const tokenSymbol = job.paymentTokenSymbol || tokenConfig?.symbol || 'USDC';
+            const amountParsed = ethers.parseUnits(job.amountUsdc || '100', decimals);
 
             const signerAddr = await signer.getAddress();
+            const currentBal: bigint = await tokenContract.balanceOf(signerAddr).catch(() => 0n);
+            if (currentBal < amountParsed) {
+              const formattedBal = ethers.formatUnits(currentBal, decimals);
+              const formattedReq = ethers.formatUnits(amountParsed, decimals);
+              throw new Error(`Insufficient ${tokenSymbol} balance. You have ${formattedBal} ${tokenSymbol}, but ${formattedReq} ${tokenSymbol} is required to fund this escrow.`);
+            }
+
             const currentAllowance: bigint = await tokenContract.allowance(signerAddr, targetContractAddress).catch(() => 0n);
             if (currentAllowance < amountParsed) {
+              console.log(`Approving ${ethers.formatUnits(amountParsed, decimals)} ${tokenSymbol} for escrow contract ${targetContractAddress}...`);
               const approveGas = await getPolygonGasOverrides(provider);
               const approveTx = await tokenContract.approve(targetContractAddress, amountParsed, approveGas);
               await approveTx.wait();
+              console.log(`Token approval confirmed!`);
             }
 
+            console.log(`Executing real on-chain escrow funding of ${ethers.formatUnits(amountParsed, decimals)} ${tokenSymbol} to ${targetContractAddress}...`);
             const fundGas = await getPolygonGasOverrides(provider);
             const fundTx = await escrow.fundJob(amountParsed, fundGas);
             const receipt = await fundTx.wait();
             txHash = receipt.hash;
+            console.log(`On-chain escrow successfully funded with ${tokenSymbol}! TxHash: ${txHash}`);
             await refreshBalances().catch(() => {});
           }
         } else if (isConnected) {
@@ -2582,27 +2605,37 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             // Case 3: On-chain status is Open (0).
             // The job was funded on-chain, but the intermediate steps (apply & submit) were handled off-chain.
             if (onChainAmount > 0n) {
-              console.log(`Escrow contract ${job.contractAddress} is in Open state with ${ethers.formatEther(onChainAmount)} POL. Reclaiming escrow deposit before disbursing to talent...`);
+              const escrowPaymentToken: string = await escrow.paymentToken().catch(() => ethers.ZeroAddress);
+              const isErc20 = escrowPaymentToken && escrowPaymentToken !== ethers.ZeroAddress;
+              console.log(`Escrow contract ${job.contractAddress} is in Open state with ${isErc20 ? 'ERC-20' : 'POL'} funds. Reclaiming escrow deposit before disbursing to talent...`);
               const cancelGas = await getPolygonGasOverrides(provider);
               const cancelTx = await escrow.cancelJob(cancelGas);
               const cancelReceipt = await cancelTx.wait();
               console.log(`Escrow deposit successfully reclaimed on-chain: ${cancelReceipt.hash}`);
 
-              // Transfer net payout directly to freelancer on-chain
+              // Transfer net payout directly to freelancer on-chain in the matching token
               const targetFreelancer = job.freelancer && ethers.isAddress(job.freelancer) ? job.freelancer : null;
               if (targetFreelancer && targetFreelancer.toLowerCase() !== signerAddr) {
                 const feeAmount = (onChainAmount * 250n) / 10000n; // 2.5% platform fee
                 const payoutAmount = onChainAmount - feeAmount;
-                console.log(`Disbursing direct on-chain payout (${ethers.formatEther(payoutAmount)} POL) to freelancer ${targetFreelancer}...`);
                 const payGas = await getPolygonGasOverrides(provider);
-                const payTx = await signer.sendTransaction({
-                  to: targetFreelancer,
-                  value: payoutAmount,
-                  ...payGas,
-                });
-                const payReceipt = await payTx.wait();
-                txHash = payReceipt?.hash || payTx.hash;
-                sbtTxHash = txHash;
+                if (isErc20) {
+                  const erc20 = new ethers.Contract(escrowPaymentToken, ['function transfer(address to, uint256 amount) returns (bool)'], signer);
+                  const payTx = await erc20.transfer(targetFreelancer, payoutAmount, payGas);
+                  const payReceipt = await payTx.wait();
+                  txHash = payReceipt?.hash || payTx.hash;
+                  sbtTxHash = txHash;
+                } else {
+                  console.log(`Disbursing direct on-chain payout (${ethers.formatEther(payoutAmount)} POL) to freelancer ${targetFreelancer}...`);
+                  const payTx = await signer.sendTransaction({
+                    to: targetFreelancer,
+                    value: payoutAmount,
+                    ...payGas,
+                  });
+                  const payReceipt = await payTx.wait();
+                  txHash = payReceipt?.hash || payTx.hash;
+                  sbtTxHash = txHash;
+                }
                 console.log(`Direct on-chain payout to freelancer confirmed: ${txHash}`);
               } else {
                 txHash = cancelReceipt?.hash || cancelTx.hash;
@@ -2614,8 +2647,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             }
           } else if (onChainStatus === 1) {
             // Case 4: On-chain status is Selected (1).
-            // Deliverables were submitted via off-chain IPFS / state.
-            // If onChainAmount > 0, attempt release or direct payout to ensure talent gets funds.
+            // In JobEscrow.sol, releasePayment() requires status == JobStatus.Submitted (2).
             if (onChainAmount > 0n) {
               try {
                 const releaseGas = await getPolygonGasOverrides(provider);
@@ -2623,25 +2655,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                 const receipt = await tx.wait();
                 txHash = receipt.hash;
                 sbtTxHash = receipt.hash;
-              } catch (relErr) {
-                console.warn('Direct escrow.releasePayment on Selected state bypassed, transferring net payout:', relErr);
-                const targetFreelancer = job.freelancer && ethers.isAddress(job.freelancer) ? job.freelancer : null;
-                if (targetFreelancer && targetFreelancer.toLowerCase() !== signerAddr) {
-                  const feeAmount = (onChainAmount * 250n) / 10000n;
-                  const payoutAmount = onChainAmount - feeAmount;
-                  const payGas = await getPolygonGasOverrides(provider);
-                  const payTx = await signer.sendTransaction({
-                    to: targetFreelancer,
-                    value: payoutAmount,
-                    ...payGas,
-                  });
-                  const payReceipt = await payTx.wait();
-                  txHash = payReceipt?.hash || payTx.hash;
-                  sbtTxHash = txHash;
-                } else {
-                  txHash = generateMockTxHash();
-                  sbtTxHash = txHash;
-                }
+              } catch (relErr: any) {
+                console.warn('Direct escrow.releasePayment on Selected state requires submission:', relErr);
+                throw new Error('Deliverables must be submitted by the freelancer on-chain before the escrow payout can be released.');
               }
             } else {
               txHash = generateMockTxHash();
@@ -2754,7 +2770,58 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const claimAutoRelease = async (jobId: string) => {
-    await releasePayment(jobId);
+    let txHash = '';
+    const job = jobs.find((j) => matchJob(j, jobId));
+
+    if (isConnected && isWrongNetwork) {
+      throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to claim auto-release.`);
+    }
+
+    try {
+      const signer = await getSigner();
+      if (signer && job && ethers.isAddress(job.contractAddress)) {
+        const deployedCode = await provider.getCode(job.contractAddress).catch(() => '0x');
+        if (deployedCode && deployedCode !== '0x') {
+          const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
+          const onChainStatus = Number(await escrow.status().catch(() => -1));
+          
+          if (onChainStatus === 2) {
+            console.log(`Executing real on-chain claimAutoRelease from escrow ${job.contractAddress}...`);
+            const claimGas = await getPolygonGasOverrides(provider);
+            const tx = await escrow.claimAutoRelease(claimGas);
+            const receipt = await tx.wait();
+            txHash = receipt.hash;
+            console.log(`Escrow auto-released successfully on-chain! TxHash: ${txHash}`);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('claimAutoRelease on-chain error:', err);
+      if (isConnected) {
+        throw err;
+      }
+    }
+
+    if (!txHash) {
+      txHash = generateMockTxHash();
+    }
+
+    setJobs((prev) =>
+      prev.map((j) => {
+        if (!matchJob(j, jobId)) return j;
+        const updatedEvents = (j.events || []).map((evt) => {
+          if (evt.step === 'Completed') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Protocol' };
+          return evt;
+        });
+        return {
+          ...j,
+          status: 'Completed' as const,
+          completedAt: Date.now(),
+          events: updatedEvents,
+        };
+      })
+    );
+    await refreshBalances().catch(() => {});
   };
 
   const cancelEscrow = async (jobId: string) => {
