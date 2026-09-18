@@ -17,7 +17,7 @@ export const CONTRACTS = {
   GithubReputationRegistry: (import.meta.env.VITE_GITHUB_REGISTRY_ADDRESS || manifest.GithubReputationRegistry) as string,
   JudgeDAO: (import.meta.env.VITE_JUDGE_DAO_ADDRESS || manifest.JudgeDAO) as string,
   TimelockController: (import.meta.env.VITE_TIMELOCK_ADDRESS || manifest.TimelockController) as string,
-  JobEscrowImplementation: ((manifest as any).JobEscrowImplementation || "0x88dd19df1b6dBA8D2c53b3976f4ec39B75f17FbB") as string,
+  JobEscrowImplementation: (import.meta.env.VITE_JOB_ESCROW_IMPLEMENTATION_ADDRESS || (manifest as any).JobEscrowImplementation || "0x88dd19df1b6dBA8D2c53b3976f4ec39B75f17FbB") as string,
 } as const;
 
 export const CONTRACT_ADDRESSES = CONTRACTS;
