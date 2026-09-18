@@ -225,11 +225,13 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
 
               {/* Wallet Authorization in progress notification */}
               {isFunding && (
-                <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 flex items-start gap-2.5">
-                  <Loader2 size={16} className="shrink-0 mt-0.5 text-blue-600 animate-spin" />
-                  <div>
+                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 flex items-start gap-2.5">
+                  <Loader2 size={18} className="shrink-0 mt-0.5 text-blue-600 animate-spin" />
+                  <div className="space-y-1 text-left">
                     <p className="font-bold text-blue-950">Awaiting Wallet Approval</p>
-                    <p className="text-[11px] text-blue-700 mt-0.5">Please check your wallet app (MetaMask, Coinbase Wallet, Rabby) to confirm the transaction.</p>
+                    <p className="text-[11px] text-blue-700 leading-relaxed">
+                      Please confirm the transaction in your wallet app. If your wallet does not pop up automatically, <strong>click the MetaMask / Coinbase icon</strong> in your browser extension bar to approve the pending request.
+                    </p>
                   </div>
                 </div>
               )}

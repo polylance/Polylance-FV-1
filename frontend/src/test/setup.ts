@@ -34,6 +34,7 @@ vi.mock('wagmi', () => ({
     },
   }),
   useConfig: () => ({}),
+  useWalletClient: () => ({ data: undefined }),
   WagmiProvider: ({ children }: { children: any }) => children,
 }));
 

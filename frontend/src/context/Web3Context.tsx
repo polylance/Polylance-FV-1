@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { useAccount, useDisconnect, useChainId, useSwitchChain } from 'wagmi';
+import { useAccount, useDisconnect, useChainId, useSwitchChain, useWalletClient } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { ethers } from 'ethers';
 import { CONTRACTS, RPC_URL, AMOY_RPC_URLS, POLYGON_MAINNET_RPC_URLS, CHAIN_ID, NETWORK_CONFIG } from '../config/contracts';
@@ -111,6 +111,7 @@ const Web3Context = createContext<Web3ContextType | undefined>(undefined);
 
 export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { address: walletAddress, isConnected: walletIsConnected, connector } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const connectedChainId = useChainId();
   const { switchChain } = useSwitchChain();
   const { disconnect } = useDisconnect();
@@ -479,29 +480,76 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getSigner = useCallback(async (): Promise<ethers.Signer | null> => {
     try {
-      let rawProvider: any = null;
-      if (connector && typeof connector.getProvider === 'function') {
-        try {
-          rawProvider = await connector.getProvider();
-        } catch (connErr) {
-          console.warn('Could not get provider from wagmi connector:', connErr);
+      let bp: ethers.BrowserProvider | null = null;
+      let targetAddr: string = '';
+
+      if (walletClient) {
+        const { account, chain, transport } = walletClient;
+        const network = {
+          chainId: chain?.id || CHAIN_ID,
+          name: chain?.name || NETWORK_CONFIG.chainName,
+        };
+        bp = new ethers.BrowserProvider(transport, network);
+        targetAddr = ethers.getAddress(account.address);
+      } else {
+        let rawProvider: any = null;
+        if (connector && typeof connector.getProvider === 'function') {
+          try {
+            rawProvider = await connector.getProvider();
+          } catch (connErr) {
+            console.warn('Could not get provider from wagmi connector:', connErr);
+          }
+        }
+        if (!rawProvider && typeof window !== 'undefined') {
+          const eth = (window as any).ethereum;
+          if (eth) {
+            if (Array.isArray(eth.providers) && eth.providers.length > 0) {
+              rawProvider = eth.providers.find((p: any) => p.isMetaMask) || eth.providers[0];
+            } else {
+              rawProvider = eth;
+            }
+          }
+        }
+        if (rawProvider) {
+          const network = { chainId: CHAIN_ID, name: NETWORK_CONFIG.chainName };
+          bp = new ethers.BrowserProvider(rawProvider, network);
+          if (walletAddress && ethers.isAddress(walletAddress)) {
+            targetAddr = ethers.getAddress(walletAddress);
+          }
         }
       }
-      if (!rawProvider && typeof window !== 'undefined' && (window as any).ethereum) {
-        rawProvider = (window as any).ethereum;
-      }
-      if (rawProvider) {
-        const bp = new ethers.BrowserProvider(rawProvider, 'any');
-        if (walletAddress && ethers.isAddress(walletAddress)) {
-          return await bp.getSigner(walletAddress);
+
+      if (bp) {
+        let signer: ethers.JsonRpcSigner;
+        if (targetAddr) {
+          signer = new ethers.JsonRpcSigner(bp, targetAddr);
+        } else {
+          signer = await bp.getSigner();
         }
-        return await bp.getSigner();
+
+        // Fast direct transaction dispatch: bypass internal getBlockNumber / getTransaction polling on the browser wallet
+        // which causes MetaMask/Coinbase to hang or fail to trigger the signature prompt
+        const originalSendUnchecked = signer.sendUncheckedTransaction.bind(signer);
+        (signer as any).sendTransaction = async (tx: ethers.TransactionRequest) => {
+          const hash = await originalSendUnchecked(tx);
+          return {
+            hash,
+            wait: async (confirms = 1) => {
+              const activeProvider = getActiveProvider();
+              const receipt = await activeProvider.waitForTransaction(hash, confirms, 120000);
+              if (!receipt) throw new Error('Transaction confirmation timed out on Polygon.');
+              return receipt;
+            },
+          } as any;
+        };
+
+        return signer;
       }
     } catch (err) {
       console.warn('Failed to get signer:', err);
     }
     return null;
-  }, [connector, walletAddress]);
+  }, [walletClient, connector, walletAddress, getActiveProvider]);
 
   const address = walletIsConnected ? walletAddress || '' : '';
   const isConnected = Boolean(walletIsConnected);
