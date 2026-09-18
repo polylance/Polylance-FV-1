@@ -258,7 +258,7 @@ export const Manifesto: React.FC = () => {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: 0.1 * idx }}
                   whileHover={{ y: -4 }}
-                  className={`bg-white border border-[#E8EAF3] rounded-[28px] p-7 flex flex-col justify-between h-full space-y-6 shadow-2xs hover:shadow-xl hover:border-slate-300 transition-all duration-300 relative overflow-hidden group border-b-4 ${m.bottomAccent}`}
+                  className={`bg-white border border-[#E8EAF3] rounded-[24px] sm:rounded-[28px] p-5 sm:p-7 flex flex-col justify-between h-full space-y-5 sm:space-y-6 shadow-2xs hover:shadow-xl hover:border-slate-300 transition-all duration-300 relative overflow-hidden group border-b-4 ${m.bottomAccent}`}
                 >
                   {/* Card Top & Body Content */}
                   <div className="space-y-5 relative z-10">

@@ -5,6 +5,7 @@ import { Web3Provider, useWeb3 } from './context/Web3Context';
 import { PolyLanceDataProvider } from './context/PolyLanceDataContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { BottomTabBar } from './components/mobile';
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
@@ -28,6 +29,9 @@ import { Privacy } from './pages/Privacy';
 import { Security } from './pages/Security';
 import { Disclaimer } from './pages/Disclaimer';
 import { Manifesto } from './pages/Manifesto';
+import { DevPrimitivesPage } from './pages/DevPrimitivesPage';
+import { DevStatesPage } from './pages/DevStatesPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { pageVariants, transition } from './lib/motion';
 
 // ── Apple-style page transition wrapper ────────────────────────────────────
@@ -62,6 +66,8 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/security" element={<Security />} />
           <Route path="/disclaimer" element={<Disclaimer />} />
           <Route path="/manifesto" element={<Manifesto />} />
+          <Route path="/dev/primitives" element={<DevPrimitivesPage />} />
+          <Route path="/dev/states" element={<DevStatesPage />} />
 
           {/* ROLE PROTECTED OR PERCEPTION-GUIDED ROUTES */}
           <Route path="/onboarding" element={isVisitor ? <Navigate to="/login" replace /> : <Onboarding />} />
@@ -104,17 +110,22 @@ const AppContent: React.FC = () => {
   const showFooter = !isChat && (location.pathname === '/' || location.pathname === '/dashboard');
 
   return (
-    <div className={isChat ? "h-screen max-h-screen overflow-hidden bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white" : "min-h-screen bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white"}>
+    <div className={isChat ? "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white" : "min-h-[100dvh] bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white"}>
       {/* Production Navbar with Role-Aware Perception Navigation */}
       <Navbar />
 
       {/* Main Application Content */}
-      <main className={isChat ? "flex-1 w-full min-h-0 overflow-hidden flex flex-col" : "flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6"}>
-        <AnimatedRoutes />
+      <main className={isChat ? "flex-1 w-full min-h-0 overflow-hidden flex flex-col pb-16 lg:pb-0" : "flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6 pb-24 lg:pb-6"}>
+        <ErrorBoundary>
+          <AnimatedRoutes />
+        </ErrorBoundary>
       </main>
 
       {/* Footer ONLY on Dashboard and Landing Page */}
       {showFooter && <Footer />}
+
+      {/* Mobile-only Authenticated dApp Bottom Tab Bar */}
+      <BottomTabBar />
     </div>
   );
 };

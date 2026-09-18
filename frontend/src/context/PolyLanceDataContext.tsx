@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { ethers } from 'ethers';
-import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, DeliverableFile, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage, NegotiationProposal, ChatMessage } from '../types';
+import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, DeliverableFile, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage, NegotiationProposal, ChatMessage, SkillCategory } from '../types';
 import { generateMockTxHash, generateDeterministicHash, truncateAddress } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { fetchLiveExchangeRates, startRatePolling } from '../utils/currency';
@@ -76,6 +76,17 @@ interface PolyLanceDataContextType {
   toggleJudgeStatus: (address: string) => void;
   postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
   deleteJob: (jobId: string) => Promise<boolean>;
+  updateJobDetails: (
+    jobId: string,
+    updates: {
+      title?: string;
+      description?: string;
+      category?: SkillCategory;
+      amountUsdc?: string;
+      reviewPeriodDays?: number;
+      paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC';
+    }
+  ) => Promise<boolean>;
   renewJob: (jobId: string) => Promise<boolean>;
   applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => Promise<void>;
   selectFreelancer: (jobId: string, freelancerAddress: string) => Promise<void>;
@@ -135,6 +146,50 @@ const MOCK_NAMES_TO_PURGE = new Set([
   'nadia chen',
   'devpioneer'
 ]);
+
+const HARDHAT_TEST_ADDRESSES = new Set([
+  '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+  '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
+  '0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc',
+  '0x90f79bf6eb2c4f870365e785982e1f101e93b906',
+  '0x15d34aaf54267db7d7c367839aaf71a00a2c6a65',
+  '0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc',
+  '0x976ea74026e726554db657fa54763abd0c3a0aa9',
+  '0x14dc79964da2c08b23698b3d3cc7ca32193d9955',
+  '0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f',
+  '0xa0ee7a142d267c1f36714e4a8f75612f20a79720',
+]);
+
+export const isDemoOrMockJob = (j: Partial<Job> | null | undefined): boolean => {
+  if (!j) return true;
+  const id = String(j.id || '').toLowerCase().trim();
+  if (id === 'job-101' || id === 'job-102' || id.startsWith('job-mock-') || id.startsWith('mock-')) {
+    return true;
+  }
+  const title = (j.title || '').trim().toLowerCase();
+  const desc = (j.description || '').trim().toLowerCase();
+
+  // Test fixtures and demo jobs from seed / vitest
+  if (
+    title === 'full stack smart contract integration' ||
+    desc.includes('connect react 19 frontend with polygon amoy escrow contracts')
+  ) {
+    return true;
+  }
+  if (
+    (title === 'job 1' && desc === 'test job 1') ||
+    (title === 'job 2' && desc === 'test job 2')
+  ) {
+    return true;
+  }
+
+  const client = (j.client || '').toLowerCase().trim();
+  if (HARDHAT_TEST_ADDRESSES.has(client) || MOCK_ADDRESSES_TO_PURGE.has(client)) {
+    return true;
+  }
+
+  return false;
+};
 
 let localJobNonceSeq = 1;
 
@@ -249,6 +304,9 @@ const broadcastSync = (data: {
   treasuryBalanceUsdc?: number;
   treasuryBalanceEth?: number;
 }, senderAddress?: string) => {
+  if (data.jobs && Array.isArray(data.jobs)) {
+    data.jobs = data.jobs.filter((j) => !isDemoOrMockJob(j));
+  }
   let activeAddr = (senderAddress || currentConnectedWalletAddress || '').toLowerCase().trim();
   if (!activeAddr || !ethers.isAddress(activeAddr)) {
     if (data.jobs && data.jobs[0] && data.jobs[0].client && ethers.isAddress(data.jobs[0].client)) {
@@ -328,7 +386,7 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
   const idIndex = new Map<string, string>(); // maps id / contractAddress to mapKey
 
   (existing || []).forEach((j) => {
-    if (!j) return;
+    if (!j || isDemoOrMockJob(j)) return;
     const norm = normalizeJob(j);
     const key = (norm.contractAddress || norm.id).toLowerCase();
     map.set(key, norm);
@@ -337,7 +395,7 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
   });
 
   (incoming || []).forEach((inJobRaw) => {
-    if (!inJobRaw) return;
+    if (!inJobRaw || isDemoOrMockJob(inJobRaw)) return;
     const inJob = normalizeJob(inJobRaw);
     const inId = inJob.id ? String(inJob.id).toLowerCase() : '';
     const inContract = inJob.contractAddress ? String(inJob.contractAddress).toLowerCase() : '';
@@ -536,7 +594,7 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
   });
 
   const allMerged = Array.from(map.values());
-  return allMerged.filter((j) => !getJobInactivityStatus(j).isExpired);
+  return allMerged.filter((j) => !getJobInactivityStatus(j).isExpired && !isDemoOrMockJob(j));
 };
 
 const matchJob = (job: Job, targetId: string): boolean => {
@@ -597,8 +655,14 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_jobs');
       if (saved) {
-        const parsed: Job[] = JSON.parse(saved);
-        return parsed.filter(j => j.id !== 'job-101' && j.id !== 'job-102' && !getJobInactivityStatus(j).isExpired);
+        try {
+          const parsed: Job[] = JSON.parse(saved);
+          const clean = parsed.filter(j => !isDemoOrMockJob(j) && !getJobInactivityStatus(j).isExpired);
+          localStorage.setItem('polylance_jobs', JSON.stringify(clean));
+          return clean;
+        } catch {
+          return INITIAL_JOBS;
+        }
       }
     }
     return INITIAL_JOBS;
@@ -610,19 +674,45 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [jobs]);
   const isSyncingOnChainRef = useRef(false);
 
-  // Periodic background check to automatically purge jobs reaching 14 days without client action
+  // One-time startup purge of any lingering demo/test jobs from localStorage & broadcast deletion to backend
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem('polylance_jobs');
+      if (saved) {
+        const parsed: Job[] = JSON.parse(saved);
+        const demoJobs = parsed.filter(isDemoOrMockJob);
+        if (demoJobs.length > 0) {
+          const cleanJobs = parsed.filter((j) => !isDemoOrMockJob(j));
+          localStorage.setItem('polylance_jobs', JSON.stringify(cleanJobs));
+          setJobsRaw(cleanJobs);
+          demoJobs.forEach((dj) => {
+            if (dj.id) broadcastSync({ deletedJobId: dj.id });
+            if (dj.contractAddress && dj.contractAddress !== dj.id) {
+              broadcastSync({ deletedJobId: dj.contractAddress });
+            }
+          });
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Periodic background check to automatically purge jobs reaching 14 days without client action or demo jobs
   useEffect(() => {
     const checkExpiry = () => {
       setJobsRaw((curr) => {
-        const expired = curr.filter((j) => getJobInactivityStatus(j).isExpired);
-        if (expired.length === 0) return curr;
+        const expiredOrDemo = curr.filter((j) => getJobInactivityStatus(j).isExpired || isDemoOrMockJob(j));
+        if (expiredOrDemo.length === 0) return curr;
 
-        const remaining = curr.filter((j) => !getJobInactivityStatus(j).isExpired);
+        const remaining = curr.filter((j) => !getJobInactivityStatus(j).isExpired && !isDemoOrMockJob(j));
         if (typeof window !== 'undefined') {
           localStorage.setItem('polylance_jobs', JSON.stringify(remaining));
         }
-        expired.forEach((exp) => {
-          broadcastSync({ deletedJobId: exp.id });
+        expiredOrDemo.forEach((exp) => {
+          if (exp.id) broadcastSync({ deletedJobId: exp.id });
+          if (exp.contractAddress && exp.contractAddress !== exp.id) {
+            broadcastSync({ deletedJobId: exp.contractAddress });
+          }
         });
         return remaining;
       });
@@ -635,7 +725,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const setJobs = (val: React.SetStateAction<Job[]>) => {
     setJobsRaw((prev) => {
       const computed = typeof val === 'function' ? val(prev) : val;
-      const next = computed.filter((j) => !getJobInactivityStatus(j).isExpired);
+      const next = computed.filter((j) => !getJobInactivityStatus(j).isExpired && !isDemoOrMockJob(j));
       if (typeof window !== 'undefined') {
         localStorage.setItem('polylance_jobs', JSON.stringify(next));
       }
@@ -910,94 +1000,125 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     window.addEventListener('pageshow', handlePageShow);
     window.addEventListener('pagehide', handlePageHide);
 
-    // Initial load from backend shared state + upload local items if new
-    const isNetworkAvailable = typeof navigator === 'undefined' || (navigator.onLine && Date.now() >= backendSyncOfflineUntil);
+    // Initial load from backend shared state — race all endpoints for fastest response
+    // Uses longer timeout + retry to handle Render cold starts (can take 10-30s for free tier)
+    const isNetworkAvailable = typeof navigator === 'undefined' || navigator.onLine;
     if (isNetworkAvailable) {
       const currentAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
       const effectiveAddr = currentAddr || '0x0000000000000000000000000000000000000000';
       const initHeaders: Record<string, string> = { 'x-wallet-address': effectiveAddr };
       const initQuery = `?address=${encodeURIComponent(effectiveAddr)}`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-      fetch(`${syncUrl}/api/sync${initQuery}`, { headers: initHeaders, signal: controller.signal })
-        .then((r) => {
-          if (!r.ok) throw new Error(`Sync HTTP ${r.status}`);
-          return r.json();
-        })
-        .then((payload) => {
-          backendSyncOfflineUntil = 0;
-          let currentLocalJobs: Job[] = [];
-          try {
-            const saved = localStorage.getItem('polylance_jobs');
-            if (saved) currentLocalJobs = JSON.parse(saved);
-          } catch {}
+      const applyPayload = (payload: any) => {
+        if (!payload) return false;
+        backendSyncOfflineUntil = 0;
+        socketConnectFailures = 0;
 
-          if (payload) {
-            if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
-              setJobsRaw((curr) => {
-                const merged = mergeJobsList(curr, payload.jobs);
-                try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
-                return [...merged];
-              });
-              if (currentLocalJobs.length > 0) {
-                broadcastSync({ jobs: currentLocalJobs });
-              }
-            } else if (currentLocalJobs.length > 0) {
-              broadcastSync({ jobs: currentLocalJobs });
-            }
+        let currentLocalJobs: Job[] = [];
+        try {
+          const saved = localStorage.getItem('polylance_jobs');
+          if (saved) currentLocalJobs = JSON.parse(saved);
+        } catch {}
+        const cleanLocalJobs = currentLocalJobs.filter((j) => !isDemoOrMockJob(j));
 
-            let currentLocalProfiles: Record<string, UserProfile> = {};
-            try {
-              const savedProf = localStorage.getItem('polylance_profiles');
-              if (savedProf) currentLocalProfiles = JSON.parse(savedProf);
-            } catch {}
+        if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
+          setJobsRaw((curr) => {
+            const merged = mergeJobsList(curr, payload.jobs);
+            try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
+            return [...merged];
+          });
+          if (cleanLocalJobs.length > 0) {
+            broadcastSync({ jobs: cleanLocalJobs });
+          }
+        } else if (cleanLocalJobs.length > 0) {
+          broadcastSync({ jobs: cleanLocalJobs });
+        }
 
-            if (payload.profiles && Object.keys(payload.profiles).length > 0) {
-              setProfilesRaw((curr) => {
-                const merged = mergeProfilesMap(curr, payload.profiles);
-                try { localStorage.setItem('polylance_profiles', JSON.stringify(merged)); } catch {}
-                return { ...merged };
-              });
-              if (Object.keys(currentLocalProfiles).length > 0) {
-                const missingOnServer: Record<string, UserProfile> = {};
-                for (const [k, p] of Object.entries(currentLocalProfiles)) {
-                  if (!payload.profiles[k]) missingOnServer[k] = p;
-                }
-                if (Object.keys(missingOnServer).length > 0 && currentAddr && ethers.isAddress(currentAddr)) {
-                  broadcastSync({ profiles: missingOnServer }, currentAddr);
-                }
-              }
-            } else if (Object.keys(currentLocalProfiles).length > 0 && currentAddr && ethers.isAddress(currentAddr)) {
-              broadcastSync({ profiles: currentLocalProfiles }, currentAddr);
-            }
+        let currentLocalProfiles: Record<string, UserProfile> = {};
+        try {
+          const savedProf = localStorage.getItem('polylance_profiles');
+          if (savedProf) currentLocalProfiles = JSON.parse(savedProf);
+        } catch {}
 
-            if (Array.isArray(payload.daoProposals) && payload.daoProposals.length > 0) {
-              setDaoProposalsRaw([...payload.daoProposals]);
-              try { localStorage.setItem('polylance_dao_proposals', JSON.stringify(payload.daoProposals)); } catch {}
+        if (payload.profiles && Object.keys(payload.profiles).length > 0) {
+          setProfilesRaw((curr) => {
+            const merged = mergeProfilesMap(curr, payload.profiles);
+            try { localStorage.setItem('polylance_profiles', JSON.stringify(merged)); } catch {}
+            return { ...merged };
+          });
+          if (Object.keys(currentLocalProfiles).length > 0) {
+            const missingOnServer: Record<string, UserProfile> = {};
+            for (const [k, p] of Object.entries(currentLocalProfiles)) {
+              if (!payload.profiles[k]) missingOnServer[k] = p;
             }
-            if (payload.judgeMessages && Object.keys(payload.judgeMessages).length > 0) {
-              setJudgeMessagesRaw({ ...payload.judgeMessages });
-              try { localStorage.setItem('polylance_judge_messages', JSON.stringify(payload.judgeMessages)); } catch {}
-            }
-            if (Array.isArray(payload.judges) && payload.judges.length > 0) {
-              setJudgesRaw([...payload.judges]);
-              try { localStorage.setItem('polylance_judges', JSON.stringify(payload.judges)); } catch {}
-            }
-            if (Array.isArray(payload.treasuryProposals) && payload.treasuryProposals.length > 0) {
-              setTreasuryProposalsRaw([...payload.treasuryProposals]);
-              try { localStorage.setItem('polylance_treasury_proposals', JSON.stringify(payload.treasuryProposals)); } catch {}
-            }
-            if (Array.isArray(payload.treasuryHistory) && payload.treasuryHistory.length > 0) {
-              setTreasuryHistoryRaw([...payload.treasuryHistory]);
-              try { localStorage.setItem('polylance_treasury_history', JSON.stringify(payload.treasuryHistory)); } catch {}
+            if (Object.keys(missingOnServer).length > 0 && currentAddr && ethers.isAddress(currentAddr)) {
+              broadcastSync({ profiles: missingOnServer }, currentAddr);
             }
           }
-        })
-        .catch(() => {
-          backendSyncOfflineUntil = Date.now() + 45000;
-        })
-        .finally(() => clearTimeout(timeoutId));
+        } else if (Object.keys(currentLocalProfiles).length > 0 && currentAddr && ethers.isAddress(currentAddr)) {
+          broadcastSync({ profiles: currentLocalProfiles }, currentAddr);
+        }
+
+        if (Array.isArray(payload.daoProposals) && payload.daoProposals.length > 0) {
+          setDaoProposalsRaw([...payload.daoProposals]);
+          try { localStorage.setItem('polylance_dao_proposals', JSON.stringify(payload.daoProposals)); } catch {}
+        }
+        if (payload.judgeMessages && Object.keys(payload.judgeMessages).length > 0) {
+          setJudgeMessagesRaw({ ...payload.judgeMessages });
+          try { localStorage.setItem('polylance_judge_messages', JSON.stringify(payload.judgeMessages)); } catch {}
+        }
+        if (Array.isArray(payload.judges) && payload.judges.length > 0) {
+          setJudgesRaw([...payload.judges]);
+          try { localStorage.setItem('polylance_judges', JSON.stringify(payload.judges)); } catch {}
+        }
+        if (Array.isArray(payload.treasuryProposals) && payload.treasuryProposals.length > 0) {
+          setTreasuryProposalsRaw([...payload.treasuryProposals]);
+          try { localStorage.setItem('polylance_treasury_proposals', JSON.stringify(payload.treasuryProposals)); } catch {}
+        }
+        if (Array.isArray(payload.treasuryHistory) && payload.treasuryHistory.length > 0) {
+          setTreasuryHistoryRaw([...payload.treasuryHistory]);
+          try { localStorage.setItem('polylance_treasury_history', JSON.stringify(payload.treasuryHistory)); } catch {}
+        }
+        return true;
+      };
+
+      // Race all sync endpoints in parallel — fastest response wins
+      const tryFetchSync = (timeoutMs: number): Promise<any> => {
+        const endpoints = getSyncEndpoints();
+        const fetches = endpoints.map((ep) => {
+          const controller = new AbortController();
+          const tid = setTimeout(() => controller.abort(), timeoutMs);
+          return fetch(`${ep}/api/sync${initQuery}`, { headers: initHeaders, signal: controller.signal })
+            .then((r) => { clearTimeout(tid); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+            .catch((e) => { clearTimeout(tid); throw e; });
+        });
+        // Promise.any resolves as soon as any fetch succeeds
+        return (Promise as any).any(fetches).catch(() => null);
+      };
+
+      // Attempt with retry backoff — critical for Render cold starts and new users with no local data
+      const initialSyncWithRetry = async () => {
+        const attempts = [
+          { delay: 0, timeout: 10000 },
+          { delay: 5000, timeout: 14000 },
+          { delay: 12000, timeout: 20000 },
+          { delay: 25000, timeout: 25000 },
+        ];
+        for (const attempt of attempts) {
+          if (attempt.delay > 0) await new Promise((r) => setTimeout(r, attempt.delay));
+          try {
+            const payload = await tryFetchSync(attempt.timeout);
+            if (payload) {
+              applyPayload(payload);
+              return;
+            }
+          } catch {}
+        }
+        // Suppress only after all retries are exhausted
+        backendSyncOfflineUntil = Date.now() + 30000;
+      };
+
+      initialSyncWithRetry();
     }
 
 
@@ -1089,46 +1210,44 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const reqHeaders: Record<string, string> = { 'x-wallet-address': effectiveAddr };
       const query = `?address=${encodeURIComponent(effectiveAddr)}`;
 
-      for (const ep of endpoints) {
-        try {
+      // Race all endpoints in parallel — fastest response wins
+      try {
+        const fetches = endpoints.map((ep) => {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
-          const r = await fetch(`${ep}/api/sync${query}`, { signal: controller.signal, headers: reqHeaders }).catch(() => null);
-          clearTimeout(timeoutId);
-          if (!r || !r.ok) {
-            backendSyncOfflineUntil = Date.now() + 25000;
-            continue;
+          const tid = setTimeout(() => controller.abort(), 10000);
+          return fetch(`${ep}/api/sync${query}`, { signal: controller.signal, headers: reqHeaders })
+            .then((r) => { clearTimeout(tid); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+            .catch((e) => { clearTimeout(tid); throw e; });
+        });
+        const payload = await (Promise as any).any(fetches).catch(() => null);
+        if (payload) {
+          backendSyncOfflineUntil = 0;
+          if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
+            setJobsRaw((curr) => {
+              const merged = mergeJobsList(curr, payload.jobs);
+              if (curr.length === merged.length && JSON.stringify(curr) === JSON.stringify(merged)) return curr;
+              try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
+              return [...merged];
+            });
           }
-          const payload = await r.json().catch(() => null);
-          if (payload) {
-            backendSyncOfflineUntil = 0;
-            if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
-              setJobsRaw((curr) => {
-                const merged = mergeJobsList(curr, payload.jobs);
-                if (curr.length === merged.length && JSON.stringify(curr) === JSON.stringify(merged)) return curr;
-                try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
-                return [...merged];
-              });
-            }
-            if (payload.profiles && Object.keys(payload.profiles).length > 0) {
-              setProfilesRaw((curr) => {
-                const merged = mergeProfilesMap(curr, payload.profiles);
-                if (Object.keys(curr).length === Object.keys(merged).length && JSON.stringify(curr) === JSON.stringify(merged)) return curr;
-                try { localStorage.setItem('polylance_profiles', JSON.stringify(merged)); } catch {}
-                return { ...merged };
-              });
-            }
-            if (Array.isArray(payload.daoProposals)) setDaoProposalsRaw([...payload.daoProposals]);
-            if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
-            if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
-            if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
-            if (Array.isArray(payload.treasuryHistory)) setTreasuryHistoryRaw([...payload.treasuryHistory]);
-            return; // Successfully updated from live cloud database
+          if (payload.profiles && Object.keys(payload.profiles).length > 0) {
+            setProfilesRaw((curr) => {
+              const merged = mergeProfilesMap(curr, payload.profiles);
+              if (Object.keys(curr).length === Object.keys(merged).length && JSON.stringify(curr) === JSON.stringify(merged)) return curr;
+              try { localStorage.setItem('polylance_profiles', JSON.stringify(merged)); } catch {}
+              return { ...merged };
+            });
           }
-        } catch (err) {
-          backendSyncOfflineUntil = Date.now() + 25000;
-          continue;
+          if (Array.isArray(payload.daoProposals)) setDaoProposalsRaw([...payload.daoProposals]);
+          if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
+          if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
+          if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
+          if (Array.isArray(payload.treasuryHistory)) setTreasuryHistoryRaw([...payload.treasuryHistory]);
+        } else {
+          backendSyncOfflineUntil = Date.now() + 10000; // shorter cooldown than initial — keep retrying
         }
+      } catch {
+        backendSyncOfflineUntil = Date.now() + 10000;
       }
     };
 
@@ -1415,21 +1534,19 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const signer = await getSigner();
       if (signer) {
-        if (signer.provider) {
-          const signerNet = await signer.provider.getNetwork().catch(() => null);
-          if (signerNet && Number(signerNet.chainId) !== CHAIN_ID) {
-            console.warn(`[PolyLance] Signer on chain ${signerNet.chainId} does not match target ${CHAIN_ID}. Requesting chain switch.`);
-            await switchToTargetNetwork().catch(() => {});
-            throw new Error(`Your wallet is currently connected to another network (Chain ID: ${signerNet.chainId}, e.g. Robinhood Chain / Ethereum). Please switch your wallet to ${targetChainName} to deploy your escrow job using POL.`);
-          }
-        }
-        const code = await provider.getCode(CONTRACTS.JobFactory).catch(() => '0x');
+        // Parallelize pre-flight checks to minimize latency before wallet prompt
+        const [code, gasOverrides] = await Promise.all([
+          provider.getCode(CONTRACTS.JobFactory).catch(() => '0x'),
+          getPolygonGasOverrides(provider),
+        ]);
+
         if (code && code !== '0x') {
           const factory = new ethers.Contract(CONTRACTS.JobFactory, getAbi(JobFactoryABI), signer);
           const isNativeToken = tokenConfig.symbol === 'MATIC' || tokenConfig.symbol === 'POL';
           const tokenAddress = isNativeToken ? ethers.ZeroAddress : tokenConfig.address;
           
           let targetTokenForFactory = tokenAddress;
+          // Only check token approval for non-native tokens (and skip for non-admins to avoid extra RPC)
           if (!isNativeToken && tokenAddress !== ethers.ZeroAddress) {
             try {
               const isApproved = await factory.approvedPaymentTokens(tokenAddress).catch(() => false);
@@ -1438,7 +1555,6 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
                 const isAdmin = await factory.hasRole(ethers.ZeroHash, signerAddr).catch(() => false);
                 if (isAdmin) {
                   console.log(`Auto-approving ${tokenConfig.symbol} (${tokenAddress}) on JobFactory...`);
-                  const gasOverrides = await getPolygonGasOverrides(provider);
                   const approveTx = await factory.setApprovedPaymentToken(tokenAddress, true, gasOverrides);
                   await approveTx.wait();
                 } else {
@@ -1450,8 +1566,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             }
           }
 
-          console.log(`[PolyLance] Deploying on-chain escrow clone for ${tokenConfig.symbol} on Polygon Amoy...`);
-          const gasOverrides = await getPolygonGasOverrides(provider);
+          console.log(`[PolyLance] Deploying on-chain escrow clone for ${tokenConfig.symbol} on Polygon Mainnet...`);
           const tx = await factory.postJob(descriptionIpfsHash, targetTokenForFactory, gasOverrides);
           const receipt = await tx.wait();
           txHash = receipt.hash;
@@ -1541,11 +1656,109 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     setJobs((prev) => [newJob, ...prev]);
+
+    // Instant dual-write to backend for immediate availability across network
+    const syncUrl = getBackendSyncUrl();
+    fetch(`${syncUrl}/api/jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newJob),
+    }).catch(() => {});
+
     return newJob;
+  };
+
+  const updateJobDetails = async (
+    jobId: string,
+    updates: {
+      title?: string;
+      description?: string;
+      category?: SkillCategory;
+      amountUsdc?: string;
+      reviewPeriodDays?: number;
+      paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC';
+    }
+  ): Promise<boolean> => {
+    try {
+      let updatedJob: Job | null = null;
+      setJobsRaw((prev) => {
+        const next = prev.map((j) => {
+          if (!matchJob(j, jobId)) return j;
+          const tokenSymbol = updates.paymentTokenSymbol || (j.paymentTokenSymbol as any) || 'USDC';
+          const tokenConfig = getTokenBySymbol(tokenSymbol);
+
+          const newAmountUsdc = updates.amountUsdc !== undefined ? updates.amountUsdc : j.amountUsdc;
+          const ethAmount = (tokenConfig.symbol === 'MATIC' || tokenConfig.symbol === 'POL')
+            ? newAmountUsdc
+            : (parseFloat(newAmountUsdc) / 2800).toFixed(4);
+
+          const modJob: Job = {
+            ...j,
+            title: updates.title !== undefined ? updates.title.trim() : j.title,
+            description: updates.description !== undefined ? updates.description.trim() : j.description,
+            category: updates.category !== undefined ? updates.category : j.category,
+            amountUsdc: newAmountUsdc,
+            amountEth: ethAmount,
+            reviewPeriodDays: updates.reviewPeriodDays !== undefined ? updates.reviewPeriodDays : j.reviewPeriodDays,
+            paymentToken: tokenConfig.address,
+            paymentTokenSymbol: tokenConfig.symbol,
+            paymentTokenDecimals: tokenConfig.decimals,
+            events: [
+              ...(j.events || []),
+              {
+                step: 'Posted',
+                title: 'Job Details Modified by Client',
+                timestamp: Date.now(),
+                txHash: '',
+                status: 'completed' as const,
+                actor: 'Client' as const
+              }
+            ]
+          };
+          updatedJob = modJob;
+          return modJob;
+        });
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('polylance_jobs', JSON.stringify(next));
+        }
+        return next;
+      });
+
+      if (updatedJob) {
+        broadcastSync({ jobs: [updatedJob] });
+        const syncUrl = getBackendSyncUrl();
+        fetch(`${syncUrl}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        }).catch(() => {});
+      }
+      return true;
+    } catch (err) {
+      console.error('Failed to update job details:', err);
+      return false;
+    }
   };
 
   const deleteJob = async (jobId: string): Promise<boolean> => {
     try {
+      const target = jobsRef.current.find(j => matchJob(j, jobId));
+      // If contract is deployed and client is connected, try to call on-chain cancelJob if status is Open
+      if (target?.contractAddress && ethers.isAddress(target.contractAddress) && target.status === 'Open') {
+        try {
+          const signer = await getSigner();
+          if (signer) {
+            const escrow = new ethers.Contract(target.contractAddress, getAbi(JobEscrowABI), signer);
+            const gasOverrides = await getPolygonGasOverrides(provider);
+            const tx = await escrow.cancelJob(gasOverrides);
+            await tx.wait();
+          }
+        } catch (chainErr) {
+          console.warn('On-chain cancel notice (will proceed with local/database removal):', chainErr);
+        }
+      }
+
       setJobsRaw((prev) => {
         const next = prev.filter((j) => !matchJob(j, jobId));
         if (typeof window !== 'undefined') localStorage.setItem('polylance_jobs', JSON.stringify(next));
@@ -1881,7 +2094,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             await refreshBalances().catch(() => {});
           }
         } else if (isConnected) {
-          throw new Error('Could not find or deploy an on-chain escrow contract on Polygon Amoy. Please ensure you have testnet POL in your wallet for gas.');
+          throw new Error('Could not find or deploy an on-chain escrow contract on Polygon Mainnet. Please ensure you have POL in your wallet for gas.');
         }
       }
     } catch (err: any) {
@@ -3394,6 +3607,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     toggleJudgeStatus,
     postJob,
     deleteJob,
+    updateJobDetails,
     renewJob,
     applyToJob,
     selectFreelancer,
@@ -3449,6 +3663,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     toggleJudgeStatus,
     postJob,
     deleteJob,
+    updateJobDetails,
     renewJob,
     applyToJob,
     selectFreelancer,
@@ -3512,6 +3727,7 @@ const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
   toggleJudgeStatus: () => {},
   postJob: async () => ({} as any),
   deleteJob: async () => false,
+  updateJobDetails: async () => false,
   renewJob: async () => false,
   applyToJob: async () => {},
   selectFreelancer: async () => {},

@@ -325,7 +325,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                   </svg>
                 </div>
                 <span className="text-xs font-semibold text-slate-700 truncate">
-                  {NETWORK_CONFIG.chainName || 'Polygon Amoy Testnet'} ({NETWORK_CONFIG.chainId || '80002'})
+                  {NETWORK_CONFIG.chainName || 'Polygon Mainnet'} ({NETWORK_CONFIG.chainId || '137'})
                 </span>
               </div>
 

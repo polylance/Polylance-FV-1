@@ -221,44 +221,97 @@ export const Judge: React.FC = () => {
                 <p className="text-xs">All smart contract escrows are in good standing.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left font-mono text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider">
-                    <tr>
-                      <th className="p-4">Job ID</th>
-                      <th className="p-4">Category / Reason</th>
-                      <th className="p-4">Escrow Amount</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {disputedJobs.map((j) => (
-                      <tr
-                        key={j.id}
-                        onClick={() => setSelectedJobId(j.id)}
-                        className={`cursor-pointer hover:bg-purple-50/50 transition-colors ${
-                          selectedJobId === j.id ? 'bg-purple-50 border-l-4 border-purple-700' : ''
-                        }`}
-                      >
-                        <td className="p-4 font-bold text-purple-900">{j.id}</td>
-                        <td className="p-4 text-slate-700">{j.dispute?.reason || 'QUALITY'}</td>
-                        <td className="p-4 font-bold text-emerald-700">${parseFloat(j.amountUsdc).toLocaleString()} USDC</td>
-                        <td className="p-4">
-                          <span className="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[10px] uppercase font-bold">
-                            Waiting for Judge
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <button className="gradient-btn-primary px-3 py-1 rounded text-xs font-bold cursor-pointer">
-                            Review Detail
-                          </button>
-                        </td>
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left font-mono text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider">
+                      <tr>
+                        <th className="p-4">Job ID</th>
+                        <th className="p-4">Category / Reason</th>
+                        <th className="p-4">Escrow Amount</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {disputedJobs.map((j) => (
+                        <tr
+                          key={j.id}
+                          onClick={() => setSelectedJobId(j.id)}
+                          className={`cursor-pointer hover:bg-purple-50/50 transition-colors ${
+                            selectedJobId === j.id ? 'bg-purple-50 border-l-4 border-purple-700' : ''
+                          }`}
+                        >
+                          <td className="p-4 font-bold text-purple-900">{j.id}</td>
+                          <td className="p-4 text-slate-700">{j.dispute?.reason || 'QUALITY'}</td>
+                          <td className="p-4 font-bold text-emerald-700">${parseFloat(j.amountUsdc).toLocaleString()} USDC</td>
+                          <td className="p-4">
+                            <span className="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[10px] uppercase font-bold">
+                              Waiting for Judge
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <button className="gradient-btn-primary px-3 py-1 rounded text-xs font-bold cursor-pointer">
+                              Review Detail
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Card Stack (< md) */}
+                <div className="md:hidden divide-y divide-slate-100 p-3 space-y-3">
+                  {disputedJobs.map((j) => (
+                    <div
+                      key={j.id}
+                      onClick={() => setSelectedJobId(j.id)}
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-3 ${
+                        selectedJobId === j.id
+                          ? 'border-purple-500 bg-purple-50/60 ring-2 ring-purple-200'
+                          : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono font-bold text-xs text-purple-900 bg-purple-100/80 px-2 py-0.5 rounded-md">
+                          Case #{j.id}
+                        </span>
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[10px] uppercase font-bold">
+                          Waiting for Judge
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="font-headline font-bold text-sm text-slate-900 line-clamp-1">{j.title}</h4>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">
+                          Reason: <span className="font-semibold text-slate-700">{j.dispute?.reason || 'QUALITY'}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-mono uppercase block">Escrow Amount</span>
+                          <span className="font-mono font-black text-emerald-700 text-sm">
+                            ${parseFloat(j.amountUsdc).toLocaleString()} USDC
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedJobId(j.id);
+                          }}
+                          className="gradient-btn-primary px-3.5 py-2 min-h-[44px] rounded-xl text-xs font-bold shadow-xs flex items-center justify-center"
+                        >
+                          Review Detail
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
 
@@ -413,7 +466,8 @@ export const Judge: React.FC = () => {
               )}
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left font-sans text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-mono uppercase text-[10px] tracking-wider">
                   <tr>
@@ -501,6 +555,79 @@ export const Judge: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card Stack (< md) */}
+            <div className="md:hidden divide-y divide-slate-100 p-3 space-y-3">
+              {judges.map((judge, idx) => (
+                <div key={idx} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center font-bold font-headline text-xs shrink-0">
+                        {judge.name ? judge.name.slice(0, 2).toUpperCase() : 'JD'}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">{judge.name}</h4>
+                        <span className="font-mono text-[10px] text-slate-400 block">
+                          {truncateAddress(judge.address)}
+                        </span>
+                      </div>
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border ${
+                      judge.status === 'Active'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {judge.status}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-600 leading-relaxed font-sans bg-white/70 p-2.5 rounded-xl border border-slate-100">
+                    {judge.notes || 'General Smart Contract & Escrow Arbitration'}
+                  </p>
+
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      Appointed: {new Date(judge.addedAt).toLocaleDateString()}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/chat?judge=${judge.address}`}
+                        className="px-3 py-2 min-h-[44px] rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs inline-flex items-center gap-1.5"
+                      >
+                        <MessageSquare size={14} />
+                        <span>Message</span>
+                      </Link>
+
+                      {isAdmin && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => toggleJudgeStatus(judge.address)}
+                            className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center cursor-pointer"
+                            title={judge.status === 'Active' ? 'Suspend Judge' : 'Activate Judge'}
+                          >
+                            <Power size={15} className={judge.status === 'Active' ? 'text-emerald-600' : 'text-slate-400'} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`Revoke appointment for ${judge.name}?`)) {
+                                removeJudge(judge.address);
+                              }
+                            }}
+                            className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center cursor-pointer"
+                            title="Revoke Judge Appointment"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -20,7 +20,7 @@ export const Terms: React.FC = () => {
       details: [
         'No centralized entity, exchange, or team member holds custody of user funds at any point.',
         'Funds can only be disbursed via cryptographic signatures from the Client (milestone approval), mutual cancellation agreement, or automated dispute resolution by an appointed Arbitrator.',
-        'Smart contracts operate autonomously according to open-source bytecode deployed on Polygon Amoy testnet (and mainnet).'
+        'Smart contracts operate autonomously according to open-source bytecode deployed on Polygon Mainnet.'
       ]
     },
     {
@@ -108,17 +108,57 @@ export const Terms: React.FC = () => {
               Last Updated: August 2026
             </span>
             <span className="bg-purple-50 text-purple-700 px-3 py-1 rounded-lg border border-purple-100 font-bold">
-              Protocol Version: V1.0-Amoy
+              Protocol Version: V1.0-Mainnet
             </span>
           </div>
         </div>
       </section>
 
-      {/* Interactive 3D Section Selector & Accordion */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Interactive Section Selector & Detail View */}
+      <section className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8">
         
-        {/* Left Column: Interactive 3D Tab Buttons */}
-        <div className="lg:col-span-5 space-y-3 text-left">
+        {/* Mobile Horizontal Options Selector (< lg) */}
+        <div className="lg:hidden space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="font-mono text-[11px] font-black uppercase tracking-wider text-slate-400">
+              Contract Terms Index
+            </h3>
+            <span className="text-[10px] font-mono text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+              {activeTab + 1} of {sections.length} Selected
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 pt-0.5 -mx-4 px-4">
+            {sections.map((sec, idx) => {
+              const Icon = sec.icon;
+              const isActive = activeTab === idx;
+              return (
+                <button
+                  key={sec.id}
+                  type="button"
+                  onClick={() => setActiveTab(idx)}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-3xs ${
+                    isActive
+                      ? 'bg-purple-900 text-white shadow-sm ring-2 ring-purple-500/30'
+                      : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <Icon size={13} className={isActive ? 'text-purple-300' : 'text-purple-600'} />
+                  <span>
+                    {sec.id === 'escrow' ? '1. Escrow' : 
+                     sec.id === 'milestones' ? '2. SLA Release' : 
+                     sec.id === 'disputes' ? '3. Disputes' : 
+                     sec.id === 'sbt' ? '4. SBT Tokens' : 
+                     '5. Gas & Rules'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Desktop Left Column: 3D Tab Buttons (hidden on mobile, visible lg:) */}
+        <div className="hidden lg:block lg:col-span-5 space-y-3 text-left">
           <h3 className="font-mono text-xs font-black uppercase tracking-widest text-slate-400 px-2">
             Contract Terms Index
           </h3>
@@ -157,43 +197,43 @@ export const Terms: React.FC = () => {
           })}
         </div>
 
-        {/* Right Column: Dynamic Section Details Window */}
+        {/* Detail View Window (Clean & Responsive on Mobile & Desktop) */}
         <div className="lg:col-span-7">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-md text-left space-y-6"
+              className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-sm text-left space-y-4 sm:space-y-6"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${sections[activeTab].color} flex items-center justify-center text-white shadow-sm`}>
-                    {React.createElement(sections[activeTab].icon, { size: 20 })}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-slate-100 pb-3 sm:pb-4">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br ${sections[activeTab].color} flex items-center justify-center text-white shadow-sm shrink-0`}>
+                    {React.createElement(sections[activeTab].icon, { size: 18 })}
                   </div>
-                  <h3 className="font-headline font-black text-xl text-slate-900">
+                  <h3 className="font-headline font-black text-base sm:text-xl text-slate-900 leading-tight">
                     {sections[activeTab].title}
                   </h3>
                 </div>
-                <span className="px-3 py-1 bg-purple-50 border border-purple-100 text-purple-700 font-mono text-[10px] font-bold rounded-full uppercase">
+                <span className="px-2.5 py-1 bg-purple-50 border border-purple-200 text-purple-700 font-mono text-[9px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider shrink-0 self-start sm:self-auto">
                   {sections[activeTab].badge}
                 </span>
               </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs text-slate-700 font-medium leading-relaxed">
+              <div className="p-3 sm:p-4 bg-slate-50 border border-slate-100 rounded-xl sm:rounded-2xl text-xs text-slate-700 font-medium leading-relaxed">
                 {sections[activeTab].summary}
               </div>
 
-              <div className="space-y-3 pt-2">
-                <h4 className="font-mono text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <div className="space-y-2.5 sm:space-y-3 pt-1 sm:pt-2">
+                <h4 className="font-mono text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Specific Enforced Rules & Protocol Behaviors:
                 </h4>
-                <ul className="space-y-3">
+                <ul className="space-y-2.5 sm:space-y-3">
                   {sections[activeTab].details.map((detail, dIdx) => (
-                    <li key={dIdx} className="flex items-start gap-3 text-xs text-slate-700 font-sans leading-relaxed font-medium">
-                      <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono text-[10px]">
+                    <li key={dIdx} className="flex items-start gap-2.5 sm:gap-3 text-xs text-slate-700 font-sans leading-relaxed font-medium">
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono text-[9px] sm:text-[10px]">
                         ✓
                       </div>
                       <span>{detail}</span>
@@ -202,9 +242,9 @@ export const Terms: React.FC = () => {
                 </ul>
               </div>
 
-              <div className="pt-6 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-slate-400">
-                <span>Autonomous Smart Contract Logic</span>
-                <Link to="/security" className="text-purple-600 font-bold hover:underline inline-flex items-center gap-1">
+              <div className="pt-4 sm:pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono text-slate-400">
+                <span className="text-[11px] sm:text-xs">Autonomous Smart Contract Logic</span>
+                <Link to="/security" className="text-purple-600 font-bold hover:underline inline-flex items-center gap-1 self-start sm:self-auto">
                   View Contract Audits <ArrowRight size={12} />
                 </Link>
               </div>

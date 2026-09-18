@@ -11,13 +11,14 @@ import { DisputeReason, UserProfile } from '../types';
 import { truncateAddress, formatDaysRemaining, formatTimeAgo, getDeterministicSbtId, formatWeb3ErrorMessage, getPolygonScanAddressUrl } from '../utils/formatters';
 import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
 import { getJobInactivityStatus } from '../utils/inactivity';
-import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles, ArrowUpRight, Calendar, Trash2, RefreshCw, Share2, Loader2, Lock, Briefcase } from 'lucide-react';
+import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles, ArrowUpRight, Calendar, Trash2, Edit3, RefreshCw, Share2, Loader2, Lock, Briefcase } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ErrorState } from '../components/UIStates';
 import { ActionStatusModal, ActionModalDetail } from '../components/ActionStatusModal';
 import { FormattedJobDescription } from '../components/FormattedJobDescription';
 import { FundEscrowModal } from '../components/FundEscrowModal';
 import { PaymentReleasedModal } from '../components/PaymentReleasedModal';
+import { ModifyJobModal } from '../components/ModifyJobModal';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +44,7 @@ export const JobDetail: React.FC = () => {
 
   const [isFundEscrowModalOpen, setIsFundEscrowModalOpen] = useState(false);
   const [isPaymentReleasedModalOpen, setIsPaymentReleasedModalOpen] = useState(false);
+  const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
   const [releasedTxHash, setReleasedTxHash] = useState<string | undefined>(undefined);
 
   const [isResolvingJob, setIsResolvingJob] = useState(() => {
@@ -533,8 +535,38 @@ export const JobDetail: React.FC = () => {
                 </span>
                 <span className="text-xs text-slate-500 font-mono">Posted on-chain</span>
               </div>
-              <div className="flex items-center gap-1.5 text-purple-700 text-xs font-mono font-bold">
-                <Shield size={16} /> ESCROW SECURED
+              <div className="flex items-center gap-2">
+                {isClient && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsModifyModalOpen(true)}
+                      className="px-3 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      title="Modify job title, description, category, and budget"
+                    >
+                      <Edit3 size={13} className="text-purple-600" />
+                      <span>Modify Job</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (window.confirm(`Are you sure you want to delete / cancel the job posting "${job.title}"?`)) {
+                          const ok = await deleteJob(job.id);
+                          if (ok) navigate('/jobs');
+                        }
+                      }}
+                      className="px-3 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      title="Delete this job posting"
+                    >
+                      <Trash2 size={13} className="text-rose-600" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 text-purple-700 text-xs font-mono font-bold">
+                  <Shield size={16} /> ESCROW SECURED
+                </div>
               </div>
             </div>
 
@@ -1436,6 +1468,11 @@ export const JobDetail: React.FC = () => {
             job={job}
             txHash={releasedTxHash}
             onViewAttestation={() => navigate(`/jobs/${job.id}/attestation`)}
+          />
+          <ModifyJobModal
+            isOpen={isModifyModalOpen}
+            job={job}
+            onClose={() => setIsModifyModalOpen(false)}
           />
         </>
       )}

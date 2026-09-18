@@ -54,7 +54,12 @@ export const Chat: React.FC = () => {
     proposeNegotiationTerms, respondToNegotiationProposal
   } = usePolyLanceData();
 
-  const [showJobDetailsSidebar, setShowJobDetailsSidebar] = useState(true);
+  const [showJobDetailsSidebar, setShowJobDetailsSidebar] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024;
+    }
+    return false;
+  });
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showJudgeMoreMenu, setShowJudgeMoreMenu] = useState(false);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
@@ -594,8 +599,8 @@ export const Chat: React.FC = () => {
     <div className="w-full h-full flex overflow-hidden font-sans bg-white relative">
 
       {/* Left Side: Channels Sidebar */}
-      <div className={`w-80 md:w-88 lg:w-96 shrink-0 border-r border-slate-200 flex-col h-full bg-white p-3.5 sm:p-4 space-y-3.5 overflow-hidden ${
-        showMobileChannels ? 'flex absolute inset-0 z-40 bg-white' : 'hidden lg:flex'
+      <div className={`w-full lg:w-96 shrink-0 border-r border-slate-200 flex-col h-full bg-white p-3.5 sm:p-4 space-y-3.5 overflow-hidden ${
+        showMobileChannels ? 'flex absolute inset-0 z-50 bg-white' : 'hidden lg:flex'
       }`}>
           <div className="space-y-3 shrink-0">
             <div className="flex items-center justify-between">
@@ -673,7 +678,7 @@ export const Chat: React.FC = () => {
                     return (
                       <button
                         key={j.address}
-                        onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); }}
+                        onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); setShowMobileChannels(false); }}
                         className={`w-full p-3 rounded-2xl text-left transition-all border flex items-start gap-3 cursor-pointer ${isSelected
                             ? 'bg-purple-700 text-white border-purple-800 shadow-md font-bold'
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -724,7 +729,7 @@ export const Chat: React.FC = () => {
                     return (
                       <button
                         key={j.address}
-                        onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); }}
+                        onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); setShowMobileChannels(false); }}
                         className={`w-full p-2.5 rounded-2xl text-left transition-all border flex items-center gap-3 cursor-pointer ${isSelected
                             ? 'bg-purple-700 text-white border-purple-800 shadow-md font-bold'
                             : 'bg-white text-slate-700 border-slate-150 hover:bg-slate-50'
@@ -775,6 +780,7 @@ export const Chat: React.FC = () => {
                         onClick={() => {
                           setSelectedChannelId(channel.channelId);
                           setChatTab('jobs');
+                          setShowMobileChannels(false);
                         }}
                         className={`w-full p-3 rounded-2xl text-left transition-all border flex items-start gap-3 cursor-pointer ${
                           isSelected
@@ -879,7 +885,15 @@ export const Chat: React.FC = () => {
               <>
                 {/* Header Bar */}
                 <div className="px-3.5 py-2.5 sm:px-4 sm:py-3 border-b border-slate-200 bg-white flex justify-between items-center shrink-0 gap-2.5">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowMobileChannels(true)}
+                      className="lg:hidden p-1 -ml-1 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0 flex items-center"
+                      title="Back to conversation list"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
                     {/* Circle Avatar with green status dot */}
                     <div className="relative shrink-0">
                       <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-600 text-white font-extrabold flex items-center justify-center text-xs uppercase shadow-xs ring-2 ring-purple-100">
@@ -1169,14 +1183,14 @@ export const Chat: React.FC = () => {
               <>
                 {/* Header Bar */}
                 <div className="px-3.5 py-2.5 sm:px-4 sm:py-3 border-b border-slate-200 bg-white flex justify-between items-center shrink-0 gap-2.5">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                     <button
                       type="button"
-                      onClick={() => setSelectedChannelId(null)}
-                      className="md:hidden p-1 -ml-1 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+                      onClick={() => setShowMobileChannels(true)}
+                      className="lg:hidden p-1 -ml-1 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0 flex items-center"
                       title="Back to conversation list"
                     >
-                      <ChevronLeft size={18} />
+                      <ChevronLeft size={20} />
                     </button>
                     {/* Circle Avatar with status ring */}
                     <div className="relative shrink-0">
@@ -1194,11 +1208,11 @@ export const Chat: React.FC = () => {
 
                     {/* Header Info */}
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-headline font-black text-slate-900 text-sm sm:text-[15px] leading-tight truncate">
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <h4 className="font-headline font-black text-slate-900 text-xs sm:text-[15px] leading-tight truncate">
                           {activeChannel?.counterpartName || activeJob.title}
                         </h4>
-                        <span className={`inline-flex items-center gap-1 text-[9.5px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${
+                        <span className={`inline-flex items-center gap-1 text-[8px] sm:text-[9.5px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full shrink-0 ${
                           activeChannel?.badge === 'Candidate'
                             ? 'bg-amber-50 text-amber-800 border border-amber-200'
                             : 'bg-purple-50 text-purple-700 border border-purple-200'
@@ -1239,17 +1253,17 @@ export const Chat: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Job Details Button */}
+                    {/* Job Details Button (desktop only; mobile uses sub-action bar & more menu) */}
                     <Link
                       to={`/jobs/${activeJob.id}`}
-                      className="whitespace-nowrap shrink-0 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[11px] shadow-2xs transition-all cursor-pointer leading-none"
+                      className="hidden sm:inline-flex whitespace-nowrap shrink-0 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-bold py-1 px-2.5 rounded-lg items-center justify-center gap-1 text-[11px] shadow-2xs transition-all cursor-pointer leading-none"
                       title="View full job details & milestones"
                     >
                       <span>Job Details</span>
                       <ArrowUpRight size={11} className="text-purple-600 shrink-0" />
                     </Link>
 
-                    {/* Raise Issue Button - Only show after terms are agreed and contract is signed/funded */}
+                    {/* Raise Issue Button - Only show after terms are agreed and contract is signed/funded (desktop only) */}
                     {Boolean(
                       (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
                       activeJob.status === 'Funded' ||
@@ -1260,7 +1274,7 @@ export const Chat: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setIsDisputeModalOpen(true)}
-                        className="whitespace-nowrap shrink-0 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[11px] shadow-2xs transition-all cursor-pointer leading-none"
+                        className="hidden sm:inline-flex whitespace-nowrap shrink-0 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-1 px-2.5 rounded-lg items-center justify-center gap-1 text-[11px] shadow-2xs transition-all cursor-pointer leading-none"
                         title="File formal DAO dispute case"
                       >
                         <AlertTriangle size={11} className="text-rose-600 shrink-0" />
@@ -1279,6 +1293,33 @@ export const Chat: React.FC = () => {
                       </button>
                       {showMoreMenu && (
                         <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 py-1.5 font-sans">
+                          {/* Mobile quick actions in dropdown */}
+                          <Link
+                            to={`/jobs/${activeJob.id}`}
+                            onClick={() => setShowMoreMenu(false)}
+                            className="sm:hidden w-full flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-purple-50 transition-colors cursor-pointer text-left"
+                          >
+                            <ArrowUpRight size={13} className="text-purple-600" /> View Job Details
+                          </Link>
+                          {Boolean(
+                            (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
+                            activeJob.status === 'Funded' ||
+                            activeJob.status === 'Submitted' ||
+                            activeJob.status === 'Completed' ||
+                            activeJob.status === 'Disputed'
+                          ) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowMoreMenu(false);
+                                setIsDisputeModalOpen(true);
+                              }}
+                              className="sm:hidden w-full flex items-center gap-2 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
+                            >
+                              <AlertTriangle size={13} className="text-rose-600" /> Raise Dispute / Issue
+                            </button>
+                          )}
+                          <div className="sm:hidden border-t border-slate-100 my-1" />
                           <button
                             type="button"
                             onClick={() => {
@@ -1305,7 +1346,7 @@ export const Chat: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowJobDetailsSidebar(!showJobDetailsSidebar)}
-                      className={`px-2 py-1 rounded-lg border text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                      className={`p-1.5 sm:px-2 sm:py-1 rounded-lg border text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0 ${
                         showJobDetailsSidebar
                           ? 'bg-purple-100 text-purple-800 border-purple-300'
                           : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
@@ -1313,7 +1354,7 @@ export const Chat: React.FC = () => {
                       title={showJobDetailsSidebar ? "Hide Details Panel" : "Show Details Panel"}
                     >
                       {showJobDetailsSidebar ? <PanelRightClose size={13} className="text-purple-700" /> : <PanelRightOpen size={13} className="text-slate-500" />}
-                      <span className="text-[11px] leading-none">{showJobDetailsSidebar ? 'Hide Specs' : 'Show Specs'}</span>
+                      <span className="hidden sm:inline text-[11px] leading-none">{showJobDetailsSidebar ? 'Hide Specs' : 'Show Specs'}</span>
                     </button>
                   </div>
                 </div>
@@ -1413,7 +1454,7 @@ export const Chat: React.FC = () => {
                         )}
 
                         {/* Standard Action Pill Row */}
-                        <div className="flex items-center justify-start gap-2 flex-wrap">
+                        <div className="flex items-center justify-start gap-1.5 sm:gap-2 flex-wrap">
                           {/* Escrow & Net Amount Badge */}
                           <div className="bg-slate-100/90 border border-slate-200 text-slate-800 font-mono py-1 px-2.5 rounded-lg flex items-center gap-1.5 text-[10.5px]">
                             <span className="font-bold text-slate-600">Escrow:</span>
@@ -1421,6 +1462,34 @@ export const Chat: React.FC = () => {
                             <span className="text-slate-400">•</span>
                             <span className="text-purple-700 font-bold">Net: ${(parseFloat(activeJob.amountUsdc || '0') * 0.975).toFixed(2)} USDC</span>
                           </div>
+
+                          {/* Mobile-only Job Details & Dispute Buttons */}
+                          <Link
+                            to={`/jobs/${activeJob.id}`}
+                            className="sm:hidden bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer leading-none"
+                            title="View full job details & milestones"
+                          >
+                            <span>Job Details</span>
+                            <ArrowUpRight size={11} className="text-purple-600 shrink-0" />
+                          </Link>
+
+                          {Boolean(
+                            (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
+                            activeJob.status === 'Funded' ||
+                            activeJob.status === 'Submitted' ||
+                            activeJob.status === 'Completed' ||
+                            activeJob.status === 'Disputed'
+                          ) && (
+                            <button
+                              type="button"
+                              onClick={() => setIsDisputeModalOpen(true)}
+                              className="sm:hidden bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer leading-none"
+                              title="File formal DAO dispute case"
+                            >
+                              <AlertTriangle size={11} className="text-rose-600 shrink-0" />
+                              <span>Raise Issue</span>
+                            </button>
+                          )}
 
                           {/* COMPLETED JOB SBT ATTESTATION ACTION */}
                           {activeJob.status === 'Completed' && (
@@ -1684,7 +1753,7 @@ export const Chat: React.FC = () => {
                 </div>
 
                 {/* Input Panel */}
-                <div className="p-4 border-t border-slate-200 bg-white shrink-0 space-y-2">
+                <div className="p-2.5 sm:p-4 border-t border-slate-200 bg-white shrink-0 space-y-2 pb-safe">
                   {(() => {
                     const lowerAddr = (address || '').toLowerCase();
                     const isClient = activeJob.client.toLowerCase() === lowerAddr || currentRole === 'client';
@@ -1707,9 +1776,9 @@ export const Chat: React.FC = () => {
                       return (
                         <div className="flex items-center justify-between gap-2 pb-1 text-xs">
                           <div className="flex items-center gap-1.5 overflow-x-auto">
-                            <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-2xs">
-                              <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                              <span>Terms Finalized (${activeJob.amountUsdc} USDC • {activeJob.reviewPeriodDays || 7}d)</span>
+                            <span className="px-2.5 sm:px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] sm:text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-2xs">
+                              <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
+                              <span className="truncate">Terms Finalized (${activeJob.amountUsdc} USDC • {activeJob.reviewPeriodDays || 7}d)</span>
                             </span>
                           </div>
                         </div>
@@ -1727,7 +1796,7 @@ export const Chat: React.FC = () => {
                                 setIsFinalCallMode(false);
                                 setIsProposalModalOpen(true);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                              className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-[10.5px] sm:text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0"
                             >
                               <Sparkles size={12} />
                               <span>{isFreelancer ? 'Propose Price & Timeline' : 'Propose Terms'}</span>
@@ -1740,7 +1809,7 @@ export const Chat: React.FC = () => {
                                   setIsFinalCallMode(true);
                                   setIsProposalModalOpen(true);
                                 }}
-                                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[10.5px] sm:text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0"
                               >
                                 <Zap size={12} />
                                 <span>Final Call Offer</span>
@@ -1752,25 +1821,25 @@ export const Chat: React.FC = () => {
                     );
                   })()}
 
-                  <form onSubmit={handleSend} className="flex items-center gap-2">
-                    <div className="flex-1 flex items-center glass-input rounded-2xl px-3 py-1.5 bg-slate-50 border border-slate-200 shadow-inner">
-                      <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
-                        <Paperclip size={16} />
+                  <form onSubmit={handleSend} className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex-1 flex items-center glass-input rounded-2xl px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-50 border border-slate-200 shadow-inner min-w-0">
+                      <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer shrink-0">
+                        <Paperclip size={15} />
                       </button>
                       <input
                         type="text"
                         placeholder="Message client or developer..."
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
-                        className="w-full bg-transparent border-none outline-none text-xs font-semibold px-2 py-1.5 text-slate-800 placeholder-slate-400"
+                        className="w-full bg-transparent border-none outline-none text-xs font-semibold px-2 py-1.5 text-slate-800 placeholder-slate-400 min-w-0"
                       />
-                      <div className="relative">
+                      <div className="relative shrink-0">
                         <button
                           type="button"
                           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                           className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer flex items-center justify-center"
                         >
-                          <Smile size={16} />
+                          <Smile size={15} />
                         </button>
                         {showEmojiPicker && (
                           <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 grid grid-cols-6 gap-1 w-48 font-sans">
@@ -1794,9 +1863,10 @@ export const Chat: React.FC = () => {
 
                     <button
                       type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer shrink-0"
                     >
-                      <Send size={14} /> Send
+                      <Send size={13} />
+                      <span>Send</span>
                     </button>
                   </form>
 
@@ -1821,15 +1891,31 @@ export const Chat: React.FC = () => {
           )}
         </div>
 
-        {/* Right Side: Escrow / Arbitrator Summary Panel (Slide Toggleable) */}
-        <div
-          className={`transition-all duration-300 ease-in-out shrink-0 border-slate-200 bg-white flex flex-col h-full overflow-hidden ${
-            showJobDetailsSidebar && ((chatTab === 'jobs' && activeJob) || (chatTab === 'judges' && activeJudge))
-              ? 'w-80 lg:w-88 border-l opacity-100'
-              : 'w-0 border-l-0 opacity-0 pointer-events-none'
-          }`}
-        >
-          <div className="w-80 lg:w-88 flex flex-col justify-start h-full p-5 space-y-4 overflow-y-auto shrink-0">
+        {/* Right Side: Escrow / Arbitrator Summary Panel (Slide Toggleable on Desktop, Drawer Modal on Mobile) */}
+        {showJobDetailsSidebar && ((chatTab === 'jobs' && activeJob) || (chatTab === 'judges' && activeJudge)) && (
+          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex justify-end lg:static lg:z-auto lg:bg-transparent lg:backdrop-blur-none lg:flex shrink-0">
+            {/* Click-outside backdrop on mobile */}
+            <div
+              className="absolute inset-0 lg:hidden"
+              onClick={() => setShowJobDetailsSidebar(false)}
+            />
+            <div className="relative z-10 w-full max-w-sm sm:w-88 h-full bg-white flex flex-col border-l border-slate-200 shadow-2xl lg:shadow-none overflow-hidden animate-in slide-in-from-right duration-200">
+              {/* Mobile Drawer Header with Close Button */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 lg:hidden shrink-0 bg-slate-50/50">
+                <span className="font-headline font-bold text-xs text-slate-900 flex items-center gap-1.5 uppercase tracking-wider">
+                  <PanelRightClose size={15} className="text-purple-700" />
+                  {chatTab === 'jobs' ? 'Job & Escrow Specs' : 'Arbitrator Profile'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowJobDetailsSidebar(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="w-full flex flex-col justify-start h-full p-4 sm:p-5 space-y-4 overflow-y-auto shrink-0">
             {chatTab === 'jobs' && activeJob ? (
               <>
                 {/* Top Status Pill */}
@@ -1957,6 +2043,8 @@ export const Chat: React.FC = () => {
             ) : null}
           </div>
         </div>
+      </div>
+    )}
 
       {/* Deliverable Submission Modal */}
       {isSubmitModalOpen && (

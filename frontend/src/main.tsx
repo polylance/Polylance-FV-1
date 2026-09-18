@@ -24,6 +24,7 @@ if (typeof window !== 'undefined') {
       reasonMsg.includes("reading 'startTime'") ||
       reasonMsg.includes('emitting session_request') ||
       reasonMsg.includes('without any listeners') ||
+      reasonMsg.includes('Request expired') ||
       (event?.reason?.stack && event.reason.stack.includes('reportAllChanges'))
     ) {
       event.preventDefault();
@@ -100,7 +101,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { RainbowKitProvider, connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { metaMaskWallet, coinbaseWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
 import { WagmiProvider, createConfig, http, fallback } from 'wagmi';
-import { polygonAmoy, polygon, mainnet } from 'wagmi/chains';
+import { polygon, mainnet } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const projectId = (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '').trim();
@@ -141,16 +142,12 @@ const connectors = connectorsForWallets(
 
 const config = createConfig({
   connectors,
-  chains: [polygonAmoy, polygon, mainnet],
+  chains: [polygon, mainnet],
   transports: {
-    [polygonAmoy.id]: fallback([
-      http('https://polygon-amoy-bor-rpc.publicnode.com'),
-      http('https://polygon-amoy.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B'),
-    ]),
     [polygon.id]: fallback([
+      http('https://polygon-mainnet.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B'),
       http('https://polygon.drpc.org'),
       http('https://137.rpc.thirdweb.com'),
-      http('https://polygon-mainnet.g.alchemy.com/v2/xd727FUEtN2c-SPI_yo3B'),
       http('https://polygon-bor-rpc.publicnode.com'),
     ]),
     [mainnet.id]: fallback([

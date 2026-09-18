@@ -509,7 +509,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         list.push({
           id: upd.id || `prog-${ts}`,
           type: 'progress',
-          badge: `${upd.progressPercent}% COMPLETED`,
+          badge: `${upd.progressPercent}% DONE`,
           badgeClass: 'bg-blue-100 text-blue-900 border border-blue-200',
           timestamp: ts,
           dateStr: formatActivityTime(ts),
@@ -533,7 +533,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       list.push({
         id: `proof-${ts}`,
         type: 'milestone',
-        badge: 'MILESTONE COMPLETED',
+        badge: 'MILESTONE',
         badgeClass: 'bg-emerald-100 text-emerald-900 border border-emerald-200',
         timestamp: ts,
         dateStr: formatActivityTime(ts),
@@ -557,7 +557,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         list.push({
           id: req.id || `ext-${ts}-${idx}`,
           type: 'extension',
-          badge: `+${req.requestedDays} DAYS REQUESTED`,
+          badge: `+${req.requestedDays} DAYS`,
           badgeClass: 'bg-amber-100 text-amber-900 border border-amber-200',
           timestamp: ts,
           dateStr: formatActivityTime(ts),
@@ -581,7 +581,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         list.push({
           id: mod.id || `mod-${ts}-${idx}`,
           type: 'milestone',
-          badge: 'REVISIONS REQUESTED',
+          badge: 'REVISIONS',
           badgeClass: 'bg-amber-100 text-amber-900 border border-amber-300',
           timestamp: ts,
           dateStr: formatActivityTime(ts),
@@ -642,35 +642,18 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     <div className="glass-panel p-4 sm:p-6 border border-slate-200/90 bg-white rounded-3xl shadow-xs space-y-4 overflow-hidden">
       
       {/* 1. TOP HEADER WITH 3D CLIPBOARD CHECKLIST ART */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-        <div className="space-y-1.5 max-w-2xl">
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-2xs ${currentJob.status === 'Completed' ? 'bg-emerald-50 border border-emerald-200/80 text-emerald-600' : 'bg-blue-50 border border-blue-200/80 text-blue-600'}`}>
-              {currentJob.status === 'Completed' ? <Award size={16} /> : <Layers size={16} />}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4 border-b border-slate-100 pb-4">
+        <div className="space-y-2 max-w-2xl">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shadow-2xs shrink-0 ${currentJob.status === 'Completed' ? 'bg-emerald-50 border border-emerald-200/80 text-emerald-600' : 'bg-blue-50 border border-blue-200/80 text-blue-600'}`}>
+              {currentJob.status === 'Completed' ? <Award size={15} /> : <Layers size={15} />}
             </div>
-            <span className={`text-[10.5px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg ${currentJob.status === 'Completed' ? 'text-emerald-800 bg-emerald-50/80 border border-emerald-200/60' : 'text-blue-800 bg-blue-50/80 border border-blue-200/60'}`}>
+            <span className={`text-[10px] sm:text-[10.5px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg ${currentJob.status === 'Completed' ? 'text-emerald-800 bg-emerald-50/80 border border-emerald-200/60' : 'text-blue-800 bg-blue-50/80 border border-blue-200/60'}`}>
               {currentJob.status === 'Completed' ? 'Verified Milestone Archive' : 'Milestone Escrow Workspace'}
             </span>
-          </div>
-
-          <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 font-headline tracking-tight leading-tight pt-0.5">
-            {currentJob.status === 'Completed'
-              ? 'Completed Project & Settled Escrow Archive'
-              : 'Project Submission & Deliverable Verification Workspace'}
-          </h2>
-
-          <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xl">
-            {currentJob.status === 'Completed'
-              ? 'This project milestone has been completed, verified, and 100% of escrow funds are settled on Polygon PoS.'
-              : 'On-chain milestone submission, revision requests, extension management, and escrow payout release.'}
-          </p>
-          
-          {/* Escrow Status Pill below Subtitle */}
-          <div className="flex items-center gap-2 pt-1 font-mono text-xs">
-            <span className="text-slate-400 font-medium text-[11px]">Escrow Status:</span>
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono font-bold text-[10px] uppercase tracking-wide ${
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-mono font-bold text-[9.5px] sm:text-[10px] uppercase tracking-wide shrink-0 ${
               currentJob.status === 'Completed'
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                ? 'bg-emerald-100/70 text-emerald-800 border border-emerald-200'
                 : currentJob.status === 'Submitted'
                 ? 'bg-purple-100 text-purple-900 border border-purple-300 shadow-2xs'
                 : 'bg-amber-50 text-amber-700 border border-amber-200'
@@ -681,10 +664,22 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               {currentJob.status === 'Completed' 
                 ? 'COMPLETED / SETTLED' 
                 : currentJob.status === 'Submitted' 
-                ? 'SUBMITTED • UNDER CLIENT REVIEW' 
+                ? 'SUBMITTED • UNDER REVIEW' 
                 : (currentJob.status === 'Funded' || currentJob.status === 'Selected' ? 'FUNDED' : currentJob.status.toUpperCase())}
             </span>
           </div>
+
+          <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 font-headline tracking-tight leading-tight">
+            {currentJob.status === 'Completed'
+              ? 'Completed Project & Settled Escrow Archive'
+              : 'Project Submission & Deliverable Verification Workspace'}
+          </h2>
+
+          <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xl">
+            {currentJob.status === 'Completed'
+              ? 'This project milestone has been completed, verified, and 100% of escrow funds are settled on Polygon PoS.'
+              : 'On-chain milestone submission, revision requests, extension management, and escrow payout release.'}
+          </p>
         </div>
 
         {/* Right side: Action Button + Checklist Art (Properly Contained) */}
@@ -692,9 +687,9 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           <button
             type="button"
             onClick={() => navigate(`/chat?jobId=${currentJob.id}`)}
-            className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer shrink-0 active:scale-95"
+            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs hover:shadow transition-all cursor-pointer shrink-0 active:scale-95 w-full sm:w-auto"
           >
-            <MessageSquare size={14} />
+            <MessageSquare size={13} />
             <span>Open Messages Hub</span>
           </button>
           
@@ -747,21 +742,21 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       {/* 2. DEDICATED COMPLETED VIEW (NO SUBMISSION FORMS, ONLY VERIFIED DETAILS) */}
       {/* ========================================================================= */}
       {currentJob.status === 'Completed' ? (
-        <div className="space-y-5 animate-fadeIn">
+        <div className="space-y-4 animate-fadeIn">
           {/* COMPLETED JOB SBT ATTESTATION BANNER (COMPACT, PROPORTIONAL & RESPONSIVE) */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white border border-purple-500/30 shadow-md relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-60 h-60 bg-purple-500/15 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
-            <div className="relative z-10 flex flex-col gap-3.5">
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0 mt-0.5">
-                  <Award size={18} className="text-purple-300" />
+          <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white border border-purple-500/30 shadow-xs relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/15 rounded-full blur-3xl pointer-events-none -mr-12 -mt-12" />
+            <div className="relative z-10 flex flex-col gap-2.5">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0 mt-0.5">
+                  <Award size={15} className="text-purple-300" />
                 </div>
-                <div className="space-y-1.5 min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                      ● 100% Escrow Settled
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
+                      ● Escrow Settled
                     </span>
-                    <span className="text-[10px] text-purple-200/80 font-mono">ERC-5192 Soulbound Token</span>
+                    <span className="text-[9.5px] text-purple-200/70 font-mono shrink-0">ERC-5192 SBT</span>
                     
                     {/* Canonical Certificate ID Badge with click-to-copy */}
                     {(() => {
@@ -770,10 +765,10 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                         <button
                           type="button"
                           onClick={handleCopySbtCertId}
-                          title="Click to copy canonical Certificate ID"
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-900/60 hover:bg-purple-800/80 border border-purple-400/40 text-[9.5px] font-mono font-bold text-purple-200 hover:text-white transition-colors cursor-pointer"
+                          title="Click to copy Certificate ID"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-900/60 hover:bg-purple-800/80 border border-purple-400/40 text-[9px] font-mono font-bold text-purple-200 hover:text-white transition-colors cursor-pointer max-w-[160px] sm:max-w-xs truncate"
                         >
-                          <span>{certId}</span>
+                          <span className="truncate">{certId}</span>
                           {copiedSbtCertId ? (
                             <CheckCheck size={10} className="text-emerald-400 shrink-0" />
                           ) : (
@@ -784,54 +779,56 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     })()}
                   </div>
 
-                  <h3 className="font-headline font-bold text-base text-white tracking-tight">
-                    Official Soulbound Token (SBT) Certificate Issued
+                  <h3 className="font-headline font-bold text-sm sm:text-base text-white tracking-tight">
+                    Official Soulbound Token (SBT) Issued
                   </h3>
-                  <p className="text-xs text-purple-200/80 font-sans leading-relaxed">
-                    This project is officially completed and permanent on-chain proof of work has been minted to Polygon. Both parties can share and verify the cryptographic attestation.
+                  <p className="text-[11px] text-purple-200/80 font-sans leading-snug line-clamp-2">
+                    On-chain proof of work minted to Polygon PoS. Verify and share this cryptographic milestone attestation.
                   </p>
                 </div>
               </div>
 
-              {/* Action Buttons Group */}
-              <div className="flex items-center gap-2 flex-wrap w-full pt-2 border-t border-purple-800/40">
-                {(() => {
-                  const certId = getCanonicalCertificateId(currentJob.id, currentJob.contractAddress);
-                  const verifyUrl = getCertifiedPassVerifyUrl(certId);
-                  return (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleCopySbtCertId}
-                        title="Copy canonical Certificate ID"
-                        className="px-3 py-1.5 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-200 hover:text-white border border-purple-400/30 text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
-                      >
-                        {copiedSbtCertId ? <CheckCheck size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                        <span>{copiedSbtCertId ? 'Copied ID!' : 'Copy SBT ID'}</span>
-                      </button>
+              {/* Compact Action Buttons Group */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-purple-800/40 w-full">
+                <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
+                  {(() => {
+                    const certId = getCanonicalCertificateId(currentJob.id, currentJob.contractAddress);
+                    const verifyUrl = getCertifiedPassVerifyUrl(certId);
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleCopySbtCertId}
+                          title="Copy Certificate ID"
+                          className="px-2.5 py-1.5 rounded-lg bg-purple-900/60 hover:bg-purple-800 text-purple-200 hover:text-white border border-purple-400/30 text-[11px] font-bold font-mono flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
+                        >
+                          {copiedSbtCertId ? <CheckCheck size={11} className="text-emerald-400 shrink-0" /> : <Copy size={11} className="shrink-0" />}
+                          <span className="truncate">{copiedSbtCertId ? 'Copied!' : 'Copy ID'}</span>
+                        </button>
 
-                      <a
-                        href={verifyUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Verify on CertifiedPass"
-                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs hover:scale-102 active:scale-95"
-                      >
-                        <span>Verify on CertifiedPass</span>
-                        <ExternalLink size={11} />
-                      </a>
-                    </>
-                  );
-                })()}
+                        <a
+                          href={verifyUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Verify on CertifiedPass"
+                          className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
+                        >
+                          <span className="truncate">CertifiedPass</span>
+                          <ExternalLink size={10} className="shrink-0" />
+                        </a>
+                      </>
+                    );
+                  })()}
+                </div>
 
                 <button
                   type="button"
                   onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
-                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-600/25 flex items-center gap-1.5 transition-all hover:scale-102 cursor-pointer active:scale-95 sm:ml-auto"
+                  className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto shrink-0"
                 >
-                  <Award size={14} />
+                  <Award size={13} />
                   <span>View Certificate</span>
-                  <ExternalLink size={12} />
+                  <ExternalLink size={11} />
                 </button>
               </div>
             </div>
@@ -839,22 +836,23 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
 
           {/* Final Submitted Deliverables & Proof of Work Card */}
-          <div className="bg-white border border-purple-200/80 rounded-3xl p-6 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold shrink-0">
-                  <CheckCircle2 size={20} />
+          <div className="bg-white border border-purple-200/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-sm space-y-3.5 sm:space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-slate-100 pb-3 sm:pb-4">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold shrink-0">
+                  <CheckCircle2 size={16} className="sm:hidden" />
+                  <CheckCircle2 size={20} className="hidden sm:block" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-[10px] uppercase text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="font-mono font-bold text-[9px] sm:text-[10px] uppercase text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full">
                       Verified Deliverables
                     </span>
-                    <span className="text-[11px] font-mono text-slate-400">
+                    <span className="text-[10px] sm:text-[11px] font-mono text-slate-400">
                       Submitted by {truncateAddress(currentJob.freelancer || '')}
                     </span>
                   </div>
-                  <h4 className="font-headline font-black text-lg text-slate-900 mt-0.5">
+                  <h4 className="font-headline font-black text-base sm:text-lg text-slate-900 mt-0.5">
                     {currentJob.proof?.title || 'Final Milestone Deliverables & Proof of Work'}
                   </h4>
                 </div>
@@ -866,10 +864,10 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     href={currentJob.proof.externalLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-extrabold text-xs border border-purple-200 flex items-center gap-1.5 transition-all shadow-2xs"
+                    className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-extrabold text-[11px] sm:text-xs border border-purple-200 flex items-center gap-1.5 transition-all shadow-2xs"
                   >
-                    <ExternalLink size={13} />
-                    <span>Open Project Deliverable / PR</span>
+                    <ExternalLink size={12} />
+                    <span>Open Deliverable / PR</span>
                   </a>
                 </div>
               )}
@@ -877,11 +875,11 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
             {/* Deliverable Notes */}
             {(currentJob.proof?.description || currentJob.description) && (
-              <div className="space-y-2">
-                <span className="font-mono text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">
+              <div className="space-y-1.5 sm:space-y-2">
+                <span className="font-mono text-[9.5px] sm:text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">
                   Deliverable Scope & Submission Notes
                 </span>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200/80">
                   <FormattedJobDescription description={currentJob.proof?.description || currentJob.description} />
                 </div>
               </div>
@@ -889,28 +887,29 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
             {/* Attached Files / Media Artifacts */}
             {currentJob.proof?.evidenceFiles && currentJob.proof.evidenceFiles.length > 0 && (
-              <div className="space-y-2.5">
-                <span className="font-mono text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">
+              <div className="space-y-2 sm:space-y-2.5">
+                <span className="font-mono text-[9.5px] sm:text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">
                   Attached Deliverables & IPFS Proof Files ({currentJob.proof.evidenceFiles.length})
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
                   {currentJob.proof.evidenceFiles.map((file: DeliverableFile, idx: number) => (
                     <div 
                       key={idx} 
-                      className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 flex items-center justify-between gap-3 shadow-2xs hover:border-purple-300 hover:shadow-xs transition-all"
+                      className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/90 flex items-center justify-between gap-2.5 sm:gap-3 shadow-2xs hover:border-purple-300 hover:shadow-xs transition-all"
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/70 flex items-center justify-center shrink-0 shadow-2xs">
-                          <FileText size={18} />
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+                          <FileText size={16} className="sm:hidden" />
+                          <FileText size={18} className="hidden sm:block" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <span className="font-bold text-xs sm:text-sm text-slate-900 truncate block" title={file.name}>
                             {file.name}
                           </span>
-                          <span className="text-[10.5px] font-mono text-slate-500 flex items-center gap-1.5 whitespace-nowrap mt-0.5">
+                          <span className="text-[10px] sm:text-[10.5px] font-mono text-slate-500 flex items-center gap-1.5 whitespace-nowrap mt-0.5">
                             <span>{(file.size / 1024).toFixed(1)} KB</span>
                             <span>•</span>
-                            <span className="text-[9.5px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200/60">
+                            <span className="text-[9px] sm:text-[9.5px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200/60">
                               IPFS
                             </span>
                           </span>
@@ -919,9 +918,9 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                       <button
                         type="button"
                         onClick={() => openOrDownloadIpfsFile(file.cid, file.name)}
-                        className="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-extrabold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer shrink-0 active:scale-95"
+                        className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-extrabold text-[11px] sm:text-xs flex items-center gap-1 shadow-2xs transition-all cursor-pointer shrink-0 active:scale-95"
                       >
-                        <Download size={13} />
+                        <Download size={12} />
                         <span>Download</span>
                       </button>
                     </div>
@@ -931,29 +930,29 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             )}
 
             {/* Escrow Settlement Financial Breakdown */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-200 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/70 pb-2">
-                <span className="font-mono text-[11px] font-bold uppercase text-emerald-900 flex items-center gap-1.5">
-                  <CheckCircle2 size={14} className="text-emerald-600" />
+            <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-200 space-y-2.5 sm:space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-emerald-200/70 pb-2">
+                <span className="font-mono text-[10px] sm:text-[11px] font-bold uppercase text-emerald-900 flex items-center gap-1.5">
+                  <CheckCircle2 size={13} className="text-emerald-600" />
                   Full On-Chain Escrow Settlement Summary
                 </span>
-                <span className="text-xs font-mono font-bold text-emerald-950">
+                <span className="text-[11px] sm:text-xs font-mono font-bold text-emerald-950">
                   100% Released
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
-                <div className="p-3 bg-white rounded-xl border border-emerald-100">
-                  <span className="text-slate-500 text-[10.5px] block">Gross Contract Escrow</span>
-                  <strong className="text-slate-900 text-sm font-black">${parseFloat(currentJob.amountUsdc || '0').toFixed(2)} USDC</strong>
+              <div className="space-y-1.5 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-3 text-xs font-mono">
+                <div className="p-2 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-emerald-100 flex sm:block items-center justify-between">
+                  <span className="text-slate-500 text-[10px] sm:text-[10.5px] block">Gross Contract Escrow</span>
+                  <strong className="text-slate-900 text-xs sm:text-sm font-bold sm:font-black">${parseFloat(currentJob.amountUsdc || '0').toFixed(2)} USDC</strong>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-emerald-100">
-                  <span className="text-slate-500 text-[10.5px] block">Platform Maintenance (2.5%)</span>
-                  <strong className="text-rose-600 text-sm font-black">-${(parseFloat(currentJob.amountUsdc || '0') * 0.025).toFixed(2)} USDC</strong>
+                <div className="p-2 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-emerald-100 flex sm:block items-center justify-between">
+                  <span className="text-slate-500 text-[10px] sm:text-[10.5px] block">Platform Maintenance (2.5%)</span>
+                  <strong className="text-rose-600 text-xs sm:text-sm font-bold sm:font-black">-${(parseFloat(currentJob.amountUsdc || '0') * 0.025).toFixed(2)} USDC</strong>
                 </div>
-                <div className="p-3 bg-emerald-600 text-white rounded-xl shadow-xs">
-                  <span className="text-emerald-100 text-[10.5px] block">Net Released to Talent</span>
-                  <strong className="text-white text-base font-black">${(parseFloat(currentJob.amountUsdc || '0') * 0.975).toFixed(2)} USDC</strong>
+                <div className="p-2 sm:p-3 bg-emerald-600 text-white rounded-lg sm:rounded-xl shadow-xs flex sm:block items-center justify-between">
+                  <span className="text-emerald-100 text-[10px] sm:text-[10.5px] block">Net Released to Talent</span>
+                  <strong className="text-white text-xs sm:text-base font-black">${(parseFloat(currentJob.amountUsdc || '0') * 0.975).toFixed(2)} USDC</strong>
                 </div>
               </div>
             </div>
@@ -1980,26 +1979,26 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       {/* ========================================================================= */}
       {/* 4. REAL-TIME ACTIVITY TIMELINE (COMPACT SIZE + ATTRACTIVE FILTER BUTTONS) */}
       {/* ========================================================================= */}
-      <div className="border border-slate-200/80 rounded-2xl bg-white p-3.5 sm:p-4 shadow-2xs space-y-3">
+      <div className="border border-slate-200/80 rounded-2xl bg-white p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
         
         {/* Timeline Header with Redesigned Sleek Filter Buttons */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2 sm:pb-2.5">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center shrink-0 shadow-2xs">
-              <TrendingUp size={14} className="text-rose-500" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center shrink-0 shadow-2xs">
+              <TrendingUp size={13} className="text-rose-500" />
             </div>
             <div>
               <h3 className="font-headline font-black text-slate-900 text-xs sm:text-sm leading-tight">
                 Project Progress Updates Log
               </h3>
-              <p className="text-[10px] text-slate-500 font-medium">
+              <p className="text-[9.5px] sm:text-[10px] text-slate-500 font-medium">
                 Real-time updates and activities happening on this escrow.
               </p>
             </div>
           </div>
 
           {/* Attractive Modern Pill Filter Buttons (Strictly Single Line) */}
-          <div className="flex items-center gap-2 relative select-none shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 relative select-none shrink-0 self-start sm:self-auto">
             
             {/* Category Filter Pill */}
             <div className="relative shrink-0">
@@ -2009,46 +2008,46 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   setIsFilterDropdownOpen(!isFilterDropdownOpen);
                   setIsSortDropdownOpen(false);
                 }}
-                className="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] px-3 py-1.5 rounded-full border border-slate-200 shadow-2xs hover:border-slate-300 transition-all inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                className="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-200 shadow-2xs hover:border-slate-300 transition-all inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
               >
-                <Filter size={11} className="text-blue-500 shrink-0" />
+                <Filter size={10} className="text-blue-500 shrink-0" />
                 <span className="whitespace-nowrap">{activityFilter === 'all' ? 'All Activities' : activityFilter === 'progress' ? 'Progress Updates' : activityFilter === 'milestone' ? 'Milestones' : 'Escrow'}</span>
-                <ChevronDown size={11} className={`text-slate-400 shrink-0 transition-transform ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={10} className={`text-slate-400 shrink-0 transition-transform ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isFilterDropdownOpen && (
-                <div className="absolute right-0 mt-1.5 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-1.5 text-xs space-y-0.5 animate-fadeIn">
+                <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-44 sm:w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-1.5 text-xs space-y-0.5 animate-fadeIn">
                   <button
                     type="button"
                     onClick={() => { setActivityFilter('all'); setIsFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'all' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'all' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
                   >
                     <span>All Activities</span>
-                    {activityFilter === 'all' && <Check size={13} className="text-blue-600" />}
+                    {activityFilter === 'all' && <Check size={12} className="text-blue-600" />}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setActivityFilter('progress'); setIsFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'progress' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'progress' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
                   >
                     <span>Progress Updates</span>
-                    {activityFilter === 'progress' && <Check size={13} className="text-blue-600" />}
+                    {activityFilter === 'progress' && <Check size={12} className="text-blue-600" />}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setActivityFilter('milestone'); setIsFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'milestone' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'milestone' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
                   >
                     <span>Milestones & Proofs</span>
-                    {activityFilter === 'milestone' && <Check size={13} className="text-blue-600" />}
+                    {activityFilter === 'milestone' && <Check size={12} className="text-blue-600" />}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setActivityFilter('funded'); setIsFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'funded' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'funded' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
                   >
                     <span>Escrow & Payments</span>
-                    {activityFilter === 'funded' && <Check size={13} className="text-blue-600" />}
+                    {activityFilter === 'funded' && <Check size={12} className="text-blue-600" />}
                   </button>
                 </div>
               )}
@@ -2062,30 +2061,30 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   setIsSortDropdownOpen(!isSortDropdownOpen);
                   setIsFilterDropdownOpen(false);
                 }}
-                className="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] px-3.5 py-1.5 rounded-full border border-slate-200 shadow-2xs hover:border-slate-300 transition-all inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                className="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-200 shadow-2xs hover:border-slate-300 transition-all inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
               >
-                <ArrowUpDown size={11} className="text-indigo-500 shrink-0" />
+                <ArrowUpDown size={10} className="text-indigo-500 shrink-0" />
                 <span className="whitespace-nowrap">{sortOrder === 'latest' ? 'Newest First' : 'Oldest First'}</span>
-                <ChevronDown size={11} className={`text-slate-400 shrink-0 transition-transform ${isSortDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={10} className={`text-slate-400 shrink-0 transition-transform ${isSortDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isSortDropdownOpen && (
-                <div className="absolute right-0 mt-1.5 w-40 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-1.5 text-xs space-y-0.5 animate-fadeIn">
+                <div className="absolute right-0 mt-1.5 w-36 sm:w-40 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-1.5 text-xs space-y-0.5 animate-fadeIn">
                   <button
                     type="button"
                     onClick={() => { setSortOrder('latest'); setIsSortDropdownOpen(false); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${sortOrder === 'latest' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${sortOrder === 'latest' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
                   >
                     <span>Newest First</span>
-                    {sortOrder === 'latest' && <Check size={13} className="text-blue-600" />}
+                    {sortOrder === 'latest' && <Check size={12} className="text-blue-600" />}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setSortOrder('oldest'); setIsSortDropdownOpen(false); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${sortOrder === 'oldest' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${sortOrder === 'oldest' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
                   >
                     <span>Oldest First</span>
-                    {sortOrder === 'oldest' && <Check size={13} className="text-blue-600" />}
+                    {sortOrder === 'oldest' && <Check size={12} className="text-blue-600" />}
                   </button>
                 </div>
               )}
@@ -2095,11 +2094,11 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         </div>
 
         {/* Compact Connected Activities Track */}
-        <div className="relative flex gap-2.5 sm:gap-3 pt-0.5">
+        <div className="relative flex gap-2 sm:gap-3 pt-0.5">
           
           {/* Vertical Track Line and Connected Nodes */}
-          <div className="relative flex flex-col justify-between items-center py-3 shrink-0 w-3">
-            <div className="absolute top-3 bottom-3 w-[1.5px] bg-slate-200 z-0" />
+          <div className="relative flex flex-col justify-between items-center py-2 shrink-0 w-3">
+            <div className="absolute top-2.5 bottom-2.5 w-[1.5px] bg-slate-200 z-0" />
             
             {displayedActivities.map((act, i) => {
               const nodeBg = act.type === 'progress' ? 'bg-blue-600 ring-blue-100' : act.type === 'milestone' ? 'bg-emerald-500 ring-emerald-100' : act.type === 'extension' ? 'bg-purple-600 ring-purple-100' : 'bg-amber-500 ring-amber-100';
@@ -2123,59 +2122,61 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 return (
                   <div
                     key={act.id}
-                    className={`${cardBg} border rounded-xl p-2.5 sm:p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs`}
+                    className={`${cardBg} border rounded-xl p-2 sm:p-3 flex flex-col gap-1.5 shadow-2xs`}
                   >
-                    <div className="flex items-start gap-2.5 min-w-0">
-                      <div className={`w-7 h-7 rounded-lg ${iconBg} border flex items-center justify-center shrink-0 mt-0.5 shadow-2xs`}>
-                        {act.icon}
-                      </div>
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`${act.badgeClass} px-1.5 py-0.5 rounded font-mono font-black text-[9px] uppercase tracking-wide`}>
-                            {act.badge}
-                          </span>
-                          <span className="text-slate-400 font-mono text-[10px]">
-                            {act.dateStr}
-                          </span>
+                    {/* Top Header Row: Icon, Event Badge, Date, and Status Pill */}
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg ${iconBg} border flex items-center justify-center shrink-0 shadow-2xs`}>
+                          {act.icon}
                         </div>
-                        <h4 className="text-xs font-black text-slate-900 font-headline mt-0.5 truncate">
-                          {act.title}
-                        </h4>
-                        <p className="text-[10.5px] text-slate-500 font-medium truncate max-w-md">
-                          {act.subtitle}
-                        </p>
+                        <span className={`${act.badgeClass} px-1.5 sm:px-2 py-0.5 rounded font-mono font-bold text-[8px] sm:text-[9px] uppercase tracking-wide shrink-0`}>
+                          {act.badge}
+                        </span>
+                        <span className="text-slate-400 font-mono text-[8.5px] sm:text-[9.5px] shrink-0">
+                          {act.dateStr}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 ml-auto">
+                        {act.demoUrl && (
+                          <a
+                            href={act.demoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-[8.5px] sm:text-[9px] shadow-2xs transition-all cursor-pointer shrink-0"
+                            title="Open Live Staging / Demo URL"
+                          >
+                            <span>Demo</span>
+                            <ExternalLink size={8.5} className="text-white shrink-0" />
+                          </a>
+                        )}
+                        <span className={`${act.statusPill.pillClass} font-bold text-[8.5px] sm:text-[9.5px] px-1.5 sm:px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-2xs shrink-0 whitespace-nowrap`}>
+                          {act.statusPill.dotClass && (
+                            <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${act.statusPill.dotClass} inline-block animate-pulse shrink-0`} />
+                          )}
+                          {act.statusPill.showCheck && (
+                            <Check size={8.5} className="shrink-0" />
+                          )}
+                          <span>{act.statusPill.text}</span>
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                      {act.demoUrl && (
-                        <a
-                          href={act.demoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-[11px] shadow-xs hover:shadow-md transition-all hover:scale-105 cursor-pointer shrink-0"
-                          title="Open Live Staging / Demo URL"
-                        >
-                          <span>Live Demo</span>
-                          <ExternalLink size={11} className="text-white shrink-0" />
-                        </a>
-                      )}
-                      <span className={`${act.statusPill.pillClass} font-bold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs`}>
-                        {act.statusPill.dotClass && (
-                          <span className={`w-1.5 h-1.5 rounded-full ${act.statusPill.dotClass} inline-block animate-pulse`} />
-                        )}
-                        {act.statusPill.showCheck && (
-                          <Check size={10} className="shrink-0" />
-                        )}
-                        {act.statusPill.text}
-                      </span>
+                    {/* Content: Title & Subtitle cleanly indented */}
+                    <div className="pl-7 sm:pl-9 space-y-0.5 min-w-0">
+                      <h4 className="text-[11.5px] sm:text-xs font-black text-slate-900 font-headline leading-tight break-words">
+                        {act.title}
+                      </h4>
+                      <p className="text-[10px] sm:text-[10.5px] text-slate-600 font-medium break-words leading-relaxed max-w-xl">
+                        {act.subtitle}
+                      </p>
                     </div>
                   </div>
                 );
               })
             )}
           </div>
-
         </div>
 
         {/* View Full Activity Log Toggle Button */}

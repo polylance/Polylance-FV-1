@@ -93,20 +93,36 @@ export function formatWeb3ErrorMessage(err: any): string {
     return 'Contract transaction execution reverted on-chain.';
   }
 
-  if (rawMsg.includes('network') || rawMsg.includes('Wrong network')) {
-    return 'Network mismatch. Please verify wallet is connected to the right Polygon chain.';
+  if (rawMsg.includes('network') || rawMsg.includes('Wrong network') || rawMsg.includes('chain not supported')) {
+    return 'Network mismatch. Please verify your mobile wallet is connected to Polygon Mainnet (137).';
+  }
+
+  if (rawMsg.includes('Connector not found') || rawMsg.includes('Provider not found') || rawMsg.includes('No provider')) {
+    return 'Mobile wallet connection lost. Please open MetaMask or your wallet app and re-connect.';
+  }
+
+  if (rawMsg.includes('nonce too low') || rawMsg.includes('replacement transaction underpriced')) {
+    return 'Transaction replaced or pending nonce collision. Please wait a moment and try again.';
+  }
+
+  if (rawMsg.includes('gas required exceeds allowance') || rawMsg.includes('UNPREDICTABLE_GAS_LIMIT')) {
+    return 'Gas estimation failed. The contract state may prevent this action at this time.';
+  }
+
+  if (rawMsg.includes('timeout') || rawMsg.includes('Timeout') || rawMsg.includes('ETIMEDOUT')) {
+    return 'RPC node timeout. The Polygon network is experiencing delays; please retry.';
   }
 
   return rawMsg.length > 120 ? `${rawMsg.slice(0, 117)}...` : rawMsg;
 }
 
 export function getPolygonScanUrl(txHash: string): string {
-  const baseUrl = NETWORK_CONFIG.blockExplorerUrl || 'https://amoy.polygonscan.com';
+  const baseUrl = NETWORK_CONFIG.blockExplorerUrl || 'https://polygonscan.com';
   return `${baseUrl}/tx/${txHash}`;
 }
 
 export function getPolygonScanAddressUrl(address: string): string {
-  const baseUrl = NETWORK_CONFIG.blockExplorerUrl || 'https://amoy.polygonscan.com';
+  const baseUrl = NETWORK_CONFIG.blockExplorerUrl || 'https://polygonscan.com';
   return `${baseUrl}/address/${address}`;
 }
 

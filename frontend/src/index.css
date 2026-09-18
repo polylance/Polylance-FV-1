@@ -68,6 +68,24 @@
   --font-jetbrains: 'JetBrains Mono', monospace;
 }
 
+:root {
+  /* Safe Area Inset Variables for Notched Devices */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Fluid Typography Tokens (Mobile -> Desktop) */
+  --text-fluid-xs: clamp(0.75rem, 0.7rem + 0.2vw, 0.875rem);
+  --text-fluid-sm: clamp(0.8125rem, 0.78rem + 0.25vw, 0.9375rem);
+  --text-fluid-base: clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem);
+  --text-fluid-lg: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  --text-fluid-xl: clamp(1.25rem, 1.15rem + 0.5vw, 1.5rem);
+  --text-fluid-2xl: clamp(1.5rem, 1.35rem + 0.75vw, 1.875rem);
+  --text-fluid-3xl: clamp(1.875rem, 1.65rem + 1.1vw, 2.375rem);
+  --text-fluid-hero: clamp(2.25rem, 1.85rem + 2.2vw, 3.75rem);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -77,6 +95,8 @@ html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 body {
@@ -84,9 +104,60 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   min-height: 100vh;
-  overflow-x: hidden;
+  min-height: 100dvh;
+  overflow-x: clip;
+  max-width: 100%;
   line-height: 1.5;
   position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS Safari Automatic Zoom Prevention: inputs must be at least 16px */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe Area Utility Classes */
+.pt-safe {
+  padding-top: max(var(--safe-top), 0px);
+}
+.pb-safe {
+  padding-bottom: max(var(--safe-bottom), 0px);
+}
+.pl-safe {
+  padding-left: max(var(--safe-left), 0px);
+}
+.pr-safe {
+  padding-right: max(var(--safe-right), 0px);
+}
+.safe-h-screen {
+  height: 100dvh;
+}
+.safe-min-h-screen {
+  min-height: 100dvh;
+}
+
+/* Global Focus Visible Ring Style */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Mobile Active Press Feedback (Scoped to mobile/tablet only to preserve desktop pixel-identical layout) */
+@media (max-width: 1023px) {
+  button:active:not(:disabled),
+  [role="button"]:active:not(:disabled),
+  .touch-press:active {
+    transform: scale(0.98);
+    transition: transform 0.08s ease;
+  }
+}
+
+/* Dev-only Overflow Debugger */
+.debug-overflow * {
+  outline: 1px solid rgba(239, 68, 68, 0.4) !important;
 }
 
 body::before {

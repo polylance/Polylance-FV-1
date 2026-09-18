@@ -69,10 +69,10 @@ export const Disclaimer: React.FC = () => {
             <AlertTriangle size={20} />
           </div>
           <h3 className="font-headline font-bold text-lg text-slate-900">
-            2. Testnet Network & Token Notice
+            2. Mainnet Network & Token Notice
           </h3>
           <p className="text-xs text-slate-600 leading-relaxed font-medium">
-            Tokens deployed on Polygon Amoy (Chain ID 80002) are testnet assets with zero financial value. Users should verify transaction signatures in MetaMask or RainbowKit before signing.
+            Tokens deployed on Polygon Mainnet (Chain ID 137) are real assets with real financial value. Users must carefully verify all transaction signatures in their wallet before signing.
           </p>
         </motion.div>
 

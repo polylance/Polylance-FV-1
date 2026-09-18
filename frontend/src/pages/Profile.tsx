@@ -346,7 +346,7 @@ export const Profile: React.FC = () => {
           </div>
 
           {/* Soulbound Escrow Patron Tokens Collection */}
-          <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
+          <div className="glass-panel p-4 sm:p-6 border-slate-200 bg-white hard-shadow space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
@@ -385,11 +385,11 @@ export const Profile: React.FC = () => {
                         <h4 className="text-sm font-bold text-slate-900 line-clamp-1 font-headline">
                           {j.title}
                         </h4>
-                        <div className="flex items-center justify-between mt-1 text-[11px] font-mono">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-1 text-[11px] font-mono gap-1">
                           <span className="text-slate-500">
                             Talent: {truncateAddress(j.freelancer || '')}
                           </span>
-                          <span className="text-[10px] text-purple-800 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+                          <span className="text-[9.5px] sm:text-[10px] text-purple-800 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 truncate max-w-full">
                             {certId}
                           </span>
                         </div>
@@ -457,26 +457,28 @@ export const Profile: React.FC = () => {
           )}
           {/* Header Profile Card */}
           <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-slate-100 pb-6">
-              <div className="flex items-center gap-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 border-b border-slate-100 pb-6">
+              <div className="flex items-start sm:items-center gap-4 sm:gap-5 min-w-0">
                 <img
                   src={userProfile.avatarUrl || (userProfile.githubUsername ? `https://github.com/${userProfile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${userProfile.address}`)}
                   alt={userProfile.displayName}
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${userProfile.address}`;
                   }}
-                  className="w-20 h-20 rounded-2xl border-2 border-purple-200 object-cover shadow-xs"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-purple-200 object-cover shadow-xs shrink-0"
                 />
-                <div className="space-y-1">
-                  <h1 className="text-2xl font-extrabold text-slate-900 font-heading flex items-center gap-2">
-                    {userProfile.displayName}
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+                    <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-heading break-words">
+                      {userProfile.displayName}
+                    </h1>
                     {userProfile.githubVerified && (
-                      <span className="text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold">
+                      <span className="text-[10px] sm:text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold shrink-0 self-start sm:self-auto">
                         ✓ Verified Developer
                       </span>
                     )}
-                  </h1>
-                  <p className="text-xs font-mono text-purple-900 font-bold">
+                  </div>
+                  <p className="text-xs font-mono text-purple-900 font-bold break-words">
                     Wallet Address: {truncateAddress(userProfile.address)}
                   </p>
                   <p className="text-xs text-slate-600 max-w-md pt-1 leading-relaxed">{userProfile.bio}</p>
@@ -486,7 +488,7 @@ export const Profile: React.FC = () => {
               {isOwnProfile && (
                 <Link
                   to="/settings"
-                  className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold shadow-md self-start sm:self-auto"
+                  className="gradient-btn-primary px-4 py-2.5 rounded-xl text-xs font-bold shadow-md w-full sm:w-auto text-center shrink-0"
                 >
                   Edit Profile & Skills
                 </Link>
@@ -494,22 +496,22 @@ export const Profile: React.FC = () => {
             </div>
 
             {/* Section 7 Audited Code Byte Matrix & Reputation Card for ALL Users */}
-            <div className="glass-panel p-5 border-slate-200 bg-slate-50 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-emerald-800 font-bold flex items-center gap-1.5">
+            <div className="glass-panel p-4 sm:p-5 border-slate-200 bg-slate-50 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <span className="text-xs font-mono text-emerald-800 font-bold flex items-center gap-1.5 min-w-0">
                   {userProfile.githubVerified ? (
                     <>
-                      <CheckCircle2 size={16} className="text-emerald-600" />
-                      <span>GitHub Verified: @{userProfile.githubUsername}</span>
+                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                      <span className="truncate">GitHub Verified: @{userProfile.githubUsername}</span>
                     </>
                   ) : (
                     <>
-                      <ShieldCheck size={16} className="text-purple-600" />
-                      <span>Polygon Sovereign Oracle: Smart Contract & Bytecode Attested</span>
+                      <ShieldCheck size={16} className="text-purple-600 shrink-0" />
+                      <span className="truncate">Polygon Sovereign Oracle: Smart Contract & Bytecode Attested</span>
                     </>
                   )}
                 </span>
-                <span className="text-[10px] text-slate-500 font-mono font-bold">
+                <span className="text-[10px] text-slate-500 font-mono font-bold shrink-0">
                   {userProfile.githubVerified
                     ? `Attested: ${new Date(userProfile.verifiedAt || Date.now()).toLocaleDateString()}`
                     : 'Attested: On-Chain Live'}
@@ -619,8 +621,8 @@ export const Profile: React.FC = () => {
           </div>
 
           {/* VERIFIABLE PORTFOLIO SECTION matching manage_profile_verifiable_portfolio */}
-          <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="glass-panel p-4 sm:p-6 border-slate-200 bg-white hard-shadow space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
               <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
                 <FolderGit2 size={20} className="text-purple-700" /> Verifiable Portfolio Deliverables
               </h3>
@@ -656,7 +658,7 @@ export const Profile: React.FC = () => {
 
           {/* Soulbound Reputation Tokens Collection */}
           {/* On-Chain Soulbound Token (SBT) Vault */}
-          <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
+          <div className="glass-panel p-4 sm:p-6 border-slate-200 bg-white hard-shadow space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
@@ -695,11 +697,11 @@ export const Profile: React.FC = () => {
                         <h4 className="text-sm font-bold text-slate-900 line-clamp-1 font-headline">
                           {j.title}
                         </h4>
-                        <div className="flex items-center justify-between mt-1 text-[11px] font-mono">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-1 text-[11px] font-mono gap-1">
                           <span className="text-slate-500">
                             Client: {truncateAddress(j.client)}
                           </span>
-                          <span className="text-[10px] text-purple-800 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+                          <span className="text-[9.5px] sm:text-[10px] text-purple-800 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 truncate max-w-full">
                             {certId}
                           </span>
                         </div>

@@ -450,7 +450,7 @@ export const JobAttestationReport: React.FC = () => {
         <div className="max-w-4xl mx-auto mb-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white p-3 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md font-sans no-print animate-fadeIn">
           <div className="flex items-center gap-2 text-xs sm:text-sm font-bold">
             <Clock size={16} className="shrink-0" />
-            <span>PREVIEW MODE: Deliverables are submitted. Approve milestone to finalize & mint this certificate on Polygon Amoy.</span>
+            <span>PREVIEW MODE: Deliverables are submitted. Approve milestone to finalize &amp; mint this certificate on Polygon Mainnet.</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button

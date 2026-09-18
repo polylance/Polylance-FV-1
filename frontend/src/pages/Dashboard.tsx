@@ -164,57 +164,71 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
       {/* Top Banner with Role Context */}
-      <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <img
-            src={userProfile.avatarUrl || (userProfile.githubUsername ? `https://github.com/${userProfile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress}`)}
-            alt={rawDisplayName}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress}`;
-            }}
-            className="w-16 h-16 rounded-2xl border-2 border-purple-200 object-cover shadow-xs"
-          />
-          <div>
-            <h1 className="text-2xl font-extrabold text-slate-900 font-heading flex items-center gap-2">
-              {rawDisplayName}
-              <span className="text-xs bg-purple-100 text-purple-900 border border-purple-200 px-2.5 py-0.5 rounded-full font-mono font-bold capitalize">
-                {isClientRole ? 'Verified Enterprise Client' : `${tierInfo.tier} Freelancer`}
-              </span>
-              <span className="text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1">
-                <CheckCircle2 size={12} /> On-Chain Verified
-              </span>
-            </h1>
-            <p className="text-xs font-mono text-purple-900 font-bold mt-1">
-              Wallet Address: {truncateAddress(address)} • Polygon Mainnet Connected
-            </p>
+      <div className="glass-panel p-4 sm:p-7 border-purple-200 bg-white hard-shadow flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3.5 sm:gap-4">
+        <div className="flex flex-col gap-2.5 min-w-0 w-full lg:w-auto">
+          {/* Avatar and Name Row with Badges in ONE Line */}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <img
+              src={userProfile.avatarUrl || (userProfile.githubUsername ? `https://github.com/${userProfile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress}`)}
+              alt={rawDisplayName}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress}`;
+              }}
+              className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl border-2 border-purple-200 object-cover shadow-xs shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-2xl font-extrabold text-slate-900 font-heading truncate leading-tight">
+                {rawDisplayName}
+              </h1>
+              {/* Badges strictly placed in ONE line */}
+              <div className="flex items-center gap-1.5 mt-1 flex-nowrap overflow-x-auto no-scrollbar">
+                <span className="text-[9px] sm:text-xs bg-purple-100 text-purple-900 border border-purple-200 px-2 py-0.5 rounded-full font-mono font-bold capitalize shrink-0 whitespace-nowrap">
+                  {isClientRole ? 'Verified Enterprise Client' : `${tierInfo.tier} Freelancer`}
+                </span>
+                <span className="text-[9px] sm:text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-mono font-bold inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
+                  <CheckCircle2 size={10} /> On-Chain Verified
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Wallet Address placed cleanly BELOW avatar */}
+          <div className="flex items-center gap-1.5 text-[10.5px] sm:text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 w-full sm:w-auto">
+            <span className="text-slate-400 font-medium">Wallet:</span>
+            <span className="text-purple-950 font-bold">{truncateAddress(address)}</span>
+            <span className="text-slate-300">•</span>
+            <span className="inline-flex items-center gap-1 text-purple-700 font-semibold truncate">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              Polygon Mainnet Connected
+            </span>
           </div>
         </div>
 
-        {/* ROLE-SPECIFIC HEADER CTA BUTTONS */}
-        <div className="flex items-center gap-3">
+        {/* ROLE-SPECIFIC HEADER CTA BUTTONS (RESIZED & BALANCED FOR MOBILE) */}
+        <div className="flex items-center gap-2 w-full sm:w-auto pt-0.5 sm:pt-0">
           {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') ? (
             <Link
               to="/jobs/post"
-              className="gradient-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md"
+              className="flex-1 sm:flex-none gradient-btn-primary px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-transform active:scale-95"
             >
-              <PlusCircle size={16} />
-              Post New Escrow Job
+              <PlusCircle size={14} />
+              <span>Post Escrow Job</span>
             </Link>
           ) : (
             <Link
               to="/jobs"
-              className="gradient-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md"
+              className="flex-1 sm:flex-none gradient-btn-primary px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-transform active:scale-95"
             >
-              <Search size={16} />
-              Browse Job Marketplace
+              <Search size={14} />
+              <span>Browse Marketplace</span>
             </Link>
           )}
 
           <Link
             to={`/profile/${address}`}
-            className="glass-panel px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border-slate-200 hover:bg-slate-50"
+            className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-slate-200 bg-white hover:bg-slate-50 transition-all flex items-center justify-center gap-1.5 shadow-2xs shrink-0 active:scale-95"
           >
-            Edit Profile
+            <span>Edit Profile</span>
           </Link>
         </div>
 
@@ -268,54 +282,54 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* REAL-TIME LIVE WALLET LIQUIDITY CARD */}
-      <div className="glass-panel p-5 sm:p-6 border-slate-200 bg-white hard-shadow flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-700 shrink-0">
-            <Wallet size={24} />
+      <div className="glass-panel p-3.5 sm:p-6 border-slate-200 bg-white hard-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-700 shrink-0 shadow-2xs">
+            <Wallet size={18} className="sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-headline text-sm font-extrabold text-slate-900 uppercase tracking-wider">
-                Real-Time Wallet Liquidity
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="font-headline text-xs sm:text-sm font-extrabold text-slate-900 uppercase tracking-wider truncate">
+                Wallet Liquidity
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold flex items-center gap-1 border border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[8px] sm:text-[9.5px] font-mono font-bold flex items-center gap-1 border border-emerald-200 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 LIVE SYNC
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-sans">
-              Live cryptographic balances available on Polygon for escrow funding & transactions.
+            <p className="text-[10px] sm:text-[11.5px] text-slate-400 font-sans mt-0.5 line-clamp-1 sm:line-clamp-none">
+              On-chain balances available on Polygon for escrow funding & transactions.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-6 font-mono">
-          <div className="text-right">
-            <span className="text-[10px] text-slate-500 uppercase font-bold block">Native POL (Gas / Escrow)</span>
-            <span className="text-lg font-black text-slate-900">{balanceNative} POL</span>
+        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-5 font-mono w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+          <div className="text-left sm:text-right">
+            <span className="text-[8.5px] sm:text-[9.5px] text-slate-400 uppercase font-bold tracking-wide block">Native POL</span>
+            <span className="text-base sm:text-lg font-black text-slate-900">{balanceNative} <span className="text-[10px] font-bold text-slate-400">POL</span></span>
           </div>
 
-          <div className="h-8 w-px bg-slate-200 hidden sm:block" />
+          <div className="h-7 w-px bg-slate-200" />
 
-          <div className="text-right">
-            <span className="text-[10px] text-slate-500 uppercase font-bold block">Stablecoin USDC</span>
-            <span className="text-lg font-black text-emerald-700">${balanceUsdc} USDC</span>
+          <div className="text-left sm:text-right">
+            <span className="text-[8.5px] sm:text-[9.5px] text-slate-400 uppercase font-bold tracking-wide block">Stablecoin USDC</span>
+            <span className="text-base sm:text-lg font-black text-emerald-700">${balanceUsdc} <span className="text-[10px] font-bold text-emerald-500">USDC</span></span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
             <button
               onClick={handleRefreshBalances}
               disabled={isRefreshingBalances}
               title="Refresh wallet balances on-chain"
-              className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-500 transition-colors cursor-pointer shrink-0"
             >
-              <RefreshCw size={15} className={isRefreshingBalances ? 'animate-spin text-purple-600' : ''} />
+              <RefreshCw size={13} className={isRefreshingBalances ? 'animate-spin text-purple-600' : ''} />
             </button>
             <button
               onClick={() => setIsTopUpModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-colors flex items-center gap-1 shadow-2xs cursor-pointer shrink-0 whitespace-nowrap active:scale-95"
             >
-              <DollarSign size={14} />
+              <DollarSign size={12} />
               <span>Top-Up</span>
             </button>
           </div>
@@ -720,7 +734,7 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="glass-panel p-4 border-purple-200 bg-purple-50 text-center hard-shadow space-y-1">
+            <div className="glass-panel p-4 border-purple-200 bg-purple-50 text-center hard-shadow space-y-1 col-span-2 sm:col-span-1">
               <div className="text-2xl font-black text-purple-900 font-mono">
                 {userScores.totalPoints} pts
               </div>
@@ -734,64 +748,68 @@ export const Dashboard: React.FC = () => {
             {/* Main Column (8 Cols): Active Contracts & Collaboration Hub */}
             <div className="lg:col-span-8 space-y-8">
               {/* Active Contracts & Deliverable Proof Submissions */}
-              <section className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                  <h3 className="text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
-                    <Send size={18} className="text-purple-700" /> Active Freelance Contracts & Collaboration Hub
+              <section className="glass-panel p-3.5 sm:p-6 border-slate-200 bg-white hard-shadow space-y-3.5 sm:space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 border-b border-slate-100 pb-2.5 sm:pb-3">
+                  <h3 className="text-sm sm:text-base font-extrabold text-slate-900 font-heading flex items-center gap-1.5 sm:gap-2">
+                    <Send size={16} className="text-purple-700 shrink-0 sm:w-[18px] sm:h-[18px]" /> Active Freelance Contracts & Collaboration Hub
                   </h3>
-                  <Link to="/reputation" className="text-xs font-mono text-purple-700 font-bold hover:underline flex items-center gap-1 self-start sm:self-auto">
-                    <Award size={14} /> View Leaderboard Standings
+                  <Link to="/reputation" className="text-[11px] sm:text-xs font-mono text-purple-700 font-bold hover:underline flex items-center gap-1 self-start sm:self-auto">
+                    <Award size={13} className="shrink-0" /> View Leaderboard Standings
                   </Link>
                 </div>
 
-                {/* Hub Navigation Tabs */}
-                <div className="flex flex-wrap items-center gap-2 pt-1 border-b border-slate-100 pb-3">
+                {/* Hub Navigation Tabs (2 buttons per line on mobile, reduced size) */}
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 sm:gap-2 pt-0.5 border-b border-slate-100 pb-2.5 sm:pb-3">
                   <button
                     onClick={() => setActiveHubTab('contracts')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-2 sm:px-3.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-mono font-bold transition-all cursor-pointer flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 truncate ${
                       activeHubTab === 'contracts'
                         ? 'bg-purple-900 text-white shadow-xs'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    <Briefcase size={13} />
-                    Active Contracts ({myFreelancerJobs.length})
+                    <Briefcase size={12} className="shrink-0" />
+                    <span className="truncate sm:hidden">Contracts ({myFreelancerJobs.length})</span>
+                    <span className="hidden sm:inline">Active Contracts ({myFreelancerJobs.length})</span>
                   </button>
 
                   <button
                     onClick={() => setActiveHubTab('applications')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-2 sm:px-3.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-mono font-bold transition-all cursor-pointer flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 truncate ${
                       activeHubTab === 'applications'
                         ? 'bg-purple-900 text-white shadow-xs'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    <Send size={13} />
-                    My Applications ({myApplications.length})
+                    <Send size={12} className="shrink-0" />
+                    <span className="truncate sm:hidden">Applications ({myApplications.length})</span>
+                    <span className="hidden sm:inline">My Applications ({myApplications.length})</span>
                   </button>
 
                   <button
                     onClick={() => setActiveHubTab('posted')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-2 sm:px-3.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-mono font-bold transition-all cursor-pointer flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 truncate ${
                       activeHubTab === 'posted'
                         ? 'bg-purple-900 text-white shadow-xs'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    <PlusCircle size={13} />
-                    My Posted Jobs ({myClientJobs.length})
+                    <PlusCircle size={12} className="shrink-0" />
+                    <span className="truncate sm:hidden">Posted Jobs ({myClientJobs.length})</span>
+                    <span className="hidden sm:inline">My Posted Jobs ({myClientJobs.length})</span>
                   </button>
 
                   <button
                     onClick={() => setActiveHubTab('explore')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-2 sm:px-3.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-mono font-bold transition-all cursor-pointer flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 truncate ${
                       activeHubTab === 'explore'
                         ? 'bg-purple-900 text-white shadow-xs'
                         : 'bg-purple-50 text-purple-900 hover:bg-purple-100'
                     }`}
                   >
-                    <Search size={13} />
-                    Marketplace Jobs ({jobs.filter(j => j.status === 'Open').length})
+                    <Search size={12} className="shrink-0" />
+                    <span className="truncate sm:hidden">Marketplace ({jobs.filter(j => j.status === 'Open').length})</span>
+                    <span className="hidden sm:inline">Marketplace Jobs ({jobs.filter(j => j.status === 'Open').length})</span>
                   </button>
                 </div>
 
@@ -828,7 +846,7 @@ export const Dashboard: React.FC = () => {
                             </span>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-3 font-mono text-xs pt-1">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 font-mono text-xs pt-1">
                             <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                               <span className="text-slate-500 text-[10px] block font-bold uppercase">Escrow / Net Payout</span>
                               <span className="font-bold text-emerald-700 block">${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC</span>
@@ -844,19 +862,19 @@ export const Dashboard: React.FC = () => {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2.5 border-t border-slate-200">
                             <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
-                              <MessageSquare size={15} className="text-purple-700" />
-                              <span>XMTP Encrypted Chat Connected</span>
+                              <MessageSquare size={15} className="text-purple-700 shrink-0" />
+                              <span className="truncate">XMTP Encrypted Chat Connected</span>
                             </div>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/chat/${job.id}`);
                               }}
-                              className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                              className="gradient-btn-primary px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto"
                             >
-                              Open Collaboration Hub
+                              <span>Open Collaboration Hub</span>
                               <ArrowUpRight size={14} />
                             </button>
                           </div>

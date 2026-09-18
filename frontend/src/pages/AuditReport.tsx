@@ -668,76 +668,79 @@ export const AuditReport: React.FC = () => {
         </div>
 
         {/* Tier 2: Canonical Audit ID Badge (Left) + Unified Action Buttons (Right) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
           {/* Left: Audit ID & Verification Status */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-mono shadow-3xs">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Audit ID</span>
-              <span className="font-extrabold text-slate-900 tracking-wide">{mockCertificateId}</span>
+          <div className="flex items-center justify-between sm:justify-start gap-2 flex-wrap w-full sm:w-auto">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-mono shadow-3xs">
+              <span className="text-[9.5px] uppercase font-bold text-slate-400 tracking-wider">Audit ID</span>
+              <span className="font-extrabold text-slate-900 tracking-wide text-xs">{mockCertificateId}</span>
               <button
                 type="button"
                 onClick={handleCopyCertId}
                 title="Copy Audit ID"
-                className="p-1 -mr-1 hover:bg-purple-100 rounded-md text-slate-400 hover:text-purple-700 transition-colors cursor-pointer"
+                className="p-0.5 hover:bg-purple-100 rounded text-slate-400 hover:text-purple-700 transition-colors cursor-pointer"
               >
-                {copiedCertId ? <CheckCheck size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                {copiedCertId ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} />}
               </button>
             </div>
 
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Polygon Amoy Verified
+              Polygon Mainnet Verified
             </span>
           </div>
 
-          {/* Right: Harmonious Action Toolbar */}
-          <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
+          {/* Right: Harmonious Action Toolbar (Balanced for Mobile & Desktop) */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
             {/* Primary Action: Verify on CertifiedPass */}
             <a
               href={certifiedPassVerifyUrl}
               target="_blank"
               rel="noopener noreferrer"
               title="Verify audit report directly on CertifiedPass"
-              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-900 shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 active:scale-98"
+              className="h-9 px-3.5 sm:px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-900 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-98"
             >
-              <ShieldCheck size={14} className="text-purple-200" />
+              <ShieldCheck size={14} className="text-purple-200 shrink-0" />
               <span>Verify on CertifiedPass</span>
-              <ExternalLink size={12} className="opacity-80" />
+              <ExternalLink size={11} className="opacity-80 shrink-0" />
             </a>
 
-            {/* Save PNG */}
-            <button
-              type="button"
-              onClick={handleDownloadCardImage}
-              disabled={isExporting}
-              title="Download high-resolution PNG Social Card"
-              className="h-9 px-3.5 rounded-xl text-xs font-bold text-purple-900 hover:text-purple-950 bg-purple-50 hover:bg-purple-100/80 border border-purple-200/90 shadow-3xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 active:scale-98"
-            >
-              <Download size={13} className="text-purple-600" />
-              <span>{isExporting ? 'Saving...' : 'Save PNG'}</span>
-            </button>
+            {/* Secondary Actions: 3 Balanced Buttons in One Line on Mobile */}
+            <div className="grid grid-cols-3 sm:flex items-center gap-1.5">
+              {/* Save PNG */}
+              <button
+                type="button"
+                onClick={handleDownloadCardImage}
+                disabled={isExporting}
+                title="Download high-resolution PNG Social Card"
+                className="h-8 sm:h-9 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold text-purple-900 hover:text-purple-950 bg-purple-50 hover:bg-purple-100/80 border border-purple-200/90 shadow-3xs transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap active:scale-98"
+              >
+                <Download size={12} className="text-purple-600 shrink-0" />
+                <span>{isExporting ? 'Saving...' : 'Save PNG'}</span>
+              </button>
 
-            {/* Copy Link */}
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              title="Copy verified audit link"
-              className="h-9 px-3.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 shadow-3xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 active:scale-98"
-            >
-              {copiedLink ? <CheckCheck size={13} className="text-emerald-600" /> : <Copy size={13} className="text-slate-500" />}
-              <span>{copiedLink ? 'Link Copied!' : 'Copy Link'}</span>
-            </button>
+              {/* Copy Link */}
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                title="Copy verified audit link"
+                className="h-8 sm:h-9 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 shadow-3xs transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap active:scale-98"
+              >
+                {copiedLink ? <CheckCheck size={12} className="text-emerald-600 shrink-0" /> : <Copy size={12} className="text-slate-500 shrink-0" />}
+                <span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
+              </button>
 
-            {/* Print / PDF */}
-            <button
-              type="button"
-              onClick={handlePrint}
-              title="Download or Print full cryptographic PDF"
-              className="h-9 px-3.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 shadow-3xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 active:scale-98"
-            >
-              <Printer size={13} className="text-slate-500" />
-              <span>Print PDF</span>
-            </button>
+              {/* Print / PDF */}
+              <button
+                type="button"
+                onClick={handlePrint}
+                title="Download or Print full cryptographic PDF"
+                className="h-8 sm:h-9 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 shadow-3xs transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap active:scale-98"
+              >
+                <Printer size={12} className="text-slate-500 shrink-0" />
+                <span>Print PDF</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -765,7 +768,7 @@ export const AuditReport: React.FC = () => {
           
           <div 
             ref={cardRef}
-            className={`rounded-3xl p-6 sm:p-10 border-2 shadow-xl relative overflow-hidden font-sans text-slate-900 transition-all ${
+            className={`rounded-2xl sm:rounded-3xl p-4 sm:p-10 border-2 shadow-xl relative overflow-hidden font-sans text-slate-900 transition-all ${
               auditPerspective === 'client'
                 ? 'bg-gradient-to-br from-white via-slate-50 to-indigo-50/60 border-indigo-200/90'
                 : auditPerspective === 'judge'
@@ -786,20 +789,20 @@ export const AuditReport: React.FC = () => {
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-100/40 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
             <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-20" />
 
-            <div className="relative z-10 space-y-6">
+            <div className="relative z-10 space-y-4 sm:space-y-6">
               
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-md bg-gradient-to-tr ${perspectiveData.sealColor}`}>
-                    {auditPerspective === 'client' && <Building2 size={22} />}
-                    {auditPerspective === 'freelancer' && <Award size={22} />}
-                    {auditPerspective === 'judge' && <Shield size={22} />}
-                    {auditPerspective === 'admin' && <Lock size={22} />}
+              {/* Header: Fixed Mobile Alignment to prevent collision */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3.5 sm:pb-4">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-white shadow-md bg-gradient-to-tr ${perspectiveData.sealColor} shrink-0`}>
+                    {auditPerspective === 'client' && <Building2 size={20} />}
+                    {auditPerspective === 'freelancer' && <Award size={20} />}
+                    {auditPerspective === 'judge' && <Shield size={20} />}
+                    {auditPerspective === 'admin' && <Lock size={20} />}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[10px] font-mono font-black tracking-widest uppercase px-2.5 py-0.5 rounded-full border ${
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                      <span className={`text-[9px] sm:text-[10px] font-mono font-black tracking-wider uppercase px-2 py-0.5 rounded-full border shrink-0 ${
                         auditPerspective === 'client' ? 'text-indigo-800 bg-indigo-100 border-indigo-200' :
                         auditPerspective === 'judge' ? 'text-amber-800 bg-amber-100 border-amber-200' :
                         auditPerspective === 'admin' ? 'text-cyan-900 bg-cyan-100 border-cyan-300' :
@@ -807,97 +810,100 @@ export const AuditReport: React.FC = () => {
                       }`}>
                         {perspectiveData.roleType}
                       </span>
-                      <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
                         ● LIVE & ATTESTED
                       </span>
                     </div>
-                    <span className="font-headline font-black text-sm text-slate-900 block mt-0.5">
+                    <span className="font-headline font-black text-xs sm:text-sm text-slate-900 block mt-0.5 truncate">
                       PolyLance Sovereign Oracle Protocol
                     </span>
                   </div>
                 </div>
 
-                <div className="font-mono text-right text-xs">
-                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Audit ID</span>
+                <div className="font-mono text-left sm:text-right text-xs shrink-0 flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                  <span className="text-[9.5px] text-slate-400 uppercase font-bold">Audit ID</span>
                   <button
                     type="button"
                     onClick={handleCopyCertId}
                     title="Click to copy canonical Audit Certificate ID"
-                    className="inline-flex items-center gap-1.5 font-black text-slate-900 text-sm hover:text-purple-700 bg-white/80 hover:bg-purple-50 px-2 py-0.5 rounded-lg border border-slate-200 hover:border-purple-300 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 font-black text-slate-900 text-xs sm:text-sm hover:text-purple-700 bg-white/80 hover:bg-purple-50 px-2 py-0.5 rounded-lg border border-slate-200 hover:border-purple-300 transition-colors cursor-pointer"
                   >
                     <span>{mockCertificateId}</span>
-                    {copiedCertId ? <CheckCheck size={13} className="text-emerald-600" /> : <Copy size={13} className="text-slate-400 hover:text-purple-600" />}
+                    {copiedCertId ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} className="text-slate-400 hover:text-purple-600" />}
                   </button>
                 </div>
               </div>
 
-              {/* Profile Card Summary */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-                <div className="flex items-center gap-3.5">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${perspectiveData.sealColor} text-white font-headline font-black text-2xl flex items-center justify-center shadow-md shrink-0`}>
-                    {profile?.avatarUrl ? (
-                      <img src={profile.avatarUrl} alt={displayName} className="w-full h-full object-cover rounded-2xl" />
-                    ) : (
-                      displayName.charAt(0).toUpperCase()
-                    )}
+              {/* Profile Card Summary (Fixed broken avatar & name word-wrapping) */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
+                <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr ${perspectiveData.sealColor} text-white font-headline font-black text-xl sm:text-2xl flex items-center justify-center shadow-md shrink-0 overflow-hidden`}>
+                    <img 
+                      src={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`)} 
+                      alt={displayName} 
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`;
+                      }}
+                      className="w-full h-full object-cover rounded-2xl" 
+                    />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="font-headline text-lg sm:text-xl font-black text-slate-900">{displayName}</h2>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
+                      <h2 className="font-headline text-base sm:text-xl font-black text-slate-900 whitespace-nowrap break-words">{displayName}</h2>
                       {profile?.githubVerified && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">
-                          <CheckCircle2 size={11} className="text-purple-600" /> @{profile.githubUsername}
+                        <span className="inline-flex items-center gap-1 text-[9.5px] sm:text-[10px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200 whitespace-nowrap shrink-0">
+                          <CheckCircle2 size={10} className="text-purple-600" /> @{profile.githubUsername}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs font-bold text-purple-700 mt-0.5">{title}</p>
-                    <span className="text-[10px] font-mono text-slate-500 block mt-0.5">{truncateAddress(targetAddress)}</span>
+                    <p className="text-[11px] sm:text-xs font-bold text-purple-700 mt-0.5 leading-snug">{title}</p>
+                    <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-500 block mt-0.5">{truncateAddress(targetAddress)}</span>
                   </div>
                 </div>
 
-                <div className="text-left sm:text-right font-mono space-y-0.5">
-                  <span className="text-[9.5px] uppercase text-slate-500 block font-bold">
+                <div className="text-left sm:text-right font-mono space-y-0.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 w-full sm:w-auto">
+                  <span className="text-[9px] uppercase text-slate-400 block font-bold">
                     {perspectiveData.scoreLabel}
                   </span>
-                  <p className="text-2xl font-black text-emerald-600 font-headline">
+                  <p className="text-xl sm:text-2xl font-black text-emerald-600 font-headline leading-tight">
                     {perspectiveData.scoreVal}
                   </p>
-                  <span className="text-[9.5px] text-purple-700 font-bold block">
+                  <span className="text-[9px] sm:text-[9.5px] text-purple-700 font-bold block">
                     {perspectiveData.scoreSub}
                   </span>
                 </div>
               </div>
 
               {/* 3 Metric Stat Boxes */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="bg-white border border-slate-200/90 p-4 rounded-2xl space-y-1 shadow-xs">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                <div className="bg-white border border-slate-200/90 p-3 sm:p-4 rounded-2xl space-y-1 shadow-xs">
+                  <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-500 uppercase font-bold block">
                     {perspectiveData.stat1Label}
                   </span>
-                  <p className="text-2xl font-black text-emerald-600 font-headline">
+                  <p className="text-xl sm:text-2xl font-black text-emerald-600 font-headline">
                     {perspectiveData.stat1Val}
                   </p>
-                  <span className="text-[10px] font-mono text-slate-400 block">{perspectiveData.stat1Sub}</span>
+                  <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-400 block">{perspectiveData.stat1Sub}</span>
                 </div>
 
-                <div className="bg-white border border-slate-200/90 p-4 rounded-2xl space-y-1 shadow-xs">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">
+                <div className="bg-white border border-slate-200/90 p-3 sm:p-4 rounded-2xl space-y-1 shadow-xs">
+                  <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-500 uppercase font-bold block">
                     {perspectiveData.stat2Label}
                   </span>
-                  <p className="text-2xl font-black text-slate-900 font-headline">
+                  <p className="text-xl sm:text-2xl font-black text-slate-900 font-headline">
                     {perspectiveData.stat2Val}
                   </p>
-                  <span className="text-[10px] font-mono text-slate-400 block">{perspectiveData.stat2Sub}</span>
+                  <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-400 block">{perspectiveData.stat2Sub}</span>
                 </div>
 
-                <div className="bg-white border border-slate-200/90 p-4 rounded-2xl space-y-1 shadow-xs">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">
+                <div className="bg-white border border-slate-200/90 p-3 sm:p-4 rounded-2xl space-y-1 shadow-xs">
+                  <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-500 uppercase font-bold block">
                     {perspectiveData.stat3Label}
                   </span>
-                  <p className="text-2xl font-black text-purple-900 font-headline">
+                  <p className="text-xl sm:text-2xl font-black text-purple-900 font-headline">
                     {perspectiveData.stat3Val}
                   </p>
-                  <span className="text-[10px] font-mono text-slate-400 block">{perspectiveData.stat3Sub}</span>
+                  <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-400 block">{perspectiveData.stat3Sub}</span>
                 </div>
               </div>
 
@@ -913,7 +919,7 @@ export const AuditReport: React.FC = () => {
 
                 <div className="text-slate-500 text-[10.5px]">
                   <span>Attested on: </span>
-                  <strong className="text-purple-700 font-mono">Polygon Amoy Testnet (80002)</strong>
+                  <strong className="text-purple-700 font-mono">Polygon Mainnet (137)</strong>
                 </div>
               </div>
             </div>
@@ -979,7 +985,7 @@ export const AuditReport: React.FC = () => {
                 {perspectiveData.sheetTitle}
               </h1>
               <p className="text-[9.5px] text-slate-500 font-mono">
-                Decentralized Oracle Verified • Polygon Amoy Sovereign Ledger
+                Decentralized Oracle Verified • Polygon Mainnet Sovereign Ledger
               </p>
             </div>
           </div>
@@ -999,7 +1005,7 @@ export const AuditReport: React.FC = () => {
             </div>
             <div className="flex md:justify-end items-center gap-1.5">
               <span className="text-slate-500 text-[9.5px] uppercase font-bold">Network:</span>
-              <span className="font-bold text-slate-800 text-xs">Polygon Amoy (80002)</span>
+              <span className="font-bold text-slate-800 text-xs">Polygon Mainnet (137)</span>
             </div>
             <div className="flex md:justify-end items-center gap-1.5">
               <span className="text-slate-500 text-[9.5px] uppercase font-bold">Attested At:</span>
@@ -1012,18 +1018,21 @@ export const AuditReport: React.FC = () => {
         <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 space-y-2.5 relative z-10 shadow-xs">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${perspectiveData.sealColor} text-white font-headline font-black text-lg flex items-center justify-center shadow-md shrink-0`}>
-                {profile?.avatarUrl ? (
-                  <img src={profile.avatarUrl} alt={displayName} className="w-full h-full object-cover rounded-2xl" />
-                ) : (
-                  displayName.charAt(0).toUpperCase()
-                )}
+              <div className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${perspectiveData.sealColor} text-white font-headline font-black text-lg flex items-center justify-center shadow-md shrink-0 overflow-hidden`}>
+                <img 
+                  src={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`)} 
+                  alt={displayName} 
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`;
+                  }}
+                  className="w-full h-full object-cover rounded-2xl" 
+                />
               </div>
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-headline text-sm sm:text-base font-black text-slate-900">{displayName}</h2>
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
+                  <h2 className="font-headline text-sm sm:text-base font-black text-slate-900 whitespace-nowrap break-words">{displayName}</h2>
                   {profile?.githubVerified && (
-                    <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">
+                    <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200 whitespace-nowrap shrink-0">
                       <CheckCircle2 size={10} className="text-purple-600" /> GitHub Verified
                     </span>
                   )}
@@ -1119,7 +1128,7 @@ export const AuditReport: React.FC = () => {
               <span className="font-black text-slate-900 text-[10.5px] truncate block font-mono">
                 {truncateAddress(CONTRACTS.ReputationSBT || '0x6aa20d433e5cAf336b2fA7FcdFE9923D384b0fEB')}
               </span>
-              <span className="text-[8.5px] text-purple-700 block font-mono">Polygon Amoy Sovereign Ledger</span>
+              <span className="text-[8.5px] text-purple-700 block font-mono">Polygon Mainnet Sovereign Ledger</span>
             </div>
           </div>
         </div>
@@ -1184,7 +1193,7 @@ export const AuditReport: React.FC = () => {
                   {auditPerspective === 'admin' && 'Protocol Smart Contracts Architecture & Health Registry'}
                 </h3>
                 <p className="text-[10px] text-slate-500 font-mono">
-                  Cryptographically attested smart escrows on Polygon Amoy
+                  Cryptographically attested smart escrows on Polygon Mainnet
                 </p>
               </div>
             </div>
@@ -1225,7 +1234,7 @@ export const AuditReport: React.FC = () => {
                       </div>
                     </div>
                     <a
-                      href={`https://amoy.polygonscan.com/address/${c.address}`}
+                      href={`https://polygonscan.com/address/${c.address}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-2 text-purple-700 hover:text-purple-950 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] shrink-0"

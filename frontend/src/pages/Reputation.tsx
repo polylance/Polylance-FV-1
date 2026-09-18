@@ -26,11 +26,19 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 
 import { calculateReputationScores, formatEarnings } from '../utils/reputation';
+import { BottomSheet, PressableCard } from '../components/mobile';
 
 export const Reputation: React.FC = () => {
   const { address, isArbitrator, currentRole, reputationCount: onChainReputationCount } = useWeb3();
   const { profiles, jobs, judges } = usePolyLanceData();
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'monthly'>('all');
+  const [selectedBadge, setSelectedBadge] = useState<{
+    tier: string;
+    pointsRequired: number;
+    perks: string[];
+    description: string;
+  } | null>(null);
+  const [isBadgeSheetOpen, setIsBadgeSheetOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -250,6 +258,32 @@ export const Reputation: React.FC = () => {
   const firstPlace = leaderboardData[0] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k', address: '' };
   const secondPlace = leaderboardData[1] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k', address: '' };
   const thirdPlace = leaderboardData[2] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k', address: '' };
+
+  const openTierDetails = (tier: string) => {
+    if (tier === 'Diamond') {
+      setSelectedBadge({
+        tier: 'Diamond League',
+        pointsRequired: 800,
+        description: 'The pinnacle of on-chain engineering reputation. Reserved for the top 2% of attested talent.',
+        perks: ['0% platform escrow fee', 'Priority DAO dispute arbitration', 'Verified badge in client search results', 'Exclusive access to high-value escrow contracts'],
+      });
+    } else if (tier === 'Gold') {
+      setSelectedBadge({
+        tier: 'Gold League',
+        pointsRequired: 300,
+        description: 'Elite verified builders with consistent track records and zero dispute infractions.',
+        perks: ['1.5% platform fee discount', 'Fast-tracked milestone reviews', 'Gold soulbound token credential on Polygon'],
+      });
+    } else {
+      setSelectedBadge({
+        tier: 'Silver League',
+        pointsRequired: 100,
+        description: 'Demonstrated completion of verified smart contract escrow jobs.',
+        perks: ['Public cryptographic attestation', 'Search ranking boost over unverified accounts', 'Access to multi-milestone jobs'],
+      });
+    }
+    setIsBadgeSheetOpen(true);
+  };
 
   const getRoleBadge = (role: string) => {
     const normalized = role.toLowerCase();
@@ -653,11 +687,17 @@ export const Reputation: React.FC = () => {
 
             <div className="space-y-2">
               {/* Active Diamond Tier */}
-              <div className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all ${
-                activeTier === 'Diamond'
-                  ? 'bg-purple-50/20 border border-purple-300'
-                  : 'border border-slate-100 bg-white'
-              }`}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => openTierDetails('Diamond')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openTierDetails('Diamond'); }}
+                className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all cursor-pointer select-none active:scale-[0.98] ${
+                  activeTier === 'Diamond'
+                    ? 'bg-purple-50/20 border border-purple-300 shadow-xs'
+                    : 'border border-slate-100 bg-white hover:border-slate-300'
+                }`}
+              >
                 <div className="flex items-center gap-2.5 relative z-10">
                   <div 
                     className="w-8 h-8 bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm"
@@ -682,11 +722,17 @@ export const Reputation: React.FC = () => {
               </div>
 
               {/* Gold Tier */}
-              <div className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all ${
-                activeTier === 'Gold'
-                  ? 'bg-purple-50/20 border border-purple-300'
-                  : 'border border-slate-100 bg-white'
-              }`}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => openTierDetails('Gold')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openTierDetails('Gold'); }}
+                className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all cursor-pointer select-none active:scale-[0.98] ${
+                  activeTier === 'Gold'
+                    ? 'bg-purple-50/20 border border-purple-300 shadow-xs'
+                    : 'border border-slate-100 bg-white hover:border-slate-300'
+                }`}
+              >
                 <div className="flex items-center gap-2.5">
                   <div 
                     className="w-8 h-8 bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm"
@@ -709,11 +755,17 @@ export const Reputation: React.FC = () => {
               </div>
 
               {/* Silver Tier */}
-              <div className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all ${
-                activeTier === 'Silver'
-                  ? 'bg-purple-50/20 border border-purple-300'
-                  : 'border border-slate-100 bg-white'
-              }`}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => openTierDetails('Silver')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openTierDetails('Silver'); }}
+                className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all cursor-pointer select-none active:scale-[0.98] ${
+                  activeTier === 'Silver'
+                    ? 'bg-purple-50/20 border border-purple-300 shadow-xs'
+                    : 'border border-slate-100 bg-white hover:border-slate-300'
+                }`}
+              >
                 <div className="flex items-center gap-2.5">
                   <div 
                     className="w-8 h-8 bg-slate-500 text-white flex items-center justify-center shrink-0 shadow-sm"
@@ -986,8 +1038,8 @@ export const Reputation: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* LEADERBOARD LIST */}
-        <div className="overflow-x-auto border border-slate-150 rounded-xl mt-6">
+        {/* DESKTOP LEADERBOARD TABLE (hidden on mobile, untouched on desktop) */}
+        <div className="hidden md:block overflow-x-auto border border-slate-150 rounded-xl mt-6">
           <table className="w-full border-collapse text-left text-xs text-slate-700">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-150 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
@@ -1104,7 +1156,106 @@ export const Reputation: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* MOBILE LEADERBOARD CARD STACK (md:hidden) */}
+        <div className="md:hidden space-y-3 mt-4">
+          {leaderboardData.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 bg-slate-50 rounded-2xl border border-slate-150">
+              <Trophy size={32} className="mx-auto text-purple-300 mb-2" />
+              <p className="font-bold text-slate-800 text-sm">No Attested Developers Yet</p>
+              <p className="text-xs text-slate-500 mt-1">Complete escrow milestones to claim the top spot.</p>
+            </div>
+          ) : (
+            leaderboardData.map((row) => (
+              <PressableCard
+                key={row.address}
+                className={row.isUser ? 'border-purple-300 bg-purple-50/20' : ''}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Rank Indicator */}
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-mono font-bold text-xs shrink-0">
+                      {row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : `#${row.rank}`}
+                    </div>
+                    {/* Avatar & Names */}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`font-bold text-sm truncate ${row.isUser ? 'text-purple-950' : 'text-slate-900'}`}>
+                          {row.name}
+                        </span>
+                        {row.isUser && (
+                          <span className="bg-purple-600 text-white text-[9px] font-mono px-1.5 py-0.2 rounded font-bold">YOU</span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-400 font-mono block">
+                        {row.address ? `${row.address.slice(0, 6)}...${row.address.slice(-4)}` : '0x00...00'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Points Badge */}
+                  <div className="text-right shrink-0">
+                    <span className="font-mono text-sm font-black text-purple-700 block">{row.points} pts</span>
+                    <span className="text-[10px] text-emerald-600 font-bold font-mono">{row.earnings}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 text-xs">
+                  <div>{getRoleBadge(row.role)}</div>
+                  <div className="text-[11px] font-medium text-slate-500">
+                    Success: <strong className="text-slate-800 font-mono">{row.successRate}</strong>
+                  </div>
+                </div>
+              </PressableCard>
+            ))
+          )}
+        </div>
       </motion.section>
+
+      {/* Mobile Tier Detail BottomSheet */}
+      <BottomSheet
+        isOpen={isBadgeSheetOpen}
+        onClose={() => setIsBadgeSheetOpen(false)}
+        title={selectedBadge?.tier || 'Reputation Tier'}
+      >
+        {selectedBadge && (
+          <div className="space-y-4 py-2">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200/60 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-mono font-bold text-purple-600 uppercase tracking-wider">Standing Requirement</span>
+                <div className="text-2xl font-black font-space text-purple-950 mt-0.5">{selectedBadge.pointsRequired}+ Points</div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-md">
+                <Trophy size={24} />
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-600 leading-relaxed font-sans">
+              {selectedBadge.description}
+            </p>
+
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-500">Tier Privileges & Perks</h4>
+              <div className="space-y-1.5">
+                {selectedBadge.perks.map((perk, i) => (
+                  <div key={i} className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-800">
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <span>{perk}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsBadgeSheetOpen(false)}
+              className="w-full min-h-[48px] py-3 bg-purple-600 active:bg-purple-700 text-white font-bold text-sm rounded-xl transition-colors cursor-pointer mt-2"
+            >
+              Close Details
+            </button>
+          </div>
+        )}
+      </BottomSheet>
     </motion.div>
   );
 };

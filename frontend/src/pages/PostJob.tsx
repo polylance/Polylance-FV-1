@@ -247,7 +247,7 @@ export const PostJob: React.FC = () => {
         </p>
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] sm:text-xs font-semibold shadow-xs">
           <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-          <span><strong>100% Free Job Posting:</strong> PolyLance charges $0 platform fee. Only Polygon network gas (~0.005 POL, free on Amoy testnet) is required.</span>
+          <span><strong>100% Free Job Posting:</strong> PolyLance charges $0 platform fee. Only Polygon network gas (~0.005 POL) is required.</span>
         </div>
       </div>
 
@@ -451,6 +451,7 @@ export const PostJob: React.FC = () => {
                     <div className="flex items-center gap-3 border border-slate-200/80 rounded-2xl px-4 py-3 bg-white focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-50/50 transition-all duration-200 shadow-sm">
                       <input
                         type="number"
+                        inputMode="decimal"
                         required
                         min="0"
                         step="any"
@@ -518,6 +519,7 @@ export const PostJob: React.FC = () => {
                   <div className="flex items-center gap-3 border border-slate-200/80 rounded-2xl px-4 py-3 bg-white focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-50/50 transition-all duration-200 shadow-sm">
                     <input
                       type="number"
+                      inputMode="decimal"
                       required
                       min="0"
                       step="any"
@@ -550,6 +552,7 @@ export const PostJob: React.FC = () => {
                   </div>
                   <input
                     type="number"
+                    inputMode="numeric"
                     required
                     min="1"
                     max="30"
@@ -906,7 +909,7 @@ export const PostJob: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-[11px] text-amber-100 font-medium mt-1">
-                    MetaMask is on Ethereum or another network. Click here to switch to Polygon Amoy to use POL for gas.
+                    MetaMask is on Ethereum or another network. Click here to switch to Polygon Mainnet to use POL for gas.
                   </div>
                 </div>
               </div>

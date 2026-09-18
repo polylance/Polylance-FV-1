@@ -170,6 +170,7 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
                   </div>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="any"
                     min="1"
                     required
@@ -204,6 +205,7 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
                   </div>
                   <input
                     type="number"
+                    inputMode="numeric"
                     min="1"
                     max="180"
                     required

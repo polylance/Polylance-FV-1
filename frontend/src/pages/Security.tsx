@@ -1,11 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { 
-  ShieldCheck, Lock, ExternalLink, Cpu, Sparkles, CheckCircle2, Award, ShieldAlert, Terminal
+  ShieldCheck, Lock, ExternalLink, Cpu, Sparkles, CheckCircle2, Award, ShieldAlert, Terminal,
+  Copy, Check
 } from 'lucide-react';
 import { CONTRACTS } from '../config/contracts';
 
 export const Security: React.FC = () => {
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+
+  const handleCopy = (addr: string) => {
+    navigator.clipboard.writeText(addr);
+    setCopiedAddress(addr);
+    setTimeout(() => setCopiedAddress(null), 2000);
+  };
+
   const verifiedContracts = [
     { name: 'JobFactory (Proxy Factory)', address: CONTRACTS.JobFactory, spec: 'EIP-1167 Proxy Creator' },
     { name: 'ReputationSBT', address: CONTRACTS.ReputationSBT, spec: 'ERC-5192 Soulbound' },
@@ -109,15 +118,16 @@ export const Security: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <Terminal size={22} className="text-emerald-600" />
             <h3 className="font-headline font-bold text-xl text-slate-900">
-              Verified Polygon Amoy Smart Contracts
+              Verified Polygon Mainnet Smart Contracts
             </h3>
           </div>
           <span className="font-mono text-xs text-slate-500 font-bold">
-            Chain ID: 80002
+            Chain ID: 137
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left font-mono text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase">
@@ -135,7 +145,7 @@ export const Security: React.FC = () => {
                   <td className="p-3.5 text-slate-600 font-mono text-[11px]">{c.address}</td>
                   <td className="p-3.5">
                     <a
-                      href={`https://amoy.polygonscan.com/address/${c.address}`}
+                      href={`https://polygonscan.com/address/${c.address}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-emerald-700 font-bold hover:underline inline-flex items-center gap-1"
@@ -147,6 +157,45 @@ export const Security: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card Stack (< md) */}
+        <div className="md:hidden space-y-2.5 p-1 sm:p-2">
+          {verifiedContracts.map((c) => (
+            <div key={c.name} className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 space-y-2 shadow-3xs">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">{c.name}</span>
+                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap shrink-0">
+                  {c.spec}
+                </span>
+              </div>
+              
+              <div className="flex items-center justify-between gap-2 p-1.5 px-2.5 rounded-xl bg-white border border-slate-200/80 font-mono text-[10.5px] sm:text-[11px] text-slate-700">
+                <span className="truncate">{c.address}</span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(c.address)}
+                  title="Copy contract address"
+                  className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-colors shrink-0 cursor-pointer"
+                >
+                  {copiedAddress === c.address ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 pt-0.5">
+                <span className="text-[10px] font-mono text-slate-400">Polygon Mainnet (137)</span>
+                <a
+                  href={`https://polygonscan.com/address/${c.address}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-[11px] inline-flex items-center gap-1 transition-colors shadow-3xs"
+                >
+                  <span>Polygonscan</span>
+                  <ExternalLink size={11} />
+                </a>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

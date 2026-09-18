@@ -31,6 +31,8 @@ import {
 } from 'lucide-react';
 import { truncateAddress, formatPolBalance } from '../utils/formatters';
 import { dropdownVariants, transition } from '../lib/motion';
+import { Drawer } from './mobile/Drawer';
+import { Accordion } from './mobile/Accordion';
 
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -242,8 +244,26 @@ export const Navbar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const lastScrollYRef = useRef(0);
+
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      setScrolled(currentY > 20);
+
+      // Directional scroll for mobile screens only (below lg: 1024px)
+      if (window.innerWidth < 1024) {
+        if (currentY > 80 && currentY > lastScrollYRef.current + 10) {
+          setIsHeaderHidden(true); // scrolling down -> hide
+        } else if (currentY < lastScrollYRef.current - 10) {
+          setIsHeaderHidden(false); // scrolling up -> reveal
+        }
+      } else {
+        setIsHeaderHidden(false);
+      }
+      lastScrollYRef.current = currentY;
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -319,7 +339,9 @@ export const Navbar: React.FC = () => {
 
       {/* ── Scroll-aware Liquid Glass Header with Full Backdrop Blur (iOS 26 Frosted Glass) ───────── */}
       <header
-        className="sticky top-0 z-50 w-full py-2 border-b border-slate-200/50 transition-all duration-300 no-print"
+        className={`sticky top-0 z-50 w-full py-2 border-b border-slate-200/50 transition-transform duration-300 no-print pt-safe ${
+          isHeaderHidden ? '-translate-y-full lg:translate-y-0' : 'translate-y-0'
+        }`}
         style={{
           background: scrolled ? 'rgba(246, 249, 252, 0.85)' : 'rgba(246, 249, 252, 0.94)',
           backdropFilter: 'blur(32px) saturate(190%)',
@@ -337,7 +359,7 @@ export const Navbar: React.FC = () => {
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-[1800px] mx-auto
             flex items-center justify-between
-            px-4 sm:px-6 lg:px-8 py-2 rounded-[24px] bg-white/80 border border-white/80 shadow-sm"
+            px-3 sm:px-6 lg:px-8 py-1.5 sm:py-2 rounded-[24px] bg-white/80 border border-white/80 shadow-sm"
           style={{
             backdropFilter: 'blur(36px) saturate(200%)',
             WebkitBackdropFilter: 'blur(36px) saturate(200%)',
@@ -345,16 +367,16 @@ export const Navbar: React.FC = () => {
         >
         {/* ── LEFT: Brand (Positioned at Left Side Corner) ─────────────────────────────── */}
         <div className="flex items-center shrink-0">
-          <Link to="/" className="flex items-center gap-2 group shrink-0">
+          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0">
             <div className="relative">
               <div className="absolute inset-0 rounded-xl bg-purple-400/20 blur-md group-hover:bg-purple-400/30 transition-all duration-300" />
-              <PolyLanceLogo size={32} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
+              <PolyLanceLogo size={29} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-black text-[20px] tracking-tight text-slate-900 leading-none">
+              <span className="font-black text-[17px] sm:text-[20px] tracking-tight text-slate-900 leading-none">
                 Poly<span className="text-purple-600">Lance</span>
               </span>
-              <span className="text-[6.5px] font-mono text-slate-400/70 font-bold tracking-[0.15em] uppercase mt-0.5 leading-none select-none">
+              <span className="text-[6px] sm:text-[6.5px] font-mono text-slate-400/70 font-bold tracking-[0.15em] uppercase mt-0.5 leading-none select-none">
                 mvp on-chain
               </span>
             </div>
@@ -532,19 +554,19 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* ── RIGHT: Wallet + Mobile Toggle ──────────────────────────── */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {isConnected && address ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Network Warning Pill if wrong network */}
               {isWrongNetwork ? (
                 <button
                   type="button"
                   onClick={switchToTargetNetwork}
                   title={`Click to switch wallet network to ${targetChainName}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 shadow-2xs transition-all cursor-pointer animate-pulse"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-mono font-bold bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 shadow-2xs transition-all cursor-pointer animate-pulse"
                 >
-                  <AlertTriangle size={13} className="text-amber-600 shrink-0" />
-                  <span>Switch to {targetChainName}</span>
+                  <AlertTriangle size={12} className="text-amber-600 shrink-0" />
+                  <span className="truncate max-w-[90px] sm:max-w-none">Switch to {targetChainName}</span>
                 </button>
               ) : (
                 /* Real-Time Live Wallet Money Pill (Clickable -> Full Balance Breakdown Modal) */
@@ -564,10 +586,10 @@ export const Navbar: React.FC = () => {
                 to={`/profile/${address}`}
                 title="View User Profile"
                 className="
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-full
-                  text-[12.5px] font-semibold font-mono text-purple-700
+                  flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full
+                  text-[11px] sm:text-[12.5px] font-semibold font-mono text-purple-700
                   hover:bg-purple-100/90 transition-all duration-200
-                  apple-button
+                  apple-button shrink-0
                 "
                 style={{
                   background: 'rgba(246,240,255,0.85)',
@@ -575,14 +597,14 @@ export const Navbar: React.FC = () => {
                   boxShadow: '0 1px 3px rgba(124,58,237,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
                 }}
               >
-                <div className="w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center shrink-0 shadow-xs">
-                  <User size={9.5} className="text-white" />
+                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-purple-500 flex items-center justify-center shrink-0 shadow-xs">
+                  <User size={9} className="text-white" />
                 </div>
                 <span>{truncateAddress(address)}</span>
-                <ChevronDown size={10} className="text-purple-400" />
+                <ChevronDown size={10} className="text-purple-400 hidden sm:inline" />
               </Link>
 
-              {/* Redesigned Clean Disconnect Button */}
+              {/* Redesigned Clean Disconnect Button (visible on sm+; on mobile, available in drawer) */}
               <motion.button
                 type="button"
                 onClick={disconnectWallet}
@@ -590,7 +612,7 @@ export const Navbar: React.FC = () => {
                 whileHover={{ scale: 1.06 }}
                 whileTap={{ scale: 0.94 }}
                 className="
-                  w-8 h-8 rounded-full flex items-center justify-center
+                  hidden sm:flex w-8 h-8 rounded-full items-center justify-center
                   bg-white/85 hover:bg-rose-50 text-slate-400 hover:text-rose-600
                   border border-slate-200/80 hover:border-rose-300
                   shadow-xs transition-all duration-200 cursor-pointer shrink-0
@@ -603,8 +625,8 @@ export const Navbar: React.FC = () => {
             <Link
               to="/login"
               className="
-                px-3.5 py-1.5 rounded-full text-[12.5px] font-bold text-white
-                flex items-center gap-1.5 cursor-pointer
+                px-3 sm:px-3.5 py-1.5 rounded-full text-[11px] sm:text-[12.5px] font-bold text-white
+                flex items-center gap-1.5 cursor-pointer shrink-0
                 apple-button glass-highlight
                 bg-gradient-to-r from-purple-600 to-purple-500
               "
@@ -613,125 +635,149 @@ export const Navbar: React.FC = () => {
               }}
             >
               <LogIn size={12} />
-              Connect Wallet
+              <span>Connect</span>
             </Link>
           )}
 
-          {/* Mobile toggle */}
-          <motion.button
+          {/* Mobile toggle button (compact on mobile, min 36x36px) */}
+          <button
+            type="button"
             onClick={() => setIsMobileOpen(!isMobileOpen)}
-            whileTap={{ scale: 0.93 }}
-            className="
-              md:hidden p-1.5 rounded-full
-              text-slate-500 hover:text-purple-700
-              transition-colors duration-200 cursor-pointer
-            "
-            style={{
-              background: 'rgba(255,255,255,0.75)',
-              border: '1px solid rgba(255,255,255,0.65)',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
-            }}
+            aria-label={isMobileOpen ? 'Close navigation drawer' : 'Open navigation drawer'}
+            aria-expanded={isMobileOpen}
+            className="md:hidden w-8.5 h-8.5 sm:w-11 sm:h-11 min-w-[34px] sm:min-w-[44px] rounded-full flex items-center justify-center text-slate-700 hover:text-purple-700 bg-white/85 active:bg-slate-100 border border-slate-200/80 shadow-xs transition-colors cursor-pointer select-none shrink-0"
           >
             <AnimatePresence mode="wait" initial={false}>
               {isMobileOpen ? (
                 <motion.span key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={transition.micro}>
-                  <X size={15} />
+                  <X size={18} />
                 </motion.span>
               ) : (
                 <motion.span key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={transition.micro}>
-                  <Menu size={15} />
+                  <Menu size={18} />
                 </motion.span>
               )}
             </AnimatePresence>
-          </motion.button>
+          </button>
         </div>
 
-        {/* ── MOBILE DRAWER ─────────────────────────────────────────── */}
-        <AnimatePresence>
-          {isMobileOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0,  scale: 1    }}
-              exit={{    opacity: 0, y: -6, scale: 0.99  }}
-              transition={transition.medium}
-              className="absolute top-full left-0 right-0 mt-2 mx-1
-                rounded-3xl p-3 space-y-0.5 z-50 md:hidden"
-              style={{
-                background: 'rgba(255,255,255,0.95)',
-                backdropFilter: 'blur(24px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                border: '1px solid rgba(255,255,255,0.70)',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
-              }}
-            >
-              {isVisitor ? (
-                <>
-                  <MobileLink to="/" icon={<Shield size={14} className="text-indigo-500" />} label="Overview" onClick={() => setIsMobileOpen(false)} accent="indigo" />
-                  <MobileLink to="/jobs" icon={<Briefcase size={14} className="text-sky-500" />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} accent="sky" />
-                  <MobileLink to="/reputation" icon={<Trophy size={14} className="text-amber-500" />} label="SBT Leaderboard" onClick={() => setIsMobileOpen(false)} accent="amber" />
-                  <MobileLink to="/dao" icon={<Users size={14} className="text-purple-500" />} label="DAO" onClick={() => setIsMobileOpen(false)} accent="purple" />
-                  <div className="pt-2">
-                    <Link
-                      to="/login"
-                      onClick={() => setIsMobileOpen(false)}
-                      className="flex items-center justify-center gap-2 p-2.5 rounded-2xl text-[13px] font-bold text-white bg-gradient-to-r from-purple-600 to-purple-500 transition-all"
-                      style={{ boxShadow: '0 2px 8px rgba(124,58,237,0.25)' }}
-                    >
-                      <LogIn size={14} /> Connect Wallet
-                    </Link>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileOpen(false);
-                      setIsBalanceModalOpen(true);
-                    }}
-                    className="w-full p-2.5 mb-2 rounded-2xl bg-purple-50/80 hover:bg-purple-100/80 border border-purple-200/60 flex items-center justify-between text-xs font-mono transition-colors cursor-pointer"
-                  >
-                    <span className="text-slate-600 font-sans font-semibold flex items-center gap-1.5">
-                      <Wallet size={13} className="text-purple-600" />
-                      Live Wallet:
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                      <span className="text-purple-700 font-bold">{formatPolBalance(balanceNative)} POL</span>
+        {/* ── PHASE 3 ACCESSIBLE FULL-HEIGHT MOBILE DRAWER ────────────────────── */}
+        <Drawer
+          isOpen={isMobileOpen}
+          onClose={() => setIsMobileOpen(false)}
+          title={
+            <div className="flex items-center gap-2">
+              <PolyLanceLogo size={26} />
+              <span className="font-bold text-slate-900 text-lg">Navigation</span>
+            </div>
+          }
+          side="right"
+          footer={
+            isConnected && address ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50/90 border border-purple-200/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-xs">
+                      <User size={14} />
                     </div>
-                  </button>
-                  <MobileLink to="/dashboard" icon={<LayoutDashboard size={14} className="text-blue-500" />} label="Dashboard" onClick={() => setIsMobileOpen(false)} accent="blue" />
-                  <MobileLink to="/workspace" icon={<Briefcase size={14} className="text-emerald-500" />} label="Job Workspace" onClick={() => setIsMobileOpen(false)} accent="emerald" />
-                  {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') && (
-                    <MobileLink to="/jobs/post" icon={<PlusCircle size={14} className="text-cyan-500" />} label="Post Job" onClick={() => setIsMobileOpen(false)} accent="cyan" />
-                  )}
-                  <MobileLink to="/jobs" icon={<Briefcase size={14} className="text-sky-500" />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} accent="sky" />
-
-                  <MobileLink to="/reputation" icon={<Trophy size={14} className="text-amber-500" />} label="SBT Leaderboard" onClick={() => setIsMobileOpen(false)} accent="amber" />
-                  {(currentRole === 'admin' || currentRole === 'judge') && (
-                    <MobileLink to="/judge" icon={<Scale size={14} className="text-orange-500" />} label="Judge Panel" onClick={() => setIsMobileOpen(false)} accent="orange" />
-                  )}
-                  {currentRole === 'admin' && (
-                    <MobileLink to="/treasury" icon={<Landmark size={14} className="text-emerald-600" />} label="Treasury" onClick={() => setIsMobileOpen(false)} accent="emerald" />
-                  )}
-                  <MobileLink to="/dao" icon={<Users size={14} className="text-purple-500" />} label="DAO" onClick={() => setIsMobileOpen(false)} accent="purple" />
-                  <MobileLink to="/chat" icon={<MessageSquare size={14} className="text-rose-500" />} label="Messages" onClick={() => setIsMobileOpen(false)} accent="rose" />
-                  <div className="border-t border-slate-100/80 pt-2 mt-1 space-y-0.5">
-                    <MobileLink to={`/profile/${address}`} icon={<User size={14} className="text-blue-500" />} label="Profile" onClick={() => setIsMobileOpen(false)} accent="blue" />
-                    <MobileLink to={`/audit/${address}`} icon={<BarChart3 size={14} className="text-purple-500" />} label="Audit Report" onClick={() => setIsMobileOpen(false)} accent="purple" />
-                    <MobileLink to="/settings" icon={<Settings size={14} className="text-slate-400" />} label="Settings" onClick={() => setIsMobileOpen(false)} accent="slate" />
-                    <button
-                      onClick={() => { disconnectWallet(); setIsMobileOpen(false); }}
-                      className="w-full flex items-center gap-2.5 p-2 rounded-xl text-[13px] font-semibold text-rose-600 hover:bg-rose-50 transition-all text-left cursor-pointer"
-                    >
-                      <Power size={14} /> Disconnect Wallet
-                    </button>
+                    <div>
+                      <div className="text-xs font-mono font-bold text-purple-900">{truncateAddress(address)}</div>
+                      <div className="text-[11px] text-purple-600 capitalize font-medium">{currentRole} Account</div>
+                    </div>
                   </div>
-                </>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  <div className="text-right">
+                    <div className="text-xs font-mono font-bold text-slate-900">{formatPolBalance(balanceNative)} POL</div>
+                    <div className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 justify-end">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" /> Live
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    disconnectWallet();
+                    setIsMobileOpen(false);
+                  }}
+                  className="w-full min-h-[44px] py-2.5 px-4 rounded-xl border border-rose-200 text-rose-600 font-semibold text-sm hover:bg-rose-50 active:bg-rose-100 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Power size={15} />
+                  Disconnect Wallet
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileOpen(false);
+                  setIsLoginModalOpen(true);
+                }}
+                className="w-full min-h-[48px] py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-md active:scale-[0.98] transition-transform flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogIn size={16} />
+                Connect Wallet
+              </button>
+            )
+          }
+        >
+          {/* Main Primary Links */}
+          <div className="space-y-1">
+            <MobileLink to="/" icon={<Shield size={18} className="text-indigo-600" />} label="Overview" onClick={() => setIsMobileOpen(false)} accent="indigo" />
+            <MobileLink to="/jobs" icon={<Briefcase size={18} className="text-sky-600" />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} accent="sky" />
+            {!isVisitor && (
+              <>
+                <MobileLink to="/dashboard" icon={<LayoutDashboard size={18} className="text-blue-600" />} label="Dashboard" onClick={() => setIsMobileOpen(false)} accent="blue" />
+                <MobileLink to="/workspace" icon={<Grid size={18} className="text-emerald-600" />} label="Job Workspace" onClick={() => setIsMobileOpen(false)} accent="emerald" />
+                {(currentRole === 'client' || currentRole === 'admin') && (
+                  <MobileLink to="/jobs/post" icon={<PlusCircle size={18} className="text-cyan-600" />} label="Post a Job" onClick={() => setIsMobileOpen(false)} accent="cyan" />
+                )}
+                <MobileLink to="/chat" icon={<MessageSquare size={18} className="text-rose-600" />} label="Messages & Negotiations" onClick={() => setIsMobileOpen(false)} accent="rose" />
+              </>
+            )}
+          </div>
+
+          {/* Sub-sections inside Accordion for clean mobile organization */}
+          <div className="pt-2">
+            <Accordion
+              items={[
+                {
+                  title: 'Governance & Arbitration',
+                  icon: <Scale size={18} />,
+                  content: (
+                    <div className="space-y-1 pt-1">
+                      <MobileLink to="/dao" icon={<Users size={16} className="text-purple-600" />} label="DAO Proposals & Voting" onClick={() => setIsMobileOpen(false)} accent="purple" />
+                      <MobileLink to="/judge" icon={<Scale size={16} className="text-orange-600" />} label="Judge Arbitration Bench" onClick={() => setIsMobileOpen(false)} accent="orange" />
+                      {currentRole === 'admin' && (
+                        <MobileLink to="/treasury" icon={<Landmark size={16} className="text-emerald-600" />} label="Protocol Treasury Multisig" onClick={() => setIsMobileOpen(false)} accent="emerald" />
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  title: 'Reputation & Audits',
+                  icon: <Trophy size={18} />,
+                  content: (
+                    <div className="space-y-1 pt-1">
+                      <MobileLink to="/reputation" icon={<Trophy size={16} className="text-amber-500" />} label="SBT Leaderboard & Scores" onClick={() => setIsMobileOpen(false)} accent="amber" />
+                      <MobileLink to="/audit" icon={<BarChart3 size={16} className="text-purple-600" />} label="Smart Contract Security Audit" onClick={() => setIsMobileOpen(false)} accent="purple" />
+                      <MobileLink to="/attestation" icon={<ShieldCheck size={16} className="text-emerald-600" />} label="Soulbound Attestations" onClick={() => setIsMobileOpen(false)} accent="emerald" />
+                    </div>
+                  ),
+                },
+                {
+                  title: 'Protocol & Legal',
+                  icon: <Shield size={18} />,
+                  content: (
+                    <div className="space-y-1 pt-1">
+                      <MobileLink to="/manifesto" icon={<User size={16} className="text-indigo-600" />} label="PolyLance Manifesto & Team" onClick={() => setIsMobileOpen(false)} accent="indigo" />
+                      <MobileLink to="/security" icon={<Shield size={16} className="text-sky-600" />} label="Security Architecture" onClick={() => setIsMobileOpen(false)} accent="sky" />
+                      <MobileLink to="/terms" icon={<Shield size={16} className="text-slate-500" />} label="Terms of Service" onClick={() => setIsMobileOpen(false)} accent="slate" />
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        </Drawer>
       </motion.nav>
       </header>
 
@@ -769,10 +815,10 @@ const MobileLink: React.FC<MobileLinkProps> = ({ to, icon, label, onClick, accen
     <Link
       to={to}
       onClick={onClick}
-      className={`flex items-center gap-2.5 p-2 rounded-xl text-[12.5px] font-semibold transition-all group ${accentClasses}`}
+      className={`flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold transition-all group ${accentClasses}`}
     >
-      <span className="text-slate-400 group-hover:text-current">{icon}</span>
-      {label}
+      <span className="text-slate-400 group-hover:text-current shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
     </Link>
   );
 };

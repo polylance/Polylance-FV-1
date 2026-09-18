@@ -82,20 +82,88 @@ export const Landing: React.FC = () => {
 
   return (
     <div className="space-y-16 py-6 max-w-6xl mx-auto">
-      {/* Hero Section */}
+      {/* ── 1. HERO SECTION ──────────────────────────────────────────────── */}
       <motion.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className="relative pt-6 pb-12 w-full max-w-6xl mx-auto"
+        className="relative pt-4 sm:pt-6 pb-8 sm:pb-12 w-full max-w-6xl mx-auto"
       >
-
         {/* Subtle Ambient Particle Accents */}
         <div className="absolute top-10 left-10 w-48 h-48 bg-cyan-200/30 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-10 right-10 w-64 h-64 bg-purple-200/30 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center my-auto">
+        {/* ── MOBILE PORTRAIT HERO (lg:hidden) ────────────────────────────── */}
+        <div className="lg:hidden flex flex-col items-center text-center space-y-6 px-2">
+          {/* Pill Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-purple-50 text-purple-900 rounded-full border border-purple-200/80 shadow-2xs">
+            <div className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
+            <span className="font-mono uppercase tracking-wider text-[10px] sm:text-xs font-bold text-purple-800">
+              POLYLANCE ZENITH • SOVEREIGN PROTOCOL
+            </span>
+          </div>
 
+          {/* Mobile Optimized Emblem (No heavy 3D WebGL / No scroll-jank transforms) */}
+          <div className="relative py-2">
+            <div className="relative p-6 rounded-3xl bg-white/90 border border-slate-200/80 shadow-xl flex items-center justify-center">
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-cyan-400/20 via-blue-500/20 to-purple-600/20 filter blur-md -z-10 animate-pulse" />
+              <PolyLanceLogo size={76} className="filter drop-shadow-md" />
+            </div>
+          </div>
+
+          {/* Punchy Fluid Headline */}
+          <h1 className="font-headline text-3xl sm:text-4xl font-black text-slate-900 leading-[1.18] tracking-tight">
+            Verifiable Reputation.{' '}
+            <span className="bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 bg-clip-text text-transparent block mt-1">
+              Immutable Escrow.
+            </span>
+          </h1>
+
+          {/* Mobile Subtitle */}
+          <p className="text-sm text-slate-600 leading-relaxed font-sans max-w-md mx-auto">
+            Decentralized talent protocol on Polygon where work history, payments, and soulbound credentials are permanently on-chain.
+          </p>
+
+          {/* Mobile Full-Width Actions */}
+          <div className="w-full max-w-sm space-y-3 pt-2">
+            <button
+              type="button"
+              onClick={handleGetStarted}
+              className="w-full min-h-[52px] bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-6 py-3.5 rounded-xl font-headline font-bold text-base flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-transform cursor-pointer"
+            >
+              <Wallet size={18} />
+              <span>{isConnected ? 'Go to Dashboard' : 'Connect Wallet to Start'}</span>
+              <ArrowRight size={18} />
+            </button>
+
+            <Link
+              to="/jobs"
+              className="w-full min-h-[48px] bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 px-6 py-3 rounded-xl font-headline font-semibold text-sm flex items-center justify-center gap-2 shadow-2xs active:scale-[0.98] transition-transform cursor-pointer"
+            >
+              <Search size={16} className="text-purple-600" />
+              <span>Browse Jobs (Marketplace)</span>
+            </Link>
+          </div>
+
+          {/* Mobile Scroll Cue */}
+          <div className="pt-4 flex flex-col items-center gap-1 text-slate-400">
+            <span className="text-[11px] font-mono font-medium tracking-wider uppercase">Explore Protocol</span>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('why-polylance');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              aria-label="Scroll down to protocol overview"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-purple-600 bg-purple-50 active:bg-purple-100 transition-colors animate-bounce"
+            >
+              <ArrowDown size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── DESKTOP HERO (lg:grid, strictly 100% untouched) ─────────────── */}
+        <div className="hidden lg:grid lg:grid-cols-12 gap-10 items-center my-auto">
           {/* Left Column: Hero Text Content & Actions */}
           <motion.div
             style={{ scale: smoothHeroScale, y: heroY }}
@@ -229,6 +297,8 @@ export const Landing: React.FC = () => {
           </motion.div>
         </div>
       </motion.section>
+
+
 
       {/* 2. WHY POLYLANCE? (BUILT ON WEB3. DESIGNED FOR TRUST) SECTION */}
       <motion.section
