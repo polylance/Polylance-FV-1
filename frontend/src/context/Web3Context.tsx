@@ -312,14 +312,20 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             if (!usdcAddress || usdcAddress === ethers.ZeroAddress) return 0n;
             const validUsdc = ethers.getAddress(usdcAddress.toLowerCase());
+            const code = await p.getCode(validUsdc).catch(() => '0x');
+            if (!code || code === '0x' || code === '0x0') return 0n;
+
             const usdcContract = new ethers.Contract(
               validUsdc,
               ["function balanceOf(address) view returns (uint256)"],
               p
             );
             return await usdcContract.balanceOf(targetAddr);
-          } catch (err) {
-            console.warn("Failed to fetch USDC balance:", err);
+          } catch (err: any) {
+            // Silently handle addresses without deployed bytecode or RPC 0x return data
+            if (err?.code !== 'BAD_DATA' && err?.code !== 'CALL_EXCEPTION') {
+              console.warn("Failed to fetch USDC balance:", err);
+            }
             return 0n;
           }
         })(),
@@ -331,6 +337,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
               usdtAddress.toLowerCase() === usdcAddress.toLowerCase()
             ) return 0n;
             const validUsdt = ethers.getAddress(usdtAddress.toLowerCase());
+            const code = await p.getCode(validUsdt).catch(() => '0x');
+            if (!code || code === '0x' || code === '0x0') return 0n;
+
             const usdtContract = new ethers.Contract(
               validUsdt,
               ["function balanceOf(address) view returns (uint256)"],

@@ -31,6 +31,9 @@ export const Profile: React.FC = () => {
   // Real-time GitHub sync on mount/viewing a verified developer profile
   useEffect(() => {
     if (userProfile.githubVerified && userProfile.githubUsername) {
+      if (userProfile.primaryScore && userProfile.primaryScore > 0) {
+        return;
+      }
       scoreGithubUser(userProfile.githubUsername, profileAddr)
         .then((res) => {
           if (res && typeof res.primaryScore === 'number') {
@@ -44,7 +47,7 @@ export const Profile: React.FC = () => {
         })
         .catch((err) => console.warn('Real-time background GitHub sync failed:', err));
     }
-  }, [profileAddr, userProfile.githubUsername, userProfile.githubVerified]);
+  }, [profileAddr, userProfile.githubUsername, userProfile.githubVerified, userProfile.primaryScore]);
 
   const isClientProfile = profileAddr.toLowerCase() === (import.meta.env.VITE_CLIENT_ADDRESS || '').toLowerCase() || (isOwnProfile && currentRole === 'client');
   const isJudgeProfile = Boolean(isOwnProfile && currentRole === 'judge');

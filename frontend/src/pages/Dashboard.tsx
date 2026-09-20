@@ -66,6 +66,9 @@ export const Dashboard: React.FC = () => {
   // Real-time GitHub sync on dashboard mount if verified
   useEffect(() => {
     if (userProfile.githubVerified && userProfile.githubUsername) {
+      if (userProfile.primaryScore && userProfile.primaryScore > 0) {
+        return;
+      }
       scoreGithubUser(userProfile.githubUsername, activeAddress)
         .then((res) => {
           if (res && typeof res.primaryScore === 'number') {
@@ -79,7 +82,7 @@ export const Dashboard: React.FC = () => {
         })
         .catch((err) => console.warn('Real-time background GitHub sync failed on dashboard:', err));
     }
-  }, [activeAddress, userProfile.githubUsername, userProfile.githubVerified]);
+  }, [activeAddress, userProfile.githubUsername, userProfile.githubVerified, userProfile.primaryScore]);
 
   const myClientJobs = jobs.filter((j) => Boolean(j.client && activeAddress && j.client.toLowerCase() === activeAddress.toLowerCase()));
   const myFreelancerJobs = jobs.filter((j) => Boolean(j.freelancer && activeAddress && j.freelancer.toLowerCase() === activeAddress.toLowerCase()));

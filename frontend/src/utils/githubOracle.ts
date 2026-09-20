@@ -27,6 +27,45 @@ const MIN_FOLLOWERS = 0;             // allow newer/solo devs, but points must b
 const SCORE_HARD_FLOOR = 100;        // floor for active accounts
 const FALLBACK_SCORE_CAP = 350;      // when real API is unavailable, cap firmly in BRONZE
 
+// Rate-limit awareness: if GitHub API returns 403/429, back off to avoid spamming the console
+let githubRateLimitedUntil = 0;
+
+// Cache: username -> cached result (TTL: 30 minutes)
+const scoreCache = new Map<string, { result: GithubScoreResult; timestamp: number }>();
+const CACHE_TTL_MS = 30 * 60 * 1000;
+
+function getCachedScore(username: string): GithubScoreResult | null {
+  const clean = username.toLowerCase();
+  const mem = scoreCache.get(clean);
+  if (mem && Date.now() - mem.timestamp < CACHE_TTL_MS) {
+    return mem.result;
+  }
+  try {
+    if (typeof window !== 'undefined') {
+      const raw = sessionStorage.getItem(`polylance_gh_${clean}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.timestamp && Date.now() - parsed.timestamp < CACHE_TTL_MS) {
+          scoreCache.set(clean, parsed);
+          return parsed.result;
+        }
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function setCachedScore(username: string, result: GithubScoreResult) {
+  const clean = username.toLowerCase();
+  const entry = { result, timestamp: Date.now() };
+  scoreCache.set(clean, entry);
+  try {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`polylance_gh_${clean}`, JSON.stringify(entry));
+    }
+  } catch {}
+}
+
 const LANGUAGE_CATEGORY: Record<string, string> = {
   Solidity: 'web3',
   Vyper: 'web3',
@@ -53,6 +92,17 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
   }
   cleanUsername = cleanUsername.replace(/^@/, '').replace(/\/$/, '').trim();
 
+  // 0. Return cached score if available
+  const cached = getCachedScore(cleanUsername);
+  if (cached) {
+    return {
+      ...cached,
+      attestationUID: ethers.keccak256(
+        ethers.toUtf8Bytes(`${userAddress.toLowerCase()}:${cleanUsername.toLowerCase()}:${Date.now()}`)
+      ),
+    };
+  }
+
   let primaryCategory = 'General';
   let primaryScore = 0;
   let secondaryCategories: string[] = [];
@@ -68,90 +118,97 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
   let fetchedDisplayName: string = cleanUsername;
   let fetchedBio: string | undefined;
 
-  try {
-    // 1. Fetch real user profile from GitHub API
-    const userRes = await fetch(`https://api.github.com/users/${cleanUsername}`, {
-      headers: { 'Accept': 'application/vnd.github.v3+json' },
-    });
+  const isRateLimited = Date.now() < githubRateLimitedUntil;
+  const ghToken = (import.meta.env.VITE_GITHUB_TOKEN as string | undefined)?.trim();
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json',
+  };
+  if (ghToken) {
+    headers['Authorization'] = `Bearer ${ghToken}`;
+  }
 
-    if (userRes.ok) {
-      const userData = await userRes.json();
-      fetchedAvatarUrl = userData.avatar_url || `https://github.com/${cleanUsername}.png`;
-      fetchedDisplayName = userData.name || userData.login || cleanUsername;
-      fetchedBio = userData.bio || undefined;
+  if (!isRateLimited) {
+    try {
+      // 1. Fetch real user profile from GitHub API
+      const userRes = await fetch(`https://api.github.com/users/${cleanUsername}`, { headers });
 
-      const followers = userData.followers || 0;
-      const publicRepos = userData.public_repos || 0;
+      if (userRes.status === 403 || userRes.status === 429) {
+        githubRateLimitedUntil = Date.now() + 15 * 60 * 1000;
+        console.warn(`[GitHub Oracle] GitHub API rate-limited (status ${userRes.status}). Using local score engine.`);
+      } else if (userRes.ok) {
+        const userData = await userRes.json();
+        fetchedAvatarUrl = userData.avatar_url || `https://github.com/${cleanUsername}.png`;
+        fetchedDisplayName = userData.name || userData.login || cleanUsername;
+        fetchedBio = userData.bio || undefined;
 
-      // ── Hard Minimum Activity Gate ──────────────────────────────────────
-      if (publicRepos < MIN_PUBLIC_REPOS) {
-        throw new Error(`GitHub account does not meet minimum requirements: ${publicRepos} public repos (need ≥ ${MIN_PUBLIC_REPOS}). Build more public code first.`);
-      }
+        const followers = userData.followers || 0;
+        const publicRepos = userData.public_repos || 0;
 
-      reposCount = publicRepos;
+        // ── Hard Minimum Activity Gate ──────────────────────────────────────
+        if (publicRepos < MIN_PUBLIC_REPOS) {
+          throw new Error(`GitHub account does not meet minimum requirements: ${publicRepos} public repos (need ≥ ${MIN_PUBLIC_REPOS}). Build more public code first.`);
+        }
 
-      // 2. Fetch user's public repositories (filtering out forks)
-      const reposRes = await fetch(`https://api.github.com/users/${cleanUsername}/repos?per_page=100&sort=pushed`, {
-        headers: { 'Accept': 'application/vnd.github.v3+json' },
-      });
+        reposCount = publicRepos;
 
-      if (reposRes.ok) {
-        const reposData = await reposRes.json();
-        let totalStars = 0;
-        let categoryBytes: Record<string, number> = {};
+        // 2. Fetch user's public repositories (filtering out forks)
+        const reposRes = await fetch(`https://api.github.com/users/${cleanUsername}/repos?per_page=100&sort=pushed`, { headers });
 
-        const nonForkRepos = Array.isArray(reposData) ? reposData.filter((r: any) => !r.fork) : [];
-        const reposToScan = nonForkRepos.length > 0 ? nonForkRepos.slice(0, 25) : (Array.isArray(reposData) ? reposData.slice(0, 25) : []);
+        if (reposRes.status === 403 || reposRes.status === 429) {
+          githubRateLimitedUntil = Date.now() + 15 * 60 * 1000;
+        } else if (reposRes.ok) {
+          const reposData = await reposRes.json();
+          let totalStars = 0;
+          let categoryBytes: Record<string, number> = {};
 
-        // Query granular language breakdowns for each repository
-        const langResults = await Promise.allSettled(
-          reposToScan.map(async (repo: any) => {
-            totalStars += repo.stargazers_count || 0;
-            if (repo.languages_url) {
-              try {
-                const lRes = await fetch(repo.languages_url, {
-                  headers: { 'Accept': 'application/vnd.github.v3+json' },
-                });
-                if (lRes.ok) {
-                  return await lRes.json();
+          const nonForkRepos = Array.isArray(reposData) ? reposData.filter((r: any) => !r.fork) : [];
+          const reposToScan = nonForkRepos.length > 0 ? nonForkRepos.slice(0, 25) : (Array.isArray(reposData) ? reposData.slice(0, 25) : []);
+
+          // Query granular languages: only fetch languages_url for top 3 repos to conserve quota; use repo.language/size for others
+          const langResults = await Promise.allSettled(
+            reposToScan.map(async (repo: any, idx: number) => {
+              totalStars += repo.stargazers_count || 0;
+              if (idx < 3 && repo.languages_url) {
+                try {
+                  const lRes = await fetch(repo.languages_url, { headers });
+                  if (lRes.ok) {
+                    return await lRes.json();
+                  }
+                } catch {}
+              }
+              if (repo.language && repo.size) {
+                return { [repo.language]: repo.size * 1024 };
+              }
+              return {};
+            })
+          );
+
+          langResults.forEach((res) => {
+            if (res.status === 'fulfilled' && res.value) {
+              for (const [lang, bytes] of Object.entries(res.value)) {
+                if (typeof bytes === 'number' && bytes > 0) {
+                  const mappedCat = LANGUAGE_CATEGORY[lang] || 'other';
+                  categoryBytes[mappedCat] = (categoryBytes[mappedCat] || 0) + bytes;
+                  languageBytes[lang] = (languageBytes[lang] || 0) + bytes;
                 }
-              } catch {}
-            }
-            if (repo.language && repo.size) {
-              return { [repo.language]: repo.size * 1024 };
-            }
-            return {};
-          })
-        );
-
-        langResults.forEach((res) => {
-          if (res.status === 'fulfilled' && res.value) {
-            for (const [lang, bytes] of Object.entries(res.value)) {
-              if (typeof bytes === 'number' && bytes > 0) {
-                const mappedCat = LANGUAGE_CATEGORY[lang] || 'other';
-                categoryBytes[mappedCat] = (categoryBytes[mappedCat] || 0) + bytes;
-                languageBytes[lang] = (languageBytes[lang] || 0) + bytes;
               }
             }
-          }
-        });
-
-        // 3. Attempt to fetch real public push events for actual commit volume
-        let verifiedPushCommits = 0;
-        try {
-          const eventsRes = await fetch(`https://api.github.com/users/${cleanUsername}/events/public?per_page=100`, {
-            headers: { 'Accept': 'application/vnd.github.v3+json' },
           });
-          if (eventsRes.ok) {
-            const eventsData = await eventsRes.json();
-            if (Array.isArray(eventsData)) {
-              const pushEvents = eventsData.filter((e: any) => e.type === 'PushEvent');
-              pushEvents.forEach((pe: any) => {
-                verifiedPushCommits += (pe.payload?.commits?.length || 1);
-              });
+
+          // 3. Attempt to fetch real public push events for actual commit volume
+          let verifiedPushCommits = 0;
+          try {
+            const eventsRes = await fetch(`https://api.github.com/users/${cleanUsername}/events/public?per_page=100`, { headers });
+            if (eventsRes.ok) {
+              const eventsData = await eventsRes.json();
+              if (Array.isArray(eventsData)) {
+                const pushEvents = eventsData.filter((e: any) => e.type === 'PushEvent');
+                pushEvents.forEach((pe: any) => {
+                  verifiedPushCommits += (pe.payload?.commits?.length || 1);
+                });
+              }
             }
-          }
-        } catch {}
+          } catch {}
 
         const totalAuditedBytes = Object.values(languageBytes).reduce((a, b) => a + b, 0);
 
@@ -238,6 +295,7 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     }
     console.warn('GitHub API fetch notice (using hardened fallback):', err);
   }
+  }
 
   // ── Hardened Fallback: API throttled / offline ─────────────────────────
   // Cap strictly at FALLBACK_SCORE_CAP (Bronze) so offline fallbacks cannot bypass rules
@@ -286,7 +344,7 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     ethers.getBytes(ethers.keccak256(ethers.toUtf8Bytes(attestationUID)))
   );
 
-  return {
+  const finalResult: GithubScoreResult = {
     username: cleanUsername,
     primaryCategory,
     primaryScore,
@@ -305,6 +363,10 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     fetchedDisplayName,
     ...(fetchedBio ? { fetchedBio } : {}),
   };
+
+  setCachedScore(cleanUsername, finalResult);
+
+  return finalResult;
 }
 
 export interface LanguageByteEntry {
