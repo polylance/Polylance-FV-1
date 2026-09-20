@@ -3750,6 +3750,118 @@
         "submittedAt": 1789894426151,
         "externalLink": "https://github.com/polylance/polylance/commit/d9aaabe6ec9ba62fe3ea2ff0905a868e05682ea4"
       }
+    },
+    {
+      "id": "0x99801f9e280B",
+      "contractAddress": "0x99801f9e280B74e9753bA1f61bfcaF73c294269A",
+      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+      "amountEth": "10",
+      "amountUsdc": "1.01",
+      "paymentToken": "0x0000000000000000000000000000000000000000",
+      "paymentTokenSymbol": "POL",
+      "paymentTokenDecimals": 18,
+      "status": "Selected",
+      "title": "Build Mainnet Smart Contracts For PolyLance",
+      "description": "We are looking for an experienced Solidity/Web3 developer to build, test, and deploy production-ready smart contracts for PolyLance on Polygon Mainnet.\n\nPolyLance is a decentralized freelancing platform that enables secure and transparent transactions between clients and freelancers using blockchain technology. The platform will support Polygon Mainnet with USDC and USDT payments.\n\nThe developer will review the existing PolyLance smart contract code, identify bugs or security issues, and update the contracts for production use. The contracts should support secure freelance payment and escrow flows, including job creation, client deposits, payment release, cancellation, and refunds where required.\n\nKey responsibilities:\n• Develop or update PolyLance smart contracts using Solidity.\n• Implement secure escrow and payment functionality.\n• Support USDC and USDT on Polygon Mainnet.\n• Implement proper access control and transaction validation.\n• Protect against common smart contract vulnerabilities such as reentrancy and unauthorized fund access.\n• Optimize contracts for reasonable gas usage.\n• Create deployment and testing scripts using Hardhat or Foundry.\n• Thoroughly test critical contract functions before deployment.\n• Deploy and verify contracts on Polygon Mainnet and PolygonScan.\n• Provide final contract addresses, ABI files, and integration details.\n• Ensure compatibility with the existing PolyLance frontend and backend.\n\nRequired experience includes Solidity, EVM, ERC-20 tokens, OpenZeppelin, Polygon, smart contract testing, and Web3 integrations. Experience with payment or escrow contracts is preferred.\n\nDeliverables should include tested production-ready contracts, deployment scripts, verified Polygon Mainnet contracts, ABI files, contract addresses, test results, and basic documentation.\n\nAs the contracts will handle real user funds, security, reliability, and proper testing are essential before the mainnet launch.",
+      "category": "web3",
+      "reviewPeriodDays": 2,
+      "createdAt": 1789730296886,
+      "applications": [
+        {
+          "applicant": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
+          "proposalIpfsHash": "bafybeikiajlqusktv264u57eig6hjosqirty42",
+          "appliedAt": 1789745694373,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "Ethers.js",
+            "Rust",
+            "The Graph",
+            "React"
+          ],
+          "githubVerified": true,
+          "githubScore": 980
+        }
+      ],
+      "events": [
+        {
+          "step": "Posted",
+          "title": "Job Posted (POL Escrow)",
+          "timestamp": 1789730296886,
+          "txHash": "0xa0e4f0fc90909103f07417725a982346874cb109f102527d89ebcc2baa002cab",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Selected",
+          "title": "Select Freelancer",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "current"
+        },
+        {
+          "step": "Terms",
+          "title": "Agree Terms",
+          "timestamp": 1789753493751,
+          "txHash": "",
+          "status": "completed"
+        },
+        {
+          "step": "Funded",
+          "title": "Fund Escrow",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Submitted",
+          "title": "Submit Work",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Completed",
+          "title": "Release Payment",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Minted",
+          "title": "Mint Reputation SBT",
+          "timestamp": 0,
+          "txHash": "",
+          "status": "pending"
+        },
+        {
+          "step": "Posted",
+          "title": "Job Details Modified by Client",
+          "timestamp": 1789730685497,
+          "txHash": "",
+          "status": "completed",
+          "actor": "Client"
+        },
+        {
+          "step": "Posted",
+          "title": "Job Details Modified by Client",
+          "timestamp": 1789745421903,
+          "txHash": "",
+          "status": "completed",
+          "actor": "Client"
+        }
+      ],
+      "negotiationProposals": [],
+      "chatMessages": [],
+      "preAcceptMessages": [],
+      "progressUpdates": [],
+      "extensionRequests": [],
+      "modificationRequests": [],
+      "chatClearedAt": 1789732388370,
+      "freelancer": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
+      "clientAgreedTerms": true,
+      "freelancerAgreedTerms": true,
+      "termsHash": "0x0aff314b43ebe642ec9fbb01630efce6dbc2074a3a913171d0b9ae6fcf148f23"
     }
   ],
   "profiles": {

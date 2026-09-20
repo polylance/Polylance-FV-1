@@ -30,6 +30,7 @@ import { Security } from './pages/Security';
 import { Disclaimer } from './pages/Disclaimer';
 import { Manifesto } from './pages/Manifesto';
 import { CertifiedPass } from './pages/CertifiedPass';
+import { AuditX } from './pages/AuditX';
 import { DevPrimitivesPage } from './pages/DevPrimitivesPage';
 import { DevStatesPage } from './pages/DevStatesPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -93,6 +94,8 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/manifesto" element={<Manifesto />} />
           <Route path="/certifiedpass" element={<CertifiedPass />} />
           <Route path="/certified-pass" element={<CertifiedPass />} />
+          <Route path="/auditx" element={<AuditX />} />
+          <Route path="/audit-x" element={<AuditX />} />
           <Route path="/dev/primitives" element={<DevPrimitivesPage />} />
           <Route path="/dev/states" element={<DevStatesPage />} />
 

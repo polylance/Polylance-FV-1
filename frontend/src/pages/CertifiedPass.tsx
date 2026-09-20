@@ -29,6 +29,7 @@ import {
   Clock,
   Eye,
   BadgeCheck,
+  Globe,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -345,6 +346,28 @@ export const CertifiedPass: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Launch Official CertifiedPass Portal State & Animation
+  const [isLaunchingPortal, setIsLaunchingPortal] = useState(false);
+
+  const handleLaunchPortal = () => {
+    if (isLaunchingPortal) return;
+    setIsLaunchingPortal(true);
+
+    // Multi-color celebratory confetti burst
+    confetti({
+      particleCount: 75,
+      spread: 80,
+      origin: { y: 0.55 },
+      colors: ['#9333ea', '#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'],
+    });
+
+    // Elegant animated sequence before opening in a new tab
+    setTimeout(() => {
+      window.open('https://sunny200551.github.io/CertifiedPass/', '_blank', 'noopener,noreferrer');
+      setIsLaunchingPortal(false);
+    }, 700);
+  };
+
   return (
     <div className={`min-h-screen ${NEO.canvas} text-slate-700 py-8 px-4 sm:px-6 lg:px-8 font-sans select-none relative overflow-x-hidden`}>
       {/* Scroll Progress Meter */}
@@ -392,27 +415,104 @@ export const CertifiedPass: React.FC = () => {
 
           {/* Quick Action Pills */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <a
-              href="#verifier"
-              className={`px-6 py-2.5 ${NEO.buttonPrimary} text-xs uppercase tracking-wider inline-flex items-center gap-2`}
+            {/* Minimalist Official App Portal Button */}
+            <button
+              type="button"
+              onClick={handleLaunchPortal}
+              disabled={isLaunchingPortal}
+              className={`px-5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider font-bold transition-all duration-200 cursor-pointer active:scale-95 inline-flex items-center gap-2 ${
+                isLaunchingPortal
+                  ? 'bg-slate-900 text-white animate-pulse border border-slate-800'
+                  : 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm border border-slate-800'
+              }`}
+            >
+              {isLaunchingPortal ? (
+                <>
+                  <Sparkles size={14} className="animate-spin text-purple-300" />
+                  <span>Opening CertifiedPass...</span>
+                </>
+              ) : (
+                <>
+                  <Globe size={14} className="text-slate-400" />
+                  <span>Explore CertifiedPass</span>
+                  <ExternalLink size={13} className="text-slate-400" />
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('verifier');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+              className={`px-6 py-2.5 ${NEO.buttonPrimary} text-xs uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer active:scale-95 transition-transform`}
             >
               <Search size={14} />
               <span>Verify a Certificate</span>
-            </a>
-            <a
-              href="#how-it-works"
-              className={`px-6 py-2.5 ${NEO.button} text-xs uppercase tracking-wider inline-flex items-center gap-2`}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('how-it-works');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+              className={`px-6 py-2.5 ${NEO.button} text-xs uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer active:scale-95 transition-transform`}
             >
               <BookOpen size={14} />
               <span>How It Works</span>
-            </a>
+            </button>
             <Link
               to="/reputation"
-              className={`px-6 py-2.5 ${NEO.button} text-xs uppercase tracking-wider inline-flex items-center gap-2`}
+              className={`px-6 py-2.5 ${NEO.button} text-xs uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer active:scale-95 transition-transform`}
             >
               <Award size={14} className="text-purple-600" />
               <span>SBT Leaderboard</span>
             </Link>
+          </div>
+
+          {/* Official CertifiedPass Standalone Web App Showcase Banner */}
+          <div className="max-w-3xl mx-auto p-5 sm:p-6 rounded-3xl bg-[#EBECF0] shadow-[8px_8px_18px_#cbced6,-8px_-8px_18px_#ffffff] border border-white/80 flex flex-col sm:flex-row items-center justify-between gap-5 text-left transition-all duration-300 hover:shadow-[12px_12px_24px_#cbced6,-12px_-12px_24px_#ffffff] mt-6">
+            <div className="space-y-1.5 flex-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-700 font-mono text-[10px] font-extrabold uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Official Web Application • Live Protocol</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900 font-heading">
+                Explore CertifiedPass
+              </h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Experience the official decentralized CertifiedPass web portal with 3D interactive credentials, live verification oracle, and cross-protocol proof of work.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLaunchPortal}
+              disabled={isLaunchingPortal}
+              className={`shrink-0 w-full sm:w-auto px-6 py-3 rounded-xl font-mono text-xs uppercase tracking-wider font-bold transition-all duration-200 cursor-pointer active:scale-95 inline-flex items-center justify-center gap-2 ${
+                isLaunchingPortal
+                  ? 'bg-slate-900 text-white animate-pulse border border-slate-800'
+                  : 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm border border-slate-800'
+              }`}
+            >
+              {isLaunchingPortal ? (
+                <>
+                  <Sparkles size={14} className="animate-spin text-purple-300" />
+                  <span>Launching App...</span>
+                </>
+              ) : (
+                <>
+                  <Globe size={15} className="text-slate-400" />
+                  <span>Explore CertifiedPass</span>
+                  <ExternalLink size={13} className="text-slate-400" />
+                </>
+              )}
+            </button>
           </div>
         </motion.section>
 
@@ -496,7 +596,7 @@ export const CertifiedPass: React.FC = () => {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className={`${NEO.card} p-6 sm:p-10 space-y-8 relative overflow-hidden`}
+          className={`${NEO.card} p-6 sm:p-10 space-y-8 relative overflow-hidden scroll-mt-24`}
         >
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-300/60 pb-6">
@@ -745,7 +845,7 @@ export const CertifiedPass: React.FC = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="space-y-8"
+          className="space-y-8 scroll-mt-24"
         >
           <div className="text-center space-y-2">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">

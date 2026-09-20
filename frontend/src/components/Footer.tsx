@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { PolyLanceLogo } from './PolyLanceLogo';
-import { ShieldCheck, Lock, FileText, Scale, ExternalLink, Sparkles } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Lock, FileText, Scale, ExternalLink, Sparkles } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const location = useLocation();
@@ -70,6 +70,12 @@ export const Footer: React.FC = () => {
                 <Link to="/certifiedpass" className="hover:text-purple-600 transition-colors inline-flex items-center gap-1.5 font-bold text-indigo-700">
                   <ShieldCheck size={13} className="text-indigo-600" />
                   CertifiedPass (Verification Protocol)
+                </Link>
+              </li>
+              <li>
+                <Link to="/auditx" className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5 font-bold text-emerald-700">
+                  <ShieldAlert size={13} className="text-emerald-600" />
+                  AuditX (Web3 Security & SIEM)
                 </Link>
               </li>
               <li>
@@ -166,6 +172,10 @@ export const Footer: React.FC = () => {
                   <ShieldCheck size={13} className="text-indigo-600" />
                   CertifiedPass (Verification Protocol)
                 </Link>
+                <Link to="/auditx" className="min-h-[44px] flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800">
+                  <ShieldAlert size={13} className="text-emerald-600" />
+                  AuditX (Web3 Security & SIEM)
+                </Link>
                 <Link to="/manifesto" className="min-h-[44px] flex items-center gap-1.5 text-xs font-bold text-purple-700 hover:text-purple-800">
                   <Sparkles size={13} className="text-purple-600 animate-pulse" />
                   Protocol Manifesto & Team
@@ -206,6 +216,7 @@ export const Footer: React.FC = () => {
             </details>
           </div>
         </div>
+
 
         {/* Bottom Copyright Strip */}
         <div className="pt-6 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-500">
