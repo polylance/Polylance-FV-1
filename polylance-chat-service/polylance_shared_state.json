@@ -4053,27 +4053,26 @@
       "prsCount": 7,
       "avatarUrl": "https://avatars.githubusercontent.com/u/158837165?v=4",
       "reposCount": 4,
-      "verifiedAt": 1789290970497,
+      "verifiedAt": 1789923168532,
       "displayName": "SATHVIK_POLIPATI",
       "commitsCount": 52,
-      "primaryScore": 696,
+      "primaryScore": 383,
       "languageBytes": {
-        "CSS": 45209,
         "HTML": 474619,
-        "Shell": 2014,
         "Python": 267104,
-        "Batchfile": 2790,
         "JavaScript": 227739,
+        "CSS": 45209,
+        "Batchfile": 2790,
+        "Shell": 2014,
         "Jupyter Notebook": 19958
       },
-      "attestationUID": "0x27a5865073c706ad51facf553cff8d8e304a760304a1f8e1c64fe6d31699d8e7",
       "githubUsername": "Sathvikpolipati",
       "githubVerified": true,
       "reputationTier": "SILVER",
       "primaryCategory": "frontend",
       "secondaryScores": [
-        278,
-        139
+        134,
+        67
       ],
       "reputationSbtCount": 0,
       "secondaryCategories": [
@@ -4300,9 +4299,11 @@
       ]
     },
     "0xb8aa0398b91a150b041da819bc954bb356e009dd": {
+      "address": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+      "displayName": "Sunny Pasumarthi",
       "bio": "Official PolyLance Lead Arbitrator & DAO Verifier.",
-      "role": "freelancer",
-      "title": "Frontend Developer",
+      "avatarUrl": "https://github.com/sunny200551.png",
+      "ipfsHash": "QmJudgeProfileDataHashPlaceholder",
       "skills": [
         "Arbitration",
         "Smart Contracts",
@@ -4315,44 +4316,42 @@
         "Next.js",
         "React"
       ],
-      "address": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-      "ipfsHash": "QmJudgeProfileDataHashPlaceholder",
-      "prsCount": 9,
-      "avatarUrl": "https://github.com/sunny200551.png",
-      "reposCount": 5,
-      "verifiedAt": 1789298910083,
-      "displayName": "Sunny Pasumarthi",
-      "commitsCount": 72,
-      "primaryScore": 795,
-      "languageBytes": {
-        "C": 734,
-        "C++": 19894,
-        "CSS": 85422,
-        "Nix": 1280,
-        "Dart": 243418,
-        "HTML": 140877,
-        "CMake": 10508,
-        "Kotlin": 126,
-        "Solidity": 28159,
-        "Dockerfile": 792,
-        "JavaScript": 96812,
-        "TypeScript": 1137147
-      },
-      "attestationUID": "0xbdb099c2d407d61f1bfd6ee7b6952154f9287c13d395071c979e09cc16d7dbe8",
-      "githubUsername": "sunny200551",
       "githubVerified": true,
-      "hourlyRateUsdc": 75,
-      "reputationTier": "GOLD",
-      "primaryCategory": "frontend",
-      "secondaryScores": [
-        318,
-        159
-      ],
       "reputationSbtCount": 19,
+      "githubUsername": "sunny200551",
+      "verifiedAt": 1789922851196,
+      "primaryCategory": "frontend",
+      "primaryScore": 499,
       "secondaryCategories": [
         "frontend",
         "web3"
-      ]
+      ],
+      "secondaryScores": [
+        175,
+        87
+      ],
+      "attestationUID": "0xbdb099c2d407d61f1bfd6ee7b6952154f9287c13d395071c979e09cc16d7dbe8",
+      "languageBytes": {
+        "TypeScript": 1155693,
+        "JavaScript": 96812,
+        "CSS": 95480,
+        "HTML": 140877,
+        "Solidity": 28159,
+        "Dockerfile": 792,
+        "Dart": 243418,
+        "C++": 19894,
+        "CMake": 10508,
+        "C": 734,
+        "Kotlin": 126,
+        "Nix": 1280
+      },
+      "commitsCount": 72,
+      "reposCount": 5,
+      "prsCount": 9,
+      "reputationTier": "GOLD",
+      "role": "freelancer",
+      "title": "Frontend Developer",
+      "hourlyRateUsdc": 75
     },
     "0xc12dd66de59897518baf87951319f7d0a4c89eda": {
       "bio": "",

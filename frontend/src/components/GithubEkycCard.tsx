@@ -140,13 +140,13 @@ export const GithubEkycCard: React.FC<GithubEkycCardProps> = ({
 
           {/* Titles */}
           <div className="min-w-0 shrink-0">
-            <h3 className="text-[11.5px] sm:text-[12.5px] font-black text-slate-900 leading-tight tracking-tight whitespace-nowrap">
+            <h3 className="text-[11px] sm:text-[12px] font-black text-slate-900 leading-tight tracking-tight whitespace-nowrap">
               {isVerified ? 'GitHub E-KYC' : 'PolyLance E-KYC'}
             </h3>
-            <div className="text-[10px] sm:text-[11px] font-bold text-slate-600 leading-tight whitespace-nowrap">
+            <div className="text-[9.5px] sm:text-[10px] font-bold text-slate-600 leading-tight whitespace-nowrap">
               Attestation
             </div>
-            <div className="text-[6.5px] sm:text-[7.5px] font-mono tracking-[0.14em] text-slate-400 font-semibold mt-0.5 uppercase flex items-center gap-1 whitespace-nowrap">
+            <div className="text-[5.5px] sm:text-[6px] font-mono tracking-[0.1em] text-slate-400 font-medium mt-0.5 uppercase flex items-center gap-1 whitespace-nowrap">
               <span>VERIFIED</span>
               <span>•</span>
               <span>TRUSTED</span>
@@ -154,40 +154,31 @@ export const GithubEkycCard: React.FC<GithubEkycCardProps> = ({
           </div>
         </div>
 
-        {/* Right: Score Box + Tier Pill directly beside GitHub text */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
-          {/* Score Pill Box (Minty Green - Matching Image 2 Reference) */}
-          <div className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-[#E6F9F0] border border-[#B9F0D6] shadow-[inset_0_1px_1px_rgba(255,255,255,0.75)] flex flex-col justify-center shrink-0">
-            <span className="text-[7.5px] sm:text-[8px] font-semibold text-emerald-800 leading-none mb-0.5">
+        {/* Right: Rank Tier Pill ABOVE Score Box (Vertical Stack) */}
+        <div className="flex flex-col items-end gap-1 shrink-0 ml-auto">
+          {/* Rank Tier Badge placed above the score card */}
+          <div
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${tierStyle.pillBg} border ${tierStyle.pillBorder} ${tierStyle.pillShadow} shrink-0`}
+          >
+            <Crown size={8.5} className={`${tierStyle.crownColor} shrink-0`} />
+            <span
+              className={`text-[7.5px] sm:text-[8px] font-black tracking-wider ${tierStyle.pillText} uppercase font-mono leading-none`}
+            >
+              {tier}
+            </span>
+          </div>
+
+          {/* Score Pill Box (Minty Green - with Increased Score Size) */}
+          <div className="px-2.5 py-0.5 sm:py-1 rounded-lg sm:rounded-xl bg-[#E6F9F0] border border-[#B9F0D6] shadow-[inset_0_1px_1px_rgba(255,255,255,0.75)] flex flex-col justify-center shrink-0">
+            <span className="text-[7px] sm:text-[7.5px] font-semibold text-emerald-800 leading-none mb-0.5">
               Score
             </span>
             <div className="flex items-baseline leading-none">
-              <span className="text-[12.5px] sm:text-[14px] font-black text-slate-900 font-sans tracking-tight">
+              <span className="text-[14px] sm:text-[15.5px] font-black text-slate-900 font-sans tracking-tight">
                 {bytecodeMatrix.primaryScore}
               </span>
-              <span className="text-[8px] sm:text-[8.5px] text-slate-500 font-bold ml-0.5 font-mono">
+              <span className="text-[8px] sm:text-[8.5px] text-slate-500 font-bold ml-1 font-mono">
                 / 1000
-              </span>
-            </div>
-          </div>
-
-          {/* Glowing Tier Badge with Elevated Crown Icon */}
-          <div className="relative pt-1 sm:pt-1.5 shrink-0 flex flex-col items-center">
-            {/* Elevated Mini Crown Icon Badge */}
-            <div
-              className={`w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full ${tierStyle.crownBg} border ${tierStyle.crownBorder} shadow-2xs flex items-center justify-center -mb-1 relative z-10`}
-            >
-              <Crown size={8} className={tierStyle.crownColor} />
-            </div>
-
-            {/* Pill Container */}
-            <div
-              className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full ${tierStyle.pillBg} border ${tierStyle.pillBorder} ${tierStyle.pillShadow} text-center`}
-            >
-              <span
-                className={`text-[8.5px] sm:text-[9.5px] font-black tracking-wider ${tierStyle.pillText} uppercase font-mono leading-none block`}
-              >
-                {tier}
               </span>
             </div>
           </div>
@@ -196,13 +187,13 @@ export const GithubEkycCard: React.FC<GithubEkycCardProps> = ({
 
       {/* ── SUB-HEADER ROW: Language Contributions & Total Bytes (Always 1 Line) ── */}
       <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100/90 whitespace-nowrap min-w-0">
-        <span className="text-[8px] sm:text-[8.5px] font-bold font-mono tracking-[0.12em] text-slate-400 uppercase truncate">
+        <span className="text-[7px] sm:text-[7.5px] font-bold font-mono tracking-[0.1em] text-slate-400 uppercase truncate">
           LANGUAGE CONTRIBUTIONS
         </span>
-        <div className="flex items-center gap-1 text-[8px] sm:text-[8.5px] font-mono text-slate-400 shrink-0 whitespace-nowrap">
-          <Code2 size={10} className="text-slate-400 stroke-[2] shrink-0" />
+        <div className="flex items-center gap-1 text-[7px] sm:text-[7.5px] font-mono text-slate-400 shrink-0 whitespace-nowrap">
+          <Code2 size={9} className="text-slate-400 stroke-[2] shrink-0" />
           <span className="font-semibold uppercase tracking-wider text-slate-400">TOTAL</span>
-          <span className="text-[9px] sm:text-[10px] font-extrabold text-[#1E293B] font-mono whitespace-nowrap">
+          <span className="text-[8px] sm:text-[8.5px] font-bold text-[#1E293B] font-mono whitespace-nowrap">
             {bytecodeMatrix.totalBytes.toLocaleString()} Bytes
           </span>
         </div>
@@ -210,7 +201,7 @@ export const GithubEkycCard: React.FC<GithubEkycCardProps> = ({
 
       {/* ── LANGUAGE CONTRIBUTIONS PILL ROWS (Matching Image 2 Reference) ─── */}
       {bytecodeMatrix.languagesWithPercentages.length > 0 ? (
-        <div className="space-y-1.5 sm:space-y-2">
+        <div className="space-y-1 sm:space-y-1.5">
           {bytecodeMatrix.languagesWithPercentages.map((item) => {
             const langColor =
               LANGUAGE_DISPLAY_COLORS[item.language] ||
@@ -220,15 +211,15 @@ export const GithubEkycCard: React.FC<GithubEkycCardProps> = ({
             return (
               <div
                 key={item.language}
-                className="w-full bg-white rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.02),inset_0_1px_1px_rgba(255,255,255,0.95)] hover:border-slate-200 transition-all flex items-center justify-between group"
+                className="w-full bg-white rounded-lg px-2 sm:px-2.5 py-1 sm:py-1.5 border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_1px_rgba(255,255,255,0.95)] hover:border-slate-200 transition-all flex items-center justify-between group"
               >
                 {/* Left: Language Dot + Name */}
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
                   <span
-                    className="w-2 h-2 rounded-full shrink-0 shadow-2xs"
+                    className="w-1.5 h-1.5 rounded-full shrink-0 shadow-2xs"
                     style={{ backgroundColor: langColor }}
                   />
-                  <span className="text-[11.5px] sm:text-[12.5px] font-bold text-slate-800 group-hover:text-slate-950 transition-colors truncate">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-700 group-hover:text-slate-900 transition-colors truncate">
                     {item.language}
                   </span>
                 </div>
@@ -236,13 +227,13 @@ export const GithubEkycCard: React.FC<GithubEkycCardProps> = ({
                 {/* Right: Formatted Byte Count in Language Signature Color */}
                 <div className="flex items-center gap-1 shrink-0 whitespace-nowrap">
                   <span
-                    className="text-[11px] sm:text-[12px] font-black font-mono whitespace-nowrap"
+                    className="text-[9.5px] sm:text-[10px] font-black font-mono whitespace-nowrap"
                     style={{ color: langColor }}
                   >
                     {item.bytes.toLocaleString()} Bytes
                   </span>
                   {item.percentage > 0 && (
-                    <span className="text-[9px] font-mono text-slate-400 font-medium whitespace-nowrap">
+                    <span className="text-[8px] sm:text-[8.5px] font-mono text-slate-400 font-medium whitespace-nowrap">
                       ({item.percentage}%)
                     </span>
                   )}
