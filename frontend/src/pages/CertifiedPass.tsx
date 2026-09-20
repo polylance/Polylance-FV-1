@@ -449,7 +449,7 @@ export const CertifiedPass: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(window.location.origin + '/#/attestation/' + verificationResult.certId)}
+                    onClick={() => copyToClipboard(`https://polylance.codes/#/attestation/${verificationResult.certId}`)}
                     className={`px-3 py-1.5 ${NEO.button} text-xs flex items-center gap-1.5`}
                   >
                     {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
@@ -463,6 +463,20 @@ export const CertifiedPass: React.FC = () => {
                     <ExternalLink size={13} />
                   </Link>
                 </div>
+              </div>
+
+              {/* Canonical Certificate URL Display */}
+              <div className="p-3 bg-white/60 rounded-xl space-y-1">
+                <span className="text-[10px] text-slate-400 font-bold block">OFFICIAL CERTIFICATE VERIFICATION URL</span>
+                <a
+                  href={`https://polylance.codes/#/attestation/${verificationResult.certId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1.5 break-all text-[11px]"
+                >
+                  <span>{`https://polylance.codes/#/attestation/${verificationResult.certId}`}</span>
+                  <ExternalLink size={12} className="shrink-0" />
+                </a>
               </div>
 
               {/* Data Field Grid */}
@@ -632,7 +646,7 @@ export const CertifiedPass: React.FC = () => {
                 </li>
                 <li className="flex items-start gap-2.5">
                   <CheckCircle2 size={16} className="text-purple-600 shrink-0 mt-0.5" />
-                  <span><strong>Direct Proof Links:</strong> Share your unique attestation URL (<code className="bg-slate-200 px-1 rounded font-mono">/#/attestation/PL-SBT-JOB-...</code>) with prospective clients for instant verification.</span>
+                  <span><strong>Direct Proof Links:</strong> Share your unique attestation URL (<code className="bg-slate-200 px-1 rounded font-mono">https://polylance.codes/#/attestation/PL-SBT-JOB-...</code>) with prospective clients for instant verification.</span>
                 </li>
               </ul>
               <div className="pt-2">
@@ -707,11 +721,15 @@ export const CertifiedPass: React.FC = () => {
           <div className="p-4 bg-slate-900 text-slate-200 rounded-2xl font-mono text-xs overflow-x-auto space-y-2 border border-slate-800 shadow-inner">
             <div className="text-slate-500"># Verify any PolyLance certificate via curl</div>
             <div className="text-purple-400">
-              curl -X GET "https://polylance-fv-1.onrender.com/api/certified-pass/verify/PL-SBT-JOB-101"
+              curl -X GET "https://polylance.codes/api/certified-pass/verify/PL-SBT-JOB-101"
             </div>
             <div className="text-slate-500 pt-2"># Response (200 OK):</div>
             <div className="text-emerald-400">
               {`{ "status": "VERIFIED", "certId": "PL-SBT-JOB-101", "chainId": 137, "sbtTokenId": "SBT-101", "valid": true }`}
+            </div>
+            <div className="text-slate-500 pt-2"># Canonical Certificate Web Link:</div>
+            <div className="text-cyan-400">
+              https://polylance.codes/#/attestation/PL-SBT-JOB-101
             </div>
           </div>
         </motion.section>
