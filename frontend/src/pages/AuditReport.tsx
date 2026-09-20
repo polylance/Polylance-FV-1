@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { toPng, toBlob } from 'html-to-image';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { useWeb3 } from '../context/Web3Context';
-import { 
-  ShieldCheck, Award, FileText, Calendar, User, CheckCircle2, 
-  Printer, ArrowLeft, Building2, Sparkles, Clock, Globe, GitFork, 
+import {
+  ShieldCheck, Award, FileText, Calendar, User, CheckCircle2,
+  Printer, ArrowLeft, Building2, Sparkles, Clock, Globe, GitFork,
   FileCheck, Shield, ChevronRight, Copy, Check, ExternalLink,
   Coins, Briefcase, Zap, Star, Lock, QrCode, ArrowUpRight,
   Share2, CheckCheck, HeartHandshake, Download
@@ -19,6 +19,9 @@ import { getUserBytecodeMatrix } from '../utils/githubOracle';
 
 export const AuditReport: React.FC = () => {
   const { address: targetAddressParam } = useParams<{ address: string }>();
+  const [searchParams] = useSearchParams();
+  const queryPerspective = (searchParams.get('perspective') || searchParams.get('role')) as 'client' | 'freelancer' | 'judge' | 'admin' | null;
+
   const { jobs, profiles, daoProposals, treasury, treasuryBalanceUsdc, treasuryHistory, judges } = usePolyLanceData();
   const { address: activeAddress, currentRole, isArbitrator, isTreasuryAdmin } = useWeb3();
   const [activeTab, setActiveTab] = useState<'social' | 'certificate'>('social');
@@ -28,6 +31,8 @@ export const AuditReport: React.FC = () => {
   const [shareToast, setShareToast] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  const isVisitorUser = !activeAddress || currentRole === 'visitor';
 
   // Fallback to active connected wallet if no address param in route
   const targetAddress = (targetAddressParam || activeAddress || '0x71c8366420a092c55660830e8115e9a44390001').toLowerCase();
@@ -42,31 +47,44 @@ export const AuditReport: React.FC = () => {
   const completedFreelancerJobs = freelancerJobs.filter(j => j.status === 'Completed');
   const completedClientJobs = clientJobs.filter(j => j.status === 'Completed');
 
-  // Determine role permissions strictly:
-  // - Freelancers: ONLY freelancer audit report
-  // - Clients: ONLY client audit report
-  // - Judges: client, freelancer, judge reports
-  // - Admins: client, freelancer, judge, and admin reports
+  // Detect target participant's inherent roles
+  const isTargetAdmin = Boolean(targetAddress && isAdminAddress(targetAddress));
+  const isTargetJudge = Boolean(
+    (targetAddress && isJudgeAddress(targetAddress)) ||
+    (judges && judges.some(j => (j.address || '').toLowerCase() === targetAddress))
+  );
+  const isTargetClient = Boolean(
+    profile?.role === 'client' ||
+    (clientJobs.length > 0 && freelancerJobs.length === 0)
+  );
+
+  const targetDefaultRole: 'client' | 'freelancer' | 'judge' | 'admin' = useMemo(() => {
+    if (queryPerspective && ['client', 'freelancer', 'judge', 'admin'].includes(queryPerspective)) {
+      return queryPerspective;
+    }
+    if (isTargetAdmin) return 'admin';
+    if (isTargetJudge) return 'judge';
+    if (isTargetClient) return 'client';
+    return 'freelancer';
+  }, [queryPerspective, isTargetAdmin, isTargetJudge, isTargetClient]);
+
   const isUserAdmin = Boolean(
-    currentRole === 'admin' || 
-    isTreasuryAdmin || 
-    (activeAddress && isAdminAddress(activeAddress)) ||
-    (targetAddress && isAdminAddress(targetAddress))
+    currentRole === 'admin' ||
+    isTreasuryAdmin ||
+    (activeAddress && isAdminAddress(activeAddress))
   );
 
   const isUserJudge = Boolean(
-    currentRole === 'judge' || 
-    isArbitrator || 
+    currentRole === 'judge' ||
+    isArbitrator ||
     (activeAddress && isJudgeAddress(activeAddress)) ||
-    (targetAddress && isJudgeAddress(targetAddress)) ||
-    (judges && judges.some(j => (j.address || '').toLowerCase() === activeAddress?.toLowerCase() || (j.address || '').toLowerCase() === targetAddress))
+    (judges && judges.some(j => (j.address || '').toLowerCase() === activeAddress?.toLowerCase()))
   );
 
   const isUserClient = Boolean(
     !isUserAdmin && !isUserJudge && (
-      currentRole === 'client' || 
-      profile?.role === 'client' || 
-      (clientJobs.length > 0 && freelancerJobs.length === 0)
+      currentRole === 'client' ||
+      (activeAddress && profiles[activeAddress]?.role === 'client')
     )
   );
 
@@ -77,20 +95,24 @@ export const AuditReport: React.FC = () => {
     if (isUserJudge) {
       return ['client', 'freelancer', 'judge'];
     }
+    if (isVisitorUser) {
+      return [targetDefaultRole];
+    }
     if (isUserClient) {
       return ['client'];
     }
-    return ['freelancer'];
-  }, [isUserAdmin, isUserJudge, isUserClient]);
+    return [targetDefaultRole, 'freelancer'];
+  }, [isUserAdmin, isUserJudge, isVisitorUser, isUserClient, targetDefaultRole]);
 
   const [perspectiveOverride, setPerspectiveOverride] = useState<'client' | 'freelancer' | 'judge' | 'admin' | null>(null);
 
   const defaultPerspective: 'client' | 'freelancer' | 'judge' | 'admin' = useMemo(() => {
-    if (isUserAdmin) return 'admin';
-    if (isUserJudge) return 'judge';
+    if (isVisitorUser) return targetDefaultRole;
+    if (isUserAdmin) return isTargetAdmin ? 'admin' : targetDefaultRole;
+    if (isUserJudge) return isTargetJudge ? 'judge' : targetDefaultRole;
     if (isUserClient) return 'client';
-    return 'freelancer';
-  }, [isUserAdmin, isUserJudge, isUserClient]);
+    return targetDefaultRole;
+  }, [isVisitorUser, isUserAdmin, isUserJudge, isUserClient, isTargetAdmin, isTargetJudge, targetDefaultRole]);
 
   const auditPerspective: 'client' | 'freelancer' | 'judge' | 'admin' = useMemo(() => {
     if (perspectiveOverride && allowedPerspectives.includes(perspectiveOverride)) {
@@ -110,16 +132,16 @@ export const AuditReport: React.FC = () => {
 
   const bytecodeMatrix = getUserBytecodeMatrix(profile, completedFreelancerJobs.length, devVolumeHandled);
   const devReputationScore = bytecodeMatrix.primaryScore;
-  
+
   const devSuccessRate = completedFreelancerJobs.length > 0
     ? Math.round((completedFreelancerJobs.filter(j => !j.dispute || (j.dispute.resolved && (j.dispute.rulingBps ?? 0) >= 5000)).length / completedFreelancerJobs.length) * 100)
     : 100;
 
   // Compute client statistics
-  const clientReliabilityScore = clientJobs.length > 0 
+  const clientReliabilityScore = clientJobs.length > 0
     ? (10 - (clientJobs.filter(j => j.status === 'Disputed' || (j.dispute && j.dispute.resolved)).length / clientJobs.length) * 5).toFixed(1)
     : '10.0';
-  
+
   const clientVolumeDistributed = completedClientJobs.reduce((sum, j) => {
     const paidFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
     return sum + (parseFloat(j.amountUsdc || '0') * paidFraction);
@@ -348,13 +370,14 @@ export const AuditReport: React.FC = () => {
 
   const title = perspectiveData.userTitle;
   const bio = profile?.bio || 'Verified decentralized participant operating with autonomous smart contracts, cryptographic escrow milestones, and 0% protocol fee peer-to-peer settlements on PolyLance.';
-  
-  const mockCertificateId = `PL-AUD-${targetAddress.slice(2, 10).toUpperCase()}`;
-  const mockAuditHash = generateDeterministicHash(`polylance-oracle-audit-signature:${auditPerspective}:${targetAddress}`);
-  const sbtTokenId = `#SBT-PL-${targetAddress.slice(2, 8).toUpperCase()}-${targetAddress.slice(-4).toUpperCase()}`;
-  const certifiedPassVerifyUrl = getCertifiedPassVerifyUrl(mockCertificateId);
-  
-  const mockIpfsHash = generateIpfsCid({
+
+  const cleanTargetAddress = (targetAddress || '').toLowerCase().replace(/^0x/i, '');
+  const canonicalCertificateId = `PL-AUD-${cleanTargetAddress.slice(0, 8).toUpperCase()}`;
+  const auditReportHash = generateDeterministicHash(`polylance-oracle-audit-signature:${auditPerspective}:${targetAddress}`);
+  const sbtTokenId = `#SBT-PL-${cleanTargetAddress.slice(0, 6).toUpperCase()}-${cleanTargetAddress.slice(-4).toUpperCase()}`;
+  const certifiedPassVerifyUrl = getCertifiedPassVerifyUrl(canonicalCertificateId);
+
+  const auditIpfsCid = generateIpfsCid({
     type: 'AUDIT_CERTIFICATE_V2',
     perspective: auditPerspective,
     auditedParticipant: targetAddress,
@@ -368,9 +391,11 @@ export const AuditReport: React.FC = () => {
     timestamp: Date.now()
   });
 
-  const shareUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}${window.location.pathname}#/audit/${targetAddress}`
-    : `https://polylance.codes/#/audit/${targetAddress}`;
+  const shareOrigin = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? window.location.origin
+    : 'https://polylance.codes';
+
+  const shareUrl = `${shareOrigin}/?audit=${targetAddress}&role=${auditPerspective}#/audit/${targetAddress}?role=${auditPerspective}`;
 
   const handlePrint = () => {
     window.print();
@@ -383,9 +408,9 @@ export const AuditReport: React.FC = () => {
   };
 
   const handleCopyCertId = () => {
-    navigator.clipboard.writeText(mockCertificateId.trim());
+    navigator.clipboard.writeText(canonicalCertificateId.trim());
     setCopiedCertId(true);
-    setShareToast(`📋 Canonical Audit Certificate ID copied: ${mockCertificateId}`);
+    setShareToast(`📋 Canonical Audit Certificate ID copied: ${canonicalCertificateId}`);
     setTimeout(() => setCopiedCertId(false), 2500);
     setTimeout(() => setShareToast(null), 4000);
   };
@@ -437,39 +462,39 @@ export const AuditReport: React.FC = () => {
 
     const text = auditPerspective === 'client'
       ? encodeURIComponent(
-          `🏛️ Verified Web3 Escrow Patron & Project Sponsor Audit on @PolyLanceProtocol!\n\n` +
-          `⭐ Patron Score: ${clientReliabilityScore} / 10.0\n` +
-          `💰 Capital Funded: $${clientVolumeDistributed.toLocaleString()} USDC (100% Settled)\n` +
-          `🤝 Dispute Ratio: 0.0% Clean Record\n` +
-          `📜 Verified Audit ID: ${mockCertificateId}\n\n` +
-          `Verify sovereign trust score:`
-        )
+        `🏛️ Verified Web3 Escrow Patron & Project Sponsor Audit on @PolyLanceProtocol!\n\n` +
+        `⭐ Patron Score: ${clientReliabilityScore} / 10.0\n` +
+        `💰 Capital Funded: $${clientVolumeDistributed.toLocaleString()} USDC (100% Settled)\n` +
+        `🤝 Dispute Ratio: 0.0% Clean Record\n` +
+        `📜 Verified Audit ID: ${canonicalCertificateId}\n\n` +
+        `Verify sovereign trust score:`
+      )
       : auditPerspective === 'judge'
-      ? encodeURIComponent(
+        ? encodeURIComponent(
           `⚖️ Official Tribunal Arbitrator Audit on @PolyLanceProtocol!\n\n` +
           `🛡️ Impartiality Index: ${perspectiveData.scoreVal}\n` +
           `⚖️ Cases Arbitrated: ${perspectiveData.stat1Val}\n` +
           `🤝 Consensus Alignment: ${perspectiveData.stat2Val}\n` +
-          `📜 Audit ID: ${mockCertificateId}\n\n` +
+          `📜 Audit ID: ${canonicalCertificateId}\n\n` +
           `Verify judicial impartiality:`
         )
-      : auditPerspective === 'admin'
-      ? encodeURIComponent(
-          `🔐 Protocol Governance & Security Architecture Audit on @PolyLanceProtocol!\n\n` +
-          `🛡️ Security Status: ${perspectiveData.scoreVal}\n` +
-          `💰 TVL Protected: ${perspectiveData.stat1Val}\n` +
-          `📜 Verified Contracts: ${perspectiveData.stat3Val}\n` +
-          `📜 Audit ID: ${mockCertificateId}\n\n` +
-          `Verify protocol architecture:`
-        )
-      : encodeURIComponent(
-          `🛡️ Sovereign Web3 Developer Audit on @PolyLanceProtocol!\n\n` +
-          `⚡ PLREP Score: ${devReputationScore}\n` +
-          `🛠️ Proof of Work Volume: $${devVolumeHandled.toLocaleString()} USDC\n` +
-          `🎯 SLA Success Rate: ${devSuccessRate}%\n` +
-          `📜 SBT ID: ${sbtTokenId}\n\n` +
-          `Verify cryptographic audit:`
-        );
+        : auditPerspective === 'admin'
+          ? encodeURIComponent(
+            `🔐 Protocol Governance & Security Architecture Audit on @PolyLanceProtocol!\n\n` +
+            `🛡️ Security Status: ${perspectiveData.scoreVal}\n` +
+            `💰 TVL Protected: ${perspectiveData.stat1Val}\n` +
+            `📜 Verified Contracts: ${perspectiveData.stat3Val}\n` +
+            `📜 Audit ID: ${canonicalCertificateId}\n\n` +
+            `Verify protocol architecture:`
+          )
+          : encodeURIComponent(
+            `🛡️ Sovereign Web3 Developer Audit on @PolyLanceProtocol!\n\n` +
+            `⚡ PLREP Score: ${devReputationScore}\n` +
+            `🛠️ Proof of Work Volume: $${devVolumeHandled.toLocaleString()} USDC\n` +
+            `🎯 SLA Success Rate: ${devSuccessRate}%\n` +
+            `📜 SBT ID: ${sbtTokenId}\n\n` +
+            `Verify cryptographic audit:`
+          );
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(shareUrl)}`, '_blank');
   };
 
@@ -495,7 +520,7 @@ export const AuditReport: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100/80 py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-purple-600 selection:text-white">
-      
+
       {/* CSS print overrides */}
       <style>{`
         @page {
@@ -545,28 +570,49 @@ export const AuditReport: React.FC = () => {
         }
       `}</style>
 
-      {/* ── Top Navigation (Back Button Outside Card) ─────────────────────────── */}
+      {/* ── Top Navigation (Role-Aware Back Button Outside Card) ──────────────── */}
       <div className="max-w-4xl mx-auto mb-3 flex items-center justify-between no-print">
-        <Link 
-          to="/dashboard"
+        <Link
+          to={isVisitorUser ? "/" : "/dashboard"}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
         >
-          <ArrowLeft size={14} /> <span>Back to Dashboard</span>
+          <ArrowLeft size={14} /> <span>{isVisitorUser ? 'Back to PolyLance' : 'Back to Dashboard'}</span>
         </Link>
+        {isVisitorUser && (
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700 hover:text-purple-950 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
+          >
+            <span>Explore PolyLance</span>
+            <ExternalLink size={12} />
+          </Link>
+        )}
       </div>
 
       {/* ── Unified Modern Header & Action Bar (Hidden in Print) ──────────────── */}
       <div className="max-w-4xl mx-auto mb-6 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3.5 no-print">
         {/* Tier 1: Role Report Selector / Indicator + View Mode Switcher */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          {/* If only 1 allowed perspective (Freelancer or Client), show a sleek role indicator */}
-          {allowedPerspectives.length === 1 ? (
+          {/* If only 1 allowed perspective (Freelancer or Client) or visitor, show a sleek verified role indicator */}
+          {(allowedPerspectives.length === 1 || isVisitorUser) ? (
             <div className="flex items-center gap-2">
-              {allowedPerspectives[0] === 'client' ? (
+              {auditPerspective === 'client' ? (
                 <div className="flex items-center gap-2 px-3.5 py-1.5 bg-indigo-50 border border-indigo-200/90 rounded-xl text-indigo-950 text-xs font-bold shrink-0 shadow-3xs">
                   <Building2 size={15} className="text-indigo-600" />
                   <span>Client Audit Report</span>
                   <span className="text-[10px] font-mono text-indigo-700 font-semibold bg-indigo-100/80 px-2 py-0.5 rounded-full border border-indigo-200/60">Verified Client</span>
+                </div>
+              ) : auditPerspective === 'judge' ? (
+                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-amber-50 border border-amber-200/90 rounded-xl text-amber-950 text-xs font-bold shrink-0 shadow-3xs">
+                  <ShieldCheck size={15} className="text-amber-600" />
+                  <span>Judge DAO Audit Report</span>
+                  <span className="text-[10px] font-mono text-amber-700 font-semibold bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200/60">Tribunal Arbitrator</span>
+                </div>
+              ) : auditPerspective === 'admin' ? (
+                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-cyan-50 border border-cyan-200/90 rounded-xl text-cyan-950 text-xs font-bold shrink-0 shadow-3xs">
+                  <Shield size={15} className="text-cyan-600" />
+                  <span>Security & Architecture Audit</span>
+                  <span className="text-[10px] font-mono text-cyan-700 font-semibold bg-cyan-100/80 px-2 py-0.5 rounded-full border border-cyan-200/60">Protocol Guardian</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 px-3.5 py-1.5 bg-purple-50 border border-purple-200/90 rounded-xl text-purple-950 text-xs font-bold shrink-0 shadow-3xs">
@@ -583,11 +629,10 @@ export const AuditReport: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setPerspectiveOverride('client')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    auditPerspective === 'client'
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${auditPerspective === 'client'
                       ? 'bg-white text-indigo-950 shadow-xs font-extrabold border border-indigo-200'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Building2 size={13} className={auditPerspective === 'client' ? 'text-indigo-600' : 'text-slate-500'} />
                   <span>Client Report</span>
@@ -597,11 +642,10 @@ export const AuditReport: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setPerspectiveOverride('freelancer')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    auditPerspective === 'freelancer'
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${auditPerspective === 'freelancer'
                       ? 'bg-white text-purple-950 shadow-xs font-extrabold border border-purple-200'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Award size={13} className={auditPerspective === 'freelancer' ? 'text-purple-600' : 'text-slate-500'} />
                   <span>Freelancer Report</span>
@@ -611,11 +655,10 @@ export const AuditReport: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setPerspectiveOverride('judge')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    auditPerspective === 'judge'
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${auditPerspective === 'judge'
                       ? 'bg-white text-amber-950 shadow-xs font-extrabold border border-amber-200'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Shield size={13} className={auditPerspective === 'judge' ? 'text-amber-600' : 'text-slate-500'} />
                   <span>Judge Report</span>
@@ -625,11 +668,10 @@ export const AuditReport: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setPerspectiveOverride('admin')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    auditPerspective === 'admin'
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${auditPerspective === 'admin'
                       ? 'bg-white text-cyan-950 shadow-xs font-extrabold border border-cyan-300'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Lock size={13} className={auditPerspective === 'admin' ? 'text-cyan-600' : 'text-slate-500'} />
                   <span className="whitespace-nowrap font-bold">Admin Report</span>
@@ -643,11 +685,10 @@ export const AuditReport: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('social')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeTab === 'social'
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${activeTab === 'social'
                   ? 'bg-white text-slate-950 shadow-xs font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
-              }`}
+                }`}
             >
               <Share2 size={13} />
               <span>Social Card</span>
@@ -655,11 +696,10 @@ export const AuditReport: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('certificate')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeTab === 'certificate'
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${activeTab === 'certificate'
                   ? 'bg-white text-slate-950 shadow-xs font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
-              }`}
+                }`}
             >
               <FileText size={13} />
               <span>Printable PDF</span>
@@ -673,7 +713,7 @@ export const AuditReport: React.FC = () => {
           <div className="flex items-center justify-between sm:justify-start gap-2 flex-wrap w-full sm:w-auto">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-mono shadow-3xs">
               <span className="text-[9.5px] uppercase font-bold text-slate-400 tracking-wider">Audit ID</span>
-              <span className="font-extrabold text-slate-900 tracking-wide text-xs">{mockCertificateId}</span>
+              <span className="font-extrabold text-slate-900 tracking-wide text-xs">{canonicalCertificateId}</span>
               <button
                 type="button"
                 onClick={handleCopyCertId}
@@ -751,9 +791,9 @@ export const AuditReport: React.FC = () => {
               <Sparkles size={14} className="text-purple-600 shrink-0" />
               <span className="font-semibold">{shareToast}</span>
             </div>
-            <button 
-              type="button" 
-              onClick={() => setShareToast(null)} 
+            <button
+              type="button"
+              onClick={() => setShareToast(null)}
               className="font-bold text-purple-700 hover:text-purple-900 underline text-[11px] cursor-pointer"
             >
               Dismiss
@@ -765,32 +805,30 @@ export const AuditReport: React.FC = () => {
       {/* ── TAB 1: SOCIAL MEDIA CARD VIEW (LIGHT THEME - 1200x630 DESIGN) ─────────── */}
       {activeTab === 'social' && (
         <div className="max-w-4xl mx-auto space-y-4 no-print animate-fadeIn">
-          
-          <div 
+
+          <div
             ref={cardRef}
-            className={`rounded-2xl sm:rounded-3xl p-4 sm:p-10 border-2 shadow-xl relative overflow-hidden font-sans text-slate-900 transition-all ${
-              auditPerspective === 'client'
+            className={`rounded-2xl sm:rounded-3xl p-4 sm:p-10 border-2 shadow-xl relative overflow-hidden font-sans text-slate-900 transition-all ${auditPerspective === 'client'
                 ? 'bg-gradient-to-br from-white via-slate-50 to-indigo-50/60 border-indigo-200/90'
                 : auditPerspective === 'judge'
-                ? 'bg-gradient-to-br from-white via-slate-50 to-amber-50/60 border-amber-200/90'
-                : auditPerspective === 'admin'
-                ? 'bg-gradient-to-br from-white via-slate-50 to-cyan-50/60 border-cyan-200/90'
-                : 'bg-gradient-to-br from-white via-slate-50 to-purple-50/60 border-purple-200/90'
-            }`}
+                  ? 'bg-gradient-to-br from-white via-slate-50 to-amber-50/60 border-amber-200/90'
+                  : auditPerspective === 'admin'
+                    ? 'bg-gradient-to-br from-white via-slate-50 to-cyan-50/60 border-cyan-200/90'
+                    : 'bg-gradient-to-br from-white via-slate-50 to-purple-50/60 border-purple-200/90'
+              }`}
           >
-            
+
             {/* Ambient Background Glow Mesh (Light) */}
-            <div className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 ${
-              auditPerspective === 'client' ? 'bg-indigo-200/30' :
-              auditPerspective === 'judge' ? 'bg-amber-200/30' :
-              auditPerspective === 'admin' ? 'bg-cyan-200/30' :
-              'bg-purple-200/30'
-            }`} />
+            <div className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 ${auditPerspective === 'client' ? 'bg-indigo-200/30' :
+                auditPerspective === 'judge' ? 'bg-amber-200/30' :
+                  auditPerspective === 'admin' ? 'bg-cyan-200/30' :
+                    'bg-purple-200/30'
+              }`} />
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-100/40 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
             <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-20" />
 
             <div className="relative z-10 space-y-4 sm:space-y-6">
-              
+
               {/* Header: Fixed Mobile Alignment to prevent collision */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3.5 sm:pb-4">
                 <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -802,12 +840,11 @@ export const AuditReport: React.FC = () => {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                      <span className={`text-[9px] sm:text-[10px] font-mono font-black tracking-wider uppercase px-2 py-0.5 rounded-full border shrink-0 ${
-                        auditPerspective === 'client' ? 'text-indigo-800 bg-indigo-100 border-indigo-200' :
-                        auditPerspective === 'judge' ? 'text-amber-800 bg-amber-100 border-amber-200' :
-                        auditPerspective === 'admin' ? 'text-cyan-900 bg-cyan-100 border-cyan-300' :
-                        'text-purple-800 bg-purple-100 border-purple-200'
-                      }`}>
+                      <span className={`text-[9px] sm:text-[10px] font-mono font-black tracking-wider uppercase px-2 py-0.5 rounded-full border shrink-0 ${auditPerspective === 'client' ? 'text-indigo-800 bg-indigo-100 border-indigo-200' :
+                          auditPerspective === 'judge' ? 'text-amber-800 bg-amber-100 border-amber-200' :
+                            auditPerspective === 'admin' ? 'text-cyan-900 bg-cyan-100 border-cyan-300' :
+                              'text-purple-800 bg-purple-100 border-purple-200'
+                        }`}>
                         {perspectiveData.roleType}
                       </span>
                       <span className="text-[9px] sm:text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
@@ -828,7 +865,7 @@ export const AuditReport: React.FC = () => {
                     title="Click to copy canonical Audit Certificate ID"
                     className="inline-flex items-center gap-1.5 font-black text-slate-900 text-xs sm:text-sm hover:text-purple-700 bg-white/80 hover:bg-purple-50 px-2 py-0.5 rounded-lg border border-slate-200 hover:border-purple-300 transition-colors cursor-pointer"
                   >
-                    <span>{mockCertificateId}</span>
+                    <span>{canonicalCertificateId}</span>
                     {copiedCertId ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} className="text-slate-400 hover:text-purple-600" />}
                   </button>
                 </div>
@@ -838,13 +875,13 @@ export const AuditReport: React.FC = () => {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
                 <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
                   <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr ${perspectiveData.sealColor} text-white font-headline font-black text-xl sm:text-2xl flex items-center justify-center shadow-md shrink-0 overflow-hidden`}>
-                    <img 
-                      src={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`)} 
-                      alt={displayName} 
+                    <img
+                      src={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`)}
+                      alt={displayName}
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`;
                       }}
-                      className="w-full h-full object-cover rounded-2xl" 
+                      className="w-full h-full object-cover rounded-2xl"
                     />
                   </div>
                   <div className="min-w-0">
@@ -943,7 +980,7 @@ export const AuditReport: React.FC = () => {
       )}
 
       {/* ── TAB 2 / PRINT: FORMAL AUDIT CERTIFICATE SHEET ────────────────────────── */}
-      <div 
+      <div
         className={`audit-sheet shadow-2xl rounded-3xl border-4 border-slate-200/80 bg-white p-5 sm:p-7 max-w-4xl mx-auto space-y-3.5 relative overflow-hidden gpu-layer text-slate-900 ${activeTab === 'social' ? 'hidden print:block' : 'block'}`}
         style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
       >
@@ -969,12 +1006,11 @@ export const AuditReport: React.FC = () => {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className={`text-[9px] font-mono font-black tracking-widest uppercase px-2 py-0.5 rounded border ${
-                  auditPerspective === 'client' ? 'text-indigo-900 bg-indigo-50 border-indigo-200' :
-                  auditPerspective === 'judge' ? 'text-amber-900 bg-amber-50 border-amber-200' :
-                  auditPerspective === 'admin' ? 'text-cyan-900 bg-cyan-50 border-cyan-300' :
-                  'text-purple-900 bg-purple-50 border-purple-200'
-                }`}>
+                <span className={`text-[9px] font-mono font-black tracking-widest uppercase px-2 py-0.5 rounded border ${auditPerspective === 'client' ? 'text-indigo-900 bg-indigo-50 border-indigo-200' :
+                    auditPerspective === 'judge' ? 'text-amber-900 bg-amber-50 border-amber-200' :
+                      auditPerspective === 'admin' ? 'text-cyan-900 bg-cyan-50 border-cyan-300' :
+                        'text-purple-900 bg-purple-50 border-purple-200'
+                  }`}>
                   {perspectiveData.officialHeader}
                 </span>
                 <span className="text-[9px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
@@ -999,7 +1035,7 @@ export const AuditReport: React.FC = () => {
                 title="Click to copy canonical Audit ID"
                 className="inline-flex items-center gap-1 font-black text-purple-900 text-xs hover:text-purple-700 bg-white md:bg-transparent px-1.5 py-0.5 rounded border md:border-none border-slate-200 cursor-pointer"
               >
-                <span>{mockCertificateId}</span>
+                <span>{canonicalCertificateId}</span>
                 {copiedCertId ? <CheckCheck size={11} className="text-emerald-600 shrink-0" /> : <Copy size={10} className="text-slate-400 shrink-0" />}
               </button>
             </div>
@@ -1019,13 +1055,13 @@ export const AuditReport: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${perspectiveData.sealColor} text-white font-headline font-black text-lg flex items-center justify-center shadow-md shrink-0 overflow-hidden`}>
-                <img 
-                  src={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`)} 
-                  alt={displayName} 
+                <img
+                  src={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`)}
+                  alt={displayName}
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`;
                   }}
-                  className="w-full h-full object-cover rounded-2xl" 
+                  className="w-full h-full object-cover rounded-2xl"
                 />
               </div>
               <div className="space-y-0.5 min-w-0">
@@ -1111,10 +1147,10 @@ export const AuditReport: React.FC = () => {
                 {auditPerspective === 'client' && 'Diamond Escrow Patron'}
                 {auditPerspective === 'freelancer' && (
                   devReputationScore >= 900 ? 'Platinum Elite (Top 1%)' :
-                  devReputationScore >= 750 ? 'Gold Sovereign (Top 5%)' :
-                  devReputationScore >= 500 ? 'Silver Contributor' :
-                  devReputationScore > 0 ? 'Bronze Verified' :
-                  'Unranked / Starter'
+                    devReputationScore >= 750 ? 'Gold Sovereign (Top 5%)' :
+                      devReputationScore >= 500 ? 'Silver Contributor' :
+                        devReputationScore > 0 ? 'Bronze Verified' :
+                          'Unranked / Starter'
                 )}
                 {auditPerspective === 'judge' && 'Elected Chief Arbitrator'}
                 {auditPerspective === 'admin' && 'Root MultiSig Administrator'}
@@ -1306,24 +1342,23 @@ export const AuditReport: React.FC = () => {
                 const isDisputed = j.status === 'Disputed' || (j.dispute && !j.dispute.resolved);
                 const isCompleted = j.status === 'Completed';
                 const isFunded = j.status === 'Funded';
-                
+
                 return (
-                  <div 
+                  <div
                     key={j.id || idx}
                     className="job-card-item p-3 rounded-2xl border border-slate-200/90 bg-white hover:border-purple-300 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-sans shadow-2xs hover:shadow-xs"
                   >
                     <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-headline font-bold text-slate-900 truncate max-w-sm text-xs sm:text-sm">{j.title}</span>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9.5px] font-mono font-bold border ${
-                          isCompleted
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9.5px] font-mono font-bold border ${isCompleted
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : isDisputed
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : isFunded
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : 'bg-purple-50 text-purple-700 border-purple-200'
-                        }`}>
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : isFunded
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : 'bg-purple-50 text-purple-700 border-purple-200'
+                          }`}>
                           {isCompleted ? '● Settled' : isDisputed ? '⚠️ Disputed' : isFunded ? '● Funded & Active' : `● ${j.status || 'Open'}`}
                         </span>
                         {j.category && (
@@ -1367,7 +1402,7 @@ export const AuditReport: React.FC = () => {
 
         {/* ── SECTION 6: CRYPTOGRAPHIC SIGNATURE, OFFICIAL EMBOSSED SEAL & QR CODE ── */}
         <div className="seal-section-block border-t-2 border-slate-200 pt-3.5 grid grid-cols-1 md:grid-cols-12 seal-grid gap-3 font-mono text-xs relative z-10">
-          
+
           {/* Left Column: Cryptographic Proof Integrity */}
           <div className="md:col-span-5 space-y-1 flex flex-col justify-between">
             <div>
@@ -1379,18 +1414,18 @@ export const AuditReport: React.FC = () => {
               </p>
             </div>
             <div className="text-[9px] break-all text-purple-950 bg-purple-50 p-1.5 rounded-xl border border-purple-200 font-mono font-black shadow-2xs">
-              IPFS CID: {mockIpfsHash}
+              IPFS CID: {auditIpfsCid}
             </div>
           </div>
 
           {/* Center Column: Official Protocol Seal Stamp (Embossed Emblem with Logo Watermark) */}
           <div className="md:col-span-3 flex flex-col items-center justify-center text-center p-2 rounded-2xl bg-gradient-to-b from-purple-50/70 to-slate-50 border border-purple-200/90 shadow-xs relative overflow-hidden">
-            
+
             {/* Watermark Logo Behind Seal */}
-            <img 
-              src={polylanceLogoImg} 
-              alt="PolyLance Seal Stamp" 
-              className="absolute inset-0 m-auto w-24 h-24 object-contain opacity-20 pointer-events-none filter grayscale mix-blend-multiply" 
+            <img
+              src={polylanceLogoImg}
+              alt="PolyLance Seal Stamp"
+              className="absolute inset-0 m-auto w-24 h-24 object-contain opacity-20 pointer-events-none filter grayscale mix-blend-multiply"
             />
 
             {/* Official Circular Seal Emblem */}
@@ -1409,7 +1444,7 @@ export const AuditReport: React.FC = () => {
 
           {/* Right Column: CertifiedPass Scan QR Code & Oracle Signature */}
           <div className="md:col-span-4 flex flex-col justify-between items-start md:items-end gap-1.5 text-left md:text-right">
-            
+
             {/* QR Code & CertifiedPass Badge */}
             <a
               href={certifiedPassVerifyUrl}
@@ -1436,7 +1471,7 @@ export const AuditReport: React.FC = () => {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
                 <span className="font-black text-slate-900 text-[9.5px]">Oracle Verified & Sealed</span>
               </div>
-              <p className="font-black text-slate-700 break-all text-[8px] mt-0.5 font-mono">{mockAuditHash}</p>
+              <p className="font-black text-slate-700 break-all text-[8px] mt-0.5 font-mono">{auditReportHash}</p>
             </div>
 
           </div>

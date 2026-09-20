@@ -8,256 +8,282 @@ import { LoginModal } from './LoginModal';
 import { WalletBalanceModal } from './WalletBalanceModal';
 import {
   Briefcase,
-  PlusCircle,
-  LayoutDashboard,
+  LayoutGrid,
   Scale,
-  BarChart3,
+  Search,
+  Share2,
+  MoreHorizontal,
+  Link2,
+  ChevronDown,
   User,
-  Users,
-  LogIn,
+  Power,
   Shield,
   ShieldCheck,
-  ChevronDown,
+  Trophy,
+  Landmark,
   MessageSquare,
+  Settings,
+  PlusCircle,
+  BarChart3,
+  Copy,
+  Check,
+  ExternalLink,
+  LogIn,
+  AlertTriangle,
+  ArrowUpRight,
   Menu,
   X,
-  Landmark,
-  Trophy,
-  Settings,
-  Grid,
-  Power,
-  Wallet,
-  AlertTriangle
+  Lock,
+  Sparkles,
 } from 'lucide-react';
 import { truncateAddress, formatPolBalance } from '../utils/formatters';
 import { dropdownVariants, transition } from '../lib/motion';
 import { Drawer } from './mobile/Drawer';
 import { Accordion } from './mobile/Accordion';
 
-
 // ──────────────────────────────────────────────────────────────────────────────
-// Relatable Section Color Accent Palette
+// Apple iOS 26 Liquid Glass Navigation Theme Token System
 // ──────────────────────────────────────────────────────────────────────────────
-export type NavAccent =
-  | 'indigo'
-  | 'blue'
-  | 'emerald'
-  | 'cyan'
-  | 'sky'
-  | 'amber'
-  | 'orange'
-  | 'purple'
-  | 'rose';
+export interface NavSectionTheme {
+  accentHex: string;
+  textActive: string;
+  iconActive: string;
+  gradientSheen: string;
+  borderTint: string;
+  glowShadow: string;
+}
 
-const ACCENT_MAP: Record<NavAccent, {
-  activeText: string;
-  hover: string;
-  pillBg: string;
-  pillBorder: string;
-  pillShadow: string;
-}> = {
-  indigo: {
-    activeText: 'text-indigo-700 font-bold',
-    hover: 'hover:text-indigo-600 hover:bg-indigo-50/60',
-    pillBg: 'bg-gradient-to-b from-white/95 via-white/80 to-indigo-50/80',
-    pillBorder: 'border-indigo-300/80 ring-1 ring-indigo-400/25',
-    pillShadow: '0 3px 12px rgba(99, 102, 241, 0.15), inset 0 1px 1px #fff, inset 0 -1px 2px rgba(99, 102, 241, 0.08)',
+export const NAV_THEMES: Record<string, NavSectionTheme> = {
+  overview: {
+    accentHex: '#2563EB',
+    textActive: 'text-[#2563EB]',
+    iconActive: 'text-[#2563EB]',
+    gradientSheen: 'linear-gradient(180deg, rgba(239, 246, 255, 0.96) 0%, rgba(219, 234, 254, 0.78) 100%)',
+    borderTint: 'rgba(59, 130, 246, 0.38)',
+    glowShadow: '0 4px 16px -2px rgba(37, 99, 235, 0.28), 0 1px 3px 0 rgba(37, 99, 235, 0.15), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(37, 99, 235, 0.12)',
   },
-  blue: {
-    activeText: 'text-blue-700 font-bold',
-    hover: 'hover:text-blue-600 hover:bg-blue-50/60',
-    pillBg: 'bg-gradient-to-b from-white/95 via-white/80 to-blue-50/80',
-    pillBorder: 'border-blue-300/80 ring-1 ring-blue-400/25',
-    pillShadow: '0 3px 12px rgba(59, 130, 246, 0.15), inset 0 1px 1px #fff, inset 0 -1px 2px rgba(59, 130, 246, 0.08)',
+  dashboard: {
+    accentHex: '#2563EB',
+    textActive: 'text-[#2563EB]',
+    iconActive: 'text-[#2563EB]',
+    gradientSheen: 'linear-gradient(180deg, rgba(239, 246, 255, 0.96) 0%, rgba(219, 234, 254, 0.78) 100%)',
+    borderTint: 'rgba(59, 130, 246, 0.38)',
+    glowShadow: '0 4px 16px -2px rgba(37, 99, 235, 0.28), 0 1px 3px 0 rgba(37, 99, 235, 0.15), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(37, 99, 235, 0.12)',
   },
-  emerald: {
-    activeText: 'text-emerald-800 font-bold',
-    hover: 'hover:text-emerald-700 hover:bg-emerald-50/60',
-    pillBg: 'bg-gradient-to-b from-white/95 via-white/80 to-emerald-50/80',
-    pillBorder: 'border-emerald-300/80 ring-1 ring-emerald-400/25',
-    pillShadow: '0 3px 12px rgba(16, 185, 129, 0.15), inset 0 1px 1px #fff, inset 0 -1px 2px rgba(16, 185, 129, 0.08)',
+  workspace: {
+    accentHex: '#059669',
+    textActive: 'text-[#059669]',
+    iconActive: 'text-[#059669]',
+    gradientSheen: 'linear-gradient(180deg, rgba(236, 253, 245, 0.96) 0%, rgba(209, 250, 229, 0.78) 100%)',
+    borderTint: 'rgba(16, 185, 129, 0.38)',
+    glowShadow: '0 4px 16px -2px rgba(5, 150, 105, 0.28), 0 1px 3px 0 rgba(5, 150, 105, 0.15), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(5, 150, 105, 0.12)',
   },
-  cyan: {
-    activeText: 'text-cyan-800 font-bold',
-    hover: 'hover:text-cyan-700 hover:bg-cyan-50/60',
-    pillBg: 'bg-gradient-to-b from-white/95 via-white/80 to-cyan-50/80',
-    pillBorder: 'border-cyan-300/80 ring-1 ring-cyan-400/25',
-    pillShadow: '0 3px 12px rgba(6, 182, 212, 0.15), inset 0 1px 1px #fff, inset 0 -1px 2px rgba(6, 182, 212, 0.08)',
+  jobs: {
+    accentHex: '#D97706',
+    textActive: 'text-[#D97706]',
+    iconActive: 'text-[#D97706]',
+    gradientSheen: 'linear-gradient(180deg, rgba(254, 243, 199, 0.96) 0%, rgba(253, 230, 138, 0.78) 100%)',
+    borderTint: 'rgba(245, 158, 11, 0.38)',
+    glowShadow: '0 4px 16px -2px rgba(217, 119, 6, 0.28), 0 1px 3px 0 rgba(217, 119, 6, 0.15), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(217, 119, 6, 0.12)',
   },
-  sky: {
-    activeText: 'text-sky-800 font-bold',
-    hover: 'hover:text-sky-700 hover:bg-sky-50/60',
-    pillBg: 'bg-gradient-to-b from-white/95 via-white/80 to-sky-50/80',
-    pillBorder: 'border-sky-300/80 ring-1 ring-sky-400/25',
-    pillShadow: '0 3px 12px rgba(14, 165, 233, 0.15), inset 0 1px 1px #fff, inset 0 -1px 2px rgba(14, 165, 233, 0.08)',
+  judge: {
+    accentHex: '#7C3AED',
+    textActive: 'text-[#7C3AED]',
+    iconActive: 'text-[#7C3AED]',
+    gradientSheen: 'linear-gradient(180deg, rgba(245, 243, 255, 0.96) 0%, rgba(237, 233, 254, 0.78) 100%)',
+    borderTint: 'rgba(139, 92, 246, 0.38)',
+    glowShadow: '0 4px 16px -2px rgba(124, 58, 237, 0.28), 0 1px 3px 0 rgba(124, 58, 237, 0.15), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(124, 58, 237, 0.12)',
   },
-  amber: {
-    activeText: 'text-amber-900 font-bold',
-    hover: 'hover:text-amber-800 hover:bg-amber-50/60',
-    pillBg: 'bg-gradient-to-b from-amber-100/90 via-amber-50/80 to-amber-100/70',
-    pillBorder: 'border-amber-300/80 ring-1 ring-amber-400/25',
-    pillShadow: '0 3px 12px rgba(245, 158, 11, 0.18), inset 0 1px 1px #fff, inset 0 -1px 2px rgba(217, 119, 6, 0.08)',
+  dao: {
+    accentHex: '#0284C7',
+    textActive: 'text-[#0284C7]',
+    iconActive: 'text-[#0284C7]',
+    gradientSheen: 'linear-gradient(180deg, rgba(240, 249, 255, 0.96) 0%, rgba(224, 242, 254, 0.78) 100%)',
+    borderTint: 'rgba(14, 165, 233, 0.38)',
+    glowShadow: '0 4px 16px -2px rgba(2, 132, 199, 0.28), 0 1px 3px 0 rgba(2, 132, 199, 0.15), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(2, 132, 199, 0.12)',
   },
-  orange: {
-    activeText: 'text-orange-800 font-bold',
-    hover: 'hover:text-orange-700 hover:bg-orange-50/60',
-    pillBg: 'bg-gradient-to-b from-orange-100/90 via-orange-50/80 to-orange-100/70',
-    pillBorder: 'border-orange-300/80 ring-1 ring-orange-400/25',
-    pillShadow: '0 3px 12px rgba(249, 115, 22, 0.18), inset 0 1px 1px #fff, inset 0 -1px 2px rgba(249, 115, 22, 0.08)',
-  },
-  purple: {
-    activeText: 'text-purple-700 font-bold',
-    hover: 'hover:text-purple-600 hover:bg-purple-50/60',
-    pillBg: 'bg-gradient-to-b from-white/95 via-white/80 to-purple-50/70',
-    pillBorder: 'border-purple-300/80 ring-1 ring-purple-500/25',
-    pillShadow: '0 3px 12px rgba(147, 51, 234, 0.15), inset 0 1px 1px #fff, inset 0 -1px 2px rgba(147, 51, 234, 0.08)',
-  },
-  rose: {
-    activeText: 'text-rose-700 font-bold',
-    hover: 'hover:text-rose-600 hover:bg-rose-50/60',
-    pillBg: 'bg-gradient-to-b from-white/95 via-white/80 to-rose-50/80',
-    pillBorder: 'border-rose-300/80 ring-1 ring-rose-400/25',
-    pillShadow: '0 3px 12px rgba(244, 63, 94, 0.15), inset 0 1px 1px #fff, inset 0 -1px 2px rgba(244, 63, 94, 0.08)',
+  more: {
+    accentHex: '#E11D48',
+    textActive: 'text-[#E11D48]',
+    iconActive: 'text-[#E11D48]',
+    gradientSheen: 'linear-gradient(180deg, rgba(255, 241, 242, 0.96) 0%, rgba(255, 228, 230, 0.78) 100%)',
+    borderTint: 'rgba(244, 63, 94, 0.38)',
+    glowShadow: '0 4px 16px -2px rgba(225, 29, 72, 0.28), 0 1px 3px 0 rgba(225, 29, 72, 0.15), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(225, 29, 72, 0.12)',
   },
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Nav Link with layoutId sliding pill & section color theme
+// Nav Item: Apple iOS 26 Liquid Glass Segmented Pill with Spring Physics
 // ──────────────────────────────────────────────────────────────────────────────
-interface NavLinkProps {
+interface NavItemProps {
   to: string;
   active: boolean;
-  children: React.ReactNode;
-  accent?: NavAccent;
+  icon: React.ReactNode;
+  label: string;
+  theme: NavSectionTheme;
 }
 
-const NavLink: React.FC<NavLinkProps> = ({ to, active, children, accent = 'purple' }) => {
-  const conf = ACCENT_MAP[accent];
-
+const NavItem: React.FC<NavItemProps> = ({ to, active, icon, label, theme }) => {
   return (
     <Link
       to={to}
       className={`
-        relative px-3 sm:px-3.5 py-1.5 rounded-full text-[13px] sm:text-[13.5px] font-semibold
-        flex items-center gap-1.5 select-none z-10 whitespace-nowrap
-        transition-colors duration-200
-        nav-pill-item
-        ${active ? conf.activeText : `text-slate-600 ${conf.hover}`}
+        relative px-3.5 py-1.5 rounded-full text-[13px] flex items-center gap-1.5 select-none
+        transition-colors duration-200 whitespace-nowrap group
+        ${active ? `${theme.textActive} font-semibold` : 'text-slate-600 hover:text-slate-900 font-medium'}
       `}
     >
-      {/* Apple Liquid Glass Sliding active background with relatable section color */}
+      {/* ── Apple iOS 26 Liquid Glass Sliding Indicator ── */}
       {active && (
-        <motion.span
-          layoutId="activeNavAppleGlass"
-          className={`absolute inset-0 rounded-full border ${conf.pillBg} ${conf.pillBorder}`}
+        <motion.div
+          layoutId="ios26-navbar-glass-pill"
+          className="absolute inset-0 rounded-full z-0 overflow-hidden pointer-events-none"
           style={{
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            boxShadow: conf.pillShadow,
+            background: theme.gradientSheen,
+            border: `1px solid ${theme.borderTint}`,
+            boxShadow: theme.glowShadow,
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
           }}
           transition={{
             type: 'spring',
-            stiffness: 420,
-            damping: 30,
-            mass: 0.8,
+            stiffness: 440,
+            damping: 32,
+            mass: 0.65,
           }}
-        />
+        >
+          {/* iOS Liquid Glass Specular Top Highlight Streak */}
+          <div className="absolute inset-x-2.5 top-0.5 h-[1.5px] rounded-full bg-gradient-to-r from-transparent via-white to-transparent pointer-events-none opacity-90" />
+          {/* Subtle Bottom Reflection */}
+          <div className="absolute inset-x-3 bottom-0.5 h-[1px] rounded-full bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
+          {/* Ambient Glow Gradient Bubble */}
+          <div
+            className="absolute -inset-1 opacity-30 blur-sm pointer-events-none"
+            style={{
+              background: `radial-gradient(circle at 50% 0%, ${theme.accentHex}, transparent 70%)`,
+            }}
+          />
+        </motion.div>
       )}
-      <span className="relative z-10 flex items-center gap-1.5 transition-transform duration-150 active:scale-95">
-        {children}
+
+      {/* Hover Glass Pill for Inactive Tabs */}
+      {!active && (
+        <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 bg-slate-200/50 transition-opacity duration-150 pointer-events-none" />
+      )}
+
+      {/* Content: Icon & Label (Positioned above the glass pill z-10) */}
+      <span
+        className={`relative z-10 transition-transform duration-200 ${
+          active ? `${theme.iconActive} scale-105` : 'text-slate-500 group-hover:text-slate-800'
+        }`}
+      >
+        {icon}
       </span>
+      <span className="relative z-10">{label}</span>
     </Link>
   );
 };
 
+// Dropdown item helper
 interface DropdownLinkProps {
   to: string;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
-  accent?: 'cyan' | 'amber' | 'orange' | 'blue' | 'purple' | 'emerald' | 'slate';
+  accent?: string;
 }
 
-const DropdownLink: React.FC<DropdownLinkProps> = ({ to, icon, label, onClick, accent = 'purple' }) => {
-  const hoverStyles = {
-    cyan: 'hover:bg-cyan-50/90 hover:text-cyan-800 text-slate-700',
-    amber: 'hover:bg-amber-50/90 hover:text-amber-800 text-slate-700',
-    orange: 'hover:bg-orange-50/90 hover:text-orange-800 text-slate-700',
-    blue: 'hover:bg-blue-50/90 hover:text-blue-700 text-slate-700',
-    purple: 'hover:bg-purple-50/90 hover:text-purple-700 text-slate-700',
-    emerald: 'hover:bg-emerald-50/90 hover:text-emerald-800 text-slate-700',
-    slate: 'hover:bg-slate-100 hover:text-slate-900 text-slate-700',
-  }[accent];
-
+const DropdownLink: React.FC<DropdownLinkProps> = ({ to, icon, label, onClick }) => {
   return (
     <Link
       to={to}
       onClick={onClick}
-      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-semibold transition-all duration-150 group ${hoverStyles}`}
+      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors group"
     >
-      <span className="text-slate-400 transition-colors group-hover:text-current">{icon}</span>
-      {label}
+      <span className="text-slate-400 group-hover:text-blue-600 transition-colors">{icon}</span>
+      <span>{label}</span>
     </Link>
   );
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Main Navbar
+// Main Floating Pill Navbar
 // ──────────────────────────────────────────────────────────────────────────────
 export const Navbar: React.FC = () => {
-  const { 
-    isConnected, 
-    address, 
-    currentRole, 
-    disconnectWallet, 
-    balanceNative, 
-    balanceUsdc,
-    balanceUsdt,
+  const {
+    isConnected,
+    address,
+    currentRole,
+    disconnectWallet,
+    balanceNative,
     isWrongNetwork,
     targetChainName,
     targetChainId,
-    switchToTargetNetwork
+    switchToTargetNetwork,
   } = useWeb3();
-  const { jobs } = usePolyLanceData();
+
+  const { jobs, profiles } = usePolyLanceData();
   const location = useLocation();
+
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isAddressMenuOpen, setIsAddressMenuOpen] = useState(false);
+  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
+  const [copied, setCopied] = useState(false);
+  const [avatarImgError, setAvatarImgError] = useState(false);
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
 
   const moreRef = useRef<HTMLDivElement>(null);
+  const addressMenuRef = useRef<HTMLDivElement>(null);
+  const avatarMenuRef = useRef<HTMLDivElement>(null);
+  const lastScrollYRef = useRef(0);
 
-  const userAddr = (address || '').toLowerCase();
-  const hasActiveJobs = jobs.some(
-    (j) =>
-      (j.client.toLowerCase() === userAddr || j.freelancer?.toLowerCase() === userAddr) &&
-      (j.status === 'Selected' || j.status === 'Funded' || j.status === 'Submitted' || j.status === 'Open')
-  );
+  // Find user profile from context
+  const userProfileKey = address
+    ? Object.keys(profiles).find((k) => k.toLowerCase() === address.toLowerCase())
+    : null;
+  const currentProfile = userProfileKey ? profiles[userProfileKey] : null;
+
+  // Resolve avatar URL
+  const rawAvatarUrl =
+    currentProfile?.avatarUrl ||
+    (currentProfile?.githubUsername
+      ? `https://github.com/${currentProfile.githubUsername}.png`
+      : '');
 
   useEffect(() => {
+    setAvatarImgError(false);
+  }, [address, rawAvatarUrl]);
+
+  // Determine user initial for letter avatar (matches the "S" avatar in Image 2)
+  const displayName = currentProfile?.displayName || '';
+  const userInitial = displayName
+    ? displayName.trim()[0].toUpperCase()
+    : (address ? address.slice(2, 3).toUpperCase() : 'S');
+
+  // Click outside listener for all dropdowns
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setIsMoreOpen(false);
+      const target = e.target as Node;
+      if (moreRef.current && !moreRef.current.contains(target)) setIsMoreOpen(false);
+      if (addressMenuRef.current && !addressMenuRef.current.contains(target)) setIsAddressMenuOpen(false);
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(target)) setIsAvatarMenuOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
-  const lastScrollYRef = useRef(0);
-
+  // Directional scroll behavior on mobile
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
-      setScrolled(currentY > 20);
-
-      // Directional scroll for mobile screens only (below lg: 1024px)
       if (window.innerWidth < 1024) {
         if (currentY > 80 && currentY > lastScrollYRef.current + 10) {
-          setIsHeaderHidden(true); // scrolling down -> hide
+          setIsHeaderHidden(true);
         } else if (currentY < lastScrollYRef.current - 10) {
-          setIsHeaderHidden(false); // scrolling up -> reveal
+          setIsHeaderHidden(false);
         }
       } else {
         setIsHeaderHidden(false);
@@ -268,15 +294,37 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change
-  useEffect(() => { setIsMobileOpen(false); setIsMoreOpen(false); }, [location.pathname]);
+  // Close menus on route change
+  useEffect(() => {
+    setIsMobileOpen(false);
+    setIsMoreOpen(false);
+    setIsAddressMenuOpen(false);
+    setIsAvatarMenuOpen(false);
+  }, [location.pathname]);
+
+  const handleCopyAddress = () => {
+    if (address) {
+      navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const isActive = (path: string) =>
     location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
+
+  const isMoreActive =
+    isMoreOpen ||
+    ['/reputation', '/audit', '/attestation', '/chat', '/settings', '/treasury', '/jobs/post'].some(
+      (path) => location.pathname.startsWith(path)
+    );
+
   const isVisitor = !isConnected || currentRole === 'visitor';
+  const isGithubSynced = Boolean(currentProfile?.githubVerified || currentProfile?.githubUsername);
+  const isUnlocked = isConnected && (isGithubSynced || currentRole === 'admin' || currentRole === 'judge');
 
-  const isAuditPage = location.pathname.startsWith('/audit') || location.pathname.includes('attestation');
-
+  // Only standalone audit document page has special simplified header (attestation reports uses standard floating navbar)
+  const isAuditPage = location.pathname.startsWith('/audit') && !location.pathname.includes('attestation');
   if (isAuditPage) {
     return (
       <header
@@ -288,24 +336,54 @@ export const Navbar: React.FC = () => {
         }}
       >
         <div className="max-w-[1480px] mx-auto flex items-center justify-between px-6 sm:px-8">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-xl bg-purple-500/20 blur-md group-hover:bg-purple-500/35 transition-all duration-300" />
-              <PolyLanceLogo size={32} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="font-black text-[20px] tracking-tight text-slate-900 leading-none">
-                Poly<span className="text-purple-600">Lance</span>
-              </span>
-              <span className="text-[7px] font-mono text-purple-700/80 font-bold tracking-[0.16em] uppercase mt-0.5 leading-none select-none">
-                mvp on-chain
-              </span>
-            </div>
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <PolyLanceLogo size={30} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
+            <span className="font-extrabold text-[19px] tracking-tight text-slate-900 leading-none">
+              Poly<span className="text-blue-600">Lance</span>
+            </span>
           </Link>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 text-purple-800 rounded-full border border-purple-200 text-xs font-mono font-bold shadow-2xs">
-            <ShieldCheck size={13} className="text-purple-600" />
-            <span>{location.pathname.includes('attestation') ? 'OFFICIAL JOB SBT ATTESTATION' : 'OFFICIAL AUDIT REPORT'}</span>
+          <div className="flex items-center gap-2.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-800 rounded-full border border-purple-200 text-xs font-mono font-bold shadow-2xs">
+              <ShieldCheck size={13} className="text-purple-600" />
+              <span className="hidden sm:inline">{location.pathname.includes('attestation') ? 'OFFICIAL JOB SBT ATTESTATION' : 'OFFICIAL AUDIT REPORT'}</span>
+              <span className="sm:hidden">{location.pathname.includes('attestation') ? 'SBT ATTESTATION' : 'AUDIT REPORT'}</span>
+            </div>
+
+            {isVisitor ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/"
+                  className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-blue-700 bg-white hover:bg-slate-50 border border-slate-200 transition-all shadow-2xs"
+                >
+                  <span>Explore PolyLance</span>
+                </Link>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-2xs"
+                >
+                  <span>Launch App</span>
+                  <ArrowUpRight size={13} />
+                </Link>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-blue-700 bg-white hover:bg-slate-50 border border-slate-200 transition-all shadow-2xs"
+                >
+                  <LayoutGrid size={13} className="text-blue-600" />
+                  <span>Dashboard</span>
+                </Link>
+                <Link
+                  to="/workspace"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-blue-700 bg-white hover:bg-slate-50 border border-slate-200 transition-all shadow-2xs"
+                >
+                  <Briefcase size={13} className="text-blue-600" />
+                  <span>Workspace</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -314,7 +392,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      {/* ── Wrong Network Alert Banner (MetaMask Network Guard) ────────────────────── */}
+      {/* ── Wrong Network Alert Banner ────────────────────── */}
       {isWrongNetwork && (
         <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-xs font-medium px-4 py-2 flex items-center justify-between shadow-sm no-print relative z-50">
           <div className="flex items-center gap-2 max-w-5xl">
@@ -323,345 +401,543 @@ export const Navbar: React.FC = () => {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
             </span>
             <span>
-              <strong>Wrong Network Detected:</strong> Your wallet is connected to an unsupported chain. Please switch to <strong>{targetChainName}</strong> (Chain ID: {targetChainId}) to interact with PolyLance smart contracts and real payments.
+              <strong>Wrong Network:</strong> Wallet connected to unsupported chain. Please switch to <strong>{targetChainName}</strong> (Chain ID: {targetChainId}).
             </span>
           </div>
           <button
             type="button"
             onClick={switchToTargetNetwork}
-            className="px-3.5 py-1 bg-white text-orange-800 hover:bg-orange-50 font-bold rounded-lg text-xs shadow-xs transition-all cursor-pointer shrink-0 ml-3 flex items-center gap-1.5"
+            className="px-3 py-1 bg-white text-orange-800 hover:bg-orange-50 font-bold rounded-lg text-xs shadow-xs transition-all cursor-pointer shrink-0 ml-3 flex items-center gap-1.5"
           >
             <AlertTriangle size={13} className="text-orange-600" />
-            <span>Switch to {targetChainName}</span>
+            <span>Switch Network</span>
           </button>
         </div>
       )}
 
-      {/* ── Scroll-aware Liquid Glass Header with Full Backdrop Blur (iOS 26 Frosted Glass) ───────── */}
+      {/* ── Floating Capsule Navbar (Matching Image 2 Reference) ───────── */}
       <header
-        className={`sticky top-0 z-50 w-full py-2 border-b border-slate-200/50 transition-transform duration-300 no-print pt-safe ${
+        className={`sticky top-0 z-50 w-full px-3 sm:px-6 lg:px-8 pt-3 pb-2 transition-transform duration-200 no-print pt-safe ${
           isHeaderHidden ? '-translate-y-full lg:translate-y-0' : 'translate-y-0'
         }`}
-        style={{
-          background: scrolled ? 'rgba(246, 249, 252, 0.85)' : 'rgba(246, 249, 252, 0.94)',
-          backdropFilter: 'blur(32px) saturate(190%)',
-          WebkitBackdropFilter: 'blur(32px) saturate(190%)',
-          boxShadow: scrolled ? '0 4px 20px rgba(15, 23, 42, 0.04)' : 'none',
-        }}
       >
-        <motion.nav
-          animate={{
-            scale: scrolled ? 0.995 : 1,
-            boxShadow: scrolled
-              ? '0 12px 36px rgba(124,58,237,0.10), 0 2px 8px rgba(0,0,0,0.04), inset 0 1px 1px rgba(255,255,255,1), inset 0 -1px 2px rgba(124,58,237,0.04)'
-              : '0 4px 20px rgba(15,23,42,0.04), inset 0 1px 1px rgba(255,255,255,1), inset 0 -1px 2px rgba(0,0,0,0.02)',
-          }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-[1800px] mx-auto
-            flex items-center justify-between
-            px-3 sm:px-6 lg:px-8 py-1.5 sm:py-2 rounded-[24px] bg-white/80 border border-white/80 shadow-sm"
-          style={{
-            backdropFilter: 'blur(36px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(36px) saturate(200%)',
-          }}
-        >
-        {/* ── LEFT: Brand (Positioned at Left Side Corner) ─────────────────────────────── */}
-        <div className="flex items-center shrink-0">
-          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-xl bg-purple-400/20 blur-md group-hover:bg-purple-400/30 transition-all duration-300" />
-              <PolyLanceLogo size={29} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="font-black text-[17px] sm:text-[20px] tracking-tight text-slate-900 leading-none">
-                Poly<span className="text-purple-600">Lance</span>
+        <div className="max-w-[1440px] mx-auto bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-full shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05),0_1px_3px_rgba(0,0,0,0.03)] px-3.5 sm:px-5 py-2 flex items-center justify-between gap-2">
+          {/* ── LEFT: PolyLance Logo ────────────────────────────────────── */}
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <Link to="/" className="flex items-center gap-2.5 group shrink-0 select-none">
+              <div className="relative flex items-center justify-center">
+                <PolyLanceLogo size={28} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
+              </div>
+              <span className="font-extrabold text-[19px] tracking-tight text-slate-900 leading-none">
+                Poly<span className="text-[#2563EB]">Lance</span>
               </span>
-              <span className="text-[6px] sm:text-[6.5px] font-mono text-slate-400/70 font-bold tracking-[0.15em] uppercase mt-0.5 leading-none select-none">
-                mvp on-chain
-              </span>
-            </div>
-          </Link>
-        </div>
+            </Link>
+          </div>
 
-        {/* ── CENTER: Navigation Pill (Apple Glass Container with Relatable Section Colors) ─── */}
-        <div className="hidden md:flex items-center gap-0.5 font-sans">
-          <div
-            className="flex items-center gap-0.5 rounded-full px-1 py-0.5 border border-black/5"
-            style={{
-              background: 'rgba(255,255,255,0.65)',
-              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02), 0 1px 0 rgba(255,255,255,0.9)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-            }}
-          >
-            {/* VISITOR LINKS */}
-            {isVisitor && (
+          {/* ── CENTER: Navigation Links (Apple iOS 26 Liquid Glass Segmented Pill) ── */}
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 font-sans z-20 relative p-1 rounded-full bg-slate-200/50 border border-slate-200/80 backdrop-blur-xl shadow-[inset_0_1px_2.5px_rgba(0,0,0,0.06),0_1px_1px_rgba(255,255,255,0.8)]">
+            {!isUnlocked ? (
               <>
-                <NavLink to="/" active={isActive('/') && location.pathname === '/'} accent="indigo">
-                  <Shield size={13} className={isActive('/') && location.pathname === '/' ? 'text-indigo-600' : 'text-slate-400'} />
-                  Overview
-                </NavLink>
-                <NavLink to="/jobs" active={isActive('/jobs')} accent="sky">
-                  <Briefcase size={13} className={isActive('/jobs') ? 'text-sky-600' : 'text-slate-400'} />
-                  Find Jobs
-                </NavLink>
-                <NavLink to="/reputation" active={isActive('/reputation')} accent="amber">
-                  <Trophy size={13} className={isActive('/reputation') ? 'text-amber-500' : 'text-slate-400'} />
-                  SBT Leaderboard
-                </NavLink>
-                <NavLink to="/dao" active={isActive('/dao')} accent="purple">
-                  <Users size={13} className={isActive('/dao') ? 'text-purple-600' : 'text-slate-400'} />
-                  DAO
-                </NavLink>
-              </>
-            )}
+                {/* 1. Overview (Landing Page Button for New Users / Visitors) */}
+                <NavItem
+                  to="/"
+                  active={location.pathname === '/' || location.pathname === '/overview'}
+                  icon={<Sparkles size={14.5} />}
+                  label="Overview"
+                  theme={NAV_THEMES.overview}
+                />
 
-            {/* CONNECTED ROLE LINKS */}
-            {!isVisitor && (
-              <>
-                {/* 1. Dashboard (Blue) */}
-                <NavLink to="/dashboard" active={isActive('/dashboard')} accent="blue">
-                  <LayoutDashboard size={13} className={isActive('/dashboard') ? 'text-blue-600' : 'text-slate-400'} />
-                  Dashboard
-                </NavLink>
+                {/* 2. Find Jobs */}
+                <NavItem
+                  to="/jobs"
+                  active={isActive('/jobs') && !isActive('/jobs/post') && !isActive('/workspace')}
+                  icon={<Search size={14.5} />}
+                  label="Find Jobs"
+                  theme={NAV_THEMES.jobs}
+                />
 
-                {/* 2. Job Workspace (Green / Emerald) */}
-                <NavLink to="/workspace" active={isActive('/workspace')} accent="emerald">
-                  <Briefcase size={13} className={isActive('/workspace') ? 'text-emerald-600' : 'text-slate-400'} />
-                  <span>Job Workspace</span>
-                  {hasActiveJobs && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                </NavLink>
-
-                {/* 3. Post Job (Cyan - For Clients and Admins directly in main top bar) */}
-                {(currentRole === 'client' || currentRole === 'admin') && (
-                  <NavLink to="/jobs/post" active={isActive('/jobs/post')} accent="cyan">
-                    <PlusCircle size={13} className={isActive('/jobs/post') ? 'text-cyan-600' : 'text-slate-400'} />
-                    Post Job
-                  </NavLink>
-                )}
-
-                {/* 4. Find Jobs (Sky Blue) */}
-                <NavLink to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post') && !isActive('/workspace')} accent="sky">
-                  <Briefcase size={13} className={isActive('/jobs') && !isActive('/jobs/post') && !isActive('/workspace') ? 'text-sky-600' : 'text-slate-400'} />
-                  Find Jobs
-                </NavLink>
-
-                {/* 5. SBT Leaderboard (Amber / Gold - For regular clients/freelancers in top bar) */}
-                {(currentRole !== 'admin' && currentRole !== 'judge') && (
-                  <NavLink to="/reputation" active={isActive('/reputation')} accent="amber">
-                    <Trophy size={13} className={isActive('/reputation') ? 'text-amber-500' : 'text-slate-400'} />
-                    SBT Leaderboard
-                  </NavLink>
-                )}
-
-                {/* 6. Judge Panel (Orange / Amber - For Judge role) */}
-                {currentRole === 'judge' && (
-                  <NavLink to="/judge" active={isActive('/judge')} accent="orange">
-                    <Scale size={13} className={isActive('/judge') ? 'text-orange-500' : 'text-slate-400'} />
-                    Judge Panel
-                  </NavLink>
-                )}
-
-                {/* 7. Treasury (Emerald Green - For Admin role) */}
-                {currentRole === 'admin' && (
-                  <NavLink to="/treasury" active={isActive('/treasury')} accent="emerald">
-                    <Landmark size={13} className={isActive('/treasury') ? 'text-emerald-600' : 'text-slate-400'} />
-                    Treasury
-                  </NavLink>
-                )}
-
-                {/* 8. DAO (Purple) */}
-                <NavLink to="/dao" active={isActive('/dao')} accent="purple">
-                  <Users size={13} className={isActive('/dao') ? 'text-purple-600' : 'text-slate-400'} />
-                  DAO
-                </NavLink>
-
-                {/* 9. Messages (Rose / Pink) */}
-                <NavLink to="/chat" active={isActive('/chat')} accent="rose">
-                  <MessageSquare size={13} className={isActive('/chat') ? 'text-rose-600' : 'text-slate-400'} />
-                  Messages
-                </NavLink>
-
-                {/* 10. More dropdown */}
-                <div className="relative" ref={moreRef}>
-                  <button
-                    onClick={() => setIsMoreOpen(!isMoreOpen)}
-                    className={`
-                      px-3 sm:px-3.5 py-1.5 rounded-full text-[13px] sm:text-[13.5px] font-semibold
-                      flex items-center gap-1 cursor-pointer select-none
-                      nav-pill-item transition-all duration-150
-                      ${isMoreOpen ? 'text-purple-700 font-bold bg-white/70' : 'text-slate-600 hover:text-slate-900'}
-                    `}
-                    style={isMoreOpen ? {
-                      boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 3px rgba(124,58,237,0.08)',
-                    } : {}}
+                {/* If connected with wallet but hasn't synced GitHub yet */}
+                {isConnected && !isGithubSynced && (
+                  <Link
+                    to="/settings"
+                    className="relative px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 select-none bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20 text-purple-700 border border-purple-200/80 shadow-2xs transition-all animate-pulse"
+                    title="Connect & Sync GitHub to unlock Dashboard, Job Workspace, Judge Panel, and DAO"
                   >
-                    <Grid size={13} className={isMoreOpen ? 'text-purple-600' : 'text-slate-400'} />
-                    More
-                    <motion.span
-                      animate={{ rotate: isMoreOpen ? 180 : 0 }}
-                      transition={transition.fast}
-                    >
-                      <ChevronDown size={11} />
-                    </motion.span>
+                    <Lock size={12} className="text-purple-600" />
+                    <span>Sync GitHub to Unlock</span>
+                  </Link>
+                )}
+              </>
+            ) : (
+              <>
+                {/* 1. Dashboard */}
+                <NavItem
+                  to="/dashboard"
+                  active={isActive('/dashboard')}
+                  icon={<LayoutGrid size={14.5} />}
+                  label="Dashboard"
+                  theme={NAV_THEMES.dashboard}
+                />
+
+                {/* 2. Job Workspace */}
+                <NavItem
+                  to="/workspace"
+                  active={isActive('/workspace')}
+                  icon={<Briefcase size={14.5} />}
+                  label="Job Workspace"
+                  theme={NAV_THEMES.workspace}
+                />
+
+            {/* 3. Find Jobs (Search Icon) */}
+            <NavItem
+              to="/jobs"
+              active={isActive('/jobs') && !isActive('/jobs/post') && !isActive('/workspace')}
+              icon={<Search size={14.5} />}
+              label="Find Jobs"
+              theme={NAV_THEMES.jobs}
+            />
+
+            {/* 4. Judge Panel */}
+            <NavItem
+              to="/judge"
+              active={isActive('/judge')}
+              icon={<Scale size={14.5} />}
+              label="Judge Panel"
+              theme={NAV_THEMES.judge}
+            />
+
+            {/* 5. DAO (3-nodes Network/Share Icon) */}
+            <NavItem
+              to="/dao"
+              active={isActive('/dao')}
+              icon={<Share2 size={14.5} />}
+              label="DAO"
+              theme={NAV_THEMES.dao}
+            />
+
+            {/* 6. More Dropdown (... More v) */}
+            <div className="relative" ref={moreRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMoreOpen(!isMoreOpen);
+                  setIsAddressMenuOpen(false);
+                  setIsAvatarMenuOpen(false);
+                }}
+                className={`
+                  relative px-3.5 py-1.5 rounded-full text-[13px] flex items-center gap-1.5 select-none cursor-pointer
+                  transition-colors duration-200 whitespace-nowrap group
+                  ${
+                    isMoreActive
+                      ? `${NAV_THEMES.more.textActive} font-semibold`
+                      : 'text-slate-600 hover:text-slate-900 font-medium'
+                  }
+                `}
+              >
+                {/* ── Apple iOS 26 Liquid Glass Sliding Indicator for More ── */}
+                {isMoreActive && (
+                  <motion.div
+                    layoutId="ios26-navbar-glass-pill"
+                    className="absolute inset-0 rounded-full z-0 overflow-hidden pointer-events-none"
+                    style={{
+                      background: NAV_THEMES.more.gradientSheen,
+                      border: `1px solid ${NAV_THEMES.more.borderTint}`,
+                      boxShadow: NAV_THEMES.more.glowShadow,
+                      backdropFilter: 'blur(20px) saturate(180%)',
+                      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                    }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 440,
+                      damping: 32,
+                      mass: 0.65,
+                    }}
+                  >
+                    <div className="absolute inset-x-2.5 top-0.5 h-[1.5px] rounded-full bg-gradient-to-r from-transparent via-white to-transparent pointer-events-none opacity-90" />
+                    <div className="absolute inset-x-3 bottom-0.5 h-[1px] rounded-full bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
+                    <div
+                      className="absolute -inset-1 opacity-30 blur-sm pointer-events-none"
+                      style={{
+                        background: `radial-gradient(circle at 50% 0%, ${NAV_THEMES.more.accentHex}, transparent 70%)`,
+                      }}
+                    />
+                  </motion.div>
+                )}
+
+                {!isMoreActive && (
+                  <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 bg-slate-200/50 transition-opacity duration-150 pointer-events-none" />
+                )}
+
+                <MoreHorizontal
+                  size={14.5}
+                  className={`relative z-10 transition-transform duration-200 ${
+                    isMoreActive ? `${NAV_THEMES.more.iconActive} scale-105` : 'text-slate-500 group-hover:text-slate-800'
+                  }`}
+                />
+                <span className="relative z-10">More</span>
+                <motion.span
+                  animate={{ rotate: isMoreOpen ? 180 : 0 }}
+                  transition={transition.fast}
+                  className="relative z-10 flex items-center justify-center"
+                >
+                  <ChevronDown
+                    size={11}
+                    className={isMoreActive ? NAV_THEMES.more.iconActive : 'text-slate-400 group-hover:text-slate-600'}
+                  />
+                </motion.span>
+              </button>
+
+              {/* More Dropdown Menu */}
+              <AnimatePresence>
+                {isMoreOpen && (
+                  <motion.div
+                    variants={dropdownVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className="absolute top-full left-0 mt-2.5 w-52 rounded-2xl p-1.5 space-y-0.5 z-[100] bg-white/95 backdrop-blur-2xl border border-slate-200/80 shadow-[0_20px_40px_-12px_rgba(15,23,42,0.18)] overflow-hidden"
+                  >
+                    <DropdownLink
+                      to="/reputation"
+                      icon={<Trophy size={13.5} />}
+                      label="SBT Leaderboard"
+                      onClick={() => setIsMoreOpen(false)}
+                    />
+                    {(currentRole === 'client' || currentRole === 'admin') && (
+                      <DropdownLink
+                        to="/jobs/post"
+                        icon={<PlusCircle size={13.5} />}
+                        label="Post a Job"
+                        onClick={() => setIsMoreOpen(false)}
+                      />
+                    )}
+                    {currentRole === 'admin' && (
+                      <DropdownLink
+                        to="/treasury"
+                        icon={<Landmark size={13.5} />}
+                        label="Protocol Treasury"
+                        onClick={() => setIsMoreOpen(false)}
+                      />
+                    )}
+                    <DropdownLink
+                      to="/chat"
+                      icon={<MessageSquare size={13.5} />}
+                      label="Messages & Chat"
+                      onClick={() => setIsMoreOpen(false)}
+                    />
+                    <DropdownLink
+                      to={`/audit/${address || ''}`}
+                      icon={<BarChart3 size={13.5} />}
+                      label="Security & Audit"
+                      onClick={() => setIsMoreOpen(false)}
+                    />
+                    <DropdownLink
+                      to="/attestation"
+                      icon={<ShieldCheck size={13.5} />}
+                      label="Attestation Reports"
+                      onClick={() => setIsMoreOpen(false)}
+                    />
+                    <div className="border-t border-slate-100 my-1" />
+                    <DropdownLink
+                      to="/settings"
+                      icon={<Settings size={13.5} />}
+                      label="Settings"
+                      onClick={() => setIsMoreOpen(false)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            </>
+          )}
+          </nav>
+
+          {/* ── RIGHT: Balance Pill + Address Pill + User Avatar (Image 2) ── */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {isConnected && address ? (
+              <>
+                {/* Thin Vertical Divider */}
+                <div className="hidden lg:block h-5 w-px bg-slate-200/90 mx-0.5 shrink-0" />
+
+                {/* 1. Purple Balance Pill (18.335 POL) */}
+                <button
+                  type="button"
+                  onClick={() => setIsBalanceModalOpen(true)}
+                  title="Click to view full wallet token balances"
+                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-[#F3E8FF]/70 hover:bg-[#F3E8FF] border border-purple-200/70 text-purple-700 transition-all cursor-pointer shadow-2xs group shrink-0"
+                >
+                  <Link2 size={13} className="text-purple-600 group-hover:rotate-45 transition-transform shrink-0 stroke-[2.2]" />
+                  <span>{formatPolBalance(balanceNative)} POL</span>
+                </button>
+
+                {/* 2. Light Blue Wallet Address Pill (0xB8aa...090d v) */}
+                <div className="relative" ref={addressMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddressMenuOpen(!isAddressMenuOpen);
+                      setIsAvatarMenuOpen(false);
+                      setIsMoreOpen(false);
+                    }}
+                    title="Click for address details"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-[#EBF5FF] hover:bg-[#DFEFFF] border border-blue-200/70 text-blue-600 transition-all cursor-pointer shadow-2xs shrink-0"
+                  >
+                    <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+                      <Shield size={9} className="text-white fill-white" />
+                    </div>
+                    <span>{truncateAddress(address)}</span>
+                    <ChevronDown
+                      size={11}
+                      className={`text-blue-500 transition-transform duration-150 ${
+                        isAddressMenuOpen ? 'rotate-180' : ''
+                      }`}
+                    />
                   </button>
 
-                  {/* Solid Opaque High-Z Dropdown */}
+                  {/* Address Dropdown */}
                   <AnimatePresence>
-                    {isMoreOpen && (
+                    {isAddressMenuOpen && (
                       <motion.div
                         variants={dropdownVariants}
                         initial="hidden"
                         animate="visible"
                         exit="exit"
-                        className="absolute top-full right-0 mt-2.5 w-52 rounded-2xl p-1.5 space-y-0.5 z-[100] bg-white border border-slate-200 shadow-2xl overflow-hidden"
-                        style={{
-                          boxShadow: '0 20px 40px -12px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06)',
-                        }}
+                        className="absolute top-full right-0 mt-2.5 w-64 rounded-2xl p-2 z-[100] bg-white/95 backdrop-blur-2xl border border-slate-200/80 shadow-[0_20px_40px_-12px_rgba(15,23,42,0.18)] space-y-1.5"
                       >
-                        {/* Admin shortcuts in dropdown */}
-                        {currentRole === 'admin' && (
-                          <>
-                            <DropdownLink to="/reputation" icon={<Trophy size={13.5} />} label="SBT Leaderboard" onClick={() => setIsMoreOpen(false)} accent="amber" />
-                            <DropdownLink to="/judge" icon={<Scale size={13.5} />} label="Judge Panel" onClick={() => setIsMoreOpen(false)} accent="orange" />
-                            <div className="border-t border-slate-100 my-0.5" />
-                          </>
+                        <div className="p-2.5 bg-slate-50 rounded-xl">
+                          <div className="text-[11px] text-slate-500 font-medium mb-0.5">Connected Address</div>
+                          <div className="text-xs font-mono font-bold text-slate-800 break-all select-all">
+                            {address}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleCopyAddress}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer"
+                        >
+                          <span className="flex items-center gap-2">
+                            {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                            {copied ? 'Copied to Clipboard!' : 'Copy Address'}
+                          </span>
+                        </button>
+
+                        <a
+                          href={`https://amoy.polygonscan.com/address/${address}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            <ExternalLink size={14} />
+                            View on PolygonScan
+                          </span>
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddressMenuOpen(false);
+                            setIsBalanceModalOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer"
+                        >
+                          <Link2 size={14} />
+                          <span>View Token Balances</span>
+                        </button>
+
+                        {isWrongNetwork && (
+                          <button
+                            type="button"
+                            onClick={switchToTargetNetwork}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer"
+                          >
+                            <AlertTriangle size={14} />
+                            Switch to {targetChainName}
+                          </button>
                         )}
-                        {currentRole === 'judge' && (
-                          <>
-                            <DropdownLink to="/reputation" icon={<Trophy size={13.5} />} label="SBT Leaderboard" onClick={() => setIsMoreOpen(false)} accent="amber" />
-                            <div className="border-t border-slate-100 my-0.5" />
-                          </>
-                        )}
-                        {currentRole !== 'admin' && currentRole !== 'judge' && (
-                          <>
-                            {(currentRole === 'client' || currentRole === 'freelancer') && (
-                              <DropdownLink to="/judge" icon={<Scale size={13.5} />} label="Judge Panel" onClick={() => setIsMoreOpen(false)} accent="orange" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* 3. User Avatar with Initial "S" or Photo + ChevronDown (Image 2) */}
+                <div className="relative" ref={avatarMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAvatarMenuOpen(!isAvatarMenuOpen);
+                      setIsAddressMenuOpen(false);
+                      setIsMoreOpen(false);
+                    }}
+                    title="User Profile Menu"
+                    className="flex items-center gap-1 cursor-pointer select-none group shrink-0 p-0.5"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#0F172A] text-white flex items-center justify-center overflow-hidden shrink-0 border border-slate-200/90 shadow-2xs group-hover:ring-2 group-hover:ring-blue-500/30 transition-all">
+                      {rawAvatarUrl && !avatarImgError ? (
+                        <img
+                          src={rawAvatarUrl}
+                          alt={displayName || 'User Avatar'}
+                          className="w-full h-full object-cover"
+                          onError={() => setAvatarImgError(true)}
+                        />
+                      ) : (
+                        <span className="font-bold text-xs text-white select-none">
+                          {userInitial}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown
+                      size={12}
+                      className={`text-slate-600 group-hover:text-slate-900 transition-transform duration-150 ${
+                        isAvatarMenuOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {/* Avatar Dropdown Menu */}
+                  <AnimatePresence>
+                    {isAvatarMenuOpen && (
+                      <motion.div
+                        variants={dropdownVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className="absolute top-full right-0 mt-2.5 w-60 rounded-2xl p-2 z-[100] bg-white/95 backdrop-blur-2xl border border-slate-200/80 shadow-[0_20px_40px_-12px_rgba(15,23,42,0.18)] space-y-1 overflow-hidden"
+                      >
+                        {/* User preview header */}
+                        <div className="flex items-center gap-2.5 p-2 bg-slate-50/90 rounded-xl">
+                          <div className="w-9 h-9 rounded-full bg-[#0F172A] text-white flex items-center justify-center overflow-hidden shrink-0">
+                            {rawAvatarUrl && !avatarImgError ? (
+                              <img
+                                src={rawAvatarUrl}
+                                alt={displayName || 'User Avatar'}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="font-bold text-sm text-white select-none">
+                                {userInitial}
+                              </span>
                             )}
-                            <div className="border-t border-slate-100 my-0.5" />
-                          </>
-                        )}
-                        <DropdownLink to={`/profile/${address}`} icon={<User size={13.5} />} label="Profile" onClick={() => setIsMoreOpen(false)} accent="blue" />
-                        <DropdownLink to={`/audit/${address}`} icon={<BarChart3 size={13.5} />} label="Audit Report" onClick={() => setIsMoreOpen(false)} accent="purple" />
-                        <DropdownLink to="/settings" icon={<Settings size={13.5} />} label="Settings" onClick={() => setIsMoreOpen(false)} accent="slate" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-bold text-slate-900 truncate">
+                              {displayName || truncateAddress(address)}
+                            </div>
+                            <div className="text-[10px] text-blue-600 font-semibold capitalize flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                              {currentRole} Role
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-100 my-1" />
+
+                        <Link
+                          to={`/profile/${address}`}
+                          onClick={() => setIsAvatarMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                        >
+                          <User size={14} className="text-slate-400" />
+                          <span>View Profile</span>
+                        </Link>
+
+                        <Link
+                          to="/workspace"
+                          onClick={() => setIsAvatarMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                        >
+                          <Briefcase size={14} className="text-slate-400" />
+                          <span>Job Workspace</span>
+                        </Link>
+
+                        <Link
+                          to="/settings"
+                          onClick={() => setIsAvatarMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                        >
+                          <Settings size={14} className="text-slate-400" />
+                          <span>Account Settings</span>
+                        </Link>
+
+                        <Link
+                          to={`/audit/${address}`}
+                          onClick={() => setIsAvatarMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                        >
+                          <BarChart3 size={14} className="text-slate-400" />
+                          <span>Security Audit</span>
+                        </Link>
+
+                        <div className="border-t border-slate-100 my-1" />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            disconnectWallet();
+                            setIsAvatarMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        >
+                          <Power size={14} className="text-rose-500" />
+                          <span>Disconnect Wallet</span>
+                        </button>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
               </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsLoginModalOpen(true)}
+                className="
+                  px-4 py-1.5 rounded-full text-xs font-bold text-white
+                  flex items-center gap-1.5 cursor-pointer shrink-0
+                  bg-blue-600 hover:bg-blue-700 shadow-sm transition-all
+                "
+              >
+                <LogIn size={13} />
+                <span>Connect Wallet</span>
+              </button>
             )}
+
+            {/* Mobile hamburger menu toggle button */}
+            <button
+              type="button"
+              onClick={() => setIsMobileOpen(!isMobileOpen)}
+              aria-label={isMobileOpen ? 'Close navigation drawer' : 'Open navigation drawer'}
+              aria-expanded={isMobileOpen}
+              className="lg:hidden w-8 h-8 rounded-full flex items-center justify-center text-slate-700 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors cursor-pointer select-none shrink-0"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isMobileOpen ? (
+                  <motion.span
+                    key="close"
+                    initial={{ rotate: -90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 90, opacity: 0 }}
+                    transition={transition.micro}
+                  >
+                    <X size={17} />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="menu"
+                    initial={{ rotate: 90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -90, opacity: 0 }}
+                    transition={transition.micro}
+                  >
+                    <Menu size={17} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
           </div>
         </div>
 
-        {/* ── RIGHT: Wallet + Mobile Toggle ──────────────────────────── */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {isConnected && address ? (
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* Network Warning Pill if wrong network */}
-              {isWrongNetwork ? (
-                <button
-                  type="button"
-                  onClick={switchToTargetNetwork}
-                  title={`Click to switch wallet network to ${targetChainName}`}
-                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-mono font-bold bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 shadow-2xs transition-all cursor-pointer animate-pulse"
-                >
-                  <AlertTriangle size={12} className="text-amber-600 shrink-0" />
-                  <span className="truncate max-w-[90px] sm:max-w-none">Switch to {targetChainName}</span>
-                </button>
-              ) : (
-                /* Real-Time Live Wallet Money Pill (Clickable -> Full Balance Breakdown Modal) */
-                <button
-                  type="button"
-                  onClick={() => setIsBalanceModalOpen(true)}
-                  title="Click to view full wallet & all token balances (POL, USDC, USDT)"
-                  className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-white/85 hover:bg-purple-50/80 border border-purple-200/80 hover:border-purple-300 text-purple-700 shadow-2xs transition-all cursor-pointer group"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                  <span className="group-hover:text-purple-900">{formatPolBalance(balanceNative)} POL</span>
-                </button>
-              )}
-
-              {/* User Account Profile Pill */}
-              <Link
-                to={`/profile/${address}`}
-                title="View User Profile"
-                className="
-                  flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full
-                  text-[11px] sm:text-[12.5px] font-semibold font-mono text-purple-700
-                  hover:bg-purple-100/90 transition-all duration-200
-                  apple-button shrink-0
-                "
-                style={{
-                  background: 'rgba(246,240,255,0.85)',
-                  border: '1px solid rgba(167,139,250,0.35)',
-                  boxShadow: '0 1px 3px rgba(124,58,237,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
-                }}
-              >
-                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-purple-500 flex items-center justify-center shrink-0 shadow-xs">
-                  <User size={9} className="text-white" />
-                </div>
-                <span>{truncateAddress(address)}</span>
-                <ChevronDown size={10} className="text-purple-400 hidden sm:inline" />
-              </Link>
-
-              {/* Redesigned Clean Disconnect Button (visible on sm+; on mobile, available in drawer) */}
-              <motion.button
-                type="button"
-                onClick={disconnectWallet}
-                title="Disconnect Wallet"
-                whileHover={{ scale: 1.06 }}
-                whileTap={{ scale: 0.94 }}
-                className="
-                  hidden sm:flex w-8 h-8 rounded-full items-center justify-center
-                  bg-white/85 hover:bg-rose-50 text-slate-400 hover:text-rose-600
-                  border border-slate-200/80 hover:border-rose-300
-                  shadow-xs transition-all duration-200 cursor-pointer shrink-0
-                "
-              >
-                <Power size={13} className="stroke-[2.2]" />
-              </motion.button>
-            </div>
-          ) : (
-            <Link
-              to="/login"
-              className="
-                px-3 sm:px-3.5 py-1.5 rounded-full text-[11px] sm:text-[12.5px] font-bold text-white
-                flex items-center gap-1.5 cursor-pointer shrink-0
-                apple-button glass-highlight
-                bg-gradient-to-r from-purple-600 to-purple-500
-              "
-              style={{
-                boxShadow: '0 2px 6px rgba(124,58,237,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
-              }}
-            >
-              <LogIn size={12} />
-              <span>Connect</span>
-            </Link>
-          )}
-
-          {/* Mobile toggle button (compact on mobile, min 36x36px) */}
-          <button
-            type="button"
-            onClick={() => setIsMobileOpen(!isMobileOpen)}
-            aria-label={isMobileOpen ? 'Close navigation drawer' : 'Open navigation drawer'}
-            aria-expanded={isMobileOpen}
-            className="md:hidden w-8.5 h-8.5 sm:w-11 sm:h-11 min-w-[34px] sm:min-w-[44px] rounded-full flex items-center justify-center text-slate-700 hover:text-purple-700 bg-white/85 active:bg-slate-100 border border-slate-200/80 shadow-xs transition-colors cursor-pointer select-none shrink-0"
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {isMobileOpen ? (
-                <motion.span key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={transition.micro}>
-                  <X size={18} />
-                </motion.span>
-              ) : (
-                <motion.span key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={transition.micro}>
-                  <Menu size={18} />
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </button>
-        </div>
-
-        {/* ── PHASE 3 ACCESSIBLE FULL-HEIGHT MOBILE DRAWER ────────────────────── */}
+        {/* ── Mobile Accessible Drawer ────────────────────────────────── */}
         <Drawer
           isOpen={isMobileOpen}
           onClose={() => setIsMobileOpen(false)}
@@ -675,21 +951,22 @@ export const Navbar: React.FC = () => {
           footer={
             isConnected && address ? (
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50/90 border border-purple-200/60">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/70 border border-blue-200/60">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-xs">
-                      <User size={14} />
+                    <div className="w-8 h-8 rounded-full bg-[#0F172A] text-white flex items-center justify-center font-bold text-xs overflow-hidden">
+                      {rawAvatarUrl && !avatarImgError ? (
+                        <img src={rawAvatarUrl} alt={displayName || 'User Avatar'} className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{userInitial}</span>
+                      )}
                     </div>
                     <div>
-                      <div className="text-xs font-mono font-bold text-purple-900">{truncateAddress(address)}</div>
-                      <div className="text-[11px] text-purple-600 capitalize font-medium">{currentRole} Account</div>
+                      <div className="text-xs font-mono font-bold text-slate-900">{truncateAddress(address)}</div>
+                      <div className="text-[11px] text-blue-600 capitalize font-medium">{currentRole} Account</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-mono font-bold text-slate-900">{formatPolBalance(balanceNative)} POL</div>
-                    <div className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 justify-end">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" /> Live
-                    </div>
+                    <div className="text-xs font-mono font-bold text-purple-700">{formatPolBalance(balanceNative)} POL</div>
                   </div>
                 </div>
                 <button
@@ -711,7 +988,7 @@ export const Navbar: React.FC = () => {
                   setIsMobileOpen(false);
                   setIsLoginModalOpen(true);
                 }}
-                className="w-full min-h-[48px] py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-md active:scale-[0.98] transition-transform flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full min-h-[48px] py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md active:scale-[0.98] transition-transform flex items-center justify-center gap-2 cursor-pointer"
               >
                 <LogIn size={16} />
                 Connect Wallet
@@ -719,66 +996,75 @@ export const Navbar: React.FC = () => {
             )
           }
         >
-          {/* Main Primary Links */}
-          <div className="space-y-1">
-            <MobileLink to="/" icon={<Shield size={18} className="text-indigo-600" />} label="Overview" onClick={() => setIsMobileOpen(false)} accent="indigo" />
-            <MobileLink to="/jobs" icon={<Briefcase size={18} className="text-sky-600" />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} accent="sky" />
-            {!isVisitor && (
-              <>
-                <MobileLink to="/dashboard" icon={<LayoutDashboard size={18} className="text-blue-600" />} label="Dashboard" onClick={() => setIsMobileOpen(false)} accent="blue" />
-                <MobileLink to="/workspace" icon={<Grid size={18} className="text-emerald-600" />} label="Job Workspace" onClick={() => setIsMobileOpen(false)} accent="emerald" />
-                {(currentRole === 'client' || currentRole === 'admin') && (
-                  <MobileLink to="/jobs/post" icon={<PlusCircle size={18} className="text-cyan-600" />} label="Post a Job" onClick={() => setIsMobileOpen(false)} accent="cyan" />
-                )}
-                <MobileLink to="/chat" icon={<MessageSquare size={18} className="text-rose-600" />} label="Messages & Negotiations" onClick={() => setIsMobileOpen(false)} accent="rose" />
-              </>
-            )}
-          </div>
+          {/* Main Primary Links in Mobile Drawer */}
+          {!isUnlocked ? (
+            <div className="space-y-1">
+              <MobileLink to="/" icon={<Sparkles size={18} className="text-blue-600" />} label="Overview" onClick={() => setIsMobileOpen(false)} />
+              <MobileLink to="/jobs" icon={<Search size={18} className="text-blue-600" />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
+              {isConnected && !isGithubSynced && (
+                <div className="p-3 my-2 rounded-xl bg-purple-50 border border-purple-200">
+                  <div className="flex items-center gap-2 text-purple-900 font-bold text-xs mb-1">
+                    <Lock size={14} className="text-purple-600" />
+                    <span>GitHub Sync Required</span>
+                  </div>
+                  <p className="text-[11px] text-purple-700 mb-2 leading-relaxed">
+                    Connect and sync your GitHub profile to unlock Dashboard, Job Workspace, and DAO.
+                  </p>
+                  <MobileLink to="/settings" icon={<Settings size={16} className="text-purple-600" />} label="Go to Settings to Sync" onClick={() => setIsMobileOpen(false)} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1">
+                <MobileLink to="/dashboard" icon={<LayoutGrid size={18} className="text-blue-600" />} label="Dashboard" onClick={() => setIsMobileOpen(false)} />
+                <MobileLink to="/workspace" icon={<Briefcase size={18} className="text-blue-600" />} label="Job Workspace" onClick={() => setIsMobileOpen(false)} />
+                <MobileLink to="/jobs" icon={<Search size={18} className="text-blue-600" />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
+                <MobileLink to="/judge" icon={<Scale size={18} className="text-blue-600" />} label="Judge Panel" onClick={() => setIsMobileOpen(false)} />
+                <MobileLink to="/dao" icon={<Share2 size={18} className="text-blue-600" />} label="DAO Governance" onClick={() => setIsMobileOpen(false)} />
+                <MobileLink to="/chat" icon={<MessageSquare size={18} className="text-blue-600" />} label="Messages & Negotiations" onClick={() => setIsMobileOpen(false)} />
+              </div>
 
-          {/* Sub-sections inside Accordion for clean mobile organization */}
-          <div className="pt-2">
-            <Accordion
-              items={[
-                {
-                  title: 'Governance & Arbitration',
-                  icon: <Scale size={18} />,
-                  content: (
-                    <div className="space-y-1 pt-1">
-                      <MobileLink to="/dao" icon={<Users size={16} className="text-purple-600" />} label="DAO Proposals & Voting" onClick={() => setIsMobileOpen(false)} accent="purple" />
-                      <MobileLink to="/judge" icon={<Scale size={16} className="text-orange-600" />} label="Judge Arbitration Bench" onClick={() => setIsMobileOpen(false)} accent="orange" />
-                      {currentRole === 'admin' && (
-                        <MobileLink to="/treasury" icon={<Landmark size={16} className="text-emerald-600" />} label="Protocol Treasury Multisig" onClick={() => setIsMobileOpen(false)} accent="emerald" />
-                      )}
-                    </div>
-                  ),
-                },
-                {
-                  title: 'Reputation & Audits',
-                  icon: <Trophy size={18} />,
-                  content: (
-                    <div className="space-y-1 pt-1">
-                      <MobileLink to="/reputation" icon={<Trophy size={16} className="text-amber-500" />} label="SBT Leaderboard & Scores" onClick={() => setIsMobileOpen(false)} accent="amber" />
-                      <MobileLink to="/audit" icon={<BarChart3 size={16} className="text-purple-600" />} label="Smart Contract Security Audit" onClick={() => setIsMobileOpen(false)} accent="purple" />
-                      <MobileLink to="/attestation" icon={<ShieldCheck size={16} className="text-emerald-600" />} label="Soulbound Attestations" onClick={() => setIsMobileOpen(false)} accent="emerald" />
-                    </div>
-                  ),
-                },
-                {
-                  title: 'Protocol & Legal',
-                  icon: <Shield size={18} />,
-                  content: (
-                    <div className="space-y-1 pt-1">
-                      <MobileLink to="/manifesto" icon={<User size={16} className="text-indigo-600" />} label="PolyLance Manifesto & Team" onClick={() => setIsMobileOpen(false)} accent="indigo" />
-                      <MobileLink to="/security" icon={<Shield size={16} className="text-sky-600" />} label="Security Architecture" onClick={() => setIsMobileOpen(false)} accent="sky" />
-                      <MobileLink to="/terms" icon={<Shield size={16} className="text-slate-500" />} label="Terms of Service" onClick={() => setIsMobileOpen(false)} accent="slate" />
-                    </div>
-                  ),
-                },
-              ]}
-            />
-          </div>
+              {/* Sub-sections inside Accordion */}
+              <div className="pt-2">
+                <Accordion
+                  items={[
+                    {
+                      title: 'Reputation & Audits',
+                      icon: <Trophy size={18} />,
+                      content: (
+                        <div className="space-y-1 pt-1">
+                          <MobileLink to="/reputation" icon={<Trophy size={16} className="text-amber-500" />} label="SBT Leaderboard & Scores" onClick={() => setIsMobileOpen(false)} />
+                          <MobileLink to="/audit" icon={<BarChart3 size={16} className="text-purple-600" />} label="Smart Contract Security Audit" onClick={() => setIsMobileOpen(false)} />
+                          <MobileLink to="/attestation" icon={<ShieldCheck size={16} className="text-emerald-600" />} label="Soulbound Attestations" onClick={() => setIsMobileOpen(false)} />
+                        </div>
+                      ),
+                    },
+                    {
+                      title: 'Account & Protocol',
+                      icon: <Settings size={18} />,
+                      content: (
+                        <div className="space-y-1 pt-1">
+                          {address && (
+                            <MobileLink to={`/profile/${address}`} icon={<User size={16} className="text-blue-600" />} label="Profile Overview" onClick={() => setIsMobileOpen(false)} />
+                          )}
+                          <MobileLink to="/settings" icon={<Settings size={16} className="text-slate-600" />} label="Profile Settings" onClick={() => setIsMobileOpen(false)} />
+                          {(currentRole === 'client' || currentRole === 'admin') && (
+                            <MobileLink to="/jobs/post" icon={<PlusCircle size={16} className="text-cyan-600" />} label="Post a Job" onClick={() => setIsMobileOpen(false)} />
+                          )}
+                          {currentRole === 'admin' && (
+                            <MobileLink to="/treasury" icon={<Landmark size={16} className="text-emerald-600" />} label="Protocol Treasury" onClick={() => setIsMobileOpen(false)} />
+                          )}
+                          <MobileLink to="/manifesto" icon={<Shield size={16} className="text-indigo-600" />} label="PolyLance Manifesto" onClick={() => setIsMobileOpen(false)} />
+                        </div>
+                      ),
+                    },
+                  ]}
+                />
+              </div>
+            </>
+          )}
         </Drawer>
-      </motion.nav>
       </header>
 
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
@@ -787,37 +1073,22 @@ export const Navbar: React.FC = () => {
   );
 };
 
-
 // Helper for mobile nav items
 interface MobileLinkProps {
   to: string;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
-  accent?: 'indigo' | 'blue' | 'emerald' | 'cyan' | 'sky' | 'amber' | 'orange' | 'purple' | 'rose' | 'slate';
 }
 
-const MobileLink: React.FC<MobileLinkProps> = ({ to, icon, label, onClick, accent = 'purple' }) => {
-  const accentClasses = {
-    indigo: 'hover:bg-indigo-50/90 hover:text-indigo-800 text-slate-700',
-    blue: 'hover:bg-blue-50/90 hover:text-blue-800 text-slate-700',
-    emerald: 'hover:bg-emerald-50/90 hover:text-emerald-800 text-slate-700',
-    cyan: 'hover:bg-cyan-50/90 hover:text-cyan-800 text-slate-700',
-    sky: 'hover:bg-sky-50/90 hover:text-sky-800 text-slate-700',
-    amber: 'hover:bg-amber-50/90 hover:text-amber-800 text-slate-700',
-    orange: 'hover:bg-orange-50/90 hover:text-orange-800 text-slate-700',
-    purple: 'hover:bg-purple-50/90 hover:text-purple-800 text-slate-700',
-    rose: 'hover:bg-rose-50/90 hover:text-rose-800 text-slate-700',
-    slate: 'hover:bg-slate-100 hover:text-slate-900 text-slate-700',
-  }[accent];
-
+const MobileLink: React.FC<MobileLinkProps> = ({ to, icon, label, onClick }) => {
   return (
     <Link
       to={to}
       onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold transition-all group ${accentClasses}`}
+      className="flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800 transition-colors group"
     >
-      <span className="text-slate-400 group-hover:text-current shrink-0">{icon}</span>
+      <span className="text-slate-400 group-hover:text-blue-600 shrink-0">{icon}</span>
       <span className="truncate">{label}</span>
     </Link>
   );

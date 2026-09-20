@@ -104,28 +104,15 @@ import { WagmiProvider, createConfig, http, fallback } from 'wagmi';
 import { polygon, mainnet } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const projectId = (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '').trim();
-const hasValidProjectId = Boolean(projectId && projectId !== '00000000000000000000000000000000' && projectId.length >= 32);
-
-// Clean up stale WalletConnect session keys if project ID is not configured
-if (typeof window !== 'undefined' && !hasValidProjectId) {
-  try {
-    Object.keys(localStorage).forEach((k) => {
-      if (k.startsWith('wc@2') || k.startsWith('@w3m') || k.startsWith('-walletlink')) {
-        localStorage.removeItem(k);
-      }
-    });
-  } catch {}
-}
+const rawProjectId = (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '').trim();
+const hasValidProjectId = Boolean(rawProjectId && rawProjectId !== '00000000000000000000000000000000' && rawProjectId.length >= 32);
+const projectId = hasValidProjectId ? rawProjectId : '3a8170812b534d0ff9d794f19a901d64';
 
 const walletsList = [
   metaMaskWallet,
+  walletConnectWallet,
   coinbaseWallet,
 ];
-
-if (hasValidProjectId) {
-  walletsList.push(walletConnectWallet);
-}
 
 const connectors = connectorsForWallets(
   [
@@ -136,7 +123,7 @@ const connectors = connectorsForWallets(
   ],
   {
     appName: 'PolyLance',
-    projectId: hasValidProjectId ? projectId : '3a8170812b534d0ff9d794f19a901d64',
+    projectId,
   }
 );
 

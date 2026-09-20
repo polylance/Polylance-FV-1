@@ -19,6 +19,7 @@ import {
   ChevronRight 
 } from 'lucide-react';
 import { getUserBytecodeMatrix } from '../utils/githubOracle';
+import { GithubEkycCard } from '../components/GithubEkycCard';
 
 export const Analytics: React.FC = () => {
   const { jobs, treasury, treasuryHistory, profiles } = usePolyLanceData();
@@ -39,7 +40,7 @@ export const Analytics: React.FC = () => {
   const platformPercent = Math.round((platformMilestoneFees / totalFeesCombined) * 100);
   const disputePercent = Math.round((disputeArbitrationFees / totalFeesCombined) * 100);
 
-  // Calculations for mock database jobs
+  // Calculations for active protocol database jobs
   const completedJobs = jobs.filter((j) => j.status === 'Completed').length;
   const totalVolume = jobs.reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0);
 
@@ -398,66 +399,12 @@ export const Analytics: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* GitHub & Sovereign Code Audited Matrix */}
-            <div className="lg:col-span-7 glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-6">
-              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <Code2 size={18} className="text-purple-700" /> Audited Code-Byte Matrix & Real-Time Score
-                  </h3>
-                  <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-                    {userProfile?.githubVerified ? 'Attested via GitHub OAuth & Polygon Sovereign Oracle' : 'Attested on-chain via PolyLance Sovereign Oracle'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-black text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                    {bytecodeMatrix.primaryScore} / 1000 PTS
-                  </span>
-                  <span className="text-[10px] font-mono text-purple-800 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 font-bold">
-                    {bytecodeMatrix.reputationTier}
-                  </span>
-                </div>
-              </div>
-
-              {bytecodeMatrix.languagesWithPercentages.length > 0 ? (
-                <div className="space-y-4 font-mono text-xs">
-                  {bytecodeMatrix.languagesWithPercentages.map((item) => (
-                    <div key={item.language} className="space-y-1.5">
-                      <div className="flex justify-between text-slate-800 font-bold">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                          {item.language}
-                        </span>
-                        <span className="text-slate-600">
-                          <strong className="text-slate-900">{item.bytes.toLocaleString()} Bytes</strong> ({item.percentage}%)
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[10.5px] text-slate-500">
-                    <span>
-                      Attestation Hash: <code className="bg-slate-100 px-1.5 py-0.5 rounded font-bold text-slate-800">{bytecodeMatrix.attestationHash.slice(0, 10)}...{bytecodeMatrix.attestationHash.slice(-8)}</code>
-                    </span>
-                    <span className="text-purple-700 font-bold">
-                      Total: {bytecodeMatrix.totalBytes.toLocaleString()} Bytes Attested
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1.5">
-                  <p className="font-bold text-slate-700 text-xs">No Audited Code Detected</p>
-                  <p className="text-[11px] text-slate-500 font-sans">
-                    This developer has 0 public commits/repositories on GitHub and 0 on-chain escrow deliverables.
-                  </p>
-                </div>
-              )}
+            {/* GitHub & Sovereign Code Audited Matrix (New Apple Neumorphic / Glass Design) */}
+            <div className="lg:col-span-7">
+              <GithubEkycCard
+                bytecodeMatrix={bytecodeMatrix}
+                userProfile={userProfile}
+              />
             </div>
 
             {/* Earnings history widget */}

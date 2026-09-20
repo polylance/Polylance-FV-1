@@ -81,20 +81,20 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
           className="relative w-full max-w-[460px] max-h-[92vh] bg-white rounded-[32px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.18)] border border-slate-100 flex flex-col overflow-hidden z-10 font-sans text-slate-900"
         >
           {/* Header Section (Pinned top, shrink-0) */}
-          <div className="p-5 sm:p-6 pb-3 flex items-start justify-between gap-3 shrink-0 border-b border-slate-100/60">
-            <div className="flex items-start gap-3">
+          <div className="p-4 sm:p-5 pb-2.5 flex items-start justify-between gap-3 shrink-0 border-b border-slate-100/60">
+            <div className="flex items-start gap-3 min-w-0">
               {/* Wallet Gradient Badge */}
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#3b82f6] via-[#6366f1] to-[#8b5cf6] p-[2px] shadow-sm shadow-indigo-500/20 shrink-0 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#3b82f6] via-[#6366f1] to-[#8b5cf6] p-[2px] shadow-sm shadow-indigo-500/20 shrink-0 flex items-center justify-center">
                 <div className="w-full h-full rounded-[14px] bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center text-white">
-                  <Wallet size={22} strokeWidth={2} />
+                  <Wallet size={20} strokeWidth={2} />
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight leading-snug">
+              <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-snug whitespace-nowrap">
                   Wallet &amp; Balances
                 </h3>
-                <p className="text-xs text-slate-400 font-medium">
+                <p className="text-xs text-slate-400 font-medium whitespace-nowrap">
                   Live on-chain assets &amp; tokens
                 </p>
 
@@ -102,7 +102,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 <div
                   onClick={handleCopyAddress}
                   title="Click to copy address"
-                  className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200/60 rounded-full text-xs font-mono text-slate-700 transition-colors cursor-pointer select-none"
+                  className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200/60 rounded-full text-xs font-mono text-slate-700 transition-colors cursor-pointer select-none"
                 >
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                   <span className="font-semibold">{address ? truncateAddress(address) : 'Not Connected'}</span>
@@ -113,32 +113,32 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
               </div>
             </div>
 
-            {/* Right Header: 3D Cubes + Round Control Buttons */}
-            <div className="flex flex-col items-end gap-1 shrink-0">
-              <div className="flex items-center gap-2">
+            {/* Right Header: Round Control Buttons + 3D Isometric Blocks */}
+            <div className="flex flex-col items-end justify-between shrink-0 self-stretch gap-1">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={handleRefresh}
                   title="Refresh Balances"
-                  className={`w-9 h-9 rounded-full bg-slate-100/90 hover:bg-slate-200/80 text-slate-600 flex items-center justify-center transition-all cursor-pointer ${
+                  className={`w-8 h-8 rounded-full bg-slate-100/90 hover:bg-slate-200/80 text-slate-600 flex items-center justify-center transition-all cursor-pointer ${
                     refreshing ? 'animate-spin' : ''
                   }`}
                 >
-                  <RefreshCw size={15} />
+                  <RefreshCw size={14} />
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
                   title="Close"
-                  className="w-9 h-9 rounded-full bg-slate-100/90 hover:bg-slate-200/80 text-slate-600 flex items-center justify-center transition-all cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-slate-100/90 hover:bg-slate-200/80 text-slate-600 flex items-center justify-center transition-all cursor-pointer"
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
               </div>
 
-              {/* 3D Isometric Translucent Cubes Illustration */}
-              <div className="flex flex-col items-end pr-0.5 pt-0.5 opacity-85 pointer-events-none select-none">
-                <svg width="74" height="42" viewBox="0 0 100 56" fill="none" className="overflow-visible">
+              {/* 3D Isometric Translucent Blocks Illustration */}
+              <div className="opacity-90 select-none mt-auto pt-0.5">
+                <svg width="44" height="28" viewBox="0 0 100 66" fill="none" className="shrink-0">
                   {/* Cube 1 (top back) */}
                   <g transform="translate(34, 0) scale(0.65)" opacity="0.45">
                     <polygon points="30,5 55,18 30,31 5,18" fill="#c7d2fe" />
@@ -158,17 +158,14 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                     <polygon points="30,31 55,18 55,45 30,58" fill="#818cf8" />
                   </g>
                 </svg>
-                <span className="text-[7.5px] font-mono tracking-widest text-slate-400 font-bold uppercase -mt-0.5">
-                  YOUR ASSETS. ON-CHAIN.
-                </span>
               </div>
             </div>
           </div>
 
           {/* Scrollable Body (Always allows full viewing without any cutoffs or squishing) */}
-          <div className="p-5 sm:p-6 pt-3.5 flex-1 overflow-y-auto custom-scrollbar space-y-3">
+          <div className="p-4 sm:p-5 pt-2.5 flex-1 overflow-y-auto custom-scrollbar space-y-2.5">
             {/* Total Wallet Value Card */}
-            <div className="relative overflow-hidden rounded-2xl border border-blue-100/90 bg-gradient-to-r from-[#eff6ff] via-[#f5f8ff] to-[#f5f3ff] p-4 sm:p-5 shadow-3xs shrink-0 min-h-[120px] flex flex-col justify-between">
+            <div className="relative overflow-hidden rounded-2xl border border-blue-100/90 bg-gradient-to-r from-[#eff6ff] via-[#f5f8ff] to-[#f5f3ff] p-3.5 sm:p-4 shadow-3xs shrink-0 min-h-[105px] flex flex-col justify-between">
               {/* Ambient Sinusoidal Flow Wave SVG */}
               <svg className="absolute right-0 bottom-0 w-60 h-24 pointer-events-none opacity-80" viewBox="0 0 240 100" fill="none">
                 <defs>

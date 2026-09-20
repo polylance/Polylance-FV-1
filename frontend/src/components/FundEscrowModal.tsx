@@ -81,11 +81,21 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error('Error executing escrow deposit:', err);
+      const rawText = (err?.message || '') + ' ' + JSON.stringify(err?.receipt || '') + ' ' + (err?.code || '');
+      const isSmartTxRevert = 
+        rawText.includes('0xdb9b') ||
+        rawText.includes('0xdb9B') ||
+        rawText.includes('CALL_EXCEPTION') ||
+        rawText.includes('transaction execution reverted') ||
+        err?.receipt?.to?.toLowerCase() === '0xdb9b1e94b5b69df7e401ddbede43491141047db3';
+
       let cleanMsg = err.message || 'Failed to deposit funds into escrow. Please try again.';
       if (err.code === 'ACTION_REJECTED' || err.code === 4001 || cleanMsg.includes('user rejected') || cleanMsg.includes('User denied')) {
         cleanMsg = 'Deposit cancelled: Transaction signature was rejected in wallet.';
       } else if (cleanMsg.includes('insufficient funds')) {
         cleanMsg = 'Insufficient balance or gas in wallet to complete escrow funding.';
+      } else if (isSmartTxRevert) {
+        cleanMsg = 'METAMASK_SMART_TX_REVERT';
       }
       setErrorMsg(cleanMsg);
     } finally {
@@ -216,7 +226,26 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
               </div>
 
               {/* Error Message if any */}
-              {errorMsg && (
+              {errorMsg === 'METAMASK_SMART_TX_REVERT' ? (
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 space-y-2.5 text-left">
+                  <div className="flex items-center gap-2 font-bold text-xs text-amber-900">
+                    <AlertTriangle size={16} className="text-amber-600 shrink-0" />
+                    <span>Action Required: Turn OFF MetaMask "Smart Transactions"</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    MetaMask routed your deposit through an EIP-7702 Delegation Relayer (<code className="bg-amber-100 px-1 py-0.5 rounded text-[10px]">0xdb9b...</code>), which reverted because smart contract escrows require direct client funding.
+                  </p>
+                  <div className="p-3 rounded-lg bg-white/90 border border-amber-200 text-[11px] font-sans space-y-1.5 text-slate-700">
+                    <p className="font-bold text-slate-900">How to Fix in 5 Seconds:</p>
+                    <ol className="list-decimal list-inside space-y-1 text-slate-600">
+                      <li>Open your <strong>MetaMask extension</strong></li>
+                      <li>Go to <strong>Settings → Transactions</strong> (or <strong>Advanced</strong>)</li>
+                      <li>Toggle <strong>"Smart Transactions"</strong> to <strong className="text-amber-700">OFF</strong></li>
+                      <li>Click the blue <strong>"Lock & Fund Escrow"</strong> button below to complete funding</li>
+                    </ol>
+                  </div>
+                </div>
+              ) : errorMsg && (
                 <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
                   <AlertTriangle size={15} className="shrink-0 mt-0.5 text-red-600" />
                   <span>{errorMsg}</span>

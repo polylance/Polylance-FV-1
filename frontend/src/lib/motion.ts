@@ -45,20 +45,31 @@ export const transition = {
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// PAGE TRANSITION — fluid GPU fade + slide (Butter smooth 60fps)
+// PAGE TRANSITION — fluid Apple iOS 26 GPU fade + slide + deblur (Butter smooth 60fps)
 // ─────────────────────────────────────────────────────────────────
 export const pageVariants = {
   initial: {
     opacity: 0,
-    y: 4,
+    y: 8,
+    filter: 'blur(3px)',
   },
   animate: {
     opacity: 1,
     y: 0,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 0.22,
+      ease: appleEase,
+    },
   },
   exit: {
     opacity: 0,
     y: -4,
+    filter: 'blur(2px)',
+    transition: {
+      duration: 0.12,
+      ease: [0.32, 0, 0.67, 0],
+    },
   },
 } as const;
 

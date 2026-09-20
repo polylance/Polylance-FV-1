@@ -842,15 +842,26 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   })()}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
-                  className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto shrink-0"
-                >
-                  <Award size={13} />
-                  <span>View Certificate</span>
-                  <ExternalLink size={11} />
-                </button>
+                <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setIsPaymentReleasedModalOpen(true)}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-emerald-100 hover:text-white border border-emerald-500/40 text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto shrink-0"
+                  >
+                    <CheckCircle2 size={13} className="text-emerald-300" />
+                    <span>Settlement Receipt</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
+                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto shrink-0"
+                  >
+                    <Award size={13} />
+                    <span>View Certificate</span>
+                    <ExternalLink size={11} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

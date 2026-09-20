@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Web3Provider, useWeb3 } from './context/Web3Context';
 import { PolyLanceDataProvider } from './context/PolyLanceDataContext';
@@ -29,6 +29,7 @@ import { Privacy } from './pages/Privacy';
 import { Security } from './pages/Security';
 import { Disclaimer } from './pages/Disclaimer';
 import { Manifesto } from './pages/Manifesto';
+import { CertifiedPass } from './pages/CertifiedPass';
 import { DevPrimitivesPage } from './pages/DevPrimitivesPage';
 import { DevStatesPage } from './pages/DevStatesPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -37,8 +38,31 @@ import { pageVariants, transition } from './lib/motion';
 // ── Apple-style page transition wrapper ────────────────────────────────────
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isConnected, currentRole } = useWeb3();
   const isVisitor = !isConnected || currentRole === 'visitor';
+
+  // Social media deep link synchronization from search params
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const auditParam = searchParams.get('audit') || searchParams.get('audit-report');
+      const attestationParam = searchParams.get('attestation') || searchParams.get('cert');
+      const roleParam = searchParams.get('role');
+
+      if (auditParam && !location.pathname.startsWith('/audit')) {
+        navigate(`/audit/${auditParam}`, { replace: true });
+      } else if (attestationParam && !location.pathname.startsWith('/attestation') && !location.pathname.includes('/attestation')) {
+        navigate(`/attestation/${attestationParam}${roleParam ? `?role=${roleParam}` : ''}`, { replace: true });
+      }
+    } catch {}
+  }, [location.pathname, navigate]);
+
+  // Butter-smooth section change: reset scroll position cleanly to top
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location.pathname]);
 
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -55,6 +79,7 @@ const AnimatedRoutes: React.FC = () => {
         <Routes location={location}>
           {/* PUBLIC & PERCEPTION ACCESS ROUTES */}
           <Route path="/" element={<Landing />} />
+          <Route path="/overview" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/jobs" element={<FindJobs />} />
           <Route path="/jobs/:id" element={<JobDetail />} />
@@ -66,6 +91,8 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/security" element={<Security />} />
           <Route path="/disclaimer" element={<Disclaimer />} />
           <Route path="/manifesto" element={<Manifesto />} />
+          <Route path="/certifiedpass" element={<CertifiedPass />} />
+          <Route path="/certified-pass" element={<CertifiedPass />} />
           <Route path="/dev/primitives" element={<DevPrimitivesPage />} />
           <Route path="/dev/states" element={<DevStatesPage />} />
 
@@ -107,15 +134,16 @@ const AnimatedRoutes: React.FC = () => {
 const AppContent: React.FC = () => {
   const location = useLocation();
   const isChat = location.pathname.startsWith('/chat');
-  const showFooter = !isChat && (location.pathname === '/' || location.pathname === '/dashboard');
+  const isAudit = location.pathname.startsWith('/audit');
+  const showFooter = !isChat && !isAudit && (location.pathname === '/' || location.pathname === '/dashboard');
 
   return (
-    <div className={isChat ? "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white" : "min-h-[100dvh] bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white"}>
-      {/* Production Navbar with Role-Aware Perception Navigation */}
-      <Navbar />
+    <div className={isChat ? "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white" : (isAudit ? "min-h-[100dvh] bg-[#E2E8F0]/40 text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white" : "min-h-[100dvh] bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white")}>
+      {/* Production Navbar with Role-Aware Perception Navigation (Hidden on Audit Document) */}
+      {!isAudit && <Navbar />}
 
       {/* Main Application Content */}
-      <main className={isChat ? "flex-1 w-full min-h-0 overflow-hidden flex flex-col pb-16 lg:pb-0" : "flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6 pb-24 lg:pb-6"}>
+      <main className={isChat ? "flex-1 w-full min-h-0 overflow-hidden flex flex-col pb-16 lg:pb-0" : (isAudit ? "w-full p-0 m-0" : "flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6 pb-24 lg:pb-6")}>
         <ErrorBoundary>
           <AnimatedRoutes />
         </ErrorBoundary>
@@ -124,8 +152,8 @@ const AppContent: React.FC = () => {
       {/* Footer ONLY on Dashboard and Landing Page */}
       {showFooter && <Footer />}
 
-      {/* Mobile-only Authenticated dApp Bottom Tab Bar */}
-      <BottomTabBar />
+      {/* Mobile-only Authenticated dApp Bottom Tab Bar (Hidden on Audit Document) */}
+      {!isAudit && <BottomTabBar />}
     </div>
   );
 };

@@ -9,6 +9,7 @@ import { UserProfile, Application } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { transition } from '../lib/motion';
 import { getUserBytecodeMatrix } from '../utils/githubOracle';
+import { GithubEkycCard } from './GithubEkycCard';
 
 interface UserProfileBioModalProps {
   isOpen: boolean;
@@ -179,43 +180,12 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
             </div>
           </div>
 
-          {/* Audited Code Byte Matrix */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <h4 className="font-headline font-bold text-xs text-slate-700 uppercase tracking-wider">
-                Audited Code Byte Matrix
-              </h4>
-              <span className="text-[10.5px] font-mono font-bold text-purple-900">
-                {bytecodeMatrix.totalBytes.toLocaleString()} Bytes
-              </span>
-            </div>
-            {bytecodeMatrix.languagesWithPercentages.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 font-mono text-xs">
-                {bytecodeMatrix.languagesWithPercentages.map((item) => (
-                  <div key={item.language} className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1 shadow-3xs">
-                    <div className="flex justify-between items-center text-[10px]">
-                      <span className="font-bold text-slate-800">{item.language}</span>
-                      <span className="text-slate-500">{item.percentage}%</span>
-                    </div>
-                    <span className="text-purple-700 font-extrabold text-[11px] block">
-                      {item.bytes.toLocaleString()} Bytes
-                    </span>
-                    <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-0.5">
-                <p className="text-xs font-bold text-slate-600">No Audited Code Detected</p>
-                <p className="text-[10.5px] text-slate-400 font-sans">0 GitHub repositories / 0 on-chain escrow deliverables</p>
-              </div>
-            )}
-          </div>
+          {/* Audited Code Byte Matrix (New Apple Neumorphic / Glass Design) */}
+          <GithubEkycCard
+            bytecodeMatrix={bytecodeMatrix}
+            userProfile={profile}
+            onboardingLink={false}
+          />
 
           {/* Linked GitHub & Social Attestation */}
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">

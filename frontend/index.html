@@ -106,16 +106,43 @@
     content="Zero-commission crypto freelance marketplace. Smart contract milestone escrows, verified GitHub attestations, and Soulbound reputation on Polygon." />
   <meta name="twitter:image" content="https://polylance.codes/polylanceLogo.png" />
 
-  <!-- SPA Routing Redirect Parse script for GitHub Pages -->
+  <!-- SPA Routing & Social Media Deep Link Synchronizer for HashRouter -->
   <script type="text/javascript">
     (function (l) {
-      if (l.search[1] === '/') {
-        var decoded = l.search.slice(1).split('&').map(function (s) {
-          return s.replace(/~and~/g, '&')
-        }).join('?');
-        window.history.replaceState(null, null,
-          l.pathname.slice(0, -1) + decoded + l.hash
-        );
+      // 1. Direct path routing: if landed on /audit/... or /attestation/... without hash
+      if (l.pathname && l.pathname !== '/' && !l.pathname.endsWith('/index.html')) {
+        var cleanPath = l.pathname;
+        var search = l.search || '';
+        window.location.replace(l.protocol + '//' + l.host + '/#' + cleanPath + search);
+        return;
+      }
+
+      // 2. Query parameter deep linking from LinkedIn, X/Twitter, or shared links
+      if (l.search) {
+        // Handle SPA GitHub Pages format: ?/...
+        if (l.search.indexOf('?/') === 0) {
+          var decoded = l.search.slice(2).split('&').map(function (s) {
+            return s.replace(/~and~/g, '&');
+          }).join('?');
+          window.location.replace(l.protocol + '//' + l.host + '/#' + decoded);
+          return;
+        }
+
+        // Handle direct social share query params (?audit=0x... or ?attestation=JOB-001)
+        var params = new URLSearchParams(l.search);
+        var auditAddr = params.get('audit') || params.get('audit-report');
+        var attestationId = params.get('attestation') || params.get('cert');
+        var role = params.get('role');
+
+        if (auditAddr) {
+          window.location.replace(l.protocol + '//' + l.host + '/#/audit/' + encodeURIComponent(auditAddr));
+          return;
+        }
+        if (attestationId) {
+          var roleParam = role ? '?role=' + encodeURIComponent(role) : '';
+          window.location.replace(l.protocol + '//' + l.host + '/#/attestation/' + encodeURIComponent(attestationId) + roleParam);
+          return;
+        }
       }
     }(window.location));
   </script>

@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 
 export interface GasOverrides {
+  type: number;
   maxPriorityFeePerGas: bigint;
   maxFeePerGas: bigint;
 }
@@ -37,6 +38,7 @@ export async function getPolygonGasOverrides(provider?: ethers.Provider | null):
       const finalMaxFee = bufferedMaxFee > MIN_MAX_FEE_WEI ? bufferedMaxFee : MIN_MAX_FEE_WEI;
 
       return {
+        type: 2,
         maxPriorityFeePerGas: priorityFee,
         maxFeePerGas: finalMaxFee > priorityFee * 2n ? finalMaxFee : priorityFee * 2n,
       };
@@ -46,6 +48,7 @@ export async function getPolygonGasOverrides(provider?: ethers.Provider | null):
   }
 
   return {
+    type: 2,
     maxPriorityFeePerGas: MIN_PRIORITY_WEI,
     maxFeePerGas: MIN_MAX_FEE_WEI,
   };

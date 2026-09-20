@@ -141,11 +141,16 @@ export async function loadStateFromDatabase() {
         sharedState = { ...sharedState, ...(record.data as any) };
         console.log("[DB] Loaded shared state from Backup Database (Prisma Cloud)");
         persistState();
+        pruneExpiredJobsOnServer();
         return;
       }
     }
   } catch (err: any) {
     console.warn("[DB] Backup DB load note:", err?.message || err);
+  } finally {
+    if (sharedState.jobs && sharedState.jobs.length > 0) {
+      pruneExpiredJobsOnServer();
+    }
   }
 }
 
@@ -251,6 +256,61 @@ function normalizeJobOnServer(job: any): any {
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const JOB_AUTO_EXPIRY_DAYS = 14;
 
+const MOCK_OR_TEST_CLIENTS = new Set([
+  '0x474d8c97445fbcf4e13c257556adbced11a9def8',
+  '0x7777111177771111777711117777111177771111',
+  '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+  '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
+  '0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc',
+  '0x90f79bf6eb2c4f870365e785982e1f101e93b906',
+  '0x15d34aaf54267db7d7c367839aaf71a00a2c6a65',
+  '0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc',
+  '0x976ea74026e726554db657fa54763abd0c3a0aa9',
+  '0x14dc79964da2c08b23698b3d3cc7ca32193d9955',
+  '0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f',
+  '0xa0ee7a142d267c1f36714e4a8f75612f20a79720',
+  '0x71c8366420a092c55660830e8115e9a44390001',
+  '0x34a589112d480055dafd8a610b7d1e203891c821',
+  '0x89b4566420a092c55660830e8115e9a443900142',
+  '0x42f8366420a092c55660830e8115e9a443900990',
+  '0x55e1236420a092c55660830e8115e9a443900310'
+]);
+
+export function isDemoOrMockJobOnServer(job: any): boolean {
+  if (!job) return true;
+  const id = String(job.id || '').toLowerCase().trim();
+  if (
+    id === 'job-101' ||
+    id === 'job-102' ||
+    id.startsWith('mock-') ||
+    id.startsWith('test-') ||
+    id.startsWith('job-mock-')
+  ) {
+    return true;
+  }
+
+  const client = String(job.client || '').toLowerCase().trim();
+  if (MOCK_OR_TEST_CLIENTS.has(client)) {
+    return true;
+  }
+
+  const title = String(job.title || '').trim().toLowerCase();
+  const desc = String(job.description || '').trim().toLowerCase();
+
+  if (
+    title === 'job to select' ||
+    title === 'job 1' ||
+    title === 'job 2' ||
+    title === 'full stack smart contract integration' ||
+    desc.includes('connect react 19 frontend with polygon amoy escrow contracts') ||
+    title.includes('private confidential smart contract')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export function isJobExpiredOnServer(job: any): boolean {
   if (!job) return false;
   if (job.status !== 'Open' || Boolean(job.freelancer)) return false;
@@ -261,9 +321,9 @@ export function isJobExpiredOnServer(job: any): boolean {
 export function pruneExpiredJobsOnServer() {
   if (!Array.isArray(sharedState.jobs) || sharedState.jobs.length === 0) return;
   const beforeCount = sharedState.jobs.length;
-  sharedState.jobs = sharedState.jobs.filter((j) => !isJobExpiredOnServer(j));
+  sharedState.jobs = sharedState.jobs.filter((j) => !isJobExpiredOnServer(j) && !isDemoOrMockJobOnServer(j));
   if (sharedState.jobs.length !== beforeCount) {
-    console.log(`[PRUNE] Automatically removed ${beforeCount - sharedState.jobs.length} expired (14+ days inactive) job(s) from database`);
+    console.log(`[PRUNE] Automatically removed ${beforeCount - sharedState.jobs.length} expired / mock job(s) from database for production`);
     persistStateToDatabases().catch(() => {});
   }
 }
@@ -1547,21 +1607,36 @@ async function handleCertifiedPassVerification(req: Request, res: Response) {
 
     // Fallback: check against live sharedState in memory
     const cleanLower = certId.toLowerCase();
-    const strippedJobId = certId.replace(/^PL-SBT-JOB-/, '').split('-')[0].trim().toLowerCase();
+    const strippedJobId = certId.replace(/^pl-sbt-job-/i, '').split('-')[0].trim().toLowerCase();
+    const rawJobId = strippedJobId.replace(/^0x/i, '');
 
-    const liveJob = (sharedState.jobs || []).find((j: any) => 
-      j && (
-        String(j.id).toLowerCase() === cleanLower ||
-        String(j.id).toLowerCase() === strippedJobId ||
-        `PL-SBT-JOB-${j.id}`.toLowerCase() === cleanLower ||
-        formatCanonicalCertId(j.id, j.contractAddress).toLowerCase() === cleanLower ||
-        String(j.contractAddress || '').toLowerCase() === cleanLower
-      )
-    );
+    const liveJob = (sharedState.jobs || []).find((j: any) => {
+      if (!j) return false;
+      const jId = String(j.id || '').toLowerCase();
+      const cleanJId = jId.replace(/^0x/i, '');
+      const cAddr = String(j.contractAddress || '').toLowerCase();
+      const canonical = formatCanonicalCertId(j.id, j.contractAddress).toLowerCase();
+      const barcodeRaw = cleanJId.slice(-4);
+      return (
+        jId === cleanLower ||
+        cleanJId === cleanLower ||
+        jId === strippedJobId ||
+        cleanJId === strippedJobId ||
+        cleanJId === rawJobId ||
+        `pl-sbt-job-${jId}` === cleanLower ||
+        `pl-sbt-job-${cleanJId}` === cleanLower ||
+        cleanLower.startsWith(`pl-sbt-job-${jId}`) ||
+        cleanLower.startsWith(`pl-sbt-job-${cleanJId}`) ||
+        canonical === cleanLower ||
+        cAddr === cleanLower ||
+        (j.certificateId && String(j.certificateId).toLowerCase() === cleanLower) ||
+        (cleanLower.startsWith('pl-') && barcodeRaw && cleanLower.endsWith(barcodeRaw))
+      );
+    });
 
     if (liveJob) {
       const isSettled = liveJob.status === 'Completed' || liveJob.status === 'Resolved';
-      const canonicalCertId = formatCanonicalCertId(liveJob.id, liveJob.contractAddress);
+      const canonicalCertId = liveJob.certificateId || formatCanonicalCertId(liveJob.id, liveJob.contractAddress);
       const certifiedPassVerifyUrl = `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(canonicalCertId)}&partner=polylance`;
 
       const responsePayload = {
@@ -1630,12 +1705,53 @@ async function handleCertifiedPassVerification(req: Request, res: Response) {
       return;
     }
 
-    // Check if identifier matches a profile address for audit lookup
-    const profile = sharedState.profiles[cleanLower];
-    if (profile || cleanLower.startsWith('0x') || cleanLower.startsWith('pl-aud-')) {
-      const addr = cleanLower.startsWith('pl-aud-') ? cleanLower.replace('pl-aud-', '') : cleanLower;
-      const devJobs = (sharedState.jobs || []).filter((j: any) => String(j.freelancer || '').toLowerCase() === addr);
-      const auditId = `PL-AUD-${addr.slice(2, 10).toUpperCase()}`;
+    // Check if identifier matches an Audit Report (PL-AUD-..., wallet address 0x..., or member name)
+    const auditHexPart = cleanLower.replace(/^pl-aud-/i, '').replace(/^0x/i, '').trim();
+    let matchedAddress: string | null = null;
+    let matchedProfile: any = null;
+
+    for (const [profAddr, prof] of Object.entries(sharedState.profiles || {})) {
+      const lowerProf = profAddr.toLowerCase();
+      const cleanProf = lowerProf.replace(/^0x/i, '');
+      const profName = String((prof as any)?.displayName || '').toLowerCase();
+
+      if (
+        lowerProf === cleanLower ||
+        lowerProf === `0x${auditHexPart}` ||
+        cleanProf === auditHexPart ||
+        (auditHexPart.length >= 6 && cleanProf.startsWith(auditHexPart)) ||
+        (auditHexPart.length >= 3 && profName && profName === cleanLower)
+      ) {
+        matchedAddress = lowerProf;
+        matchedProfile = prof;
+        break;
+      }
+    }
+
+    if (!matchedAddress) {
+      for (const j of sharedState.jobs || []) {
+        if (!j) continue;
+        const fAddr = String(j.freelancer || '').toLowerCase();
+        const cAddr = String(j.client || '').toLowerCase();
+        const cleanF = fAddr.replace(/^0x/i, '');
+        const cleanC = cAddr.replace(/^0x/i, '');
+
+        if (cleanF === auditHexPart || (auditHexPart.length >= 6 && cleanF.startsWith(auditHexPart))) {
+          matchedAddress = fAddr;
+          break;
+        }
+        if (cleanC === auditHexPart || (auditHexPart.length >= 6 && cleanC.startsWith(auditHexPart))) {
+          matchedAddress = cAddr;
+          break;
+        }
+      }
+    }
+
+    if (matchedAddress || cleanLower.startsWith('pl-aud-') || cleanLower.startsWith('0x')) {
+      const finalAddr = matchedAddress || (cleanLower.startsWith('0x') ? cleanLower : `0x${auditHexPart}`);
+      const cleanHex = finalAddr.replace(/^0x/i, '');
+      const auditId = `PL-AUD-${cleanHex.slice(0, 8).toUpperCase()}`;
+      const devJobs = (sharedState.jobs || []).filter((j: any) => String(j.freelancer || '').toLowerCase() === finalAddr.toLowerCase());
       const certifiedPassVerifyUrl = `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`;
 
       const auditPayload = {
@@ -1648,26 +1764,26 @@ async function handleCertifiedPassVerification(req: Request, res: Response) {
         reason: 'Authentic PolyLance protocol trust index and historical milestone audit verified.',
         details: {
           typeTitle: 'Protocol Trust Audit',
-          title: `${profile?.displayName || 'Member'} Trust & Performance Audit`,
-          role: profile?.role === 'client' ? 'CLIENT' : 'DEVELOPER',
-          trustIndexScore: profile?.githubVerified ? '10.0' : '9.8',
+          title: `${matchedProfile?.displayName || 'Member'} Trust & Performance Audit`,
+          role: matchedProfile?.role === 'client' ? 'CLIENT' : 'DEVELOPER',
+          trustIndexScore: matchedProfile?.githubVerified ? '10.0' : '9.8',
           settledAmountUsdc: 'PROTECTED (Confidential Settlement)',
           lifetimeVolumeUsdc: 'PROTECTED',
           slaSuccessRate: '100%',
           completedMilestonesCount: devJobs.filter((j: any) => j.status === 'Completed').length,
-          freelancer: profile?.displayName || `Member ${addr.slice(0, 6)}`,
-          freelancerName: profile?.displayName || `Member ${addr.slice(0, 6)}`,
-          freelancerAddress: addr,
+          freelancer: matchedProfile?.displayName || `Member ${finalAddr.slice(0, 6)}`,
+          freelancerName: matchedProfile?.displayName || `Member ${finalAddr.slice(0, 6)}`,
+          freelancerAddress: finalAddr,
           recipient: {
-            name: profile?.displayName || `Member ${addr.slice(0, 6)}`,
-            address: addr
+            name: matchedProfile?.displayName || `Member ${finalAddr.slice(0, 6)}`,
+            address: finalAddr
           },
           oracleSignature: '0x42f8366420a092c55660830e8115e9a443900990',
-          ipfsCid: `QmPLAuditProof${addr.slice(2, 10)}`,
+          ipfsCid: `QmPLAuditProof${cleanHex.slice(0, 8)}`,
           timestamp: new Date().toISOString()
         },
         source: 'POLYLANCE_LIVE_STATE',
-        polyLanceUrl: `https://polylance.codes/#/audit/${addr}`,
+        polyLanceUrl: `https://polylance.codes/#/audit/${finalAddr}`,
         certifiedPassVerifyUrl
       };
 
@@ -1846,9 +1962,22 @@ async function handleCertifiedPassAudit(req: Request, res: Response) {
     }
 
     // Fallback: derive from live sharedState profile & jobs
-    const profile = sharedState.profiles[address] || {};
-    const devJobs = (sharedState.jobs || []).filter((j: any) => String(j.freelancer || '').toLowerCase() === address);
-    const auditId = `PL-AUD-${address.slice(2, 10).toUpperCase()}`;
+    const cleanHex = address.replace(/^pl-aud-/i, '').replace(/^0x/i, '').trim();
+    const fullAddr = address.startsWith('0x') ? address : `0x${cleanHex}`;
+    let profile = sharedState.profiles[fullAddr] || sharedState.profiles[address] || {};
+    if (!profile.displayName) {
+      for (const [k, p] of Object.entries(sharedState.profiles || {})) {
+        if (k.toLowerCase().includes(cleanHex) || cleanHex.includes(k.toLowerCase().replace(/^0x/i, ''))) {
+          profile = p;
+          break;
+        }
+      }
+    }
+    const devJobs = (sharedState.jobs || []).filter((j: any) => 
+      String(j.freelancer || '').toLowerCase().includes(cleanHex) ||
+      (fullAddr && String(j.freelancer || '').toLowerCase() === fullAddr.toLowerCase())
+    );
+    const auditId = `PL-AUD-${cleanHex.slice(0, 8).toUpperCase()}`;
     const certifiedPassVerifyUrl = `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`;
 
     const auditPayload = {
@@ -1868,19 +1997,19 @@ async function handleCertifiedPassAudit(req: Request, res: Response) {
         lifetimeVolumeUsdc: 'PROTECTED',
         slaSuccessRate: '100%',
         completedMilestonesCount: devJobs.filter((j: any) => j.status === 'Completed').length,
-        freelancer: profile.displayName || `Member ${address.slice(0, 6)}`,
-        freelancerName: profile.displayName || `Member ${address.slice(0, 6)}`,
-        freelancerAddress: address,
+        freelancer: profile.displayName || `Member ${fullAddr.slice(0, 6)}`,
+        freelancerName: profile.displayName || `Member ${fullAddr.slice(0, 6)}`,
+        freelancerAddress: fullAddr,
         recipient: {
-          name: profile.displayName || `Member ${address.slice(0, 6)}`,
-          address
+          name: profile.displayName || `Member ${fullAddr.slice(0, 6)}`,
+          address: fullAddr
         },
         oracleSignature: '0x42f8366420a092c55660830e8115e9a443900990',
-        ipfsCid: `QmPLAuditProof${address.slice(2, 10)}`,
+        ipfsCid: `QmPLAuditProof${cleanHex.slice(0, 8)}`,
         timestamp: new Date().toISOString()
       },
       source: 'POLYLANCE_LIVE_STATE',
-      polyLanceUrl: `https://polylance.codes/#/audit/${address}`,
+      polyLanceUrl: `https://polylance.codes/#/audit/${fullAddr}`,
       certifiedPassVerifyUrl
     };
 

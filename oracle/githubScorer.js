@@ -123,23 +123,30 @@ async function scoreGithubProfile(username) {
     throw new Error(`Unexpected GitHub response: ${JSON.stringify(repos)}`);
   }
 
-  // Tally star-weighted language contributions
+  // Tally star-weighted language contributions, code sizes, and non-fork repositories
   const categoryScores = {};
+  let totalStars = 0;
+  let totalSizeBytes = 0;
+  let nonForkCount = 0;
 
   for (const repo of repos) {
     if (repo.fork) continue; // ignore forks
+    nonForkCount++;
+    const stars = repo.stargazers_count ?? 0;
+    totalStars += stars;
+    const sizeBytes = (repo.size ?? 0) * 1024;
+    totalSizeBytes += sizeBytes;
+
     const lang = repo.language;
     if (!lang) continue;
 
     const category = LANGUAGE_CATEGORY[lang] ?? "other";
-    const stars = repo.stargazers_count ?? 0;
-    const weight = Math.log1p(stars) + 1; // log(1+stars) + 1 base unit
+    const weight = Math.log1p(stars) + Math.min(10, sizeBytes / 100000) + 1;
 
     categoryScores[category] = (categoryScores[category] ?? 0) + weight;
   }
 
-  if (Object.keys(categoryScores).length === 0) {
-    // No scoreable repos — return 0 score and empty secondary categories
+  if (Object.keys(categoryScores).length === 0 || nonForkCount === 0) {
     return {
       primaryCategory: "other",
       primaryScore: 0,
@@ -148,21 +155,44 @@ async function scoreGithubProfile(username) {
     };
   }
 
-  // Sort by score descending
+  // Hardened Points Assignment (Max 1000 pts total)
+  // Factor 1: Verified Code Volume (Max 350 pts)
+  let byteScore = 0;
+  if (totalSizeBytes > 2000000) {
+    byteScore = 240 + Math.min(110, Math.round(Math.log10(totalSizeBytes / 2000000) * 55));
+  } else if (totalSizeBytes > 500000) {
+    byteScore = 150 + Math.round(((totalSizeBytes - 500000) / 1500000) * 90);
+  } else if (totalSizeBytes > 100000) {
+    byteScore = 75 + Math.round(((totalSizeBytes - 100000) / 400000) * 75);
+  } else if (totalSizeBytes > 25000) {
+    byteScore = 30 + Math.round(((totalSizeBytes - 25000) / 75000) * 45);
+  } else {
+    byteScore = Math.round((totalSizeBytes / 25000) * 30);
+  }
+
+  // Factor 2: Non-Fork Repo Depth (Max 150 pts)
+  const repoScore = Math.min(150, nonForkCount * 12);
+
+  // Factor 3: Stars & Community Validation (Max 200 pts)
+  const starScore = Math.min(200, Math.round(totalStars * 3));
+
+  // Factor 4: Category Diversity (Max 150 pts)
+  const categoryCount = Object.keys(categoryScores).length;
+  const diversityScore = Math.min(150, categoryCount * 30);
+
+  // Raw combined score out of 1000
+  const rawScore = byteScore + repoScore + starScore + diversityScore;
+  const primaryScore = Math.min(990, Math.max(100, rawScore));
+
+  // Sort by category weight descending
   const sorted = Object.entries(categoryScores).sort((a, b) => b[1] - a[1]);
-
-  // Normalize to [1, 1000]
-  const maxRaw = sorted[0][1];
-  const normalize = (raw) => Math.max(1, Math.round((raw / maxRaw) * 1000));
-
-  const [primaryCategory, primaryRaw] = sorted[0];
-  const primaryScore = normalize(primaryRaw);
+  const [primaryCategory] = sorted[0];
 
   const secondaryCategories = [];
   const secondaryScores = [];
   for (let i = 1; i < sorted.length; i++) {
     secondaryCategories.push(sorted[i][0]);
-    secondaryScores.push(normalize(sorted[i][1]));
+    secondaryScores.push(Math.round(primaryScore * (0.35 / i)));
   }
 
   return { primaryCategory, primaryScore, secondaryCategories, secondaryScores };

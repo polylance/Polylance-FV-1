@@ -12,6 +12,7 @@ import { Briefcase, Send, PlusCircle, ArrowUpRight, Award, Search, Lock, Trendin
 import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 import { EmptyState } from '../components/UIStates';
 import { InsufficientFundsModal } from '../components/InsufficientFundsModal';
+import { GithubEkycCard } from '../components/GithubEkycCard';
 
 export const Dashboard: React.FC = () => {
   const { address, currentRole, isArbitrator, balanceNative, balanceUsdc, refreshBalances } = useWeb3();
@@ -1101,71 +1102,12 @@ export const Dashboard: React.FC = () => {
                 </Link>
               </div>
 
-              {/* Audited Code-Byte Matrix & Developer Score */}
-              <div className="glass-panel p-6 border-cyan-200 bg-white hard-shadow space-y-3 font-mono text-xs">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                    {userProfile.githubVerified ? (
-                      <>
-                        <CheckCircle2 size={16} className="text-emerald-700" /> GitHub E-KYC Attestation
-                      </>
-                    ) : (
-                      <>
-                        <ShieldCheck size={16} className="text-purple-700" /> Sovereign On-Chain Attestation
-                      </>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-bold">
-                      Score: {bytecodeMatrix.primaryScore} / 1000
-                    </span>
-                    <span className="text-[9px] bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded font-bold">
-                      {bytecodeMatrix.reputationTier}
-                    </span>
-                  </div>
-                </div>
-
-                {bytecodeMatrix.languagesWithPercentages.length > 0 ? (
-                  <div className="space-y-2">
-                    {bytecodeMatrix.languagesWithPercentages.map((item) => (
-                      <div key={item.language} className="space-y-1">
-                        <div className="flex justify-between items-center py-0.5">
-                          <span className="text-slate-700 font-medium flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                            {item.language}
-                          </span>
-                          <span className="font-bold text-purple-900">
-                            {item.bytes.toLocaleString()} Bytes ({item.percentage}%)
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-slate-500 font-sans space-y-0.5">
-                    <p className="font-bold text-xs text-slate-700">No Audited Code Detected</p>
-                    <p className="text-[10px] text-slate-400">0 GitHub repositories / 0 on-chain escrow deliverables</p>
-                  </div>
-                )}
-
-                {!userProfile.githubVerified && (
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-500">Link GitHub for +40 pts:</span>
-                    <Link
-                      to="/onboarding"
-                      className="text-[10px] font-bold text-purple-700 hover:text-purple-900 underline"
-                    >
-                      Connect GitHub &rarr;
-                    </Link>
-                  </div>
-                )}
-              </div>
+              {/* Audited Code-Byte Matrix & Developer Score (New Apple-Style Neumorphic / Glass Design) */}
+              <GithubEkycCard
+                bytecodeMatrix={bytecodeMatrix}
+                userProfile={userProfile}
+                onboardingLink
+              />
             </div>
           </div>
         </div>

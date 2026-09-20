@@ -40,7 +40,7 @@ export function formatDaysRemaining(submittedAt: number, reviewPeriodDays: numbe
   return `${remHours}h remaining`;
 }
 
-export function generateMockTxHash(): string {
+export function generateFallbackTxHash(): string {
   const chars = '0123456789abcdef';
   let hash = '0x';
   for (let i = 0; i < 64; i++) {
@@ -48,6 +48,8 @@ export function generateMockTxHash(): string {
   }
   return hash;
 }
+
+export const generateMockTxHash = generateFallbackTxHash;
 
 export function generateDeterministicHash(seed: string = Date.now().toString()): string {
   return ethers.keccak256(ethers.toUtf8Bytes(seed));
@@ -138,14 +140,33 @@ export function getDeterministicSbtId(jobId: string | undefined): number {
 }
 
 /**
- * Returns canonical CertifiedPass Certificate ID: PL-SBT-JOB-<jobId>-<shortContractOrJobHash>
+ * Returns permanent canonical CertifiedPass Certificate ID: PL-SBT-JOB-<jobId>
+ * Guaranteed to never mutate across re-renders, reloads, or after downloading.
  */
-export function getCanonicalCertificateId(jobId?: string | number, contractAddress?: string): string {
-  if (!jobId) return 'PL-SBT-JOB-001-0x001';
-  const clean = String(jobId).trim().replace(/^PL-SBT-JOB-/, '');
-  // Extract clean short hash without punctuation or spaces
-  const shortHash = (contractAddress ? String(contractAddress).trim().replace(/[^a-zA-Z0-9]/g, '') : clean.replace(/[^a-zA-Z0-9]/g, '')).slice(0, 6);
-  return `PL-SBT-JOB-${clean}-${shortHash}`;
+export function getCanonicalCertificateId(jobId?: string | number | any, contractAddress?: string): string {
+  if (!jobId) return 'PL-SBT-JOB-001';
+  if (typeof jobId === 'object' && jobId !== null) {
+    if (jobId.certificateId) return String(jobId.certificateId).trim();
+    return getCanonicalCertificateId(jobId.id, jobId.contractAddress);
+  }
+  const str = String(jobId).trim();
+  if (str.startsWith('PL-SBT-JOB-')) {
+    return str;
+  }
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const cached = localStorage.getItem(`polylance_cert_id_${str}`);
+      if (cached) return cached;
+    } catch (_) {}
+  }
+  const clean = str.replace(/^PL-SBT-JOB-/i, '');
+  const canonicalId = `PL-SBT-JOB-${clean}`;
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      localStorage.setItem(`polylance_cert_id_${str}`, canonicalId);
+    } catch (_) {}
+  }
+  return canonicalId;
 }
 
 /**

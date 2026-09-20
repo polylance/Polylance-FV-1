@@ -67,6 +67,12 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/certifiedpass" className="hover:text-purple-600 transition-colors inline-flex items-center gap-1.5 font-bold text-indigo-700">
+                  <ShieldCheck size={13} className="text-indigo-600" />
+                  CertifiedPass (Verification Protocol)
+                </Link>
+              </li>
+              <li>
                 <Link to="/manifesto" className="hover:text-purple-600 transition-colors inline-flex items-center gap-1.5 font-bold text-purple-700">
                   <Sparkles size={13} className="text-purple-600 animate-pulse" />
                   Protocol Manifesto & Team
@@ -155,6 +161,10 @@ export const Footer: React.FC = () => {
                 </Link>
                 <Link to="/analytics" className="min-h-[44px] flex items-center text-xs font-semibold text-slate-700 hover:text-purple-600">
                   Platform Analytics
+                </Link>
+                <Link to="/certifiedpass" className="min-h-[44px] flex items-center gap-1.5 text-xs font-bold text-indigo-700 hover:text-indigo-800">
+                  <ShieldCheck size={13} className="text-indigo-600" />
+                  CertifiedPass (Verification Protocol)
                 </Link>
                 <Link to="/manifesto" className="min-h-[44px] flex items-center gap-1.5 text-xs font-bold text-purple-700 hover:text-purple-800">
                   <Sparkles size={13} className="text-purple-600 animate-pulse" />

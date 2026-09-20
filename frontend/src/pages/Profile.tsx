@@ -6,10 +6,11 @@ import { UserProfile } from '../types';
 import { truncateAddress, getDeterministicSbtId, getCanonicalCertificateId, getCertifiedPassVerifyUrl } from '../utils/formatters';
 import { scoreGithubUser, getUserBytecodeMatrix } from '../utils/githubOracle';
 import { Award, CheckCircle2, ShieldCheck, FolderGit2, ExternalLink, Building2, Star, Zap, Activity, Scale, Search, History, Copy, CheckCheck } from 'lucide-react';
+import { GithubEkycCard } from '../components/GithubEkycCard';
 
 export const Profile: React.FC = () => {
   const { address: targetAddress } = useParams<{ address: string }>();
-  const { address: currentAddress, isConnected, currentRole } = useWeb3();
+  const { address: currentAddress, isConnected, connectWallet, currentRole } = useWeb3();
   const { profiles, jobs, updateProfile } = usePolyLanceData();
 
   const profileAddr = targetAddress || currentAddress;
@@ -68,6 +69,36 @@ export const Profile: React.FC = () => {
   }, 0);
 
   const bytecodeMatrix = getUserBytecodeMatrix(userProfile, completedFreelancerJobs.length, devVolumeHandled);
+
+  if (!isConnected) {
+    return (
+      <div className="max-w-lg mx-auto my-16 p-8 bg-white rounded-3xl border border-purple-200/80 shadow-xl text-center space-y-5">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 mx-auto flex items-center justify-center shadow-inner border border-purple-200">
+          <ShieldCheck size={32} className="text-purple-700 animate-pulse" />
+        </div>
+        <div className="space-y-2">
+          <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+            POLYLANCE SECURITY GATEWAY • NON-MEMBER ACCESS RESTRICTED
+          </span>
+          <h2 className="font-headline text-2xl font-black text-slate-900">
+            Connect Wallet to View Profile
+          </h2>
+          <p className="text-xs text-slate-600 font-sans leading-relaxed">
+            Verified developer ratings, soulbound reputation passes, confidential contract volumes, and GitHub audit metrics are strictly restricted to authenticated Polylancers. Please connect your Web3 wallet to inspect member credentials.
+          </p>
+        </div>
+        <div className="pt-2">
+          <button
+            onClick={connectWallet}
+            className="w-full py-3.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Zap size={15} />
+            <span>Connect Polylancer Wallet</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 py-6 max-w-4xl mx-auto">
@@ -495,112 +526,11 @@ export const Profile: React.FC = () => {
               )}
             </div>
 
-            {/* Section 7 Audited Code Byte Matrix & Reputation Card for ALL Users */}
-            <div className="glass-panel p-4 sm:p-5 border-slate-200 bg-slate-50 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                <span className="text-xs font-mono text-emerald-800 font-bold flex items-center gap-1.5 min-w-0">
-                  {userProfile.githubVerified ? (
-                    <>
-                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                      <span className="truncate">GitHub Verified: @{userProfile.githubUsername}</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck size={16} className="text-purple-600 shrink-0" />
-                      <span className="truncate">Polygon Sovereign Oracle: Smart Contract & Bytecode Attested</span>
-                    </>
-                  )}
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono font-bold shrink-0">
-                  {userProfile.githubVerified
-                    ? `Attested: ${new Date(userProfile.verifiedAt || Date.now()).toLocaleDateString()}`
-                    : 'Attested: On-Chain Live'}
-                </span>
-              </div>
-
-              {/* Primary Category Headline Badge & Real-Time Score */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase font-mono text-slate-500 font-bold tracking-wider">
-                      Primary Skill Focus
-                    </span>
-                    <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200">
-                      {bytecodeMatrix.tierLabel}
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-bold text-slate-900 capitalize font-heading mt-0.5">
-                    {bytecodeMatrix.primaryCategory || userProfile.primaryCategory || 'web3'}
-                  </h4>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-black text-emerald-700 font-mono">
-                      {bytecodeMatrix.primaryScore}
-                    </span>
-                    <span className="text-xs text-slate-500 font-mono font-bold"> / 1000</span>
-                  </div>
-                  <span className="text-[10px] font-mono text-emerald-600 font-bold flex items-center justify-end gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Realtime Score
-                  </span>
-                </div>
-              </div>
-
-              {/* Audited Code Byte Matrix */}
-              <div className="space-y-3 pt-1 font-mono text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                    Audited Code Byte Matrix:
-                  </span>
-                  <span className="text-[11px] font-extrabold text-purple-900">
-                    Total: {bytecodeMatrix.totalBytes.toLocaleString()} Bytes
-                  </span>
-                </div>
-
-                {bytecodeMatrix.languagesWithPercentages.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {bytecodeMatrix.languagesWithPercentages.map((item) => (
-                      <div key={item.language} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] text-slate-500 uppercase font-bold">{item.language}</span>
-                          <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700">
-                            {item.percentage}%
-                          </span>
-                        </div>
-                        <div className="font-extrabold text-purple-900 text-sm">
-                          {item.bytes.toLocaleString()} Bytes
-                        </div>
-                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-5 rounded-xl bg-white border border-slate-200 text-center space-y-1.5">
-                    <p className="text-xs font-bold text-slate-700">No Audited Code Detected</p>
-                    <p className="text-[11px] text-slate-500 font-sans">
-                      This profile has 0 public commits/repositories detected on GitHub and 0 on-chain escrow deliverables.
-                    </p>
-                  </div>
-                )}
-
-                <div className="pt-2 border-t border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 text-[10px] text-slate-500">
-                  <span>
-                    Cryptographic Attestation Hash:{' '}
-                    <code className="text-slate-800 font-bold bg-slate-100 px-1 py-0.5 rounded">
-                      {bytecodeMatrix.attestationHash.slice(0, 10)}...{bytecodeMatrix.attestationHash.slice(-8)}
-                    </code>
-                  </span>
-                  <span className="text-purple-700 font-bold">
-                    {completedFreelancerJobs.length} Settled Escrow Contract{completedFreelancerJobs.length === 1 ? '' : 's'}
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* Audited Code Byte Matrix & Reputation Card for ALL Users (Apple Neumorphic / Glass Design) */}
+            <GithubEkycCard
+              bytecodeMatrix={bytecodeMatrix}
+              userProfile={userProfile}
+            />
 
             {/* Skill Tags */}
             <div className="space-y-2">
@@ -830,46 +760,11 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
             </div>
           </div>
 
-          {/* Audited Developer Score & Bytecode Matrix */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-mono text-xs text-left">
-            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-              <div>
-                <span className="text-slate-700 font-bold block">
-                  {userProfile.githubVerified ? 'GitHub Attested Developer Score' : 'Sovereign Oracle Developer Score'}
-                </span>
-                <span className="text-[10px] text-slate-500 font-normal">
-                  {bytecodeMatrix.tierLabel}
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-emerald-700 font-extrabold text-sm block">{bytecodeMatrix.primaryScore} / 1000</span>
-                <span className="text-[9px] text-emerald-600 font-bold">● Realtime</span>
-              </div>
-            </div>
-            {bytecodeMatrix.languagesWithPercentages.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] text-center text-slate-700 font-mono">
-                {bytecodeMatrix.languagesWithPercentages.map((item) => (
-                  <div key={item.language} className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
-                    <div className="flex justify-between items-center text-[9px]">
-                      <span className="font-bold text-slate-800">{item.language}</span>
-                      <span className="text-slate-500">{item.percentage}%</span>
-                    </div>
-                    <span className="text-purple-700 font-bold block text-[11px]">
-                      {item.bytes.toLocaleString()} Bytes
-                    </span>
-                    <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${item.percentage}%`, backgroundColor: item.color }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-3.5 rounded-lg bg-white border border-slate-200 text-center space-y-1">
-                <p className="text-[11px] font-bold text-slate-700">No Audited Code Detected</p>
-                <p className="text-[10px] text-slate-400 font-sans">0 GitHub repositories / 0 on-chain escrow deliverables</p>
-              </div>
-            )}
-          </div>
+          {/* Audited Developer Score & Bytecode Matrix (New Apple-Style Neumorphic / Glass Design) */}
+          <GithubEkycCard
+            bytecodeMatrix={bytecodeMatrix}
+            userProfile={userProfile}
+          />
         </div>
       ) : (
         /* CLIENT AUDIT REPORT WIDGET */

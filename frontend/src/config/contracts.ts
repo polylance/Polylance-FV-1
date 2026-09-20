@@ -66,8 +66,11 @@ export const NETWORK_CONFIG = {
   blockExplorerUrl: 
     CHAIN_ID === 137
       ? "https://polygonscan.com"
-      : CHAIN_ID === 31337 
-        ? "" 
-        : "https://amoy.polygonscan.com",
+      : "https://amoy.polygonscan.com"
 };
+
+export const TREASURY_WALLET = (
+  import.meta.env.VITE_TREASURY_ADDRESS || 
+  "0x940D8475689b2156D6174555F3382b5E6951653F"
+) as string;
 

@@ -1,10 +1,37 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useConnect } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { DemoRole } from '../types';
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
-import { ShieldCheck, User, Briefcase, ArrowRight, Check, CheckCircle2, Zap, Sparkles, Lock, Network, Award, TrendingUp, Globe, FolderLock, Cpu, Rocket, DollarSign, Users, MessageSquare, ArrowLeft } from 'lucide-react';
+import {
+  Shield,
+  ShieldCheck,
+  User,
+  Briefcase,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  Zap,
+  Sparkles,
+  Lock,
+  Eye,
+  BarChart3,
+  Network,
+  Award,
+  TrendingUp,
+  Globe,
+  FolderLock,
+  Cpu,
+  Rocket,
+  DollarSign,
+  Users,
+  MessageSquare,
+  ArrowLeft,
+  LayoutGrid,
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const LaurelLeft = () => (
@@ -32,6 +59,8 @@ const LaurelRight = () => (
 export const Login: React.FC = () => {
   const { isConnected, address, currentRole, setRole, connectWallet } = useWeb3();
   const { profiles } = usePolyLanceData();
+  const { connectors, connectAsync } = useConnect();
+  const { openConnectModal } = useConnectModal();
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState<'freelancer' | 'client'>('freelancer');
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
@@ -117,12 +146,123 @@ export const Login: React.FC = () => {
     }
   }, [isConnected, address, profiles, navigate, setRole]);
 
+  // Automatically select the requested wallet when the RainbowKit modal appears
+  const autoSelectWalletInModal = (target: string) => {
+    const targetLower = target.toLowerCase();
+    const startTime = Date.now();
+    let clicked = false;
+
+    const interval = setInterval(() => {
+      if (clicked || Date.now() - startTime > 3500) {
+        clearInterval(interval);
+        return;
+      }
+
+      const buttons = Array.from(document.querySelectorAll('button, [role="button"]')) as HTMLElement[];
+      for (const el of buttons) {
+        const text = (el.innerText || el.textContent || '').trim();
+        const textLower = text.toLowerCase();
+
+        // Skip our own page buttons which start with "connect " (e.g. "Connect WalletConnect")
+        if (textLower.startsWith('connect ')) {
+          continue;
+        }
+
+        let match = false;
+        if (targetLower.includes('walletconnect')) {
+          if (textLower.includes('walletconnect') || text === 'WalletConnect') {
+            match = true;
+          }
+        } else if (targetLower.includes('metamask')) {
+          if (textLower.includes('metamask') || text === 'MetaMask') {
+            match = true;
+          }
+        } else if (targetLower.includes('coinbase')) {
+          if (textLower.includes('coinbase') || text.includes('Coinbase')) {
+            match = true;
+          }
+        }
+
+        if (match) {
+          clicked = true;
+          el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+          el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+          el.click();
+          clearInterval(interval);
+          return;
+        }
+      }
+    }, 25);
+  };
+
   const handleWalletConnect = async (provider: string) => {
     setConnectingProvider(provider);
     try {
-      await connectWallet();
-    } catch (err) {
-      console.error(err);
+      if (provider === 'all') {
+        if (openConnectModal) {
+          openConnectModal();
+        } else {
+          await connectWallet();
+        }
+        return;
+      }
+
+      // 1. Direct MetaMask browser extension injection if requested & extension is present
+      if (provider === 'MetaMask' && typeof window !== 'undefined' && (window as any).ethereum) {
+        const injected = connectors.find((c) => {
+          const id = c.id.toLowerCase();
+          const name = c.name.toLowerCase();
+          return id === 'injected' || id.includes('metamask') || name.includes('metamask');
+        });
+        if (injected) {
+          try {
+            await connectAsync({ connector: injected });
+            return;
+          } catch (e: any) {
+            // User rejected prompt in MetaMask extension popup -> do not force another modal
+            if (e?.name === 'UserRejectedRequestError' || e?.code === 4001) {
+              return;
+            }
+          }
+        }
+      }
+
+      // 2. Direct Coinbase wallet extension injection if requested & extension is present
+      if (provider === 'Coinbase' && typeof window !== 'undefined' && ((window as any).coinbaseWalletExtension || (window as any).ethereum?.isCoinbaseWallet)) {
+        const cb = connectors.find((c) => {
+          const id = c.id.toLowerCase();
+          const name = c.name.toLowerCase();
+          return id.includes('coinbase') || name.includes('coinbase');
+        });
+        if (cb) {
+          try {
+            await connectAsync({ connector: cb });
+            return;
+          } catch (e: any) {
+            if (e?.name === 'UserRejectedRequestError' || e?.code === 4001) {
+              return;
+            }
+          }
+        }
+      }
+
+      // 3. For WalletConnect (or MetaMask/Coinbase fallback):
+      // Automatically queue immediate auto-click on the specific wallet option in the modal
+      autoSelectWalletInModal(provider);
+
+      if (openConnectModal) {
+        openConnectModal();
+      } else {
+        await connectWallet();
+      }
+    } catch (err: any) {
+      console.warn(`Wallet connect via ${provider} fallback:`, err?.message || err);
+      autoSelectWalletInModal(provider);
+      if (openConnectModal) {
+        openConnectModal();
+      } else {
+        await connectWallet();
+      }
     } finally {
       setConnectingProvider(null);
     }
@@ -134,7 +274,7 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-4 space-y-12 page-transition relative overflow-hidden">
+    <div className={step === 'role' ? "max-w-5xl mx-auto py-12 px-4 space-y-12 page-transition relative overflow-hidden" : "w-full max-w-[1520px] mx-auto py-4 sm:py-6 px-4 sm:px-8 xl:px-12 page-transition relative overflow-visible"}>
       {/* Floating background decorative shape elements mimicking 3D cubes */}
       <div className="hidden lg:block absolute top-10 left-0 w-24 h-24 bg-gradient-to-tr from-purple-500/10 to-blue-500/5 rounded-3xl border border-white/20 shadow-md rotate-12 animate-pulse pointer-events-none" />
       <div className="hidden lg:block absolute top-32 right-0 w-16 h-16 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 rounded-2xl border border-white/20 shadow-sm -rotate-45 animate-bounce-slow pointer-events-none" />
@@ -449,79 +589,251 @@ export const Login: React.FC = () => {
         </>
       ) : (
         <>
-          {/* Connect Wallet section */}
-          <div className="max-w-5xl mx-auto space-y-8 relative pt-2">
-            {/* Logo and title platform */}
-            <div className="text-center space-y-3 select-none relative z-10">
-              <div className="relative flex justify-center py-1">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-purple-400/10 rounded-full blur-xl pointer-events-none animate-pulse" />
-                <div className="absolute bottom-0 w-20 h-1.5 bg-gradient-to-r from-purple-200 to-blue-200 rounded-full blur-xs opacity-85" />
-                <PolyLanceLogo size={66} className="relative z-10 shrink-0" />
+          {/* ── Outer Panoramic Canvas (Exact Image 2 Reference Design) ── */}
+          <div className="w-full relative flex flex-col justify-between min-h-[660px]">
+            
+            {/* 1. TOP-LEFT: Cursive Script "Build Verify Earn ↗" */}
+            <div className="absolute top-0 left-2 sm:left-4 xl:left-8 pointer-events-none hidden md:block select-none z-10">
+              <div
+                className="text-blue-500/80 -rotate-12 text-2xl lg:text-3xl font-bold leading-tight"
+                style={{ fontFamily: "'Caveat', cursive, sans-serif" }}
+              >
+                Build<br />
+                &nbsp;&nbsp;Verify ↗<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;Earn
+              </div>
+            </div>
+
+            {/* 2. TOP-RIGHT: 4-Item Vertical Feature List */}
+            <div className="absolute top-0 right-2 sm:right-4 xl:right-8 pointer-events-none hidden md:flex flex-col gap-2.5 text-right select-none z-10">
+              <div className="flex items-center justify-end gap-2 text-[10px] font-mono font-bold tracking-[0.18em] text-slate-500">
+                <Shield size={13} className="text-blue-600 shrink-0" />
+                <span>YOUR WALLET</span>
+              </div>
+              <div className="flex items-center justify-end gap-2 text-[10px] font-mono font-bold tracking-[0.18em] text-slate-500">
+                <User size={13} className="text-blue-600 shrink-0" />
+                <span>YOUR IDENTITY</span>
+              </div>
+              <div className="flex items-center justify-end gap-2 text-[10px] font-mono font-bold tracking-[0.18em] text-slate-500">
+                <BarChart3 size={13} className="text-blue-600 shrink-0" />
+                <span>YOUR REPUTATION</span>
+              </div>
+              <div className="flex items-center justify-end gap-2 text-[10px] font-mono font-bold tracking-[0.18em] text-slate-500">
+                <Network size={13} className="text-blue-600 shrink-0" />
+                <span>FULLY ON-CHAIN</span>
+              </div>
+            </div>
+
+            {/* ── MAIN CENTRAL CONTENT HERO ── */}
+            <div className="space-y-6 relative z-10 pt-2">
+              
+              {/* Central 3D Hexagon Emblem with Orbit Rings */}
+              <div className="relative flex items-center justify-center py-2 select-none">
+                {/* 3D Angled Orbit Ellipse Ring with Orbital Nodes */}
+                <div className="absolute w-64 sm:w-80 h-28 sm:h-36 rounded-[100%] border border-blue-200/60 -rotate-12 pointer-events-none">
+                  {/* Orbital Particle Bead Left */}
+                  <div className="absolute left-2 top-7 w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.9)] animate-pulse" />
+                  {/* Orbital Particle Bead Top Right */}
+                  <div className="absolute right-6 top-3 w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(6,207,232,0.9)] animate-pulse" />
+                  {/* Orbital Particle Bead Bottom */}
+                  <div className="absolute left-1/3 bottom-0 w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.9)] animate-pulse" />
+                </div>
+
+                {/* Ambient Backlight Glow */}
+                <div className="absolute w-28 h-28 bg-gradient-to-tr from-blue-400/20 to-cyan-300/30 rounded-full blur-2xl pointer-events-none" />
+
+                {/* 3D Emblem Container */}
+                <div className="relative z-10 p-2.5 rounded-3xl bg-white/70 backdrop-blur-md border border-white/90 shadow-md">
+                  <PolyLanceLogo size={72} className="relative z-10 shrink-0" />
+                </div>
               </div>
 
-              <h3 className="font-heading text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-none">
-                Connect Your <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Wallet</span>
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 font-sans mt-2.5 font-medium max-w-md mx-auto leading-relaxed">
-                Connect your decentralized professional identity to start building on-chain reputation.
-              </p>
+              {/* Title & Subtitle */}
+              <div className="text-center space-y-2 select-none">
+                <h1 className="font-heading text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-none">
+                  Connect Your <span className="text-[#4F46E5]">Wallet</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 font-sans mt-2.5 font-medium max-w-lg mx-auto leading-relaxed">
+                  Connect your decentralized professional identity to start building your on-chain reputation.
+                </p>
+              </div>
 
-              {/* Capsule lists */}
-              <div className="flex justify-center pt-1.5">
-                <div className="inline-flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 px-4.5 py-1.5 border border-slate-200/60 bg-white/70 backdrop-blur-md rounded-full shadow-4xs text-[10px] sm:text-[11px] font-black text-slate-700 select-none">
-                  <span className="flex items-center gap-1"><Sparkles size={11} className="text-purple-600" /> Verified Talent</span>
-                  <span className="text-slate-350">•</span>
-                  <span>Smart Contracts</span>
-                  <span className="text-slate-300">•</span>
-                  <span>Fair Payments</span>
-                  <span className="text-slate-300">•</span>
-                  <span>Global Opportunities</span>
+              {/* Feature Value Pills Row */}
+              <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5 pt-1 max-w-2xl mx-auto select-none">
+                {/* 1. Secure Connection */}
+                <div className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl bg-white/90 border border-blue-100/90 text-slate-700 text-xs font-semibold shadow-3xs hover:border-blue-200 transition-colors">
+                  <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                    <Shield size={13} />
+                  </div>
+                  <span>Secure Connection</span>
+                </div>
+
+                {/* 2. Privacy First */}
+                <div className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl bg-white/90 border border-blue-100/90 text-slate-700 text-xs font-semibold shadow-3xs hover:border-blue-200 transition-colors">
+                  <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                    <Eye size={13} />
+                  </div>
+                  <span>Privacy First</span>
+                </div>
+
+                {/* 3. Start Building */}
+                <div className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl bg-white/90 border border-blue-100/90 text-slate-700 text-xs font-semibold shadow-3xs hover:border-blue-200 transition-colors">
+                  <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                    <Zap size={13} />
+                  </div>
+                  <span>Start Building</span>
+                </div>
+              </div>
+
+              {/* ── 3 WALLET CARDS GRID ── */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto pt-3">
+                
+                {/* Card 1: MetaMask (Recommended Highlighted Card) */}
+                <div className="relative p-6 sm:p-7 rounded-3xl bg-white border-2 border-amber-300/80 ring-4 ring-amber-100/40 shadow-[0_12px_36px_rgba(245,158,11,0.08)] flex flex-col justify-between group hover:shadow-md transition-all select-none">
+                  <span className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-200/80">
+                    Recommended
+                  </span>
+
+                  <div>
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-50/60 border border-amber-100/90 flex items-center justify-center p-2 shrink-0 shadow-inner">
+                        <img src={`${import.meta.env.BASE_URL}MetaMask_logo.png`} alt="MetaMask" className="w-10 h-10 object-contain" />
+                      </div>
+                      <div className="min-w-0 pt-0.5 text-left">
+                        <h4 className="font-black text-slate-900 text-lg font-heading leading-tight">MetaMask</h4>
+                        <p className="text-xs text-slate-500 font-sans mt-1 leading-snug">
+                          Connect using your MetaMask wallet instantly.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={Boolean(connectingProvider)}
+                    onClick={() => handleWalletConnect('MetaMask')}
+                    className="w-full mt-6 py-3 px-4 rounded-xl bg-[#EEF4FF] hover:bg-[#E0EDFF] text-[#1E40AF] font-bold text-xs flex items-center justify-between border border-[#D0E2FF] transition-all group/btn cursor-pointer shadow-3xs"
+                  >
+                    <span>Connect MetaMask</span>
+                    <div className="w-6 h-6 rounded-full bg-blue-200/50 flex items-center justify-center group-hover/btn:translate-x-0.5 transition-transform">
+                      <ArrowRight size={13} className="text-blue-700 stroke-[2.5]" />
+                    </div>
+                  </button>
+                </div>
+
+                {/* Card 2: WalletConnect */}
+                <div className="relative p-6 sm:p-7 rounded-3xl bg-white border border-slate-200/90 shadow-sm hover:border-blue-300 flex flex-col justify-between group hover:shadow-md transition-all select-none">
+                  <div>
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-blue-50/60 border border-blue-100/90 flex items-center justify-center p-2.5 shrink-0 shadow-inner">
+                        <img src={`${import.meta.env.BASE_URL}WalletConnect_logo.png`} alt="WalletConnect" className="w-9 h-9 object-contain" />
+                      </div>
+                      <div className="min-w-0 pt-0.5 text-left">
+                        <h4 className="font-black text-slate-900 text-lg font-heading leading-tight">WalletConnect</h4>
+                        <p className="text-xs text-slate-500 font-sans mt-1 leading-snug">
+                          Scan with your wallet app to connect.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={Boolean(connectingProvider)}
+                    onClick={() => handleWalletConnect('WalletConnect')}
+                    className="w-full mt-6 py-3 px-4 rounded-xl bg-[#EEF4FF] hover:bg-[#E0EDFF] text-[#1E40AF] font-bold text-xs flex items-center justify-between border border-[#D0E2FF] transition-all group/btn cursor-pointer shadow-3xs"
+                  >
+                    <span>Connect WalletConnect</span>
+                    <div className="w-6 h-6 rounded-full bg-blue-200/50 flex items-center justify-center group-hover/btn:translate-x-0.5 transition-transform">
+                      <ArrowRight size={13} className="text-blue-700 stroke-[2.5]" />
+                    </div>
+                  </button>
+                </div>
+
+                {/* Card 3: Coinbase Wallet */}
+                <div className="relative p-6 sm:p-7 rounded-3xl bg-white border border-slate-200/90 shadow-sm hover:border-blue-300 flex flex-col justify-between group hover:shadow-md transition-all select-none">
+                  <div>
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-blue-50/60 border border-blue-100/90 flex items-center justify-center p-2.5 shrink-0 shadow-inner">
+                        <img src={`${import.meta.env.BASE_URL}CoinBase_logo.png`} alt="Coinbase Wallet" className="w-9 h-9 object-contain" />
+                      </div>
+                      <div className="min-w-0 pt-0.5 text-left">
+                        <h4 className="font-black text-slate-900 text-lg font-heading leading-tight">Coinbase Wallet</h4>
+                        <p className="text-xs text-slate-500 font-sans mt-1 leading-snug">
+                          Connect with Coinbase Wallet in one click.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={Boolean(connectingProvider)}
+                    onClick={() => handleWalletConnect('Coinbase')}
+                    className="w-full mt-6 py-3 px-4 rounded-xl bg-[#EEF4FF] hover:bg-[#E0EDFF] text-[#1E40AF] font-bold text-xs flex items-center justify-between border border-[#D0E2FF] transition-all group/btn cursor-pointer shadow-3xs"
+                  >
+                    <span>Connect Coinbase</span>
+                    <div className="w-6 h-6 rounded-full bg-blue-200/50 flex items-center justify-center group-hover/btn:translate-x-0.5 transition-transform">
+                      <ArrowRight size={13} className="text-blue-700 stroke-[2.5]" />
+                    </div>
+                  </button>
+                </div>
+
+              </div>
+
+              {/* ── OR DIVIDER & ALL WALLETS BUTTON ── */}
+              <div className="pt-3 space-y-3 max-w-md mx-auto text-center select-none">
+                <div className="flex items-center gap-3">
+                  <div className="h-px bg-slate-200/80 flex-1" />
+                  <span className="text-[11px] font-mono font-bold tracking-widest text-slate-400 uppercase">OR</span>
+                  <div className="h-px bg-slate-200/80 flex-1" />
+                </div>
+
+                <button
+                  type="button"
+                  disabled={Boolean(connectingProvider)}
+                  onClick={() => handleWalletConnect('all')}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-blue-50/80 hover:bg-blue-100 text-blue-700 border border-blue-200/80 text-xs font-bold shadow-3xs transition-all hover:scale-[1.02] cursor-pointer"
+                >
+                  <LayoutGrid size={13.5} className="text-blue-600" />
+                  <span>View All Supported Wallets</span>
+                  <ArrowRight size={13.5} className="text-blue-600" />
+                </button>
+              </div>
+
+            </div>
+
+            {/* ── BOTTOM IDENTITY CAPSULE & PERIMETER LABELS ── */}
+            <div className="pt-8 flex flex-col items-center gap-4 select-none">
+              <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-blue-50/70 border border-blue-200/70 text-slate-600 text-xs font-medium shadow-3xs">
+                <ShieldCheck size={14} className="text-blue-600 fill-blue-100" />
+                <span>
+                  Your wallet. Your identity. Your reputation.{' '}
+                  <strong className="text-blue-700 font-bold">Fully on-chain.</strong>
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-300 ml-1" />
+              </div>
+
+              {/* Bottom Corners: MORE OPPORTUNITIES (Left) & Powered by Community (Right) */}
+              <div className="w-full flex items-center justify-between pt-2 px-2">
+                <div className="text-[9.5px] font-mono font-bold tracking-[0.2em] text-slate-400 leading-relaxed hidden sm:block">
+                  <div>MORE</div>
+                  <div>OPPORTUNITIES</div>
+                  <div>A FAIRER FUTURE</div>
+                </div>
+
+                <div className="text-right hidden sm:block">
+                  <div
+                    className="text-blue-500/75 -rotate-6 text-xl sm:text-2xl font-bold leading-tight"
+                    style={{ fontFamily: "'Caveat', cursive, sans-serif" }}
+                  >
+                    Powered by<br />
+                    &nbsp;&nbsp;Community
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Wallet Options Horizontal Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto pt-2">
-              {walletProviders.map((prov) => (
-                <button
-                  key={prov.id}
-                  type="button"
-                  disabled={Boolean(connectingProvider)}
-                  onClick={() => {
-                    handleWalletConnect(prov.name);
-                  }}
-                  className="flex items-center justify-between p-5 border border-slate-200 rounded-3xl bg-white hover:bg-slate-50/50 hover:border-purple-300 transition-all cursor-pointer shadow-sm group hover:scale-[1.01] duration-300 relative select-none text-left"
-                >
-                  <div className="flex gap-4 items-start min-w-0">
-                    <div className={`w-14 h-14 rounded-full ${prov.circleBg} flex items-center justify-center shadow-inner shrink-0 relative overflow-hidden group-hover:scale-105 transition-transform duration-300`}>
-                      {prov.logo}
-                    </div>
-                    <div className="min-w-0 pr-1">
-                      <span className="font-black text-slate-900 text-base font-satoshi block">
-                        {prov.name}
-                      </span>
-                      <div className={`inline-block text-[8px] px-2 py-0.5 ${prov.badgeColor} border font-mono font-black uppercase rounded-full tracking-wider mt-1.5`}>
-                        ⚡ Fast & Secure
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-sans block mt-2.5 leading-snug font-medium">
-                        {prov.desc}
-                      </span>
-                    </div>
-                  </div>
-                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 shadow-4xs shrink-0 hover:scale-105 ${prov.arrowColor}`}>
-                    <ArrowRight size={14} className="stroke-[3]" />
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Identity Footer */}
-            <div className="flex items-center justify-center gap-2 select-none pt-4 text-[10.5px] sm:text-xs text-slate-500 font-sans font-medium text-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-200" />
-              <ShieldCheck size={13.5} className="text-purple-600 fill-purple-100" />
-              <span>Your wallet. Your identity. Your reputation. <span className="text-purple-600 font-black">Fully on-chain.</span></span>
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-200" />
-            </div>
           </div>
         </>
       )}

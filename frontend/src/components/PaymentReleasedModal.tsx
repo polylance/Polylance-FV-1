@@ -35,15 +35,36 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
     }
   }, [isOpen]);
 
-  const isNative = !job.paymentToken || job.paymentToken === '0x0000000000000000000000000000000000000000' || job.paymentTokenSymbol === 'POL' || job.paymentTokenSymbol === 'MATIC';
-  const tokenSymbol = job.paymentTokenSymbol || (isNative ? 'POL' : 'USDC');
-  const totalAmount = isNative 
-    ? parseFloat(job.amountEth || '0.05') 
-    : parseFloat(job.amountUsdc || '100');
+  // Determine payment token symbol and amount accurately
+  const sym = (job.paymentTokenSymbol || '').toUpperCase();
+  const rawEth = parseFloat(job.amountEth || '0');
+  const rawUsdc = parseFloat(job.amountUsdc || '0');
+
+  // Determine token symbol: if not explicitly set, deduce from non-zero amounts
+  const tokenSymbol = sym || (rawEth > 0 && rawUsdc === 0 ? 'POL' : 'USDC');
+  const isCryptoNative = tokenSymbol === 'POL' || tokenSymbol === 'MATIC' || tokenSymbol === 'ETH';
+
+  let totalAmount = 0;
+  if (tokenSymbol === 'USDC' || tokenSymbol === 'USDT') {
+    totalAmount = rawUsdc > 0 ? rawUsdc : (rawEth > 0 ? rawEth : 100);
+  } else if (isCryptoNative) {
+    totalAmount = rawEth > 0 ? rawEth : (rawUsdc > 0 ? rawUsdc : 0.05);
+  } else {
+    totalAmount = rawUsdc > 0 ? rawUsdc : (rawEth > 0 ? rawEth : 100);
+  }
 
   // 97.5% net to freelancer, 2.5% treasury protocol fee
   const fee = totalAmount * 0.025;
   const netAmount = totalAmount - fee;
+
+  const formatTokens = (val: number) => {
+    if (tokenSymbol === 'USDC' || tokenSymbol === 'USDT') {
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return val >= 1
+      ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+      : val.toFixed(4);
+  };
 
   const truncateAddress = (addr: string) => {
     if (!addr) return '';
@@ -104,7 +125,7 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
                 <span className="text-xs font-semibold text-slate-600">Total Escrow Vault:</span>
-                <span className="font-mono font-bold text-sm text-slate-900">{totalAmount.toFixed(4)} {tokenSymbol}</span>
+                <span className="font-mono font-bold text-sm text-slate-900">{formatTokens(totalAmount)} {tokenSymbol}</span>
               </div>
 
               <div className="flex justify-between items-center text-xs">
@@ -112,7 +133,7 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
                   <Wallet size={14} className="text-emerald-600" />
                   <span>Net Payout to Freelancer (97.5%):</span>
                 </div>
-                <span className="font-mono font-bold text-emerald-700">+{netAmount.toFixed(4)} {tokenSymbol}</span>
+                <span className="font-mono font-bold text-emerald-700">+{formatTokens(netAmount)} {tokenSymbol}</span>
               </div>
 
               <div className="flex justify-between items-center text-xs">
@@ -120,7 +141,7 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
                   <ShieldCheck size={14} className="text-blue-600" />
                   <span>PolyLance DAO Treasury Fee (2.5%):</span>
                 </div>
-                <span className="font-mono font-medium text-slate-600">{fee.toFixed(4)} {tokenSymbol}</span>
+                <span className="font-mono font-medium text-slate-600">{formatTokens(fee)} {tokenSymbol}</span>
               </div>
             </div>
 

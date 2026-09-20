@@ -20,7 +20,10 @@ import {
   Bookmark,
   Check,
   Shield,
-  Scale
+  Scale,
+  ShieldAlert,
+  Zap,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
@@ -29,7 +32,7 @@ import { calculateReputationScores, formatEarnings } from '../utils/reputation';
 import { BottomSheet, PressableCard } from '../components/mobile';
 
 export const Reputation: React.FC = () => {
-  const { address, isArbitrator, currentRole, reputationCount: onChainReputationCount } = useWeb3();
+  const { address, isConnected, connectWallet, isArbitrator, currentRole, reputationCount: onChainReputationCount } = useWeb3();
   const { profiles, jobs, judges } = usePolyLanceData();
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'monthly'>('all');
   const [selectedBadge, setSelectedBadge] = useState<{
@@ -39,6 +42,7 @@ export const Reputation: React.FC = () => {
     description: string;
   } | null>(null);
   const [isBadgeSheetOpen, setIsBadgeSheetOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -863,6 +867,29 @@ export const Reputation: React.FC = () => {
           </div>
         </div>
 
+        {/* GUEST PREVIEW NOTICE FOR NON-POLYLANCERS */}
+        {!isConnected && (
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-white to-amber-50/50 border border-purple-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200 shadow-2xs">
+                <Lock size={15} className="text-purple-700" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-slate-800">Public Leaderboard Standings (Guest Preview)</p>
+                <p className="text-slate-500 text-[11px] leading-relaxed">Detailed developer profiles, verified GitHub identities, and soulbound attestations are restricted. Connect your wallet to inspect credentials.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={connectWallet}
+              className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono font-bold text-xs shadow-xs transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Zap size={13} />
+              <span>Connect Wallet</span>
+            </button>
+          </div>
+        )}
+
         {/* TOP 3 PODIUM */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
           {/* Rank 2 (Silver) */}
@@ -876,16 +903,37 @@ export const Reputation: React.FC = () => {
             
             <div className="flex flex-col items-center space-y-2 mt-1">
               {secondPlace.address ? (
-                <Link to={`/profile/${secondPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
-                  <img
-                    src={secondPlace.avatar}
-                    alt={secondPlace.name}
-                    className="w-12 h-12 rounded-full border-2 border-slate-200 object-cover shadow-inner"
-                  />
-                  <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-800 font-black text-[10px] border border-white shadow-xs font-mono">
-                    2
-                  </span>
-                </Link>
+                isConnected ? (
+                  <Link to={`/profile/${secondPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
+                    <img
+                      src={secondPlace.avatar}
+                      alt={secondPlace.name}
+                      className="w-12 h-12 rounded-full border-2 border-slate-200 object-cover shadow-inner"
+                    />
+                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-800 font-black text-[10px] border border-white shadow-xs font-mono">
+                      2
+                    </span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthModalOpen(true)}
+                    className="relative block shrink-0 hover:opacity-90 transition-opacity cursor-pointer group/lock"
+                    title="Connect wallet to view profile"
+                  >
+                    <img
+                      src={secondPlace.avatar}
+                      alt={secondPlace.name}
+                      className="w-12 h-12 rounded-full border-2 border-slate-200 object-cover shadow-inner"
+                    />
+                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-800 font-black text-[10px] border border-white shadow-xs font-mono">
+                      2
+                    </span>
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center shadow-xs">
+                      <Lock size={9} className="stroke-[2.5]" />
+                    </span>
+                  </button>
+                )
               ) : (
                 <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400">
                   ?
@@ -894,9 +942,20 @@ export const Reputation: React.FC = () => {
               
               <div>
                 {secondPlace.address ? (
-                  <Link to={`/profile/${secondPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
-                    {secondPlace.name}
-                  </Link>
+                  isConnected ? (
+                    <Link to={`/profile/${secondPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
+                      {secondPlace.name}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline flex items-center justify-center gap-1 leading-tight mx-auto cursor-pointer"
+                    >
+                      <span>{secondPlace.name}</span>
+                      <Lock size={11} className="text-amber-600 inline shrink-0" />
+                    </button>
+                  )
                 ) : (
                   <span className="font-bold text-slate-500 block leading-tight">Open Spot</span>
                 )}
@@ -934,16 +993,37 @@ export const Reputation: React.FC = () => {
             
             <div className="flex flex-col items-center space-y-2 mt-1">
               {firstPlace.address ? (
-                <Link to={`/profile/${firstPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
-                  <img
-                    src={firstPlace.avatar}
-                    alt={firstPlace.name}
-                    className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shadow-inner"
-                  />
-                  <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5.5 h-5.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] border border-slate-900 shadow-xs font-mono">
-                    1
-                  </span>
-                </Link>
+                isConnected ? (
+                  <Link to={`/profile/${firstPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
+                    <img
+                      src={firstPlace.avatar}
+                      alt={firstPlace.name}
+                      className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shadow-inner"
+                    />
+                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5.5 h-5.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] border border-slate-900 shadow-xs font-mono">
+                      1
+                    </span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthModalOpen(true)}
+                    className="relative block shrink-0 hover:opacity-90 transition-opacity cursor-pointer"
+                    title="Connect wallet to view profile"
+                  >
+                    <img
+                      src={firstPlace.avatar}
+                      alt={firstPlace.name}
+                      className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shadow-inner"
+                    />
+                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5.5 h-5.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] border border-slate-900 shadow-xs font-mono">
+                      1
+                    </span>
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center shadow-xs">
+                      <Lock size={9} className="stroke-[2.5]" />
+                    </span>
+                  </button>
+                )
               ) : (
                 <div className="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center border-2 border-amber-400 text-amber-400">
                   ?
@@ -952,9 +1032,20 @@ export const Reputation: React.FC = () => {
               
               <div>
                 {firstPlace.address ? (
-                  <Link to={`/profile/${firstPlace.address}`} className="font-extrabold text-white tracking-tight text-base hover:text-amber-400 hover:underline block leading-tight">
-                    {firstPlace.name}
-                  </Link>
+                  isConnected ? (
+                    <Link to={`/profile/${firstPlace.address}`} className="font-extrabold text-white tracking-tight text-base hover:text-amber-400 hover:underline block leading-tight">
+                      {firstPlace.name}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="font-extrabold text-white tracking-tight text-base hover:text-amber-400 hover:underline flex items-center justify-center gap-1.5 leading-tight mx-auto cursor-pointer"
+                    >
+                      <span>{firstPlace.name}</span>
+                      <Lock size={12} className="text-amber-400 inline shrink-0" />
+                    </button>
+                  )
                 ) : (
                   <span className="font-bold text-amber-500 block leading-tight">Open Spot</span>
                 )}
@@ -991,16 +1082,37 @@ export const Reputation: React.FC = () => {
             
             <div className="flex flex-col items-center space-y-2 mt-1">
               {thirdPlace.address ? (
-                <Link to={`/profile/${thirdPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
-                  <img
-                    src={thirdPlace.avatar}
-                    alt={thirdPlace.name}
-                    className="w-12 h-12 rounded-full border-2 border-amber-800 object-cover shadow-inner"
-                  />
-                  <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-800 text-white font-black text-[10px] border border-white shadow-xs font-mono">
-                    3
-                  </span>
-                </Link>
+                isConnected ? (
+                  <Link to={`/profile/${thirdPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
+                    <img
+                      src={thirdPlace.avatar}
+                      alt={thirdPlace.name}
+                      className="w-12 h-12 rounded-full border-2 border-amber-800 object-cover shadow-inner"
+                    />
+                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-800 text-white font-black text-[10px] border border-white shadow-xs font-mono">
+                      3
+                    </span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthModalOpen(true)}
+                    className="relative block shrink-0 hover:opacity-90 transition-opacity cursor-pointer"
+                    title="Connect wallet to view profile"
+                  >
+                    <img
+                      src={thirdPlace.avatar}
+                      alt={thirdPlace.name}
+                      className="w-12 h-12 rounded-full border-2 border-amber-800 object-cover shadow-inner"
+                    />
+                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-800 text-white font-black text-[10px] border border-white shadow-xs font-mono">
+                      3
+                    </span>
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-700 text-white rounded-full flex items-center justify-center shadow-xs">
+                      <Lock size={9} className="stroke-[2.5]" />
+                    </span>
+                  </button>
+                )
               ) : (
                 <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400">
                   ?
@@ -1009,9 +1121,20 @@ export const Reputation: React.FC = () => {
               
               <div>
                 {thirdPlace.address ? (
-                  <Link to={`/profile/${thirdPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
-                    {thirdPlace.name}
-                  </Link>
+                  isConnected ? (
+                    <Link to={`/profile/${thirdPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
+                      {thirdPlace.name}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline flex items-center justify-center gap-1 leading-tight mx-auto cursor-pointer"
+                    >
+                      <span>{thirdPlace.name}</span>
+                      <Lock size={11} className="text-amber-600 inline shrink-0" />
+                    </button>
+                  )
                 ) : (
                   <span className="font-bold text-slate-500 block leading-tight">Open Spot</span>
                 )}
@@ -1093,20 +1216,40 @@ export const Reputation: React.FC = () => {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {row.address ? (
-                          <Link to={`/profile/${row.address}`} className="relative shrink-0 hover:opacity-90 transition-opacity">
-                            <img
-                              src={row.avatar}
-                              alt={row.name}
-                              className={`w-9 h-9 rounded-full object-cover border ${
-                                row.isUser ? 'border-purple-600 ring-2 ring-purple-600/20' : 'border-slate-200'
-                              }`}
-                            />
-                            {row.isUser && (
-                              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-purple-600 text-white rounded-full flex items-center justify-center text-[8px] font-black font-mono border-2 border-white">
-                                ★
+                          isConnected ? (
+                            <Link to={`/profile/${row.address}`} className="relative shrink-0 hover:opacity-90 transition-opacity">
+                              <img
+                                src={row.avatar}
+                                alt={row.name}
+                                className={`w-9 h-9 rounded-full object-cover border ${
+                                  row.isUser ? 'border-purple-600 ring-2 ring-purple-600/20' : 'border-slate-200'
+                                }`}
+                              />
+                              {row.isUser && (
+                                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-purple-600 text-white rounded-full flex items-center justify-center text-[8px] font-black font-mono border-2 border-white">
+                                  ★
+                                </span>
+                              )}
+                            </Link>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setIsAuthModalOpen(true)}
+                              className="relative shrink-0 hover:opacity-90 transition-opacity cursor-pointer"
+                              title="Connect wallet to view profile"
+                            >
+                              <img
+                                src={row.avatar}
+                                alt={row.name}
+                                className={`w-9 h-9 rounded-full object-cover border ${
+                                  row.isUser ? 'border-purple-600 ring-2 ring-purple-600/20' : 'border-slate-200'
+                                }`}
+                              />
+                              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center shadow-xs">
+                                <Lock size={8} className="stroke-[2.5]" />
                               </span>
-                            )}
-                          </Link>
+                            </button>
+                          )
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200 font-bold">
                             ?
@@ -1115,14 +1258,27 @@ export const Reputation: React.FC = () => {
                         
                         <div>
                           {row.address ? (
-                            <Link 
-                              to={`/profile/${row.address}`} 
-                              className={`font-bold hover:underline block leading-tight text-xs ${
-                                row.isUser ? 'text-purple-950 font-black' : 'text-slate-900'
-                              }`}
-                            >
-                              {row.name}
-                            </Link>
+                            isConnected ? (
+                              <Link 
+                                to={`/profile/${row.address}`} 
+                                className={`font-bold hover:underline block leading-tight text-xs ${
+                                  row.isUser ? 'text-purple-950 font-black' : 'text-slate-900'
+                                }`}
+                              >
+                                {row.name}
+                              </Link>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setIsAuthModalOpen(true)}
+                                className={`font-bold hover:underline flex items-center gap-1.5 leading-tight text-xs text-left cursor-pointer ${
+                                  row.isUser ? 'text-purple-950 font-black' : 'text-slate-900'
+                                }`}
+                              >
+                                <span>{row.name}</span>
+                                <Lock size={10} className="text-amber-600 inline shrink-0" />
+                              </button>
+                            )
                           ) : (
                             <span className="font-bold text-slate-500 block leading-tight text-xs">
                               {row.name}
@@ -1170,6 +1326,11 @@ export const Reputation: React.FC = () => {
               <PressableCard
                 key={row.address}
                 className={row.isUser ? 'border-purple-300 bg-purple-50/20' : ''}
+                onClick={() => {
+                  if (!isConnected) {
+                    setIsAuthModalOpen(true);
+                  }
+                }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
@@ -1183,6 +1344,9 @@ export const Reputation: React.FC = () => {
                         <span className={`font-bold text-sm truncate ${row.isUser ? 'text-purple-950' : 'text-slate-900'}`}>
                           {row.name}
                         </span>
+                        {!isConnected && (
+                          <Lock size={10} className="text-amber-600 shrink-0" />
+                        )}
                         {row.isUser && (
                           <span className="bg-purple-600 text-white text-[9px] font-mono px-1.5 py-0.2 rounded font-bold">YOU</span>
                         )}
@@ -1256,6 +1420,54 @@ export const Reputation: React.FC = () => {
           </div>
         )}
       </BottomSheet>
+      {/* Non-Polylancer Profile Protection Modal */}
+      {isAuthModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white rounded-3xl border border-purple-200 p-6 sm:p-8 shadow-2xl text-center space-y-5 animate-scaleUp">
+            <button
+              type="button"
+              onClick={() => setIsAuthModalOpen(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 mx-auto flex items-center justify-center shadow-inner border border-purple-200">
+              <ShieldAlert size={32} className="text-purple-700 animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                POLYLANCER AUTHENTICATION REQUIRED
+              </span>
+              <h3 className="font-headline text-xl font-black text-slate-900">
+                Developer Profile Protected
+              </h3>
+              <p className="text-xs text-slate-600 font-sans leading-relaxed">
+                Full member credentials, verified GitHub audit scores, proof-of-work histories, and on-chain Soulbound Attestations are restricted to authenticated Polylancers. Please connect your Web3 wallet to inspect developer profiles.
+              </p>
+            </div>
+            <div className="pt-2 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAuthModalOpen(false);
+                  connectWallet();
+                }}
+                className="w-full py-3.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Zap size={15} />
+                <span>Connect Polylancer Wallet</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAuthModalOpen(false)}
+                className="w-full py-2.5 text-xs font-mono font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+              >
+                Stay in Guest Mode
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

@@ -26,6 +26,8 @@ import {
   ChevronRight,
   Trash2,
   Edit3,
+  ShieldAlert,
+  Lock,
 } from 'lucide-react';
 import { truncateAddress } from '../utils/formatters';
 import { getJobInactivityStatus } from '../utils/inactivity';
@@ -35,6 +37,32 @@ import { EmptyState } from '../components/UIStates';
 import { Job } from '../types';
 
 export type JobCategoryFilter = 'all' | 'ongoing' | 'awaiting_release' | 'disputed' | 'negotiating' | 'completed';
+export type JobSortOption = 'latest' | 'priority' | 'oldest' | 'highest_budget' | 'lowest_budget' | 'title_az';
+
+export const SORT_LABELS: Record<JobSortOption, string> = {
+  latest: 'Latest First',
+  priority: 'Sorted by Priority',
+  oldest: 'Oldest First',
+  highest_budget: 'Highest Budget',
+  lowest_budget: 'Lowest Budget',
+  title_az: 'Title (A-Z)',
+};
+
+export const formatJobDate = (createdAt?: number | string): string => {
+  if (!createdAt) return '';
+  const time = typeof createdAt === 'string' ? new Date(createdAt).getTime() : Number(createdAt);
+  if (!time || isNaN(time)) return '';
+  const now = Date.now();
+  const diffSec = Math.max(0, Math.floor((now - time) / 1000));
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return new Date(time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
 
 // Priority sorting helper:
 // 1. Awaiting fund release (Submitted - urgent review & release)
@@ -83,13 +111,12 @@ export const JobWorkspace: React.FC = () => {
 
   // Filter jobs strictly relevant to current user:
   // Shows jobs where connected user is Client (posted), Freelancer (assigned), Applicant, or active Negotiator.
+  // Note: We do NOT hide user's own contracts due to inactivity expiration so clients and freelancers can always access their jobs.
   const myJobs = useMemo(() => {
     if (!userAddr) return [];
 
     return jobs.filter((job) => {
       if (isDemoOrMockJob(job)) return false;
-      const statusInfo = getJobInactivityStatus(job);
-      if (statusInfo.isExpired) return false;
 
       const isClientOfJob = Boolean(job.client && job.client.toLowerCase() === userAddr);
       const isFreelancerOfJob = Boolean(job.freelancer && job.freelancer.toLowerCase() === userAddr);
@@ -125,10 +152,6 @@ export const JobWorkspace: React.FC = () => {
     }
   };
 
-  // Accurate active platform escrows count (excluding expired and demo jobs)
-  const activePlatformJobsCount = useMemo(() => {
-    return jobs.filter((j) => !getJobInactivityStatus(j).isExpired && !isDemoOrMockJob(j)).length;
-  }, [jobs]);
 
   // Active Job selection state
   const queryJobId = searchParams.get('jobId');
@@ -186,13 +209,17 @@ export const JobWorkspace: React.FC = () => {
     }
   }, [activeJob?.id]);
 
-  // ── Job Switcher Dropdown ──
+  // ── Job Switcher Dropdown & Sorting State ──
   const [isJobDropdownOpen, setIsJobDropdownOpen] = useState(false);
   const [jobSearchQuery, setJobSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<JobCategoryFilter>('all');
+  const [sortOption, setSortOption] = useState<JobSortOption>('latest');
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+
   const triggerBtnRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
 
   // Position for fixed dropdown
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -200,7 +227,7 @@ export const JobWorkspace: React.FC = () => {
   const calculateDropdownPos = useCallback(() => {
     if (triggerBtnRef.current) {
       const rect = triggerBtnRef.current.getBoundingClientRect();
-      const targetWidth = Math.min(Math.max(rect.width, 580), window.innerWidth - 32);
+      const targetWidth = Math.min(Math.max(rect.width, 620), window.innerWidth - 32);
       let left = rect.left + window.scrollX;
       if (left + targetWidth > window.innerWidth - 16) {
         left = Math.max(16, window.innerWidth - targetWidth - 16);
@@ -226,6 +253,7 @@ export const JobWorkspace: React.FC = () => {
     setIsJobDropdownOpen(false);
     setJobSearchQuery('');
     setSelectedCategoryFilter('all');
+    setIsSortMenuOpen(false);
   }, []);
 
   const toggleDropdown = useCallback(() => {
@@ -253,7 +281,7 @@ export const JobWorkspace: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isJobDropdownOpen, openDropdown]);
 
-  // Close on click outside
+  // Close on click outside dropdown
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -269,6 +297,19 @@ export const JobWorkspace: React.FC = () => {
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isJobDropdownOpen, closeDropdown]);
+
+  // Close on click outside sort menu
+  useEffect(() => {
+    const handleClickOutsideSort = (e: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setIsSortMenuOpen(false);
+      }
+    };
+    if (isSortMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutsideSort);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutsideSort);
+  }, [isSortMenuOpen]);
 
   // Reposition on scroll/resize
   useEffect(() => {
@@ -287,7 +328,10 @@ export const JobWorkspace: React.FC = () => {
     };
   }, [isJobDropdownOpen, calculateDropdownPos]);
 
-  // Category counts across user's relevant jobs
+  // Base jobs: Strictly user's own relevant escrows (client, freelancer, applicant, arbitrator)
+  const displayedBaseJobs = myJobs;
+
+  // Category counts across the active scope
   const categoryCounts = useMemo(() => {
     let ongoing = 0;
     let awaitingRelease = 0;
@@ -295,7 +339,7 @@ export const JobWorkspace: React.FC = () => {
     let negotiating = 0;
     let completed = 0;
 
-    myJobs.forEach((j) => {
+    displayedBaseJobs.forEach((j) => {
       if (j.status === 'Submitted') {
         awaitingRelease++;
       } else if (j.status === 'Completed') {
@@ -310,18 +354,18 @@ export const JobWorkspace: React.FC = () => {
     });
 
     return {
-      all: myJobs.length,
+      all: displayedBaseJobs.length,
       ongoing,
       awaiting_release: awaitingRelease,
       disputed,
       negotiating,
       completed,
     };
-  }, [myJobs]);
+  }, [displayedBaseJobs]);
 
   // Priority-Sorted and Filtered projects list
   const filteredMyJobs = useMemo(() => {
-    let list = myJobs;
+    let list = displayedBaseJobs;
 
     // 1. Category Filter
     if (selectedCategoryFilter === 'ongoing') {
@@ -342,42 +386,126 @@ export const JobWorkspace: React.FC = () => {
       list = list.filter((j) => {
         const titleMatch = j.title.toLowerCase().includes(q);
         const idMatch = j.id.toLowerCase().includes(q);
-        const amountMatch = j.amountUsdc.includes(q);
+        const amountMatch = (j.amountUsdc || j.amountEth || '').toLowerCase().includes(q);
         const statusMatch = j.status.toLowerCase().includes(q);
         const categoryMatch = Boolean(j.category && j.category.toLowerCase().includes(q));
         const contractMatch = Boolean(j.contractAddress && j.contractAddress.toLowerCase().includes(q));
         const clientMatch = Boolean(j.client && j.client.toLowerCase().includes(q));
         const freelancerMatch = Boolean(j.freelancer && j.freelancer.toLowerCase().includes(q));
-        const applicantMatch = Boolean(j.applications && j.applications.some(a => a.applicant?.toLowerCase().includes(q)));
+        const applicantMatch = Boolean(j.applications && j.applications.some((a) => a.applicant?.toLowerCase().includes(q)));
         return titleMatch || idMatch || amountMatch || statusMatch || categoryMatch || contractMatch || clientMatch || freelancerMatch || applicantMatch;
       });
     }
 
-    // 3. Priority Sorting: Awaiting Release (1st) -> Ongoing (2nd) -> Disputed (3rd) -> Open (4th) -> Completed (5th)
+    // 3. User-Selected Sorting (Default: Latest First!)
     return [...list].sort((a, b) => {
-      const scoreA = getJobPriorityScore(a.status, isJobUnderNegotiation(a));
-      const scoreB = getJobPriorityScore(b.status, isJobUnderNegotiation(b));
-      if (scoreA !== scoreB) return scoreA - scoreB;
-      return (b.createdAt || 0) - (a.createdAt || 0);
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() || Number(a.createdAt) : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() || Number(b.createdAt) : 0;
+
+      if (sortOption === 'latest') {
+        if (timeB !== timeA) return timeB - timeA;
+        return String(b.id).localeCompare(String(a.id), undefined, { numeric: true });
+      }
+
+      if (sortOption === 'oldest') {
+        if (timeA !== timeB) return timeA - timeB;
+        return String(a.id).localeCompare(String(b.id), undefined, { numeric: true });
+      }
+
+      if (sortOption === 'priority') {
+        const scoreA = getJobPriorityScore(a.status, isJobUnderNegotiation(a));
+        const scoreB = getJobPriorityScore(b.status, isJobUnderNegotiation(b));
+        if (scoreA !== scoreB) return scoreA - scoreB;
+        return timeB - timeA;
+      }
+
+      if (sortOption === 'highest_budget') {
+        const budgetA = parseFloat(a.amountUsdc || a.amountEth || '0') || 0;
+        const budgetB = parseFloat(b.amountUsdc || b.amountEth || '0') || 0;
+        return budgetB - budgetA;
+      }
+
+      if (sortOption === 'lowest_budget') {
+        const budgetA = parseFloat(a.amountUsdc || a.amountEth || '0') || 0;
+        const budgetB = parseFloat(b.amountUsdc || b.amountEth || '0') || 0;
+        return budgetA - budgetB;
+      }
+
+      if (sortOption === 'title_az') {
+        return (a.title || '').localeCompare(b.title || '');
+      }
+
+      return timeB - timeA;
     });
-  }, [myJobs, selectedCategoryFilter, jobSearchQuery]);
+  }, [displayedBaseJobs, selectedCategoryFilter, jobSearchQuery, sortOption]);
+
+  // Security Guard: Check if user attempted direct URL access to another user's private contract escrow
+  const isUnauthorizedQueryJob = Boolean(
+    queryJobId &&
+    jobs.some((j) => (j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase()) && !isDemoOrMockJob(j)) &&
+    !myJobs.some((j) => j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase())
+  );
 
   if (!isConnected) {
     return (
-      <div className="max-w-md mx-auto my-16 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-4">
-        <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-700 mx-auto flex items-center justify-center shadow-xs">
-          <Briefcase size={28} />
+      <div className="max-w-lg mx-auto my-16 p-8 bg-white rounded-3xl border border-purple-200/80 shadow-xl text-center space-y-5">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 mx-auto flex items-center justify-center shadow-inner border border-purple-200">
+          <ShieldAlert size={32} className="text-purple-700 animate-pulse" />
         </div>
-        <h2 className="font-headline text-xl font-bold text-slate-900">Connect Wallet to Access Workspace</h2>
-        <p className="text-xs text-slate-500 font-sans">
-          Log in with your Web3 wallet to manage your deliverables, milestone submissions, progress logs, and escrow payouts.
-        </p>
-        <button
-          onClick={connectWallet}
-          className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono font-bold text-xs shadow-md transition-all cursor-pointer"
-        >
-          Connect Wallet
-        </button>
+        <div className="space-y-2">
+          <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+            POLYLANCE SECURITY GATEWAY • NON-MEMBER ACCESS RESTRICTED
+          </span>
+          <h2 className="font-headline text-2xl font-black text-slate-900">
+            Connect Wallet to Access Workspace
+          </h2>
+          <p className="text-xs text-slate-600 font-sans leading-relaxed">
+            Decentralized escrows, private work deliverables, milestone dispute evidence, and encrypted communications are strictly protected. Connect your Web3 wallet to authenticate as an authorized participant.
+          </p>
+        </div>
+        <div className="pt-2">
+          <button
+            onClick={connectWallet}
+            className="w-full py-3.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Zap size={15} />
+            <span>Connect Polylancer Wallet</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isUnauthorizedQueryJob) {
+    return (
+      <div className="max-w-lg mx-auto my-16 p-8 bg-white rounded-3xl border border-rose-200 shadow-xl text-center space-y-5">
+        <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-600 mx-auto flex items-center justify-center shadow-inner border border-rose-200">
+          <Lock size={30} className="text-rose-600" />
+        </div>
+        <div className="space-y-2">
+          <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+            CONFIDENTIAL ESCROW • ACCESS RESTRICTED
+          </span>
+          <h2 className="font-headline text-2xl font-black text-slate-900">
+            Unauthorized Contract Access
+          </h2>
+          <p className="text-xs text-slate-600 font-sans leading-relaxed">
+            This project escrow belongs to another client and freelancer. Under PolyLance security standards, workspace deliverables, communication logs, and milestone submissions are strictly restricted to authorized contract participants.
+          </p>
+        </div>
+        <div className="pt-2">
+          <button
+            onClick={() => {
+              setSearchParams({});
+              if (myJobs.length > 0) {
+                setSelectedJobId(myJobs[0].id);
+              }
+            }}
+            className="w-full py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono font-bold text-xs shadow-md transition-all cursor-pointer"
+          >
+            Return to My Escrows
+          </button>
+        </div>
       </div>
     );
   }
@@ -423,9 +551,6 @@ export const JobWorkspace: React.FC = () => {
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="bg-purple-50 text-purple-700 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border border-purple-200/60 whitespace-nowrap">
                   {myJobs.length} {isClient ? 'Project' : 'Job'}{myJobs.length !== 1 ? 's' : ''}
-                </span>
-                <span className="bg-slate-50 text-slate-600 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border border-slate-200/60 whitespace-nowrap">
-                  {activePlatformJobsCount} Escrows
                 </span>
               </div>
             </div>
@@ -746,21 +871,21 @@ export const JobWorkspace: React.FC = () => {
             </div>
           </div>
 
-          {/* Filter Pills and Sort Row matching Image 2 */}
-          <div className="px-4 py-3 border-b border-slate-100/80 bg-slate-50/40 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
-            {/* Filter pills */}
-            <div className="flex items-center gap-2">
+          {/* Filter Pills and Sort Dropdown Row */}
+          <div className="px-4 py-2.5 border-b border-slate-100/80 bg-slate-50/40 flex items-center justify-between gap-3">
+            {/* Category filter pills - scrollable horizontally on smaller viewports */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 flex-1 py-0.5">
               <button
                 type="button"
                 onClick={() => setSelectedCategoryFilter('all')}
-                className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
+                className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                   selectedCategoryFilter === 'all'
-                    ? 'bg-purple-100/90 text-purple-700 border border-purple-200/70'
+                    ? 'bg-purple-100 text-purple-800 border border-purple-200/80'
                     : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                 }`}
               >
                 <span>All</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold min-w-[17px] text-center ${
                   selectedCategoryFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-slate-200/80 text-slate-700'
                 }`}>
                   {categoryCounts.all}
@@ -771,15 +896,15 @@ export const JobWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryFilter('completed')}
-                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
+                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                     selectedCategoryFilter === 'completed'
-                      ? 'bg-purple-100/90 text-purple-700 border border-purple-200/70'
+                      ? 'bg-purple-100 text-purple-800 border border-purple-200/80'
                       : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                   }`}
                 >
-                  <CheckCircle2 size={14} className={selectedCategoryFilter === 'completed' ? 'text-purple-600' : 'text-slate-500'} />
+                  <CheckCircle2 size={13} className={selectedCategoryFilter === 'completed' ? 'text-purple-600' : 'text-slate-400'} />
                   <span>Completed</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold min-w-[17px] text-center ${
                     selectedCategoryFilter === 'completed' ? 'bg-purple-600 text-white' : 'bg-slate-200/80 text-slate-700'
                   }`}>
                     {categoryCounts.completed}
@@ -791,15 +916,15 @@ export const JobWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryFilter('ongoing')}
-                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
+                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                     selectedCategoryFilter === 'ongoing'
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                   }`}
                 >
-                  <Zap size={14} className={selectedCategoryFilter === 'ongoing' ? 'text-emerald-700' : 'text-emerald-600'} />
+                  <Zap size={13} className={selectedCategoryFilter === 'ongoing' ? 'text-emerald-700' : 'text-emerald-500'} />
                   <span>Ongoing</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold min-w-[17px] text-center ${
                     selectedCategoryFilter === 'ongoing' ? 'bg-emerald-600 text-white' : 'bg-slate-200/80 text-slate-700'
                   }`}>
                     {categoryCounts.ongoing}
@@ -811,15 +936,15 @@ export const JobWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryFilter('awaiting_release')}
-                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
+                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                     selectedCategoryFilter === 'awaiting_release'
                       ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
                       : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                   }`}
                 >
-                  <Clock size={14} className={selectedCategoryFilter === 'awaiting_release' ? 'text-indigo-700' : 'text-indigo-600'} />
+                  <Clock size={13} className={selectedCategoryFilter === 'awaiting_release' ? 'text-indigo-700' : 'text-indigo-500'} />
                   <span>Awaiting Release</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold min-w-[17px] text-center ${
                     selectedCategoryFilter === 'awaiting_release' ? 'bg-indigo-600 text-white' : 'bg-slate-200/80 text-slate-700'
                   }`}>
                     {categoryCounts.awaiting_release}
@@ -831,15 +956,15 @@ export const JobWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryFilter('negotiating')}
-                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
+                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                     selectedCategoryFilter === 'negotiating'
                       ? 'bg-amber-100 text-amber-900 border border-amber-200'
                       : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                   }`}
                 >
-                  <MessageSquare size={14} className={selectedCategoryFilter === 'negotiating' ? 'text-amber-700' : 'text-amber-600'} />
+                  <MessageSquare size={13} className={selectedCategoryFilter === 'negotiating' ? 'text-amber-700' : 'text-amber-500'} />
                   <span>Negotiating</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold min-w-[17px] text-center ${
                     selectedCategoryFilter === 'negotiating' ? 'bg-amber-600 text-white' : 'bg-slate-200/80 text-slate-700'
                   }`}>
                     {categoryCounts.negotiating}
@@ -851,15 +976,15 @@ export const JobWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryFilter('disputed')}
-                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
+                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs ${
                     selectedCategoryFilter === 'disputed'
                       ? 'bg-rose-100 text-rose-800 border border-rose-200'
                       : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80'
                   }`}
                 >
-                  <Scale size={14} className={selectedCategoryFilter === 'disputed' ? 'text-rose-700' : 'text-rose-600'} />
+                  <Scale size={13} className={selectedCategoryFilter === 'disputed' ? 'text-rose-700' : 'text-rose-500'} />
                   <span>Disputed</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold min-w-[18px] text-center ${
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold min-w-[17px] text-center ${
                     selectedCategoryFilter === 'disputed' ? 'bg-rose-600 text-white' : 'bg-slate-200/80 text-slate-700'
                   }`}>
                     {categoryCounts.disputed}
@@ -868,36 +993,86 @@ export const JobWorkspace: React.FC = () => {
               )}
             </div>
 
-            {/* Sort trigger button matching Image 2 */}
-            <div className="shrink-0">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-medium shadow-2xs transition-all select-none">
-                <SlidersHorizontal size={14} className="text-slate-600" />
-                <span>Sorted by Priority</span>
-                <ChevronDown size={14} className="text-slate-400" />
-              </div>
+            {/* Right: Interactive Sorting Dropdown (Floating Unclipped, z-50) */}
+            <div className="relative shrink-0 z-30" ref={sortMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsSortMenuOpen((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-200"
+                title="Change sorting order"
+              >
+                <SlidersHorizontal size={13} className="text-purple-600" />
+                <span className="font-mono text-[11px] font-bold text-slate-800">{SORT_LABELS[sortOption]}</span>
+                <ChevronDown size={13} className={`text-slate-400 transition-transform duration-200 ${isSortMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Sort Options Menu */}
+              {isSortMenuOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-2xl border border-slate-200 shadow-xl p-1.5 z-50 animate-fadeIn">
+                  <div className="px-2.5 py-1 text-[10px] font-mono font-bold uppercase text-slate-400 tracking-wider">
+                    Sort Contracts By
+                  </div>
+                  {(Object.keys(SORT_LABELS) as JobSortOption[]).map((key) => {
+                    const isCurrent = sortOption === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          setSortOption(key);
+                          setIsSortMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium text-left transition-all cursor-pointer ${
+                          isCurrent
+                            ? 'bg-purple-50 text-purple-700 font-bold'
+                            : 'text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{SORT_LABELS[key]}</span>
+                        {isCurrent && <Check size={13} className="text-purple-600 stroke-[2.5]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Section Header: My Working Contracts (X) */}
-          <div className="px-5 pt-4 pb-2 flex items-center justify-between select-none">
-            <h3 className="font-headline font-bold text-slate-900 text-base sm:text-lg tracking-tight">
-              {isClientRole ? 'My Project Escrows' : 'My Working Contracts'} ({filteredMyJobs.length})
-            </h3>
-            <span className="text-xs text-slate-400 font-sans">
-              Sorted by Priority
+          {/* Section Header: Title, Count & Active Sort Label */}
+          <div className="px-4 pt-3 pb-1.5 flex items-center justify-between select-none">
+            <div className="flex items-center gap-2">
+              <h3 className="font-headline font-bold text-slate-900 text-xs sm:text-sm tracking-tight">
+                {isClientRole ? 'My Project Escrows' : 'My Working Contracts'}
+              </h3>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10.5px] font-mono font-bold">
+                {filteredMyJobs.length}
+              </span>
+              {selectedCategoryFilter !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategoryFilter('all')}
+                  className="text-[11px] text-purple-600 font-semibold hover:underline cursor-pointer ml-1"
+                >
+                  Show all ({displayedBaseJobs.length})
+                </button>
+              )}
+            </div>
+            <span className="text-[11px] text-slate-400 font-mono font-medium flex items-center gap-1">
+              <span>Sorted by:</span>
+              <span className="font-bold text-slate-600">{SORT_LABELS[sortOption]}</span>
             </span>
           </div>
 
-          {/* Scrollable job list matching Image 2 */}
-          <div className="overflow-y-auto max-h-[380px] p-3 pt-1 space-y-2.5">
+          {/* Scrollable job list with redesigned compact typography and full details */}
+          <div className="overflow-y-auto max-h-[480px] sm:max-h-[540px] p-3 pt-1 space-y-2">
             {filteredMyJobs.length > 0 ? (
               filteredMyJobs.map((j) => {
                 const isSelected = j.id === activeJob.id;
                 const isClientJob = Boolean(j.client && j.client.toLowerCase() === userAddr);
                 const isFreelancerJob = Boolean(j.freelancer && j.freelancer.toLowerCase() === userAddr);
-                const isApplicantJob = Boolean(j.applications && j.applications.some(a => a.applicant && a.applicant.toLowerCase() === userAddr));
+                const isApplicantJob = Boolean(j.applications && j.applications.some((a) => a.applicant && a.applicant.toLowerCase() === userAddr));
                 const counterpart = isClientJob ? (j.freelancer || j.applications?.[0]?.applicant || '') : j.client;
-                const counterpartProfileKey = Object.keys(profiles || {}).find(k => k.toLowerCase() === counterpart.toLowerCase());
+                const counterpartProfileKey = Object.keys(profiles || {}).find((k) => k.toLowerCase() === counterpart.toLowerCase());
                 const counterpartProfile = counterpartProfileKey ? profiles[counterpartProfileKey] : null;
                 const counterpartLabel = counterpartProfile?.displayName || (counterpart ? truncateAddress(counterpart) : (isClientJob ? 'Awaiting Applicants' : 'Unassigned'));
 
@@ -928,6 +1103,12 @@ export const JobWorkspace: React.FC = () => {
                   statusBadgeText = 'FUNDED';
                 }
 
+                const sym = (j.paymentTokenSymbol || 'USDC').toUpperCase();
+                const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                const amt = isCrypto ? (j.amountEth || j.amountUsdc) : j.amountUsdc;
+                const amountDisplay = isCrypto ? `${amt} ${sym}` : `$${amt} USDC`;
+                const dateDisplay = formatJobDate(j.createdAt);
+
                 return (
                   <button
                     key={j.id}
@@ -937,93 +1118,91 @@ export const JobWorkspace: React.FC = () => {
                       setSearchParams({ jobId: j.id });
                       closeDropdown();
                     }}
-                    className={`relative w-full p-4 sm:p-5 rounded-2xl text-left flex items-center justify-between gap-4 transition-all cursor-pointer overflow-hidden group shadow-xs hover:shadow-md ${
+                    className={`relative w-full p-2.5 sm:p-3 rounded-xl text-left flex items-center justify-between gap-3 transition-all cursor-pointer overflow-hidden group shadow-2xs hover:shadow-xs ${
                       isSelected
-                        ? 'bg-gradient-to-r from-blue-50/50 via-white to-blue-50/20 border-2 border-purple-300 ring-2 ring-purple-100/80'
-                        : 'bg-white hover:bg-slate-50/80 border border-slate-200/80'
+                        ? 'bg-gradient-to-r from-purple-50/40 via-white to-blue-50/20 border-2 border-purple-300 ring-2 ring-purple-100/60'
+                        : 'bg-white hover:bg-slate-50/80 border border-slate-200/70 hover:border-purple-200'
                     }`}
                   >
-                    {/* Ambient top-right glow matching Image 2 */}
-                    <div className="absolute -top-10 -right-10 w-44 h-44 bg-blue-100/40 rounded-full blur-2xl pointer-events-none" />
-
                     {/* Left Document Icon Badge */}
-                    <div className="relative z-10 flex items-center gap-4 min-w-0 flex-1">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-100/70 border border-blue-200/60 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                        <FileText size={26} className="text-blue-600 stroke-[2.2]" />
+                    <div className="relative z-10 flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-8.5 h-8.5 sm:w-9.5 sm:h-9.5 rounded-xl bg-blue-50/90 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        <FileText size={17} className="text-blue-600 stroke-[2.2]" />
                       </div>
 
                       {/* Center Information */}
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center flex-wrap gap-2">
-                          <h4 className="font-headline font-bold text-base sm:text-lg text-slate-900 tracking-tight truncate group-hover:text-purple-700 transition-colors">
+                        <div className="flex items-center flex-wrap gap-1.5">
+                          <h4 className="font-headline font-bold text-xs sm:text-[13.5px] text-slate-900 tracking-tight truncate group-hover:text-purple-700 transition-colors">
                             {j.title}
                           </h4>
                           {isClientJob && (
-                            <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-mono font-bold tracking-wide uppercase shadow-2xs shrink-0">
+                            <span className="px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold tracking-wider uppercase bg-purple-100 text-purple-700 border border-purple-200/60 shadow-2xs shrink-0">
                               MY POSTING
                             </span>
                           )}
                           {!isClientJob && isFreelancerJob && (
-                            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-mono font-bold tracking-wide uppercase shadow-2xs shrink-0">
+                            <span className="px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold tracking-wider uppercase bg-blue-100 text-blue-700 border border-blue-200/60 shadow-2xs shrink-0">
                               FREELANCER
                             </span>
                           )}
                           {!isClientJob && !isFreelancerJob && isApplicantJob && (
-                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-mono font-bold tracking-wide uppercase shadow-2xs shrink-0">
+                            <span className="px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold tracking-wider uppercase bg-slate-100 text-slate-700 border border-slate-200/60 shadow-2xs shrink-0">
                               APPLICANT
                             </span>
                           )}
                         </div>
 
-                        {/* Meta row matching Image 2 */}
-                        <div className="flex items-center flex-wrap gap-2.5 sm:gap-3 text-xs font-mono mt-1.5">
+                        {/* Meta row with Amount, Counterpart, Contract, and Relative Date */}
+                        <div className="flex items-center flex-wrap gap-2 text-[10.5px] font-mono mt-0.5 text-slate-500">
                           {/* Amount in Emerald */}
-                          <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600">
-                            <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shadow-2xs">
-                              {j.paymentTokenSymbol === 'POL' || j.paymentTokenSymbol === 'MATIC' ? '⬡' : '$'}
+                          <span className="inline-flex items-center gap-1 font-bold text-emerald-600">
+                            <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[8.5px] font-bold shadow-2xs">
+                              {sym === 'POL' || sym === 'MATIC' ? '⬡' : '$'}
                             </span>
-                            <span>
-                              {(() => {
-                                const sym = (j.paymentTokenSymbol || 'USDC').toUpperCase();
-                                const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
-                                const amt = isCrypto ? (j.amountEth || j.amountUsdc) : j.amountUsdc;
-                                return isCrypto ? `${amt} ${sym}` : `$${amt} USDC`;
-                              })()}
-                            </span>
+                            <span>{amountDisplay}</span>
                           </span>
 
                           {/* Divider */}
-                          <span className="text-slate-300 font-light">|</span>
+                          <span className="text-slate-200">|</span>
 
                           {/* Counterpart / Client with User icon */}
-                          <span className="inline-flex items-center gap-1.5 text-slate-600 font-medium">
-                            <User size={13} className="text-slate-400" />
-                            <span className="truncate">{counterpartLabel}</span>
+                          <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
+                            <User size={11} className="text-slate-400" />
+                            <span className="truncate max-w-[130px] sm:max-w-[170px]">{counterpartLabel}</span>
                           </span>
 
                           {/* Divider */}
-                          <span className="text-slate-300 font-light">|</span>
+                          <span className="text-slate-200">|</span>
 
                           {/* Contract / Hash with Link icon */}
-                          <span className="inline-flex items-center gap-1.5 text-slate-500 font-mono">
-                            <Link2 size={13} className="text-slate-400" />
+                          <span className="inline-flex items-center gap-1 text-slate-400 font-mono">
+                            <Link2 size={11} className="text-slate-400" />
                             <span>#{truncateAddress(j.contractAddress || j.id)}</span>
                           </span>
+
+                          {/* Creation Time (Prefer Latest) */}
+                          {dateDisplay && (
+                            <>
+                              <span className="text-slate-200">|</span>
+                              <span className="text-[10px] text-slate-400 font-sans">{dateDisplay}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {/* Right Section: Status Pill & Action Chevron */}
-                    <div className="relative z-10 flex items-center gap-3 shrink-0">
+                    <div className="relative z-10 flex items-center gap-2 shrink-0">
                       {/* Active status pill */}
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border font-mono font-bold text-[11px] sm:text-xs uppercase tracking-wider shadow-2xs ${badgeStyle}`}>
-                        <span className={`w-2 h-2 rounded-full ${dotStyle} animate-pulse`}></span>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border font-mono font-bold text-[9.5px] sm:text-[10px] uppercase tracking-wider shadow-2xs ${badgeStyle}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${dotStyle} animate-pulse`}></span>
                         <span>{statusBadgeText}</span>
                       </span>
 
                       {/* Chevron action button in rounded circle */}
-                      <div className="w-9 h-9 rounded-full bg-blue-50/80 group-hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors shadow-2xs">
-                        <ChevronRight size={18} className="stroke-[2.5]" />
+                      <div className="w-7 h-7 rounded-full bg-slate-50 border border-slate-200/60 group-hover:bg-purple-50 group-hover:border-purple-200 text-slate-400 group-hover:text-purple-600 flex items-center justify-center transition-all shadow-2xs">
+                        <ChevronRight size={14} className="stroke-[2.2]" />
                       </div>
                     </div>
                   </button>

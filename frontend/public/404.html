@@ -4,19 +4,32 @@
     <meta charset="utf-8">
     <title>PolyLance Zenith</title>
     <script type="text/javascript">
-      // Single Page Apps for GitHub Pages
-      // MIT License
-      // https://github.com/rafgraph/spa-github-pages
-      var pathSegmentsToKeep = 1;
+      // Robust GitHub Pages 404 Redirect for HashRouter & Custom Domain (polylance.codes)
+      (function() {
+        var l = window.location;
+        var cleanPath = l.pathname || '';
+        var isGitHubDomain = l.hostname.endsWith('github.io');
+        var pathSegments = cleanPath.split('/').filter(Boolean);
+        var basePath = '';
+        var routePath = cleanPath;
 
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+        // If hosted on GitHub project page with subpath (e.g. username.github.io/repo), preserve repo basePath
+        if (isGitHubDomain && pathSegments.length > 0) {
+          basePath = '/' + pathSegments[0];
+          routePath = '/' + pathSegments.slice(1).join('/');
+        }
+
+        // Build target hash route for react-router HashRouter
+        var targetHash = '';
+        if (routePath && routePath !== '/' && !routePath.endsWith('/index.html')) {
+          targetHash = '#' + routePath;
+        } else if (l.hash && l.hash.length > 1) {
+          targetHash = l.hash;
+        }
+
+        var redirectUrl = l.protocol + '//' + l.host + basePath + '/' + (l.search || '') + targetHash;
+        l.replace(redirectUrl);
+      })();
     </script>
   </head>
   <body>

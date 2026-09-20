@@ -138,6 +138,8 @@ const MOCK_ADDRESSES_TO_PURGE = new Set([
   '0x89b4566420a092c55660830e8115e9a443900142',
   '0x42f8366420a092c55660830e8115e9a443900990',
   '0x55e1236420a092c55660830e8115e9a443900310',
+  '0x474d8c97445fbcf4e13c257556adbced11a9def8',
+  '0x7777111177771111777711117777111177771111',
 ]);
 
 const MOCK_NAMES_TO_PURGE = new Set([
@@ -164,7 +166,14 @@ const HARDHAT_TEST_ADDRESSES = new Set([
 export const isDemoOrMockJob = (j: Partial<Job> | null | undefined): boolean => {
   if (!j) return true;
   const id = String(j.id || '').toLowerCase().trim();
-  if (id === 'job-101' || id === 'job-102' || id.startsWith('job-mock-') || id.startsWith('mock-')) {
+  if (
+    id === 'job-101' ||
+    id === 'job-102' ||
+    id.startsWith('job-mock-') ||
+    id.startsWith('mock-') ||
+    id.startsWith('test-') ||
+    id.startsWith('demo-')
+  ) {
     return true;
   }
   const title = (j.title || '').trim().toLowerCase();
@@ -173,7 +182,12 @@ export const isDemoOrMockJob = (j: Partial<Job> | null | undefined): boolean => 
   // Test fixtures and demo jobs from seed / vitest
   if (
     title === 'full stack smart contract integration' ||
-    desc.includes('connect react 19 frontend with polygon amoy escrow contracts')
+    desc.includes('connect react 19 frontend with polygon amoy escrow contracts') ||
+    title === 'job to select' ||
+    title === 'job 1' ||
+    title === 'job 2' ||
+    title.includes('privacy-job') ||
+    title.includes('confidential smart contract')
   ) {
     return true;
   }
@@ -2167,6 +2181,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
             console.log(`Executing real on-chain escrow funding of ${safeAmount} POL to ${targetContractAddress}...`);
             const gasOverrides = await getPolygonGasOverrides(provider);
+            try {
+              const signerAddr = await signer.getAddress();
+              await escrow.fundJob.staticCall(0, { value: val, from: signerAddr });
+              console.log(`Pre-flight simulation successful for funding ${safeAmount} POL into ${targetContractAddress}.`);
+            } catch (simErr: any) {
+              console.warn('Pre-flight simulation warning:', simErr);
+            }
             const tx = await escrow.fundJob(0, { value: val, ...gasOverrides, gasLimit: 300000n });
             const receipt = await tx.wait();
             txHash = receipt.hash;

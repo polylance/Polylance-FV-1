@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { truncateAddress } from '../utils/formatters';
-import { ShieldCheck, Terminal, DollarSign, Users, CheckCircle2, AlertTriangle, FileCode, Zap } from 'lucide-react';
+import { TREASURY_WALLET } from '../config/contracts';
+import { ShieldCheck, Terminal, DollarSign, Users, CheckCircle2, AlertTriangle, FileCode, Zap, Wallet } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const Treasury: React.FC = () => {
   const { address } = useWeb3();
   const { treasury, proposeTreasuryWithdrawal, signTreasuryWithdrawal, executeTreasuryWithdrawal, treasuryHistory, jobs } = usePolyLanceData();
 
-  const [recipient, setRecipient] = useState('');
+  const [recipient, setRecipient] = useState(TREASURY_WALLET);
   const [amountUsdc, setAmountUsdc] = useState('');
   const [purpose, setPurpose] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'terminal' | 'governance'>('overview');
@@ -238,6 +239,23 @@ export const Treasury: React.FC = () => {
             <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
               <DollarSign size={20} className="text-purple-700" /> Propose Multisig Disbursement
             </h3>
+
+            <div className="bg-purple-50/80 border border-purple-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <Wallet size={14} className="text-purple-600 shrink-0" />
+                <span className="text-slate-600 font-bold">Official 2.5% Fee Treasury Wallet:</span>
+                <span className="font-mono text-purple-900 font-bold break-all">{TREASURY_WALLET}</span>
+              </div>
+              {recipient !== TREASURY_WALLET && (
+                <button
+                  type="button"
+                  onClick={() => setRecipient(TREASURY_WALLET)}
+                  className="px-2.5 py-1 bg-white border border-purple-200 text-purple-700 font-bold rounded-lg text-[10px] hover:bg-purple-100 transition-colors"
+                >
+                  Use Official Treasury
+                </button>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
