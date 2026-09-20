@@ -174,5 +174,8 @@ export function getCanonicalCertificateId(jobId?: string | number | any, contrac
  */
 export function getCertifiedPassVerifyUrl(certId: string): string {
   const clean = String(certId || '').trim();
-  return `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(clean)}&partner=polylance`;
+  const origin = typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
+    : 'https://polylance.codes';
+  return `${origin}/#/certifiedpass?certId=${encodeURIComponent(clean)}`;
 }

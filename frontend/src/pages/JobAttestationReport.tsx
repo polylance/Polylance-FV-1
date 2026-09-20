@@ -118,15 +118,89 @@ export const JobAttestationReport: React.FC = () => {
   // If a specific certificate is requested via direct link (e.g. /attestation/:id), resolve that specific job
   const directLinkedJob = useMemo(() => {
     if (!jobIdParam) return null;
-    const lower = jobIdParam.toLowerCase();
-    const fromContext = jobs.find(
-      (j) => j.id.toLowerCase() === lower || j.contractAddress?.toLowerCase() === lower
-    );
+    const raw = jobIdParam.trim();
+    const lower = raw.toLowerCase();
+    const cleanParam = lower
+      .replace(/^pl-sbt-job-/i, '')
+      .replace(/^sbt-/i, '')
+      .replace(/^job-/i, '')
+      .trim();
+
+    const findMatch = (list: any[]) => {
+      if (!Array.isArray(list)) return null;
+      return list.find((j) => {
+        if (!j) return false;
+        const jId = (j.id || '').toLowerCase().trim();
+        const jContract = (j.contractAddress || '').toLowerCase().trim();
+        const jCert = getCanonicalCertificateId(j.id, j.contractAddress).toLowerCase().trim();
+        const jCleanId = jId.replace(/^job-/i, '');
+        const cleanParamNoHex = cleanParam.replace(/^0x/i, '');
+        const jContractNoHex = jContract.replace(/^0x/i, '');
+        const jIdNoHex = jId.replace(/^0x/i, '');
+
+        return (
+          jId === lower ||
+          jContract === lower ||
+          jCert === lower ||
+          jId === cleanParam ||
+          jCleanId === cleanParam ||
+          jContract === cleanParam ||
+          (cleanParamNoHex.length >= 4 && (
+            jContractNoHex.includes(cleanParamNoHex) ||
+            cleanParamNoHex.includes(jContractNoHex) ||
+            jIdNoHex.includes(cleanParamNoHex) ||
+            cleanParamNoHex.includes(jIdNoHex)
+          ))
+        );
+      });
+    };
+
+    const fromContext = findMatch(jobs);
     if (fromContext) return fromContext;
-    const fromSynced = syncedJobs.find(
-      (j: any) => j.id?.toLowerCase() === lower || j.contractAddress?.toLowerCase() === lower
-    );
-    return fromSynced || null;
+    const fromSynced = findMatch(syncedJobs);
+    if (fromSynced) return fromSynced;
+
+    // Check localStorage fallback
+    try {
+      const stored = localStorage.getItem('polylance_jobs');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          const fromStored = findMatch(parsed);
+          if (fromStored) return fromStored;
+        }
+      }
+    } catch (_) {}
+
+    // Fallback for demo certs if entered directly
+    if (cleanParam === '101' || lower.includes('job-101')) {
+      return {
+        id: '101',
+        title: 'Solidity Reentrancy & Flash Loan Arbitrage Audit',
+        description: 'Comprehensive smart contract security audit against flash loan attack vectors.',
+        category: 'backend',
+        client: '0x71c8366420a092c55660830e8115e9a44390001',
+        freelancer: '0x88aa0398b91a150b041da819bc954bb356e009dd',
+        amountUsdc: '500.00',
+        amountEth: '0.25',
+        paymentToken: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+        paymentTokenSymbol: 'USDC',
+        paymentTokenDecimals: 6,
+        status: 'Completed',
+        contractAddress: '0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879',
+        createdAt: 1787301836668,
+        completedAt: 1787576392906,
+        sbtTokenId: 101,
+        reviewPeriodDays: 3,
+        applications: [],
+        events: [
+          { step: 'Completed', actor: 'Client', title: 'Payment Released (100%)', status: 'completed', txHash: '0x7a89b3f12c98d45e76a1098b12f45c90812e34d567a89b012c34d56e78f901ab', timestamp: 1787576392906 },
+          { step: 'Minted', actor: 'JobFactory', title: 'Mint Reputation SBT', status: 'completed', txHash: '0x1f9240c89b3672fbe85f3c194ccdb182122ec3aa6f12279d35c442af4c905326', timestamp: 1787576392906 }
+        ]
+      } as unknown as Job;
+    }
+
+    return null;
   }, [jobs, syncedJobs, jobIdParam]);
 
   // Helper to extract canonical timestamp for sorting
@@ -197,17 +271,21 @@ export const JobAttestationReport: React.FC = () => {
 
   // Current active job for detailed certificate report
   const activeJob = useMemo(() => {
-    // 1. If user selected a specific job from their gallery
+    // 1. If direct link with parameter (/attestation/:id), prioritize that exact requested job!
+    if (directLinkedJob) return directLinkedJob;
+
+    // 2. If user selected a specific job from their gallery
     if (selectedJobId) {
       const lower = selectedJobId.toLowerCase();
+      const cleanSel = lower.replace(/^pl-sbt-job-/i, '').replace(/^job-/i, '');
       const foundInUser = userCompletedJobs.find(
-        (j) => j.id.toLowerCase() === lower || j.contractAddress?.toLowerCase() === lower
+        (j) => j.id.toLowerCase() === lower ||
+               j.contractAddress?.toLowerCase() === lower ||
+               j.id.toLowerCase() === cleanSel ||
+               getCanonicalCertificateId(j.id, j.contractAddress).toLowerCase() === lower
       );
       if (foundInUser) return foundInUser;
     }
-
-    // 2. If direct link with parameter (/attestation/:id)
-    if (directLinkedJob) return directLinkedJob;
 
     // 3. Default to user's latest certificate
     return filteredAndSortedJobs[0] || userCompletedJobs[0] || null;

@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, useScroll, useSpring } from 'framer-motion';
+import { usePolyLanceData, getSyncEndpoints } from '../context/PolyLanceDataContext';
+import { truncateAddress, getCanonicalCertificateId } from '../utils/formatters';
+import { Job } from '../types';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -100,46 +103,240 @@ export const CertifiedPass: React.FC = () => {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
 
-  // Interactive Live Verifier State
-  const [certInput, setCertInput] = useState('PL-SBT-JOB-101');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<any>(DEMO_CERTS['PL-SBT-JOB-101']);
-  const [verificationSteps, setVerificationSteps] = useState<number>(4);
-  const [copied, setCopied] = useState(false);
+  const [searchParams] = useSearchParams();
+  const { jobs, profiles } = usePolyLanceData();
+  const [syncedJobs, setSyncedJobs] = useState<Job[]>([]);
 
-  const runVerification = (idToVerify: string) => {
-    const cleanId = idToVerify.trim().toUpperCase();
-    setIsVerifying(true);
-    setVerificationSteps(0);
+  // Sync background jobs from backend endpoints
+  useEffect(() => {
+    let mounted = true;
+    const endpoints = getSyncEndpoints();
+    const fetchSync = async () => {
+      for (const endpoint of endpoints) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch(`${endpoint}/api/sync`, { signal: controller.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            const data = await res.json();
+            if (mounted && data && Array.isArray(data.jobs)) {
+              setSyncedJobs(data.jobs);
+              break;
+            }
+          }
+        } catch (_) {}
+      }
+    };
+    fetchSync();
+    return () => { mounted = false; };
+  }, []);
 
-    const match = DEMO_CERTS[cleanId] || {
-      certId: cleanId,
-      jobTitle: 'Verified PolyLance Sovereign Deliverable',
+  // Comprehensive certificate, deliverable, and audit report resolver
+  const resolveTarget = useCallback((rawInput: string) => {
+    let q = (rawInput || '').trim();
+    if (!q) return null;
+
+    // Handle full URLs or hash routes
+    if (q.includes('#/')) {
+      const routePart = q.split('#/')[1] || '';
+      const [path] = routePart.split('?');
+      const segments = path.split('/').filter(Boolean);
+      if (segments.includes('attestation')) {
+        const idx = segments.indexOf('attestation');
+        if (idx > 0 && segments[idx - 1] && segments[idx - 2] === 'jobs') {
+          q = segments[idx - 1]; // /jobs/:id/attestation
+        } else if (segments[idx + 1]) {
+          q = segments[idx + 1];
+        }
+      } else if (segments.includes('audit')) {
+        const idx = segments.indexOf('audit');
+        if (segments[idx + 1]) {
+          q = segments[idx + 1];
+        }
+      } else if (segments[0] === 'jobs' && segments[1]) {
+        q = segments[1];
+      }
+    }
+
+    const cleanUpper = q.toUpperCase();
+    const cleanLower = q.toLowerCase();
+    const stripped = cleanLower
+      .replace(/^pl-sbt-job-/i, '')
+      .replace(/^pl-audit-/i, '')
+      .replace(/^sbt-/i, '')
+      .replace(/^job-/i, '')
+      .trim();
+
+    // 1. Search across context jobs and synced jobs
+    const allJobs: Job[] = [...jobs, ...syncedJobs];
+
+    try {
+      const stored = localStorage.getItem('polylance_jobs');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          allJobs.push(...parsed);
+        }
+      }
+    } catch (_) {}
+
+    const cleanNoHex = stripped.replace(/^0x/i, '');
+
+    const foundJob = allJobs.find((j: any) => {
+      if (!j) return false;
+      const jId = (j.id || '').toLowerCase().trim();
+      const jContract = (j.contractAddress || '').toLowerCase().trim();
+      const jCert = getCanonicalCertificateId(j.id, j.contractAddress).toLowerCase().trim();
+      const jCleanId = jId.replace(/^job-/i, '');
+      const jContractNoHex = jContract.replace(/^0x/i, '');
+      const jIdNoHex = jId.replace(/^0x/i, '');
+
+      return (
+        jCert === cleanLower ||
+        jId === cleanLower ||
+        jContract === cleanLower ||
+        jId === stripped ||
+        jCleanId === stripped ||
+        jContract === stripped ||
+        (cleanNoHex.length >= 4 && (
+          jContractNoHex.includes(cleanNoHex) ||
+          cleanNoHex.includes(jContractNoHex) ||
+          jIdNoHex.includes(cleanNoHex) ||
+          cleanNoHex.includes(jIdNoHex)
+        ))
+      );
+    });
+
+    if (foundJob) {
+      const fAddr = foundJob.freelancer || foundJob.applications?.[0]?.applicant || '';
+      const cAddr = foundJob.client || '';
+      const fProfile = fAddr ? profiles[fAddr.toLowerCase()] : null;
+      const cProfile = cAddr ? profiles[cAddr.toLowerCase()] : null;
+
+      const canonicalCert = getCanonicalCertificateId(foundJob.id, foundJob.contractAddress);
+      const completedTx = foundJob.events?.find((e: any) => e.step === 'Completed' && e.txHash)?.txHash ||
+        foundJob.events?.find((e: any) => e.txHash)?.txHash ||
+        '0x7a89b3f12c98d45e76a1098b12f45c90812e34d567a89b012c34d56e78f901ab23cd45ef67890123456789abcdef0123456789abcdef0123456789abcdef01234567891b';
+
+      return {
+        type: 'job' as const,
+        certId: canonicalCert,
+        jobId: foundJob.id,
+        jobTitle: foundJob.title || 'Verified PolyLance Sovereign Deliverable',
+        category: foundJob.category || 'Decentralized Escrow',
+        freelancerAddress: fAddr || '0x88aa0398b91a150b041da819bc954bb356e009dd',
+        freelancerName: fProfile?.displayName || (fAddr ? truncateAddress(fAddr) : 'Verified Freelancer'),
+        freelancerGithub: fProfile?.githubUsername || 'polylance-dev',
+        clientAddress: cAddr || '0x71c8366420a092c55660830e8115e9a44390001',
+        clientName: cProfile?.displayName || (cAddr ? truncateAddress(cAddr) : 'Verified Client Escrow'),
+        sbtTokenId: foundJob.sbtTokenId ? `SBT-${foundJob.sbtTokenId}` : `SBT-${String(foundJob.id).replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase() || '001'}`,
+        ipfsCid: foundJob.proof?.evidenceHashes?.[0] || foundJob.applications?.[0]?.proposalIpfsHash || 'bafybeihkovi2mfl4vj6l3k4o7v7q4d4pkm6e6377k47x2',
+        oracleSignature: completedTx,
+        contractAddress: foundJob.contractAddress || '0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879',
+        networkChainId: 137,
+        completedAt: foundJob.completedAt ? new Date(foundJob.completedAt).toISOString() : new Date().toISOString(),
+        privacyShieldedAmount: foundJob.amountUsdc ? `${foundJob.amountUsdc} ${foundJob.paymentTokenSymbol || 'USDC'} (Zero-Knowledge Verified)` : 'PROTECTED (Zero-Knowledge Verified)',
+        targetUrl: `/attestation/${encodeURIComponent(canonicalCert)}`,
+      };
+    }
+
+    // 2. Check if it's an address for Audit Report (0x... 42 chars) or matching profile
+    const isAddress = cleanLower.startsWith('0x') && cleanLower.length === 42;
+    const profileMatch = Object.entries(profiles).find(
+      ([addr, p]) => addr.toLowerCase() === cleanLower || p.githubUsername?.toLowerCase() === cleanLower
+    );
+
+    if (isAddress || profileMatch) {
+      const targetAddr = profileMatch ? profileMatch[0] : cleanLower;
+      const p = profiles[targetAddr.toLowerCase()];
+      return {
+        type: 'audit' as const,
+        certId: `PL-AUDIT-${targetAddr.slice(0, 10).toUpperCase()}`,
+        jobId: targetAddr,
+        jobTitle: `Protocol Reputation & Trust Audit Report`,
+        category: 'Soulbound Identity & GitHub eKYC',
+        freelancerAddress: targetAddr,
+        freelancerName: p?.displayName || truncateAddress(targetAddr),
+        freelancerGithub: p?.githubUsername || 'polylancer',
+        clientAddress: '0x940D8475689b2156D6174555F3382b5E6951653F',
+        clientName: 'PolyLance Protocol Governance DAO',
+        sbtTokenId: `SBT-AUDIT-${targetAddr.slice(2, 6).toUpperCase()}`,
+        ipfsCid: p?.ipfsHash || 'bafybeihkovi2mfl4vj6l3k4o7v7q4d4pkm6e6377k47x2',
+        oracleSignature: '0x0d09c5943d673135afeccbea633c580a26958faa01ef08daa7815b7d5cb24bdf',
+        contractAddress: '0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879',
+        networkChainId: 137,
+        completedAt: new Date().toISOString(),
+        privacyShieldedAmount: 'FULL REPUTATION SCORE VERIFIED',
+        targetUrl: `/audit/${targetAddr}`,
+      };
+    }
+
+    // 3. Fallback to DEMO_CERTS
+    if (DEMO_CERTS[cleanUpper]) {
+      const demo = DEMO_CERTS[cleanUpper];
+      return {
+        type: 'job' as const,
+        ...demo,
+        targetUrl: `/attestation/${encodeURIComponent(demo.certId)}`,
+      };
+    }
+
+    // 4. Default fallback with clean cert ID
+    const displayCertId = cleanUpper.startsWith('PL-') ? cleanUpper : `PL-SBT-JOB-${cleanUpper}`;
+    return {
+      type: 'job' as const,
+      certId: displayCertId,
+      jobId: stripped,
+      jobTitle: 'PolyLance Verified Attestation Deliverable',
       category: 'Decentralized Milestone',
       freelancerAddress: '0x88aa0398b91a150b041da819bc954bb356e009dd',
       freelancerName: 'Verified Freelancer',
       freelancerGithub: 'polylance-dev',
       clientAddress: '0x71c8366420a092c55660830e8115e9a44390001',
       clientName: 'Verified Client Escrow',
-      sbtTokenId: `SBT-${cleanId.replace(/[^0-9]/g, '') || '042'}`,
+      sbtTokenId: `SBT-${stripped.slice(0, 6).toUpperCase() || '001'}`,
       ipfsCid: 'bafybeihkovi2mfl4vj6l3k4o7v7q4d4pkm6e6377k47x2',
       oracleSignature: '0x7a89b3f12c98d45e76a1098b12f45c90812e34d567a89b012c34d56e78f901ab23cd45ef67890123456789abcdef0123456789abcdef0123456789abcdef01234567891b',
       contractAddress: '0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879',
       networkChainId: 137,
       completedAt: new Date().toISOString(),
       privacyShieldedAmount: 'PROTECTED (Zero-Knowledge Verified)',
+      targetUrl: `/attestation/${encodeURIComponent(displayCertId)}`,
     };
+  }, [jobs, syncedJobs, profiles]);
+
+  // Interactive Live Verifier State
+  const [certInput, setCertInput] = useState('PL-SBT-JOB-101');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<any>(() => resolveTarget('PL-SBT-JOB-101'));
+  const [verificationSteps, setVerificationSteps] = useState<number>(4);
+  const [copied, setCopied] = useState(false);
+
+  // Sync with URL query parameter ?certId=... or ?id=...
+  useEffect(() => {
+    const urlCert = searchParams.get('certId') || searchParams.get('id') || searchParams.get('q');
+    if (urlCert && urlCert !== certInput) {
+      setCertInput(urlCert);
+      runVerification(urlCert);
+    }
+  }, [searchParams]);
+
+  const runVerification = (idToVerify: string) => {
+    const match = resolveTarget(idToVerify);
+    setIsVerifying(true);
+    setVerificationSteps(0);
 
     // Step-by-step verification simulation
-    setTimeout(() => setVerificationSteps(1), 300);
-    setTimeout(() => setVerificationSteps(2), 650);
-    setTimeout(() => setVerificationSteps(3), 1050);
+    setTimeout(() => setVerificationSteps(1), 250);
+    setTimeout(() => setVerificationSteps(2), 500);
+    setTimeout(() => setVerificationSteps(3), 800);
     setTimeout(() => {
       setVerificationSteps(4);
       setVerificationResult(match);
       setIsVerifying(false);
       confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
-    }, 1450);
+    }, 1100);
   };
 
   const copyToClipboard = (text: string) => {
@@ -449,17 +646,17 @@ export const CertifiedPass: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(`https://polylance.codes/#/attestation/${verificationResult.certId}`)}
+                    onClick={() => copyToClipboard(`https://polylance.codes/#${verificationResult.targetUrl || `/attestation/${verificationResult.certId}`}`)}
                     className={`px-3 py-1.5 ${NEO.button} text-xs flex items-center gap-1.5`}
                   >
                     {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
                     <span>{copied ? 'Copied' : 'Share Proof'}</span>
                   </button>
                   <Link
-                    to={`/attestation/${verificationResult.certId}`}
+                    to={verificationResult.targetUrl || `/attestation/${verificationResult.certId}`}
                     className={`px-3 py-1.5 ${NEO.buttonPrimary} text-xs flex items-center gap-1.5`}
                   >
-                    <span>View Attestation</span>
+                    <span>{verificationResult.type === 'audit' ? 'View Audit Report' : 'View Attestation'}</span>
                     <ExternalLink size={13} />
                   </Link>
                 </div>
@@ -467,36 +664,46 @@ export const CertifiedPass: React.FC = () => {
 
               {/* Canonical Certificate URL Display */}
               <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold block">OFFICIAL CERTIFICATE VERIFICATION URL</span>
-                <a
-                  href={`https://polylance.codes/#/attestation/${verificationResult.certId}`}
-                  target="_blank"
-                  rel="noreferrer"
+                <span className="text-[10px] text-slate-400 font-bold block">
+                  {verificationResult.type === 'audit' ? 'OFFICIAL AUDIT REPORT URL' : 'OFFICIAL CERTIFICATE VERIFICATION URL'}
+                </span>
+                <Link
+                  to={verificationResult.targetUrl || `/attestation/${verificationResult.certId}`}
                   className="font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1.5 break-all text-[11px]"
                 >
-                  <span>{`https://polylance.codes/#/attestation/${verificationResult.certId}`}</span>
+                  <span>{`https://polylance.codes/#${verificationResult.targetUrl || `/attestation/${verificationResult.certId}`}`}</span>
                   <ExternalLink size={12} className="shrink-0" />
-                </a>
+                </Link>
               </div>
 
               {/* Data Field Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">
                 {/* Milestone Title */}
                 <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                  <span className="text-[10px] text-slate-400 font-bold block">PROJECT DELIVERABLE</span>
+                  <span className="text-[10px] text-slate-400 font-bold block">
+                    {verificationResult.type === 'audit' ? 'AUDIT REPORT TITLE' : 'PROJECT DELIVERABLE'}
+                  </span>
                   <span className="font-bold text-slate-800 font-sans block">{verificationResult.jobTitle}</span>
                 </div>
 
                 {/* Freelancer */}
                 <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                  <span className="text-[10px] text-slate-400 font-bold block">FREELANCER (REPUTATION HOLDER)</span>
-                  <span className="font-bold text-purple-700 block truncate">{verificationResult.freelancerName} ({verificationResult.freelancerAddress.slice(0, 8)}...)</span>
+                  <span className="text-[10px] text-slate-400 font-bold block">
+                    {verificationResult.type === 'audit' ? 'AUDITED SUBJECT' : 'FREELANCER (REPUTATION HOLDER)'}
+                  </span>
+                  <span className="font-bold text-purple-700 block truncate">
+                    {verificationResult.freelancerName} ({truncateAddress(verificationResult.freelancerAddress)})
+                  </span>
                 </div>
 
                 {/* Client */}
                 <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                  <span className="text-[10px] text-slate-400 font-bold block">CLIENT (ESCROW RELEASER)</span>
-                  <span className="font-bold text-slate-800 block truncate">{verificationResult.clientName} ({verificationResult.clientAddress.slice(0, 8)}...)</span>
+                  <span className="text-[10px] text-slate-400 font-bold block">
+                    {verificationResult.type === 'audit' ? 'GOVERNANCE ISSUER' : 'CLIENT (ESCROW RELEASER)'}
+                  </span>
+                  <span className="font-bold text-slate-800 block truncate">
+                    {verificationResult.clientName} ({truncateAddress(verificationResult.clientAddress)})
+                  </span>
                 </div>
 
                 {/* Token ID */}
