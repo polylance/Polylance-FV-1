@@ -25,6 +25,7 @@
     "eth-crypto": "^2.6.0",
     "ethers": "^6.13.5",
     "express": "^4.21.2",
+    "polylance": "file:..",
     "prisma": "^6.3.1",
     "socket.io": "^4.8.1",
     "tsx": "^4.19.2",
@@ -49,5 +50,3 @@
     "braces": "^3.0.3"
   }
 }
-
-
