@@ -47,8 +47,10 @@ describe("EIP-1167 clone storage isolation", function () {
     const jobA = await ethers.getContractAt("JobEscrow", jobs[0]) as JobEscrow;
     const jobB = await ethers.getContractAt("JobEscrow", jobs[1]) as JobEscrow;
 
-    // Fund Job A with 1 ETH
-    await jobA.connect(clientA).fundJob(0, { value: ethers.parseEther("1.0") });
+    // Fund Job A with 1 ETH (+ 2.5% client platform fee)
+    const amountA = ethers.parseEther("1.0");
+    const feeA = (amountA * 250n) / 10000n;
+    await jobA.connect(clientA).fundJob(amountA, { value: amountA + feeA });
 
     // Job A balance and amount must be 1 ETH
     expect(await jobA.amount()).to.equal(ethers.parseEther("1.0"));

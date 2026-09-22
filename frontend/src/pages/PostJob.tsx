@@ -245,9 +245,9 @@ export const PostJob: React.FC = () => {
         <p className="text-xs sm:text-sm text-slate-500 font-medium">
           Deploys a standalone <span className="font-mono text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded animate-pulse">JobEscrow.sol</span> clone via JobFactory
         </p>
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] sm:text-xs font-semibold shadow-xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-          <span><strong>100% Free Job Posting:</strong> PolyLance charges $0 platform fee. Only Polygon network gas (~0.005 POL) is required.</span>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-50 border border-purple-200/80 text-purple-900 text-[11px] sm:text-xs font-semibold shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-purple-600 shrink-0" />
+          <span><strong>Dual 2.5% Protocol Fee:</strong> 2.5% client platform fee upon escrow funding directly to Treasury + 2.5% fee on freelancer payout.</span>
         </div>
       </div>
 
@@ -661,42 +661,71 @@ export const PostJob: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Platform Maintenance Fee & Net Payout Breakdown */}
+                {/* Dual 2.5% Platform Fee Breakdown (Client + Freelancer) */}
                 {(() => {
                   const numAmount = parseFloat(tokenAmount || '0') || 0;
                   const grossUsd = numAmount * (tokenPriceUsd || 1);
-                  const maintFeeToken = numAmount * 0.025;
-                  const netToken = numAmount - maintFeeToken;
-                  const maintFeeUsd = grossUsd * 0.025;
-                  const netUsd = grossUsd - maintFeeUsd;
+                  
+                  // Dual 2.5% protocol fee
+                  const clientFeeToken = numAmount * 0.025;
+                  const clientFeeUsd = grossUsd * 0.025;
+                  const totalClientToken = numAmount + clientFeeToken;
+                  const totalClientUsd = grossUsd + clientFeeUsd;
+
+                  const freelancerFeeToken = numAmount * 0.025;
+                  const freelancerFeeUsd = grossUsd * 0.025;
+                  const netFreelancerToken = numAmount - freelancerFeeToken;
+                  const netFreelancerUsd = grossUsd - freelancerFeeUsd;
 
                   const isStable = selectedToken === 'USDC' || selectedToken === 'USDT';
                   const dec = selectedToken === 'BTC' || selectedToken === 'ETH' ? 4 : 2;
 
                   return (
-                    <div className="my-2 p-2.5 bg-purple-50/80 border border-purple-200/80 rounded-xl space-y-1.5 font-mono text-[10px]">
+                    <div className="my-2 p-3 bg-purple-50/90 border border-purple-200/90 rounded-xl space-y-1.5 font-mono text-[10px]">
                       <div className="flex justify-between items-center text-slate-600">
-                        <span>Escrow Total:</span>
+                        <span>Escrow Principal Budget:</span>
                         <span className="font-bold text-slate-900">
                           {isStable
                             ? `$${numAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedToken}`
                             : `${numAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${selectedToken} (~$${grossUsd.toFixed(2)} USD)`}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center text-slate-500">
-                        <span>Platform Maintenance Fee (2.5%):</span>
-                        <span className="font-bold text-rose-600">
+                      <div className="flex justify-between items-center text-indigo-700">
+                        <span>Client Platform Fee (2.5%):</span>
+                        <span className="font-bold text-indigo-700">
                           {isStable
-                            ? `-$${maintFeeToken.toFixed(2)} ${selectedToken}`
-                            : `-${maintFeeToken.toFixed(dec)} ${selectedToken} (-$${maintFeeUsd.toFixed(2)})`}
+                            ? `+$${clientFeeToken.toFixed(2)} ${selectedToken}`
+                            : `+${clientFeeToken.toFixed(dec)} ${selectedToken} (+$${clientFeeUsd.toFixed(2)})`}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center pt-1.5 border-t border-purple-200/80 text-purple-950 font-bold">
+                      <div className="flex justify-between items-center pt-1.5 border-t border-purple-200/80 text-slate-900 font-bold">
+                        <span>Total Client Deposit:</span>
+                        <span className="text-purple-900 font-extrabold text-[11px]">
+                          {isStable
+                            ? `$${totalClientToken.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedToken}`
+                            : `${totalClientToken.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${selectedToken} (~$${totalClientUsd.toFixed(2)} USD)`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-500 pt-1 border-t border-dashed border-purple-200/60">
+                        <span>Freelancer Fee (-2.5% upon payout):</span>
+                        <span className="font-bold text-rose-600">
+                          {isStable
+                            ? `-$${freelancerFeeToken.toFixed(2)} ${selectedToken}`
+                            : `-${freelancerFeeToken.toFixed(dec)} ${selectedToken} (-$${freelancerFeeUsd.toFixed(2)})`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-emerald-800 font-bold">
                         <span>Freelancer Net Payout:</span>
                         <span className="text-emerald-700 font-extrabold text-[11px]">
                           {isStable
-                            ? `$${netToken.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedToken}`
-                            : `${netToken.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${selectedToken} (~$${netUsd.toFixed(2)} USD)`}
+                            ? `$${netFreelancerToken.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedToken}`
+                            : `${netFreelancerToken.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${selectedToken} (~$${netFreelancerUsd.toFixed(2)} USD)`}
+                        </span>
+                      </div>
+                      <div className="pt-1.5 border-t border-purple-200/80 flex items-center justify-between text-[9px] text-purple-800/80">
+                        <span>Direct Treasury Ingestion:</span>
+                        <span className="font-bold text-purple-950 font-mono">
+                          5.0% Total (2.5% Client + 2.5% Freelancer)
                         </span>
                       </div>
                     </div>

@@ -63,7 +63,9 @@ describe("Event Indexing Service & Analytics Tiers", function () {
     const job1 = (await ethers.getContractAt("JobEscrow", job1Addr)) as JobEscrow;
     await job1.connect(freelancer1).applyToJob("QmProposal1");
     await job1.connect(client).selectFreelancer(freelancer1.address);
-    await job1.connect(client).fundJob(0, { value: ethers.parseEther("2.0") }); // 2 ETH TVL
+    const amount1 = ethers.parseEther("2.0");
+    const clientFee1 = (amount1 * 250n) / 10000n;
+    await job1.connect(client).fundJob(amount1, { value: amount1 + clientFee1 }); // 2 ETH TVL
     await job1.connect(freelancer1).submitWork("Deliverable 1", "Done", ["QmProof1"]);
     await job1.connect(client).releasePayment(); // Completed
 
@@ -80,7 +82,9 @@ describe("Event Indexing Service & Analytics Tiers", function () {
     const job2 = (await ethers.getContractAt("JobEscrow", job2Addr)) as JobEscrow;
     await job2.connect(freelancer2).applyToJob("QmProposal2");
     await job2.connect(client).selectFreelancer(freelancer2.address);
-    await job2.connect(client).fundJob(0, { value: ethers.parseEther("1.0") }); // 1 ETH TVL
+    const amount2 = ethers.parseEther("1.0");
+    const clientFee2 = (amount2 * 250n) / 10000n;
+    await job2.connect(client).fundJob(amount2, { value: amount2 + clientFee2 }); // 1 ETH TVL
     await job2.connect(freelancer2).submitWork("Deliverable 2", "Done", ["QmProof2"]);
     await job2.connect(client).raiseDispute(0, "QmDisputeEvidence");
     await job2.connect(judge).resolveDispute(8000, "QmJudgeReasoning"); // 80% to freelancer, 20% refund

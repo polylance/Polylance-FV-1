@@ -63,9 +63,11 @@ describe("ERC20 Payment Support (USDT/USDC)", function () {
 
     expect(await job.paymentToken()).to.equal(usdtAddress);
 
-    // 2. Client approves and funds 1,000 USDT
+    // 2. Client approves and funds 1,000 USDT (+ 2.5% client platform fee = 1,025 USDT)
     const fundAmount = 1_000 * 10 ** 6; // 1,000 USDT with 6 decimals
-    await mockUSDT.connect(client).approve(jobAddress, fundAmount);
+    const clientFee = (fundAmount * 250) / 10000; // 25 USDT
+    const totalRequired = fundAmount + clientFee; // 1,025 USDT
+    await mockUSDT.connect(client).approve(jobAddress, totalRequired);
 
     // Reject passing native value to token job
     await expect(
@@ -80,6 +82,7 @@ describe("ERC20 Payment Support (USDT/USDC)", function () {
     await job.connect(client).fundJob(fundAmount);
     expect(await job.amount()).to.equal(fundAmount);
     expect(await mockUSDT.balanceOf(jobAddress)).to.equal(fundAmount);
+    expect(await mockUSDT.balanceOf(await factory.getAddress())).to.equal(clientFee);
 
     // 3. Apply & Select
     await job.connect(freelancer).applyToJob("ipfs://proposal");
@@ -102,12 +105,13 @@ describe("ERC20 Payment Support (USDT/USDC)", function () {
     const freelancerBalAfter = await mockUSDT.balanceOf(freelancer.address);
     const factoryBalAfter = await mockUSDT.balanceOf(await factory.getAddress());
 
-    // 2.5% fee = 25 USDT, 97.5% to freelancer = 975 USDT
+    // 2.5% freelancer fee = 25 USDT, 97.5% to freelancer = 975 USDT
     const expectedFee = (fundAmount * 250) / 10000; // 25,000,000 (25 USDT)
     const expectedFreelancerPayout = fundAmount - expectedFee; // 975,000,000 (975 USDT)
 
     expect(freelancerBalAfter - freelancerBalBefore).to.equal(expectedFreelancerPayout);
     expect(factoryBalAfter - factoryBalBefore).to.equal(expectedFee);
+    expect(await factory.treasuryBalanceByToken(usdtAddress)).to.equal(clientFee + expectedFee);
 
     // Verify SBT minted
     expect(await sbt.balanceOf(freelancer.address)).to.equal(1);
@@ -124,7 +128,8 @@ describe("ERC20 Payment Support (USDT/USDC)", function () {
       const job = await ethers.getContractAt("JobEscrow", jobAddress);
 
       const jobAmount = 500 * 10 ** 6; // 500 USDT
-      await mockUSDT.connect(client).approve(jobAddress, jobAmount);
+      const clientFee = (jobAmount * 250) / 10000;
+      await mockUSDT.connect(client).approve(jobAddress, jobAmount + clientFee);
       await job.connect(client).fundJob(jobAmount);
 
       await job.connect(freelancer).applyToJob("ipfs://proposal");
@@ -164,7 +169,8 @@ describe("ERC20 Payment Support (USDT/USDC)", function () {
     const job = await ethers.getContractAt("JobEscrow", jobAddress);
 
     const fundAmount = 2_000 * 10 ** 6; // 2,000 USDT
-    await mockUSDT.connect(client).approve(jobAddress, fundAmount);
+    const clientFee = (fundAmount * 250) / 10000; // 50 USDT
+    await mockUSDT.connect(client).approve(jobAddress, fundAmount + clientFee);
     await job.connect(client).fundJob(fundAmount);
 
     await job.connect(freelancer).applyToJob("ipfs://proposal");
@@ -175,19 +181,20 @@ describe("ERC20 Payment Support (USDT/USDC)", function () {
     await job.connect(freelancer).submitWork("Title", "Desc", ["ipfs://evidence"]);
     await job.connect(client).releasePayment();
 
-    const expectedFee = (fundAmount * 250) / 10000; // 50 USDT (50,000,000)
-    expect(await factory.treasuryBalanceByToken(usdtAddress)).to.equal(expectedFee);
+    const freelancerFee = (fundAmount * 250) / 10000; // 50 USDT (50,000,000)
+    const totalExpectedFee = clientFee + freelancerFee; // 100 USDT (100,000,000)
+    expect(await factory.treasuryBalanceByToken(usdtAddress)).to.equal(totalExpectedFee);
 
     // Non-admin withdraw fails
     await expect(
-      factory.connect(client).withdrawTreasury(usdtAddress, client.address, expectedFee)
+      factory.connect(client).withdrawTreasury(usdtAddress, client.address, totalExpectedFee)
     ).to.be.reverted;
 
     // Admin withdraws ERC20 fee
     const recipient = ethers.Wallet.createRandom().address;
-    await factory.connect(treasuryAdmin).withdrawTreasury(usdtAddress, recipient, expectedFee);
+    await factory.connect(treasuryAdmin).withdrawTreasury(usdtAddress, recipient, totalExpectedFee);
 
-    expect(await mockUSDT.balanceOf(recipient)).to.equal(expectedFee);
+    expect(await mockUSDT.balanceOf(recipient)).to.equal(totalExpectedFee);
     expect(await factory.treasuryBalanceByToken(usdtAddress)).to.equal(0);
   });
 });

@@ -1104,7 +1104,7 @@ export const JobDetail: React.FC = () => {
 
               <div className="px-3 py-1.5 rounded-full bg-purple-50/70 border border-purple-200 text-purple-900 font-mono text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs">
                 <ShieldCheck size={13} className="text-purple-600 shrink-0 stroke-[2.5]" />
-                <span>0% Commission • 2.5% Maint. Fee</span>
+                <span>Dual 2.5% Platform Fee</span>
               </div>
             </div>
 
@@ -1114,14 +1114,18 @@ export const JobDetail: React.FC = () => {
 
               // Token Gross, Fee, and Net
               const tokenGrossNum = parseFloat(isCrypto ? (job.amountEth || job.amountUsdc || '0') : (job.amountUsdc || '0')) || 0;
-              const tokenMaintFee = tokenGrossNum * 0.025;
-              const tokenNetPayout = tokenGrossNum - tokenMaintFee;
+              const tokenClientFee = tokenGrossNum * 0.025;
+              const tokenTotalClient = tokenGrossNum + tokenClientFee;
+              const tokenFreelancerFee = tokenGrossNum * 0.025;
+              const tokenNetPayout = tokenGrossNum - tokenFreelancerFee;
 
               // USD Gross, Fee, and Net (grounded in live oracle price)
               const tokenRateVsUsd = rates.cryptoPrices[sym] || (sym === 'POL' || sym === 'MATIC' ? (rates.cryptoPrices['POL'] || 0.45) : sym === 'ETH' ? (rates.cryptoPrices['ETH'] || 2800) : sym === 'BTC' ? (rates.cryptoPrices['BTC'] || 68000) : 1.0);
               const usdGrossNum = isCrypto ? (tokenGrossNum * tokenRateVsUsd) : (parseFloat(job.amountUsdc || '0') || 0);
-              const usdMaintFee = usdGrossNum * 0.025;
-              const usdNetPayout = usdGrossNum - usdMaintFee;
+              const usdClientFee = usdGrossNum * 0.025;
+              const usdTotalClient = usdGrossNum + usdClientFee;
+              const usdFreelancerFee = usdGrossNum * 0.025;
+              const usdNetPayout = usdGrossNum - usdFreelancerFee;
 
               const isMeFreelancer = job.freelancer?.toLowerCase() === (address || '').toLowerCase() || currentRole === 'freelancer';
               const isMeClient = job.client.toLowerCase() === (address || '').toLowerCase() || currentRole === 'client';
@@ -1151,10 +1155,10 @@ export const JobDetail: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Maintenance Fee & Net Payout Breakdown */}
-                  <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs font-mono">
+                  {/* Dual 2.5% Maintenance Fee & Net Payout Breakdown */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100 text-xs font-mono">
                     <div className="flex justify-between items-center text-slate-600">
-                      <span>Gross Escrow Deposit:</span>
+                      <span>Escrow Principal Budget:</span>
                       <span className="font-bold text-slate-900">
                         {isCrypto
                           ? `${formatToken(tokenGrossNum)} ${sym} (~$${usdGrossNum.toFixed(2)} USDC)`
@@ -1162,14 +1166,30 @@ export const JobDetail: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <span>Platform Maintenance Fee (2.5%):</span>
+                    <div className="flex justify-between items-center text-indigo-700">
+                      <span>Client Platform Fee (+2.5%):</span>
+                      <span className="font-bold">
+                        {isCrypto
+                          ? `+${formatToken(tokenClientFee)} ${sym} (+$${usdClientFee.toFixed(2)} USDC)`
+                          : `+$${usdClientFee.toFixed(2)} USDC`}
                       </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-slate-900 font-bold border-t border-slate-100 pt-1">
+                      <span>Total Client Deposit:</span>
+                      <span className="text-purple-900 font-extrabold">
+                        {isCrypto
+                          ? `${formatToken(tokenTotalClient)} ${sym} (~$${usdTotalClient.toFixed(2)} USDC)`
+                          : `$${usdTotalClient.toFixed(2)} USDC`}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-slate-500 pt-1 border-t border-dashed border-slate-200">
+                      <span>Freelancer Fee (-2.5% on payout):</span>
                       <span className="font-bold text-rose-600">
                         {isCrypto
-                          ? `-${formatToken(tokenMaintFee)} ${sym} (-$${usdMaintFee.toFixed(2)} USDC)`
-                          : `-$${usdMaintFee.toFixed(2)} USDC`}
+                          ? `-${formatToken(tokenFreelancerFee)} ${sym} (-$${usdFreelancerFee.toFixed(2)} USDC)`
+                          : `-$${usdFreelancerFee.toFixed(2)} USDC`}
                       </span>
                     </div>
 
@@ -1183,9 +1203,7 @@ export const JobDetail: React.FC = () => {
                     </div>
 
                     <p className="text-[10px] font-sans text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-200/80">
-                      {isMeClient
-                        ? '💡 0% Commission — 2.5% platform maintenance fee is deducted upon payout release and routed to the decentralized DAO treasury.'
-                        : '💡 0% Commission — Net amount received after 2.5% platform maintenance fee.'}
+                      💡 <strong>Dual 2.5% Platform Fee:</strong> A 2.5% client fee is credited directly to the PolyLance Treasury upon escrow funding, and a 2.5% talent fee is deducted upon milestone completion payout.
                     </p>
                   </div>
                 </>

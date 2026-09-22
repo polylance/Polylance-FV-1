@@ -52,7 +52,8 @@ describe("JobEscrow USDC Payment Tests (6 Decimals)", function () {
     expect(await job.paymentToken()).to.equal(usdcAddress);
 
     const fundAmount = ethers.parseUnits("100", 6); // 100 USDC (6 decimals)
-    await mockUSDC.connect(client).approve(jobAddress, fundAmount);
+    const clientFee = (fundAmount * 250n) / 10000n; // 2.5 USDC (2.5%)
+    await mockUSDC.connect(client).approve(jobAddress, fundAmount + clientFee);
     await job.connect(client).fundJob(fundAmount);
 
     expect(await job.amount()).to.equal(fundAmount);

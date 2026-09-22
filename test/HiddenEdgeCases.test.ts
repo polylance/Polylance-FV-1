@@ -104,11 +104,14 @@ describe("HiddenEdgeCases & Security Bounds", function () {
       const job = await ethers.getContractAt("JobEscrow", event!.args.jobContract) as JobEscrow;
       await job.connect(freelancer).applyToJob(PROPOSAL_HASH);
       await job.connect(client).selectFreelancer(freelancer.address);
-      await job.connect(client).fundJob(0, { value: ethers.parseEther("10.0") });
+      const fundAmount = ethers.parseEther("10.0");
+      const clientFee = (fundAmount * 250n) / 10000n;
+      await job.connect(client).fundJob(fundAmount, { value: fundAmount + clientFee });
       await job.connect(freelancer).submitWork("Title", "Desc", ["QmProof"]);
       await job.connect(client).releasePayment();
 
-      const fee = (ethers.parseEther("10.0") * 250n) / 10000n; // 0.25 ETH
+      const freelancerFee = (fundAmount * 250n) / 10000n; // 0.25 ETH
+      const fee = clientFee + freelancerFee; // 0.50 ETH total protocol treasury fee
       expect(await factory.treasuryBalance()).to.equal(fee);
 
       // Non-admin withdrawal fails
@@ -204,7 +207,9 @@ describe("HiddenEdgeCases & Security Bounds", function () {
     it("should allow arbitrator to resolve dispute with 0% to freelancer (100% refund to client)", async function () {
       await job.connect(freelancer).applyToJob(PROPOSAL_HASH);
       await job.connect(client).selectFreelancer(freelancer.address);
-      await job.connect(client).fundJob(0, { value: ethers.parseEther("2.0") });
+      const amount = ethers.parseEther("2.0");
+      const clientFee = (amount * 250n) / 10000n;
+      await job.connect(client).fundJob(amount, { value: amount + clientFee });
       await job.connect(freelancer).submitWork("Title", "Desc", ["QmProof"]);
       await job.connect(client).raiseDispute(0, "QmClientEv");
 

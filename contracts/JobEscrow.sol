@@ -124,12 +124,38 @@ contract JobEscrow is Initializable, ReentrancyGuard {
 
         if (paymentToken == address(0)) {
             require(msg.value > 0, "Must send MATIC");
-            require(tokenAmount == 0, "Do not pass tokenAmount for native jobs");
-            amount += msg.value;
-            emit JobFunded(msg.value);
+            uint256 principal;
+            uint256 clientFee;
+            if (tokenAmount > 0) {
+                clientFee = (tokenAmount * PLATFORM_FEE_BPS) / 10000;
+                require(msg.value >= tokenAmount + clientFee, "Insufficient MATIC sent for principal + fee");
+                principal = tokenAmount;
+                if (msg.value > tokenAmount + clientFee) {
+                    (bool refundOk, ) = payable(msg.sender).call{value: msg.value - (tokenAmount + clientFee)}("");
+                    require(refundOk, "Refund failed");
+                }
+            } else {
+                clientFee = (msg.value * PLATFORM_FEE_BPS) / (10000 + PLATFORM_FEE_BPS);
+                principal = msg.value - clientFee;
+            }
+
+            amount += principal;
+            if (clientFee > 0) {
+                IJobFactory(factory).collectFee{value: clientFee}(address(0), clientFee);
+            }
+            emit JobFunded(principal);
         } else {
             require(msg.value == 0, "Do not send MATIC for token jobs");
             require(tokenAmount > 0, "Must specify token amount");
+
+            // Client pays 2.5% platform fee upon funding
+            uint256 clientFee = (tokenAmount * PLATFORM_FEE_BPS) / 10000;
+            if (clientFee > 0) {
+                IERC20(paymentToken).safeTransferFrom(msg.sender, factory, clientFee);
+                IJobFactory(factory).collectFee(paymentToken, clientFee);
+            }
+
+            // Transfer principal into escrow contract
             IERC20(paymentToken).safeTransferFrom(msg.sender, address(this), tokenAmount);
             amount += tokenAmount;
             emit JobFunded(tokenAmount);

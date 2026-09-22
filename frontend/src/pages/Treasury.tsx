@@ -205,7 +205,7 @@ export const Treasury: React.FC = () => {
               ${parseFloat(treasury.balanceUsdc).toLocaleString()} USDC
             </h4>
             <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
-              Accumulated from 2.5% platform maintenance fees
+              Accumulated from dual 2.5% platform fees (client + freelancer)
             </div>
           </div>
 
@@ -220,12 +220,12 @@ export const Treasury: React.FC = () => {
           </div>
 
           <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
-            <p className="font-label-mono text-xs text-slate-500 font-bold">Required Signatures</p>
-            <h4 className="font-headline text-3xl font-black text-purple-900">
-              {treasury.requiredSignatures} of {treasury.signers.length} Safe Owners
+            <p className="font-label-mono text-xs text-slate-500 font-bold">Security Scheme</p>
+            <h4 className="font-headline text-2xl font-black text-slate-900">
+              {treasury.requiredSignatures} of {treasury.signers.length} Threshold
             </h4>
             <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
-              Gnosis Safe v1.3.0 Standard
+              Gnosis Safe Standard Multisig
             </div>
           </div>
         </div>
@@ -235,15 +235,15 @@ export const Treasury: React.FC = () => {
       {activeTab === 'overview' && (
         <>
           {/* Propose Multisig Withdrawal Form matching reference HTML */}
-          <form onSubmit={handlePropose} className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
-            <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
+          <form onSubmit={handlePropose} className="glass-panel p-6 sm:p-8 border-slate-200 bg-white space-y-6 hard-shadow">
+            <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
               <DollarSign size={20} className="text-purple-700" /> Propose Multisig Disbursement
             </h3>
 
             <div className="bg-purple-50/80 border border-purple-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
               <div className="flex items-center gap-2">
                 <Wallet size={14} className="text-purple-600 shrink-0" />
-                <span className="text-slate-600 font-bold">Official 2.5% Fee Treasury Wallet:</span>
+                <span className="text-slate-600 font-bold">Official Protocol Treasury Wallet:</span>
                 <span className="font-mono text-purple-900 font-bold break-all">{TREASURY_WALLET}</span>
               </div>
               {recipient !== TREASURY_WALLET && (

@@ -2177,21 +2177,23 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const rawAmount = job.amountEth || (job.amountUsdc ? (parseFloat(job.amountUsdc) / 2800).toFixed(4) : '0.05');
             const numericVal = parseFloat(rawAmount);
             const safeAmount = (numericVal > 0 ? numericVal : 0.05).toFixed(6);
-            const val = ethers.parseEther(safeAmount);
+            const principalWei = ethers.parseEther(safeAmount);
+            const clientFeeWei = (principalWei * 250n) / 10000n; // 2.5% platform fee
+            const totalVal = principalWei + clientFeeWei;
 
-            console.log(`Executing real on-chain escrow funding of ${safeAmount} POL to ${targetContractAddress}...`);
+            console.log(`Executing real on-chain escrow funding of ${safeAmount} POL (+ 2.5% client fee: ${ethers.formatEther(clientFeeWei)} POL) to ${targetContractAddress}...`);
             const gasOverrides = await getPolygonGasOverrides(provider);
             try {
               const signerAddr = await signer.getAddress();
-              await escrow.fundJob.staticCall(0, { value: val, from: signerAddr });
-              console.log(`Pre-flight simulation successful for funding ${safeAmount} POL into ${targetContractAddress}.`);
+              await escrow.fundJob.staticCall(principalWei, { value: totalVal, from: signerAddr });
+              console.log(`Pre-flight simulation successful for funding ${safeAmount} POL + 2.5% fee into ${targetContractAddress}.`);
             } catch (simErr: any) {
               console.warn('Pre-flight simulation warning:', simErr);
             }
-            const tx = await escrow.fundJob(0, { value: val, ...gasOverrides, gasLimit: 300000n });
+            const tx = await escrow.fundJob(principalWei, { value: totalVal, ...gasOverrides, gasLimit: 300000n });
             const receipt = await tx.wait();
             txHash = receipt.hash;
-            console.log(`On-chain escrow successfully funded! TxHash: ${txHash}`);
+            console.log(`On-chain escrow successfully funded with client fee! TxHash: ${txHash}`);
             await refreshBalances().catch(() => {});
           } else {
             const activeTokenAddress = (escrowPaymentToken && escrowPaymentToken !== ethers.ZeroAddress)
@@ -2211,30 +2213,34 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             const decimals = tokenConfig?.decimals || 6;
             const tokenSymbol = job.paymentTokenSymbol || tokenConfig?.symbol || 'USDC';
             const amountParsed = ethers.parseUnits(job.amountUsdc || '100', decimals);
+            const clientFee = (amountParsed * 250n) / 10000n; // 2.5% platform fee
+            const totalRequired = amountParsed + clientFee; // 102.5% total approved & paid by client
 
             const signerAddr = await signer.getAddress();
             const currentBal: bigint = await tokenContract.balanceOf(signerAddr).catch(() => 0n);
-            if (currentBal < amountParsed) {
+            if (currentBal < totalRequired) {
               const formattedBal = ethers.formatUnits(currentBal, decimals);
-              const formattedReq = ethers.formatUnits(amountParsed, decimals);
-              throw new Error(`Insufficient ${tokenSymbol} balance. You have ${formattedBal} ${tokenSymbol}, but ${formattedReq} ${tokenSymbol} is required to fund this escrow.`);
+              const formattedReq = ethers.formatUnits(totalRequired, decimals);
+              const formattedPrincipal = ethers.formatUnits(amountParsed, decimals);
+              const formattedFee = ethers.formatUnits(clientFee, decimals);
+              throw new Error(`Insufficient ${tokenSymbol} balance. You have ${formattedBal} ${tokenSymbol}, but ${formattedReq} ${tokenSymbol} (${formattedPrincipal} budget + ${formattedFee} 2.5% platform fee) is required.`);
             }
 
             const currentAllowance: bigint = await tokenContract.allowance(signerAddr, targetContractAddress).catch(() => 0n);
-            if (currentAllowance < amountParsed) {
-              console.log(`Approving ${ethers.formatUnits(amountParsed, decimals)} ${tokenSymbol} for escrow contract ${targetContractAddress}...`);
+            if (currentAllowance < totalRequired) {
+              console.log(`Approving ${ethers.formatUnits(totalRequired, decimals)} ${tokenSymbol} (${tokenSymbol} budget + 2.5% client fee) for escrow contract ${targetContractAddress}...`);
               const approveGas = await getPolygonGasOverrides(provider);
-              const approveTx = await tokenContract.approve(targetContractAddress, amountParsed, { ...approveGas, gasLimit: 120000n });
+              const approveTx = await tokenContract.approve(targetContractAddress, totalRequired, { ...approveGas, gasLimit: 120000n });
               await approveTx.wait();
               console.log(`Token approval confirmed!`);
             }
 
-            console.log(`Executing real on-chain escrow funding of ${ethers.formatUnits(amountParsed, decimals)} ${tokenSymbol} to ${targetContractAddress}...`);
+            console.log(`Executing real on-chain escrow funding of ${ethers.formatUnits(amountParsed, decimals)} ${tokenSymbol} (+ ${ethers.formatUnits(clientFee, decimals)} 2.5% client fee) to ${targetContractAddress}...`);
             const fundGas = await getPolygonGasOverrides(provider);
             const fundTx = await escrow.fundJob(amountParsed, { ...fundGas, gasLimit: 350000n });
             const receipt = await fundTx.wait();
             txHash = receipt.hash;
-            console.log(`On-chain escrow successfully funded with ${tokenSymbol}! TxHash: ${txHash}`);
+            console.log(`On-chain escrow successfully funded with ${tokenSymbol} + 2.5% client fee! TxHash: ${txHash}`);
             await refreshBalances().catch(() => {});
           }
         } else if (isConnected) {

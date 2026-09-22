@@ -63,8 +63,9 @@ describe("JobEscrow — Full Lifecycle & Security Invariants", function () {
     it("completes the full flow with correct final balances", async function () {
       const job = await deployJob();
       const fundAmount = ethers.parseEther("1.0");
+      const clientFee = (fundAmount * 250n) / 10000n;
 
-      await job.connect(client).fundJob(0, { value: fundAmount });
+      await job.connect(client).fundJob(fundAmount, { value: fundAmount + clientFee });
       expect(await job.amount()).to.equal(fundAmount);
       expect(await job.status()).to.equal(0); // Open
 
@@ -137,7 +138,9 @@ describe("JobEscrow — Full Lifecycle & Security Invariants", function () {
 
     beforeEach(async function () {
       job = await deployJob();
-      await job.connect(client).fundJob(0, { value: ethers.parseEther("1.0") });
+      const amount = ethers.parseEther("1.0");
+      const clientFee = (amount * 250n) / 10000n;
+      await job.connect(client).fundJob(amount, { value: amount + clientFee });
       await job.connect(freelancer).applyToJob("ipfs://proposal");
       await job.connect(client).selectFreelancer(freelancer.address);
       await job.connect(freelancer).submitWork("Delivery", "Done", ["ipfs://evidence"]);
@@ -171,7 +174,9 @@ describe("JobEscrow — Full Lifecycle & Security Invariants", function () {
 
     it("client cancel refunds locked funds if already funded pre-selection", async function () {
       const job = await deployJob();
-      await job.connect(client).fundJob(0, { value: ethers.parseEther("1.0") });
+      const amount = ethers.parseEther("1.0");
+      const clientFee = (amount * 250n) / 10000n;
+      await job.connect(client).fundJob(amount, { value: amount + clientFee });
 
       const balanceBefore = await ethers.provider.getBalance(client.address);
       const tx = await job.connect(client).cancelJob();
@@ -192,7 +197,9 @@ describe("JobEscrow — Full Lifecycle & Security Invariants", function () {
 
     it("requires BOTH parties to consent to mutual cancel", async function () {
       const job = await deployJob();
-      await job.connect(client).fundJob(0, { value: ethers.parseEther("1.0") });
+      const amount = ethers.parseEther("1.0");
+      const clientFee = (amount * 250n) / 10000n;
+      await job.connect(client).fundJob(amount, { value: amount + clientFee });
       await job.connect(freelancer).applyToJob("ipfs://proposal");
       await job.connect(client).selectFreelancer(freelancer.address);
 
@@ -219,7 +226,9 @@ describe("JobEscrow — Full Lifecycle & Security Invariants", function () {
 
     beforeEach(async function () {
       job = await deployJob();
-      await job.connect(client).fundJob(0, { value: ethers.parseEther("1.0") });
+      const amount = ethers.parseEther("1.0");
+      const clientFee = (amount * 250n) / 10000n;
+      await job.connect(client).fundJob(amount, { value: amount + clientFee });
       await job.connect(freelancer).applyToJob("ipfs://proposal");
       await job.connect(client).selectFreelancer(freelancer.address);
       await job.connect(freelancer).submitWork("Delivery", "Done", ["ipfs://evidence"]);
@@ -289,7 +298,8 @@ describe("JobEscrow — Full Lifecycle & Security Invariants", function () {
       it(`fee + toFreelancer + toClient equals original amount at bps=${bps}`, async function () {
         const job = await deployJob();
         const amount = ethers.parseEther("1.23456789");
-        await job.connect(client).fundJob(0, { value: amount });
+        const clientFee = (amount * 250n) / 10000n;
+        await job.connect(client).fundJob(amount, { value: amount + clientFee });
         await job.connect(freelancer).applyToJob("ipfs://proposal");
         await job.connect(client).selectFreelancer(freelancer.address);
         await job.connect(freelancer).submitWork("Delivery", "Done", ["ipfs://evidence"]);

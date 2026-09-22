@@ -42,12 +42,14 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
     ? parseFloat(job.amountEth || '0.05') 
     : parseFloat(job.amountUsdc || '100');
   
-  // Platform fee: 2.5% deducted from the escrow principal upon milestone completion
-  // In JobEscrow.sol, client deposits principalAmount, and fee is collected on payout
+  // Dual 2.5% platform fee:
+  // Client pays 2.5% upfront platform fee credited to treasury upon funding
+  // Freelancer has 2.5% platform fee deducted upon milestone completion
   const feeRate = 0.025;
-  const platformFee = principalAmount * feeRate;
-  const netFreelancerPayout = principalAmount - platformFee;
-  const totalRequired = principalAmount;
+  const clientFee = principalAmount * feeRate;
+  const totalRequired = principalAmount + clientFee;
+  const freelancerFee = principalAmount * feeRate;
+  const netFreelancerPayout = principalAmount - freelancerFee;
 
   // Real-time balance check
   const currentBalance = isNative ? balanceNative : tokenSymbol === 'USDT' ? balanceUsdt : balanceUsdc;
@@ -80,24 +82,8 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
       await onConfirmFund();
       onClose();
     } catch (err: any) {
-      console.error('Error executing escrow deposit:', err);
-      const rawText = (err?.message || '') + ' ' + JSON.stringify(err?.receipt || '') + ' ' + (err?.code || '');
-      const isSmartTxRevert = 
-        rawText.includes('0xdb9b') ||
-        rawText.includes('0xdb9B') ||
-        rawText.includes('CALL_EXCEPTION') ||
-        rawText.includes('transaction execution reverted') ||
-        err?.receipt?.to?.toLowerCase() === '0xdb9b1e94b5b69df7e401ddbede43491141047db3';
-
-      let cleanMsg = err.message || 'Failed to deposit funds into escrow. Please try again.';
-      if (err.code === 'ACTION_REJECTED' || err.code === 4001 || cleanMsg.includes('user rejected') || cleanMsg.includes('User denied')) {
-        cleanMsg = 'Deposit cancelled: Transaction signature was rejected in wallet.';
-      } else if (cleanMsg.includes('insufficient funds')) {
-        cleanMsg = 'Insufficient balance or gas in wallet to complete escrow funding.';
-      } else if (isSmartTxRevert) {
-        cleanMsg = 'METAMASK_SMART_TX_REVERT';
-      }
-      setErrorMsg(cleanMsg);
+      console.error('Escrow funding submission error:', err);
+      setErrorMsg(err?.message || 'Failed to fund escrow contract. Please try again.');
     } finally {
       setIsFunding(false);
     }
@@ -127,7 +113,7 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
               <button
                 onClick={onClose}
                 disabled={isFunding}
-                className="absolute right-4 top-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer z-10 disabled:opacity-50"
+                className="absolute right-4 top-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-150 transition-colors cursor-pointer z-10 disabled:opacity-50"
               >
                 <X size={18} />
               </button>
@@ -163,23 +149,30 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
               {/* Financial Breakdown Table */}
               <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100 overflow-hidden text-xs">
                 <div className="p-3.5 flex justify-between items-center">
-                  <span className="text-slate-600 font-sans">Principal Escrow Deposit:</span>
+                  <span className="text-slate-600 font-sans">Escrow Principal Budget:</span>
                   <span className="font-bold font-mono text-slate-900">{principalAmount.toFixed(4)} {tokenSymbol}</span>
                 </div>
-                <div className="p-3.5 flex justify-between items-center bg-slate-50/50">
-                  <div className="flex items-center gap-1.5 text-slate-600 font-sans">
-                    <span>Protocol Maintenance Fee (2.5%):</span>
-                    <span title="Deducted upon milestone completion payout to support autonomous smart contract verification and DAO treasury"><Info size={12} className="text-slate-400" /></span>
+                <div className="p-3.5 flex justify-between items-center bg-indigo-50/40">
+                  <div className="flex items-center gap-1.5 text-indigo-900 font-sans">
+                    <span>Client Platform Fee (+2.5%):</span>
+                    <span title="Credited directly to Treasury Account upon escrow funding"><Info size={12} className="text-indigo-400" /></span>
                   </div>
-                  <span className="font-medium font-mono text-slate-500">-{platformFee.toFixed(4)} {tokenSymbol} (on completion)</span>
+                  <span className="font-bold font-mono text-indigo-700">+{clientFee.toFixed(4)} {tokenSymbol}</span>
+                </div>
+                <div className="p-4 flex justify-between items-center bg-blue-50/70 font-bold border-t border-blue-100">
+                  <span className="text-slate-900 font-heading text-sm">Total Client Deposit Required:</span>
+                  <span className="text-base font-black font-mono text-blue-700">{totalRequired.toFixed(4)} {tokenSymbol}</span>
+                </div>
+                <div className="p-3.5 flex justify-between items-center bg-slate-50/50">
+                  <div className="flex items-center gap-1.5 text-slate-500 font-sans">
+                    <span>Freelancer Fee (-2.5% on payout):</span>
+                    <span title="Deducted upon milestone completion payout and routed to DAO treasury"><Info size={12} className="text-slate-400" /></span>
+                  </div>
+                  <span className="font-medium font-mono text-rose-600">-{freelancerFee.toFixed(4)} {tokenSymbol}</span>
                 </div>
                 <div className="p-3.5 flex justify-between items-center bg-emerald-50/40">
                   <span className="text-emerald-800 font-sans font-medium">Net Disbursed to Talent on Approval:</span>
                   <span className="font-bold font-mono text-emerald-700">{netFreelancerPayout.toFixed(4)} {tokenSymbol}</span>
-                </div>
-                <div className="p-4 flex justify-between items-center bg-blue-50/50 font-bold border-t border-blue-100">
-                  <span className="text-slate-900 font-heading text-sm">Total Deposit Required to Lock:</span>
-                  <span className="text-base font-black font-mono text-blue-700">{totalRequired.toFixed(4)} {tokenSymbol}</span>
                 </div>
               </div>
 

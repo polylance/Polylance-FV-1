@@ -40,6 +40,7 @@ import { truncateAddress, formatPolBalance } from '../utils/formatters';
 import { dropdownVariants, transition } from '../lib/motion';
 import { Drawer } from './mobile/Drawer';
 import { Accordion } from './mobile/Accordion';
+import { isJudgeAddress } from '../utils/adminGuard';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Apple iOS 26 Liquid Glass Navigation Theme Token System
@@ -214,6 +215,7 @@ export const Navbar: React.FC = () => {
     isConnected,
     address,
     currentRole,
+    isArbitrator,
     disconnectWallet,
     balanceNative,
     isWrongNetwork,
@@ -221,6 +223,13 @@ export const Navbar: React.FC = () => {
     targetChainId,
     switchToTargetNetwork,
   } = useWeb3();
+
+  const isJudgeUser = Boolean(
+    isArbitrator ||
+    currentRole === 'judge' ||
+    currentRole === 'admin' ||
+    (address && isJudgeAddress(address))
+  );
 
   const { jobs, profiles } = usePolyLanceData();
   const location = useLocation();
@@ -461,7 +470,7 @@ export const Navbar: React.FC = () => {
                   <Link
                     to="/settings"
                     className="relative px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 select-none bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20 text-purple-700 border border-purple-200/80 shadow-2xs transition-all animate-pulse"
-                    title="Connect & Sync GitHub to unlock Dashboard, Job Workspace, Judge Panel, and DAO"
+                    title="Connect & Sync GitHub to unlock Dashboard, Job Workspace, and DAO"
                   >
                     <Lock size={12} className="text-purple-600" />
                     <span>Sync GitHub to Unlock</span>
@@ -497,14 +506,16 @@ export const Navbar: React.FC = () => {
               theme={NAV_THEMES.jobs}
             />
 
-            {/* 4. Judge Panel */}
-            <NavItem
-              to="/judge"
-              active={isActive('/judge')}
-              icon={<Scale size={14.5} />}
-              label="Judge Panel"
-              theme={NAV_THEMES.judge}
-            />
+            {/* 4. Judge Panel (Only for Authorized Judges & Admins) */}
+            {isJudgeUser && (
+              <NavItem
+                to="/judge"
+                active={isActive('/judge')}
+                icon={<Scale size={14.5} />}
+                label="Judge Panel"
+                theme={NAV_THEMES.judge}
+              />
+            )}
 
             {/* 5. DAO (3-nodes Network/Share Icon) */}
             <NavItem
@@ -1020,7 +1031,9 @@ export const Navbar: React.FC = () => {
                 <MobileLink to="/dashboard" icon={<LayoutGrid size={18} className="text-blue-600" />} label="Dashboard" onClick={() => setIsMobileOpen(false)} />
                 <MobileLink to="/workspace" icon={<Briefcase size={18} className="text-blue-600" />} label="Job Workspace" onClick={() => setIsMobileOpen(false)} />
                 <MobileLink to="/jobs" icon={<Search size={18} className="text-blue-600" />} label="Find Jobs" onClick={() => setIsMobileOpen(false)} />
-                <MobileLink to="/judge" icon={<Scale size={18} className="text-blue-600" />} label="Judge Panel" onClick={() => setIsMobileOpen(false)} />
+                {isJudgeUser && (
+                  <MobileLink to="/judge" icon={<Scale size={18} className="text-blue-600" />} label="Judge Panel" onClick={() => setIsMobileOpen(false)} />
+                )}
                 <MobileLink to="/dao" icon={<Share2 size={18} className="text-blue-600" />} label="DAO Governance" onClick={() => setIsMobileOpen(false)} />
                 <MobileLink to="/chat" icon={<MessageSquare size={18} className="text-blue-600" />} label="Messages & Negotiations" onClick={() => setIsMobileOpen(false)} />
               </div>
