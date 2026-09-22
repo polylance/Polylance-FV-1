@@ -5,7 +5,6 @@ import {
   ArrowRight, Award, Cpu, TrendingUp, Code2, CheckCircle2, Users, LineChart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { PolyLanceLogo } from '../components/PolyLanceLogo';
 
 export const Manifesto: React.FC = () => {
   const teamMembers = [
@@ -348,19 +347,7 @@ export const Manifesto: React.FC = () => {
             })}
           </div>
 
-          {/* Bottom Full-Width Mission Statement Pill */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="flex justify-center pt-2"
-          >
-            <div className="bg-white/90 backdrop-blur-md border border-[#E8EAF3] shadow-xs rounded-full py-3 px-6 text-slate-700 font-medium text-xs sm:text-sm font-sans inline-flex items-center justify-center gap-3 max-w-xl text-center">
-              <PolyLanceLogo size={20} />
-              <span>Four different minds. One shared mission — building the future of work on-chain.</span>
-            </div>
-          </motion.div>
+
 
         </section>
 
