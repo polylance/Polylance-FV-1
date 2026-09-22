@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Application, SkillCategory, UserProfile } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { calculateReputationScores } from '../utils/reputation';
+import { PolyLanceSelect, SelectOption } from './PolyLanceSelect';
 import { 
   CheckCircle2, 
   UserCheck, 
@@ -223,18 +224,19 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
           </button>
 
           {/* Min Reputation Filter Dropdown */}
-          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-xs">
-            <ShieldCheck size={13} className="text-purple-600 ml-1" />
-            <select
+          <div className="w-44">
+            <PolyLanceSelect<number>
               value={filterMinReputation}
-              onChange={(e) => setFilterMinReputation(Number(e.target.value))}
-              className="bg-transparent text-slate-800 font-bold outline-none cursor-pointer text-xs pr-1"
-            >
-              <option value={0}>All Reputation</option>
-              <option value={50}>50+ PLREP</option>
-              <option value={100}>100+ PLREP (Silver)</option>
-              <option value={300}>300+ PLREP (Gold)</option>
-            </select>
+              onChange={(val) => setFilterMinReputation(val)}
+              options={[
+                { value: 0, label: 'All Reputation', sublabel: 'No min threshold' },
+                { value: 50, label: '50+ PLREP', sublabel: 'Bronze tier' },
+                { value: 100, label: '100+ PLREP', sublabel: 'Silver tier' },
+                { value: 300, label: '300+ PLREP', sublabel: 'Gold tier' },
+              ]}
+              variant="glass"
+              className="w-full"
+            />
           </div>
 
           {/* Sort Controls */}

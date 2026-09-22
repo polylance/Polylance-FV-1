@@ -535,16 +535,22 @@ export const Judge: React.FC = () => {
                                 <Power size={13} className={judge.status === 'Active' ? 'text-emerald-600' : 'text-slate-400'} />
                               </button>
 
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (confirm(`Revoke appointment for ${judge.name}?`)) {
-                                    removeJudge(judge.address);
-                                  }
-                                }}
-                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors cursor-pointer"
-                                title="Revoke Judge Appointment"
-                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAlertModalOptions({
+                                      title: 'Revoke Judge Appointment',
+                                      message: `Are you sure you want to revoke the appointment for ${judge.name}? They will no longer be eligible to arbitrate disputes.`,
+                                      type: 'confirm',
+                                      showCancel: true,
+                                      isDestructive: true,
+                                      confirmText: 'Revoke Appointment',
+                                      onConfirm: () => removeJudge(judge.address),
+                                    });
+                                  }}
+                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors cursor-pointer"
+                                  title="Revoke Judge Appointment"
+                                >
                                 <Trash2 size={13} />
                               </button>
                             </>
@@ -613,9 +619,15 @@ export const Judge: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              if (confirm(`Revoke appointment for ${judge.name}?`)) {
-                                removeJudge(judge.address);
-                              }
+                              setAlertModalOptions({
+                                title: 'Revoke Judge Appointment',
+                                message: `Are you sure you want to revoke the appointment for ${judge.name}? They will no longer be eligible to arbitrate disputes.`,
+                                type: 'confirm',
+                                showCancel: true,
+                                isDestructive: true,
+                                confirmText: 'Revoke Appointment',
+                                onConfirm: () => removeJudge(judge.address),
+                              });
                             }}
                             className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center cursor-pointer"
                             title="Revoke Judge Appointment"

@@ -13,6 +13,7 @@ import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 import { EmptyState } from '../components/UIStates';
 import { InsufficientFundsModal } from '../components/InsufficientFundsModal';
 import { GithubEkycCard } from '../components/GithubEkycCard';
+import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 
 export const Dashboard: React.FC = () => {
   const { address, currentRole, isArbitrator, balanceNative, balanceUsdc, refreshBalances } = useWeb3();
@@ -24,6 +25,7 @@ export const Dashboard: React.FC = () => {
   const [activeHubTab, setActiveHubTab] = React.useState<'contracts' | 'applications' | 'posted' | 'explore'>('contracts');
   const [isRefreshingBalances, setIsRefreshingBalances] = React.useState(false);
   const [isTopUpModalOpen, setIsTopUpModalOpen] = React.useState(false);
+  const [alertModalOptions, setAlertModalOptions] = React.useState<AlertModalOptions | null>(null);
 
   const lastOpenedJobId = typeof window !== 'undefined' ? localStorage.getItem('polylance_last_opened_job') : null;
   const lastOpenedJob = lastOpenedJobId ? jobs.find(j => j.id === lastOpenedJobId || j.contractAddress?.toLowerCase() === lastOpenedJobId.toLowerCase()) : null;
@@ -986,9 +988,18 @@ export const Dashboard: React.FC = () => {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={async () => {
-                                      const ok = window.confirm('Permanently remove this job from marketplace and database?');
-                                      if (ok) await deleteJob(job.id);
+                                    onClick={() => {
+                                      setAlertModalOptions({
+                                        title: 'Remove Job Posting',
+                                        message: 'Permanently remove this job from the marketplace and database?',
+                                        type: 'confirm',
+                                        showCancel: true,
+                                        isDestructive: true,
+                                        confirmText: 'Remove Job',
+                                        onConfirm: async () => {
+                                          await deleteJob(job.id);
+                                        },
+                                      });
                                     }}
                                     className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
                                   >
@@ -1124,6 +1135,13 @@ export const Dashboard: React.FC = () => {
         tokenSymbol="POL"
         currentBalance={balanceNative}
         onFundsReceived={() => setIsTopUpModalOpen(false)}
+      />
+
+      {/* PolyLance Alert & Confirmation Modal */}
+      <PolyLanceAlertModal
+        isOpen={Boolean(alertModalOptions)}
+        options={alertModalOptions}
+        onClose={() => setAlertModalOptions(null)}
       />
     </div>
   );

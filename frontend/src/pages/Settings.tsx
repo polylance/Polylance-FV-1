@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { scrollReveal } from '../lib/motion';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
+import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { scoreGithubUser } from '../utils/githubOracle';
 import { SkillSelector } from '../components/SkillSelector';
 import { findSkillByIdOrName, formatSkillDisplayName } from '../data/skillsData';
@@ -643,15 +644,17 @@ export const Settings: React.FC = () => {
                 <div className="space-y-3 text-xs font-sans">
                   <div className="space-y-1">
                     <label className="font-bold text-slate-700 block">Default Review Period Window</label>
-                    <select
+                    <PolyLanceSelect
                       value={clientEscrowWindowDays}
-                      onChange={(e) => setClientEscrowWindowDays(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-sans"
-                    >
-                      <option value="3">3 Days (Fast Track Approval)</option>
-                      <option value="7">7 Days (Standard Review)</option>
-                      <option value="14">14 Days (Extended Audit)</option>
-                    </select>
+                      onChange={(val) => setClientEscrowWindowDays(val)}
+                      options={[
+                        { value: '3', label: '3 Days', sublabel: 'Fast Track Approval' },
+                        { value: '7', label: '7 Days', sublabel: 'Standard Review' },
+                        { value: '14', label: '14 Days', sublabel: 'Extended Audit' },
+                      ]}
+                      variant="standard"
+                      className="w-full"
+                    />
                   </div>
 
                   <div className="space-y-1 pt-1">

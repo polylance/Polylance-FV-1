@@ -19,6 +19,8 @@ import { FormattedJobDescription } from '../components/FormattedJobDescription';
 import { FundEscrowModal } from '../components/FundEscrowModal';
 import { PaymentReleasedModal } from '../components/PaymentReleasedModal';
 import { ModifyJobModal } from '../components/ModifyJobModal';
+import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
+import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { useLiveCurrencyRates } from '../utils/currency';
 
 export const JobDetail: React.FC = () => {
@@ -126,14 +128,22 @@ export const JobDetail: React.FC = () => {
     });
   };
 
-  const handleRemoveJobPost = async () => {
+  const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
+
+  const handleRemoveJobPost = () => {
     if (!job) return;
-    const confirmed = window.confirm(
-      'Are you sure you want to remove this job posting? It will be permanently cleaned from the marketplace, site, and database.'
-    );
-    if (!confirmed) return;
-    await deleteJob(job.id);
-    navigate('/jobs');
+    setAlertModalOptions({
+      title: 'Remove Job Posting',
+      message: `Are you sure you want to remove this job posting? It will be permanently cleaned from the marketplace, site, and database.`,
+      type: 'confirm',
+      showCancel: true,
+      isDestructive: true,
+      confirmText: 'Remove Job',
+      onConfirm: async () => {
+        await deleteJob(job.id);
+        navigate('/jobs');
+      },
+    });
   };
 
   const [applyProposalText, setApplyProposalText] = useState('');
@@ -508,11 +518,19 @@ export const JobDetail: React.FC = () => {
               </button>
 
               <button
-                onClick={async () => {
-                  if (window.confirm('Are you sure you want to cancel and remove this job posting now?')) {
-                    const ok = await deleteJob(job.id);
-                    if (ok) navigate('/dashboard');
-                  }
+                onClick={() => {
+                  setAlertModalOptions({
+                    title: 'Cancel & Remove Job',
+                    message: 'Are you sure you want to cancel and remove this job posting now?',
+                    type: 'confirm',
+                    showCancel: true,
+                    isDestructive: true,
+                    confirmText: 'Remove Job',
+                    onConfirm: async () => {
+                      const ok = await deleteJob(job.id);
+                      if (ok) navigate('/dashboard');
+                    },
+                  });
                 }}
                 className="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
               >
@@ -552,13 +570,21 @@ export const JobDetail: React.FC = () => {
 
                     <button
                       type="button"
-                      onClick={async () => {
-                        if (window.confirm(`Are you sure you want to delete / cancel the job posting "${job.title}"?`)) {
-                          const ok = await deleteJob(job.id);
-                          if (ok) navigate('/jobs');
-                        }
+                      onClick={() => {
+                        setAlertModalOptions({
+                          title: 'Delete Job Posting',
+                          message: `Are you sure you want to delete / cancel the job posting "${job.title}"?`,
+                          type: 'confirm',
+                          showCancel: true,
+                          isDestructive: true,
+                          confirmText: 'Delete Job',
+                          onConfirm: async () => {
+                            const ok = await deleteJob(job.id);
+                            if (ok) navigate('/jobs');
+                          },
+                        });
                       }}
-                      className="px-3 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      className="px-3.5 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
                       title="Delete this job posting"
                     >
                       <Trash2 size={13} className="text-rose-600" />
@@ -1475,16 +1501,18 @@ export const JobDetail: React.FC = () => {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Dispute Category Reason *
                 </label>
-                <select
+                <PolyLanceSelect
                   value={disputeReason}
-                  onChange={(e) => setDisputeReason(e.target.value as DisputeReason)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 outline-none rounded-2xl px-4 py-3 text-xs font-sans text-slate-800 transition-all cursor-pointer"
-                >
-                  <option value="QUALITY">QUALITY - Deliverable fails specifications</option>
-                  <option value="NON_DELIVERY">NON_DELIVERY - Work not delivered on time</option>
-                  <option value="SCOPE_DISAGREEMENT">SCOPE_DISAGREEMENT - Milestone ambiguity</option>
-                  <option value="PAYMENT_DISPUTE">PAYMENT_DISPUTE - Budget payment claim</option>
-                </select>
+                  onChange={(val) => setDisputeReason(val as DisputeReason)}
+                  options={[
+                    { value: 'QUALITY', label: 'QUALITY', sublabel: 'Deliverable fails specifications' },
+                    { value: 'NON_DELIVERY', label: 'NON_DELIVERY', sublabel: 'Work not delivered on time' },
+                    { value: 'SCOPE_DISAGREEMENT', label: 'SCOPE_DISAGREEMENT', sublabel: 'Milestone ambiguity' },
+                    { value: 'PAYMENT_DISPUTE', label: 'PAYMENT_DISPUTE', sublabel: 'Budget payment claim' },
+                  ]}
+                  variant="standard"
+                  className="w-full"
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -1541,6 +1569,13 @@ export const JobDetail: React.FC = () => {
           />
         </>
       )}
+
+      {/* PolyLance Alert & Confirmation Modal */}
+      <PolyLanceAlertModal
+        isOpen={Boolean(alertModalOptions)}
+        options={alertModalOptions}
+        onClose={() => setAlertModalOptions(null)}
+      />
     </div>
   );
 };

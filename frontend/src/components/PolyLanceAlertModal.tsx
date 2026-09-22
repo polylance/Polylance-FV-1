@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Info, X, AlertTriangle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, X, AlertTriangle, HelpCircle } from 'lucide-react';
 
 export interface AlertModalOptions {
   title?: string;
   message: string;
-  type?: 'error' | 'warning' | 'info' | 'success';
+  type?: 'error' | 'warning' | 'info' | 'success' | 'confirm';
   confirmText?: string;
+  cancelText?: string;
+  showCancel?: boolean;
+  isDestructive?: boolean;
   onConfirm?: () => void;
+  onCancel?: () => void;
 }
 
 interface PolyLanceAlertModalProps {
@@ -21,6 +25,18 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
   options,
   onClose,
 }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+      if (e.key === 'Escape') {
+        if (options?.onCancel) options.onCancel();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, options, onClose]);
+
   if (!isOpen || !options) return null;
 
   const type = options.type || 'info';
@@ -28,31 +44,44 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
   const typeConfig = {
     error: {
       bgIcon: 'bg-rose-50 text-rose-600 border-rose-100',
-      btn: 'bg-rose-600 hover:bg-rose-700 text-white',
+      btn: 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20',
       icon: <AlertCircle size={22} />,
       title: options.title || 'Attention Required',
     },
     warning: {
       bgIcon: 'bg-amber-50 text-amber-600 border-amber-100',
-      btn: 'bg-amber-600 hover:bg-amber-700 text-white',
+      btn: options.isDestructive
+        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
+        : 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-600/20',
       icon: <AlertTriangle size={22} />,
-      title: options.title || 'Notice',
+      title: options.title || 'Confirm Action',
+    },
+    confirm: {
+      bgIcon: options.isDestructive
+        ? 'bg-rose-50 text-rose-600 border-rose-100'
+        : 'bg-indigo-50 text-indigo-600 border-indigo-100',
+      btn: options.isDestructive
+        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
+        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20',
+      icon: options.isDestructive ? <AlertTriangle size={22} /> : <HelpCircle size={22} />,
+      title: options.title || 'Please Confirm',
     },
     success: {
       bgIcon: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-      btn: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+      btn: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20',
       icon: <CheckCircle2 size={22} />,
       title: options.title || 'Success',
     },
     info: {
       bgIcon: 'bg-purple-50 text-purple-600 border-purple-100',
-      btn: 'bg-purple-600 hover:bg-purple-700 text-white',
+      btn: 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/20',
       icon: <Info size={22} />,
       title: options.title || 'Information',
     },
   };
 
   const cfg = typeConfig[type];
+  const isConfirmDialog = options.showCancel || type === 'confirm';
 
   return (
     <AnimatePresence>
@@ -63,7 +92,10 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
-          onClick={onClose}
+          onClick={() => {
+            if (options.onCancel) options.onCancel();
+            onClose();
+          }}
         />
 
         {/* Modal Container */}
@@ -88,7 +120,10 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                if (options.onCancel) options.onCancel();
+                onClose();
+              }}
               className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <X size={18} />
@@ -99,16 +134,29 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
             {options.message}
           </p>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            {isConfirmDialog && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (options.onCancel) options.onCancel();
+                  onClose();
+                }}
+                className="px-4 py-2.5 rounded-xl font-bold font-sans text-xs text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer"
+              >
+                {options.cancelText || 'Cancel'}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
                 if (options.onConfirm) options.onConfirm();
                 onClose();
               }}
-              className={`px-5 py-2.5 rounded-xl font-bold font-sans text-xs transition-all shadow-xs cursor-pointer ${cfg.btn}`}
+              className={`px-5 py-2.5 rounded-xl font-bold font-sans text-xs transition-all shadow-md cursor-pointer ${cfg.btn}`}
             >
-              {options.confirmText || 'Got it'}
+              {options.confirmText || (isConfirmDialog ? 'Confirm' : 'Got it')}
             </button>
           </div>
         </motion.div>

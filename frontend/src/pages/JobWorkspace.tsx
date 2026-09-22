@@ -34,6 +34,7 @@ import { getJobInactivityStatus } from '../utils/inactivity';
 import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSubmissionPanel';
 import { ModifyJobModal } from '../components/ModifyJobModal';
 import { EmptyState } from '../components/UIStates';
+import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 import { Job } from '../types';
 
 export type JobCategoryFilter = 'all' | 'ongoing' | 'awaiting_release' | 'disputed' | 'negotiating' | 'completed';
@@ -130,26 +131,36 @@ export const JobWorkspace: React.FC = () => {
     });
   }, [jobs, userAddr]);
 
-  const handleDeleteActiveJob = async () => {
+  const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
+
+  const handleDeleteActiveJob = () => {
     if (!activeJob) return;
-    const confirmed = window.confirm(`Are you sure you want to delete/remove the job "${activeJob.title}"?`);
-    if (!confirmed) return;
-    const deletingId = activeJob.id;
-    const deletingContract = activeJob.contractAddress;
-    const ok = await deleteJob(deletingId);
-    if (ok) {
-      try {
-        localStorage.removeItem('polylance_last_opened_job');
-      } catch {}
-      const remaining = myJobs.filter(j => j.id !== deletingId && j.contractAddress !== deletingContract);
-      if (remaining.length > 0) {
-        setSelectedJobId(remaining[0].id);
-        setSearchParams({ jobId: remaining[0].id });
-      } else {
-        setSelectedJobId(null);
-        setSearchParams({});
-      }
-    }
+    setAlertModalOptions({
+      title: 'Remove Job Posting',
+      message: `Are you sure you want to delete/remove the job "${activeJob.title}"?`,
+      type: 'confirm',
+      showCancel: true,
+      isDestructive: true,
+      confirmText: 'Delete Job',
+      onConfirm: async () => {
+        const deletingId = activeJob.id;
+        const deletingContract = activeJob.contractAddress;
+        const ok = await deleteJob(deletingId);
+        if (ok) {
+          try {
+            localStorage.removeItem('polylance_last_opened_job');
+          } catch {}
+          const remaining = myJobs.filter(j => j.id !== deletingId && j.contractAddress !== deletingContract);
+          if (remaining.length > 0) {
+            setSelectedJobId(remaining[0].id);
+            setSearchParams({ jobId: remaining[0].id });
+          } else {
+            setSelectedJobId(null);
+            setSearchParams({});
+          }
+        }
+      },
+    });
   };
 
 
@@ -1231,6 +1242,13 @@ export const JobWorkspace: React.FC = () => {
         isOpen={isModifyModalOpen}
         job={activeJob}
         onClose={() => setIsModifyModalOpen(false)}
+      />
+
+      {/* PolyLance Alert & Confirmation Modal */}
+      <PolyLanceAlertModal
+        isOpen={Boolean(alertModalOptions)}
+        options={alertModalOptions}
+        onClose={() => setAlertModalOptions(null)}
       />
     </div>
   );

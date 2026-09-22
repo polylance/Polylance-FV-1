@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { useWeb3 } from '../context/Web3Context';
@@ -6,6 +6,7 @@ import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { SkillCategory } from '../types';
 import { SuccessState } from '../components/UIStates';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
+import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { 
   DollarSign, 
   Clock, 
@@ -82,6 +83,15 @@ export const PostJob: React.FC = () => {
   const [selectedFiat, setSelectedFiat] = useState('INR');
   const [activeTab, setActiveTab] = useState<'crypto' | 'fiat'>('crypto');
   const [fiatInputVal, setFiatInputVal] = useState('208750');
+
+  const fiatSelectOptions = useMemo<SelectOption<string>[]>(() => {
+    return SUPPORTED_FIAT.map((fiat) => ({
+      value: fiat.code,
+      label: `${fiat.name}`,
+      sublabel: `(${fiat.symbol} - ${fiat.code})`,
+      flag: fiat.flag,
+    }));
+  }, []);
 
   const isFormValid = Boolean(
     title.trim() &&
@@ -398,22 +408,13 @@ export const PostJob: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-700 font-heading">
                   Local Currency Reference
                 </label>
-                <div className="relative">
-                  <select
-                    value={selectedFiat}
-                    onChange={(e) => setSelectedFiat(e.target.value)}
-                    className="w-full bg-[#EEF2F6] shadow-[inset_2px_2px_5px_#cad4e2,inset_-2px_-2px_5px_#ffffff] border border-slate-200/60 rounded-2xl px-4 py-3 text-slate-800 font-medium text-xs focus:ring-2 focus:ring-indigo-300 appearance-none cursor-pointer outline-none"
-                  >
-                    {SUPPORTED_FIAT.map((fiat) => (
-                      <option key={fiat.code} value={fiat.code}>
-                        {fiat.flag} {fiat.name} ({fiat.symbol} - {fiat.code})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500 font-bold text-xs">
-                    ▼
-                  </div>
-                </div>
+                <PolyLanceSelect
+                  value={selectedFiat}
+                  onChange={(val) => setSelectedFiat(val)}
+                  options={fiatSelectOptions}
+                  variant="neomorphic"
+                  placeholder="Select local currency..."
+                />
               </div>
 
               {/* 3. Two-way Input Tab & Field */}

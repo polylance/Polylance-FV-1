@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
 import { LoginModal } from '../components/LoginModal';
+import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { truncateAddress, generateDeterministicHash, getCanonicalCertificateId, getCertifiedPassVerifyUrl, getPolygonScanUrl, formatWeb3ErrorMessage } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { generateCode128Bars } from '../utils/barcode';
@@ -779,17 +780,18 @@ export const JobAttestationReport: React.FC = () => {
               </div>
 
               {/* Sort Order Selector */}
-              <div className="flex items-center gap-2 shrink-0">
-                <ArrowUpDown size={14} className="text-slate-500 hidden sm:block" />
-                <select
+              <div className="flex items-center gap-2 shrink-0 min-w-[190px]">
+                <PolyLanceSelect
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer focus:outline-hidden"
-                >
-                  <option value="latest">Latest Issued (Newest First)</option>
-                  <option value="highest">Highest Settled ($)</option>
-                  <option value="oldest">Oldest Milestone</option>
-                </select>
+                  onChange={(val) => setSortBy(val as any)}
+                  options={[
+                    { value: 'latest', label: 'Latest Issued', sublabel: 'Newest First' },
+                    { value: 'highest', label: 'Highest Settled', sublabel: 'Highest $' },
+                    { value: 'oldest', label: 'Oldest Milestone', sublabel: 'Earliest First' },
+                  ]}
+                  variant="standard"
+                  className="w-full"
+                />
               </div>
             </div>
 

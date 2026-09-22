@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Job, DisputeReason, JudgeRecord } from '../types';
 import { 
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { generateIpfsCid } from '../utils/ipfs';
 import { truncateAddress } from '../utils/formatters';
+import { PolyLanceSelect, SelectOption } from './PolyLanceSelect';
 
 export interface RaiseDisputeModalProps {
   isOpen: boolean;
@@ -46,6 +47,40 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
   const [fileName, setFileName] = useState('');
   const [fileSize, setFileSize] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const jobOptions = useMemo<SelectOption<string>[]>(() => {
+    const list: SelectOption<string>[] = [
+      {
+        value: 'general',
+        label: '🌐 General Platform / Protocol Escalation',
+        sublabel: 'Non-Job Specific',
+      },
+    ];
+    jobs.forEach((j) => {
+      list.push({
+        value: j.id,
+        label: j.title,
+        sublabel: `$${parseFloat(j.amountUsdc || '0').toLocaleString()} USDC [${j.status}]`,
+        badge: j.status,
+      });
+    });
+    return list;
+  }, [jobs]);
+
+  const reasonOptions: SelectOption<DisputeReason>[] = [
+    { value: 'QUALITY', label: '🎯 Quality Defect / Specification Mismatch', sublabel: 'Deliverable fails specs' },
+    { value: 'NON_DELIVERY', label: '📦 Non-Delivery / Missing Milestone Code', sublabel: 'Work not delivered on time' },
+    { value: 'SCOPE_DISAGREEMENT', label: '📑 Scope or Requirement Disagreement', sublabel: 'Milestone ambiguity' },
+    { value: 'PAYMENT_DISPUTE', label: '💰 Payment Terms or Milestone Pricing Conflict', sublabel: 'Payment calculation dispute' },
+    { value: 'OTHER', label: '⚖️ Other Contractual Breach / Arbitrator Advice', sublabel: 'Binding ruling required' },
+  ];
+
+  const resolutionOptions: SelectOption<string>[] = [
+    { value: 'Full 100% Refund to Client', label: 'Full 100% Refund to Client', sublabel: 'Return locked escrow' },
+    { value: '50/50 Compromise Split', label: '50/50 Compromise Split', sublabel: 'Equal settlement distribution' },
+    { value: 'Release Escrow to Freelancer', label: 'Release Escrow to Freelancer', sublabel: 'Complete payment release' },
+    { value: 'Arbitrator Mediation & Binding Ruling', label: 'Arbitrator Mediation & Binding Ruling', sublabel: 'DAO Judge discretion' },
+  ];
 
   if (!isOpen) return null;
 
@@ -174,18 +209,13 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                 <label className="block font-bold text-slate-800 uppercase text-[10px] tracking-wider mb-1.5">
                   Select Associated Job / Project Escrow *
                 </label>
-                <select
+                <PolyLanceSelect
                   value={selectedJobId}
-                  onChange={(e) => setSelectedJobId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 font-bold text-slate-900 rounded-xl p-2.5 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100 transition-all text-xs"
-                >
-                  <option value="general">🌐 General Platform / Protocol Escalation (Non-Job Specific)</option>
-                  {jobs.map((j) => (
-                    <option key={j.id} value={j.id}>
-                      📁 {j.title} — ${parseFloat(j.amountUsdc || '0').toLocaleString()} USDC [{j.status}]
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedJobId(val)}
+                  options={jobOptions}
+                  variant="standard"
+                  className="w-full"
+                />
 
                 {currentSelectedJob && (
                   <div className="mt-2 bg-purple-50/60 border border-purple-100 rounded-xl p-2.5 flex items-center justify-between gap-2">
@@ -236,17 +266,13 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                 <label className="block font-bold text-slate-800 uppercase text-[10px] tracking-wider mb-1.5">
                   Primary Issue Category *
                 </label>
-                <select
+                <PolyLanceSelect
                   value={reason}
-                  onChange={(e) => setReason(e.target.value as DisputeReason)}
-                  className="w-full bg-slate-50 border border-slate-200 font-bold text-slate-900 rounded-xl p-2.5 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100 transition-all text-xs"
-                >
-                  <option value="QUALITY">🎯 Quality Defect / Specification Mismatch</option>
-                  <option value="NON_DELIVERY">📦 Non-Delivery / Missing Milestone Code</option>
-                  <option value="SCOPE_DISAGREEMENT">📑 Scope or Requirement Disagreement</option>
-                  <option value="PAYMENT_DISPUTE">💰 Payment Terms or Milestone Pricing Conflict</option>
-                  <option value="OTHER">⚖️ Other Contractual Breach / Arbitrator Advice</option>
-                </select>
+                  onChange={(val) => setReason(val as DisputeReason)}
+                  options={reasonOptions}
+                  variant="standard"
+                  className="w-full"
+                />
               </div>
 
               {/* Desired Resolution */}
@@ -254,16 +280,13 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                 <label className="block font-bold text-slate-800 uppercase text-[10px] tracking-wider mb-1.5">
                   Desired Settlement Outcome *
                 </label>
-                <select
+                <PolyLanceSelect
                   value={desiredResolution}
-                  onChange={(e) => setDesiredResolution(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 font-bold text-slate-900 rounded-xl p-2.5 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100 transition-all text-xs"
-                >
-                  <option value="Full 100% Refund to Client">Full 100% Refund to Client</option>
-                  <option value="50/50 Compromise Split">50/50 Compromise Split</option>
-                  <option value="Release Escrow to Freelancer">Release Escrow to Freelancer</option>
-                  <option value="Arbitrator Mediation & Binding Ruling">Arbitrator Mediation & Binding Ruling</option>
-                </select>
+                  onChange={(val) => setDesiredResolution(val)}
+                  options={resolutionOptions}
+                  variant="standard"
+                  className="w-full"
+                />
               </div>
             </div>
 

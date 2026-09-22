@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useWeb3 } from '../context/Web3Context';
@@ -10,6 +10,7 @@ import { truncateAddress, formatTimeAgo } from '../utils/formatters';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { staggerContainer, staggerItem, scrollReveal, transition } from '../lib/motion';
 import { NoSearchResultState } from '../components/UIStates';
+import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 
 export const FindJobs: React.FC = () => {
   const { currentRole } = useWeb3();
@@ -19,6 +20,15 @@ export const FindJobs: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFiat, setSelectedFiat] = useState('INR');
   useLiveCurrencyRates();
+
+  const fiatSelectOptions = useMemo<SelectOption<string>[]>(() => {
+    return SUPPORTED_FIAT.map((fiat) => ({
+      value: fiat.code,
+      label: `${fiat.code} (${fiat.symbol})`,
+      sublabel: fiat.name,
+      flag: fiat.flag,
+    }));
+  }, []);
 
   const isClientRole = currentRole === 'client';
 
@@ -89,22 +99,14 @@ export const FindJobs: React.FC = () => {
           </div>
 
           {/* Global Currency Conversion Dropdown for Freelancers */}
-          <div className="flex items-center justify-between sm:justify-start gap-2 bg-white/80 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs shrink-0">
-            <div className="flex items-center gap-1.5">
-              <Globe size={13} className="text-purple-600 shrink-0" />
-              <span className="text-[10px] font-bold text-slate-500 font-mono uppercase">Pay:</span>
-            </div>
-            <select
+          <div className="flex items-center gap-1.5 shrink-0 min-w-[140px]">
+            <PolyLanceSelect
               value={selectedFiat}
-              onChange={(e) => setSelectedFiat(e.target.value)}
-              className="bg-transparent border-none text-xs font-bold text-slate-800 font-sans outline-none focus:ring-0 cursor-pointer"
-            >
-              {SUPPORTED_FIAT.map((fiat) => (
-                <option key={fiat.code} value={fiat.code}>
-                  {fiat.flag} {fiat.code} ({fiat.symbol})
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedFiat(val)}
+              options={fiatSelectOptions}
+              variant="glass"
+              className="w-full"
+            />
           </div>
         </div>
 
