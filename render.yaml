@@ -18,7 +18,7 @@ services:
       - key: JOB_FACTORY_ADDRESS
         value: 0xbE74923BBfd72d400a681915dBcf6e6Adc72C317
       - key: ALLOWED_ORIGINS
-        value: https://polylance-fv-1.onrender.com,https://polylance.github.io,https://polylance.codes,http://localhost:5173
+        value: https://polylance-fv-1-45wy.onrender.com,https://polylance-fv-1.onrender.com,https://polylance.github.io,https://polylance.codes,http://localhost:5173
       - key: NODE_ENV
         value: production
 

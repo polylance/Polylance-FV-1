@@ -12,6 +12,7 @@ export interface Application {
   applicantSkills: string[];
   githubVerified: boolean;
   githubScore: number;
+  status?: string;
 }
 
 export interface DeliverableFile {
@@ -144,6 +145,7 @@ export interface Job {
   events: JobEvent[];
   chatMessages?: ChatMessage[];
   sbtTokenId?: number;
+  sbtTxHash?: string;
   negotiatedAmount?: string;
   negotiatedDeadlineDays?: number;
   preAcceptMessages?: { sender: string; senderRole: 'Client' | 'Freelancer'; text: string; timestamp: number; proposal?: NegotiationProposal; applicantAddress?: string }[];

@@ -36,10 +36,9 @@ export function formatUsdcString(val) {
  */
 export function formatCanonicalCertId(jobId, contractAddress) {
     if (!jobId)
-        return 'PL-SBT-JOB-001-0x001';
-    const clean = String(jobId).trim().replace(/^PL-SBT-JOB-/, '');
-    const shortHash = (contractAddress ? String(contractAddress).trim().replace(/[^a-zA-Z0-9]/g, '') : clean.replace(/[^a-zA-Z0-9]/g, '')).slice(0, 6);
-    return `PL-SBT-JOB-${clean}-${shortHash}`;
+        return 'PL-SBT-JOB-001';
+    const clean = String(jobId).trim().replace(/^PL-SBT-JOB-/i, '');
+    return `PL-SBT-JOB-${clean}`;
 }
 /**
  * Initializes tables in the dedicated certified_pass_polylance_audit_data database
@@ -250,8 +249,10 @@ export async function getCertifiedCertificate(identifier) {
         await initCertifiedPassDatabase();
         const cleanId = identifier.trim();
         const cleanLower = cleanId.toLowerCase();
-        const strippedJobId = cleanId.replace(/^PL-SBT-JOB-/, '').split('-')[0].trim();
+        const strippedJobId = cleanId.replace(/^PL-SBT-JOB-/i, '').split('-')[0].trim();
         const strippedLower = strippedJobId.toLowerCase();
+        const rawJobId = strippedLower.replace(/^0x/i, '');
+        const strippedAudit = cleanLower.replace(/^pl-aud-/i, '').replace(/^0x/i, '').trim();
         // 1. Check CertifiedSBTRecord with multiple identifier possibilities
         const sbtRecords = await certifiedPassClient.$queryRawUnsafe(`SELECT * FROM "CertifiedSBTRecord" 
        WHERE "id" = $1 
@@ -259,6 +260,8 @@ export async function getCertifiedCertificate(identifier) {
           OR "jobId" = $3
           OR LOWER("id") = $2
           OR LOWER("jobId") = $4
+          OR LOWER("jobId") = $5
+          OR "jobId" ILIKE '%' || $5 || '%'
           OR LOWER("contractAddress") = $2 
           OR LOWER("sbtTokenId") = $2 
           OR "sbtTokenId" = 'SBT-' || $3
@@ -266,7 +269,8 @@ export async function getCertifiedCertificate(identifier) {
           OR LOWER("clientAddress") = $2
           OR "ipfsCid" = $1
           OR "id" ILIKE '%' || $1 || '%'
-       LIMIT 1;`, cleanId, cleanLower, strippedJobId, strippedLower);
+          OR "id" ILIKE '%' || $3 || '%'
+       LIMIT 1;`, cleanId, cleanLower, strippedJobId, strippedLower, rawJobId);
         if (sbtRecords && sbtRecords.length > 0) {
             // Log verification event
             await certifiedPassClient.$executeRawUnsafe(`INSERT INTO "CertifiedVerificationLog" ("certId", "verifierPlatform") VALUES ($1, 'CertifiedPass-Web');`, sbtRecords[0].id).catch(() => { });
@@ -275,14 +279,17 @@ export async function getCertifiedCertificate(identifier) {
                 record: sbtRecords[0]
             };
         }
-        // 2. Check CertifiedAuditRecord (by audit ID, target wallet address, or IPFS CID)
+        // 2. Check CertifiedAuditRecord (by audit ID, target wallet address, prefix, or IPFS CID)
         const auditRecords = await certifiedPassClient.$queryRawUnsafe(`SELECT * FROM "CertifiedAuditRecord"
        WHERE "id" = $1
           OR LOWER("id") = $2
           OR LOWER("targetAddress") = $2
-          OR "ipfsCid" = $1
+          OR LOWER("targetAddress") = '0x' || $3
+          OR "targetAddress" ILIKE '%' || $3 || '%'
           OR "id" ILIKE '%' || $1 || '%'
-       LIMIT 1;`, cleanId, cleanLower);
+          OR "id" ILIKE '%' || $3 || '%'
+          OR "ipfsCid" = $1
+       LIMIT 1;`, cleanId, cleanLower, strippedAudit);
         if (auditRecords && auditRecords.length > 0) {
             await certifiedPassClient.$executeRawUnsafe(`INSERT INTO "CertifiedVerificationLog" ("certId", "verifierPlatform") VALUES ($1, 'CertifiedPass-Web');`, auditRecords[0].id).catch(() => { });
             return {

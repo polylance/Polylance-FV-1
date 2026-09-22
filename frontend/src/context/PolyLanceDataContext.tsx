@@ -26,6 +26,7 @@ export const getSyncEndpoints = (): string[] => {
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
     list.push('http://localhost:3001');
   }
+  list.push('https://polylance-fv-1-45wy.onrender.com');
   list.push('https://polylance-fv-1.onrender.com');
 
   return Array.from(new Set(list.filter(Boolean)));
@@ -39,7 +40,7 @@ export const getBackendSyncUrl = (): string => {
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
     return 'http://localhost:3001';
   }
-  return 'https://polylance-fv-1.onrender.com';
+  return 'https://polylance-fv-1-45wy.onrender.com';
 };
 
 
@@ -447,6 +448,9 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
     if (norm.contractAddress) idIndex.set(String(norm.contractAddress).toLowerCase(), key);
   });
 
+  const isGenericEscrowTitle = (t?: string) => !t || String(t).trim().toLowerCase().startsWith('smart contract escrow 0x');
+  const isGenericEscrowDesc = (d?: string) => !d || String(d).trim().toLowerCase().startsWith('decentralized jobescrow verified on polygon');
+
   (incoming || []).forEach((inJobRaw) => {
     if (!inJobRaw || isDemoOrMockJob(inJobRaw) || isRecentlyDeletedJob(inJobRaw.id, inJobRaw.contractAddress)) return;
     const inJob = normalizeJob(inJobRaw);
@@ -455,9 +459,37 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
     const key = inContract || inId;
     if (!key) return;
 
-    const matchedKey = (inId && idIndex.get(inId)) || (inContract && idIndex.get(inContract)) || key;
-    const curr = map.get(matchedKey);
+    let matchedKey = (inId && idIndex.get(inId)) || (inContract && idIndex.get(inContract));
+
+    // If not matched by exact ID or contract address, check if this incoming escrow belongs to an existing
+    // job of the SAME client and freelancer (STRICT USER ISOLATION: never merge across different clients)
+    if (!matchedKey && inJob.client) {
+      const inClient = String(inJob.client).toLowerCase();
+      const inFreelancer = inJob.freelancer ? String(inJob.freelancer).toLowerCase() : '';
+
+      for (const [existingKey, existingJob] of map.entries()) {
+        if (!existingJob.client || String(existingJob.client).toLowerCase() !== inClient) continue;
+        const exFreelancer = existingJob.freelancer ? String(existingJob.freelancer).toLowerCase() : '';
+        const hasSameFreelancer = inFreelancer && exFreelancer && inFreelancer === exFreelancer;
+        const hasAcceptedApp = inFreelancer && (existingJob.applications || []).some(
+          (a) => a.applicant && String(a.applicant).toLowerCase() === inFreelancer && (a.status === 'accepted' || a.status === 'Selected')
+        );
+
+        if (hasSameFreelancer || hasAcceptedApp) {
+          if (isGenericEscrowTitle(inJob.title) || inJob.status === 'Completed' || inJob.status === 'Submitted' || inJob.status === 'Funded') {
+            matchedKey = existingKey;
+            break;
+          }
+        }
+      }
+    }
+
+    const curr = matchedKey ? map.get(matchedKey) : undefined;
     if (!curr) {
+      // Never allow orphan generic escrow contracts without client metadata to enter the jobs list
+      if (isGenericEscrowTitle(inJob.title)) {
+        return;
+      }
       map.set(key, inJob);
       if (inId) idIndex.set(inId, key);
       if (inContract) idIndex.set(inContract, key);
@@ -607,9 +639,29 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
       const inPriority = getStatusPriority(inJob.status);
       const resolvedStatus = inPriority >= currPriority ? (inJob.status || curr.status) : curr.status;
 
+      // Title: Always preserve real user-created title over generic "Smart Contract Escrow 0x..."
+      const resolvedTitle = (!isGenericEscrowTitle(curr.title) && isGenericEscrowTitle(inJob.title))
+        ? curr.title
+        : (!isGenericEscrowTitle(inJob.title) ? inJob.title : (curr.title || inJob.title));
+
+      // Description: Always preserve real user-created description over generic escrow text
+      const resolvedDesc = (!isGenericEscrowDesc(curr.description) && isGenericEscrowDesc(inJob.description))
+        ? curr.description
+        : (!isGenericEscrowDesc(inJob.description) ? inJob.description : (curr.description || inJob.description));
+
+      // Category: Keep user category if incoming defaulted to 'web3'
+      const resolvedCategory = (curr.category && curr.category !== 'web3' && inJob.category === 'web3')
+        ? curr.category
+        : (inJob.category || curr.category || 'web3');
+
       const mergedJob: Job = {
         ...curr,
         ...inJob,
+        id: curr.id || inJob.id,
+        title: resolvedTitle,
+        description: resolvedDesc,
+        category: resolvedCategory,
+        contractAddress: inContract || curr.contractAddress,
         status: resolvedStatus,
         freelancer: inJob.freelancer || curr.freelancer,
         clientAgreedTerms: inJob.clientAgreedTerms !== undefined ? inJob.clientAgreedTerms : curr.clientAgreedTerms,
@@ -632,12 +684,13 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         extensionRequests: mergedExtensionRequests,
         modificationRequests: Array.from(modMap.values()),
         sbtTokenId: inJob.sbtTokenId || curr.sbtTokenId,
+        sbtTxHash: inJob.sbtTxHash || curr.sbtTxHash,
         completedAt: inJob.completedAt || curr.completedAt,
         submittedAt: inJob.submittedAt || curr.submittedAt,
         chatClearedAt: chatClearedAt > 0 ? chatClearedAt : undefined,
       };
 
-      if (matchedKey !== key) {
+      if (matchedKey && matchedKey !== key) {
         map.delete(matchedKey);
       }
       map.set(key, normalizeJob(mergedJob));
@@ -1459,14 +1512,49 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           const tokenConfig = getTokenByAddress(paymentToken);
           const formattedAmount = ethers.formatUnits(amountRaw, tokenConfig.decimals);
 
-          // Preserve any existing local metadata (title, description, category, proposals, proof)
-          const existingMatch = currentJobsList.find(
-            (j: Job) => j.id?.toLowerCase() === jobAddr.slice(0, 14).toLowerCase() ||
-                   j.contractAddress?.toLowerCase() === jobAddr.toLowerCase() ||
-                   (j.client?.toLowerCase() === client.toLowerCase() && 
-                    (j.status === 'Funded' || j.status === 'Selected' || (j.events || []).some(e => e.step === 'Funded' && e.status === 'completed')) &&
-                    Math.abs(parseFloat(j.amountEth || j.amountUsdc || '0') - parseFloat(formattedAmount)) < 0.005)
-          );
+          // Match existing job strictly within the same client (NEVER merge different users' data)
+          const existingMatch = currentJobsList.find((j: Job) => {
+            if (!j) return false;
+            const jContract = (j.contractAddress || '').toLowerCase();
+            const jId = (j.id || '').toLowerCase();
+            const jClient = (j.client || '').toLowerCase();
+            const jFreelancer = (j.freelancer || '').toLowerCase();
+            const targetAddr = jobAddr.toLowerCase();
+
+            if (jContract === targetAddr) return true;
+            if (jId === targetAddr.slice(0, 14) || jId === targetAddr) return true;
+
+            // Only consider client-level matching if the client matches exactly
+            if (jClient === client.toLowerCase()) {
+              // Same freelancer assigned
+              if (freelancer && freelancer !== ethers.ZeroAddress && jFreelancer) {
+                if (jFreelancer === freelancer.toLowerCase()) return true;
+              }
+              // Freelancer has accepted application
+              if (freelancer && freelancer !== ethers.ZeroAddress && Array.isArray(j.applications)) {
+                const isAccepted = j.applications.some(
+                  (a) => a.applicant && a.applicant.toLowerCase() === freelancer.toLowerCase() && (a.status === 'accepted' || a.status === 'Selected')
+                );
+                if (isAccepted) return true;
+              }
+              // Active fund amount match
+              if (
+                hasOnChainFunds &&
+                (j.status === 'Funded' || j.status === 'Selected' || (j.events || []).some(e => e.step === 'Funded' && e.status === 'completed')) &&
+                Math.abs(parseFloat(j.amountEth || j.amountUsdc || '0') - parseFloat(formattedAmount)) < 0.005
+              ) {
+                return true;
+              }
+            }
+            return false;
+          });
+
+          // CRITICAL: If no client job in the database matches this on-chain address,
+          // do NOT spawn an orphan dummy job titled "Smart Contract Escrow 0x...".
+          // This keeps every client job unified as a single job and protects user data isolation.
+          if (!existingMatch) {
+            continue;
+          }
 
           // Compute final status intelligently: NEVER downgrade terminal or advanced lifecycle states
           let finalStatus: JobStatus;
@@ -1504,43 +1592,45 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           ];
 
           parsedJobs.push({
-            id: existingMatch?.id || jobAddr.slice(0, 14),
+            ...existingMatch,
+            id: existingMatch.id, // Always keep original user job ID!
             contractAddress: jobAddr,
             client,
-            freelancer: finalFreelancer,
-            amountEth: tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL' 
+            freelancer: finalFreelancer || existingMatch.freelancer,
+            amountEth: existingMatch.amountEth || (tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL' 
               ? formattedAmount 
-              : (parseFloat(formattedAmount) / 2800).toFixed(4),
-            amountUsdc: existingMatch?.amountUsdc || (
+              : (parseFloat(formattedAmount) / 2800).toFixed(4)),
+            amountUsdc: existingMatch.amountUsdc || (
               tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL'
                 ? (parseFloat(formattedAmount) * 0.45).toFixed(2)
                 : formattedAmount
             ),
-            paymentToken,
-            paymentTokenSymbol: tokenConfig.symbol,
-            paymentTokenDecimals: tokenConfig.decimals,
+            paymentToken: paymentToken !== ethers.ZeroAddress ? paymentToken : (existingMatch.paymentToken || paymentToken),
+            paymentTokenSymbol: existingMatch.paymentTokenSymbol || tokenConfig.symbol,
+            paymentTokenDecimals: existingMatch.paymentTokenDecimals || tokenConfig.decimals,
             status: finalStatus,
-            title: existingMatch?.title || `Smart Contract Escrow ${jobAddr.slice(0, 6)}...${jobAddr.slice(-4)}`,
-            description: existingMatch?.description || `Decentralized JobEscrow verified on Polygon. Escrow contract: ${jobAddr}`,
-            category: existingMatch?.category || 'web3',
-            reviewPeriodDays: Math.round(Number(reviewPeriod) / 86400) || existingMatch?.reviewPeriodDays || 7,
-            createdAt: existingMatch?.createdAt || Date.now() - 3600000,
-            submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : existingMatch?.submittedAt,
-            completedAt: existingMatch?.completedAt,
-            termsHash: termsHash || existingMatch?.termsHash,
-            applications: existingMatch?.applications || [],
+            title: existingMatch.title, // ALWAYS retain the real job title!
+            description: existingMatch.description, // ALWAYS retain the real job description!
+            category: existingMatch.category || 'web3',
+            reviewPeriodDays: existingMatch.reviewPeriodDays || Math.round(Number(reviewPeriod) / 86400) || 7,
+            createdAt: existingMatch.createdAt || Date.now() - 3600000,
+            submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : existingMatch.submittedAt,
+            completedAt: existingMatch.completedAt || (finalStatus === 'Completed' ? Date.now() : undefined),
+            termsHash: termsHash || existingMatch.termsHash,
+            applications: existingMatch.applications || [],
             events: updatedEvents,
-            proof: existingMatch?.proof,
-            progressUpdates: existingMatch?.progressUpdates || [],
-            extensionRequests: existingMatch?.extensionRequests || [],
-            modificationRequests: existingMatch?.modificationRequests || [],
-            dispute: existingMatch?.dispute,
-            chatMessages: existingMatch?.chatMessages || [],
-            preAcceptMessages: existingMatch?.preAcceptMessages || [],
-            negotiationProposals: existingMatch?.negotiationProposals || [],
-            clientAgreedTerms: existingMatch?.clientAgreedTerms,
-            freelancerAgreedTerms: existingMatch?.freelancerAgreedTerms,
-            sbtTokenId: existingMatch?.sbtTokenId,
+            proof: existingMatch.proof,
+            progressUpdates: existingMatch.progressUpdates || [],
+            extensionRequests: existingMatch.extensionRequests || [],
+            modificationRequests: existingMatch.modificationRequests || [],
+            dispute: existingMatch.dispute,
+            chatMessages: existingMatch.chatMessages || [],
+            preAcceptMessages: existingMatch.preAcceptMessages || [],
+            negotiationProposals: existingMatch.negotiationProposals || [],
+            clientAgreedTerms: existingMatch.clientAgreedTerms !== undefined ? existingMatch.clientAgreedTerms : true,
+            freelancerAgreedTerms: existingMatch.freelancerAgreedTerms !== undefined ? existingMatch.freelancerAgreedTerms : true,
+            sbtTokenId: existingMatch.sbtTokenId,
+            sbtTxHash: existingMatch.sbtTxHash,
           } as Job);
         } catch {
           // ignore single job read error

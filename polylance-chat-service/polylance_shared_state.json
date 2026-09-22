@@ -120,7 +120,7 @@
       "chatMessages": [],
       "paymentToken": "0x0000000000000000000000000000000000000000",
       "chatClearedAt": 1788070319292,
-      "contractAddress": "0xBF88a19b97409F70d278a8843eA4CfBEb1908A4c",
+      "contractAddress": "0xbf88a19b97409f70d278a8843ea4cfbeb1908a4c",
       "progressUpdates": [
         {
           "id": "0x8c801e07",
@@ -290,7 +290,7 @@
       "chatMessages": [],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
       "chatClearedAt": 1788109142674,
-      "contractAddress": "0xce1376c2272EC6ed6E1D547A42Ce80AfcA835487",
+      "contractAddress": "0xce1376c2272ec6ed6e1d547a42ce80afca835487",
       "progressUpdates": [
         {
           "id": "0xe712ff41",
@@ -461,7 +461,7 @@
       "chatMessages": [],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
       "chatClearedAt": 1788070314652,
-      "contractAddress": "0xd8582456FD66337707Be2C2574c9e4A1dbd21C09",
+      "contractAddress": "0xd8582456fd66337707be2c2574c9e4a1dbd21c09",
       "progressUpdates": [],
       "reviewPeriodDays": 1,
       "clientAgreedTerms": true,
@@ -739,7 +739,7 @@
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0x1b4479973f48b66fc3B9F822a8C85CEE06335B86",
+      "contractAddress": "0x1b4479973f48b66fc3b9f822a8c85cee06335b86",
       "progressUpdates": [
         {
           "id": "0x510938f1",
@@ -1650,7 +1650,7 @@
       ],
       "chatMessages": [],
       "paymentToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
-      "contractAddress": "0x5E643eF77130df8Fc50Fa7F94CCd149182B4E003",
+      "contractAddress": "0x5e643ef77130df8fc50fa7f94ccd149182b4e003",
       "progressUpdates": [],
       "reviewPeriodDays": 3,
       "clientAgreedTerms": true,
@@ -1801,7 +1801,7 @@
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0xF04890E8003cB3920399d116728506C2Fc738771",
+      "contractAddress": "0xf04890e8003cb3920399d116728506c2fc738771",
       "progressUpdates": [
         {
           "id": "0xbfa03f8e",
@@ -2068,7 +2068,7 @@
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0xcf3665d90001e7335A3ecA9A00cEB2D88f9e9550",
+      "contractAddress": "0xcf3665d90001e7335a3eca9a00ceb2d88f9e9550",
       "progressUpdates": [],
       "negotiatedAmount": "1",
       "reviewPeriodDays": 7,
@@ -2263,7 +2263,7 @@
       "chatMessages": [],
       "paymentToken": "0x0000000000000000000000000000000000000000",
       "chatClearedAt": 1788277558174,
-      "contractAddress": "0xD02d64FF0C3A9b5cF96dcfDf12BA37F39149A1D3",
+      "contractAddress": "0xd02d64ff0c3a9b5cf96dcfdf12ba37f39149a1d3",
       "progressUpdates": [],
       "negotiatedAmount": "1.26",
       "reviewPeriodDays": 2,
@@ -2386,7 +2386,7 @@
       "chatMessages": [],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
       "chatClearedAt": 1788283421688,
-      "contractAddress": "0x6b56da137Df205e5F1857573e46E5407bB93Cf0C",
+      "contractAddress": "0x6b56da137df205e5f1857573e46e5407bb93cf0c",
       "progressUpdates": [],
       "reviewPeriodDays": 1,
       "clientAgreedTerms": true,
@@ -2484,7 +2484,7 @@
       ],
       "chatMessages": [],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0x8A69Cec2A8089cE3fE312632d5f7AdC88bf6399E",
+      "contractAddress": "0x8a69cec2a8089ce3fe312632d5f7adc88bf6399e",
       "progressUpdates": [],
       "reviewPeriodDays": 7,
       "clientAgreedTerms": true,
@@ -2627,7 +2627,7 @@
       "chatMessages": [],
       "paymentToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
       "chatClearedAt": 1789224419056,
-      "contractAddress": "0x0e1d5BC7c8789731a9935f05081CcaC9821D4f4b",
+      "contractAddress": "0x0e1d5bc7c8789731a9935f05081ccac9821d4f4b",
       "progressUpdates": [
         {
           "id": "0xc3307f28",
@@ -2736,7 +2736,7 @@
       ],
       "chatMessages": [],
       "paymentToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
-      "contractAddress": "0x37835B31461aee749E49a06431518CBD628e3501",
+      "contractAddress": "0x37835b31461aee749e49a06431518cbd628e3501",
       "progressUpdates": [],
       "reviewPeriodDays": 3,
       "clientAgreedTerms": true,
@@ -2813,60 +2813,12 @@
       "applications": [],
       "chatMessages": [],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0x4f12211983Ba1e0080AE11e9E8BCd3711947A2FA",
+      "contractAddress": "0x4f12211983ba1e0080ae11e9e8bcd3711947a2fa",
       "progressUpdates": [],
       "reviewPeriodDays": 3,
       "extensionRequests": [],
       "preAcceptMessages": [],
       "paymentTokenSymbol": "POL",
-      "modificationRequests": [],
-      "negotiationProposals": [],
-      "paymentTokenDecimals": 18
-    },
-    {
-      "id": "0x00718d62Bd55",
-      "title": "Smart Contract Escrow 0x0071...e47a",
-      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-      "events": [
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Posted (MATIC Escrow)",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1789704636213
-        },
-        {
-          "step": "Funded",
-          "title": "Fund Escrow",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Submitted",
-          "title": "Submit Work",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        }
-      ],
-      "status": "Open",
-      "category": "web3",
-      "amountEth": "0.0",
-      "createdAt": 1789704636213,
-      "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "amountUsdc": "0.0",
-      "description": "Decentralized JobEscrow verified on Polygon. Escrow contract: 0x00718d62Bd557d6725C51E03bAA7693CA68fe47a",
-      "applications": [],
-      "chatMessages": [],
-      "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0x00718d62Bd557d6725C51E03bAA7693CA68fe47a",
-      "progressUpdates": [],
-      "reviewPeriodDays": 7,
-      "extensionRequests": [],
-      "preAcceptMessages": [],
-      "paymentTokenSymbol": "MATIC",
       "modificationRequests": [],
       "negotiationProposals": [],
       "paymentTokenDecimals": 18
@@ -3003,7 +2955,7 @@
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0x72BA32211EA779aF69d016167b930cbbd3a70883",
+      "contractAddress": "0x72ba32211ea779af69d016167b930cbbd3a70883",
       "progressUpdates": [
         {
           "id": "0x3afe0ba8",
@@ -3130,7 +3082,7 @@
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0x6A539fea9Eed90127D03C95E61cFd6b245ea061D",
+      "contractAddress": "0x6a539fea9eed90127d03c95e61cfd6b245ea061d",
       "progressUpdates": [
         {
           "id": "0x3ca5d394",
@@ -3233,7 +3185,7 @@
       ],
       "chatMessages": [],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0x64707664854e88557c299cC87409B53B97a3d304",
+      "contractAddress": "0x64707664854e88557c299cc87409b53b97a3d304",
       "progressUpdates": [],
       "reviewPeriodDays": 2,
       "extensionRequests": [],
@@ -3345,7 +3297,7 @@
         }
       ],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-      "contractAddress": "0x2F463F3dB8C0f2a8D26624f96F2B522D2815EF7D",
+      "contractAddress": "0x2f463f3db8c0f2a8d26624f96f2b522d2815ef7d",
       "progressUpdates": [],
       "reviewPeriodDays": 1,
       "clientAgreedTerms": true,
@@ -3373,101 +3325,33 @@
         {
           "step": "Posted",
           "actor": "Client",
-          "title": "Job Posted (USDC Escrow)",
+          "title": "Job Posted (MATIC Escrow)",
           "status": "completed",
-          "txHash": "0xcfd36ced28ba76abb72343aa614b4200b7781861e30fa22d090d1c51cb8d4997",
-          "timestamp": 1787753630606
-        },
-        {
-          "step": "Selected",
-          "actor": "Client",
-          "title": "Select Freelancer",
-          "status": "completed",
-          "txHash": "0xe7c5d43b14bfce186403ef6372f3517ce08ce9e9c1b857cb0143a09a407e50ee",
-          "timestamp": 1787754008072
-        },
-        {
-          "step": "Terms",
-          "title": "Agree Terms",
-          "status": "completed",
-          "txHash": "0xcf8ff85a5162e8f262b70dd73c9a049a08abeca620f8dc7eb25b1d070e9e33fd",
-          "timestamp": 1787754015538
+          "txHash": "",
+          "timestamp": 1790060761752
         },
         {
           "step": "Funded",
-          "actor": "Client",
           "title": "Fund Escrow",
-          "status": "completed",
-          "txHash": "0x2d2fc6cd86b2415fcd573b7b82384147521d205a2636f755bf9ccd35ef037f0a",
-          "timestamp": 1787754066455
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
         },
         {
           "step": "Submitted",
           "title": "Submit Work",
           "status": "completed",
           "txHash": "",
-          "timestamp": 1789369713768
-        },
-        {
-          "step": "Completed",
-          "actor": "Client",
-          "title": "Payment Released (100%)",
-          "status": "completed",
-          "txHash": "0xa62f3ca3590fe589cb80c844e8a287fa7b5cc2ae3007f89739708e640e0b94fd",
-          "timestamp": 1787755120821
-        },
-        {
-          "step": "Minted",
-          "actor": "JobFactory",
-          "title": "Mint Reputation SBT",
-          "status": "completed",
-          "txHash": "0x7b889e7c4d3cea5769580ee2388a31b9bd4d1849dc73e2ca9361ddbf93d37fe5",
-          "timestamp": 1787755120821
-        },
-        {
-          "step": "Modifications",
-          "actor": "Client",
-          "title": "Modifications Requested by Client",
-          "status": "completed",
-          "txHash": "0xccefe347a21de15333a5b5ab0e7a48a1403f22bda5bb918b942b3305ef6736e5",
-          "timestamp": 1787754221945,
-          "description": "Send me work progress first then submit the work"
-        },
-        {
-          "step": "Extension",
-          "actor": "Freelancer",
-          "title": "Time Extension Requested (+3 Days)",
-          "status": "completed",
-          "txHash": "0x9d46cd45e5d371faf232c1d3e55b45f723bef881b8b676e6e868bd1d8d1f7870",
-          "timestamp": 1787754318295,
-          "description": "Busy"
-        },
-        {
-          "step": "Extension",
-          "actor": "Freelancer",
-          "title": "Time Extension Requested (+3 Days)",
-          "status": "completed",
-          "txHash": "0x1bf862919d63a49564cfe9a5ba85fd8952560eb81ba9e1a3e0203cbc75e2fd97",
-          "timestamp": 1787754369030,
-          "description": "Marriage"
-        },
-        {
-          "step": "Update",
-          "actor": "Freelancer",
-          "title": "Progress Update (50%)",
-          "status": "completed",
-          "txHash": "0x587f78140a8424f914d54ad24176a630dd954026672a52a02074b072989c35df",
-          "timestamp": 1787754400917,
-          "description": "Completed Backend"
+          "timestamp": 1790064940007
         }
       ],
       "status": "Completed",
       "category": "backend",
       "amountEth": "0.0",
-      "createdAt": 1787753630606,
+      "createdAt": 1790060761752,
       "sbtTxHash": "0xdd06f379ccddb03e931a213f1f309799c6fdb8db7e09f08e6c9c587d9104ef8a",
       "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "amountUsdc": "0.0",
+      "amountUsdc": "0.00",
       "freelancer": "0xc12Dd66dE59897518baF87951319F7D0A4c89eDa",
       "sbtTokenId": 3466,
       "completedAt": 1787755120821,
@@ -3551,7 +3435,7 @@
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
       "chatClearedAt": 1789732388370,
-      "contractAddress": "0xC18511F1eff760C6d94bE42d4e866ee947cbDc15",
+      "contractAddress": "0xc18511f1eff760c6d94be42d4e866ee947cbdc15",
       "progressUpdates": [
         {
           "id": "0x587f7814",
@@ -3628,7 +3512,7 @@
       "negotiatedDeadlineDays": 2
     },
     {
-      "id": "0xa1b17F36C192",
+      "id": "0x99801f9e280B",
       "proof": {
         "title": "Completed SmartContracts and went with auditing and mainnet deployment",
         "description": "i built every required smart contracts and also audited them using silther mythril and surya protocols and also deployed them in mainnet",
@@ -3648,21 +3532,35 @@
           "bafybeih2hknyreruxc3o36bmfyfilwpcpsvazm"
         ]
       },
-      "title": "Smart Contract Escrow 0xa1b1...d9b8",
+      "title": "Build Mainnet Smart Contracts For PolyLance",
       "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
       "events": [
         {
           "step": "Posted",
           "actor": "Client",
-          "title": "Job Posted (MATIC Escrow)",
+          "title": "Job Posted (POL Escrow)",
+          "status": "completed",
+          "txHash": "0xa0e4f0fc90909103f07417725a982346874cb109f102527d89ebcc2baa002cab",
+          "timestamp": 1789730296886
+        },
+        {
+          "step": "Selected",
+          "title": "Select Freelancer",
           "status": "completed",
           "txHash": "",
-          "timestamp": 1789908841762
+          "timestamp": 0
+        },
+        {
+          "step": "Terms",
+          "title": "Agree Terms",
+          "status": "completed",
+          "txHash": "",
+          "timestamp": 1789753493751
         },
         {
           "step": "Funded",
           "title": "Fund Escrow",
-          "status": "pending",
+          "status": "completed",
           "txHash": "",
           "timestamp": 0
         },
@@ -3671,20 +3569,50 @@
           "title": "Submit Work",
           "status": "completed",
           "txHash": "",
-          "timestamp": 1789912999891
+          "timestamp": 1790064917949
+        },
+        {
+          "step": "Completed",
+          "title": "Release Payment",
+          "status": "completed",
+          "txHash": "",
+          "timestamp": 1790064917949
+        },
+        {
+          "step": "Minted",
+          "title": "Mint Reputation SBT",
+          "status": "completed",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Details Modified by Client",
+          "status": "completed",
+          "txHash": "",
+          "timestamp": 1789730685497
+        },
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Details Modified by Client",
+          "status": "completed",
+          "txHash": "",
+          "timestamp": 1789745421903
         }
       ],
       "status": "Completed",
       "category": "web3",
-      "amountEth": "0.0",
-      "createdAt": 1789908841762,
+      "amountEth": "10",
+      "createdAt": 1789730296886,
       "sbtTxHash": "0xd4c47c77cb58847fe39f5835915f42f257bf963f0140bca1b180fcd1d99087ea",
       "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "amountUsdc": "0.00",
+      "amountUsdc": "1.01",
       "freelancer": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
       "sbtTokenId": 1978,
       "completedAt": 1789894663340,
-      "description": "Decentralized JobEscrow verified on Polygon. Escrow contract: 0xa1b17F36C1927d53b0efe67881d3ded9896dd9b8",
+      "description": "We are looking for an experienced Solidity/Web3 developer to build, test, and deploy production-ready smart contracts for PolyLance on Polygon Mainnet.\n\nPolyLance is a decentralized freelancing platform that enables secure and transparent transactions between clients and freelancers using blockchain technology. The platform will support Polygon Mainnet with USDC and USDT payments.\n\nThe developer will review the existing PolyLance smart contract code, identify bugs or security issues, and update the contracts for production use. The contracts should support secure freelance payment and escrow flows, including job creation, client deposits, payment release, cancellation, and refunds where required.\n\nKey responsibilities:\n• Develop or update PolyLance smart contracts using Solidity.\n• Implement secure escrow and payment functionality.\n• Support USDC and USDT on Polygon Mainnet.\n• Implement proper access control and transaction validation.\n• Protect against common smart contract vulnerabilities such as reentrancy and unauthorized fund access.\n• Optimize contracts for reasonable gas usage.\n• Create deployment and testing scripts using Hardhat or Foundry.\n• Thoroughly test critical contract functions before deployment.\n• Deploy and verify contracts on Polygon Mainnet and PolygonScan.\n• Provide final contract addresses, ABI files, and integration details.\n• Ensure compatibility with the existing PolyLance frontend and backend.\n\nRequired experience includes Solidity, EVM, ERC-20 tokens, OpenZeppelin, Polygon, smart contract testing, and Web3 integrations. Experience with payment or escrow contracts is preferred.\n\nDeliverables should include tested production-ready contracts, deployment scripts, verified Polygon Mainnet contracts, ABI files, contract addresses, test results, and basic documentation.\n\nAs the contracts will handle real user funds, security, reliability, and proper testing are essential before the mainnet launch.",
       "submittedAt": 1789894426151,
       "applications": [
         {
@@ -3739,119 +3667,7 @@
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
       "chatClearedAt": 1789732388370,
-      "contractAddress": "0xa1b17F36C1927d53b0efe67881d3ded9896dd9b8",
-      "progressUpdates": [],
-      "reviewPeriodDays": 7,
-      "clientAgreedTerms": true,
-      "extensionRequests": [],
-      "preAcceptMessages": [],
-      "paymentTokenSymbol": "MATIC",
-      "modificationRequests": [],
-      "negotiationProposals": [],
-      "paymentTokenDecimals": 18,
-      "freelancerAgreedTerms": true
-    },
-    {
-      "id": "0x99801f9e280B",
-      "title": "Build Mainnet Smart Contracts For PolyLance",
-      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-      "events": [
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Posted (POL Escrow)",
-          "status": "completed",
-          "txHash": "0xa0e4f0fc90909103f07417725a982346874cb109f102527d89ebcc2baa002cab",
-          "timestamp": 1789730296886
-        },
-        {
-          "step": "Selected",
-          "title": "Select Freelancer",
-          "status": "current",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Terms",
-          "title": "Agree Terms",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1789753493751
-        },
-        {
-          "step": "Funded",
-          "title": "Fund Escrow",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Submitted",
-          "title": "Submit Work",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Completed",
-          "title": "Release Payment",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Minted",
-          "title": "Mint Reputation SBT",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Details Modified by Client",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1789730685497
-        },
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Details Modified by Client",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1789745421903
-        }
-      ],
-      "status": "Selected",
-      "category": "web3",
-      "amountEth": "10",
-      "createdAt": 1789730296886,
-      "termsHash": "0x0aff314b43ebe642ec9fbb01630efce6dbc2074a3a913171d0b9ae6fcf148f23",
-      "amountUsdc": "1.01",
-      "freelancer": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
-      "description": "We are looking for an experienced Solidity/Web3 developer to build, test, and deploy production-ready smart contracts for PolyLance on Polygon Mainnet.\n\nPolyLance is a decentralized freelancing platform that enables secure and transparent transactions between clients and freelancers using blockchain technology. The platform will support Polygon Mainnet with USDC and USDT payments.\n\nThe developer will review the existing PolyLance smart contract code, identify bugs or security issues, and update the contracts for production use. The contracts should support secure freelance payment and escrow flows, including job creation, client deposits, payment release, cancellation, and refunds where required.\n\nKey responsibilities:\n• Develop or update PolyLance smart contracts using Solidity.\n• Implement secure escrow and payment functionality.\n• Support USDC and USDT on Polygon Mainnet.\n• Implement proper access control and transaction validation.\n• Protect against common smart contract vulnerabilities such as reentrancy and unauthorized fund access.\n• Optimize contracts for reasonable gas usage.\n• Create deployment and testing scripts using Hardhat or Foundry.\n• Thoroughly test critical contract functions before deployment.\n• Deploy and verify contracts on Polygon Mainnet and PolygonScan.\n• Provide final contract addresses, ABI files, and integration details.\n• Ensure compatibility with the existing PolyLance frontend and backend.\n\nRequired experience includes Solidity, EVM, ERC-20 tokens, OpenZeppelin, Polygon, smart contract testing, and Web3 integrations. Experience with payment or escrow contracts is preferred.\n\nDeliverables should include tested production-ready contracts, deployment scripts, verified Polygon Mainnet contracts, ABI files, contract addresses, test results, and basic documentation.\n\nAs the contracts will handle real user funds, security, reliability, and proper testing are essential before the mainnet launch.",
-      "applications": [
-        {
-          "applicant": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
-          "appliedAt": 1789745694373,
-          "githubScore": 980,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "Ethers.js",
-            "Rust",
-            "The Graph",
-            "React"
-          ],
-          "proposalIpfsHash": "bafybeikiajlqusktv264u57eig6hjosqirty42"
-        }
-      ],
-      "chatMessages": [],
-      "paymentToken": "0x0000000000000000000000000000000000000000",
-      "chatClearedAt": 1789732388370,
-      "contractAddress": "0x99801f9e280B74e9753bA1f61bfcaF73c294269A",
+      "contractAddress": "0xa1b17f36c1927d53b0efe67881d3ded9896dd9b8",
       "progressUpdates": [],
       "reviewPeriodDays": 2,
       "clientAgreedTerms": true,

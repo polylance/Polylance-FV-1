@@ -343,6 +343,9 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
     }
   });
 
+  const isGenericEscrowTitle = (t?: string) => !t || String(t).trim().toLowerCase().startsWith('smart contract escrow 0x');
+  const isGenericEscrowDesc = (d?: string) => !d || String(d).trim().toLowerCase().startsWith('decentralized jobescrow verified on polygon');
+
   (incomingJobs || []).forEach((inJobRaw) => {
     if (!inJobRaw) return;
     const inJob = normalizeJobOnServer(inJobRaw);
@@ -351,9 +354,37 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
     const key = inContract || inId;
     if (!key) return;
 
-    const matchedKey = (inId && idIndex.get(inId)) || (inContract && idIndex.get(inContract)) || key;
-    const curr = map.get(matchedKey);
+    let matchedKey = (inId && idIndex.get(inId)) || (inContract && idIndex.get(inContract));
+
+    // If incoming job has a generic escrow title, check if it belongs to an existing job of the SAME client and freelancer
+    // STRICT DATA PROTECTION: Only match within the exact same client and assigned freelancer
+    if (!matchedKey && inJob.client) {
+      const inClient = String(inJob.client).toLowerCase();
+      const inFreelancer = inJob.freelancer ? String(inJob.freelancer).toLowerCase() : '';
+
+      for (const [existingKey, existingJob] of map.entries()) {
+        if (!existingJob.client || String(existingJob.client).toLowerCase() !== inClient) continue;
+        const exFreelancer = existingJob.freelancer ? String(existingJob.freelancer).toLowerCase() : '';
+        const hasSameFreelancer = inFreelancer && exFreelancer && inFreelancer === exFreelancer;
+        const hasAcceptedApp = inFreelancer && (existingJob.applications || []).some(
+          (a: any) => a.applicant && String(a.applicant).toLowerCase() === inFreelancer && (a.status === 'accepted' || a.status === 'Selected')
+        );
+
+        if (hasSameFreelancer || hasAcceptedApp) {
+          if (isGenericEscrowTitle(inJob.title) || inJob.status === 'Completed' || inJob.status === 'Submitted' || inJob.status === 'Funded') {
+            matchedKey = existingKey;
+            break;
+          }
+        }
+      }
+    }
+
+    const curr = matchedKey ? map.get(matchedKey) : undefined;
     if (!curr) {
+      // Never allow orphan generic escrow contracts without client metadata to enter the database
+      if (isGenericEscrowTitle(inJob.title)) {
+        return;
+      }
       map.set(key, inJob);
       if (inId) idIndex.set(inId, key);
       if (inContract) idIndex.set(inContract, key);
@@ -446,11 +477,49 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
         (a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0)
       );
 
+      // Status lifecycle priority order: Completed > Disputed > Submitted > Funded > Selected > Open > Cancelled
+      const getStatusPriority = (st?: string): number => {
+        if (!st) return 0;
+        switch (st) {
+          case 'Completed': return 6;
+          case 'Disputed': return 5;
+          case 'Submitted': return 4;
+          case 'Funded': return 3;
+          case 'Selected': return 2;
+          case 'Open': return 1;
+          case 'Cancelled': return 0;
+          default: return 0;
+        }
+      };
+
+      const currPriority = getStatusPriority(curr.status);
+      const inPriority = getStatusPriority(inJob.status);
+      const resolvedStatus = inPriority >= currPriority ? (inJob.status || curr.status) : curr.status;
+
+      // Title: Always preserve real user-created title over generic "Smart Contract Escrow 0x..."
+      const resolvedTitle = (!isGenericEscrowTitle(curr.title) && isGenericEscrowTitle(inJob.title))
+        ? curr.title
+        : (!isGenericEscrowTitle(inJob.title) ? inJob.title : (curr.title || inJob.title));
+
+      // Description: Always preserve real user-created description over generic escrow text
+      const resolvedDesc = (!isGenericEscrowDesc(curr.description) && isGenericEscrowDesc(inJob.description))
+        ? curr.description
+        : (!isGenericEscrowDesc(inJob.description) ? inJob.description : (curr.description || inJob.description));
+
+      // Category: Keep user category if incoming defaulted to 'web3'
+      const resolvedCategory = (curr.category && curr.category !== 'web3' && inJob.category === 'web3')
+        ? curr.category
+        : (inJob.category || curr.category || 'web3');
+
       const merged = {
         ...curr,
         ...inJob,
+        id: curr.id || inJob.id,
+        title: resolvedTitle,
+        description: resolvedDesc,
+        category: resolvedCategory,
         contractAddress: inJob.contractAddress || curr.contractAddress,
-        status: inJob.status || curr.status,
+        status: resolvedStatus,
         freelancer: inJob.freelancer || curr.freelancer,
         clientAgreedTerms: inJob.clientAgreedTerms !== undefined ? inJob.clientAgreedTerms : curr.clientAgreedTerms,
         freelancerAgreedTerms: inJob.freelancerAgreedTerms !== undefined ? inJob.freelancerAgreedTerms : curr.freelancerAgreedTerms,
@@ -471,6 +540,10 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
         progressUpdates: Array.from(progMap.values()),
         extensionRequests: Array.from(extMap.values()),
         modificationRequests: Array.from(modMap.values()),
+        sbtTokenId: inJob.sbtTokenId || curr.sbtTokenId,
+        sbtTxHash: inJob.sbtTxHash || curr.sbtTxHash,
+        completedAt: inJob.completedAt || curr.completedAt,
+        submittedAt: inJob.submittedAt || curr.submittedAt,
         chatClearedAt: chatClearedAt > 0 ? chatClearedAt : undefined,
       };
 
@@ -492,6 +565,7 @@ setInterval(pruneExpiredJobsOnServer, 60000);
 const app = express();
 const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || [
   "http://localhost:5173",
+  "https://polylance-fv-1-45wy.onrender.com",
   "https://polylance-fv-1.onrender.com",
   "https://polylance.github.io",
   "https://polylance.codes",
