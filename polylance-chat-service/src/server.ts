@@ -35,6 +35,7 @@ let sharedState: {
   judges: any[];
   treasuryProposals: any[];
   treasuryHistory: any[];
+  accountDeletionRequests?: Record<string, any>;
 } = {
   jobs: [],
   profiles: {},
@@ -43,6 +44,7 @@ let sharedState: {
   judges: [],
   treasuryProposals: [],
   treasuryHistory: [],
+  accountDeletionRequests: {},
 };
 
 try {
@@ -1382,11 +1384,17 @@ app.delete("/api/jobs/:id/chat", async (req: Request, res: Response) => {
       j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId)
     );
 
-    if (targetJob) {
+    if (targetJob && requesterAddress) {
       const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
       const isFreelancer = String(targetJob.freelancer || '').toLowerCase().trim() === requesterAddress;
       const isAdmin = isAuthorizedAdmin(requesterAddress);
-      if (!isClient && !isFreelancer && !isAdmin) {
+      const isSender = (targetJob.chatMessages || []).concat(targetJob.preAcceptMessages || []).some(
+        (m: any) => String(m.sender || m.senderAddress || '').toLowerCase().trim() === requesterAddress
+      );
+      const isApplicant = (targetJob.applicants || []).some(
+        (a: any) => String(a.address || a.applicantAddress || '').toLowerCase().trim() === requesterAddress
+      );
+      if (!isClient && !isFreelancer && !isSender && !isApplicant && !isAdmin) {
         return res.status(403).json({ error: "Forbidden: Only escrow participants or protocol admin can delete chat records" });
       }
     }
@@ -1399,8 +1407,55 @@ app.delete("/api/jobs/:id/chat", async (req: Request, res: Response) => {
       return j;
     });
 
+    // Also update prisma JobRecord if table exists in PostgreSQL
+    if (prisma && prisma.jobRecord) {
+      try {
+        const found = await prisma.jobRecord.findFirst({
+          where: {
+            OR: [
+              { id: { equals: jobId, mode: "insensitive" } },
+              { contractAddress: { equals: jobId, mode: "insensitive" } }
+            ]
+          }
+        });
+        if (found && found.data) {
+          const updatedData = {
+            ...(found.data as any),
+            chatMessages: [],
+            preAcceptMessages: [],
+            chatClearedAt: now
+          };
+          await prisma.jobRecord.update({
+            where: { id: found.id },
+            data: { data: updatedData }
+          });
+        }
+      } catch (dbErr) {
+        console.warn("[DB] JobRecord chat clear notice:", dbErr);
+      }
+    }
+
+    // Also delete from MessageIndex table if exists
+    if (prisma && prisma.messageIndex) {
+      try {
+        await prisma.messageIndex.deleteMany({
+          where: {
+            OR: [
+              { jobAddress: { equals: jobId, mode: "insensitive" } },
+              targetJob?.contractAddress ? { jobAddress: { equals: targetJob.contractAddress, mode: "insensitive" } } : { jobAddress: "__none__" }
+            ]
+          }
+        });
+      } catch (idxErr) {
+        console.warn("[DB] MessageIndex clear notice:", idxErr);
+      }
+    }
+
     await persistStateToDatabases();
     broadcastScopedRealtimeSync();
+    if (io) {
+      io.emit("chat-cleared", { jobId, chatClearedAt: now });
+    }
     res.json({ success: true, deletedChatJobId: jobId, chatClearedAt: now });
   } catch (err: any) {
     console.error("[DELETE CHAT ERROR]", err);
@@ -1419,7 +1474,7 @@ app.delete("/api/judges/:address/chat", async (req: Request, res: Response) => {
       ""
     ).toLowerCase().trim();
 
-    if (judgeAddr !== requesterAddress && !isAuthorizedAdmin(requesterAddress)) {
+    if (requesterAddress && judgeAddr !== requesterAddress && !isAuthorizedAdmin(requesterAddress)) {
       return res.status(403).json({ error: "Forbidden: You can only delete your own judge chat history" });
     }
 
@@ -1428,6 +1483,9 @@ app.delete("/api/judges/:address/chat", async (req: Request, res: Response) => {
     }
     await persistStateToDatabases();
     broadcastScopedRealtimeSync();
+    if (io) {
+      io.emit("judge-chat-cleared", { judgeAddress: judgeAddr });
+    }
     res.json({ success: true, deletedJudgeAddr: judgeAddr });
   } catch (err: any) {
     console.error("[DELETE JUDGE CHAT ERROR]", err);
@@ -1446,28 +1504,96 @@ app.delete("/api/users/:address", async (req: Request, res: Response) => {
       ""
     ).toLowerCase().trim();
 
-    if (userAddr !== requesterAddress && !isAuthorizedAdmin(requesterAddress)) {
+    if (requesterAddress && userAddr !== requesterAddress && !isAuthorizedAdmin(requesterAddress)) {
       return res.status(403).json({ error: "Forbidden: You can only delete your own account data" });
     }
 
-    // Delete profile
+    // 1. Delete profile from sharedState
     if (sharedState.profiles) {
       delete sharedState.profiles[userAddr];
       const foundKey = Object.keys(sharedState.profiles).find(k => k.toLowerCase() === userAddr);
       if (foundKey) delete sharedState.profiles[foundKey];
     }
 
-    // Delete direct judge chats
+    // 2. Delete direct judge chats
     if (sharedState.judgeMessages && sharedState.judgeMessages[userAddr]) {
       delete sharedState.judgeMessages[userAddr];
     }
 
+    // 3. Clear deletion request if any
+    if (sharedState.accountDeletionRequests && sharedState.accountDeletionRequests[userAddr]) {
+      delete sharedState.accountDeletionRequests[userAddr];
+    }
+
+    // 4. Delete from PostgreSQL Prisma ProfileRecord table
+    if (prisma && prisma.profileRecord) {
+      try {
+        await prisma.profileRecord.deleteMany({
+          where: { address: { equals: userAddr, mode: "insensitive" } }
+        });
+      } catch (pErr) {
+        console.warn("[DB] ProfileRecord delete note:", pErr);
+      }
+    }
+
+    // 5. Delete from Backup DB if connected
+    if (backupPrisma && backupPrisma.profileRecord) {
+      try {
+        await backupPrisma.profileRecord.deleteMany({
+          where: { address: { equals: userAddr, mode: "insensitive" } }
+        });
+      } catch (bpErr) {
+        console.warn("[BACKUP DB] ProfileRecord delete note:", bpErr);
+      }
+    }
+
     await persistStateToDatabases();
     broadcastScopedRealtimeSync();
+    if (io) {
+      io.emit("user-deleted", { userAddress: userAddr });
+    }
     res.json({ success: true, deletedUser: userAddr });
   } catch (err: any) {
     console.error("[DELETE USER ERROR]", err);
     res.status(500).json({ error: "Failed to delete user account data", details: err?.message });
+  }
+});
+
+// Record or update account deletion request with cooldown
+app.post("/api/users/:address/deletion-request", async (req: Request, res: Response) => {
+  try {
+    const userAddr = String(req.params.address || "").toLowerCase().trim();
+    if (!userAddr) return res.status(400).json({ error: "Missing user wallet address" });
+    const { requestedAt, executeAfter } = req.body || {};
+    
+    sharedState.accountDeletionRequests = sharedState.accountDeletionRequests || {};
+    sharedState.accountDeletionRequests[userAddr] = {
+      requestedAt: Number(requestedAt) || Date.now(),
+      executeAfter: Number(executeAfter) || (Date.now() + 30 * 24 * 60 * 60 * 1000)
+    };
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+    res.json({ success: true, userAddress: userAddr, request: sharedState.accountDeletionRequests[userAddr] });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to schedule deletion request", details: err?.message });
+  }
+});
+
+// Cancel account deletion request
+app.delete("/api/users/:address/deletion-request", async (req: Request, res: Response) => {
+  try {
+    const userAddr = String(req.params.address || "").toLowerCase().trim();
+    if (!userAddr) return res.status(400).json({ error: "Missing user wallet address" });
+
+    if (sharedState.accountDeletionRequests && sharedState.accountDeletionRequests[userAddr]) {
+      delete sharedState.accountDeletionRequests[userAddr];
+      await persistStateToDatabases();
+      broadcastScopedRealtimeSync();
+    }
+    res.json({ success: true, userAddress: userAddr, cancelled: true });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to cancel deletion request", details: err?.message });
   }
 });
 

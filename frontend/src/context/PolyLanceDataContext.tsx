@@ -589,7 +589,10 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
 
       // Merge pre-acceptance messages with smart deduplication
       const mergedPreMsgs: any[] = [];
-      const allPreMsgs = [...(curr.preAcceptMessages || []), ...(inJob.preAcceptMessages || [])].sort(
+      const allPreMsgs = [
+        ...(curr.preAcceptMessages || []),
+        ...(inJob.preAcceptMessages || [])
+      ].filter(m => !chatClearedAt || (m.timestamp || 0) > chatClearedAt).sort(
         (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
       );
       for (const m of allPreMsgs) {
@@ -3710,40 +3713,75 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setAccountDeletionRequests((prev) => {
       const next = { ...prev };
       delete next[lower];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('polylance_deletion_requests', JSON.stringify(next));
+      }
       return next;
     });
+
+    try {
+      const endpoints = getSyncEndpoints();
+      await Promise.all(
+        endpoints.map((ep) =>
+          fetch(`${ep}/api/users/${encodeURIComponent(lower)}/deletion-request?address=${encodeURIComponent(lower)}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-wallet-address': lower,
+            },
+          }).catch(() => {})
+        )
+      );
+    } catch (err) {}
   };
 
   const purgeAccountData = async (userAddress: string) => {
     if (!userAddress) return;
     const lower = userAddress.toLowerCase();
-    cancelAccountDeletion(lower);
+    await cancelAccountDeletion(lower);
 
     // Purge profile from local state and localStorage
+    let nextProfiles: Record<string, UserProfile> = {};
     setProfiles((prev) => {
       const next = { ...prev };
       delete next[lower];
       const matchKey = Object.keys(next).find((k) => k.toLowerCase() === lower);
       if (matchKey) delete next[matchKey];
+      nextProfiles = next;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('polylance_user_profiles', JSON.stringify(next));
+      }
       return next;
     });
 
     // Clear direct judge messages
+    let nextJudgeMsgs: Record<string, JudgeMessage[]> = {};
     setJudgeMessages((prev) => {
       const next = { ...prev };
       delete next[lower];
+      nextJudgeMsgs = next;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('polylance_judge_messages', JSON.stringify(next));
+      }
       return next;
     });
 
-    // Notify backend to purge off-chain data
+    broadcastSync({ profiles: nextProfiles, judgeMessages: nextJudgeMsgs }, lower);
+
+    // Notify backend to purge off-chain data from PostgreSQL
     try {
-      await fetch(`${getBackendSyncUrl()}/api/users/${encodeURIComponent(lower)}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-wallet-address': lower,
-        },
-      });
+      const endpoints = getSyncEndpoints();
+      await Promise.all(
+        endpoints.map((ep) =>
+          fetch(`${ep}/api/users/${encodeURIComponent(lower)}?address=${encodeURIComponent(lower)}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-wallet-address': lower,
+            },
+          }).catch((e) => console.warn(`Backend user purge error on ${ep}:`, e))
+        )
+      );
     } catch (err) {
       console.warn('Backend user purge fallback:', err);
     }
@@ -3754,10 +3792,32 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     const lower = userAddress.toLowerCase();
     const now = Date.now();
     const executeAfter = now + 30 * 24 * 60 * 60 * 1000; // 30 days buffer
-    setAccountDeletionRequests((prev) => ({
-      ...prev,
-      [lower]: { requestedAt: now, executeAfter },
-    }));
+    setAccountDeletionRequests((prev) => {
+      const next = {
+        ...prev,
+        [lower]: { requestedAt: now, executeAfter },
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('polylance_deletion_requests', JSON.stringify(next));
+      }
+      return next;
+    });
+
+    try {
+      const endpoints = getSyncEndpoints();
+      await Promise.all(
+        endpoints.map((ep) =>
+          fetch(`${ep}/api/users/${encodeURIComponent(lower)}/deletion-request`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-wallet-address': lower,
+            },
+            body: JSON.stringify({ requestedAt: now, executeAfter }),
+          }).catch(() => {})
+        )
+      );
+    } catch (err) {}
   };
 
   // Check for expired deletion requests whose 30-day buffer elapsed
@@ -3776,41 +3836,69 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [accountDeletionRequests]);
 
   const deleteChatHistory = async (jobId?: string, judgeAddress?: string) => {
+    const userAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
     if (jobId) {
       const now = Date.now();
-      setJobs((prev) =>
-        prev.map((j) => {
+      let updatedJobsList: Job[] = [];
+      setJobs((prev) => {
+        const next = prev.map((j) => {
           if (!matchJob(j, jobId)) return j;
           return { ...j, chatMessages: [], preAcceptMessages: [], chatClearedAt: now };
-        })
-      );
+        });
+        updatedJobsList = next;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('polylance_jobs', JSON.stringify(next));
+        }
+        return next;
+      });
+
+      broadcastSync({ jobs: updatedJobsList }, userAddr);
+
       // Trigger API call to backend database
       try {
-        await fetch(`${getBackendSyncUrl()}/api/jobs/${encodeURIComponent(jobId)}/chat`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-wallet-address': currentConnectedWalletAddress || '',
-          },
-        });
+        const endpoints = getSyncEndpoints();
+        await Promise.all(
+          endpoints.map((ep) =>
+            fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}/chat?address=${encodeURIComponent(userAddr)}`, {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-wallet-address': userAddr,
+              },
+            }).catch((e) => console.warn(`Backend delete chat error on ${ep}:`, e))
+          )
+        );
       } catch (e) {
         console.warn('Backend delete chat history fallback:', e);
       }
     } else if (judgeAddress) {
       const lower = judgeAddress.toLowerCase();
+      let updatedJudgeMsgs: Record<string, JudgeMessage[]> = {};
       setJudgeMessages((prev) => {
         const next = { ...prev };
         delete next[lower];
+        updatedJudgeMsgs = next;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('polylance_judge_messages', JSON.stringify(next));
+        }
         return next;
       });
+
+      broadcastSync({ judgeMessages: updatedJudgeMsgs }, userAddr);
+
       try {
-        await fetch(`${getBackendSyncUrl()}/api/judges/${encodeURIComponent(judgeAddress)}/chat`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-wallet-address': currentConnectedWalletAddress || '',
-          },
-        });
+        const endpoints = getSyncEndpoints();
+        await Promise.all(
+          endpoints.map((ep) =>
+            fetch(`${ep}/api/judges/${encodeURIComponent(judgeAddress)}/chat?address=${encodeURIComponent(userAddr)}`, {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-wallet-address': userAddr,
+              },
+            }).catch((e) => console.warn(`Backend delete judge chat error on ${ep}:`, e))
+          )
+        );
       } catch (e) {
         console.warn('Backend delete judge chat history fallback:', e);
       }

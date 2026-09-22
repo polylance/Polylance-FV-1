@@ -838,9 +838,9 @@ export const Settings: React.FC = () => {
                           <span>Deletion Scheduled • 30-Day Buffer Window Active</span>
                         </div>
                         <p className="text-xs text-rose-800 leading-relaxed">
-                          Your request to delete your account and personal data is currently in the <strong>30-day grace period</strong>. Your data will be permanently purged on <strong>{scheduledDate}</strong> ({daysLeft} days, {hoursLeft} hours remaining).
+                          Your request to delete your account and personal data is currently in the <strong>30-day grace period</strong>. Your data will be permanently purged on <strong>{scheduledDate}</strong> ({daysLeft} days, {hoursLeft} hours remaining). You can cancel anytime, or delete immediately right now.
                         </p>
-                        <div className="flex items-center gap-3 pt-1">
+                        <div className="flex flex-wrap items-center gap-2.5 pt-1">
                           <button
                             type="button"
                             onClick={async () => {
@@ -856,6 +856,29 @@ export const Settings: React.FC = () => {
                             <CheckCircle2 size={14} />
                             <span>Cancel Deletion Request (Keep Account)</span>
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAlertModalOptions({
+                                title: 'Confirm Immediate Permanent Deletion',
+                                message: 'Are you sure you want to skip the remaining buffer window and permanently erase your account, off-chain messages, and database records right now? This cannot be undone.',
+                                type: 'error',
+                                confirmText: 'Erase All Data Immediately',
+                                onConfirm: async () => {
+                                  await purgeAccountData(address);
+                                  setAlertModalOptions({
+                                    title: 'Account Data Erased',
+                                    message: 'Your account profile, off-chain messages, and database records have been permanently erased from the network.',
+                                    type: 'info'
+                                  });
+                                }
+                              });
+                            }}
+                            className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Trash2 size={13} />
+                            <span>Erase Immediately Now</span>
+                          </button>
                         </div>
                       </div>
                     );
@@ -864,31 +887,56 @@ export const Settings: React.FC = () => {
                   return (
                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-3 font-sans">
                       <p className="text-slate-600 leading-relaxed">
-                        In full compliance with sovereign global privacy regulations (such as GDPR Article 17), you may request permanent deletion of your profile, off-chain messages, and user records. A <strong>30-day buffer period</strong> protects your data from accidental deletion, during which you can cancel anytime.
+                        In full compliance with sovereign global privacy regulations (such as GDPR Article 17), you may request permanent deletion of your profile, off-chain messages, and user records. You can choose a <strong>30-day buffer period</strong> to protect against accidental deletion, or erase your account data immediately.
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAlertModalOptions({
-                            title: 'Confirm Account Deletion Request',
-                            message: 'Are you sure you want to request permanent account deletion? A 30-day buffer window will activate immediately. You can cancel this request at any time within 30 days before permanent data erasure.',
-                            type: 'error',
-                            confirmText: 'Schedule Deletion (30-Day Buffer)',
-                            onConfirm: async () => {
-                              await requestAccountDeletion(address);
-                              setAlertModalOptions({
-                                title: 'Deletion Scheduled',
-                                message: 'Your 30-day account deletion buffer has started. You can cancel this request anytime in your Settings.',
-                                type: 'info'
-                              });
-                            }
-                          });
-                        }}
-                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5"
-                      >
-                        <Trash2 size={14} className="text-rose-600" />
-                        <span>Request Permanent Account Deletion</span>
-                      </button>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAlertModalOptions({
+                              title: 'Confirm Account Deletion Request',
+                              message: 'Are you sure you want to request account deletion? A 30-day buffer window will activate. You can cancel this request at any time within 30 days before permanent data erasure.',
+                              type: 'error',
+                              confirmText: 'Schedule Deletion (30-Day Buffer)',
+                              onConfirm: async () => {
+                                await requestAccountDeletion(address);
+                                setAlertModalOptions({
+                                  title: 'Deletion Scheduled',
+                                  message: 'Your 30-day account deletion buffer has started. You can cancel this request anytime in your Settings.',
+                                  type: 'info'
+                                });
+                              }
+                            });
+                          }}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Clock size={14} className="text-slate-500" />
+                          <span>Schedule with 30-Day Cooldown</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAlertModalOptions({
+                              title: 'Confirm Immediate Permanent Deletion',
+                              message: 'Are you sure you want to permanently delete your account right now? Your profile, off-chain messages, and database records will be erased immediately from the database.',
+                              type: 'error',
+                              confirmText: 'Delete Account Immediately',
+                              onConfirm: async () => {
+                                await purgeAccountData(address);
+                                setAlertModalOptions({
+                                  title: 'Account Deleted',
+                                  message: 'Your profile, off-chain chat history, and database records have been permanently erased from the network.',
+                                  type: 'info'
+                                });
+                              }
+                            });
+                          }}
+                          className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Trash2 size={14} className="text-rose-600" />
+                          <span>Delete Account Immediately (Purge DB)</span>
+                        </button>
+                      </div>
                     </div>
                   );
                 })()}
