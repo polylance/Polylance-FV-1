@@ -205,7 +205,7 @@ export const Treasury: React.FC = () => {
               ${parseFloat(treasury.balanceUsdc).toLocaleString()} USDC
             </h4>
             <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
-              Accumulated from dual 2.5% platform fees (client + freelancer)
+              Accumulated from 2.5% site maintenance fees
             </div>
           </div>
 

@@ -42,9 +42,9 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
     ? parseFloat(job.amountEth || '0.05') 
     : parseFloat(job.amountUsdc || '100');
   
-  // Dual 2.5% platform fee:
-  // Client pays 2.5% upfront platform fee credited to treasury upon funding
-  // Freelancer has 2.5% platform fee deducted upon milestone completion
+  // 2.5% site maintenance fee:
+  // Client pays 2.5% upfront site maintenance fee credited to treasury upon funding
+  // Freelancer has 2.5% site maintenance fee deducted upon milestone completion
   const feeRate = 0.025;
   const clientFee = principalAmount * feeRate;
   const totalRequired = principalAmount + clientFee;
@@ -154,21 +154,14 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
                 </div>
                 <div className="p-3.5 flex justify-between items-center bg-indigo-50/40">
                   <div className="flex items-center gap-1.5 text-indigo-900 font-sans">
-                    <span>Client Platform Fee (+2.5%):</span>
-                    <span title="Credited directly to Treasury Account upon escrow funding"><Info size={12} className="text-indigo-400" /></span>
+                    <span>Site Maintenance Fee (2.5%):</span>
+                    <span title="Credited directly to Treasury for escrow protection and security"><Info size={12} className="text-indigo-400" /></span>
                   </div>
                   <span className="font-bold font-mono text-indigo-700">+{clientFee.toFixed(4)} {tokenSymbol}</span>
                 </div>
                 <div className="p-4 flex justify-between items-center bg-blue-50/70 font-bold border-t border-blue-100">
-                  <span className="text-slate-900 font-heading text-sm">Total Client Deposit Required:</span>
+                  <span className="text-slate-900 font-heading text-sm">Total Deposit to Escrow:</span>
                   <span className="text-base font-black font-mono text-blue-700">{totalRequired.toFixed(4)} {tokenSymbol}</span>
-                </div>
-                <div className="p-3.5 flex justify-between items-center bg-slate-50/50">
-                  <div className="flex items-center gap-1.5 text-slate-500 font-sans">
-                    <span>Freelancer Fee (-2.5% on payout):</span>
-                    <span title="Deducted upon milestone completion payout and routed to DAO treasury"><Info size={12} className="text-slate-400" /></span>
-                  </div>
-                  <span className="font-medium font-mono text-rose-600">-{freelancerFee.toFixed(4)} {tokenSymbol}</span>
                 </div>
                 <div className="p-3.5 flex justify-between items-center bg-emerald-50/40">
                   <span className="text-emerald-800 font-sans font-medium">Net Disbursed to Talent on Approval:</span>

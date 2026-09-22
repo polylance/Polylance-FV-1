@@ -1104,7 +1104,7 @@ export const JobDetail: React.FC = () => {
 
               <div className="px-3 py-1.5 rounded-full bg-purple-50/70 border border-purple-200 text-purple-900 font-mono text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs">
                 <ShieldCheck size={13} className="text-purple-600 shrink-0 stroke-[2.5]" />
-                <span>Dual 2.5% Platform Fee</span>
+                <span>2.5% Site Maintenance Fee</span>
               </div>
             </div>
 
@@ -1155,7 +1155,7 @@ export const JobDetail: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Dual 2.5% Maintenance Fee & Net Payout Breakdown */}
+                  {/* 2.5% Maintenance Fee & Escrow Details */}
                   <div className="space-y-2 pt-2 border-t border-slate-100 text-xs font-mono">
                     <div className="flex justify-between items-center text-slate-600">
                       <span>Escrow Principal Budget:</span>
@@ -1167,7 +1167,7 @@ export const JobDetail: React.FC = () => {
                     </div>
 
                     <div className="flex justify-between items-center text-indigo-700">
-                      <span>Client Platform Fee (+2.5%):</span>
+                      <span>Site Maintenance Fee (2.5%):</span>
                       <span className="font-bold">
                         {isCrypto
                           ? `+${formatToken(tokenClientFee)} ${sym} (+$${usdClientFee.toFixed(2)} USDC)`
@@ -1176,20 +1176,11 @@ export const JobDetail: React.FC = () => {
                     </div>
 
                     <div className="flex justify-between items-center text-slate-900 font-bold border-t border-slate-100 pt-1">
-                      <span>Total Client Deposit:</span>
+                      <span>Total Escrow Deposit:</span>
                       <span className="text-purple-900 font-extrabold">
                         {isCrypto
                           ? `${formatToken(tokenTotalClient)} ${sym} (~$${usdTotalClient.toFixed(2)} USDC)`
                           : `$${usdTotalClient.toFixed(2)} USDC`}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-slate-500 pt-1 border-t border-dashed border-slate-200">
-                      <span>Freelancer Fee (-2.5% on payout):</span>
-                      <span className="font-bold text-rose-600">
-                        {isCrypto
-                          ? `-${formatToken(tokenFreelancerFee)} ${sym} (-$${usdFreelancerFee.toFixed(2)} USDC)`
-                          : `-$${usdFreelancerFee.toFixed(2)} USDC`}
                       </span>
                     </div>
 
@@ -1203,7 +1194,7 @@ export const JobDetail: React.FC = () => {
                     </div>
 
                     <p className="text-[10px] font-sans text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-200/80">
-                      💡 <strong>Dual 2.5% Platform Fee:</strong> A 2.5% client fee is credited directly to the PolyLance Treasury upon escrow funding, and a 2.5% talent fee is deducted upon milestone completion payout.
+                      💡 <strong>2.5% Site Maintenance Fee:</strong> Standard 2.5% site maintenance fee provides sovereign smart contract escrow protection and dispute resolution.
                     </p>
                   </div>
                 </>
