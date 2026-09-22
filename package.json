@@ -11,7 +11,7 @@
     "build:backend": "npm --prefix polylance-chat-service run build",
     "build:all": "npm --prefix frontend run build && npm --prefix polylance-chat-service run build",
     "start": "node index.js",
-    "postinstall": "npm --prefix polylance-chat-service install --legacy-peer-deps && npm --prefix polylance-chat-service run build",
+    "install:backend": "npm --prefix polylance-chat-service install --legacy-peer-deps",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
