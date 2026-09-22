@@ -102,19 +102,19 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
       {/* Side by Side Evidence Comparison */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Client Claim */}
-        <div className="glass-panel p-4 border-slate-800 bg-slate-900/50">
+        <div className="glass-panel p-4 border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">
               Dispute Initial Evidence (Client)
             </span>
-            <span className="text-[10px] font-mono text-slate-500">
+            <span className="text-[10px] font-mono text-slate-400">
               By {truncateAddress(dispute.raisedBy)}
             </span>
           </div>
-          <p className="text-xs text-slate-200 leading-relaxed bg-slate-950 p-3 rounded-lg border border-slate-800">
+          <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200">
             {dispute.evidenceText || 'Client filed a dispute claim regarding deliverable quality.'}
           </p>
-          <div className="mt-2 text-[11px] font-mono text-cyan-400 flex items-center gap-1">
+          <div className="mt-2 text-[11px] font-mono text-indigo-600 flex items-center gap-1">
             <FileText size={12} />
             <a
               href={getIpfsGatewayUrl(dispute.evidenceIpfsHash)}
@@ -128,23 +128,23 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
         </div>
 
         {/* Freelancer Response */}
-        <div className="glass-panel p-4 border-slate-800 bg-slate-900/50">
+        <div className="glass-panel p-4 border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">
               Freelancer Response Evidence
             </span>
-            <span className="text-[10px] font-mono text-slate-500">
+            <span className="text-[10px] font-mono text-slate-400">
               By {truncateAddress(freelancerAddress)}
             </span>
           </div>
 
           {hasResponded ? (
             <>
-              <p className="text-xs text-slate-200 leading-relaxed bg-slate-950 p-3 rounded-lg border border-slate-800">
+              <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200">
                 {dispute.responseText}
               </p>
               {dispute.responseIpfsHash && (
-                <div className="mt-2 text-[11px] font-mono text-cyan-400 flex items-center gap-1">
+                <div className="mt-2 text-[11px] font-mono text-indigo-600 flex items-center gap-1">
                   <FileText size={12} />
                   <a
                     href={getIpfsGatewayUrl(dispute.responseIpfsHash)}
@@ -218,8 +218,8 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
               <button
                 type="button"
                 onClick={() => handleQuickPreset(0, '0')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
-                  selectedBps === 0 ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-slate-900 border-slate-800 text-slate-300'
+                className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                  selectedBps === 0 ? 'bg-amber-500 text-white border-amber-600 shadow-xs' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 Client 100%
@@ -227,8 +227,8 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
               <button
                 type="button"
                 onClick={() => handleQuickPreset(5000, '50')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
-                  selectedBps === 5000 ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-slate-900 border-slate-800 text-slate-300'
+                className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                  selectedBps === 5000 ? 'bg-amber-500 text-white border-amber-600 shadow-xs' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 Split 50 / 50
@@ -236,22 +236,22 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
               <button
                 type="button"
                 onClick={() => handleQuickPreset(10000, '100')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
-                  selectedBps === 10000 ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-slate-900 border-slate-800 text-slate-300'
+                className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                  selectedBps === 10000 ? 'bg-amber-500 text-white border-amber-600 shadow-xs' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 Freelancer 100%
               </button>
 
-              <div className="flex items-center gap-1.5 bg-slate-900 px-2 rounded-lg border border-slate-800">
-                <span className="text-xs text-slate-400">Custom %:</span>
+              <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200">
+                <span className="text-xs text-slate-500 font-medium">Custom %:</span>
                 <input
                   type="number"
                   min="0"
                   max="100"
                   value={customPercent}
                   onChange={handleCustomChange}
-                  className="w-14 bg-transparent text-amber-300 font-mono text-xs outline-none"
+                  className="w-14 bg-transparent text-slate-800 font-mono text-xs outline-none font-bold"
                 />
               </div>
             </div>

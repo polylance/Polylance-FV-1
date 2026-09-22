@@ -224,7 +224,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
           </button>
 
           {/* Min Reputation Filter Dropdown */}
-          <div className="w-44">
+          <div className="w-48 sm:w-52">
             <PolyLanceSelect<number>
               value={filterMinReputation}
               onChange={(val) => setFilterMinReputation(val)}

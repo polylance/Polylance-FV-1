@@ -34,7 +34,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       {!isLoaded && (
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-slate-200/60 dark:bg-slate-800/60 animate-pulse backdrop-blur-sm"
+          className="absolute inset-0 bg-slate-200/60 animate-pulse backdrop-blur-sm"
         />
       )}
 
