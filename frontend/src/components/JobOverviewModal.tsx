@@ -1,12 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Briefcase, DollarSign, Clock, ShieldCheck, CheckCircle2,
-  Calendar, Layers, FileText, User, Sparkles, ExternalLink
+  Calendar, Layers, FileText, User, Sparkles, ExternalLink, ArrowRight
 } from 'lucide-react';
 import { Job } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { FormattedJobDescription } from './FormattedJobDescription';
+import { scrollToSection } from '../utils/scroll';
 
 interface JobOverviewModalProps {
   isOpen: boolean;
@@ -19,6 +21,8 @@ export const JobOverviewModal: React.FC<JobOverviewModalProps> = ({
   onClose,
   job,
 }) => {
+  const navigate = useNavigate();
+
   if (!isOpen) return null;
 
   return (
@@ -133,14 +137,26 @@ export const JobOverviewModal: React.FC<JobOverviewModalProps> = ({
             </div>
           )}
 
-          {/* Modal Footer with Close / Cancel Button */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+          {/* Modal Footer with Close and View Full Escrow Page CTA */}
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono font-bold text-xs transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono font-bold text-xs transition-colors cursor-pointer"
             >
               Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                navigate(`/jobs/${job.id}?section=job-specs`);
+                scrollToSection('job-specs');
+              }}
+              className="gradient-btn-primary px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+            >
+              <span>View Full Escrow Page</span>
+              <ArrowRight size={14} />
             </button>
           </div>
         </motion.div>

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Info, X, AlertTriangle, HelpCircle } from 'lucide-react';
+import { scrollToSection } from '../utils/scroll';
 
 export interface AlertModalOptions {
   title?: string;
@@ -10,6 +11,7 @@ export interface AlertModalOptions {
   cancelText?: string;
   showCancel?: boolean;
   isDestructive?: boolean;
+  targetSectionId?: string;
   onConfirm?: () => void;
   onCancel?: () => void;
 }
@@ -151,8 +153,12 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
             <button
               type="button"
               onClick={() => {
+                const targetId = options.targetSectionId;
                 if (options.onConfirm) options.onConfirm();
                 onClose();
+                if (targetId) {
+                  scrollToSection(targetId, 160);
+                }
               }}
               className={`px-5 py-2.5 rounded-xl font-bold font-sans text-xs transition-all shadow-md cursor-pointer ${cfg.btn}`}
             >

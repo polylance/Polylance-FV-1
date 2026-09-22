@@ -1,15 +1,17 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, User, ShieldCheck, Award, Briefcase, Star, Clock, CheckCircle2,
   TrendingUp, Github, ExternalLink, Sparkles, Code2, GitCommit, GitPullRequest,
-  Check, FileText, Layers, Trophy
+  Check, FileText, Layers, Trophy, ArrowRight
 } from 'lucide-react';
 import { UserProfile, Application } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { transition } from '../lib/motion';
 import { getUserBytecodeMatrix } from '../utils/githubOracle';
 import { GithubEkycCard } from './GithubEkycCard';
+import { scrollToSection } from '../utils/scroll';
 
 interface UserProfileBioModalProps {
   isOpen: boolean;
@@ -38,6 +40,7 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
   prsCount = 0,
   soulboundCount = 0,
 }) => {
+  const navigate = useNavigate();
   const modalContentRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -212,14 +215,26 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
             </span>
           </div>
 
-          {/* Bottom Action Footer with Cancel Button */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+          {/* Bottom Action Footer with Close and View Full Profile CTA */}
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono font-bold text-xs transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono font-bold text-xs transition-colors cursor-pointer"
             >
               Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                navigate(`/profile/${applicantAddress}?section=reputation-overview`);
+                scrollToSection('reputation-overview');
+              }}
+              className="gradient-btn-primary px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+            >
+              <span>View Full Reputation & Profile</span>
+              <ArrowRight size={14} />
             </button>
           </div>
         </motion.div>

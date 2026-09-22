@@ -35,6 +35,7 @@ import { DevPrimitivesPage } from './pages/DevPrimitivesPage';
 import { DevStatesPage } from './pages/DevStatesPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { pageVariants, transition } from './lib/motion';
+import { scrollToSection, extractTargetSection } from './utils/scroll';
 
 // ── Apple-style page transition wrapper ────────────────────────────────────
 const AnimatedRoutes: React.FC = () => {
@@ -60,10 +61,21 @@ const AnimatedRoutes: React.FC = () => {
     } catch {}
   }, [location.pathname, navigate]);
 
-  // Butter-smooth section change: reset scroll position cleanly to top
+  // Butter-smooth section redirect & scroll management:
+  // If target section is provided (via ?section=, #hash, or state), smoothly scroll into view; otherwise reset cleanly to top
   React.useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [location.pathname]);
+    const targetSection = extractTargetSection(
+      location.search,
+      location.hash,
+      location.state
+    );
+
+    if (targetSection) {
+      scrollToSection(targetSection, 200);
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, [location.pathname, location.search, location.hash, location.state]);
 
   return (
     <AnimatePresence mode="wait" initial={false}>

@@ -688,7 +688,7 @@ export const JobWorkspace: React.FC = () => {
       </div>
 
       {/* ── MAIN WORKSPACE CONTENT ── */}
-      <div className="space-y-6">
+      <div id="deliverable-workspace" className="space-y-6">
         {activeJob.status === 'Funded' || activeJob.status === 'Submitted' || activeJob.status === 'Disputed' || activeJob.status === 'Completed' || activeJob.status === 'Selected' || Boolean(activeJob.freelancer) || (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ? (
           <DeliverableWorkSubmissionPanel job={activeJob} />
         ) : (

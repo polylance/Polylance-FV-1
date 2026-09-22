@@ -19,6 +19,7 @@ import { ActionStatusModal, ActionModalDetail } from './ActionStatusModal';
 import { RaiseDisputeModal } from './RaiseDisputeModal';
 import { FormattedJobDescription } from './FormattedJobDescription';
 import { PaymentReleasedModal } from './PaymentReleasedModal';
+import { scrollToSection } from '../utils/scroll';
 
 interface DeliverableWorkSubmissionPanelProps {
   job: Job;
@@ -299,6 +300,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     badgeText?: string;
     details?: ActionModalDetail[];
     primaryActionText?: string;
+    targetSectionId?: string;
     onPrimaryAction?: () => void;
   }>({
     isOpen: false,
@@ -368,6 +370,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         { label: 'IPFS Artifacts', value: `${evidenceHashes.length} File(s) Attached`, isMono: true },
         ...(externalLink ? [{ label: 'Deliverable Link', value: externalLink, isMono: true }] : []),
       ],
+      primaryActionText: 'Inspect Submitted Deliverables',
+      targetSectionId: 'deliverable-workspace',
     });
   };
 
@@ -389,6 +393,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         ...(demoUrl.trim() ? [{ label: 'LIVE DEMO', value: demoUrl.trim(), isMono: true, explorerUrl: demoUrl.trim() }] : []),
         { label: 'CONTRACT', value: truncateAddress(currentJob.contractAddress), isMono: true },
       ],
+      primaryActionText: 'View Milestone Updates',
+      targetSectionId: 'activity-timeline-section',
     });
   };
 
@@ -408,6 +414,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         { label: 'RATIONALE', value: extensionReason.trim() },
         { label: 'JOB TITLE', value: currentJob.title },
       ],
+      primaryActionText: 'View Extension Status',
+      targetSectionId: 'deliverable-workspace',
     });
   };
 
@@ -426,6 +434,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         { label: 'DEADLINE ADJUSTMENT', value: approve ? `+${requestedDays} Days Added` : 'No Change' },
         { label: 'JOB TITLE', value: currentJob.title },
       ],
+      primaryActionText: 'View Timeline Updates',
+      targetSectionId: 'activity-timeline-section',
     });
   };
 
@@ -441,6 +451,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       subtitle: 'Your modification feedback and required adjustments have been logged and sent to the freelancer.',
       icon: 'modification',
       badgeText: 'REVISION IN PROGRESS',
+      primaryActionText: 'View Requested Modifications',
+      targetSectionId: 'deliverable-workspace',
     });
   };
 
@@ -496,6 +508,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       subtitle: 'The escrow contract has been placed into dispute arbitration mode. A neutral judge panel has been summoned.',
       icon: 'dispute',
       badgeText: 'DISPUTE PENDING REVIEW',
+      primaryActionText: 'View Dispute Docket in Court Panel',
+      targetSectionId: 'dispute-panel',
     });
   };
 
@@ -2021,6 +2035,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 subtitle: 'Case file submitted to the decentralized PolyLance Judge panel for on-chain arbitration.',
                 icon: 'dispute',
                 badgeText: 'ESCROW LOCKED FOR ARBITRATION',
+                primaryActionText: 'View Dispute Case',
+                targetSectionId: 'dispute-panel',
                 details: [
                   { label: 'CASE REASON', value: reason, isBadge: true },
                   { label: 'CONTRACT', value: truncateAddress(currentJob.contractAddress), isMono: true },
@@ -2036,7 +2052,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       {/* ========================================================================= */}
       {/* 4. REAL-TIME ACTIVITY TIMELINE (COMPACT SIZE + ATTRACTIVE FILTER BUTTONS) */}
       {/* ========================================================================= */}
-      <div className="border border-slate-200/80 rounded-2xl bg-white p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+      <div id="activity-timeline-section" className="border border-slate-200/80 rounded-2xl bg-white p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
         
         {/* Timeline Header with Redesigned Sleek Filter Buttons */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2 sm:pb-2.5">
@@ -2261,6 +2277,9 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         icon={actionModal.icon}
         badgeText={actionModal.badgeText}
         details={actionModal.details}
+        primaryActionText={actionModal.primaryActionText}
+        targetSectionId={actionModal.targetSectionId}
+        onPrimaryAction={actionModal.onPrimaryAction}
       />
 
       {/* Interactive IPFS Deliverable File Preview Modal */}

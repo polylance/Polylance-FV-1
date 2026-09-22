@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
@@ -7,6 +7,7 @@ import { truncateAddress, getDeterministicSbtId, getCanonicalCertificateId, getC
 import { scoreGithubUser, getUserBytecodeMatrix } from '../utils/githubOracle';
 import { Award, CheckCircle2, ShieldCheck, FolderGit2, ExternalLink, Building2, Star, Zap, Activity, Scale, Search, History, Copy, CheckCheck } from 'lucide-react';
 import { GithubEkycCard } from '../components/GithubEkycCard';
+import { scrollToSection, extractTargetSection } from '../utils/scroll';
 
 export const Profile: React.FC = () => {
   const { address: targetAddress } = useParams<{ address: string }>();
@@ -27,6 +28,15 @@ export const Profile: React.FC = () => {
     githubVerified: false,
     reputationSbtCount: 0,
   }) as UserProfile;
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const targetSection = extractTargetSection(location.search, location.hash, location.state);
+    if (targetSection) {
+      scrollToSection(targetSection, 250);
+    }
+  }, [location.search, location.hash, location.state]);
 
   // Real-time GitHub sync on mount/viewing a verified developer profile
   useEffect(() => {
@@ -109,7 +119,7 @@ export const Profile: React.FC = () => {
       {isClientProfile ? (
         <div className="space-y-8">
           {/* Organizational Header Card */}
-          <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
+          <div id="reputation-overview" className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-6">
               <div className="flex items-center gap-5">
                 <div className="w-20 h-20 bg-purple-100 border-2 border-purple-300 rounded-2xl flex items-center justify-center text-purple-700 overflow-hidden shrink-0">
@@ -490,7 +500,7 @@ export const Profile: React.FC = () => {
             </div>
           )}
           {/* Header Profile Card */}
-          <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
+          <div id="reputation-overview" className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 border-b border-slate-100 pb-6">
               <div className="flex items-start sm:items-center gap-4 sm:gap-5 min-w-0">
                 <img
@@ -591,7 +601,7 @@ export const Profile: React.FC = () => {
 
           {/* Soulbound Reputation Tokens Collection */}
           {/* On-Chain Soulbound Token (SBT) Vault */}
-          <div className="glass-panel p-4 sm:p-6 border-slate-200 bg-white hard-shadow space-y-4">
+          <div id="soulbound-reputation-vault" className="glass-panel p-4 sm:p-6 border-slate-200 bg-white hard-shadow space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">

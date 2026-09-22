@@ -22,6 +22,7 @@ import { ModifyJobModal } from '../components/ModifyJobModal';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { useLiveCurrencyRates } from '../utils/currency';
+import { scrollToSection, extractTargetSection } from '../utils/scroll';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,9 +61,18 @@ export const JobDetail: React.FC = () => {
   });
 
   React.useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    const targetSection = extractTargetSection(
+      window.location.search,
+      window.location.hash
+    );
+
+    if (targetSection && targetSection !== id) {
+      scrollToSection(targetSection, 180);
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
 
     let mounted = true;
     const existing = jobs.find(
@@ -125,6 +135,8 @@ export const JobDetail: React.FC = () => {
         { label: 'Status', value: 'Active / Open', isBadge: true },
         { label: 'Retention Cycle', value: '+10 Days from today' },
       ],
+      primaryActionText: 'View Job Overview',
+      targetSectionId: 'job-overview',
     });
   };
 
@@ -171,7 +183,10 @@ export const JobDetail: React.FC = () => {
     badgeText?: string;
     details?: ActionModalDetail[];
     primaryActionText?: string;
+    targetSectionId?: string;
     onPrimaryAction?: () => void;
+    secondaryActionText?: string;
+    onSecondaryAction?: () => void;
   }>({
     isOpen: false,
     title: '',
@@ -287,8 +302,9 @@ export const JobDetail: React.FC = () => {
         { label: 'Applicant', value: truncateAddress(address || ''), isMono: true },
         { label: 'Review SLA', value: `${job.reviewPeriodDays || 7} Days` },
       ],
+      primaryActionText: 'View Proposal in Application List',
+      targetSectionId: 'applications-panel',
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleProposeTermsAction = (jobId: string, userAddr: string) => {
@@ -306,8 +322,10 @@ export const JobDetail: React.FC = () => {
         { label: 'Milestone Payout', value: payoutStr },
         { label: 'Escrow Address', value: truncateAddress(job.contractAddress), isMono: true, explorerUrl: getPolygonScanAddressUrl(job.contractAddress) },
       ],
-      primaryActionText: 'Awesome! Take me to Dashboard',
-      onPrimaryAction: () => navigate('/dashboard'),
+      primaryActionText: 'View Escrow Details & Budget',
+      targetSectionId: 'escrow-details',
+      secondaryActionText: 'Take me to Dashboard',
+      onSecondaryAction: () => navigate('/dashboard'),
     });
   };
 
@@ -318,6 +336,20 @@ export const JobDetail: React.FC = () => {
   const handleConfirmFund = async () => {
     if (!job) return;
     await fundJob(job.id);
+    setIsFundEscrowModalOpen(false);
+    setActionModal({
+      isOpen: true,
+      title: 'Escrow Vault Funded Successfully! 🚀',
+      subtitle: 'Your payment is safely locked in the smart contract escrow proxy. The deliverable workspace is now active.',
+      icon: 'payment',
+      badgeText: 'FUNDS SECURED',
+      details: [
+        { label: 'Escrow Status', value: 'Funded & In Progress', isBadge: true },
+        { label: 'Contract Address', value: truncateAddress(job.contractAddress), isMono: true },
+      ],
+      primaryActionText: 'Go to Work & Deliverables Workspace',
+      targetSectionId: 'deliverable-workspace',
+    });
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -363,6 +395,8 @@ export const JobDetail: React.FC = () => {
         { label: 'IPFS Evidence CID', value: evidenceCid, isMono: true },
         { label: 'Contract Address', value: truncateAddress(job.contractAddress), isMono: true },
       ],
+      primaryActionText: 'Inspect Dispute Docket in Court Panel',
+      targetSectionId: 'dispute-panel',
     });
   };
 
@@ -547,7 +581,7 @@ export const JobDetail: React.FC = () => {
         {/* Left Column: Job Details & Status Action Panels */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
           {/* Header Block matching reference design */}
-          <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-5">
+          <div id="job-overview" className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-mono font-bold rounded-full flex items-center gap-1">
@@ -683,7 +717,7 @@ export const JobDetail: React.FC = () => {
           )}
 
           {/* Job Description Card with CID tag & Posted Date */}
-          <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-4">
+          <div id="job-specs" className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
                 <FileText size={18} className="text-purple-700" /> Job Description
@@ -713,7 +747,7 @@ export const JobDetail: React.FC = () => {
 
           {/* 1. STATUS: OPEN */}
           {job.status === 'Open' && (
-            <div className="space-y-6">
+            <div id="applications-panel" className="space-y-6">
               {isClient ? (
                 <ApplicantTable
                   jobId={job.id}
@@ -1023,12 +1057,14 @@ export const JobDetail: React.FC = () => {
 
           {/* DELIVERABLE SUBMISSION, WORK STATUS, EXTENSIONS & CLIENT APPROVAL WORKSPACE */}
           {(job.status === 'Funded' || job.status === 'Submitted' || job.status === 'Disputed' || job.status === 'Completed') && (
-            <DeliverableWorkSubmissionPanel job={job} />
+            <div id="deliverable-workspace">
+              <DeliverableWorkSubmissionPanel job={job} />
+            </div>
           )}
 
           {/* 4. STATUS: COMPLETED (Official Digital Transaction Bill) */}
           {job.status === 'Completed' && (
-            <div className="glass-panel p-6 sm:p-8 border-emerald-300 bg-white hard-shadow space-y-6">
+            <div id="transaction-bill" className="glass-panel p-6 sm:p-8 border-emerald-300 bg-white hard-shadow space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-emerald-100 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center font-bold">
@@ -1098,24 +1134,26 @@ export const JobDetail: React.FC = () => {
 
           {/* 5. STATUS: DISPUTED */}
           {job.status === 'Disputed' && job.dispute && (
-            <DisputePanel
-              dispute={job.dispute}
-              amountUsdc={job.amountUsdc}
-              clientAddress={job.client}
-              freelancerAddress={job.freelancer}
-              isJudge={isArbitrator}
-              isParty={isParty}
-              userAddress={address}
-              onResolveDispute={(freelancerBps, reasoningText) => resolveDispute(job.id, freelancerBps, reasoningText, address)}
-              onSubmitResponse={(responseText) => submitDisputeResponse(job.id, responseText, generateIpfsCid(responseText))}
-            />
+            <div id="dispute-panel">
+              <DisputePanel
+                dispute={job.dispute}
+                amountUsdc={job.amountUsdc}
+                clientAddress={job.client}
+                freelancerAddress={job.freelancer}
+                isJudge={isArbitrator}
+                isParty={isParty}
+                userAddress={address}
+                onResolveDispute={(freelancerBps, reasoningText) => resolveDispute(job.id, freelancerBps, reasoningText, address)}
+                onSubmitResponse={(responseText) => submitDisputeResponse(job.id, responseText, generateIpfsCid(responseText))}
+              />
+            </div>
           )}
         </div>
 
         {/* Right Column Sidebar matching job_detail_status_open/code.html */}
         <aside className="col-span-12 lg:col-span-4 space-y-6">
           {/* Budget & Escrow Platform Maintenance Fee Breakdown Card */}
-          <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-4 font-sans">
+          <div id="escrow-details" className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-4 font-sans">
             {/* Header matching requested visual design */}
             <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2.5">
               <div className="flex items-center gap-3">

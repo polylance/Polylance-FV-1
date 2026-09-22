@@ -4,6 +4,7 @@ import { X, Edit3, Save, DollarSign, Calendar, Tag, AlertCircle, CheckCircle2 } 
 import { Job, SkillCategory } from '../types';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { useLiveCurrencyRates } from '../utils/currency';
+import { scrollToSection } from '../utils/scroll';
 
 interface ModifyJobModalProps {
   isOpen: boolean;
@@ -109,6 +110,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
         }
         setTimeout(() => {
           onClose();
+          scrollToSection('job-specs');
         }, 800);
       } else {
         setErrorMessage('Failed to update job details. Please try again.');

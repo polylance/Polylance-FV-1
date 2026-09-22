@@ -11,6 +11,7 @@ import {
 import confetti from 'canvas-confetti';
 import { EmptyState, PermissionDeniedState } from '../components/UIStates';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
+import { scrollToSection } from '../utils/scroll';
 
 export const Judge: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -86,6 +87,7 @@ export const Judge: React.FC = () => {
     setNewJudgeName('');
     setNewJudgeNotes('');
     setActiveTab('manage');
+    scrollToSection('manage-judges-roster', 200);
   };
 
   if (!isAdmin && !isJudgeRole) {
@@ -442,7 +444,7 @@ export const Judge: React.FC = () => {
 
       {/* TAB 2: JUDGES ROSTER & GOVERNANCE MANAGEMENT */}
       {activeTab === 'manage' && (
-        <div className="space-y-6 animate-fadeIn">
+        <div id="manage-judges-roster" className="space-y-6 animate-fadeIn">
           <div className="glass-panel border-slate-200 bg-white overflow-hidden hard-shadow space-y-4">
             <div className="p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
               <div>

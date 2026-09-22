@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle2, Sparkles, ExternalLink, Award, ArrowRight, 
@@ -8,6 +9,7 @@ import confetti from 'canvas-confetti';
 import { Job } from '../types';
 import { modalOverlayVariants, modalContentVariants, transition } from '../lib/motion';
 import { getPolygonScanUrl, getPolygonScanAddressUrl } from '../utils/formatters';
+import { scrollToSection } from '../utils/scroll';
 
 interface PaymentReleasedModalProps {
   isOpen: boolean;
@@ -24,6 +26,7 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
   txHash,
   onViewAttestation,
 }) => {
+  const navigate = useNavigate();
   useEffect(() => {
     if (isOpen) {
       confetti({
@@ -212,14 +215,20 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
             <div className="pt-2 flex items-center gap-3">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  onClose();
+                  scrollToSection('deliverable-workspace');
+                }}
                 className="flex-1 py-3 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors cursor-pointer text-center"
               >
                 Back to Workspace
               </button>
               <button
                 type="button"
-                onClick={onViewAttestation}
+                onClick={() => {
+                  onClose();
+                  onViewAttestation();
+                }}
                 className="flex-1.5 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 hard-shadow shadow-emerald-200"
               >
                 <Award size={15} />

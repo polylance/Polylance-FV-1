@@ -7,6 +7,7 @@ import {
   ExternalLink, Check, DollarSign, Box, CheckCircle
 } from 'lucide-react';
 import { getPolygonScanAddressUrl } from '../utils/formatters';
+import { scrollToSection } from '../utils/scroll';
 
 export interface ActionModalDetail {
   label: string;
@@ -28,6 +29,7 @@ export interface ActionStatusModalProps {
   badgeText?: string;
   details?: ActionModalDetail[];
   primaryActionText?: string;
+  targetSectionId?: string;
   onPrimaryAction?: () => void;
   secondaryActionText?: string;
   onSecondaryAction?: () => void;
@@ -42,6 +44,7 @@ export const ActionStatusModal: React.FC<ActionStatusModalProps> = ({
   badgeText = 'TERMS FINALIZED',
   details = [],
   primaryActionText = 'Awesome! Take me to Dashboard',
+  targetSectionId,
   onPrimaryAction,
   secondaryActionText,
   onSecondaryAction,
@@ -57,10 +60,19 @@ export const ActionStatusModal: React.FC<ActionStatusModalProps> = ({
   };
 
   const handlePrimary = () => {
+    onClose();
+    if (targetSectionId) {
+      scrollToSection(targetSectionId);
+    }
     if (onPrimaryAction) {
       onPrimaryAction();
-    } else {
-      onClose();
+    }
+  };
+
+  const handleSecondary = () => {
+    onClose();
+    if (onSecondaryAction) {
+      onSecondaryAction();
     }
   };
 
@@ -563,6 +575,16 @@ export const ActionStatusModal: React.FC<ActionStatusModalProps> = ({
                   +
                 </span>
               </button>
+
+              {secondaryActionText && (
+                <button
+                  type="button"
+                  onClick={handleSecondary}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-mono font-bold text-slate-600 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200/80 transition-colors cursor-pointer text-center"
+                >
+                  {secondaryActionText}
+                </button>
+              )}
             </div>
           </motion.div>
         </div>

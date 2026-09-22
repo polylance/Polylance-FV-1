@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { generateIpfsCid } from '../utils/ipfs';
 import { truncateAddress } from '../utils/formatters';
+import { scrollToSection } from '../utils/scroll';
 import { PolyLanceSelect, SelectOption } from './PolyLanceSelect';
 
 export interface RaiseDisputeModalProps {
@@ -196,13 +197,17 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                     ID: #{job.id.slice(0, 8)} • Contract: {truncateAddress(job.contractAddress)}
                   </p>
                 </div>
-                <Link
-                  to={`/jobs/${job.id}`}
-                  target="_blank"
-                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-purple-300 text-purple-700 font-bold text-[11px] flex items-center gap-1 shrink-0 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate(`/jobs/${job.id}?section=job-specs`);
+                    scrollToSection('job-specs');
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-purple-300 text-purple-700 font-bold text-[11px] flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
                 >
                   View Job <ArrowUpRight size={11} />
-                </Link>
+                </button>
               </div>
             ) : jobs.length > 0 ? (
               <div>
@@ -222,13 +227,17 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                     <div className="text-[11px] text-purple-900 font-medium">
                       <strong>Escrow Locked:</strong> ${parseFloat(currentSelectedJob.amountUsdc || '0').toLocaleString()} USDC • Status: <strong>{currentSelectedJob.status}</strong>
                     </div>
-                    <Link
-                      to={`/jobs/${currentSelectedJob.id}`}
-                      target="_blank"
-                      className="text-[11px] font-bold text-purple-700 hover:underline flex items-center gap-0.5"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        navigate(`/jobs/${currentSelectedJob.id}?section=job-specs`);
+                        scrollToSection('job-specs');
+                      }}
+                      className="text-[11px] font-bold text-purple-700 hover:underline flex items-center gap-0.5 cursor-pointer"
                     >
                       Inspect Specs <ExternalLink size={11} />
-                    </Link>
+                    </button>
                   </div>
                 )}
               </div>

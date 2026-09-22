@@ -17,6 +17,7 @@ import { NETWORK_CONFIG } from '../config/contracts';
 import { useLiveCurrencyRates } from '../utils/currency';
 import { useNavigate } from 'react-router-dom';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
+import { scrollToSection } from '../utils/scroll';
 
 interface WalletBalanceModalProps {
   isOpen: boolean;
@@ -349,7 +350,8 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 type="button"
                 onClick={() => {
                   onClose();
-                  navigate(`/profile/${address}`);
+                  navigate(`/profile/${address}?section=reputation-overview`);
+                  scrollToSection('reputation-overview', 250);
                 }}
                 className="flex-1 py-3 px-4 rounded-2xl border border-purple-200/90 bg-purple-50/50 hover:bg-purple-100/70 text-purple-700 font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 shadow-3xs"
               >
