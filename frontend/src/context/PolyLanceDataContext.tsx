@@ -24,10 +24,11 @@ export const getSyncEndpoints = (): string[] => {
     list.push(envUrl.replace(/\/$/, ''));
   }
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    list.push('http://localhost:3001');
+    if (envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
+      list.push('http://localhost:3001');
+    }
   }
   list.push('https://polylance-fv-1-45wy.onrender.com');
-  list.push('https://polylance-fv-1.onrender.com');
 
   return Array.from(new Set(list.filter(Boolean)));
 };
@@ -37,11 +38,9 @@ export const getBackendSyncUrl = (): string => {
   if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
     return envUrl.replace(/\/$/, '');
   }
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3001';
-  }
   return 'https://polylance-fv-1-45wy.onrender.com';
 };
+
 
 
 let syncSocket: Socket | null = null;
@@ -350,9 +349,11 @@ const broadcastSync = (data: {
   }
   let activeAddr = (senderAddress || currentConnectedWalletAddress || '').toLowerCase().trim();
   if (!activeAddr || !ethers.isAddress(activeAddr)) {
-    if (data.jobs && data.jobs[0] && data.jobs[0].client && ethers.isAddress(data.jobs[0].client)) {
-      activeAddr = data.jobs[0].client.toLowerCase().trim();
-    } else if (data.profiles && Object.keys(data.profiles).length > 0) {
+    if (data.jobs && Array.isArray(data.jobs)) {
+      const jobWithClient = data.jobs.find((j) => j && j.client && ethers.isAddress(j.client));
+      if (jobWithClient) activeAddr = jobWithClient.client.toLowerCase().trim();
+    }
+    if ((!activeAddr || !ethers.isAddress(activeAddr)) && data.profiles && Object.keys(data.profiles).length > 0) {
       const firstProf = Object.keys(data.profiles).find((a) => ethers.isAddress(a));
       if (firstProf) activeAddr = firstProf.toLowerCase().trim();
     }
@@ -777,8 +778,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setCurrentConnectedWalletAddress(address || '');
     if (address) {
       refreshBalances().catch(() => {});
-      if (syncSocket && syncSocket.connected) {
-        syncSocket.emit('identify', { address });
+      const lower = address.toLowerCase().trim();
+      if (syncSocket) {
+        if (syncSocket.connected) {
+          syncSocket.emit('identify', { address: lower });
+        } else {
+          syncSocket.connect();
+        }
       }
     }
   }, [address, refreshBalances]);
@@ -1081,13 +1087,14 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const isOnline = typeof navigator === 'undefined' || navigator.onLine;
       const activeAddr = (currentConnectedWalletAddress || address || '').toLowerCase().trim();
-      if (isOnline && Date.now() >= backendSyncOfflineUntil && (!syncSocket || !syncSocket.connected)) {
+      if (isOnline && (!syncSocket || !syncSocket.connected)) {
         syncSocket = socketIO(syncUrl, {
-          transports: ['polling', 'websocket'],
+          transports: ['websocket', 'polling'],
           withCredentials: true,
           reconnection: true,
-          reconnectionAttempts: 5,
-          reconnectionDelay: 3000,
+          reconnectionAttempts: Infinity,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
           timeout: 10000,
           auth: activeAddr ? { address: activeAddr } : {},
           query: activeAddr ? { address: activeAddr } : {},
@@ -1095,16 +1102,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         syncSocket.on('connect_error', () => {
           socketConnectFailures++;
-          if (socketConnectFailures >= 2) {
-            backendSyncOfflineUntil = Date.now() + 60000;
-            if (syncSocket) syncSocket.disconnect();
-            setTimeout(() => {
-              if (syncSocket && (typeof navigator === 'undefined' || navigator.onLine)) {
-                socketConnectFailures = 0;
-                syncSocket.connect();
-              }
-            }, 60000);
-          }
+          // Never disable HTTP syncing when socket has a hiccup — HTTP acts as immediate reliable sync fallback
         });
 
         syncSocket.on('connect', () => {
@@ -1317,7 +1315,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           } catch {}
         }
         // Suppress only after all retries are exhausted
-        backendSyncOfflineUntil = Date.now() + 30000;
+        backendSyncOfflineUntil = Date.now() + 5000;
       };
 
       initialSyncWithRetry();
@@ -1446,10 +1444,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
           if (Array.isArray(payload.treasuryHistory)) setTreasuryHistoryRaw([...payload.treasuryHistory]);
         } else {
-          backendSyncOfflineUntil = Date.now() + 10000; // shorter cooldown than initial — keep retrying
+          backendSyncOfflineUntil = Date.now() + 5000; // shorter cooldown than initial — keep retrying promptly
         }
       } catch {
-        backendSyncOfflineUntil = Date.now() + 10000;
+        backendSyncOfflineUntil = Date.now() + 5000;
       }
     };
 
@@ -1459,7 +1457,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (Date.now() >= backendSyncOfflineUntil) {
         syncFromRemoteBackend();
       }
-    }, 30000);
+    }, 5000);
 
     window.addEventListener('focus', () => {
       syncFromStorage();

@@ -617,7 +617,6 @@ const app = express();
 const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || [
   "http://localhost:5173",
   "https://polylance-fv-1-45wy.onrender.com",
-  "https://polylance-fv-1.onrender.com",
   "https://polylance.github.io",
   "https://polylance.codes",
 ].join(",")).split(",").map(o => o.trim()).filter(Boolean);
