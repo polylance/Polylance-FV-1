@@ -23,7 +23,7 @@ describe('PostJob Page', () => {
     renderPostJobPage();
     expect(screen.getByText(/Post an/i)).toBeInTheDocument();
     expect(screen.getAllByText(/On-Chain/i)[0]).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Audit & Optimize ERC-721 Reputation Smart Contracts/i)).toBeInTheDocument();
-    expect(screen.getByText(/Deploy Job Escrow Clone|Fill Required Job Details/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Full-Stack Web3 Application with Smart Contract Integration/i)).toBeInTheDocument();
+    expect(screen.getByText(/Deploy Job Escrow Contract|Complete Job Details to Post Escrow/i)).toBeInTheDocument();
   });
 });

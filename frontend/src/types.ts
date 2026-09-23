@@ -162,6 +162,8 @@ export interface UserProfile {
   skills: string[];
   githubVerified: boolean;
   githubUsername?: string;
+  githubId?: string;
+  authMethod?: string;
   verifiedAt?: number;
   primaryCategory?: string;
   primaryScore?: number;

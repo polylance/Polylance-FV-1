@@ -33,6 +33,9 @@ import { CertifiedPass } from './pages/CertifiedPass';
 import { AuditX } from './pages/AuditX';
 import { DevPrimitivesPage } from './pages/DevPrimitivesPage';
 import { DevStatesPage } from './pages/DevStatesPage';
+import { MaintenancePage } from './pages/MaintenancePage';
+import { usePolyLanceData } from './context/PolyLanceDataContext';
+import { isAdminAddress } from './utils/adminGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { pageVariants, transition } from './lib/motion';
 import { scrollToSection, extractTargetSection } from './utils/scroll';
@@ -139,6 +142,9 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/chat" element={isVisitor ? <Navigate to="/login" replace /> : <Chat />} />
           <Route path="/chat/:jobId" element={isVisitor ? <Navigate to="/login" replace /> : <Chat />} />
 
+          {/* Standalone Maintenance Page route */}
+          <Route path="/maintenance" element={<MaintenancePage />} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </motion.div>
@@ -148,12 +154,71 @@ const AnimatedRoutes: React.FC = () => {
 
 const AppContent: React.FC = () => {
   const location = useLocation();
+  const { maintenanceState, toggleMaintenanceMode } = usePolyLanceData();
+  const { address } = useWeb3();
+  const isAdmin = address ? isAdminAddress(address) : false;
+
+  const [adminBypassed, setAdminBypassed] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('polylance_admin_bypass') === 'true';
+    }
+    return false;
+  });
+
+  const handleAdminBypass = () => {
+    setAdminBypassed(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('polylance_admin_bypass', 'true');
+    }
+  };
+
+  const handleExitBypass = () => {
+    setAdminBypassed(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('polylance_admin_bypass');
+    }
+  };
+
+  // Direct Route to /maintenance or full platform lock for non-admins
+  const isMaintenanceRoute = location.pathname === '/maintenance';
+  const isSiteLocked = Boolean(maintenanceState?.enabled && (!isAdmin || !adminBypassed));
+
+  if (isMaintenanceRoute || isSiteLocked) {
+    return <MaintenancePage onBypass={isAdmin ? handleAdminBypass : undefined} />;
+  }
+
   const isChat = location.pathname.startsWith('/chat');
   const isAudit = location.pathname.startsWith('/audit');
   const showFooter = !isChat && !isAudit && (location.pathname === '/' || location.pathname === '/dashboard');
 
   return (
     <div className={isChat ? "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white" : (isAudit ? "min-h-[100dvh] bg-[#E2E8F0]/40 text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white" : "min-h-[100dvh] bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white")}>
+      {/* Admin Developer Bypass Notification Bar */}
+      {maintenanceState?.enabled && isAdmin && (
+        <div className="w-full bg-amber-500 text-slate-950 font-sans text-xs px-4 py-2 font-bold flex flex-col sm:flex-row items-center justify-between gap-2 shadow-md sticky top-0 z-[100] border-b border-amber-600">
+          <div className="flex items-center gap-2 text-center sm:text-left">
+            <span className="w-2 h-2 rounded-full bg-slate-900 animate-ping shrink-0" />
+            <span>⚠️ Platform is currently under Maintenance Mode for regular users (writes locked). You have Developer Bypass access.</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleExitBypass}
+              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
+            >
+              View Maintenance Screen
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleMaintenanceMode(false)}
+              className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[11px] font-bold cursor-pointer transition-colors shadow-2xs"
+            >
+              Exit Maintenance Mode
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Production Navbar with Role-Aware Perception Navigation (Hidden on Audit Document) */}
       {!isAudit && <Navbar />}
 

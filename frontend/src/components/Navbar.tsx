@@ -35,12 +35,13 @@ import {
   X,
   Lock,
   Sparkles,
+  Wrench,
 } from 'lucide-react';
 import { truncateAddress, formatPolBalance } from '../utils/formatters';
 import { dropdownVariants, transition } from '../lib/motion';
 import { Drawer } from './mobile/Drawer';
 import { Accordion } from './mobile/Accordion';
-import { isJudgeAddress } from '../utils/adminGuard';
+import { isJudgeAddress, isAdminAddress } from '../utils/adminGuard';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Apple iOS 26 Liquid Glass Navigation Theme Token System
@@ -231,7 +232,8 @@ export const Navbar: React.FC = () => {
     (address && isJudgeAddress(address))
   );
 
-  const { jobs, profiles } = usePolyLanceData();
+  const { jobs, profiles, maintenanceState, toggleMaintenanceMode } = usePolyLanceData();
+  const isAdmin = address ? isAdminAddress(address) : false;
   const location = useLocation();
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -648,6 +650,19 @@ export const Navbar: React.FC = () => {
                       label="Attestation Reports"
                       onClick={() => setIsMoreOpen(false)}
                     />
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMoreOpen(false);
+                          toggleMaintenanceMode(!maintenanceState?.enabled);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 text-amber-700 hover:bg-amber-50 cursor-pointer"
+                      >
+                        <Wrench size={13.5} className="text-amber-600" />
+                        <span>{maintenanceState?.enabled ? 'Exit Maintenance Mode' : 'Keep Site under Maintenance'}</span>
+                      </button>
+                    )}
                     <div className="border-t border-slate-100 my-1" />
                     <DropdownLink
                       to="/settings"
@@ -669,6 +684,24 @@ export const Navbar: React.FC = () => {
               <>
                 {/* Thin Vertical Divider */}
                 <div className="hidden lg:block h-5 w-px bg-slate-200/90 mx-0.5 shrink-0" />
+
+                {/* Admin Maintenance Mode Button */}
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => toggleMaintenanceMode(!maintenanceState?.enabled)}
+                    title={maintenanceState?.enabled ? "Click to exit maintenance and resume normal user access" : "Click to put PolyLance under Maintenance Mode"}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer shadow-2xs shrink-0 ${
+                      maintenanceState?.enabled
+                        ? "bg-rose-100 hover:bg-rose-200 border-rose-300 text-rose-800 animate-pulse"
+                        : "bg-amber-100/90 hover:bg-amber-200 border-amber-300 text-amber-900"
+                    }`}
+                  >
+                    <Wrench size={13} className={maintenanceState?.enabled ? "text-rose-600" : "text-amber-700"} />
+                    <span className="hidden sm:inline">{maintenanceState?.enabled ? "Maintenance: ON" : "Keep Site under Maintenance"}</span>
+                    <span className="sm:hidden">{maintenanceState?.enabled ? "Maint: ON" : "Maint"}</span>
+                  </button>
+                )}
 
                 {/* 1. Purple Balance Pill (18.335 POL) */}
                 <button
