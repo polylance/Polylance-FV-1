@@ -363,7 +363,7 @@ export const CertifiedPass: React.FC = () => {
 
     // Elegant animated sequence before opening in a new tab
     setTimeout(() => {
-      window.open('https://sunny200551.github.io/CertifiedPass/', '_blank', 'noopener,noreferrer');
+      window.open('https://certifiedpass.polylance.codes/', '_blank', 'noopener,noreferrer');
       setIsLaunchingPortal(false);
     }, 700);
   };

@@ -341,7 +341,7 @@ export async function syncAllStateToCertifiedPass(jobs, profiles) {
                         slaDisputes: 0,
                         status: job.status === 'Completed' || job.status === 'Resolved' ? 'VERIFIED' : job.status,
                         polyLanceUrl: `https://polylance.codes/#/jobs/${cleanJobId}/attestation`,
-                        certifiedPassVerifyUrl: `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(certId)}&partner=polylance`
+                        certifiedPassVerifyUrl: `https://certifiedpass.polylance.codes/verify?certId=${encodeURIComponent(certId)}&partner=polylance`
                     }
                 });
             }
@@ -370,7 +370,7 @@ export async function syncAllStateToCertifiedPass(jobs, profiles) {
                         profile: prof,
                         jobsCount: userJobs.length,
                         polyLanceUrl: `https://polylance.codes/#/audit/${lower}`,
-                        certifiedPassVerifyUrl: `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`
+                        certifiedPassVerifyUrl: `https://certifiedpass.polylance.codes/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`
                     }
                 });
             }

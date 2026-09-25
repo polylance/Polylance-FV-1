@@ -2233,7 +2233,7 @@ async function handleCertifiedPassVerification(req: Request, res: Response) {
       const isAudit = certResult.type === 'AUDIT_REPORT';
       const rec = certResult.record;
       const canonicalCertId = rec.id;
-      const certifiedPassVerifyUrl = `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(canonicalCertId)}&partner=polylance`;
+      const certifiedPassVerifyUrl = `https://certifiedpass.polylance.codes/verify?certId=${encodeURIComponent(canonicalCertId)}&partner=polylance`;
       
       const polyLanceUrl = isAudit 
         ? `https://polylance.codes/#/audit/${rec.targetAddress}`
@@ -2341,7 +2341,7 @@ async function handleCertifiedPassVerification(req: Request, res: Response) {
     if (liveJob) {
       const isSettled = liveJob.status === 'Completed' || liveJob.status === 'Resolved';
       const canonicalCertId = liveJob.certificateId || formatCanonicalCertId(liveJob.id, liveJob.contractAddress);
-      const certifiedPassVerifyUrl = `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(canonicalCertId)}&partner=polylance`;
+      const certifiedPassVerifyUrl = `https://certifiedpass.polylance.codes/verify?certId=${encodeURIComponent(canonicalCertId)}&partner=polylance`;
 
       const responsePayload = {
         verified: isSettled,
@@ -2456,7 +2456,7 @@ async function handleCertifiedPassVerification(req: Request, res: Response) {
       const cleanHex = finalAddr.replace(/^0x/i, '');
       const auditId = `PL-AUD-${cleanHex.slice(0, 8).toUpperCase()}`;
       const devJobs = (sharedState.jobs || []).filter((j: any) => String(j.freelancer || '').toLowerCase() === finalAddr.toLowerCase());
-      const certifiedPassVerifyUrl = `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`;
+      const certifiedPassVerifyUrl = `https://certifiedpass.polylance.codes/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`;
 
       const auditPayload = {
         verified: true,
@@ -2622,7 +2622,7 @@ async function handleCertifiedPassAudit(req: Request, res: Response) {
     if (auditResult && auditResult.record) {
       const rec = auditResult.record;
       const auditId = rec.id;
-      const certifiedPassVerifyUrl = `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`;
+      const certifiedPassVerifyUrl = `https://certifiedpass.polylance.codes/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`;
 
       const auditPayload = {
         verified: true,
@@ -2682,7 +2682,7 @@ async function handleCertifiedPassAudit(req: Request, res: Response) {
       (fullAddr && String(j.freelancer || '').toLowerCase() === fullAddr.toLowerCase())
     );
     const auditId = `PL-AUD-${cleanHex.slice(0, 8).toUpperCase()}`;
-    const certifiedPassVerifyUrl = `https://sunny200551.github.io/CertifiedPass/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`;
+    const certifiedPassVerifyUrl = `https://certifiedpass.polylance.codes/verify?certId=${encodeURIComponent(auditId)}&partner=polylance`;
 
     const auditPayload = {
       verified: true,
