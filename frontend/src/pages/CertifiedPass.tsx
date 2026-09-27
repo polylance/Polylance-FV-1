@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useParams } from 'react-router-dom';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import { usePolyLanceData, getSyncEndpoints } from '../context/PolyLanceDataContext';
 import { truncateAddress, getCanonicalCertificateId } from '../utils/formatters';
@@ -313,15 +313,16 @@ export const CertifiedPass: React.FC = () => {
   const [verificationResult, setVerificationResult] = useState<any>(() => resolveTarget('PL-SBT-JOB-101'));
   const [verificationSteps, setVerificationSteps] = useState<number>(4);
   const [copied, setCopied] = useState(false);
+  const { certId: pathCertId } = useParams();
 
-  // Sync with URL query parameter ?certId=... or ?id=...
+  // Sync with URL query parameter ?certId=... or ?id=... or route parameter /verify/:certId
   useEffect(() => {
-    const urlCert = searchParams.get('certId') || searchParams.get('id') || searchParams.get('q');
+    const urlCert = pathCertId || searchParams.get('certId') || searchParams.get('id') || searchParams.get('q');
     if (urlCert && urlCert !== certInput) {
       setCertInput(urlCert);
       runVerification(urlCert);
     }
-  }, [searchParams]);
+  }, [searchParams, pathCertId]);
 
   const runVerification = (idToVerify: string) => {
     const match = resolveTarget(idToVerify);
@@ -348,6 +349,8 @@ export const CertifiedPass: React.FC = () => {
 
   // Launch Official CertifiedPass Portal State & Animation
   const [isLaunchingPortal, setIsLaunchingPortal] = useState(false);
+  const isCertifiedPassDomain = typeof window !== 'undefined' && 
+    (window.location.hostname === 'certifiedpass.polylance.codes' || window.location.hostname.startsWith('certifiedpass.'));
 
   const handleLaunchPortal = () => {
     if (isLaunchingPortal) return;
@@ -360,6 +363,18 @@ export const CertifiedPass: React.FC = () => {
       origin: { y: 0.55 },
       colors: ['#9333ea', '#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'],
     });
+
+    if (isCertifiedPassDomain) {
+      // Already on the CertifiedPass portal, smoothly scroll into verifier
+      setTimeout(() => {
+        const el = document.getElementById('verifier');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        setIsLaunchingPortal(false);
+      }, 400);
+      return;
+    }
 
     // Elegant animated sequence before opening in a new tab
     setTimeout(() => {

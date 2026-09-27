@@ -41,25 +41,35 @@ import { pageVariants, transition } from './lib/motion';
 import { scrollToSection, extractTargetSection } from './utils/scroll';
 
 // ── Apple-style page transition wrapper ────────────────────────────────────
+const isCertifiedPassDomain = typeof window !== 'undefined' && 
+  (window.location.hostname === 'certifiedpass.polylance.codes' || window.location.hostname.startsWith('certifiedpass.'));
+
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isConnected, currentRole } = useWeb3();
   const isVisitor = !isConnected || currentRole === 'visitor';
 
-  // Social media deep link synchronization from search params
+  // Social media deep link synchronization from search params & subdomain handling
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const searchParams = new URLSearchParams(window.location.search);
       const auditParam = searchParams.get('audit') || searchParams.get('audit-report');
       const attestationParam = searchParams.get('attestation') || searchParams.get('cert');
+      const certIdParam = searchParams.get('certId') || searchParams.get('id') || searchParams.get('q');
       const roleParam = searchParams.get('role');
+
+      if (isCertifiedPassDomain) {
+        document.title = "CertifiedPass — Proof of What You've Achieved | Verification Oracle";
+      }
 
       if (auditParam && !location.pathname.startsWith('/audit')) {
         navigate(`/audit/${auditParam}`, { replace: true });
       } else if (attestationParam && !location.pathname.startsWith('/attestation') && !location.pathname.includes('/attestation')) {
         navigate(`/attestation/${attestationParam}${roleParam ? `?role=${roleParam}` : ''}`, { replace: true });
+      } else if (certIdParam && !location.pathname.startsWith('/verify') && !location.pathname.startsWith('/certifiedpass')) {
+        navigate(`/verify?certId=${encodeURIComponent(certIdParam)}`, { replace: true });
       }
     } catch {}
   }, [location.pathname, navigate]);
@@ -94,8 +104,14 @@ const AnimatedRoutes: React.FC = () => {
       >
         <Routes location={location}>
           {/* PUBLIC & PERCEPTION ACCESS ROUTES */}
-          <Route path="/" element={<Landing />} />
-          <Route path="/overview" element={<Landing />} />
+          {/* If accessed via certifiedpass.polylance.codes, root '/' defaults directly to CertifiedPass */}
+          <Route path="/" element={isCertifiedPassDomain ? <CertifiedPass /> : <Landing />} />
+          <Route path="/overview" element={isCertifiedPassDomain ? <CertifiedPass /> : <Landing />} />
+          <Route path="/verify" element={<CertifiedPass />} />
+          <Route path="/verify/:certId" element={<CertifiedPass />} />
+          <Route path="/certifiedpass" element={<CertifiedPass />} />
+          <Route path="/certified-pass" element={<CertifiedPass />} />
+          <Route path="/c/:id" element={<JobAttestationReport />} />
           <Route path="/login" element={<Login />} />
           <Route path="/jobs" element={<FindJobs />} />
           <Route path="/jobs/:id" element={<JobDetail />} />
@@ -107,8 +123,6 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/security" element={<Security />} />
           <Route path="/disclaimer" element={<Disclaimer />} />
           <Route path="/manifesto" element={<Manifesto />} />
-          <Route path="/certifiedpass" element={<CertifiedPass />} />
-          <Route path="/certified-pass" element={<CertifiedPass />} />
           <Route path="/auditx" element={<AuditX />} />
           <Route path="/audit-x" element={<AuditX />} />
           <Route path="/dev/primitives" element={<DevPrimitivesPage />} />
@@ -145,7 +159,7 @@ const AnimatedRoutes: React.FC = () => {
           {/* Standalone Maintenance Page route */}
           <Route path="/maintenance" element={<MaintenancePage />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to={isCertifiedPassDomain ? "/certifiedpass" : "/"} replace />} />
         </Routes>
       </motion.div>
     </AnimatePresence>

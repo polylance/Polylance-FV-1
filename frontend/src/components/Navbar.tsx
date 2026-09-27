@@ -235,6 +235,8 @@ export const Navbar: React.FC = () => {
   const { jobs, profiles, maintenanceState, toggleMaintenanceMode } = usePolyLanceData();
   const isAdmin = address ? isAdminAddress(address) : false;
   const location = useLocation();
+  const isCertifiedPassDomain = typeof window !== 'undefined' && 
+    (window.location.hostname === 'certifiedpass.polylance.codes' || window.location.hostname.startsWith('certifiedpass.'));
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
@@ -348,9 +350,19 @@ export const Navbar: React.FC = () => {
       >
         <div className="max-w-[1480px] mx-auto flex items-center justify-between px-6 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <PolyLanceLogo size={30} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
+            {isCertifiedPassDomain ? (
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform duration-300">
+                <ShieldCheck size={16} />
+              </div>
+            ) : (
+              <PolyLanceLogo size={30} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
+            )}
             <span className="font-extrabold text-[19px] tracking-tight text-slate-900 leading-none">
-              Poly<span className="text-blue-600">Lance</span>
+              {isCertifiedPassDomain ? (
+                <>Certified<span className="text-purple-600">Pass</span></>
+              ) : (
+                <>Poly<span className="text-blue-600">Lance</span></>
+              )}
             </span>
           </Link>
 
@@ -433,21 +445,58 @@ export const Navbar: React.FC = () => {
         }`}
       >
         <div className="max-w-[1440px] mx-auto bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-full shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05),0_1px_3px_rgba(0,0,0,0.03)] px-3.5 sm:px-5 py-2 flex items-center justify-between gap-2">
-          {/* ── LEFT: PolyLance Logo ────────────────────────────────────── */}
+          {/* ── LEFT: Logo ────────────────────────────────────── */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link to="/" className="flex items-center gap-2.5 group shrink-0 select-none">
               <div className="relative flex items-center justify-center">
-                <PolyLanceLogo size={28} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
+                {isCertifiedPassDomain ? (
+                  <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-[0_2px_8px_rgba(147,51,234,0.35)] group-hover:scale-105 transition-transform duration-300">
+                    <ShieldCheck size={16} />
+                  </div>
+                ) : (
+                  <PolyLanceLogo size={28} className="relative group-hover:scale-105 transition-transform duration-300 ease-out" />
+                )}
               </div>
               <span className="font-extrabold text-[19px] tracking-tight text-slate-900 leading-none">
-                Poly<span className="text-[#2563EB]">Lance</span>
+                {isCertifiedPassDomain ? (
+                  <>Certified<span className="text-purple-600">Pass</span></>
+                ) : (
+                  <>Poly<span className="text-[#2563EB]">Lance</span></>
+                )}
               </span>
             </Link>
           </div>
 
           {/* ── CENTER: Navigation Links (Apple iOS 26 Liquid Glass Segmented Pill) ── */}
           <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 font-sans z-20 relative p-1 rounded-full bg-slate-200/50 border border-slate-200/80 backdrop-blur-xl shadow-[inset_0_1px_2.5px_rgba(0,0,0,0.06),0_1px_1px_rgba(255,255,255,0.8)]">
-            {!isUnlocked ? (
+            {isCertifiedPassDomain ? (
+              <>
+                <NavItem
+                  to="/verify"
+                  active={location.pathname === '/' || location.pathname.startsWith('/verify') || location.pathname.startsWith('/certifiedpass')}
+                  icon={<ShieldCheck size={14.5} />}
+                  label="Verify Certificate"
+                  theme={NAV_THEMES.judge}
+                />
+                <NavItem
+                  to="/reputation"
+                  active={isActive('/reputation')}
+                  icon={<Sparkles size={14.5} />}
+                  label="SBT Reputation"
+                  theme={NAV_THEMES.overview}
+                />
+                <a
+                  href="https://polylance.codes/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative px-3.5 py-1.5 rounded-full text-[13px] flex items-center gap-1.5 select-none text-slate-600 hover:text-blue-600 font-medium transition-colors"
+                >
+                  <Briefcase size={14} />
+                  <span>PolyLance Escrow</span>
+                  <ExternalLink size={12} className="text-slate-400" />
+                </a>
+              </>
+            ) : !isUnlocked ? (
               <>
                 {/* 1. Overview (Landing Page Button for New Users / Visitors) */}
                 <NavItem

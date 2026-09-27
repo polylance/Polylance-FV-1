@@ -8,6 +8,8 @@ export const Footer: React.FC = () => {
   if (location.pathname.startsWith('/audit/')) {
     return null;
   }
+  const isCertifiedPassDomain = typeof window !== 'undefined' && 
+    (window.location.hostname === 'certifiedpass.polylance.codes' || window.location.hostname.startsWith('certifiedpass.'));
   const currentYear = new Date().getFullYear();
 
   return (
@@ -20,16 +22,22 @@ export const Footer: React.FC = () => {
           {/* Brand Column (Col 1-5) */}
           <div className="md:col-span-5 space-y-4 text-left">
             <Link to="/" className="inline-flex items-center gap-3 group">
-              <div className="p-1 rounded-xl bg-purple-50 border border-purple-100 group-hover:scale-105 transition-transform duration-300 shadow-3xs">
-                <PolyLanceLogo size={32} />
+              <div className="p-1.5 rounded-xl bg-purple-50 border border-purple-100 group-hover:scale-105 transition-transform duration-300 shadow-3xs flex items-center justify-center">
+                {isCertifiedPassDomain ? (
+                  <ShieldCheck size={28} className="text-purple-600" />
+                ) : (
+                  <PolyLanceLogo size={32} />
+                )}
               </div>
               <span className="font-headline font-black text-xl tracking-tight bg-gradient-to-r from-purple-700 via-indigo-600 to-blue-600 bg-clip-text text-transparent">
-                PolyLance Zenith
+                {isCertifiedPassDomain ? 'CertifiedPass' : 'PolyLance Zenith'}
               </span>
             </Link>
 
             <p className="text-xs text-slate-500 leading-relaxed font-sans max-w-sm font-medium">
-              Decentralized freelance clearinghouse. Anchoring project escrows, dispute resolution, and soulbound work history to the Polygon blockchain.
+              {isCertifiedPassDomain
+                ? 'Decentralized verification oracle and verifiable credential protocol for PolyLance deliverables, milestone proof of work, and SBT reputation.'
+                : 'Decentralized freelance clearinghouse. Anchoring project escrows, dispute resolution, and soulbound work history to the Polygon blockchain.'}
             </p>
 
             {/* Live On-Chain Network Badge */}

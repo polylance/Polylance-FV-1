@@ -4,9 +4,10 @@
     <meta charset="utf-8">
     <title>PolyLance Zenith</title>
     <script type="text/javascript">
-      // Robust GitHub Pages 404 Redirect for HashRouter & Custom Domain (polylance.codes)
+      // Robust GitHub Pages / Cloudflare 404 Redirect for HashRouter & Subdomains
       (function() {
         var l = window.location;
+        var isCertifiedPass = (l.hostname === 'certifiedpass.polylance.codes' || l.hostname.indexOf('certifiedpass.') === 0);
         var cleanPath = l.pathname || '';
         var isGitHubDomain = l.hostname.endsWith('github.io');
         var pathSegments = cleanPath.split('/').filter(Boolean);
@@ -21,10 +22,16 @@
 
         // Build target hash route for react-router HashRouter
         var targetHash = '';
-        if (routePath && routePath !== '/' && !routePath.endsWith('/index.html')) {
+        if (cleanPath === '/verify' || cleanPath.indexOf('/verify/') === 0) {
+          targetHash = '#/verify' + cleanPath.replace('/verify', '');
+        } else if (isCertifiedPass && (routePath === '' || routePath === '/' || routePath.endsWith('/index.html'))) {
+          targetHash = '#/certifiedpass';
+        } else if (routePath && routePath !== '/' && !routePath.endsWith('/index.html')) {
           targetHash = '#' + routePath;
         } else if (l.hash && l.hash.length > 1) {
           targetHash = l.hash;
+        } else if (isCertifiedPass) {
+          targetHash = '#/certifiedpass';
         }
 
         var redirectUrl = l.protocol + '//' + l.host + basePath + '/' + (l.search || '') + targetHash;
