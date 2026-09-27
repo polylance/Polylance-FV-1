@@ -106,18 +106,37 @@
     content="Zero-commission crypto freelance marketplace. Smart contract milestone escrows, verified GitHub attestations, and Soulbound reputation on Polygon." />
   <meta name="twitter:image" content="https://polylance.codes/polylanceLogo.png" />
 
-  <!-- SPA Routing & Social Media Deep Link Synchronizer for HashRouter -->
+  <!-- SPA Routing & Subdomain / Social Media Deep Link Synchronizer for HashRouter -->
   <script type="text/javascript">
     (function (l) {
-      // 1. Direct path routing: if landed on /audit/... or /attestation/... without hash
+      var isCertifiedPass = (l.hostname === 'certifiedpass.polylance.codes' || l.hostname.indexOf('certifiedpass.') === 0);
+      if (isCertifiedPass) {
+        document.title = "CertifiedPass — Proof of What You've Achieved | Verification Oracle";
+      }
+
+      // 1. Direct path routing: if landed on /verify, /audit, /attestation, /certifiedpass etc. without hash
       if (l.pathname && l.pathname !== '/' && !l.pathname.endsWith('/index.html')) {
         var cleanPath = l.pathname;
         var search = l.search || '';
+
+        // If visiting /verify on any domain, cleanly route to #/verify preserving search params
+        if (cleanPath === '/verify' || cleanPath.indexOf('/verify/') === 0) {
+          var certPart = cleanPath.replace('/verify', '');
+          window.location.replace(l.protocol + '//' + l.host + '/#/verify' + certPart + search);
+          return;
+        }
+
         window.location.replace(l.protocol + '//' + l.host + '/#' + cleanPath + search);
         return;
       }
 
-      // 2. Query parameter deep linking from LinkedIn, X/Twitter, or shared links
+      // 2. If on CertifiedPass subdomain at root with no hash, ensure it loads CertifiedPass
+      if (isCertifiedPass && (!l.hash || l.hash === '#' || l.hash === '#/')) {
+        window.location.replace(l.protocol + '//' + l.host + '/#/certifiedpass' + (l.search || ''));
+        return;
+      }
+
+      // 3. Query parameter deep linking from LinkedIn, X/Twitter, or shared verification links
       if (l.search) {
         // Handle SPA GitHub Pages format: ?/...
         if (l.search.indexOf('?/') === 0) {
@@ -128,11 +147,17 @@
           return;
         }
 
-        // Handle direct social share query params (?audit=0x... or ?attestation=JOB-001)
+        // Handle direct social share or verification query params
         var params = new URLSearchParams(l.search);
         var auditAddr = params.get('audit') || params.get('audit-report');
         var attestationId = params.get('attestation') || params.get('cert');
+        var certId = params.get('certId') || (isCertifiedPass ? (params.get('id') || params.get('q')) : null);
         var role = params.get('role');
+
+        if (certId && !l.hash.includes('certifiedpass') && !l.hash.includes('verify')) {
+          window.location.replace(l.protocol + '//' + l.host + '/#/verify?certId=' + encodeURIComponent(certId));
+          return;
+        }
 
         if (auditAddr) {
           window.location.replace(l.protocol + '//' + l.host + '/#/audit/' + encodeURIComponent(auditAddr));
@@ -307,7 +332,7 @@
       ]
     }
   </script>
-  <script type="module" crossorigin src="/Polylance-FV-1/assets/index-CA7uGdQg.js"></script>
+  <script type="module" crossorigin src="/Polylance-FV-1/assets/index-DgyPhffl.js"></script>
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/rolldown-runtime-BG2f4sTM.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/preload-helper-Dp3tRy0W.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/Value-zgShoQJE.js">
@@ -319,7 +344,7 @@
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/formatUnits-QyFbNVrn.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/eventemitter3-BjqSxerI.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/eventemitter3-Btg-p9f_.js">
-  <link rel="stylesheet" crossorigin href="/Polylance-FV-1/assets/index-BVj6w_Zk.css">
+  <link rel="stylesheet" crossorigin href="/Polylance-FV-1/assets/index-CZ-_TE-6.css">
 </head>
 
 <body class="bg-[#faf8ff] text-[#131b2e] antialiased">
