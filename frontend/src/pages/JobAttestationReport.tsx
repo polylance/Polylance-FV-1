@@ -180,15 +180,15 @@ export const JobAttestationReport: React.FC = () => {
         title: 'Solidity Reentrancy & Flash Loan Arbitrage Audit',
         description: 'Comprehensive smart contract security audit against flash loan attack vectors.',
         category: 'backend',
-        client: '0x71c8366420a092c55660830e8115e9a44390001',
-        freelancer: '0x88aa0398b91a150b041da819bc954bb356e009dd',
+        client: (import.meta.env.VITE_CLIENT_ADDRESS || '') as string,
+        freelancer: (import.meta.env.VITE_TESTER_ADDRESS || import.meta.env.VITE_FREELANCER_ADDRESS || '') as string,
         amountUsdc: '500.00',
         amountEth: '0.25',
-        paymentToken: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+        paymentToken: (import.meta.env.VITE_USDC_ADDRESS || '') as string,
         paymentTokenSymbol: 'USDC',
         paymentTokenDecimals: 6,
         status: 'Completed',
-        contractAddress: '0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879',
+        contractAddress: (import.meta.env.VITE_JOB_ESCROW_ADDRESS || '') as string,
         createdAt: 1787301836668,
         completedAt: 1787576392906,
         sbtTokenId: 101,
@@ -325,11 +325,11 @@ export const JobAttestationReport: React.FC = () => {
   };
 
   // User addresses & profiles
-  const clientAddr = job?.client || '0xB8aa0398b91a150b041da819bc954bb356e009Dd';
+  const clientAddr = job?.client || (import.meta.env.VITE_CLIENT_ADDRESS || '') as string;
   const freelancerAddr =
     job?.freelancer ||
     job?.applications?.[0]?.applicant ||
-    '0x25F6c8366420a092c55660830e8115e9a44395e9A';
+    (import.meta.env.VITE_TESTER_ADDRESS || import.meta.env.VITE_FREELANCER_ADDRESS || '') as string;
 
   const clientProfileKey = Object.keys(profiles).find(
     (k) => k.toLowerCase() === clientAddr.toLowerCase()
@@ -358,7 +358,7 @@ export const JobAttestationReport: React.FC = () => {
   const viewRole: 'freelancer' | 'client' = isUserClient ? 'client' : 'freelancer';
 
   const amountUsdc = parseFloat(job?.amountUsdc || '5.05');
-  const contractAddress = job?.contractAddress || '0xcf3665d90001e9a443900990cf3665d900019550';
+  const contractAddress = job?.contractAddress || (import.meta.env.VITE_JOB_ESCROW_ADDRESS || '') as string;
   const sbtTokenId =
     viewRole === 'client'
       ? `#SBT-PATRON-${(job?.id || 'PL-001').slice(0, 8).toUpperCase()}`

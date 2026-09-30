@@ -2217,26 +2217,22 @@ export const Chat: React.FC = () => {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono text-xs focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
                 />
                 {/* Quick Presets */}
-                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                  <span className="text-[10px] text-slate-400 font-bold">Quick Presets:</span>
-                  {[
-                    { label: 'Judge Candidate 1', addr: '0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc' },
-                    { label: 'Judge Candidate 2', addr: '0x70997970c51812dc3a010c7d01b50e0d17dc79c8' },
-                  ].map((p, idx) => (
+                {import.meta.env.VITE_JUDGE_ADDRESS && (
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    <span className="text-[10px] text-slate-400 font-bold">Quick Presets:</span>
                     <button
-                      key={idx}
                       type="button"
                       onClick={() => {
-                        setNewJudgeAddress(p.addr);
-                        setNewJudgeName(p.label);
+                        setNewJudgeAddress(import.meta.env.VITE_JUDGE_ADDRESS);
+                        setNewJudgeName('Accredited Arbitrator');
                         setNewJudgeNotes('Accredited DeFi & smart contract auditor.');
                       }}
                       className="px-2 py-0.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-mono text-[9.5px] cursor-pointer"
                     >
-                      {p.label}
+                      Configured Arbitrator
                     </button>
-                  ))}
-                </div>
+                  </div>
+                )}
               </div>
 
               <div>

@@ -7,14 +7,14 @@ export const DEMO_WALLETS = {
     reputationCount: 0,
   },
   client: {
-    address: '0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1',
+    address: (import.meta.env.VITE_CLIENT_ADDRESS || '') as string,
     label: 'Client (Project Owner)',
     isArbitrator: false,
     isTreasuryAdmin: false,
     reputationCount: 0,
   },
   freelancer: {
-    address: '0xB8aa0398B91A150B041DA819bc954Bb356e009Dd',
+    address: (import.meta.env.VITE_TESTER_ADDRESS || import.meta.env.VITE_FREELANCER_ADDRESS || '') as string,
     label: 'Freelancer (Dev)',
     isArbitrator: false,
     isTreasuryAdmin: false,

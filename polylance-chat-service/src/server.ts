@@ -307,25 +307,23 @@ function normalizeJobOnServer(job: any): any {
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const JOB_AUTO_EXPIRY_DAYS = 14;
 
-const MOCK_OR_TEST_CLIENTS = new Set([
-  '0x474d8c97445fbcf4e13c257556adbced11a9def8',
-  '0x7777111177771111777711117777111177771111',
-  '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
-  '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
-  '0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc',
-  '0x90f79bf6eb2c4f870365e785982e1f101e93b906',
-  '0x15d34aaf54267db7d7c367839aaf71a00a2c6a65',
-  '0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc',
-  '0x976ea74026e726554db657fa54763abd0c3a0aa9',
-  '0x14dc79964da2c08b23698b3d3cc7ca32193d9955',
-  '0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f',
-  '0xa0ee7a142d267c1f36714e4a8f75612f20a79720',
-  '0x71c8366420a092c55660830e8115e9a44390001',
-  '0x34a589112d480055dafd8a610b7d1e203891c821',
-  '0x89b4566420a092c55660830e8115e9a443900142',
-  '0x42f8366420a092c55660830e8115e9a443900990',
-  '0x55e1236420a092c55660830e8115e9a443900310'
-]);
+const parseAddressSet = (raw?: string): Set<string> => {
+  const set = new Set<string>();
+  if (!raw) return set;
+  raw.split(/[\s,;]+/).forEach((item) => {
+    const s = item.trim().toLowerCase();
+    if (s.startsWith('0x') && s.length === 42) set.add(s);
+  });
+  return set;
+};
+
+const MOCK_OR_TEST_CLIENTS = parseAddressSet(
+  process.env.TEST_CLIENT_ADDRESSES ||
+  process.env.MOCK_CLIENT_ADDRESSES ||
+  process.env.VITE_TEST_ADDRESSES ||
+  process.env.VITE_PURGE_ADDRESSES ||
+  ''
+);
 
 export function isDemoOrMockJobOnServer(job: any): boolean {
   if (!job) return true;
@@ -763,34 +761,30 @@ export async function getOrCreateKeyRegistry(
   }
 }
 
-const DEFAULT_KNOWN_ADMINS = [
-  "0x940d8475689b2156d6174555f3382b5e6951653f", // Akhil Muvva (Founder & CEO / CTO)
-  "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a", // Balram Taddi (CSO)
-  "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1", // Core Admin 3
-];
-
-const DEFAULT_KNOWN_JUDGES = [
-  "0xb8aa0398b91a150b041da819bc954bb356e009dd", // Primary Arbitrator
-];
-
 function getKnownAdminAddresses(): Set<string> {
-  const addrs = new Set<string>(DEFAULT_KNOWN_ADMINS);
+  const addrs = new Set<string>();
   for (let i = 1; i <= 10; i++) {
     const val1 = process.env[`ADMIN_ADDRESS_${i}`]?.toLowerCase().trim();
     if (val1 && val1.startsWith("0x")) addrs.add(val1);
     const val2 = process.env[`VITE_ADMIN_ADDRESS_${i}`]?.toLowerCase().trim();
     if (val2 && val2.startsWith("0x")) addrs.add(val2);
+    const val3 = process.env[`NEXT_PUBLIC_ADMIN_ADDRESS_${i}`]?.toLowerCase().trim();
+    if (val3 && val3.startsWith("0x")) addrs.add(val3);
   }
-  const genericAdmin = process.env.ADMIN_ADDRESS?.toLowerCase().trim();
+  const genericAdmin = (process.env.ADMIN_ADDRESS || process.env.VITE_ADMIN_ADDRESS)?.toLowerCase().trim();
   if (genericAdmin && genericAdmin.startsWith("0x")) addrs.add(genericAdmin);
+  const treasury = (process.env.TREASURY_ADDRESS || process.env.VITE_TREASURY_ADDRESS)?.toLowerCase().trim();
+  if (treasury && treasury.startsWith("0x")) addrs.add(treasury);
   return addrs;
 }
 
 function getKnownJudgeAddresses(): Set<string> {
-  const addrs = new Set<string>(DEFAULT_KNOWN_JUDGES);
-  for (let i = 1; i <= 5; i++) {
+  const addrs = new Set<string>();
+  for (let i = 1; i <= 10; i++) {
     const val1 = process.env[`JUDGE_${i}_ADDRESS`]?.toLowerCase().trim();
     if (val1 && val1.startsWith("0x")) addrs.add(val1);
+    const val2 = process.env[`VITE_JUDGE_${i}_ADDRESS`]?.toLowerCase().trim();
+    if (val2 && val2.startsWith("0x")) addrs.add(val2);
   }
   const genericJudge = (process.env.JUDGE_ADDRESS || process.env.VITE_JUDGE_ADDRESS)?.toLowerCase().trim();
   if (genericJudge && genericJudge.startsWith("0x")) addrs.add(genericJudge);
@@ -2258,22 +2252,22 @@ async function handleCertifiedPassVerification(req: Request, res: Response) {
           settledAmountUsdc: 'PROTECTED (Confidential Settlement)',
           freelancer: rec.freelancerName || rec.freelancerAddress || 'Verified Developer',
           freelancerName: rec.freelancerName || 'Verified Developer',
-          freelancerAddress: rec.freelancerAddress || rec.targetAddress || '0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6',
+          freelancerAddress: rec.freelancerAddress || rec.targetAddress || process.env.FREELANCER_ADDRESS || process.env.VITE_TESTER_ADDRESS || '',
           client: rec.clientName || rec.clientAddress || 'Escrow Patron',
           clientName: rec.clientName || 'Escrow Patron',
-          clientAddress: rec.clientAddress || '0x75972bcc03026544287eb7418bd8ae53583c23ce',
+          clientAddress: rec.clientAddress || process.env.CLIENT_ADDRESS || process.env.VITE_CLIENT_ADDRESS || '',
           recipient: {
             name: rec.freelancerName || 'Verified Developer',
-            address: rec.freelancerAddress || rec.targetAddress || '0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6'
+            address: rec.freelancerAddress || rec.targetAddress || process.env.FREELANCER_ADDRESS || process.env.VITE_TESTER_ADDRESS || ''
           },
           sponsor: {
             name: rec.clientName || 'Escrow Patron',
-            address: rec.clientAddress || '0x75972bcc03026544287eb7418bd8ae53583c23ce'
+            address: rec.clientAddress || process.env.CLIENT_ADDRESS || process.env.VITE_CLIENT_ADDRESS || ''
           },
-          contractAddress: rec.contractAddress || '0xeeacc05a99a271dc329875ce73662a923791c654',
+          contractAddress: rec.contractAddress || process.env.JOB_ESCROW_ADDRESS || process.env.VITE_JOB_ESCROW_ADDRESS || '',
           networkChainId: rec.networkChainId || 137,
           networkName: 'Polygon PoS 137',
-          oracleSignature: rec.oracleSignature || '0x42f8366420a092c55660830e8115e9a443900990',
+          oracleSignature: rec.oracleSignature || process.env.ORACLE_SIGNATURE || '',
           ipfsCid: rec.ipfsCid || `QmPL${rec.jobId || 'AuditProof'}AttestationProofCID77`,
           sbtTokenId: rec.sbtTokenId || `SBT-${rec.jobId || '001'}`,
           timestamp: rec.completedAt || rec.createdAt || new Date().toISOString()
@@ -2359,22 +2353,22 @@ async function handleCertifiedPassVerification(req: Request, res: Response) {
           settledAmountUsdc: 'PROTECTED (Confidential Settlement)',
           freelancer: liveJob.freelancerName || liveJob.freelancer || 'Verified Developer',
           freelancerName: liveJob.freelancerName || 'Verified Developer',
-          freelancerAddress: liveJob.freelancer || '0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6',
+          freelancerAddress: liveJob.freelancer || process.env.FREELANCER_ADDRESS || process.env.VITE_TESTER_ADDRESS || '',
           client: liveJob.clientName || liveJob.client || 'Escrow Patron',
           clientName: liveJob.clientName || 'Escrow Patron',
-          clientAddress: liveJob.client || '0x75972bcc03026544287eb7418bd8ae53583c23ce',
+          clientAddress: liveJob.client || process.env.CLIENT_ADDRESS || process.env.VITE_CLIENT_ADDRESS || '',
           recipient: {
             name: liveJob.freelancerName || 'Verified Developer',
-            address: liveJob.freelancer || '0x5bab2a6561cb2dedfc95fae5cfd0779b5ab782a6'
+            address: liveJob.freelancer || process.env.FREELANCER_ADDRESS || process.env.VITE_TESTER_ADDRESS || ''
           },
           sponsor: {
             name: liveJob.clientName || 'Escrow Patron',
-            address: liveJob.client || '0x75972bcc03026544287eb7418bd8ae53583c23ce'
+            address: liveJob.client || process.env.CLIENT_ADDRESS || process.env.VITE_CLIENT_ADDRESS || ''
           },
-          contractAddress: liveJob.contractAddress || '0xeeacc05a99a271dc329875ce73662a923791c654',
+          contractAddress: liveJob.contractAddress || process.env.JOB_ESCROW_ADDRESS || process.env.VITE_JOB_ESCROW_ADDRESS || '',
           networkChainId: 137,
           networkName: 'Polygon PoS 137',
-          oracleSignature: liveJob.oracleSignature || '0x42f8366420a092c55660830e8115e9a443900990',
+          oracleSignature: liveJob.oracleSignature || process.env.ORACLE_SIGNATURE || '',
           ipfsCid: liveJob.ipfsCid || `QmPL${liveJob.id}AttestationProofCID77`,
           sbtTokenId: `SBT-${liveJob.id}`,
           timestamp: liveJob.updatedAt || new Date().toISOString()
@@ -2560,33 +2554,8 @@ async function handleCertifiedPassSampleRecords(req: Request, res: Response) {
     }
 
     // Ensure fallback sample items exist
-    if (!sbtRecords || sbtRecords.length === 0) {
-      sbtRecords = [
-        {
-          id: "PL-SBT-JOB-0xeeacc05a99a2-0xeeac",
-          jobTitle: "Testing Site — Soulbound Attestation",
-          freelancerName: "SATHVIK_POLIPATI",
-          clientName: "Steve Client",
-          settledAmountUsdc: "PROTECTED (Confidential Settlement)",
-          status: "VERIFIED"
-        },
-        {
-          id: "PL-SBT-JOB-0x4f3ec253d32b-0x4f3e",
-          jobTitle: "Judge Test — Full Escrow Settlement",
-          freelancerName: "Anonymous PolyLancer",
-          clientName: "Steve Client",
-          settledAmountUsdc: "PROTECTED (Confidential Settlement)",
-          status: "VERIFIED"
-        },
-        {
-          id: "PL-SBT-JOB-0x03B7a86F3bfC-0x03B7",
-          jobTitle: "Testing WebRTC & Web Socket",
-          freelancerName: "Freelancer (0xc12d...9eda)",
-          clientName: "Sunny Pasumarthi",
-          settledAmountUsdc: "PROTECTED (Confidential Settlement)",
-          status: "VERIFIED"
-        }
-      ];
+    if (!sbtRecords) {
+      sbtRecords = [];
     }
 
     res.json({

@@ -29,8 +29,13 @@ interface MaintenancePageProps {
   onBypass?: () => void;
 }
 
-// Known primary admin address for local testing / default fallback
-const DEFAULT_FALLBACK_ADMIN = '0x940d8475689b2156d6174555f3382b5e6951653f';
+// Primary admin address configured from environment
+const DEFAULT_FALLBACK_ADMIN = (
+  import.meta.env.VITE_ADMIN_ADDRESS_1 ||
+  import.meta.env.NEXT_PUBLIC_ADMIN_ADDRESS_1 ||
+  import.meta.env.VITE_TREASURY_ADDRESS ||
+  ''
+) as string;
 
 const DEFAULT_CHANGELOG: MaintenanceChangelogItem[] = [
   {

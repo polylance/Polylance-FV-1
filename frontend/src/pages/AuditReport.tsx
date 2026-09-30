@@ -34,8 +34,8 @@ export const AuditReport: React.FC = () => {
 
   const isVisitorUser = !activeAddress || currentRole === 'visitor';
 
-  // Fallback to active connected wallet if no address param in route
-  const targetAddress = (targetAddressParam || activeAddress || '0x71c8366420a092c55660830e8115e9a44390001').toLowerCase();
+  // Fallback to active connected wallet or env client address if no address param in route
+  const targetAddress = (targetAddressParam || activeAddress || import.meta.env.VITE_CLIENT_ADDRESS || '').toLowerCase();
 
   // Find profile case-insensitively
   const profileKey = Object.keys(profiles).find(k => k.toLowerCase() === targetAddress);
@@ -1369,7 +1369,7 @@ export const AuditReport: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-3 text-[10.5px] font-mono text-slate-500 flex-wrap">
-                        <span>Contract: <strong className="text-slate-800">{truncateAddress(j.contractAddress || '0x42f8...990')}</strong></span>
+                        <span>Contract: <strong className="text-slate-800">{truncateAddress(j.contractAddress || import.meta.env.VITE_JOB_ESCROW_ADDRESS || '')}</strong></span>
                         <span>•</span>
                         <span className="text-emerald-700 font-bold flex items-center gap-1">
                           <CheckCircle2 size={11} /> Execution Sealed On-Chain

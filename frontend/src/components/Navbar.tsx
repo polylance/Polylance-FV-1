@@ -763,7 +763,7 @@ export const Navbar: React.FC = () => {
                   <span>{formatPolBalance(balanceNative)} POL</span>
                 </button>
 
-                {/* 2. Light Blue Wallet Address Pill (0xB8aa...090d v) */}
+                {/* 2. Light Blue Wallet Address Pill */}
                 <div className="relative" ref={addressMenuRef}>
                   <button
                     type="button"
