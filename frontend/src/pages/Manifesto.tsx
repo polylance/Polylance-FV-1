@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { 
   Sparkles, ShieldCheck, Lock, Scale, 
-  ArrowRight, Award, Cpu, TrendingUp, Code2, CheckCircle2, Users, LineChart
+  ArrowRight, Award, Cpu, TrendingUp, Code2, CheckCircle2, Users, LineChart, ExternalLink, Shield
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -14,6 +14,16 @@ export const Manifesto: React.FC = () => {
       name: 'Akhil Muvva',
       role: 'Founder & CEO / CTO',
       specialty: 'PROTOCOL ARCHITECTURE',
+      productBadge: {
+        name: 'AuditX',
+        label: 'Security Engine',
+        link: '/auditx',
+        title: 'Explore AuditX Automated Security Engine',
+        icon: ShieldCheck,
+        badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200/90 hover:bg-emerald-100 hover:border-emerald-300',
+        dotClass: 'bg-emerald-500',
+        iconClass: 'text-emerald-600',
+      },
       icon: Cpu,
       accentColor: 'purple',
       specialtyColor: 'text-purple-600',
@@ -25,42 +35,18 @@ export const Manifesto: React.FC = () => {
       bottomAccent: 'border-b-purple-600',
       headingColor: 'text-purple-700',
       checkColor: 'text-purple-600',
-      bio: 'Lead Architect of the PolyLance protocol. Driven by the mission of decentralized identity, smart contract escrows, and RWA settlement.',
+      bio: 'Lead Architect of the PolyLance protocol & Creator of AuditX. Pioneering sovereign identity, smart contract escrows, and automated bytecode security verification.',
       strengths: [
         'Smart Contract Architecture',
-        'RWA & Escrow Systems',
-        'Protocol Design'
-      ]
-    },
-    {
-      id: 'jhansi',
-      initials: 'JK',
-      name: 'Jhansi Kupireddy',
-      role: 'Co-Founder',
-      specialty: 'ECOSYSTEM GROWTH',
-      icon: TrendingUp,
-      accentColor: 'pink',
-      specialtyColor: 'text-pink-600',
-      badgeStyle: 'bg-pink-50 text-pink-700 border-pink-100',
-      avatarGradient: 'from-pink-500 via-rose-500 to-fuchsia-600',
-      avatarShadow: 'shadow-pink-500/25',
-      avatarRing: 'bg-pink-100 border-pink-200',
-      iconStyle: 'bg-pink-50 text-pink-600 border-pink-100',
-      bottomAccent: 'border-b-pink-500',
-      headingColor: 'text-pink-700',
-      checkColor: 'text-pink-600',
-      bio: 'Community & Growth Lead. Building the bridges between Web3 talent and real-world opportunity across the PolyLance ecosystem.',
-      strengths: [
-        'Community Building',
-        'Growth Strategy',
-        'Ecosystem Partnerships'
+        'AuditX Security Framework',
+        'Protocol & RWA Escrow Design'
       ]
     },
     {
       id: 'balram',
       initials: 'BT',
       name: 'Balram Taddi',
-      role: 'CSO',
+      role: 'Chief Security Officer (CSO)',
       specialty: 'CROSS-CHAIN STRATEGY',
       icon: ShieldCheck,
       accentColor: 'indigo',
@@ -73,10 +59,10 @@ export const Manifesto: React.FC = () => {
       bottomAccent: 'border-b-indigo-600',
       headingColor: 'text-indigo-700',
       checkColor: 'text-indigo-600',
-      bio: 'Chief Security Officer. Mapping the expansion, cross-chain interoperability, and security of PolyLance across the multichain ecosystem.',
+      bio: 'Chief Security Officer. Safeguarding protocol expansion, cross-chain interoperability, and enterprise infrastructure across the multichain ecosystem.',
       strengths: [
         'Cross-Chain Interoperability',
-        'Security Strategy',
+        'Security Architecture',
         'Ecosystem Expansion'
       ]
     },
@@ -84,7 +70,7 @@ export const Manifesto: React.FC = () => {
       id: 'neeraj',
       initials: 'NC',
       name: 'Neeraj Chennamsetty',
-      role: 'CFO',
+      role: 'Chief Financial Officer (CFO)',
       specialty: 'FINANCIAL STRATEGY',
       icon: LineChart,
       accentColor: 'amber',
@@ -97,7 +83,7 @@ export const Manifesto: React.FC = () => {
       bottomAccent: 'border-b-amber-500',
       headingColor: 'text-amber-700',
       checkColor: 'text-amber-600',
-      bio: 'Chief Financial Officer. Spearheading business strategies, capital growth, and sustainable financial architecture for the PolyLance ecosystem.',
+      bio: 'Chief Financial Officer. Spearheading capital architecture, sustainable tokenomics, treasury reserves, and enterprise Web3 business modeling.',
       strengths: [
         'Business Strategies',
         'Financial Growth & Modeling',
@@ -110,6 +96,16 @@ export const Manifesto: React.FC = () => {
       name: 'Sunny Pasumarthi',
       role: 'CMO & Lead Frontend Developer',
       specialty: 'FRONTEND ARCHITECTURE',
+      productBadge: {
+        name: 'CertifiedPass',
+        label: 'Credential Oracle',
+        link: '/certifiedpass',
+        title: 'Explore CertifiedPass On-Chain Credential Oracle',
+        icon: Award,
+        badgeClass: 'bg-purple-50 text-purple-800 border-purple-200/90 hover:bg-purple-100 hover:border-purple-300',
+        dotClass: 'bg-purple-500',
+        iconClass: 'text-purple-600',
+      },
       icon: Code2,
       accentColor: 'teal',
       specialtyColor: 'text-teal-600',
@@ -121,10 +117,10 @@ export const Manifesto: React.FC = () => {
       bottomAccent: 'border-b-teal-500',
       headingColor: 'text-teal-700',
       checkColor: 'text-teal-600',
-      bio: 'Chief Marketing Officer & Lead Frontend Developer for PolyLance. Crafting high-performance UI/UX, responsive Web3 interfaces, and global brand adoption.',
+      bio: 'Chief Marketing Officer & Lead Frontend Developer for PolyLance & Creator of CertifiedPass. Crafting next-generation Web3 experiences and sovereign credential verification.',
       strengths: [
         'Web3 UI/UX Design',
-        'Frontend Architecture',
+        'CertifiedPass Credential Oracle',
         'Brand & Growth Marketing'
       ]
     }
@@ -269,8 +265,8 @@ export const Manifesto: React.FC = () => {
             </motion.p>
           </div>
 
-          {/* 5 Executive Team Member Cards Grid (Staggered Scroll Reveal) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 sm:gap-6 text-left">
+          {/* 4 Executive Team Member Cards Grid (Upgraded 4-column layout) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 xl:gap-7 text-left">
             {teamMembers.map((m, idx) => {
               const RoleIcon = m.icon;
               return (
@@ -280,8 +276,8 @@ export const Manifesto: React.FC = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: 0.1 * idx }}
-                  whileHover={{ y: -4 }}
-                  className={`bg-white border border-[#E8EAF3] rounded-[24px] sm:rounded-[28px] p-5 sm:p-7 flex flex-col justify-between h-full space-y-5 sm:space-y-6 shadow-2xs hover:shadow-xl hover:border-slate-300 transition-all duration-300 relative overflow-hidden group border-b-4 ${m.bottomAccent}`}
+                  whileHover={{ y: -5 }}
+                  className={`bg-white border border-[#E8EAF3] rounded-[26px] p-6 sm:p-7 flex flex-col justify-between h-full space-y-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_32px_-6px_rgba(0,0,0,0.1)] hover:border-slate-300 transition-all duration-300 relative overflow-hidden group border-b-4 ${m.bottomAccent}`}
                 >
                   {/* Card Top & Body Content */}
                   <div className="space-y-5 relative z-10">
@@ -314,11 +310,28 @@ export const Manifesto: React.FC = () => {
                       </h3>
 
                       {/* Role Pill Badge */}
-                      <div className="pt-1">
+                      <div className="pt-0.5">
                         <span className={`inline-block px-3.5 py-1 rounded-full text-xs font-sans font-bold border ${m.badgeStyle}`}>
                           {m.role}
                         </span>
                       </div>
+
+                      {/* Dedicated Product Venture Badge (AuditX for Akhil / CertifiedPass for Sunny) */}
+                      {m.productBadge && (
+                        <div className="pt-2">
+                          <Link
+                            to={m.productBadge.link}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold border transition-all duration-200 shadow-2xs hover:shadow-xs hover:scale-[1.02] cursor-pointer ${m.productBadge.badgeClass}`}
+                            title={m.productBadge.title}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${m.productBadge.dotClass} animate-pulse`} />
+                            <m.productBadge.icon size={13} className={m.productBadge.iconClass} />
+                            <span className="font-extrabold tracking-tight">{m.productBadge.name}</span>
+                            <span className="text-[10px] opacity-75 font-normal">({m.productBadge.label})</span>
+                            <ExternalLink size={10} className="opacity-60 ml-0.5" />
+                          </Link>
+                        </div>
+                      )}
                     </div>
 
                     {/* Member Description */}

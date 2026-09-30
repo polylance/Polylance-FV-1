@@ -30,7 +30,7 @@ interface MaintenancePageProps {
 }
 
 // Known primary admin address for local testing / default fallback
-const DEFAULT_FALLBACK_ADMIN = '0x62cdfc0692cc675c95304bace2c834d8f901dcba';
+const DEFAULT_FALLBACK_ADMIN = '0x940d8475689b2156d6174555f3382b5e6951653f';
 
 const DEFAULT_CHANGELOG: MaintenanceChangelogItem[] = [
   {

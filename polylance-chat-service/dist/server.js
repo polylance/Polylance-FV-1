@@ -674,8 +674,8 @@ export async function getOrCreateKeyRegistry(jobAddress, requesterAddress, clien
     }
 }
 const DEFAULT_KNOWN_ADMINS = [
-    "0x62cdfc0692cc675c95304bace2c834d8f901dcba", // Akhil Muvva (Lead Protocol Architect)
-    "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a", // Balram Taddi (Co-Founder)
+    "0x940d8475689b2156d6174555f3382b5e6951653f", // Akhil Muvva (Founder & CEO / CTO)
+    "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a", // Balram Taddi (CSO)
     "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1", // Core Admin 3
 ];
 const DEFAULT_KNOWN_JUDGES = [
