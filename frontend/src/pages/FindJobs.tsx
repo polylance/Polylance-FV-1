@@ -152,11 +152,11 @@ export const FindJobs: React.FC = () => {
         ) : (
           filteredJobs.map((job) => {
             const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
-            const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
-            const payToken = sym;
+            const isCrypto = sym === 'POL' || sym === 'MATIC';
+            const payToken = isCrypto ? 'POL' : sym;
             const payAmountNum = parseFloat(isCrypto ? (job.amountEth || job.amountUsdc || '0') : (job.amountUsdc || '0')) || 0;
             const usdAmountNum = parseFloat(job.amountUsdc || '0') || 0;
-            const dec = sym === 'BTC' || sym === 'ETH' ? 4 : 2;
+            const dec = isCrypto ? 4 : 2;
             const converted = convertCryptoToFiat(payAmountNum, payToken, selectedFiat);
             const netToken = payAmountNum * 0.975;
             const netUsd = usdAmountNum * 0.975;

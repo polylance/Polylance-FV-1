@@ -602,9 +602,10 @@ export const JobWorkspace: React.FC = () => {
                         <span>
                           {(() => {
                             const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
-                            const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                            const isCrypto = sym === 'POL' || sym === 'MATIC';
+                            const tokenLabel = isCrypto ? 'POL' : sym;
                             const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
-                            return isCrypto ? `${amt} ${sym}` : `$${amt} USDC`;
+                            return isCrypto ? `${amt} ${tokenLabel}` : `$${amt} ${tokenLabel}`;
                           })()}
                         </span>
                       </span>
@@ -623,10 +624,36 @@ export const JobWorkspace: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 self-stretch sm:self-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-mono font-bold text-[9.5px] sm:text-[10.5px] uppercase tracking-wider shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>ACTIVE</span>
-                  </span>
+                  {(() => {
+                    let badgeBg = 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
+                    let dotBg = 'bg-emerald-500';
+                    let badgeLabel = 'ACTIVE';
+
+                    if (activeJob.status === 'Completed') {
+                      badgeBg = 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
+                      dotBg = 'bg-emerald-500';
+                      badgeLabel = 'COMPLETED';
+                    } else if (activeJob.status === 'Disputed') {
+                      badgeBg = 'bg-rose-50 text-rose-700 border-rose-200/80';
+                      dotBg = 'bg-rose-500';
+                      badgeLabel = 'DISPUTED';
+                    } else if (activeJob.status === 'Submitted' || activeJob.proof) {
+                      badgeBg = 'bg-purple-50 text-purple-700 border-purple-200/80';
+                      dotBg = 'bg-purple-500 animate-pulse';
+                      badgeLabel = 'SUBMITTED • IN REVIEW';
+                    } else if (activeJob.status === 'Funded') {
+                      badgeBg = 'bg-blue-50 text-blue-700 border-blue-200/80';
+                      dotBg = 'bg-blue-500 animate-pulse';
+                      badgeLabel = 'FUNDED';
+                    }
+
+                    return (
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full border font-mono font-bold text-[9.5px] sm:text-[10.5px] uppercase tracking-wider shadow-2xs ${badgeBg}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${dotBg}`}></span>
+                        <span>{badgeLabel}</span>
+                      </span>
+                    );
+                  })()}
                   <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-50/80 group-hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors shadow-2xs shrink-0">
                     <ChevronDown size={13} className={`stroke-[2.5] transition-transform duration-200 ${isJobDropdownOpen ? 'rotate-180' : ''}`} />
                   </div>
@@ -737,16 +764,17 @@ export const JobWorkspace: React.FC = () => {
                 <div className="text-lg font-black text-slate-900 font-headline">
                   {(() => {
                     const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
-                    const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                    const isCrypto = sym === 'POL' || sym === 'MATIC';
+                    const tokenLabel = isCrypto ? 'POL' : sym;
                     const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
                     return isCrypto ? (
                       <>
-                        <span>{amt}</span> <span className="text-xs font-bold text-slate-500 font-sans">{sym}</span>
+                        <span>{amt}</span> <span className="text-xs font-bold text-slate-500 font-sans">{tokenLabel}</span>
                         <span className="text-[11px] font-normal text-slate-400 block font-mono">≈ ${activeJob.amountUsdc} USDC</span>
                       </>
                     ) : (
                       <>
-                        ${amt} <span className="text-xs font-bold text-slate-500 font-sans">USDC</span>
+                        ${amt} <span className="text-xs font-bold text-slate-500 font-sans">{tokenLabel}</span>
                       </>
                     );
                   })()}
@@ -1115,9 +1143,10 @@ export const JobWorkspace: React.FC = () => {
                 }
 
                 const sym = (j.paymentTokenSymbol || 'USDC').toUpperCase();
-                const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                const isCrypto = sym === 'POL' || sym === 'MATIC';
+                const tokenLabel = isCrypto ? 'POL' : sym;
                 const amt = isCrypto ? (j.amountEth || j.amountUsdc) : j.amountUsdc;
-                const amountDisplay = isCrypto ? `${amt} ${sym}` : `$${amt} USDC`;
+                const amountDisplay = isCrypto ? `${amt} ${tokenLabel}` : `$${amt} ${tokenLabel}`;
                 const dateDisplay = formatJobDate(j.createdAt);
 
                 return (

@@ -30,8 +30,8 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
   const rates = useLiveCurrencyRates();
 
   const sym = (job?.paymentTokenSymbol || 'USDC').toUpperCase();
-  const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
-  const tokenPriceUsd = rates.cryptoPrices[sym] || 1.0;
+  const isCrypto = sym === 'POL' || sym === 'MATIC';
+  const tokenPriceUsd = rates.cryptoPrices[sym] || (isCrypto ? (rates.cryptoPrices['POL'] || 0.45) : 1.0);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

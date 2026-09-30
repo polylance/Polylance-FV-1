@@ -253,9 +253,6 @@ export const JobDetail: React.FC = () => {
 
   const getFormattedPayout = (amtUsdc: string, tokenSym?: string, amtEth?: string) => {
     const sym = (tokenSym || 'USDC').toUpperCase();
-    if (sym === 'ETH') {
-      return `${amtEth || (parseFloat(amtUsdc || '0') / 2500).toFixed(4)} ETH`;
-    }
     if (sym === 'MATIC' || sym === 'POL') {
       return `${amtEth || amtUsdc} POL`;
     }
@@ -888,12 +885,13 @@ export const JobDetail: React.FC = () => {
                         <span className="text-[10px] text-slate-400 font-bold uppercase block">Escrow Payout</span>
                         {(() => {
                           const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
-                          const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                          const isCrypto = sym === 'POL' || sym === 'MATIC';
+                          const tokenLabel = isCrypto ? 'POL' : sym;
                           const tokenAmt = isCrypto ? (job.amountEth || job.amountUsdc) : job.amountUsdc;
                           return (
                             <>
                               <span className="text-lg font-black text-emerald-700">
-                                {isCrypto ? `${tokenAmt} ${sym}` : `$${parseFloat(job.amountUsdc || '0').toLocaleString()} USDC`}
+                                {isCrypto ? `${tokenAmt} ${tokenLabel}` : `$${parseFloat(job.amountUsdc || '0').toLocaleString()} ${tokenLabel}`}
                               </span>
                               {isCrypto && (
                                 <span className="text-[10px] text-slate-500 block">≈ ${parseFloat(job.amountUsdc || '0').toFixed(2)} USDC</span>
@@ -991,11 +989,12 @@ export const JobDetail: React.FC = () => {
                         <p className="text-xs text-slate-600">
                           {(() => {
                             const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
-                            const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+                            const isCrypto = sym === 'POL' || sym === 'MATIC';
+                            const tokenLabel = isCrypto ? 'POL' : sym;
                             const tokenAmt = isCrypto ? (job.amountEth || job.amountUsdc) : job.amountUsdc;
                             return isCrypto
-                              ? `Lock ${tokenAmt} ${sym} (~$${job.amountUsdc} USDC) in the smart contract escrow to start the project.`
-                              : `Lock $${job.amountUsdc} USDC in the smart contract escrow to start the project.`;
+                              ? `Lock ${tokenAmt} ${tokenLabel} (~$${job.amountUsdc} USDC) in the smart contract escrow to start the project.`
+                              : `Lock $${job.amountUsdc} ${tokenLabel} in the smart contract escrow to start the project.`;
                           })()}
                         </p>
                       </div>
@@ -1174,7 +1173,7 @@ export const JobDetail: React.FC = () => {
 
             {(() => {
               const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
-              const isCrypto = sym === 'POL' || sym === 'MATIC' || sym === 'ETH' || sym === 'BTC';
+              const isCrypto = sym === 'POL' || sym === 'MATIC';
 
               // Token Gross, Fee, and Net
               const tokenGrossNum = parseFloat(isCrypto ? (job.amountEth || job.amountUsdc || '0') : (job.amountUsdc || '0')) || 0;
@@ -1184,7 +1183,7 @@ export const JobDetail: React.FC = () => {
               const tokenNetPayout = tokenGrossNum - tokenFreelancerFee;
 
               // USD Gross, Fee, and Net (grounded in live oracle price)
-              const tokenRateVsUsd = rates.cryptoPrices[sym] || (sym === 'POL' || sym === 'MATIC' ? (rates.cryptoPrices['POL'] || 0.45) : sym === 'ETH' ? (rates.cryptoPrices['ETH'] || 2800) : sym === 'BTC' ? (rates.cryptoPrices['BTC'] || 68000) : 1.0);
+              const tokenRateVsUsd = rates.cryptoPrices[sym] || (isCrypto ? (rates.cryptoPrices['POL'] || 0.45) : 1.0);
               const usdGrossNum = isCrypto ? (tokenGrossNum * tokenRateVsUsd) : (parseFloat(job.amountUsdc || '0') || 0);
               const usdClientFee = usdGrossNum * 0.025;
               const usdTotalClient = usdGrossNum + usdClientFee;

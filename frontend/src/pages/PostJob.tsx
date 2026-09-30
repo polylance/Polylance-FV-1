@@ -77,8 +77,8 @@ export const PostJob: React.FC = () => {
     }
   }, [createdJobId]);
 
-  // Advanced Multi-Currency & Interactive 3D Conversion State (Default: POL on Polygon Amoy)
-  const [selectedToken, setSelectedToken] = useState<'USDC' | 'USDT' | 'BTC' | 'ETH' | 'POL'>('POL');
+  // Advanced Multi-Currency & Interactive 3D Conversion State (Default: POL on Polygon)
+  const [selectedToken, setSelectedToken] = useState<'USDC' | 'USDT' | 'POL'>('POL');
   const [tokenAmount, setTokenAmount] = useState('0.05');
   const [selectedFiat, setSelectedFiat] = useState('INR');
   const [activeTab, setActiveTab] = useState<'crypto' | 'fiat'>('crypto');
@@ -120,14 +120,14 @@ export const PostJob: React.FC = () => {
       const fiatVal = parseFloat(fiatInputVal) || 0;
       const usdVal = fiatVal / fiatRateVsUsd;
       const cryptoVal = usdVal / tokenPriceUsd;
-      setTokenAmount(cryptoVal.toFixed(selectedToken === 'BTC' || selectedToken === 'ETH' ? 4 : 2));
+      setTokenAmount(cryptoVal.toFixed(selectedToken === 'POL' ? 4 : 2));
     }
   }, [fiatInputVal, selectedToken, selectedFiat, activeTab, tokenPriceUsd, fiatRateVsUsd]);
 
-  const handleSelectToken = (tokenId: 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'POL') => {
+  const handleSelectToken = (tokenId: 'USDC' | 'USDT' | 'POL') => {
     if (tokenId === selectedToken) return;
     setSelectedToken(tokenId);
-    if (tokenId === 'POL' || tokenId === 'ETH') {
+    if (tokenId === 'POL') {
       if (parseFloat(tokenAmount) >= 20 || !tokenAmount) {
         setTokenAmount('0.05');
       }
@@ -466,7 +466,7 @@ export const PostJob: React.FC = () => {
                     <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 text-[11px]">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-slate-400 font-medium">Presets:</span>
-                        {(selectedToken === 'POL' || selectedToken === 'ETH') ? (
+                        {selectedToken === 'POL' ? (
                           ['0.02', '0.05', '0.1', '0.25', '0.5'].map((amt) => (
                             <button
                               key={amt}
@@ -627,20 +627,6 @@ export const PostJob: React.FC = () => {
                         </div>
                       </div>
                     )}
-                    {selectedToken === 'ETH' && (
-                      <div className="w-9 h-9 rounded-full bg-[#EEF2F6] shadow-[3px_3px_6px_#cad4e2,-3px_-3px_6px_#ffffff] border border-white/80 flex items-center justify-center p-0.5 shrink-0">
-                        <div className="w-7 h-7 rounded-full bg-[#627EEA] text-white flex items-center justify-center font-extrabold text-sm shadow-xs font-mono">
-                          Ξ
-                        </div>
-                      </div>
-                    )}
-                    {selectedToken === 'BTC' && (
-                      <div className="w-9 h-9 rounded-full bg-[#EEF2F6] shadow-[3px_3px_6px_#cad4e2,-3px_-3px_6px_#ffffff] border border-white/80 flex items-center justify-center p-0.5 shrink-0">
-                        <div className="w-7 h-7 rounded-full bg-[#F7931A] text-white flex items-center justify-center font-extrabold text-xs shadow-xs font-mono">
-                          ₿
-                        </div>
-                      </div>
-                    )}
                     {selectedToken === 'POL' && (
                       <div className="w-9 h-9 rounded-full bg-[#EEF2F6] shadow-[3px_3px_6px_#cad4e2,-3px_-3px_6px_#ffffff] border border-white/80 flex items-center justify-center p-0.5 shrink-0">
                         <div className="w-7 h-7 rounded-full bg-[#8247E5] text-white flex items-center justify-center font-extrabold text-xs shadow-xs font-mono">
@@ -662,7 +648,7 @@ export const PostJob: React.FC = () => {
                   const totalClientUsd = grossUsd + clientFeeUsd;
 
                   const isStable = selectedToken === 'USDC' || selectedToken === 'USDT';
-                  const dec = selectedToken === 'BTC' || selectedToken === 'ETH' ? 4 : 2;
+                  const dec = selectedToken === 'POL' ? 4 : 2;
 
                   return (
                     <div className="my-2 p-3.5 bg-[#E8EEF5] shadow-[inset_2px_2px_5px_#cad4e2,inset_-2px_-2px_5px_#ffffff] rounded-2xl space-y-2 font-mono text-[10.5px]">

@@ -29,7 +29,11 @@ export function formatTimeAgo(timestamp: number): string {
 }
 
 export function formatDaysRemaining(submittedAt: number, reviewPeriodDays: number): string {
-  const reviewPeriodMs = reviewPeriodDays * 24 * 60 * 60 * 1000;
+  const safeReviewDays = reviewPeriodDays && reviewPeriodDays > 0 ? reviewPeriodDays : 7;
+  if (!submittedAt || submittedAt <= 0) {
+    return `${safeReviewDays}d remaining`;
+  }
+  const reviewPeriodMs = safeReviewDays * 24 * 60 * 60 * 1000;
   const expiresAt = submittedAt + reviewPeriodMs;
   const diff = expiresAt - Date.now();
   if (diff <= 0) return 'Review period expired';

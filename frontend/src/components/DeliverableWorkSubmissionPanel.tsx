@@ -11,7 +11,7 @@ import {
   Send, Scale, RefreshCw, Layers, TrendingUp, MessageSquare, 
   ChevronRight, Calendar, UserCheck, Eye, XCircle, Info, Copy,
   Check, Filter, ArrowUpDown, ChevronDown, DollarSign, Flag,
-  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award, CheckCheck, Loader2
+  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award, CheckCheck, Loader2, Lock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -307,12 +307,67 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     title: '',
   });
 
-  const getFormattedFundedAmount = () => {
+  // Live ticking clock for real-time review period SLA countdown
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const paymentSymbol = useMemo(() => {
     const sym = (currentJob.paymentTokenSymbol || 'USDC').toUpperCase();
-    const amt = parseFloat(currentJob.amountUsdc || '1250');
-    if (sym === 'ETH') return { value: (amt / 2500).toFixed(4), symbol: 'ETH' };
-    if (sym === 'MATIC' || sym === 'POL') return { value: amt.toLocaleString(), symbol: 'POL' };
-    return { value: `$${amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, symbol: sym };
+    if (sym === 'MATIC' || sym === 'POL') return 'POL';
+    if (sym === 'USDT') return 'USDT';
+    return 'USDC';
+  }, [currentJob.paymentTokenSymbol]);
+
+  const rawEscrowAmount = useMemo(() => {
+    const sym = (currentJob.paymentTokenSymbol || 'USDC').toUpperCase();
+    if (sym === 'MATIC' || sym === 'POL') {
+      const val = parseFloat(currentJob.amountEth || currentJob.amountUsdc || '0');
+      return isNaN(val) ? 0 : val;
+    }
+    const val = parseFloat(currentJob.amountUsdc || '0');
+    return isNaN(val) ? 0 : val;
+  }, [currentJob.paymentTokenSymbol, currentJob.amountEth, currentJob.amountUsdc]);
+
+  const formatAmountWithToken = (amt: number) => {
+    if (paymentSymbol === 'POL') {
+      return `${amt.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} POL`;
+    }
+    return `$${amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${paymentSymbol}`;
+  };
+
+  const submittedTime = useMemo(() => {
+    return currentJob.proof?.submittedAt || currentJob.submittedAt || 0;
+  }, [currentJob.proof?.submittedAt, currentJob.submittedAt]);
+
+  const reviewPeriodDays = currentJob.reviewPeriodDays && currentJob.reviewPeriodDays > 0 ? currentJob.reviewPeriodDays : 7;
+  const reviewPeriodMs = reviewPeriodDays * 24 * 60 * 60 * 1000;
+  const reviewExpiresAt = submittedTime > 0 ? submittedTime + reviewPeriodMs : 0;
+  const reviewMsRemaining = reviewExpiresAt > 0 ? Math.max(0, reviewExpiresAt - currentTime) : 0;
+  const isReviewPeriodExpired = submittedTime > 0 && reviewMsRemaining <= 0;
+
+  const reviewTimeRemainingStr = useMemo(() => {
+    if (!submittedTime || submittedTime <= 0) return `${reviewPeriodDays}d remaining`;
+    if (reviewMsRemaining <= 0) return 'Review period expired';
+    const totalSecs = Math.floor(reviewMsRemaining / 1000);
+    const days = Math.floor(totalSecs / 86400);
+    const hours = Math.floor((totalSecs % 86400) / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    if (days > 0) return `${days}d ${hours}h ${mins}m remaining`;
+    if (hours > 0) return `${hours}h ${mins}m ${secs}s remaining`;
+    return `${mins}m ${secs}s remaining`;
+  }, [submittedTime, reviewMsRemaining, reviewPeriodDays]);
+
+  const getFormattedFundedAmount = () => {
+    return {
+      value: paymentSymbol === 'POL' 
+        ? rawEscrowAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 })
+        : `$${rawEscrowAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      symbol: paymentSymbol,
+    };
   };
 
   const [copiedSbtCertId, setCopiedSbtCertId] = useState(false);
@@ -990,15 +1045,15 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               <div className="space-y-1.5 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-3 text-xs font-mono">
                 <div className="p-2 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-emerald-100 flex sm:block items-center justify-between">
                   <span className="text-slate-500 text-[10px] sm:text-[10.5px] block">Gross Contract Escrow</span>
-                  <strong className="text-slate-900 text-xs sm:text-sm font-bold sm:font-black">${parseFloat(currentJob.amountUsdc || '0').toFixed(2)} USDC</strong>
+                  <strong className="text-slate-900 text-xs sm:text-sm font-bold sm:font-black">{formatAmountWithToken(rawEscrowAmount)}</strong>
                 </div>
                 <div className="p-2 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-emerald-100 flex sm:block items-center justify-between">
                   <span className="text-slate-500 text-[10px] sm:text-[10.5px] block">Platform Maintenance (2.5%)</span>
-                  <strong className="text-rose-600 text-xs sm:text-sm font-bold sm:font-black">-${(parseFloat(currentJob.amountUsdc || '0') * 0.025).toFixed(2)} USDC</strong>
+                  <strong className="text-rose-600 text-xs sm:text-sm font-bold sm:font-black">-{formatAmountWithToken(rawEscrowAmount * 0.025)}</strong>
                 </div>
                 <div className="p-2 sm:p-3 bg-emerald-600 text-white rounded-lg sm:rounded-xl shadow-xs flex sm:block items-center justify-between">
                   <span className="text-emerald-100 text-[10px] sm:text-[10.5px] block">Net Released to Talent</span>
-                  <strong className="text-white text-xs sm:text-base font-black">${(parseFloat(currentJob.amountUsdc || '0') * 0.975).toFixed(2)} USDC</strong>
+                  <strong className="text-white text-xs sm:text-base font-black">{formatAmountWithToken(rawEscrowAmount * 0.975)}</strong>
                 </div>
               </div>
             </div>
@@ -1526,7 +1581,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   Category: {currentJob.category || 'Web3 Engineering'}
                 </span>
                 <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-xl border border-emerald-200">
-                  Escrow: ${parseFloat(currentJob.amountUsdc || '0').toLocaleString()} USDC
+                  Escrow: {formatAmountWithToken(rawEscrowAmount)}
                 </span>
               </div>
             </div>
@@ -1686,6 +1741,28 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           ) : (
             /* Deliverable Review Card for Client */
             <div className="p-4 rounded-2xl border border-purple-200 bg-purple-50/60 space-y-3">
+              {/* Prominent Action Required Alert for Client */}
+              <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-indigo-500/15 border-2 border-purple-300 shadow-xs space-y-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-purple-200/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-3 w-3 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                    </span>
+                    <span className="font-mono font-black text-[10px] sm:text-[11px] uppercase tracking-wider text-purple-950 bg-purple-200/90 px-2.5 py-0.5 rounded-full">
+                      Action Required • Review Work Deliverables
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-950 bg-white/90 px-2.5 py-1 rounded-xl border border-purple-200 shadow-2xs">
+                    <Clock size={13} className={isReviewPeriodExpired ? "text-rose-600" : "text-amber-600"} />
+                    <span>Review SLA: <strong className={isReviewPeriodExpired ? "text-rose-600" : "text-emerald-700"}>{reviewTimeRemainingStr}</strong></span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-800 leading-relaxed font-sans">
+                  The freelancer has completed project milestones and uploaded deliverables. Please inspect the source code, demo URL, and files attached below before the SLA deadline on <strong>{reviewExpiresAt > 0 ? new Date(reviewExpiresAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</strong>. You must <strong>Approve &amp; Release Funds</strong> to disburse escrow, or <strong>Request Fixes</strong> if revisions are needed.
+                </p>
+              </div>
+
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200/80 pb-2">
                 <div>
                   <span className="text-[9px] font-mono font-bold uppercase text-purple-900 bg-purple-200/80 px-2 py-0.5 rounded-full">
@@ -1890,7 +1967,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               </div>
 
               {currentJob.status !== 'Disputed' && (() => {
-                const grossAmount = parseFloat(currentJob.amountUsdc || '0');
+                const grossAmount = rawEscrowAmount;
                 const maintFeeAmount = grossAmount * 0.025;
                 const netDevPayout = grossAmount - maintFeeAmount;
 
@@ -1898,13 +1975,13 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   <div className="pt-2.5 border-t border-purple-200 space-y-2.5 font-sans">
                     <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-purple-100/70 border border-purple-200 text-xs font-mono">
                       <div className="flex items-center gap-3">
-                        <span className="text-slate-600">Escrow Release: <strong className="text-slate-900">${grossAmount.toFixed(2)} USDC</strong></span>
+                        <span className="text-slate-600">Escrow Release: <strong className="text-slate-900">{formatAmountWithToken(grossAmount)}</strong></span>
                         <span className="text-slate-400">|</span>
-                        <span className="text-slate-600">Platform Maintenance Fee (2.5%): <strong className="text-rose-600">-${maintFeeAmount.toFixed(2)} USDC</strong></span>
+                        <span className="text-slate-600">Platform Maintenance Fee (2.5%): <strong className="text-rose-600">-{formatAmountWithToken(maintFeeAmount)}</strong></span>
                       </div>
                       <div className="text-purple-950 font-bold">
                         <span>Net Sent to Talent: </span>
-                        <strong className="text-emerald-700 text-sm font-black">${netDevPayout.toFixed(2)} USDC</strong>
+                        <strong className="text-emerald-700 text-sm font-black">{formatAmountWithToken(netDevPayout)}</strong>
                       </div>
                     </div>
 
@@ -1925,7 +2002,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                           ) : (
                             <>
                               <CheckCircle2 size={13} />
-                              <span>Approve & Release Funds (${grossAmount.toFixed(2)} USDC • Net: ${netDevPayout.toFixed(2)} USDC)</span>
+                              <span>Approve & Release Funds ({formatAmountWithToken(grossAmount)} • Net: {formatAmountWithToken(netDevPayout)})</span>
                             </>
                           )}
                         </button>
@@ -1952,29 +2029,43 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <Info size={14} className="text-purple-600 shrink-0" />
                             <span>
-                              Deliverables are under client review (Review SLA: {currentJob.reviewPeriodDays || 7} Days). If the client does not take action within this window, you can claim autonomous auto-release directly to your wallet.
+                              Deliverables are under client review (Review SLA: {reviewPeriodDays} Days • <strong className={isReviewPeriodExpired ? "text-rose-600" : "text-purple-950"}>{reviewTimeRemainingStr}</strong>).
+                              {isReviewPeriodExpired 
+                                ? ' The review period has elapsed. You can now claim autonomous auto-release directly to your wallet.'
+                                : ' If the client does not take action or request revisions before the deadline, you can claim autonomous auto-release.'}
                             </span>
                           </div>
                           <button
                             type="button"
                             onClick={handleClaimAutoRelease}
-                            disabled={isClaimingAutoRelease}
+                            disabled={!isReviewPeriodExpired || isClaimingAutoRelease}
                             className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0 ${
-                              isClaimingAutoRelease
+                              !isReviewPeriodExpired
+                                ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
+                                : isClaimingAutoRelease
                                 ? 'bg-purple-200 text-purple-700 cursor-not-allowed'
                                 : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer hover:scale-105'
                             }`}
-                            title="Claim autonomous on-chain auto-release if review period has passed"
+                            title={
+                              !isReviewPeriodExpired
+                                ? `Review period active. Client has until ${reviewExpiresAt > 0 ? new Date(reviewExpiresAt).toLocaleString() : 'deadline'} (${reviewTimeRemainingStr}) to review.`
+                                : 'Claim autonomous on-chain auto-release'
+                            }
                           >
                             {isClaimingAutoRelease ? (
                               <>
                                 <Loader2 size={12} className="animate-spin" />
                                 <span>Claiming On-Chain...</span>
                               </>
+                            ) : !isReviewPeriodExpired ? (
+                              <>
+                                <Lock size={12} className="text-slate-500" />
+                                <span>Auto-Release Locked ({reviewTimeRemainingStr})</span>
+                              </>
                             ) : (
                               <>
                                 <CheckCircle2 size={12} />
-                                <span>Claim Auto-Release (${grossAmount.toFixed(2)} USDC)</span>
+                                <span>Claim Auto-Release ({formatAmountWithToken(grossAmount)})</span>
                               </>
                             )}
                           </button>

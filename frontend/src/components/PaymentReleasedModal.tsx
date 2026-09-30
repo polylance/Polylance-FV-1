@@ -45,7 +45,7 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
 
   // Determine token symbol: if not explicitly set, deduce from non-zero amounts
   const tokenSymbol = sym || (rawEth > 0 && rawUsdc === 0 ? 'POL' : 'USDC');
-  const isCryptoNative = tokenSymbol === 'POL' || tokenSymbol === 'MATIC' || tokenSymbol === 'ETH';
+  const isCryptoNative = tokenSymbol === 'POL' || tokenSymbol === 'MATIC';
 
   let totalAmount = 0;
   if (tokenSymbol === 'USDC' || tokenSymbol === 'USDT') {

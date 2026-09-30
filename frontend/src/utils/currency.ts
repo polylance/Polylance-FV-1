@@ -9,7 +9,7 @@ export interface FiatCurrency {
 }
 
 export interface CryptoToken {
-  id: 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'POL';
+  id: 'USDC' | 'USDT' | 'POL';
   name: string;
   symbol: string;
   priceUsd: number; // 1 Token = X USD
@@ -31,11 +31,9 @@ export const SUPPORTED_FIAT: FiatCurrency[] = [
 ];
 
 export const SUPPORTED_CRYPTO: CryptoToken[] = [
-  { id: 'USDC', name: 'USD Coin', symbol: 'USDC', priceUsd: 1.0, color: 'text-blue-600 border-blue-200 bg-blue-50/50', iconBg: 'bg-blue-500' },
-  { id: 'USDT', name: 'Tether', symbol: 'USDT', priceUsd: 1.0, color: 'text-emerald-600 border-emerald-200 bg-emerald-50/50', iconBg: 'bg-emerald-500' },
-  { id: 'ETH', name: 'Ethereum', symbol: 'ETH', priceUsd: 2800.0, color: 'text-indigo-600 border-indigo-200 bg-indigo-50/50', iconBg: 'bg-indigo-600' },
   { id: 'POL', name: 'Polygon', symbol: 'POL', priceUsd: 0.45, color: 'text-purple-600 border-purple-200 bg-purple-50/50', iconBg: 'bg-purple-600' },
-  { id: 'BTC', name: 'Bitcoin', symbol: 'BTC', priceUsd: 68000.0, color: 'text-amber-600 border-amber-200 bg-amber-50/50', iconBg: 'bg-amber-500' }
+  { id: 'USDC', name: 'USD Coin', symbol: 'USDC', priceUsd: 1.0, color: 'text-blue-600 border-blue-200 bg-blue-50/50', iconBg: 'bg-blue-500' },
+  { id: 'USDT', name: 'Tether', symbol: 'USDT', priceUsd: 1.0, color: 'text-emerald-600 border-emerald-200 bg-emerald-50/50', iconBg: 'bg-emerald-500' }
 ];
 
 export interface ConversionRates {
@@ -61,9 +59,7 @@ let activeRates: ConversionRates = {
   cryptoPrices: {
     USDC: 1.0,
     USDT: 1.0,
-    ETH: 2800.0,
-    POL: 0.45,
-    BTC: 68000.0
+    POL: 0.45
   },
   lastUpdated: Date.now()
 };
@@ -110,7 +106,7 @@ export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
     let cryptoSuccess = false;
     try {
       const binanceRes = await fetch(
-        'https://api.binance.com/api/v3/ticker/price?symbols=%5B%22USDCUSDT%22,%22BTCUSDT%22,%22ETHUSDT%22,%22POLUSDT%22%5D'
+        'https://api.binance.com/api/v3/ticker/price?symbols=%5B%22USDCUSDT%22,%22POLUSDT%22%5D'
       );
       if (binanceRes.ok) {
         const binanceData: Array<{ symbol: string; price: string }> = await binanceRes.json();
@@ -120,10 +116,6 @@ export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
           if (!isNaN(p) && p > 0) {
             if (item.symbol === 'USDCUSDT') {
               activeRates.cryptoPrices.USDC = parseFloat(p.toFixed(4));
-            } else if (item.symbol === 'BTCUSDT') {
-              activeRates.cryptoPrices.BTC = p;
-            } else if (item.symbol === 'ETHUSDT') {
-              activeRates.cryptoPrices.ETH = p;
             } else if (item.symbol === 'POLUSDT') {
               activeRates.cryptoPrices.POL = p;
             }
@@ -143,16 +135,14 @@ export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
     if (!cryptoSuccess) {
       try {
         const cryptoRes = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=usd-coin,tether,ethereum,matic-network,bitcoin&vs_currencies=usd'
+          'https://api.coingecko.com/api/v3/simple/price?ids=usd-coin,tether,matic-network&vs_currencies=usd'
         );
         if (cryptoRes.ok) {
           const cryptoData = await cryptoRes.json();
           const mappings: Record<string, string> = {
             'usd-coin': 'USDC',
             'tether': 'USDT',
-            'ethereum': 'ETH',
-            'matic-network': 'POL',
-            'bitcoin': 'BTC'
+            'matic-network': 'POL'
           };
           Object.entries(mappings).forEach(([cgId, tokenCode]) => {
             if (cryptoData[cgId] && cryptoData[cgId].usd) {
@@ -211,7 +201,7 @@ export function useLiveCurrencyRates(): ConversionRates {
 /**
  * Calculates conversion from a Crypto amount to a specific Fiat currency.
  * @param cryptoAmount - Amount of crypto token (e.g. 2.5)
- * @param tokenCode - Code of crypto (e.g. 'ETH')
+ * @param tokenCode - Code of crypto (e.g. 'POL')
  * @param fiatCode - Code of target fiat (e.g. 'INR')
  */
 export function convertCryptoToFiat(cryptoAmount: number, tokenCode: string, fiatCode: string): { amount: number; formatted: string } {

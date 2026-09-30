@@ -74,7 +74,7 @@ interface PolyLanceDataContextType {
   addJudge: (address: string, name: string, notes?: string, addedBy?: string) => void;
   removeJudge: (address: string) => void;
   toggleJudgeStatus: (address: string) => void;
-  postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
+  postJob: (jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC'; reviewPeriodDays: number }, clientAddress: string) => Promise<Job>;
   deleteJob: (jobId: string) => Promise<boolean>;
   updateJobDetails: (
     jobId: string,
@@ -85,7 +85,7 @@ interface PolyLanceDataContextType {
       amountUsdc?: string;
       amountEth?: string;
       reviewPeriodDays?: number;
-      paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC';
+      paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC';
     }
   ) => Promise<boolean>;
   renewJob: (jobId: string) => Promise<boolean>;
@@ -664,9 +664,16 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         }
       };
 
-      const currPriority = getStatusPriority(curr.status);
-      const inPriority = getStatusPriority(inJob.status);
-      const resolvedStatus = inPriority >= currPriority ? (inJob.status || curr.status) : curr.status;
+      let resolvedStatus: JobStatus;
+      // If incoming job has a live on-chain contract and is in Submitted or Disputed or Funded status,
+      // on-chain truth MUST override any stale local 'Completed' state!
+      if (inJob.contractAddress && inJob.status && inJob.status !== 'Completed' && curr.status === 'Completed') {
+        resolvedStatus = inJob.status;
+      } else {
+        const currPriority = getStatusPriority(curr.status);
+        const inPriority = getStatusPriority(inJob.status);
+        resolvedStatus = inPriority >= currPriority ? (inJob.status || curr.status) : curr.status;
+      }
 
       // Title: Always preserve real user-created title over generic "Smart Contract Escrow 0x..."
       const resolvedTitle = (!isGenericEscrowTitle(curr.title) && isGenericEscrowTitle(inJob.title))
@@ -712,9 +719,9 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         progressUpdates: mergedProgressUpdates,
         extensionRequests: mergedExtensionRequests,
         modificationRequests: Array.from(modMap.values()),
-        sbtTokenId: inJob.sbtTokenId || curr.sbtTokenId,
-        sbtTxHash: inJob.sbtTxHash || curr.sbtTxHash,
-        completedAt: inJob.completedAt || curr.completedAt,
+        sbtTokenId: resolvedStatus === 'Completed' ? (inJob.sbtTokenId || curr.sbtTokenId) : undefined,
+        sbtTxHash: resolvedStatus === 'Completed' ? (inJob.sbtTxHash || curr.sbtTxHash) : undefined,
+        completedAt: resolvedStatus === 'Completed' ? (inJob.completedAt || curr.completedAt) : undefined,
         submittedAt: inJob.submittedAt || curr.submittedAt,
         chatClearedAt: chatClearedAt > 0 ? chatClearedAt : undefined,
       };
@@ -1644,18 +1651,20 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             continue;
           }
 
-          // Compute final status intelligently: NEVER downgrade terminal or advanced lifecycle states
+          // Compute final status intelligently: On Polygon Mainnet, on-chain state is the single source of truth.
           let finalStatus: JobStatus;
-          if (existingMatch?.status === 'Completed' || onChainStatusParsed === 'Completed') {
+          if (onChainStatusParsed === 'Completed') {
             finalStatus = 'Completed';
-          } else if (existingMatch?.status === 'Disputed' || onChainStatusParsed === 'Disputed') {
+          } else if (onChainStatusParsed === 'Disputed' || existingMatch?.status === 'Disputed') {
             finalStatus = 'Disputed';
-          } else if (existingMatch?.status === 'Submitted' || onChainStatusParsed === 'Submitted' || existingMatch?.proof) {
+          } else if (onChainStatusParsed === 'Submitted' || existingMatch?.status === 'Submitted' || existingMatch?.proof) {
+            // If on-chain status is Submitted, or deliverables were submitted and not released on-chain:
+            // Status is strictly Submitted • Under Review (NEVER mark Completed prematurely!)
             finalStatus = 'Submitted';
-          } else if (existingMatch?.status === 'Cancelled' || onChainStatusParsed === 'Cancelled') {
+          } else if (onChainStatusParsed === 'Cancelled') {
             finalStatus = 'Cancelled';
-          } else if (hasOnChainFunds || existingMatch?.status === 'Funded') {
-            finalStatus = 'Funded';
+          } else if (hasOnChainFunds || existingMatch?.status === 'Funded' || onChainStatusParsed === 'Selected') {
+            finalStatus = (existingMatch?.status === 'Selected' || onChainStatusParsed === 'Selected') ? 'Selected' : 'Funded';
           } else {
             finalStatus = existingMatch?.status || onChainStatusParsed;
           }
@@ -1669,8 +1678,19 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             if (evt.step === 'Submitted' && (finalStatus === 'Submitted' || finalStatus === 'Completed')) {
               return { ...evt, status: 'completed' as const, timestamp: evt.timestamp || Date.now() };
             }
-            if (evt.step === 'Completed' && finalStatus === 'Completed') {
-              return { ...evt, status: 'completed' as const, timestamp: evt.timestamp || Date.now() };
+            if (evt.step === 'Completed') {
+              return {
+                ...evt,
+                status: finalStatus === 'Completed' ? ('completed' as const) : ('pending' as const),
+                timestamp: finalStatus === 'Completed' ? (evt.timestamp || Date.now()) : 0,
+              };
+            }
+            if (evt.step === 'Minted') {
+              return {
+                ...evt,
+                status: finalStatus === 'Completed' ? ('completed' as const) : ('pending' as const),
+                timestamp: finalStatus === 'Completed' ? (evt.timestamp || Date.now()) : 0,
+              };
             }
             return evt;
           }) : [
@@ -1685,11 +1705,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             contractAddress: jobAddr,
             client,
             freelancer: finalFreelancer || existingMatch.freelancer,
-            amountEth: existingMatch.amountEth || (tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL' 
+            amountEth: existingMatch.amountEth || ((tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL')
               ? formattedAmount 
-              : (parseFloat(formattedAmount) / 2800).toFixed(4)),
+              : formattedAmount),
             amountUsdc: existingMatch.amountUsdc || (
-              tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL'
+              (tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL')
                 ? (parseFloat(formattedAmount) * 0.45).toFixed(2)
                 : formattedAmount
             ),
@@ -1702,8 +1722,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             category: existingMatch.category || 'web3',
             reviewPeriodDays: existingMatch.reviewPeriodDays || Math.round(Number(reviewPeriod) / 86400) || 7,
             createdAt: existingMatch.createdAt || Date.now() - 3600000,
-            submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : existingMatch.submittedAt,
-            completedAt: existingMatch.completedAt || (finalStatus === 'Completed' ? Date.now() : undefined),
+            submittedAt: Number(submittedAt) > 0 ? Number(submittedAt) * 1000 : (existingMatch.submittedAt || (finalStatus === 'Submitted' ? Date.now() : undefined)),
+            completedAt: finalStatus === 'Completed' ? (existingMatch.completedAt || Date.now()) : undefined,
+            sbtTokenId: finalStatus === 'Completed' ? existingMatch.sbtTokenId : undefined,
+            sbtTxHash: finalStatus === 'Completed' ? existingMatch.sbtTxHash : undefined,
             termsHash: termsHash || existingMatch.termsHash,
             applications: existingMatch.applications || [],
             events: updatedEvents,
@@ -1717,8 +1739,6 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             negotiationProposals: existingMatch.negotiationProposals || [],
             clientAgreedTerms: existingMatch.clientAgreedTerms !== undefined ? existingMatch.clientAgreedTerms : true,
             freelancerAgreedTerms: existingMatch.freelancerAgreedTerms !== undefined ? existingMatch.freelancerAgreedTerms : true,
-            sbtTokenId: existingMatch.sbtTokenId,
-            sbtTxHash: existingMatch.sbtTxHash,
           } as Job);
         } catch {
           // ignore single job read error
@@ -1766,7 +1786,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   }), [treasuryBalanceUsdc, treasuryBalanceEth, treasuryProposals]);
 
   const postJob = async (
-    jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC'; reviewPeriodDays: number },
+    jobData: { title: string; description: string; category: any; amountUsdc: string; amountEth?: string; paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC'; reviewPeriodDays: number },
     clientAddress: string
   ): Promise<Job> => {
     const tokenSymbol = (jobData.paymentTokenSymbol || 'POL').toUpperCase();
@@ -1926,7 +1946,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       amountUsdc?: string;
       amountEth?: string;
       reviewPeriodDays?: number;
-      paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC' | 'ETH' | 'BTC';
+      paymentTokenSymbol?: 'USDC' | 'USDT' | 'POL' | 'MATIC';
     }
   ): Promise<boolean> => {
     try {
@@ -1937,7 +1957,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           const tokenSymbol = updates.paymentTokenSymbol || (j.paymentTokenSymbol as any) || 'USDC';
           const tokenConfig = getTokenBySymbol(tokenSymbol);
           const symUpper = String(tokenSymbol).toUpperCase();
-          const isCrypto = symUpper === 'MATIC' || symUpper === 'POL' || symUpper === 'ETH' || symUpper === 'BTC';
+          const isCrypto = symUpper === 'MATIC' || symUpper === 'POL';
 
           const newAmountUsdc = updates.amountUsdc !== undefined ? updates.amountUsdc : j.amountUsdc;
           const ethAmount = updates.amountEth !== undefined
@@ -2895,15 +2915,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } catch (err: any) {
       console.error('Real contract releasePayment notice:', err);
-      if (isConnected && (err?.code === 'ACTION_REJECTED' || err?.code === 4001)) {
+      if (isConnected) {
         throw err;
       }
     }
 
     if (!txHash) {
-      txHash = generateMockTxHash();
+      throw new Error('Escrow payment release transaction was not confirmed on Polygon.');
     }
-    if (!sbtTxHash) sbtTxHash = txHash || generateMockTxHash();
+    if (!sbtTxHash) sbtTxHash = txHash;
 
     setJobs((prev) =>
       prev.map((j) => {
@@ -2986,44 +3006,67 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     let txHash = '';
     const job = jobs.find((j) => matchJob(j, jobId));
 
+    if (!job) {
+      throw new Error('Escrow job not found.');
+    }
+
     if (isConnected && isWrongNetwork) {
       throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to claim auto-release.`);
     }
 
-    try {
-      const signer = await getSigner();
-      if (signer && job && ethers.isAddress(job.contractAddress)) {
-        const deployedCode = await provider.getCode(job.contractAddress).catch(() => '0x');
-        if (deployedCode && deployedCode !== '0x') {
-          const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
-          const onChainStatus = Number(await escrow.status().catch(() => -1));
-          
-          if (onChainStatus === 2) {
-            console.log(`Executing real on-chain claimAutoRelease from escrow ${job.contractAddress}...`);
-            const claimGas = await getPolygonGasOverrides(provider);
-            const tx = await escrow.claimAutoRelease(claimGas);
-            const receipt = await tx.wait();
-            txHash = receipt.hash;
-            console.log(`Escrow auto-released successfully on-chain! TxHash: ${txHash}`);
-          }
-        }
-      }
-    } catch (err: any) {
-      console.error('claimAutoRelease on-chain error:', err);
-      if (isConnected) {
-        throw err;
-      }
+    // Verify SLA deadline has genuinely expired before calling
+    const submittedTime = job.submittedAt || job.proof?.submittedAt || job.createdAt || 0;
+    const reviewPeriodDays = job.reviewPeriodDays || 7;
+    const reviewPeriodMs = reviewPeriodDays * 24 * 60 * 60 * 1000;
+    const expiresAt = submittedTime + reviewPeriodMs;
+    const now = Date.now();
+
+    if (submittedTime > 0 && now < expiresAt) {
+      const remainingMs = expiresAt - now;
+      const hours = Math.ceil(remainingMs / (1000 * 60 * 60));
+      const days = Math.floor(hours / 24);
+      const remHours = hours % 24;
+      const timeStr = days > 0 ? `${days}d ${remHours}h` : `${hours}h`;
+      throw new Error(`Review period SLA is still active! The client has ${timeStr} remaining to review deliverables before auto-release unlocks.`);
     }
 
+    const signer = await getSigner();
+    if (!signer) {
+      throw new Error('Wallet not connected. Connect the assigned freelancer wallet to claim on-chain auto-release.');
+    }
+
+    if (!job.contractAddress || !ethers.isAddress(job.contractAddress)) {
+      throw new Error('No on-chain escrow contract deployed for this job.');
+    }
+
+    const deployedCode = await provider.getCode(job.contractAddress).catch(() => '0x');
+    if (!deployedCode || deployedCode === '0x') {
+      throw new Error('Escrow contract code not found on Polygon network.');
+    }
+
+    const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
+    const onChainStatus = Number(await escrow.status().catch(() => -1));
+
+    if (onChainStatus !== 2) {
+      throw new Error(`Escrow is not in Submitted status on-chain (status=${onChainStatus}). Auto-release cannot be claimed.`);
+    }
+
+    console.log(`Executing real on-chain claimAutoRelease from escrow ${job.contractAddress}...`);
+    const claimGas = await getPolygonGasOverrides(provider);
+    const tx = await escrow.claimAutoRelease(claimGas);
+    const receipt = await tx.wait();
+    txHash = receipt.hash;
+    console.log(`Escrow auto-released successfully on-chain! TxHash: ${txHash}`);
+
     if (!txHash) {
-      txHash = generateMockTxHash();
+      throw new Error('Auto-release transaction was not confirmed on Polygon.');
     }
 
     setJobs((prev) =>
       prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
         const updatedEvents = (j.events || []).map((evt) => {
-          if (evt.step === 'Completed') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Protocol' };
+          if (evt.step === 'Completed') return { ...evt, title: 'Autonomous Auto-Release Claimed', status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Freelancer' };
           return evt;
         });
         return {

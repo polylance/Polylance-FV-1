@@ -273,7 +273,6 @@ export const ActionStatusModal: React.FC<ActionStatusModalProps> = ({
                             {(() => {
                               const payoutDetail = details.find(d => d.label.toLowerCase().includes('payout') || d.label.toLowerCase().includes('amount') || d.label.toLowerCase().includes('budget'));
                               const payoutValue = payoutDetail ? payoutDetail.value : '$15 USDC';
-                              const isEth = payoutValue.toUpperCase().includes('ETH');
                               const isMatic = payoutValue.toUpperCase().includes('MATIC') || payoutValue.toUpperCase().includes('POL');
 
                               return (
@@ -282,7 +281,7 @@ export const ActionStatusModal: React.FC<ActionStatusModalProps> = ({
                                     {payoutValue}
                                   </span>
                                   <div className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[8px] font-black shadow-2xs">
-                                    {isEth ? 'Ξ' : isMatic ? 'P' : '$'}
+                                    {isMatic ? 'P' : '$'}
                                   </div>
                                 </div>
                               );
@@ -297,9 +296,8 @@ export const ActionStatusModal: React.FC<ActionStatusModalProps> = ({
                           {(() => {
                             const payoutDetail = details.find(d => d.label.toLowerCase().includes('payout') || d.label.toLowerCase().includes('amount') || d.label.toLowerCase().includes('budget'));
                             const payoutValue = payoutDetail ? payoutDetail.value : '$15 USDC';
-                            const isEth = payoutValue.toUpperCase().includes('ETH');
                             const isMatic = payoutValue.toUpperCase().includes('MATIC') || payoutValue.toUpperCase().includes('POL');
-                            const payoutSymbol = isEth ? 'Ξ' : isMatic ? 'POL' : '$';
+                            const payoutSymbol = isMatic ? 'POL' : '$';
 
                             return (
                               <div className="hidden sm:flex shrink-0 items-center justify-center -my-1">
