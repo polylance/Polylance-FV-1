@@ -175,11 +175,13 @@ export function getCanonicalCertificateId(jobId?: string | number | any, contrac
 
 /**
  * Formats canonical CertifiedPass Universal Verification URL
+ * Guarantees seamless connection both within PolyLance and across CertifiedPass portal domains.
  */
 export function getCertifiedPassVerifyUrl(certId: string): string {
   const clean = String(certId || '').trim();
-  if (typeof window !== 'undefined' && (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1'))) {
-    return `${window.location.origin}/#/verify?certId=${encodeURIComponent(clean)}`;
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    return `${origin}/?certId=${encodeURIComponent(clean)}#/verify?certId=${encodeURIComponent(clean)}`;
   }
-  return `https://certifiedpass.polylance.codes/verify?certId=${encodeURIComponent(clean)}&partner=polylance`;
+  return `https://certifiedpass.polylance.codes/?certId=${encodeURIComponent(clean)}#/verify?certId=${encodeURIComponent(clean)}`;
 }

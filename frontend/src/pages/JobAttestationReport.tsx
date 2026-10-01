@@ -20,6 +20,7 @@ import { truncateAddress, generateDeterministicHash, getCanonicalCertificateId, 
 import { generateIpfsCid } from '../utils/ipfs';
 import { generateCode128Bars } from '../utils/barcode';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
+import polylanceVerifiedSealImg from '../assets/polylance-verified-seal.png';
 import { Job } from '../types';
 
 export const JobAttestationReport: React.FC = () => {
@@ -388,10 +389,6 @@ export const JobAttestationReport: React.FC = () => {
     return getPolygonScanUrl(fundEscrowTxHash);
   }, [fundEscrowTxHash]);
 
-  const barcodeData = useMemo(() => {
-    return generateCode128Bars(polygonScanTxUrl);
-  }, [polygonScanTxUrl]);
-
   const barcodeSerial = useMemo(() => {
     const rawJobId = String(job?.id || '001')
       .replace(/[^a-zA-Z0-9]/g, '')
@@ -408,6 +405,10 @@ export const JobAttestationReport: React.FC = () => {
     const day = String(ts.getDate()).padStart(2, '0');
     return `PL-${yr}-${mo}${day}-${rawJobId}`;
   }, [job]);
+
+  const barcodeData = useMemo(() => {
+    return generateCode128Bars(barcodeSerial);
+  }, [barcodeSerial]);
 
   const completionDate = job?.events?.find((e: any) => e.step === 'Completed')?.timestamp
     ? new Date(
@@ -1233,8 +1234,8 @@ export const JobAttestationReport: React.FC = () => {
             {/* Certificate Content Elements */}
             <div className="relative z-10 flex flex-col justify-between h-full space-y-2.5 sm:space-y-3">
               
-              {/* 1. Top Branding Area */}
-              <div className="flex items-center justify-between gap-4 pt-1 px-1">
+              {/* 1. Top Branding Area - Adjusted leftward with pr-14 sm:pr-20 to clear top-right corner rosette design */}
+              <div className="flex items-center justify-between gap-4 pt-1.5 pl-3 sm:pl-6 pr-14 sm:pr-20">
                 <div className="flex items-center gap-3">
                   <img 
                     src={polylanceLogoImg} 
@@ -1251,20 +1252,20 @@ export const JobAttestationReport: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Certificate Metadata */}
+                {/* Certificate Metadata - Protected with solid pill badge to eliminate any design overlap */}
                 <div className="text-right space-y-1 text-xs font-mono">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold">
+                  <div className="inline-flex items-center justify-end gap-1.5 bg-white/95 border border-blue-200/90 rounded-lg px-2.5 py-1 shadow-2xs">
+                    <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold shrink-0">
                       CERTIFICATE ID
                     </span>
-                    <span className="font-bold text-slate-800 text-[11px] truncate max-w-[170px] sm:max-w-[210px]">
+                    <span className="font-bold text-slate-900 text-[11px] truncate max-w-[145px] sm:max-w-[190px]">
                       {certificateId}
                     </span>
                     <button
                       type="button"
                       onClick={handleCopyCertId}
                       title="Copy Certificate ID"
-                      className="hover:text-blue-700 transition-colors p-0.5 cursor-pointer no-print"
+                      className="hover:text-blue-700 transition-colors p-0.5 cursor-pointer no-print shrink-0"
                     >
                       <Copy size={11} className="text-slate-400" />
                     </button>
@@ -1567,19 +1568,20 @@ export const JobAttestationReport: React.FC = () => {
 
               {/* 8. Bottom Sign-Off & Barcode */}
               <div className="pt-2 border-t border-slate-200/90 flex items-center justify-between gap-4">
-                {/* Signature & Oracle Authority */}
-                <div className="space-y-0.5">
-                  {/* Cursive handwritten signature */}
-                  <div className="h-8 flex items-center">
-                    <svg viewBox="0 0 170 45" className="h-7 w-36 text-[#1E3A8A]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 34 C10 22 16 8 26 8 C36 8 36 26 24 32 C16 36 14 24 26 20 C42 14 48 32 58 22 C68 12 74 30 86 22 C96 14 104 28 116 20 C126 12 136 26 148 18 C156 14 162 22 166 16" />
-                      <path d="M 20 36 Q 75 20 152 28" strokeWidth="1.6" opacity="0.85" />
-                    </svg>
+                {/* Official Signature Seal & Oracle Authority */}
+                <div className="space-y-1">
+                  {/* Official Verified Signature Seal Image */}
+                  <div className="h-10 sm:h-11 flex items-center">
+                    <img 
+                      src={polylanceVerifiedSealImg} 
+                      alt="PolyLance Oracle Network Verified Seal" 
+                      className="h-10 sm:h-11 w-auto max-w-[190px] sm:max-w-[220px] object-contain mix-blend-multiply drop-shadow-2xs" 
+                    />
                   </div>
-                  <div className="font-bold text-xs sm:text-[13px] text-[#0F172A] leading-tight">
+                  <div className="font-bold text-xs sm:text-[13px] text-[#0F172A] leading-tight font-headline">
                     PolyLance Oracle Network
                   </div>
-                  <div className="text-[8px] font-mono tracking-[0.2em] text-slate-400 uppercase font-bold">
+                  <div className="text-[8px] font-mono tracking-[0.2em] text-slate-500 uppercase font-bold">
                     VERIFIED &amp; ATTESTED
                   </div>
                 </div>
@@ -1593,22 +1595,23 @@ export const JobAttestationReport: React.FC = () => {
 
                   {/* Barcode visual */}
                   <div className="flex justify-end">
-                    <svg
-                      viewBox={`0 0 ${barcodeData.totalWidth} 32`}
-                      className="w-32 sm:w-36 h-6"
-                      preserveAspectRatio="none"
-                      shapeRendering="crispEdges"
-                    >
-                      {barcodeData.bars.map((bar, i) => (
-                        <rect key={i} x={bar.x} y={0} width={bar.width} height={32} fill="#0F172A" shapeRendering="crispEdges" />
-                      ))}
-                    </svg>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 text-[8px] font-mono text-slate-500 font-bold">
-                    <span>{barcodeSerial}</span>
-                    <span>•</span>
-                    <span className="tracking-widest">POLYLANCE.CODES</span>
+                    <div className="bg-white/95 px-2.5 py-1 rounded border border-slate-200/90 shadow-2xs inline-flex flex-col items-center">
+                      <svg
+                        viewBox={`0 0 ${barcodeData.totalWidth} 32`}
+                        className="w-36 sm:w-44 h-7"
+                        preserveAspectRatio="none"
+                        shapeRendering="crispEdges"
+                      >
+                        {barcodeData.bars.map((bar, i) => (
+                          <rect key={i} x={bar.x} y={0} width={bar.width} height={32} fill="#0F172A" shapeRendering="crispEdges" />
+                        ))}
+                      </svg>
+                      <div className="flex items-center justify-center gap-1.5 text-[8px] font-mono text-slate-600 font-bold mt-0.5 tracking-wider">
+                        <span>{barcodeSerial}</span>
+                        <span>•</span>
+                        <span className="tracking-widest">POLYLANCE.CODES</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

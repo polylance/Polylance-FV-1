@@ -133,6 +133,55 @@ export const CertifiedPass: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
+  // Fetch verified certificate from backend microservices if local resolution needs confirmation
+  const fetchVerifiedCertFromBackend = useCallback(async (idToVerify: string) => {
+    const cleanId = String(idToVerify || '').trim();
+    if (!cleanId) return null;
+    const endpoints = getSyncEndpoints();
+    for (const endpoint of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
+        const res = await fetch(`${endpoint}/api/certifiedpass/verify/${encodeURIComponent(cleanId)}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && (json.verified || json.success) && json.data) {
+            const d = json.data.details || {};
+            const certId = json.data.certId || cleanId;
+            const isAudit = json.data.recordType === 'PROTOCOL_TRUST_AUDIT';
+            return {
+              type: (isAudit ? 'audit' : 'job') as 'job' | 'audit',
+              isRealMatch: true,
+              certId: certId,
+              jobId: d.sbtTokenId?.replace(/^SBT-/i, '') || cleanId,
+              jobTitle: d.title || 'Verified PolyLance Sovereign Deliverable',
+              category: d.category || 'Decentralized Escrow',
+              freelancerAddress: d.freelancerAddress || '',
+              freelancerName: d.freelancerName || (d.freelancerAddress ? truncateAddress(d.freelancerAddress) : 'Verified Freelancer'),
+              freelancerGithub: 'polylance-dev',
+              clientAddress: d.clientAddress || '',
+              clientName: d.clientName || (d.clientAddress ? truncateAddress(d.clientAddress) : 'Verified Client Escrow'),
+              sbtTokenId: d.sbtTokenId || `SBT-${cleanId.slice(0, 6).toUpperCase()}`,
+              ipfsCid: d.ipfsCid || 'bafybeihkovi2mfl4vj6l3k4o7v7q4d4pkm6e6377k47x2',
+              oracleSignature: d.oracleSignature || '0x42f8366420a092c55660830e8115e9a443900990',
+              contractAddress: d.contractAddress || (import.meta.env.VITE_JOB_ESCROW_ADDRESS || '') as string,
+              networkChainId: d.networkChainId || 137,
+              completedAt: d.timestamp || new Date().toISOString(),
+              privacyShieldedAmount: 'PROTECTED (Zero-Knowledge Verified)',
+              targetUrl: isAudit
+                ? `/audit/${encodeURIComponent(d.freelancerAddress || cleanId)}`
+                : `/attestation/${encodeURIComponent(certId)}`,
+            };
+          }
+        }
+      } catch (_) {}
+    }
+    return null;
+  }, []);
+
   // Comprehensive certificate, deliverable, and audit report resolver
   const resolveTarget = useCallback((rawInput: string) => {
     let q = (rawInput || '').trim();
@@ -141,23 +190,40 @@ export const CertifiedPass: React.FC = () => {
     // Handle full URLs or hash routes
     if (q.includes('#/')) {
       const routePart = q.split('#/')[1] || '';
-      const [path] = routePart.split('?');
-      const segments = path.split('/').filter(Boolean);
-      if (segments.includes('attestation')) {
-        const idx = segments.indexOf('attestation');
-        if (idx > 0 && segments[idx - 1] && segments[idx - 2] === 'jobs') {
-          q = segments[idx - 1]; // /jobs/:id/attestation
-        } else if (segments[idx + 1]) {
-          q = segments[idx + 1];
-        }
-      } else if (segments.includes('audit')) {
-        const idx = segments.indexOf('audit');
-        if (segments[idx + 1]) {
-          q = segments[idx + 1];
-        }
-      } else if (segments[0] === 'jobs' && segments[1]) {
-        q = segments[1];
+      const [path, query] = routePart.split('?');
+      if (query) {
+        try {
+          const params = new URLSearchParams(query);
+          const certFromParam = params.get('certId') || params.get('id') || params.get('q');
+          if (certFromParam) q = certFromParam;
+        } catch (_) {}
       }
+      if (q.includes('#/')) {
+        const segments = path.split('/').filter(Boolean);
+        if (segments.includes('attestation')) {
+          const idx = segments.indexOf('attestation');
+          if (idx > 0 && segments[idx - 1] && segments[idx - 2] === 'jobs') {
+            q = segments[idx - 1]; // /jobs/:id/attestation
+          } else if (segments[idx + 1]) {
+            q = segments[idx + 1];
+          }
+        } else if (segments.includes('audit')) {
+          const idx = segments.indexOf('audit');
+          if (segments[idx + 1]) {
+            q = segments[idx + 1];
+          }
+        } else if (segments[0] === 'jobs' && segments[1]) {
+          q = segments[1];
+        }
+      }
+    }
+
+    if (q.includes('?')) {
+      try {
+        const qUrl = new URL(q.startsWith('http') ? q : `https://polylance.codes/${q}`);
+        const p = qUrl.searchParams.get('certId') || qUrl.searchParams.get('id') || qUrl.searchParams.get('q');
+        if (p) q = p;
+      } catch (_) {}
     }
 
     const cleanUpper = q.toUpperCase();
@@ -192,6 +258,8 @@ export const CertifiedPass: React.FC = () => {
       const jCleanId = jId.replace(/^job-/i, '');
       const jContractNoHex = jContract.replace(/^0x/i, '');
       const jIdNoHex = jId.replace(/^0x/i, '');
+      const jRawId = String(j.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-4).toLowerCase();
+      const isBarcodeMatch = cleanLower.startsWith('pl-') && cleanLower.endsWith(jRawId) && jRawId.length >= 3;
 
       return (
         jCert === cleanLower ||
@@ -200,6 +268,7 @@ export const CertifiedPass: React.FC = () => {
         jId === stripped ||
         jCleanId === stripped ||
         jContract === stripped ||
+        isBarcodeMatch ||
         (cleanNoHex.length >= 4 && (
           jContractNoHex.includes(cleanNoHex) ||
           cleanNoHex.includes(jContractNoHex) ||
@@ -222,6 +291,7 @@ export const CertifiedPass: React.FC = () => {
 
       return {
         type: 'job' as const,
+        isRealMatch: true,
         certId: canonicalCert,
         jobId: foundJob.id,
         jobTitle: foundJob.title || 'Verified PolyLance Sovereign Deliverable',
@@ -253,6 +323,7 @@ export const CertifiedPass: React.FC = () => {
       const p = profiles[targetAddr.toLowerCase()];
       return {
         type: 'audit' as const,
+        isRealMatch: true,
         certId: `PL-AUDIT-${targetAddr.slice(0, 10).toUpperCase()}`,
         jobId: targetAddr,
         jobTitle: `Protocol Reputation & Trust Audit Report`,
@@ -278,6 +349,7 @@ export const CertifiedPass: React.FC = () => {
       const demo = DEMO_CERTS[cleanUpper];
       return {
         type: 'job' as const,
+        isRealMatch: true,
         ...demo,
         targetUrl: `/attestation/${encodeURIComponent(demo.certId)}`,
       };
@@ -287,6 +359,7 @@ export const CertifiedPass: React.FC = () => {
     const displayCertId = cleanUpper.startsWith('PL-') ? cleanUpper : `PL-SBT-JOB-${cleanUpper}`;
     return {
       type: 'job' as const,
+      isRealMatch: false,
       certId: displayCertId,
       jobId: stripped,
       jobTitle: 'PolyLance Verified Attestation Deliverable',
@@ -315,31 +388,64 @@ export const CertifiedPass: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const { certId: pathCertId } = useParams();
 
+  const runVerification = useCallback(async (idToVerify: string) => {
+    setIsVerifying(true);
+    setVerificationSteps(0);
+
+    const localMatch = resolveTarget(idToVerify);
+    let finalResult = localMatch;
+
+    setTimeout(() => setVerificationSteps(1), 180);
+    setTimeout(() => setVerificationSteps(2), 380);
+    setTimeout(() => setVerificationSteps(3), 600);
+
+    // If local match is not found or is fallback, query backend verification service
+    if (!localMatch || !localMatch.isRealMatch) {
+      const backendResult = await fetchVerifiedCertFromBackend(idToVerify);
+      if (backendResult) {
+        finalResult = backendResult;
+      }
+    }
+
+    setTimeout(() => {
+      setVerificationSteps(4);
+      setVerificationResult(finalResult);
+      setIsVerifying(false);
+      if (finalResult?.isRealMatch) {
+        confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
+      }
+    }, 850);
+  }, [resolveTarget, fetchVerifiedCertFromBackend]);
+
   // Sync with URL query parameter ?certId=... or ?id=... or route parameter /verify/:certId
   useEffect(() => {
-    const urlCert = pathCertId || searchParams.get('certId') || searchParams.get('id') || searchParams.get('q');
+    let urlCert = pathCertId || searchParams.get('certId') || searchParams.get('id') || searchParams.get('q');
+    if (!urlCert && typeof window !== 'undefined') {
+      try {
+        const outer = new URLSearchParams(window.location.search);
+        urlCert = outer.get('certId') || outer.get('id') || outer.get('q');
+        if (!urlCert && window.location.hash.includes('?')) {
+          const hashSearch = new URLSearchParams(window.location.hash.split('?')[1]);
+          urlCert = hashSearch.get('certId') || hashSearch.get('id') || hashSearch.get('q');
+        }
+      } catch (_) {}
+    }
+
     if (urlCert && urlCert !== certInput) {
       setCertInput(urlCert);
       runVerification(urlCert);
     }
-  }, [searchParams, pathCertId]);
+  }, [searchParams, pathCertId, runVerification]);
 
-  const runVerification = (idToVerify: string) => {
-    const match = resolveTarget(idToVerify);
-    setIsVerifying(true);
-    setVerificationSteps(0);
-
-    // Step-by-step verification simulation
-    setTimeout(() => setVerificationSteps(1), 250);
-    setTimeout(() => setVerificationSteps(2), 500);
-    setTimeout(() => setVerificationSteps(3), 800);
-    setTimeout(() => {
-      setVerificationSteps(4);
-      setVerificationResult(match);
-      setIsVerifying(false);
-      confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
-    }, 1100);
-  };
+  // When jobs or syncedJobs update asynchronously, update verification result if currently fallback
+  useEffect(() => {
+    if (certInput && (!verificationResult || !verificationResult.isRealMatch)) {
+      const match = resolveTarget(certInput);
+      if (match && match.isRealMatch) {
+        setVerificationResult(match);
+      }
+    }
+  }, [jobs, syncedJobs, certInput, resolveTarget, verificationResult]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);

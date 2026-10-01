@@ -24,9 +24,10 @@ export const getSyncEndpoints = (): string[] => {
     list.push(envUrl.replace(/\/$/, ''));
   }
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    if (envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
-      list.push('http://localhost:3001');
-    }
+    list.push('http://localhost:3001');
+  }
+  if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
+    list.push(envUrl.replace(/\/$/, ''));
   }
   list.push('https://polylance-fv-1-45wy.onrender.com');
 

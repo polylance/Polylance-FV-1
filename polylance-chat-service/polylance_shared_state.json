@@ -2749,81 +2749,6 @@
       "freelancerAgreedTerms": true
     },
     {
-      "id": "0x4f12211983Ba",
-      "title": "Test Polygon Tokens Workflow",
-      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-      "events": [
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Posted (POL Escrow)",
-          "status": "completed",
-          "txHash": "0x09df0e2933bc58a79c7ed6754e90feaaa7a019a3b438f0e1295999c367f6b7e9",
-          "timestamp": 1789299445401
-        },
-        {
-          "step": "Selected",
-          "title": "Select Freelancer",
-          "status": "current",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Terms",
-          "title": "Agree Terms",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Funded",
-          "title": "Fund Escrow",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Submitted",
-          "title": "Submit Work",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Completed",
-          "title": "Release Payment",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Minted",
-          "title": "Mint Reputation SBT",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        }
-      ],
-      "status": "Open",
-      "category": "web3",
-      "amountEth": "0.09",
-      "createdAt": 1789299445401,
-      "amountUsdc": "0.01",
-      "description": "Test the Polygon tokens are transferring between users is working or not .",
-      "applications": [],
-      "chatMessages": [],
-      "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0x4f12211983ba1e0080ae11e9e8bcd3711947a2fa",
-      "progressUpdates": [],
-      "reviewPeriodDays": 3,
-      "extensionRequests": [],
-      "preAcceptMessages": [],
-      "paymentTokenSymbol": "POL",
-      "modificationRequests": [],
-      "negotiationProposals": [],
-      "paymentTokenDecimals": 18
-    },
-    {
       "id": "0x72BA32211EA7",
       "proof": {
         "title": "test job",
@@ -4330,5 +4255,32 @@
       "timestamp": 1787311700084,
       "amountUsdc": 0.25
     }
-  ]
+  ],
+  "accountDeletionRequests": {},
+  "maintenance": {
+    "enabled": false,
+    "changelog": [
+      {
+        "id": "cl-1",
+        "title": "v2.4.0 — Sybil-Resistant Developer Binding",
+        "desc": "Replaced manual username entry with cryptographic GitHub OAuth 2.0. One GitHub identity binds uniquely to one Web3 wallet with zero impersonation risk.",
+        "status": "Deployed",
+        "timestamp": 1790859547359
+      },
+      {
+        "id": "cl-2",
+        "title": "v2.3.9 — Live Neumorphic Core & Dynamic Orbit Physics",
+        "desc": "Redesigned system maintenance visual engine with multi-theme color palettes, soft UI shadows, and zero-downtime orbital state sync.",
+        "status": "Deployed",
+        "timestamp": 1790848747359
+      },
+      {
+        "id": "cl-3",
+        "title": "v2.3.8 — Instant Chat Purge & GDPR Privacy",
+        "desc": "Users can permanently delete escrow chats and request full account obliteration across both primary and backup cloud databases.",
+        "status": "Deployed",
+        "timestamp": 1790823547359
+      }
+    ]
+  }
 }

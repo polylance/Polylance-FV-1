@@ -68,11 +68,15 @@ const AnimatedRoutes: React.FC = () => {
         navigate(`/audit/${auditParam}`, { replace: true });
       } else if (attestationParam && !location.pathname.startsWith('/attestation') && !location.pathname.includes('/attestation')) {
         navigate(`/attestation/${attestationParam}${roleParam ? `?role=${roleParam}` : ''}`, { replace: true });
-      } else if (certIdParam && !location.pathname.startsWith('/verify') && !location.pathname.startsWith('/certifiedpass')) {
-        navigate(`/verify?certId=${encodeURIComponent(certIdParam)}`, { replace: true });
+      } else if (certIdParam) {
+        if (!location.pathname.startsWith('/verify') && !location.pathname.startsWith('/certifiedpass')) {
+          navigate(`/verify?certId=${encodeURIComponent(certIdParam)}`, { replace: true });
+        } else if (!location.search.includes('certId')) {
+          navigate(`${location.pathname}?certId=${encodeURIComponent(certIdParam)}`, { replace: true });
+        }
       }
     } catch {}
-  }, [location.pathname, navigate]);
+  }, [location.pathname, location.search, navigate]);
 
   // Butter-smooth section redirect & scroll management:
   // If target section is provided (via ?section=, #hash, or state), smoothly scroll into view; otherwise reset cleanly to top
