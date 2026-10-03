@@ -8,7 +8,7 @@ const frontendDist = path.join(frontendDir, 'dist');
 const rootDist = path.join(rootDir, 'dist');
 
 console.log('🚀 [PolyLance Vercel Build] Step 1/3: Installing frontend dependencies...');
-execSync('npm install', { cwd: frontendDir, stdio: 'inherit' });
+execSync('npm install --legacy-peer-deps', { cwd: frontendDir, stdio: 'inherit' });
 
 console.log('🚀 [PolyLance Vercel Build] Step 2/3: Compiling frontend with Vite & TypeScript...');
 execSync('npm run build', { cwd: frontendDir, stdio: 'inherit' });
