@@ -132,8 +132,10 @@ const config = createConfig({
   chains: [polygon, mainnet],
   transports: {
     [polygon.id]: fallback([
-      http('https://polygon-bor-rpc.publicnode.com'),
-      http('https://polygon.gateway.tenderly.co'),
+      http('https://polygon-rpc.com'),
+      http('https://rpc.ankr.com/polygon'),
+      http('https://polygon.drpc.org'),
+      http('https://1rpc.io/matic'),
       http('https://137.rpc.thirdweb.com'),
     ]),
     [mainnet.id]: fallback([

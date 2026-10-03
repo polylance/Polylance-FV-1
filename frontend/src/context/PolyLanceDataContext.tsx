@@ -1023,7 +1023,18 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_maintenance');
       if (saved) {
-        try { return JSON.parse(saved); } catch {}
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed?.estimatedEnd && Date.now() > parsed.estimatedEnd) {
+            localStorage.removeItem('polylance_maintenance');
+            return { enabled: false };
+          }
+          // Never lock the entire site on initial cold load from stale localStorage
+          // Live status will be fetched from server within 200ms
+          return { enabled: false, changelog: parsed?.changelog || [] };
+        } catch {
+          localStorage.removeItem('polylance_maintenance');
+        }
       }
     }
     return { enabled: false };
@@ -1031,9 +1042,17 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setMaintenanceState = (val: React.SetStateAction<MaintenanceState>) => {
     setMaintenanceStateRaw((prev) => {
-      const next = typeof val === 'function' ? val(prev) : val;
+      let next = typeof val === 'function' ? val(prev) : val;
+      // Auto-expire if estimatedEnd has passed
+      if (next?.enabled && next.estimatedEnd && Date.now() > next.estimatedEnd) {
+        next = { ...next, enabled: false };
+      }
       if (typeof window !== 'undefined') {
-        localStorage.setItem('polylance_maintenance', JSON.stringify(next));
+        if (!next?.enabled) {
+          localStorage.removeItem('polylance_maintenance');
+        } else {
+          localStorage.setItem('polylance_maintenance', JSON.stringify(next));
+        }
       }
       return next;
     });
@@ -1092,7 +1111,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const activeAddr = (currentConnectedWalletAddress || address || '').toLowerCase().trim();
       if (isOnline && (!syncSocket || !syncSocket.connected)) {
         syncSocket = socketIO(syncUrl, {
-          transports: ['websocket', 'polling'],
+          transports: ['polling', 'websocket'],
           withCredentials: true,
           reconnection: true,
           reconnectionAttempts: Infinity,
@@ -1180,7 +1199,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           .then((res) => res.json())
           .then((data) => {
             if (data && data.maintenance) {
-              setMaintenanceState(data.maintenance);
+              const m = data.maintenance;
+              if (m.enabled && m.estimatedEnd && Date.now() > m.estimatedEnd) {
+                m.enabled = false;
+              }
+              setMaintenanceState(m);
             }
           })
           .catch(() => {});
@@ -1640,10 +1663,38 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             return false;
           });
 
-          // CRITICAL: If no client job in the database matches this on-chain address,
-          // do NOT spawn an orphan dummy job titled "Smart Contract Escrow 0x...".
-          // This keeps every client job unified as a single job and protects user data isolation.
+          // If no client job in local storage matches this on-chain address yet,
+          // reconstruct a canonical on-chain job so new users see all deployed escrows!
           if (!existingMatch) {
+            const isNative = tokenConfig.symbol === 'POL' || tokenConfig.symbol === 'MATIC';
+            const safeAmount = formattedAmount || '0';
+            const reconstructedJob: Job = {
+              id: `job-escrow-${jobAddr.slice(0, 10).toLowerCase()}`,
+              contractAddress: jobAddr,
+              client,
+              freelancer: (freelancer && freelancer !== ethers.ZeroAddress) ? freelancer : undefined,
+              amountEth: isNative ? safeAmount : (parseFloat(safeAmount) / 2800).toFixed(4),
+              amountUsdc: !isNative ? safeAmount : (parseFloat(safeAmount) * 0.45).toFixed(2),
+              paymentToken: tokenConfig.address,
+              paymentTokenSymbol: tokenConfig.symbol,
+              paymentTokenDecimals: tokenConfig.decimals,
+              status: (onChainStatusParsed === 'Completed' || onChainStatusParsed === 'Disputed' || onChainStatusParsed === 'Submitted')
+                ? onChainStatusParsed
+                : (hasOnChainFunds ? 'Funded' : (freelancer && freelancer !== ethers.ZeroAddress ? 'Selected' : 'Open')),
+              title: `Smart Contract Escrow (${jobAddr.slice(0, 8)})`,
+              description: `Decentralized JobEscrow verified on Polygon PoS Mainnet at contract ${jobAddr}. Escrow secured with ${safeAmount} ${tokenConfig.symbol}.`,
+              category: 'web3',
+              reviewPeriodDays: 7,
+              createdAt: Date.now() - 3600000,
+              applications: [],
+              events: [
+                { step: 'Posted', title: `Job Posted (${tokenConfig.symbol} Escrow)`, timestamp: Date.now() - 3600000, txHash: '', status: 'completed', actor: 'Client' },
+                { step: 'Funded', title: 'Fund Escrow', timestamp: hasOnChainFunds ? Date.now() - 1800000 : 0, txHash: '', status: hasOnChainFunds ? 'completed' : 'pending' },
+                { step: 'Submitted', title: 'Submit Work', timestamp: 0, txHash: '', status: (onChainStatusParsed === 'Submitted' || onChainStatusParsed === 'Completed') ? 'completed' : (hasOnChainFunds ? 'current' : 'pending') },
+                { step: 'Completed', title: 'Release Payment', timestamp: onChainStatusParsed === 'Completed' ? Date.now() : 0, txHash: '', status: onChainStatusParsed === 'Completed' ? 'completed' : 'pending' },
+              ],
+            };
+            parsedJobs.push(reconstructedJob);
             continue;
           }
 
@@ -1924,9 +1975,16 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Instant dual-write to backend for immediate availability across network
     const syncUrl = getBackendSyncUrl();
+    const clientAddr = (clientAddress || address || '').toLowerCase().trim();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-wallet-address': clientAddr,
+    };
+    broadcastSync({ jobs: [newJob] }, clientAddr);
+
     fetch(`${syncUrl}/api/jobs`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(newJob),
     }).catch(() => {});
 

@@ -61,6 +61,9 @@ try {
     if (fs.existsSync(STATE_FILE)) {
         const raw = fs.readFileSync(STATE_FILE, "utf-8");
         sharedState = { ...sharedState, ...JSON.parse(raw) };
+        if (sharedState.maintenance?.enabled && sharedState.maintenance.estimatedEnd && Date.now() > sharedState.maintenance.estimatedEnd) {
+            sharedState.maintenance.enabled = false;
+        }
     }
 }
 catch (err) {
@@ -157,6 +160,9 @@ export async function loadStateFromDatabase() {
         console.warn("[DB] Backup DB load note:", err?.message || err);
     }
     finally {
+        if (sharedState.maintenance?.enabled && sharedState.maintenance.estimatedEnd && Date.now() > sharedState.maintenance.estimatedEnd) {
+            sharedState.maintenance.enabled = false;
+        }
         if (sharedState.jobs && sharedState.jobs.length > 0) {
             pruneExpiredJobsOnServer();
         }
@@ -1108,10 +1114,42 @@ app.get("/api/sync", async (req, res) => {
 });
 // ── Platform Maintenance Mode Endpoints ─────────────────────────────────────
 app.get("/api/maintenance", (req, res) => {
+    if (sharedState.maintenance?.enabled && sharedState.maintenance.estimatedEnd && Date.now() > sharedState.maintenance.estimatedEnd) {
+        sharedState.maintenance.enabled = false;
+        if (io) {
+            io.emit("maintenance-mode-changed", sharedState.maintenance);
+        }
+    }
     res.json({
         success: true,
         maintenance: sharedState.maintenance || { enabled: false }
     });
+});
+app.post("/api/maintenance/reset", async (req, res) => {
+    try {
+        const requesterAddress = (req.headers["x-wallet-address"] ||
+            req.body?.address ||
+            "").toLowerCase().trim();
+        if (!isAuthorizedAdmin(requesterAddress)) {
+            return res.status(403).json({
+                error: "Forbidden: Only authorized protocol administrators can reset maintenance mode",
+                code: "FORBIDDEN_NOT_ADMIN"
+            });
+        }
+        sharedState.maintenance = {
+            enabled: false,
+            changelog: sharedState.maintenance?.changelog || []
+        };
+        await persistStateToDatabases();
+        if (io) {
+            io.emit("maintenance-mode-changed", sharedState.maintenance);
+        }
+        console.log(`[MAINTENANCE RESET] Platform maintenance forced to DISABLED by admin ${requesterAddress}`);
+        res.json({ success: true, maintenance: sharedState.maintenance });
+    }
+    catch (err) {
+        res.status(500).json({ error: "Failed to reset maintenance mode", details: err?.message });
+    }
 });
 app.post("/api/maintenance/toggle", async (req, res) => {
     try {
@@ -1224,9 +1262,13 @@ app.post("/api/maintenance/changelog/delete", async (req, res) => {
 });
 app.post("/api/sync", async (req, res) => {
     try {
-        const requesterAddress = (req.headers["x-wallet-address"] ||
+        let requesterAddress = (req.headers["x-wallet-address"] ||
             req.query.address ||
             "").toLowerCase().trim();
+        // Fallback: If header was omitted in dual-write, extract client address from incoming job
+        if ((!requesterAddress || !/^0x[a-fA-F0-9]{40}$/.test(requesterAddress)) && req.body?.jobs && Array.isArray(req.body.jobs) && req.body.jobs[0]?.client) {
+            requesterAddress = String(req.body.jobs[0].client).toLowerCase().trim();
+        }
         // Guard: Disallow unauthenticated or console anonymous state mutation attempts
         if (!requesterAddress || !/^0x[a-fA-F0-9]{40}$/.test(requesterAddress)) {
             return res.status(401).json({
@@ -1236,13 +1278,20 @@ app.post("/api/sync", async (req, res) => {
         }
         // Maintenance Guard: When platform maintenance is active, lock state writes for non-admins to protect data integrity
         if (sharedState.maintenance?.enabled) {
-            const isAdmin = isAuthorizedAdmin(requesterAddress);
-            if (!isAdmin) {
-                console.warn(`[MAINTENANCE] Blocked mutation attempt from non-admin ${requesterAddress} during active maintenance`);
-                return res.status(503).json({
-                    error: "PolyLance is currently under scheduled maintenance. State mutations are paused to safeguard user data.",
-                    code: "MAINTENANCE_LOCKED"
-                });
+            if (sharedState.maintenance.estimatedEnd && Date.now() > sharedState.maintenance.estimatedEnd) {
+                sharedState.maintenance.enabled = false;
+                if (io)
+                    io.emit("maintenance-mode-changed", sharedState.maintenance);
+            }
+            else {
+                const isAdmin = isAuthorizedAdmin(requesterAddress);
+                if (!isAdmin) {
+                    console.warn(`[MAINTENANCE] Blocked mutation attempt from non-admin ${requesterAddress} during active maintenance`);
+                    return res.status(503).json({
+                        error: "PolyLance is currently under scheduled maintenance. State mutations are paused to safeguard user data.",
+                        code: "MAINTENANCE_LOCKED"
+                    });
+                }
             }
         }
         const incoming = req.body;
@@ -1340,6 +1389,104 @@ app.post("/api/sync", async (req, res) => {
     catch (err) {
         console.error("[SYNC ERROR]", err);
         res.status(500).json({ error: "Failed to process sync request", details: err?.message });
+    }
+});
+// ── Canonical REST Endpoints for Public and Authorized Jobs ──────────────────
+app.get("/api/jobs", async (req, res) => {
+    if (!sharedState.jobs || sharedState.jobs.length === 0) {
+        await loadStateFromDatabase();
+    }
+    const requesterAddress = (req.headers["x-wallet-address"] ||
+        req.query.address ||
+        "0x0000000000000000000000000000000000000000").toLowerCase().trim();
+    const sanitized = sanitizeSharedStateForRequester(sharedState, requesterAddress);
+    res.json({ success: true, jobs: sanitized.jobs || [] });
+});
+app.post("/api/jobs", async (req, res) => {
+    try {
+        const jobData = req.body;
+        if (!jobData || (!jobData.title && !jobData.id)) {
+            return res.status(400).json({ error: "Missing job payload" });
+        }
+        const requesterAddress = (req.headers["x-wallet-address"] ||
+            req.query.address ||
+            jobData.client ||
+            "").toLowerCase().trim();
+        // Maintenance Guard
+        if (sharedState.maintenance?.enabled) {
+            if (sharedState.maintenance.estimatedEnd && Date.now() > sharedState.maintenance.estimatedEnd) {
+                sharedState.maintenance.enabled = false;
+                if (io)
+                    io.emit("maintenance-mode-changed", sharedState.maintenance);
+            }
+            else {
+                const isAdmin = isAuthorizedAdmin(requesterAddress);
+                if (!isAdmin) {
+                    return res.status(503).json({
+                        error: "PolyLance is currently under scheduled maintenance. State mutations are paused to safeguard user data.",
+                        code: "MAINTENANCE_LOCKED"
+                    });
+                }
+            }
+        }
+        const incomingJobs = Array.isArray(jobData) ? jobData : [jobData];
+        sharedState.jobs = mergeJobsOnServer(sharedState.jobs || [], incomingJobs);
+        await persistStateToDatabases();
+        broadcastScopedRealtimeSync();
+        res.json({ success: true, count: incomingJobs.length });
+    }
+    catch (err) {
+        console.error("[POST /api/jobs ERROR]", err);
+        res.status(500).json({ error: "Failed to persist job", details: err?.message });
+    }
+});
+app.get("/api/jobs/:id", async (req, res) => {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    const requesterAddress = (req.headers["x-wallet-address"] ||
+        req.query.address ||
+        "0x0000000000000000000000000000000000000000").toLowerCase().trim();
+    const sanitized = sanitizeSharedStateForRequester(sharedState, requesterAddress);
+    const target = (sanitized.jobs || []).find((j) => j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || "").toLowerCase() === jobId));
+    if (!target) {
+        return res.status(404).json({ error: "Job not found" });
+    }
+    res.json({ success: true, job: target });
+});
+app.patch("/api/jobs/:id", async (req, res) => {
+    try {
+        const jobId = String(req.params.id || "").toLowerCase().trim();
+        const updates = req.body;
+        if (!jobId || !updates)
+            return res.status(400).json({ error: "Missing job ID or updates" });
+        const requesterAddress = (req.headers["x-wallet-address"] ||
+            req.query.address ||
+            "").toLowerCase().trim();
+        const targetJob = (sharedState.jobs || []).find((j) => j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId));
+        if (targetJob && requesterAddress) {
+            const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
+            const isAdmin = isAuthorizedAdmin(requesterAddress);
+            if (!isClient && !isAdmin) {
+                return res.status(403).json({ error: "Forbidden: Only job creator or admin can update job details" });
+            }
+        }
+        sharedState.jobs = (sharedState.jobs || []).map((j) => {
+            if (j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId)) {
+                return {
+                    ...j,
+                    ...updates,
+                    id: j.id,
+                    contractAddress: j.contractAddress || updates.contractAddress,
+                };
+            }
+            return j;
+        });
+        await persistStateToDatabases();
+        broadcastScopedRealtimeSync();
+        res.json({ success: true, jobId });
+    }
+    catch (err) {
+        console.error("[PATCH /api/jobs/:id ERROR]", err);
+        res.status(500).json({ error: "Failed to update job", details: err?.message });
     }
 });
 // Delete a job permanently from server state and databases (Authorized Client / Admin only)

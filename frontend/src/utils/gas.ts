@@ -22,8 +22,8 @@ export async function getPolygonGasOverrides(provider?: ethers.Provider | null):
       feeData = await provider.getFeeData().catch(() => null);
     }
     if (!feeData) {
-      // Fallback directly to public Bor RPC if active provider fails
-      const borProvider = new ethers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com', 137, { staticNetwork: true });
+      // Fallback directly to public Polygon RPC if active provider fails
+      const borProvider = new ethers.JsonRpcProvider('https://polygon-rpc.com', 137, { staticNetwork: true });
       feeData = await borProvider.getFeeData().catch(() => null);
     }
 
