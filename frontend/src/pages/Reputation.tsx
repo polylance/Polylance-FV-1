@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
-import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { usePolyLanceData, isDemoOrMockJob, MOCK_ADDRESSES_TO_PURGE } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
 import { 
   Award, 
@@ -79,18 +79,20 @@ export const Reputation: React.FC = () => {
   const allParticipantProfiles: UserProfile[] = React.useMemo(() => {
     const map = new Map<string, UserProfile>();
 
-    // 1. All explicitly registered user profiles
+    // 1. All explicitly registered user profiles (excluding demo/mock addresses)
     Object.values(profiles || {}).forEach((p) => {
       if (p && p.address) {
-        map.set(p.address.toLowerCase().trim(), p);
+        const lower = p.address.toLowerCase().trim();
+        if (MOCK_ADDRESSES_TO_PURGE.has(lower)) return;
+        map.set(lower, p);
       }
     });
 
-    // 2. Active freelancers and clients from jobs
-    (jobs || []).forEach((j) => {
+    // 2. Active freelancers and clients from real jobs (excluding demo or mock jobs)
+    (jobs || []).filter((j) => !isDemoOrMockJob(j)).forEach((j) => {
       if (j.freelancer) {
         const lower = j.freelancer.toLowerCase().trim();
-        if (!map.has(lower)) {
+        if (!MOCK_ADDRESSES_TO_PURGE.has(lower) && !map.has(lower)) {
           map.set(lower, {
             address: lower,
             displayName: `${lower.slice(0, 6)}...${lower.slice(-4)}`,
@@ -106,7 +108,7 @@ export const Reputation: React.FC = () => {
       }
       if (j.client) {
         const lower = j.client.toLowerCase().trim();
-        if (!map.has(lower)) {
+        if (!MOCK_ADDRESSES_TO_PURGE.has(lower) && !map.has(lower)) {
           map.set(lower, {
             address: lower,
             displayName: `${lower.slice(0, 6)}...${lower.slice(-4)}`,

@@ -78,12 +78,14 @@ class FailoverJsonRpcProvider extends ethers.AbstractProvider {
   private providers: ethers.JsonRpcProvider[];
   private currentIndex: number = 0;
   private _networkPromise: Promise<ethers.Network>;
+  private cooldowns: number[];
 
   constructor(urls: string[], chainId: number) {
     super(chainId);
     this.urls = urls;
     this._networkPromise = Promise.resolve(ethers.Network.from(chainId));
     this.providers = urls.map((u) => new ethers.JsonRpcProvider(u, chainId, { staticNetwork: true }));
+    this.cooldowns = urls.map(() => 0);
   }
 
   async _detectNetwork(): Promise<ethers.Network> {
@@ -92,15 +94,28 @@ class FailoverJsonRpcProvider extends ethers.AbstractProvider {
 
   async _perform(req: any): Promise<any> {
     let lastErr: any;
+    const now = Date.now();
     for (let attempt = 0; attempt < this.providers.length; attempt++) {
       const idx = (this.currentIndex + attempt) % this.providers.length;
+      if (this.cooldowns[idx] > now && this.providers.length > 1) {
+        continue;
+      }
       const p = this.providers[idx];
       try {
         const result = await p._perform(req);
         this.currentIndex = idx;
+        this.cooldowns[idx] = 0;
         return result;
       } catch (err: any) {
         lastErr = err;
+        this.cooldowns[idx] = now + 15000;
+      }
+    }
+    if (this.providers.length > 0) {
+      try {
+        return await this.providers[this.currentIndex]._perform(req);
+      } catch (fallbackErr) {
+        throw fallbackErr || lastErr;
       }
     }
     throw lastErr;

@@ -334,6 +334,8 @@ const MOCK_OR_TEST_CLIENTS = new Set([
   ),
   '0x9999888877776666555544443333222211110000',
   '0x3333444455556666777788889999000011112222',
+  '0x474d8c97445fbcf4e13c257556adbced11a9def8',
+  '0xcaf6aac649b8a7aefa76a870fa180fc580a3e2e8',
 ]);
 
 export function isDemoOrMockJobOnServer(job: any): boolean {
@@ -351,7 +353,8 @@ export function isDemoOrMockJobOnServer(job: any): boolean {
   }
 
   const client = String(job.client || '').toLowerCase().trim();
-  if (MOCK_OR_TEST_CLIENTS.has(client)) {
+  const freelancer = String(job.freelancer || '').toLowerCase().trim();
+  if (MOCK_OR_TEST_CLIENTS.has(client) || MOCK_OR_TEST_CLIENTS.has(freelancer)) {
     return true;
   }
 

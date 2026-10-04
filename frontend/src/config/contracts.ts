@@ -35,17 +35,17 @@ export const AMOY_RPC_URLS = [
 ];
 
 export const POLYGON_MAINNET_RPC_URLS = [
-  "https://polygon.drpc.org",
-  "https://polygon.gateway.tenderly.co",
-  "https://137.rpc.thirdweb.com",
+  "https://polygon-rpc.com",
   "https://polygon-bor-rpc.publicnode.com",
-  "https://rpc.ankr.com/polygon"
+  "https://137.rpc.thirdweb.com",
+  "https://rpc.ankr.com/polygon",
+  "https://polygon.drpc.org"
 ];
 
 export const RPC_URL =
   import.meta.env.VITE_RPC_URL ||
   (network === "polygon"
-    ? "https://polygon.drpc.org"
+    ? "https://polygon-rpc.com"
     : network === "amoy"
       ? "https://polygon-amoy-bor-rpc.publicnode.com"
       : "http://127.0.0.1:8545");

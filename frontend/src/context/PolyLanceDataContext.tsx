@@ -165,10 +165,12 @@ const parseEnvAddressSet = (raw?: string): Set<string> => {
   return set;
 };
 
-const MOCK_ADDRESSES_TO_PURGE = new Set([
+export const MOCK_ADDRESSES_TO_PURGE = new Set([
   ...parseEnvAddressSet((import.meta.env.VITE_PURGE_ADDRESSES || import.meta.env.VITE_MOCK_ADDRESSES || '') as string),
   '0x9999888877776666555544443333222211110000',
   '0x3333444455556666777788889999000011112222',
+  '0x474d8c97445fbcf4e13c257556adbced11a9def8',
+  '0xcaf6aac649b8a7aefa76a870fa180fc580a3e2e8',
 ]);
 
 const MOCK_NAMES_TO_PURGE = new Set([
@@ -2196,24 +2198,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (target?.id) trackDeletedJobId(target.id);
       if (target?.contractAddress) trackDeletedJobId(target.contractAddress);
 
-      // If contract is deployed on-chain and client is connected, call on-chain cancelJob if status is Open
-      if (target?.contractAddress && ethers.isAddress(target.contractAddress) && target.status === 'Open') {
-        try {
-          const code = await provider?.getCode(target.contractAddress).catch(() => '0x');
-          if (code && code !== '0x') {
-            const signer = await getSigner();
-            if (signer) {
-              const escrow = new ethers.Contract(target.contractAddress, getAbi(JobEscrowABI), signer);
-              const gasOverrides = await getPolygonGasOverrides(provider);
-              const tx = await escrow.cancelJob(gasOverrides);
-              await tx.wait();
-            }
-          }
-        } catch (chainErr) {
-          console.warn('On-chain cancel notice (will proceed with local/database removal):', chainErr);
-        }
-      }
-
+      // Deleting a job post is 100% free and gasless — remove directly without charging POL fees or prompting wallet
       setJobsRaw((prev) => {
         const next = prev.filter((j) => !matchJob(j, jobId) && !isRecentlyDeletedJob(j.id, j.contractAddress));
         if (typeof window !== 'undefined') localStorage.setItem('polylance_jobs', JSON.stringify(next));
