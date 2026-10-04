@@ -1,9 +1,24 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import { Telegraf, Markup } from 'telegraf';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+
+let TelegrafClass: any = null;
+let MarkupClass: any = null;
+
+async function getTelegraf() {
+  if (TelegrafClass) return { Telegraf: TelegrafClass, Markup: MarkupClass };
+  try {
+    const mod = await import('telegraf');
+    TelegrafClass = mod.Telegraf || (mod as any).default?.Telegraf || (mod as any).default;
+    MarkupClass = mod.Markup || (mod as any).default?.Markup;
+    return { Telegraf: TelegrafClass, Markup: MarkupClass };
+  } catch (err) {
+    console.warn('⚠️ [Telegram Bot] telegraf library not installed or failed to load. Running in standby mode.');
+    return null;
+  }
+}
 
 export interface AlertPreferences {
   milestones: boolean;
@@ -94,7 +109,7 @@ function saveBindings(bindingsMap: Map<string, TelegramBinding>) {
 
 // Global state
 let bindings = loadBindings();
-let botInstance: Telegraf | null = null;
+let botInstance: any = null;
 let botUsername = process.env.TELEGRAM_BOT_USERNAME || 'polylancelivebot';
 let jobsGetter: () => any[] = () => [];
 
@@ -102,18 +117,20 @@ export function setJobsGetter(fn: () => any[]) {
   jobsGetter = fn;
 }
 
-function getNotificationsKeyboard(pref: AlertPreferences) {
-  return Markup.inlineKeyboard([
-    [Markup.button.callback(`Milestones & Escrow: ${pref.milestones ? '✅ ON' : '❌ OFF'}`, 'toggle_milestones')],
-    [Markup.button.callback(`Submissions & Review: ${pref.submissions ? '✅ ON' : '❌ OFF'}`, 'toggle_submissions')],
-    [Markup.button.callback(`Payout Releases: ${pref.payouts ? '✅ ON' : '❌ OFF'}`, 'toggle_payouts')],
-    [Markup.button.callback(`DAO Disputes: ${pref.disputes ? '✅ ON' : '❌ OFF'}`, 'toggle_disputes')],
-    [Markup.button.callback(`New Proposals: ${pref.proposals ? '✅ ON' : '❌ OFF'}`, 'toggle_proposals')],
-    [Markup.button.callback(`🔄 Reset All Alerts to ON`, 'reset_notifications')]
+function getNotificationsKeyboard(pref: AlertPreferences, markupObj?: any) {
+  const m = markupObj || MarkupClass;
+  if (!m || !m.inlineKeyboard) return undefined;
+  return m.inlineKeyboard([
+    [m.button.callback(`Milestones & Escrow: ${pref.milestones ? '✅ ON' : '❌ OFF'}`, 'toggle_milestones')],
+    [m.button.callback(`Submissions & Review: ${pref.submissions ? '✅ ON' : '❌ OFF'}`, 'toggle_submissions')],
+    [m.button.callback(`Payout Releases: ${pref.payouts ? '✅ ON' : '❌ OFF'}`, 'toggle_payouts')],
+    [m.button.callback(`DAO Disputes: ${pref.disputes ? '✅ ON' : '❌ OFF'}`, 'toggle_disputes')],
+    [m.button.callback(`New Proposals: ${pref.proposals ? '✅ ON' : '❌ OFF'}`, 'toggle_proposals')],
+    [m.button.callback(`🔄 Reset All Alerts to ON`, 'reset_notifications')]
   ]);
 }
 
-export function initTelegramBot(getLiveJobs?: () => any[]): Telegraf | null {
+export async function initTelegramBot(getLiveJobs?: () => any[]): Promise<any> {
   if (getLiveJobs) {
     jobsGetter = getLiveJobs;
   }
@@ -129,6 +146,13 @@ export function initTelegramBot(getLiveJobs?: () => any[]): Telegraf | null {
     return null;
   }
 
+  const telegrafMod = await getTelegraf();
+  if (!telegrafMod || !telegrafMod.Telegraf) {
+    console.warn('⚠️ [Telegram Bot] telegraf library not available. Bot disabled.');
+    return null;
+  }
+
+  const { Telegraf, Markup } = telegrafMod;
   botUsername = process.env.TELEGRAM_BOT_USERNAME || botUsername;
 
   try {
@@ -675,8 +699,8 @@ export async function sendTelegramNotification(targetWalletAddress: string, aler
       `${alert.description}\n\n` +
       `🌐 <i>Polygon Smart Contract Escrow</i>`;
 
-    const keyboard = alert.actionUrl
-      ? Markup.inlineKeyboard([Markup.button.url('Inspect on PolyLance ↗', alert.actionUrl)])
+    const keyboard = alert.actionUrl && MarkupClass
+      ? MarkupClass.inlineKeyboard([MarkupClass.button.url('Inspect on PolyLance ↗', alert.actionUrl)])
       : undefined;
 
     await botInstance.telegram.sendMessage(binding.chatId, message, {

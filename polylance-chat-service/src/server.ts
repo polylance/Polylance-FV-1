@@ -450,25 +450,27 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
 
     let matchedKey = (inId && idIndex.get(inId)) || (inContract && idIndex.get(inContract));
 
-    // If incoming job has a generic escrow title, check if it belongs to an existing job of the SAME client and freelancer
-    // STRICT DATA PROTECTION: Only match within the exact same client and assigned freelancer
-    if (!matchedKey && inJob.client) {
+    // If incoming job has a generic placeholder escrow title from on-chain clone detection,
+    // link it to an unlinked draft job of the SAME client that is awaiting deployment.
+    // STRICT DATA PROTECTION: Real distinct jobs (with real titles) MUST NEVER be merged together!
+    if (!matchedKey && inJob.client && isGenericEscrowTitle(inJob.title)) {
       const inClient = String(inJob.client).toLowerCase();
       const inFreelancer = inJob.freelancer ? String(inJob.freelancer).toLowerCase() : '';
 
       for (const [existingKey, existingJob] of map.entries()) {
         if (!existingJob.client || String(existingJob.client).toLowerCase() !== inClient) continue;
+        if (existingJob.contractAddress && String(existingJob.contractAddress).toLowerCase().startsWith('0x')) continue;
+        if (isGenericEscrowTitle(existingJob.title)) continue;
+
         const exFreelancer = existingJob.freelancer ? String(existingJob.freelancer).toLowerCase() : '';
         const hasSameFreelancer = inFreelancer && exFreelancer && inFreelancer === exFreelancer;
         const hasAcceptedApp = inFreelancer && (existingJob.applications || []).some(
           (a: any) => a.applicant && String(a.applicant).toLowerCase() === inFreelancer && (a.status === 'accepted' || a.status === 'Selected')
         );
 
-        if (hasSameFreelancer || hasAcceptedApp) {
-          if (isGenericEscrowTitle(inJob.title) || inJob.status === 'Completed' || inJob.status === 'Submitted' || inJob.status === 'Funded') {
-            matchedKey = existingKey;
-            break;
-          }
+        if (!exFreelancer || hasSameFreelancer || hasAcceptedApp) {
+          matchedKey = existingKey;
+          break;
         }
       }
     }
@@ -2504,6 +2506,51 @@ app.post("/api/unlock", async (req: Request, res: Response) => {
   res.json({ success: true, unlocked: true });
 });
 
+// ── TELEGRAM ALERT INTEGRATION ENDPOINTS ─────────────────────────────────────
+app.post("/api/telegram/pair-token", (req: Request, res: Response) => {
+  try {
+    const { walletAddress } = req.body || {};
+    if (!walletAddress || typeof walletAddress !== 'string') {
+      res.status(400).json({ error: "Missing or invalid walletAddress" });
+      return;
+    }
+    const pairing = generateTelegramPairingToken(walletAddress);
+    res.json({ success: true, ...pairing });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to generate pairing token", details: err?.message });
+  }
+});
+
+app.get("/api/telegram/status/:address", (req: Request, res: Response) => {
+  try {
+    const rawAddr = req.params.address;
+    const targetAddr = (Array.isArray(rawAddr) ? rawAddr[0] : rawAddr || '').toLowerCase().trim();
+    if (!targetAddr) {
+      res.status(400).json({ error: "Missing address" });
+      return;
+    }
+    const status = isWalletTelegramBound(targetAddr);
+    const statusObj = typeof status === 'object' && status !== null ? status : { bound: Boolean(status) };
+    res.json({ success: true, ...statusObj });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to get telegram status", details: err?.message });
+  }
+});
+
+app.post("/api/telegram/unlink", (req: Request, res: Response) => {
+  try {
+    const { walletAddress } = req.body || {};
+    if (!walletAddress) {
+      res.status(400).json({ error: "Missing walletAddress" });
+      return;
+    }
+    const unlinked = unlinkWalletTelegram(walletAddress);
+    res.json({ success: true, unlinked });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to unlink telegram", details: err?.message });
+  }
+});
+
 // ── CERTIFIEDPASS DEDICATED VERIFICATION API ENDPOINTS ───────────────────────
 
 /**
@@ -3055,10 +3102,10 @@ if (process.env.NODE_ENV !== "test") {
   (async () => {
     await loadStateFromDatabase();
 
-    // Start Telegram bot with in-memory live jobs getter immediately
-    console.log('[STARTUP] Initializing Telegram bot with token prefix:', process.env.TELEGRAM_BOT_TOKEN?.slice(0, 10));
-    const bot = initTelegramBot(() => sharedState.jobs);
-    console.log('[STARTUP] initTelegramBot result:', bot ? 'Active Telegraf instance' : 'Disabled / null');
+    // Start Telegram bot with in-memory live jobs getter asynchronously
+    initTelegramBot(() => sharedState.jobs)
+      .then((bot) => console.log('[STARTUP] initTelegramBot result:', bot ? 'Active Telegraf instance' : 'Standby / disabled'))
+      .catch((err) => console.warn('[STARTUP] Telegram bot notice:', err?.message || err));
 
     const PORT = process.env.PORT || 3001;
     let bindAttempts = 0;

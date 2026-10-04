@@ -522,25 +522,27 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
 
     let matchedKey = (inId && idIndex.get(inId)) || (inContract && idIndex.get(inContract));
 
-    // If not matched by exact ID or contract address, check if this incoming escrow belongs to an existing
-    // job of the SAME client and freelancer (STRICT USER ISOLATION: never merge across different clients)
-    if (!matchedKey && inJob.client) {
+    // If incoming job has a generic placeholder escrow title from on-chain clone detection,
+    // link it to an unlinked draft job of the SAME client that is awaiting deployment.
+    // STRICT DATA PROTECTION: Real distinct jobs (with real titles) MUST NEVER be merged together!
+    if (!matchedKey && inJob.client && isGenericEscrowTitle(inJob.title)) {
       const inClient = String(inJob.client).toLowerCase();
       const inFreelancer = inJob.freelancer ? String(inJob.freelancer).toLowerCase() : '';
 
       for (const [existingKey, existingJob] of map.entries()) {
         if (!existingJob.client || String(existingJob.client).toLowerCase() !== inClient) continue;
+        if (existingJob.contractAddress && String(existingJob.contractAddress).toLowerCase().startsWith('0x')) continue;
+        if (isGenericEscrowTitle(existingJob.title)) continue;
+
         const exFreelancer = existingJob.freelancer ? String(existingJob.freelancer).toLowerCase() : '';
         const hasSameFreelancer = inFreelancer && exFreelancer && inFreelancer === exFreelancer;
         const hasAcceptedApp = inFreelancer && (existingJob.applications || []).some(
           (a) => a.applicant && String(a.applicant).toLowerCase() === inFreelancer && (a.status === 'accepted' || a.status === 'Selected')
         );
 
-        if (hasSameFreelancer || hasAcceptedApp) {
-          if (isGenericEscrowTitle(inJob.title) || inJob.status === 'Completed' || inJob.status === 'Submitted' || inJob.status === 'Funded') {
-            matchedKey = existingKey;
-            break;
-          }
+        if (!exFreelancer || hasSameFreelancer || hasAcceptedApp) {
+          matchedKey = existingKey;
+          break;
         }
       }
     }
@@ -802,17 +804,18 @@ const matchJob = (job: Job, targetId: string): boolean => {
   const jId = (job.id || '').toLowerCase().trim();
   const jContract = (job.contractAddress || '').toLowerCase().trim();
 
+  // 1. Exact match on id or contractAddress
   if (jId === tid || jContract === tid) return true;
 
+  // 2. Exact match with/without 'job-escrow-' prefix
   const cleanTid = tid.replace(/^job-escrow-/, '');
   const cleanJid = jId.replace(/^job-escrow-/, '');
-
   if (cleanTid && (cleanJid === cleanTid || jContract === cleanTid)) return true;
   if (cleanJid && (cleanJid === tid || cleanJid === cleanTid)) return true;
 
-  if (cleanTid.length >= 8 && (jContract.startsWith(cleanTid) || cleanJid.startsWith(cleanTid))) return true;
-  if (cleanJid.length >= 8 && (tid.startsWith(cleanJid) || jContract.startsWith(cleanJid))) return true;
-  if (jContract.length >= 8 && (cleanTid.startsWith(jContract) || tid.startsWith(jContract))) return true;
+  // 3. Exact 42-character Ethereum address match
+  if (tid.startsWith('0x') && tid.length === 42 && jContract === tid) return true;
+  if (cleanTid.startsWith('0x') && cleanTid.length === 42 && jContract === cleanTid) return true;
 
   return false;
 };

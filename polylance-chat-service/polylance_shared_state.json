@@ -123,11 +123,11 @@
       "chatMessages": [
         {
           "id": "msg-1791132757611",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132757611
+          "sender": "Client",
+          "timestamp": 1791132757611,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "id": "msg-1791132766558",
@@ -139,11 +139,19 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132917709",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132917709,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
@@ -155,10 +163,10 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
           "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "timestamp": 1791132757606,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -169,10 +177,17 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
           "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132917700,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -377,6 +392,14 @@
           "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132909819",
+          "sender": "Freelancer",
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "USDC",
@@ -436,6 +459,13 @@
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132766541,
           "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -579,11 +609,11 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
@@ -641,10 +671,10 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
           "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -765,7 +795,6 @@
           "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "appliedAt": 1791131958872,
           "githubScore": 566,
-          "proposalText": "I'm frontend developer so select me .",
           "githubVerified": true,
           "applicantSkills": [
             "Solidity",
@@ -780,11 +809,11 @@
       "chatMessages": [
         {
           "id": "msg-1791132757611",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132757611
+          "sender": "Client",
+          "timestamp": 1791132757611,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "id": "msg-1791132766558",
@@ -796,14 +825,23 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132917709",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132917709,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
+      "chatClearedAt": 1791132720846,
       "contractAddress": "0x8a69cec2a8089ce3fe312632d5f7adc88bf6399e",
       "progressUpdates": [
         {
@@ -822,10 +860,10 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
           "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "timestamp": 1791132757606,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -836,10 +874,17 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
           "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132917700,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -863,8 +908,7 @@
       ],
       "paymentTokenDecimals": 18,
       "freelancerAgreedTerms": true,
-      "negotiatedDeadlineDays": 3,
-      "chatClearedAt": 1791132720846
+      "negotiatedDeadlineDays": 3
     },
     {
       "id": "0x0e1d5BC7c878",
@@ -1013,11 +1057,11 @@
       "chatMessages": [
         {
           "id": "msg-1791132757611",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132757611
+          "sender": "Client",
+          "timestamp": 1791132757611,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "id": "msg-1791132766558",
@@ -1029,11 +1073,19 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132917709",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132917709,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
@@ -1054,10 +1106,10 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
           "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "timestamp": 1791132757606,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -1068,212 +1120,17 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
+          "text": "hey",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
-          "text": "hey",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        }
-      ],
-      "paymentTokenSymbol": "USDC",
-      "modificationRequests": [],
-      "negotiationProposals": [],
-      "paymentTokenDecimals": 6,
-      "freelancerAgreedTerms": true
-    },
-    {
-      "id": "0x37835B31461a",
-      "proof": {
-        "title": "asdfghjkl;",
-        "description": "sdfghjk",
-        "submittedAt": 1787311736541,
-        "evidenceHashes": []
-      },
-      "title": "Test Payment Workflow ",
-      "client": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-      "events": [
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Posted (USDC Escrow)",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1789290819595
         },
         {
-          "step": "Selected",
-          "actor": "Client",
-          "title": "Select Freelancer",
-          "status": "completed",
-          "txHash": "0x7400c2ebd92f95642623cee311d3a1873a9e89672223f4bbc474add3a45512ad",
-          "timestamp": 1789447714486
-        },
-        {
-          "step": "Terms",
-          "title": "Agree Terms",
-          "status": "completed",
-          "txHash": "0x16c51dc0b7e661d5a33aa479e34d0c9d457944430b800fcb9d585d18ed00ad0f",
-          "timestamp": 1789447751879
-        },
-        {
-          "step": "Funded",
-          "title": "Fund Escrow",
-          "status": "current",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Submitted",
-          "title": "Submit Work",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Completed",
-          "title": "Release Payment",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Minted",
-          "title": "Mint Reputation SBT",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        }
-      ],
-      "status": "Selected",
-      "category": "backend",
-      "amountEth": "0.0071",
-      "createdAt": 1789290819595,
-      "termsHash": "0x405d56ec384f6e9fdf8009f4d6e004cd646c5698c2dfb785b4c55da3d0dbfee5",
-      "amountUsdc": "20.00",
-      "freelancer": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-      "description": "**Test**Real payments in polylance by issuing the Demo Jobs and Test with a real Freelancer in Polylance and check the workflow of transactions like ,\n* Payment Fund Escrow \n* Hash is verified in Polyscan \n* amount in client amount is deduct or not .\n* After Freelancer Complete his job Funds are **Transfered** or not \nCheck every payment related Vulnerabilities in Polylance .",
-      "submittedAt": 1787311736601,
-      "applications": [
-        {
-          "applicant": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "appliedAt": 1789291242867,
-          "githubScore": 795,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Arbitration",
-            "Smart Contracts",
-            "Security Audit",
-            "Solidity",
-            "HTML5/CSS3",
-            "Python",
-            "JavaScript",
-            "Java",
-            "Next.js",
-            "React"
-          ],
-          "proposalIpfsHash": "bafybeihnbwujrxla6t3bvki5fl7ushpvj64rz7"
-        },
-        {
-          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "appliedAt": 1791131958872,
-          "githubScore": 566,
-          "proposalText": "I'm frontend developer so select me .",
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "React",
-            "Rust",
-            "IPFS"
-          ],
-          "proposalIpfsHash": "bafybeirtpery35zo3cfhdyfmprncpwz3xmzadf"
-        }
-      ],
-      "chatMessages": [
-        {
-          "id": "msg-1791132757611",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132757611
-        },
-        {
-          "id": "msg-1791132766558",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132766558,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hey",
-          "timestamp": 1791132909819
-        }
-      ],
-      "paymentToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
-      "chatClearedAt": 1791132720846,
-      "contractAddress": "0x37835b31461aee749e49a06431518cbd628e3501",
-      "progressUpdates": [
-        {
-          "id": "0x3ca5d394",
-          "txHash": "0x3ca5d394e641032e8fdd9e1322c6cca5094b1a348c55c71f8a1b8ee96d93aa4d",
-          "demoUrl": "",
-          "ipfsHash": "bafybeiu765l36jihvfitsr7ps543jz4hgftdgr",
-          "timestamp": 1788716273414,
-          "statusNote": "qwerty",
-          "progressPercent": 100
-        },
-        {
-          "id": "0x8c801e07",
-          "txHash": "0x8c801e07a1693097a78f5fe7ee0eb870882f37f74ec87c52cb9af199324e16c5",
-          "demoUrl": "",
-          "ipfsHash": "bafybeiraccwy3kmmacfuwwkmp6aauwzikk6ads",
-          "timestamp": 1787309243060,
-          "statusNote": "competing",
-          "progressPercent": 75
-        }
-      ],
-      "reviewPeriodDays": 3,
-      "clientAgreedTerms": true,
-      "extensionRequests": [
-        {
-          "id": "0xe7e8fbb1",
-          "reason": "just for testing",
-          "status": "Approved",
-          "approved": true,
-          "responded": true,
-          "requestedAt": 1787309510082,
-          "requestIndex": 0,
-          "responseNote": "Approved by Client",
-          "requestedDays": 1,
-          "reasonIpfsHash": "bafybeit3645s5figh4hpsqrgrz423q3dgef2fn"
-        }
-      ],
-      "preAcceptMessages": [
-        {
           "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132917700,
           "senderRole": "Client",
-          "text": "hello",
-          "timestamp": 1791132757606,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132766541,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
-          "text": "hey",
-          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -1428,6 +1285,14 @@
           "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132909819",
+          "sender": "Freelancer",
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
@@ -1463,6 +1328,13 @@
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132766541,
           "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -1594,7 +1466,6 @@
           "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "appliedAt": 1791131958872,
           "githubScore": 566,
-          "proposalText": "I'm frontend developer so select me .",
           "githubVerified": true,
           "applicantSkills": [
             "Solidity",
@@ -1609,11 +1480,11 @@
       "chatMessages": [
         {
           "id": "msg-1791132757611",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132757611
+          "sender": "Client",
+          "timestamp": 1791132757611,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "id": "msg-1791132766558",
@@ -1625,14 +1496,23 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132917709",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132917709,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
+      "chatClearedAt": 1791132720846,
       "contractAddress": "0x7fa1cd890c3e5646a359deddbf9d4205dd982c85",
       "progressUpdates": [
         {
@@ -1651,10 +1531,10 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
           "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "timestamp": 1791132757606,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -1665,10 +1545,17 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
           "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132917700,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -1692,8 +1579,7 @@
       ],
       "paymentTokenDecimals": 18,
       "freelancerAgreedTerms": true,
-      "negotiatedDeadlineDays": 3,
-      "chatClearedAt": 1791132720846
+      "negotiatedDeadlineDays": 3
     },
     {
       "id": "0x64707664854e",
@@ -1792,11 +1678,11 @@
       "chatMessages": [
         {
           "id": "msg-1791132757611",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132757611
+          "sender": "Client",
+          "timestamp": 1791132757611,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "id": "msg-1791132766558",
@@ -1808,24 +1694,33 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132917709",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132917709,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
+      "chatClearedAt": 1791132720846,
       "contractAddress": "0x64707664854e88557c299cc87409b53b97a3d304",
       "progressUpdates": [],
       "reviewPeriodDays": 2,
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
           "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "timestamp": 1791132757606,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -1836,18 +1731,24 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
           "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132917700,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentTokenSymbol": "POL",
       "modificationRequests": [],
       "negotiationProposals": [],
-      "paymentTokenDecimals": 18,
-      "chatClearedAt": 1791132720846
+      "paymentTokenDecimals": 18
     },
     {
       "id": "0xce1376c2272E",
@@ -1998,11 +1899,11 @@
       "chatMessages": [
         {
           "id": "msg-1791132757611",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132757611
+          "sender": "Client",
+          "timestamp": 1791132757611,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "id": "msg-1791132766558",
@@ -2014,11 +1915,19 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132917709",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132917709,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
@@ -2091,10 +2000,10 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
           "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "timestamp": 1791132757606,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -2105,10 +2014,17 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
           "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132917700,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -2249,11 +2165,11 @@
       "chatMessages": [
         {
           "id": "msg-1791132757611",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132757611
+          "sender": "Client",
+          "timestamp": 1791132757611,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "id": "msg-1791132766558",
@@ -2265,11 +2181,19 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132917709",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132917709,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
@@ -2299,10 +2223,10 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
           "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "timestamp": 1791132757606,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -2313,10 +2237,17 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
           "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132917700,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -2434,11 +2365,11 @@
       "chatMessages": [
         {
           "id": "msg-1791132757611",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132757611
+          "sender": "Client",
+          "timestamp": 1791132757611,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "id": "msg-1791132766558",
@@ -2450,14 +2381,23 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132917709",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132917709,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
+      "chatClearedAt": 1791132720846,
       "contractAddress": "0x72ba32211ea779af69d016167b930cbbd3a70883",
       "progressUpdates": [
         {
@@ -2499,10 +2439,10 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
           "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "timestamp": 1791132757606,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -2513,10 +2453,17 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
           "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132917700,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -2531,8 +2478,7 @@
       ],
       "negotiationProposals": [],
       "paymentTokenDecimals": 18,
-      "freelancerAgreedTerms": true,
-      "chatClearedAt": 1791132720846
+      "freelancerAgreedTerms": true
     },
     {
       "id": "0x03B7a86F3bfC",
@@ -2737,7 +2683,7 @@
       "negotiatedDeadlineDays": 2
     },
     {
-      "id": "0xdaCCE6fd6665",
+      "id": "job-escrow-0xdacce6fd",
       "title": "Enhance PolyLance UI with Minimalist Redesign",
       "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
       "events": [
@@ -2830,11 +2776,11 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
@@ -2873,10 +2819,10 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
           "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -2887,318 +2833,50 @@
       "freelancerAgreedTerms": true
     },
     {
-      "id": "0x16db4bd8e5f5",
+      "id": "0x37835B31461a",
       "proof": {
-        "title": "Test 2 completed ",
-        "description": "Github pages not working properly and the logo of polylance is not updated it shows the old logo not the new one ",
-        "submittedAt": 1786290456074,
-        "externalLink": "https://polylance.github.io/",
-        "evidenceHashes": [
-          "bafybeivtg6dz75qindjh2sxntre4bx53oglbhf"
-        ]
+        "title": "asdfghjkl;",
+        "description": "sdfghjk",
+        "submittedAt": 1787311736541,
+        "evidenceHashes": []
       },
-      "title": "Test 2 ",
-      "client": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+      "title": "Test Payment Workflow ",
+      "client": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
       "events": [
         {
           "step": "Posted",
           "actor": "Client",
-          "title": "Job Posted (Cloned Escrow)",
+          "title": "Job Posted (USDC Escrow)",
           "status": "completed",
-          "txHash": "0x82ec5de91ba6e4023f42560c124762f2018f08332e44238db02bbf1e718ce842",
-          "timestamp": 1786289919096
+          "txHash": "",
+          "timestamp": 1789290819595
         },
         {
           "step": "Selected",
           "actor": "Client",
           "title": "Select Freelancer",
           "status": "completed",
-          "txHash": "0xa0b22e1c730deb09ec41e4a732b3ea554a1bb86001873efe2b2f1a85935624d4",
-          "timestamp": 1786290081792
+          "txHash": "0x7400c2ebd92f95642623cee311d3a1873a9e89672223f4bbc474add3a45512ad",
+          "timestamp": 1789447714486
         },
         {
           "step": "Terms",
           "title": "Agree Terms",
           "status": "completed",
-          "txHash": "0xb1698575ec3e73abc64f353f8208a7cc6d165abefdb646aa6f45c2960e0e859b",
-          "timestamp": 1786290158067
+          "txHash": "0x16c51dc0b7e661d5a33aa479e34d0c9d457944430b800fcb9d585d18ed00ad0f",
+          "timestamp": 1789447751879
         },
         {
           "step": "Funded",
-          "actor": "Client",
           "title": "Fund Escrow",
-          "status": "completed",
-          "txHash": "0xd50124bd1a6ee9efd7ebd3384cccecba1df8bcb7a7996f38e47aa88e153789c5",
-          "timestamp": 1786290305702
-        },
-        {
-          "step": "Submitted",
-          "actor": "Freelancer",
-          "title": "Submit Work",
-          "status": "completed",
-          "txHash": "0xc39df5a6005c4945989ff9a5f6ac4b3e249330c700bdc538f5b1143c72d82f8c",
-          "timestamp": 1786290456074
-        },
-        {
-          "step": "Completed",
-          "actor": "Client",
-          "title": "Payment Released (100%)",
-          "status": "completed",
-          "txHash": "0x1bb98e47e75fba41ee72e3161decc48d85a3384cc51393d91bd587bb28ab281e",
-          "timestamp": 1786290598140
-        },
-        {
-          "step": "Minted",
-          "actor": "JobFactory",
-          "title": "Mint Reputation SBT",
-          "status": "completed",
-          "txHash": "0x91c12242a9bd30f4bcad10a425d4fa3047f0d1b3c4317337adf2ad7ba20fac5f",
-          "timestamp": 1786290598140
-        },
-        {
-          "step": "Update",
-          "actor": "Freelancer",
-          "title": "Progress Update (75%)",
-          "status": "completed",
-          "txHash": "0xbf2d632f677f1bd97342ec73154a236321a95df3411f7b81895b8b073bc86ac0",
-          "timestamp": 1786290275046,
-          "description": "tested"
-        }
-      ],
-      "status": "Completed",
-      "dispute": {
-        "judge": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-        "reason": "NON_DELIVERY",
-        "raisedAt": 1786292251732,
-        "raisedBy": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
-        "resolved": true,
-        "rulingBps": 5000,
-        "reasoningIpfsHash": "bafybeib27koylejuycvot6cm7y5imwjchswatm"
-      },
-      "category": "frontend",
-      "amountEth": "0.0008",
-      "createdAt": 1786289919096,
-      "termsHash": "0xf071dbe386063232fa614661043b2f688933c5d00fefa839df2084a0db63db8f",
-      "amountUsdc": "2",
-      "freelancer": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
-      "description": "test 2 for polylance",
-      "submittedAt": 1786290456074,
-      "tokenAmount": "0",
-      "applications": [
-        {
-          "applicant": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
-          "appliedAt": 1786289952774,
-          "githubScore": 980,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "Ethers.js"
-          ],
-          "proposalIpfsHash": "bafybeir4v4p33g7gzffqjqdpp2t2nzze5exddo"
-        },
-        {
-          "applicant": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
-          "appliedAt": 1788066897832,
-          "githubScore": 730,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "Ethers.js",
-            "React",
-            "The Graph",
-            "IPFS",
-            "Rust",
-            "Hardhat",
-            "Next.js",
-            "Go",
-            "Circom"
-          ],
-          "proposalIpfsHash": "bafybeixypgcwbczqmalmd2wkvwneau7axok6jk"
-        },
-        {
-          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "appliedAt": 1791131958872,
-          "githubScore": 566,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "React",
-            "Rust",
-            "IPFS"
-          ],
-          "proposalIpfsHash": "bafybeirtpery35zo3cfhdyfmprncpwz3xmzadf"
-        }
-      ],
-      "chatMessages": [
-        {
-          "id": "msg-1791132013541",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132013541,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132090406",
-          "text": "hello",
-          "sender": "Freelancer",
-          "timestamp": 1791132090406,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132592500",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132592500,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132766558",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132766558,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        }
-      ],
-      "paymentToken": "USDC",
-      "chatClearedAt": 1788184102008,
-      "contractAddress": "0x16db4bd8e5f5a1ca2cdfde7083384c87d5eaecbd",
-      "progressUpdates": [
-        {
-          "id": "ssv3bqy4ug",
-          "demoUrl": "https://polylance.github.io",
-          "timestamp": 1786290275046,
-          "statusNote": "tested",
-          "progressPercent": 75
-        },
-        {
-          "id": "0x510938f1",
-          "txHash": "0x510938f1127f6bb685f75e602ea73cd2d5669f59cf3d1bfaf87f001996dde44e",
-          "demoUrl": "",
-          "ipfsHash": "bafybeis3vouz4f7y6dgpjcinqztmsx2d5w4ben",
-          "timestamp": 1788185055641,
-          "statusNote": "asdfghiop",
-          "progressPercent": 90
-        },
-        {
-          "id": "vuyqasqwj9j",
-          "demoUrl": "",
-          "timestamp": 1786291963100,
-          "statusNote": "Time extension works good",
-          "progressPercent": 90
-        },
-        {
-          "id": "ssn1l3ouhq",
-          "demoUrl": "",
-          "timestamp": 1786291758398,
-          "statusNote": "all functions works good\n",
-          "progressPercent": 50
-        }
-      ],
-      "negotiatedAmount": "2",
-      "reviewPeriodDays": 1,
-      "clientAgreedTerms": true,
-      "extensionRequests": [
-        {
-          "id": "m7gaqghtnn9",
-          "reason": "Test",
-          "status": "Approved",
-          "requestedAt": 1786291873441,
-          "responseNote": "Approved by Client",
-          "requestedDays": 1
-        }
-      ],
-      "preAcceptMessages": [
-        {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hello",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132592480,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132766541,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        }
-      ],
-      "paymentTokenSymbol": "MATIC",
-      "modificationRequests": [],
-      "negotiationProposals": [],
-      "paymentTokenDecimals": 18,
-      "freelancerAgreedTerms": true,
-      "negotiatedDeadlineDays": 1
-    },
-    {
-      "id": "0x1b4479973f48",
-      "proof": {
-        "title": "Test 2 Completed ",
-        "description": "In the Dashboard the audit receipt is missing and in the leaderboard the amount volume is not shown correctly and the files uploaded in the submission are not access to client ",
-        "submittedAt": 1786292195292,
-        "externalLink": "https://polylance.github.io/Polylance-FV-1/",
-        "evidenceHashes": [
-          "bafybeirpufvf3z6p7pfdizjzpnsdtdzx4n5ndb"
-        ]
-      },
-      "title": "Job Testing ",
-      "client": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
-      "events": [
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Posted (MATIC Escrow)",
-          "status": "completed",
-          "txHash": "0x9cd61f5817e12ea6c8c7150cc0fb1d35f0738c1711e68d79d8ec4759d87f3436",
-          "timestamp": 1788066863495
-        },
-        {
-          "step": "Selected",
-          "title": "Select Freelancer",
           "status": "current",
           "txHash": "",
           "timestamp": 0
         },
         {
-          "step": "Terms",
-          "title": "Agree Terms",
-          "status": "completed",
-          "txHash": "0xef8a6e77e57f4868a47a58fc643c279ab830629699871d94d86ed51fe8e2ba05",
-          "timestamp": 1788077993060
-        },
-        {
-          "step": "Funded",
-          "actor": "Client",
-          "title": "Fund Escrow",
-          "status": "completed",
-          "txHash": "0xbe33a453f617edea9cd4c4f0f8fae71c5521e6f67beff045d3c1f046e6bbd7a7",
-          "timestamp": 1788078267909
-        },
-        {
           "step": "Submitted",
           "title": "Submit Work",
-          "status": "current",
+          "status": "pending",
           "txHash": "",
           "timestamp": 0
         },
@@ -3217,57 +2895,34 @@
           "timestamp": 0
         }
       ],
-      "status": "Completed",
-      "dispute": {
-        "judge": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-        "reason": "NON_DELIVERY",
-        "raisedAt": 1786292251732,
-        "raisedBy": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
-        "resolved": true,
-        "rulingBps": 5000,
-        "reasoningIpfsHash": "bafybeib27koylejuycvot6cm7y5imwjchswatm"
-      },
+      "status": "Selected",
       "category": "backend",
-      "amountEth": "0.0008",
-      "createdAt": 1788066863495,
-      "termsHash": "0xf071dbe386063232fa614661043b2f688933c5d00fefa839df2084a0db63db8f",
-      "amountUsdc": "2",
-      "freelancer": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
-      "description": "testing a job simulation workflow ",
-      "submittedAt": 1786290456074,
-      "tokenAmount": "0",
+      "amountEth": "0.0071",
+      "createdAt": 1789290819595,
+      "termsHash": "0x405d56ec384f6e9fdf8009f4d6e004cd646c5698c2dfb785b4c55da3d0dbfee5",
+      "amountUsdc": "20.00",
+      "freelancer": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+      "description": "**Test**Real payments in polylance by issuing the Demo Jobs and Test with a real Freelancer in Polylance and check the workflow of transactions like ,\n* Payment Fund Escrow \n* Hash is verified in Polyscan \n* amount in client amount is deduct or not .\n* After Freelancer Complete his job Funds are **Transfered** or not \nCheck every payment related Vulnerabilities in Polylance .",
+      "submittedAt": 1787311736601,
       "applications": [
         {
-          "applicant": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
-          "appliedAt": 1788066877731,
-          "githubScore": 740,
+          "applicant": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "appliedAt": 1789291242867,
+          "githubScore": 795,
           "githubVerified": true,
           "applicantSkills": [
+            "Arbitration",
+            "Smart Contracts",
+            "Security Audit",
             "Solidity",
-            "TypeScript",
-            "Ethers.js"
-          ],
-          "proposalIpfsHash": "bafybeilbgnmmvlqxww7v2baaj7elkktjovuu5t"
-        },
-        {
-          "applicant": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
-          "appliedAt": 1788066897832,
-          "githubScore": 730,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "Ethers.js",
-            "React",
-            "The Graph",
-            "IPFS",
-            "Rust",
-            "Hardhat",
+            "HTML5/CSS3",
+            "Python",
+            "JavaScript",
+            "Java",
             "Next.js",
-            "Go",
-            "Circom"
+            "React"
           ],
-          "proposalIpfsHash": "bafybeixypgcwbczqmalmd2wkvwneau7axok6jk"
+          "proposalIpfsHash": "bafybeihnbwujrxla6t3bvki5fl7ushpvj64rz7"
         },
         {
           "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
@@ -3286,39 +2941,11 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1788185055638",
-          "text": "🚀 Progress Update: 90% Complete\n\nasdfghiop",
-          "sender": "Freelancer",
-          "timestamp": 1788185055638
-        },
-        {
-          "id": "msg-1788185239519",
-          "text": "⏳ Extension Request: +1 Days\n\nReason: testing",
-          "sender": "Freelancer",
-          "timestamp": 1788185239519
-        },
-        {
-          "id": "msg-1791132013541",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132013541,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132090406",
+          "id": "msg-1791132757611",
           "text": "hello",
-          "sender": "Freelancer",
-          "timestamp": 1791132090406,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132592500",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132592500,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "sender": "Client",
+          "timestamp": 1791132757611,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -3328,87 +2955,69 @@
           "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132909819",
+          "text": "hey",
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132917709",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132917709,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
-      "paymentToken": "0x0000000000000000000000000000000000000000",
-      "chatClearedAt": 1788184102008,
-      "contractAddress": "0x1b4479973f48b66fc3b9f822a8c85cee06335b86",
+      "paymentToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
+      "chatClearedAt": 1791132720846,
+      "contractAddress": "0x37835b31461aee749e49a06431518cbd628e3501",
       "progressUpdates": [
         {
-          "id": "0x510938f1",
-          "txHash": "0x510938f1127f6bb685f75e602ea73cd2d5669f59cf3d1bfaf87f001996dde44e",
+          "id": "0x3ca5d394",
+          "txHash": "0x3ca5d394e641032e8fdd9e1322c6cca5094b1a348c55c71f8a1b8ee96d93aa4d",
           "demoUrl": "",
-          "ipfsHash": "bafybeis3vouz4f7y6dgpjcinqztmsx2d5w4ben",
-          "timestamp": 1788185055641,
-          "statusNote": "asdfghiop",
-          "progressPercent": 90
+          "ipfsHash": "bafybeiu765l36jihvfitsr7ps543jz4hgftdgr",
+          "timestamp": 1788716273414,
+          "statusNote": "qwerty",
+          "progressPercent": 100
         },
         {
-          "id": "vuyqasqwj9j",
+          "id": "0x8c801e07",
+          "txHash": "0x8c801e07a1693097a78f5fe7ee0eb870882f37f74ec87c52cb9af199324e16c5",
           "demoUrl": "",
-          "timestamp": 1786291963100,
-          "statusNote": "Time extension works good",
-          "progressPercent": 90
-        },
-        {
-          "id": "ssn1l3ouhq",
-          "demoUrl": "",
-          "timestamp": 1786291758398,
-          "statusNote": "all functions works good\n",
-          "progressPercent": 50
-        },
-        {
-          "id": "ssv3bqy4ug",
-          "demoUrl": "https://polylance.github.io",
-          "timestamp": 1786290275046,
-          "statusNote": "tested",
+          "ipfsHash": "bafybeiraccwy3kmmacfuwwkmp6aauwzikk6ads",
+          "timestamp": 1787309243060,
+          "statusNote": "competing",
           "progressPercent": 75
         }
       ],
-      "negotiatedAmount": "2",
-      "reviewPeriodDays": 1,
+      "reviewPeriodDays": 3,
       "clientAgreedTerms": true,
       "extensionRequests": [
         {
-          "id": "0xfdc38d54",
-          "reason": "testing",
-          "status": "Pending",
-          "approved": false,
-          "responded": false,
-          "requestedAt": 1788185239521,
-          "requestIndex": 0,
-          "requestedDays": 1,
-          "reasonIpfsHash": "bafybeina7etnxkjo5xbutyhbl65crlvihm3v7s"
-        },
-        {
-          "id": "m7gaqghtnn9",
-          "reason": "Test",
+          "id": "0xe7e8fbb1",
+          "reason": "just for testing",
           "status": "Approved",
-          "requestedAt": 1786291873441,
+          "approved": true,
+          "responded": true,
+          "requestedAt": 1787309510082,
+          "requestIndex": 0,
           "responseNote": "Approved by Client",
-          "requestedDays": 1
+          "requestedDays": 1,
+          "reasonIpfsHash": "bafybeit3645s5figh4hpsqrgrz423q3dgef2fn"
         }
       ],
       "preAcceptMessages": [
         {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
           "text": "hello",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132592480,
-          "senderRole": "Freelancer",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132757606,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -3417,113 +3026,27 @@
           "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132917700,
+          "senderRole": "Client",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
-      "paymentTokenSymbol": "MATIC",
+      "paymentTokenSymbol": "USDC",
       "modificationRequests": [],
-      "negotiationProposals": [
-        {
-          "id": "prop-1788068578530-4won2",
-          "note": "",
-          "status": "Countered",
-          "createdAt": 1788068578530,
-          "amountUsdc": "1",
-          "proposedBy": "Freelancer",
-          "isFinalCall": false,
-          "deadlineDays": 2
-        },
-        {
-          "id": "prop-1788071684109-39p8g",
-          "note": "",
-          "jobId": "0x1b4479973f48",
-          "status": "Countered",
-          "createdAt": 1788071684109,
-          "amountUsdc": "2",
-          "proposedBy": "Freelancer",
-          "isFinalCall": false,
-          "deadlineDays": 2,
-          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
-        },
-        {
-          "id": "prop-1788071731718-i42v0",
-          "note": "",
-          "jobId": "0x1b4479973f48",
-          "status": "Countered",
-          "createdAt": 1788071731718,
-          "amountUsdc": "2",
-          "proposedBy": "Freelancer",
-          "isFinalCall": false,
-          "deadlineDays": 2,
-          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
-        },
-        {
-          "id": "prop-1788072375315-3mpb9",
-          "note": "",
-          "jobId": "0x1b4479973f48",
-          "status": "Countered",
-          "createdAt": 1788072375315,
-          "amountUsdc": "1",
-          "proposedBy": "Client",
-          "isFinalCall": false,
-          "deadlineDays": 1,
-          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
-        },
-        {
-          "id": "prop-1788076310892-en7ma",
-          "note": "",
-          "jobId": "0x1b4479973f48",
-          "status": "Countered",
-          "createdAt": 1788076310892,
-          "amountUsdc": "1",
-          "proposedBy": "Freelancer",
-          "isFinalCall": false,
-          "deadlineDays": 1,
-          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
-        },
-        {
-          "id": "prop-1788076378944-yo7n8",
-          "note": "",
-          "jobId": "0x1b4479973f48",
-          "status": "Countered",
-          "createdAt": 1788076378944,
-          "amountUsdc": "2",
-          "proposedBy": "Client",
-          "isFinalCall": false,
-          "deadlineDays": 2,
-          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
-        },
-        {
-          "id": "prop-1788077030081-i4gm2",
-          "note": "",
-          "jobId": "0x1b4479973f48",
-          "status": "Accepted",
-          "createdAt": 1788077030081,
-          "amountUsdc": "2",
-          "proposedBy": "Client",
-          "isFinalCall": true,
-          "respondedAt": 1788077095413,
-          "deadlineDays": 1,
-          "responseNote": "",
-          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
-        },
-        {
-          "id": "prop-1788077981332-8c01l",
-          "note": "",
-          "jobId": "0x1b4479973f48",
-          "status": "Accepted",
-          "createdAt": 1788077981332,
-          "amountUsdc": "2",
-          "proposedBy": "Client",
-          "isFinalCall": true,
-          "respondedAt": 1788077993060,
-          "deadlineDays": 1,
-          "responseNote": "",
-          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
-        }
-      ],
-      "paymentTokenDecimals": 18,
-      "freelancerAgreedTerms": true,
-      "negotiatedDeadlineDays": 1
+      "negotiationProposals": [],
+      "paymentTokenDecimals": 6,
+      "freelancerAgreedTerms": true
     },
     {
       "id": "0xcf3665d90001",
@@ -3674,11 +3197,11 @@
       "chatMessages": [
         {
           "id": "msg-1791132757611",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132757611
+          "sender": "Client",
+          "timestamp": 1791132757611,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "id": "msg-1791132766558",
@@ -3690,11 +3213,19 @@
         },
         {
           "id": "msg-1791132909819",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hey",
-          "timestamp": 1791132909819
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132917709",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132917709,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
@@ -3707,10 +3238,10 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
           "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "timestamp": 1791132757606,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
@@ -3721,10 +3252,17 @@
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
           "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132917700,
+          "senderRole": "Client",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -4042,7 +3580,6 @@
           "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "appliedAt": 1791131958872,
           "githubScore": 566,
-          "proposalText": "I'm frontend developer so select me .",
           "githubVerified": true,
           "applicantSkills": [
             "Solidity",
@@ -4100,6 +3637,675 @@
       "negotiationProposals": [],
       "paymentTokenDecimals": 18,
       "freelancerAgreedTerms": true
+    },
+    {
+      "id": "0x16db4bd8e5f5",
+      "proof": {
+        "title": "Test 2 completed ",
+        "description": "Github pages not working properly and the logo of polylance is not updated it shows the old logo not the new one ",
+        "submittedAt": 1786290456074,
+        "externalLink": "https://polylance.github.io/",
+        "evidenceHashes": [
+          "bafybeivtg6dz75qindjh2sxntre4bx53oglbhf"
+        ]
+      },
+      "title": "Test 2 ",
+      "client": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Posted (Cloned Escrow)",
+          "status": "completed",
+          "txHash": "0x82ec5de91ba6e4023f42560c124762f2018f08332e44238db02bbf1e718ce842",
+          "timestamp": 1786289919096
+        },
+        {
+          "step": "Selected",
+          "actor": "Client",
+          "title": "Select Freelancer",
+          "status": "completed",
+          "txHash": "0xa0b22e1c730deb09ec41e4a732b3ea554a1bb86001873efe2b2f1a85935624d4",
+          "timestamp": 1786290081792
+        },
+        {
+          "step": "Terms",
+          "title": "Agree Terms",
+          "status": "completed",
+          "txHash": "0xb1698575ec3e73abc64f353f8208a7cc6d165abefdb646aa6f45c2960e0e859b",
+          "timestamp": 1786290158067
+        },
+        {
+          "step": "Funded",
+          "actor": "Client",
+          "title": "Fund Escrow",
+          "status": "completed",
+          "txHash": "0xd50124bd1a6ee9efd7ebd3384cccecba1df8bcb7a7996f38e47aa88e153789c5",
+          "timestamp": 1786290305702
+        },
+        {
+          "step": "Submitted",
+          "actor": "Freelancer",
+          "title": "Submit Work",
+          "status": "completed",
+          "txHash": "0xc39df5a6005c4945989ff9a5f6ac4b3e249330c700bdc538f5b1143c72d82f8c",
+          "timestamp": 1786290456074
+        },
+        {
+          "step": "Completed",
+          "actor": "Client",
+          "title": "Payment Released (100%)",
+          "status": "completed",
+          "txHash": "0x1bb98e47e75fba41ee72e3161decc48d85a3384cc51393d91bd587bb28ab281e",
+          "timestamp": 1786290598140
+        },
+        {
+          "step": "Minted",
+          "actor": "JobFactory",
+          "title": "Mint Reputation SBT",
+          "status": "completed",
+          "txHash": "0x91c12242a9bd30f4bcad10a425d4fa3047f0d1b3c4317337adf2ad7ba20fac5f",
+          "timestamp": 1786290598140
+        },
+        {
+          "step": "Update",
+          "actor": "Freelancer",
+          "title": "Progress Update (75%)",
+          "status": "completed",
+          "txHash": "0xbf2d632f677f1bd97342ec73154a236321a95df3411f7b81895b8b073bc86ac0",
+          "timestamp": 1786290275046,
+          "description": "tested"
+        }
+      ],
+      "status": "Completed",
+      "dispute": {
+        "judge": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+        "reason": "NON_DELIVERY",
+        "raisedAt": 1786292251732,
+        "raisedBy": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+        "resolved": true,
+        "rulingBps": 5000,
+        "reasoningIpfsHash": "bafybeib27koylejuycvot6cm7y5imwjchswatm"
+      },
+      "category": "frontend",
+      "amountEth": "0.0008",
+      "createdAt": 1786289919096,
+      "termsHash": "0xf071dbe386063232fa614661043b2f688933c5d00fefa839df2084a0db63db8f",
+      "amountUsdc": "2",
+      "freelancer": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+      "description": "test 2 for polylance",
+      "submittedAt": 1786290456074,
+      "tokenAmount": "0",
+      "applications": [
+        {
+          "applicant": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "appliedAt": 1786289952774,
+          "githubScore": 980,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "Ethers.js"
+          ],
+          "proposalIpfsHash": "bafybeir4v4p33g7gzffqjqdpp2t2nzze5exddo"
+        },
+        {
+          "applicant": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "appliedAt": 1788066897832,
+          "githubScore": 730,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "Ethers.js",
+            "React",
+            "The Graph",
+            "IPFS",
+            "Rust",
+            "Hardhat",
+            "Next.js",
+            "Go",
+            "Circom"
+          ],
+          "proposalIpfsHash": "bafybeixypgcwbczqmalmd2wkvwneau7axok6jk"
+        },
+        {
+          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "appliedAt": 1791131958872,
+          "githubScore": 566,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "React",
+            "Rust",
+            "IPFS"
+          ],
+          "proposalIpfsHash": "bafybeirtpery35zo3cfhdyfmprncpwz3xmzadf"
+        }
+      ],
+      "chatMessages": [
+        {
+          "id": "msg-1791132013541",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132013541,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132090406",
+          "text": "hello",
+          "sender": "Freelancer",
+          "timestamp": 1791132090406,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132592500",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132592500,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132766558",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132766558,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132909819",
+          "sender": "Freelancer",
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
+        }
+      ],
+      "paymentToken": "USDC",
+      "chatClearedAt": 1788184102008,
+      "contractAddress": "0x16db4bd8e5f5a1ca2cdfde7083384c87d5eaecbd",
+      "progressUpdates": [
+        {
+          "id": "ssv3bqy4ug",
+          "demoUrl": "https://polylance.github.io",
+          "timestamp": 1786290275046,
+          "statusNote": "tested",
+          "progressPercent": 75
+        },
+        {
+          "id": "0x510938f1",
+          "txHash": "0x510938f1127f6bb685f75e602ea73cd2d5669f59cf3d1bfaf87f001996dde44e",
+          "demoUrl": "",
+          "ipfsHash": "bafybeis3vouz4f7y6dgpjcinqztmsx2d5w4ben",
+          "timestamp": 1788185055641,
+          "statusNote": "asdfghiop",
+          "progressPercent": 90
+        },
+        {
+          "id": "vuyqasqwj9j",
+          "demoUrl": "",
+          "timestamp": 1786291963100,
+          "statusNote": "Time extension works good",
+          "progressPercent": 90
+        },
+        {
+          "id": "ssn1l3ouhq",
+          "demoUrl": "",
+          "timestamp": 1786291758398,
+          "statusNote": "all functions works good\n",
+          "progressPercent": 50
+        }
+      ],
+      "negotiatedAmount": "2",
+      "reviewPeriodDays": 1,
+      "clientAgreedTerms": true,
+      "extensionRequests": [
+        {
+          "id": "m7gaqghtnn9",
+          "reason": "Test",
+          "status": "Approved",
+          "requestedAt": 1786291873441,
+          "responseNote": "Approved by Client",
+          "requestedDays": 1
+        }
+      ],
+      "preAcceptMessages": [
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132013526,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132090386,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132592480,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132766541,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        }
+      ],
+      "paymentTokenSymbol": "MATIC",
+      "modificationRequests": [],
+      "negotiationProposals": [],
+      "paymentTokenDecimals": 18,
+      "freelancerAgreedTerms": true,
+      "negotiatedDeadlineDays": 1
+    },
+    {
+      "id": "0x1b4479973f48",
+      "proof": {
+        "title": "Test 2 Completed ",
+        "description": "In the Dashboard the audit receipt is missing and in the leaderboard the amount volume is not shown correctly and the files uploaded in the submission are not access to client ",
+        "submittedAt": 1786292195292,
+        "externalLink": "https://polylance.github.io/Polylance-FV-1/",
+        "evidenceHashes": [
+          "bafybeirpufvf3z6p7pfdizjzpnsdtdzx4n5ndb"
+        ]
+      },
+      "title": "Job Testing ",
+      "client": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Posted (MATIC Escrow)",
+          "status": "completed",
+          "txHash": "0x9cd61f5817e12ea6c8c7150cc0fb1d35f0738c1711e68d79d8ec4759d87f3436",
+          "timestamp": 1788066863495
+        },
+        {
+          "step": "Selected",
+          "title": "Select Freelancer",
+          "status": "current",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Terms",
+          "title": "Agree Terms",
+          "status": "completed",
+          "txHash": "0xef8a6e77e57f4868a47a58fc643c279ab830629699871d94d86ed51fe8e2ba05",
+          "timestamp": 1788077993060
+        },
+        {
+          "step": "Funded",
+          "actor": "Client",
+          "title": "Fund Escrow",
+          "status": "completed",
+          "txHash": "0xbe33a453f617edea9cd4c4f0f8fae71c5521e6f67beff045d3c1f046e6bbd7a7",
+          "timestamp": 1788078267909
+        },
+        {
+          "step": "Submitted",
+          "title": "Submit Work",
+          "status": "current",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Completed",
+          "title": "Release Payment",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Minted",
+          "title": "Mint Reputation SBT",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        }
+      ],
+      "status": "Completed",
+      "dispute": {
+        "judge": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+        "reason": "NON_DELIVERY",
+        "raisedAt": 1786292251732,
+        "raisedBy": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+        "resolved": true,
+        "rulingBps": 5000,
+        "reasoningIpfsHash": "bafybeib27koylejuycvot6cm7y5imwjchswatm"
+      },
+      "category": "backend",
+      "amountEth": "0.0008",
+      "createdAt": 1788066863495,
+      "termsHash": "0xf071dbe386063232fa614661043b2f688933c5d00fefa839df2084a0db63db8f",
+      "amountUsdc": "2",
+      "freelancer": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706",
+      "description": "testing a job simulation workflow ",
+      "submittedAt": 1786290456074,
+      "tokenAmount": "0",
+      "applications": [
+        {
+          "applicant": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "appliedAt": 1788066877731,
+          "githubScore": 740,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "Ethers.js"
+          ],
+          "proposalIpfsHash": "bafybeilbgnmmvlqxww7v2baaj7elkktjovuu5t"
+        },
+        {
+          "applicant": "0x5bAb2a6561Cb2DeDFC95faE5CFD0779b5AB782a6",
+          "appliedAt": 1788066897832,
+          "githubScore": 730,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "Ethers.js",
+            "React",
+            "The Graph",
+            "IPFS",
+            "Rust",
+            "Hardhat",
+            "Next.js",
+            "Go",
+            "Circom"
+          ],
+          "proposalIpfsHash": "bafybeixypgcwbczqmalmd2wkvwneau7axok6jk"
+        },
+        {
+          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "appliedAt": 1791131958872,
+          "githubScore": 566,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "React",
+            "Rust",
+            "IPFS"
+          ],
+          "proposalIpfsHash": "bafybeirtpery35zo3cfhdyfmprncpwz3xmzadf"
+        }
+      ],
+      "chatMessages": [
+        {
+          "id": "msg-1788185055638",
+          "text": "🚀 Progress Update: 90% Complete\n\nasdfghiop",
+          "sender": "Freelancer",
+          "timestamp": 1788185055638
+        },
+        {
+          "id": "msg-1788185239519",
+          "text": "⏳ Extension Request: +1 Days\n\nReason: testing",
+          "sender": "Freelancer",
+          "timestamp": 1788185239519
+        },
+        {
+          "id": "msg-1791132013541",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132013541,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132090406",
+          "text": "hello",
+          "sender": "Freelancer",
+          "timestamp": 1791132090406,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132592500",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132592500,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132766558",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132766558,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132909819",
+          "sender": "Freelancer",
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
+        }
+      ],
+      "paymentToken": "0x0000000000000000000000000000000000000000",
+      "chatClearedAt": 1788184102008,
+      "contractAddress": "0x1b4479973f48b66fc3b9f822a8c85cee06335b86",
+      "progressUpdates": [
+        {
+          "id": "0x510938f1",
+          "txHash": "0x510938f1127f6bb685f75e602ea73cd2d5669f59cf3d1bfaf87f001996dde44e",
+          "demoUrl": "",
+          "ipfsHash": "bafybeis3vouz4f7y6dgpjcinqztmsx2d5w4ben",
+          "timestamp": 1788185055641,
+          "statusNote": "asdfghiop",
+          "progressPercent": 90
+        },
+        {
+          "id": "vuyqasqwj9j",
+          "demoUrl": "",
+          "timestamp": 1786291963100,
+          "statusNote": "Time extension works good",
+          "progressPercent": 90
+        },
+        {
+          "id": "ssn1l3ouhq",
+          "demoUrl": "",
+          "timestamp": 1786291758398,
+          "statusNote": "all functions works good\n",
+          "progressPercent": 50
+        },
+        {
+          "id": "ssv3bqy4ug",
+          "demoUrl": "https://polylance.github.io",
+          "timestamp": 1786290275046,
+          "statusNote": "tested",
+          "progressPercent": 75
+        }
+      ],
+      "negotiatedAmount": "2",
+      "reviewPeriodDays": 1,
+      "clientAgreedTerms": true,
+      "extensionRequests": [
+        {
+          "id": "0xfdc38d54",
+          "reason": "testing",
+          "status": "Pending",
+          "approved": false,
+          "responded": false,
+          "requestedAt": 1788185239521,
+          "requestIndex": 0,
+          "requestedDays": 1,
+          "reasonIpfsHash": "bafybeina7etnxkjo5xbutyhbl65crlvihm3v7s"
+        },
+        {
+          "id": "m7gaqghtnn9",
+          "reason": "Test",
+          "status": "Approved",
+          "requestedAt": 1786291873441,
+          "responseNote": "Approved by Client",
+          "requestedDays": 1
+        }
+      ],
+      "preAcceptMessages": [
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132013526,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132090386,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132592480,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132766541,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        }
+      ],
+      "paymentTokenSymbol": "MATIC",
+      "modificationRequests": [],
+      "negotiationProposals": [
+        {
+          "id": "prop-1788068578530-4won2",
+          "note": "",
+          "status": "Countered",
+          "createdAt": 1788068578530,
+          "amountUsdc": "1",
+          "proposedBy": "Freelancer",
+          "isFinalCall": false,
+          "deadlineDays": 2
+        },
+        {
+          "id": "prop-1788071684109-39p8g",
+          "note": "",
+          "jobId": "0x1b4479973f48",
+          "status": "Countered",
+          "createdAt": 1788071684109,
+          "amountUsdc": "2",
+          "proposedBy": "Freelancer",
+          "isFinalCall": false,
+          "deadlineDays": 2,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "id": "prop-1788071731718-i42v0",
+          "note": "",
+          "jobId": "0x1b4479973f48",
+          "status": "Countered",
+          "createdAt": 1788071731718,
+          "amountUsdc": "2",
+          "proposedBy": "Freelancer",
+          "isFinalCall": false,
+          "deadlineDays": 2,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "id": "prop-1788072375315-3mpb9",
+          "note": "",
+          "jobId": "0x1b4479973f48",
+          "status": "Countered",
+          "createdAt": 1788072375315,
+          "amountUsdc": "1",
+          "proposedBy": "Client",
+          "isFinalCall": false,
+          "deadlineDays": 1,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "id": "prop-1788076310892-en7ma",
+          "note": "",
+          "jobId": "0x1b4479973f48",
+          "status": "Countered",
+          "createdAt": 1788076310892,
+          "amountUsdc": "1",
+          "proposedBy": "Freelancer",
+          "isFinalCall": false,
+          "deadlineDays": 1,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "id": "prop-1788076378944-yo7n8",
+          "note": "",
+          "jobId": "0x1b4479973f48",
+          "status": "Countered",
+          "createdAt": 1788076378944,
+          "amountUsdc": "2",
+          "proposedBy": "Client",
+          "isFinalCall": false,
+          "deadlineDays": 2,
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "id": "prop-1788077030081-i4gm2",
+          "note": "",
+          "jobId": "0x1b4479973f48",
+          "status": "Accepted",
+          "createdAt": 1788077030081,
+          "amountUsdc": "2",
+          "proposedBy": "Client",
+          "isFinalCall": true,
+          "respondedAt": 1788077095413,
+          "deadlineDays": 1,
+          "responseNote": "",
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "id": "prop-1788077981332-8c01l",
+          "note": "",
+          "jobId": "0x1b4479973f48",
+          "status": "Accepted",
+          "createdAt": 1788077981332,
+          "amountUsdc": "2",
+          "proposedBy": "Client",
+          "isFinalCall": true,
+          "respondedAt": 1788077993060,
+          "deadlineDays": 1,
+          "responseNote": "",
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        }
+      ],
+      "paymentTokenDecimals": 18,
+      "freelancerAgreedTerms": true,
+      "negotiatedDeadlineDays": 1
     }
   ],
   "profiles": {
@@ -4493,21 +4699,30 @@
       ]
     },
     "0x9999999999999999999999999999999999999999": {
+      "address": "0x9999999999999999999999999999999999999999",
+      "displayName": "Test Developer",
       "bio": "Experienced smart contract developer, Solidity and OpenZeppelin expert.",
+      "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "ipfsHash": "bafybeipz2eqyzdeo2cdnoyemnxycowxbcmyabl",
       "skills": [
         "Solidity",
         "TypeScript",
         "Ethers.js"
       ],
-      "address": "0x9999999999999999999999999999999999999999",
-      "ipfsHash": "bafybeipz2eqyzdeo2cdnoyemnxycowxbcmyabl",
-      "prsCount": 12,
-      "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-      "reposCount": 8,
+      "githubVerified": true,
+      "reputationSbtCount": 1,
+      "githubUsername": "testdev",
       "verifiedAt": 1786420488584,
-      "displayName": "Test Developer",
-      "commitsCount": 150,
+      "primaryCategory": "web3",
       "primaryScore": 690,
+      "secondaryCategories": [
+        "frontend"
+      ],
+      "secondaryScores": [
+        311,
+        152
+      ],
+      "attestationUID": "0x5b34eae13246decdd5d8a48a9f5a969136e63bfbde7cc20944ef04402bf256a1",
       "languageBytes": {
         "Go": 0,
         "Rust": 0,
@@ -4516,19 +4731,10 @@
         "JavaScript": 0,
         "TypeScript": 0
       },
-      "attestationUID": "0x5b34eae13246decdd5d8a48a9f5a969136e63bfbde7cc20944ef04402bf256a1",
-      "githubUsername": "testdev",
-      "githubVerified": true,
-      "reputationTier": "GOLD",
-      "primaryCategory": "web3",
-      "secondaryScores": [
-        311,
-        152
-      ],
-      "reputationSbtCount": 1,
-      "secondaryCategories": [
-        "frontend"
-      ]
+      "commitsCount": 150,
+      "reposCount": 8,
+      "prsCount": 12,
+      "reputationTier": "GOLD"
     },
     "0xa03ad65bf623b72b1c88a0052a2ee4d5e33bc5f4": {
       "bio": "Java Backend Developer",
