@@ -3,25 +3,83 @@ import { PrismaClient } from '@prisma/client';
 
 dotenv.config();
 
-// Determine connection URL (external if local, internal if on Render)
+// Determine connection URL with priority fallback to active databases
 const certifiedPassDbUrl = 
   process.env.CERTIFIED_PASS_EXTERNAL_DB_URL || 
-  process.env.CERTIFIED_PASS_DATABASE_URL;
+  process.env.CERTIFIED_PASS_DATABASE_URL ||
+  process.env.DATABASE_URL ||
+  process.env.BACKUP_DATABASE_URL;
 
 export let certifiedPassClient: PrismaClient | null = null;
+let fallbackClient: PrismaClient | null = null;
 let isInitialized = false;
+let lastProvisionAttempt = 0;
+const PROVISION_COOLDOWN_MS = 60000; // 1 minute cooldown on failed DB connection
 
-if (certifiedPassDbUrl) {
+function createClient(url?: string): PrismaClient | null {
+  if (!url) return null;
   try {
-    certifiedPassClient = new PrismaClient({
+    return new PrismaClient({
       datasources: {
-        db: { url: certifiedPassDbUrl },
+        db: { url },
       },
     });
-    console.log('[CERTIFIED_PASS_DB] Initialized client for CertifiedPass Audit & SBT Storage');
   } catch (err: any) {
-    console.warn('[CERTIFIED_PASS_DB] Failed to instantiate CertifiedPass DB client:', err?.message || err);
+    return null;
   }
+}
+
+if (certifiedPassDbUrl) {
+  certifiedPassClient = createClient(certifiedPassDbUrl);
+  if (certifiedPassClient) {
+    console.log('[CERTIFIED_PASS_DB] Initialized client for CertifiedPass Audit & SBT Storage');
+  }
+}
+
+// Fallback client using primary DATABASE_URL or BACKUP_DATABASE_URL if certifiedPassClient fails
+const fallbackUrl = process.env.DATABASE_URL || process.env.BACKUP_DATABASE_URL;
+if (fallbackUrl && fallbackUrl !== certifiedPassDbUrl) {
+  fallbackClient = createClient(fallbackUrl);
+}
+
+function isConnectionError(err: any): boolean {
+  if (!err) return false;
+  const msg = (err?.message || String(err)).toLowerCase();
+  return (
+    msg.includes("can't reach database server") ||
+    msg.includes("server has closed the connection") ||
+    msg.includes("connection closed") ||
+    msg.includes("connection timed out") ||
+    msg.includes("could not connect") ||
+    msg.includes("timed out")
+  );
+}
+
+async function executeWithFallback<T>(
+  operation: (client: PrismaClient) => Promise<T>,
+  contextDesc: string
+): Promise<T | null> {
+  const clients = [certifiedPassClient, fallbackClient].filter(Boolean) as PrismaClient[];
+  if (clients.length === 0) return null;
+
+  for (let i = 0; i < clients.length; i++) {
+    const client = clients[i];
+    try {
+      return await operation(client);
+    } catch (err: any) {
+      if (isConnectionError(err) && i < clients.length - 1) {
+        // Try next fallback client
+        continue;
+      }
+      if (isConnectionError(err)) {
+        console.warn(`[CERTIFIED_PASS_DB] Database unreachable during ${contextDesc}. Retaining state in local cache.`);
+        return null;
+      }
+      console.warn(`[CERTIFIED_PASS_DB] ${contextDesc} notice:`, err?.message?.split('\n')[0] || err);
+      return null;
+    }
+  }
+  return null;
 }
 
 /**
@@ -48,13 +106,18 @@ export function formatCanonicalCertId(jobId?: string | number, contractAddress?:
  * Initializes tables in the dedicated certified_pass_polylance_audit_data database
  */
 export async function initCertifiedPassDatabase() {
-  if (!certifiedPassClient || isInitialized) return;
+  if (isInitialized) return;
+  const now = Date.now();
+  if (now - lastProvisionAttempt < PROVISION_COOLDOWN_MS) {
+    return;
+  }
+  lastProvisionAttempt = now;
 
-  try {
+  await executeWithFallback(async (client) => {
     console.log('[CERTIFIED_PASS_DB] Verifying and provisioning CertifiedPass tables...');
 
     // 1. SBT Attestation Record Table
-    await certifiedPassClient.$executeRawUnsafe(`
+    await client.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "CertifiedSBTRecord" (
         "id" TEXT PRIMARY KEY,
         "jobId" TEXT NOT NULL,
@@ -80,7 +143,7 @@ export async function initCertifiedPassDatabase() {
     `);
 
     // Migrate column types if needed (e.g. from NUMERIC to TEXT for formatted USDC strings)
-    await certifiedPassClient.$executeRawUnsafe(`
+    await client.$executeRawUnsafe(`
       DO $$
       BEGIN
         BEGIN
@@ -107,7 +170,7 @@ export async function initCertifiedPassDatabase() {
     `).catch(() => {});
 
     // 2. Audit Report Record Table
-    await certifiedPassClient.$executeRawUnsafe(`
+    await client.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "CertifiedAuditRecord" (
         "id" TEXT PRIMARY KEY,
         "targetAddress" TEXT NOT NULL,
@@ -127,7 +190,7 @@ export async function initCertifiedPassDatabase() {
     `);
 
     // Privacy protection: Ensure no sensitive financial/settlement figures are stored in the CertifiedPass DB
-    await certifiedPassClient.$executeRawUnsafe(`
+    await client.$executeRawUnsafe(`
       UPDATE "CertifiedSBTRecord" 
       SET "settledAmountUsdc" = 'PROTECTED (Confidential Settlement)'
       WHERE "settledAmountUsdc" IS NOT NULL AND "settledAmountUsdc" NOT LIKE 'PROTECTED%';
@@ -138,7 +201,7 @@ export async function initCertifiedPassDatabase() {
     `).catch(() => {});
 
     // 3. Verification Log Table (for CertifiedPass Scan tracking)
-    await certifiedPassClient.$executeRawUnsafe(`
+    await client.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "CertifiedVerificationLog" (
         "id" SERIAL PRIMARY KEY,
         "certId" TEXT NOT NULL,
@@ -150,9 +213,7 @@ export async function initCertifiedPassDatabase() {
 
     isInitialized = true;
     console.log('✅ [CERTIFIED_PASS_DB] All CertifiedPass verification tables are ready & active (Privacy Protection Enabled)!');
-  } catch (err: any) {
-    console.warn('[CERTIFIED_PASS_DB] Table provisioning warning:', err?.message || err);
-  }
+  }, 'table provisioning');
 }
 
 /**
@@ -177,8 +238,6 @@ export async function syncSBTToCertifiedPass(sbtData: {
   status?: string;
   metadata?: any;
 }) {
-  if (!certifiedPassClient) return;
-
   try {
     await initCertifiedPassDatabase();
 
@@ -202,49 +261,51 @@ export async function syncSBTToCertifiedPass(sbtData: {
     delete sanitizedMetadata.budgetUsdc;
     sanitizedMetadata.settledAmountUsdc = protectedSettlement;
 
-    await certifiedPassClient.$executeRawUnsafe(
-      `
-      INSERT INTO "CertifiedSBTRecord" (
-        "id", "jobId", "jobTitle", "category", "settledAmountUsdc",
-        "freelancerAddress", "freelancerName", "freelancerGithub",
-        "clientAddress", "clientName", "sbtTokenId", "ipfsCid",
-        "oracleSignature", "contractAddress", "status", "metadata", "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::jsonb, CURRENT_TIMESTAMP)
-      ON CONFLICT ("id") DO UPDATE SET
-        "jobTitle" = EXCLUDED."jobTitle",
-        "settledAmountUsdc" = EXCLUDED."settledAmountUsdc",
-        "freelancerName" = EXCLUDED."freelancerName",
-        "freelancerGithub" = EXCLUDED."freelancerGithub",
-        "clientName" = EXCLUDED."clientName",
-        "sbtTokenId" = EXCLUDED."sbtTokenId",
-        "ipfsCid" = EXCLUDED."ipfsCid",
-        "oracleSignature" = EXCLUDED."oracleSignature",
-        "contractAddress" = EXCLUDED."contractAddress",
-        "status" = EXCLUDED."status",
-        "metadata" = EXCLUDED."metadata",
-        "updatedAt" = CURRENT_TIMESTAMP;
-      `,
-      canonicalId,
-      cleanJobId,
-      sbtData.jobTitle,
-      sbtData.category || 'Web3 Engineering',
-      protectedSettlement,
-      freelancerAddr,
-      sbtData.freelancerName || 'Verified Developer',
-      sbtData.freelancerGithub || null,
-      clientAddr,
-      sbtData.clientName || 'Escrow Patron',
-      cleanSbtTokenId,
-      sbtData.ipfsCid || `QmPL${cleanJobId}AttestationProofCID77`,
-      sbtData.oracleSignature || `0x42f8366420a092c55660830e8115e9a443900990`,
-      sbtData.contractAddress || null,
-      status,
-      JSON.stringify(sanitizedMetadata)
-    );
+    await executeWithFallback(async (client) => {
+      await client.$executeRawUnsafe(
+        `
+        INSERT INTO "CertifiedSBTRecord" (
+          "id", "jobId", "jobTitle", "category", "settledAmountUsdc",
+          "freelancerAddress", "freelancerName", "freelancerGithub",
+          "clientAddress", "clientName", "sbtTokenId", "ipfsCid",
+          "oracleSignature", "contractAddress", "status", "metadata", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::jsonb, CURRENT_TIMESTAMP)
+        ON CONFLICT ("id") DO UPDATE SET
+          "jobTitle" = EXCLUDED."jobTitle",
+          "settledAmountUsdc" = EXCLUDED."settledAmountUsdc",
+          "freelancerName" = EXCLUDED."freelancerName",
+          "freelancerGithub" = EXCLUDED."freelancerGithub",
+          "clientName" = EXCLUDED."clientName",
+          "sbtTokenId" = EXCLUDED."sbtTokenId",
+          "ipfsCid" = EXCLUDED."ipfsCid",
+          "oracleSignature" = EXCLUDED."oracleSignature",
+          "contractAddress" = EXCLUDED."contractAddress",
+          "status" = EXCLUDED."status",
+          "metadata" = EXCLUDED."metadata",
+          "updatedAt" = CURRENT_TIMESTAMP;
+        `,
+        canonicalId,
+        cleanJobId,
+        sbtData.jobTitle,
+        sbtData.category || 'Web3 Engineering',
+        protectedSettlement,
+        freelancerAddr,
+        sbtData.freelancerName || 'Verified Developer',
+        sbtData.freelancerGithub || null,
+        clientAddr,
+        sbtData.clientName || 'Escrow Patron',
+        cleanSbtTokenId,
+        sbtData.ipfsCid || `QmPL${cleanJobId}AttestationProofCID77`,
+        sbtData.oracleSignature || `0x42f8366420a092c55660830e8115e9a443900990`,
+        sbtData.contractAddress || null,
+        status,
+        JSON.stringify(sanitizedMetadata)
+      );
 
-    console.log(`[CERTIFIED_PASS_DB] Successfully replicated SBT Certificate ${canonicalId} (Amount Protected) to CertifiedPass DB`);
+      console.log(`[CERTIFIED_PASS_DB] Successfully replicated SBT Certificate ${canonicalId} (Amount Protected) to CertifiedPass DB`);
+    }, `copying SBT ${sbtData.id || sbtData.jobId}`);
   } catch (err: any) {
-    console.warn(`[CERTIFIED_PASS_DB] Error copying SBT ${sbtData.id || sbtData.jobId}:`, err?.message || err);
+    // Handled in executeWithFallback
   }
 }
 
@@ -265,8 +326,6 @@ export async function syncAuditToCertifiedPass(auditData: {
   status?: string;
   fullReport?: any;
 }) {
-  if (!certifiedPassClient) return;
-
   try {
     await initCertifiedPassDatabase();
 
@@ -277,43 +336,45 @@ export async function syncAuditToCertifiedPass(auditData: {
     const sanitizedReport = { ...(auditData.fullReport || {}) };
     delete sanitizedReport.lifetimeVolumeUsdc;
 
-    await certifiedPassClient.$executeRawUnsafe(
-      `
-      INSERT INTO "CertifiedAuditRecord" (
-        "id", "targetAddress", "displayName", "roleType",
-        "trustIndexScore", "lifetimeVolumeUsdc", "slaSuccessRate",
-        "completedMilestonesCount", "ipfsCid", "oracleSignature", "status",
-        "auditData", "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, CURRENT_TIMESTAMP)
-      ON CONFLICT ("id") DO UPDATE SET
-        "displayName" = EXCLUDED."displayName",
-        "trustIndexScore" = EXCLUDED."trustIndexScore",
-        "lifetimeVolumeUsdc" = EXCLUDED."lifetimeVolumeUsdc",
-        "slaSuccessRate" = EXCLUDED."slaSuccessRate",
-        "completedMilestonesCount" = EXCLUDED."completedMilestonesCount",
-        "ipfsCid" = EXCLUDED."ipfsCid",
-        "oracleSignature" = EXCLUDED."oracleSignature",
-        "status" = EXCLUDED."status",
-        "auditData" = EXCLUDED."auditData",
-        "updatedAt" = CURRENT_TIMESTAMP;
-      `,
-      auditId,
-      cleanTargetAddr,
-      auditData.displayName || 'Verified Member',
-      auditData.roleType,
-      auditData.trustIndexScore || '10.0',
-      0, // Privacy protected: sensitive financial volume is not stored in CertifiedPass DB
-      auditData.slaSuccessRate || '100%',
-      auditData.completedMilestonesCount || 0,
-      auditData.ipfsCid || null,
-      auditData.oracleSignature || null,
-      auditData.status || 'VERIFIED',
-      JSON.stringify(sanitizedReport)
-    );
+    await executeWithFallback(async (client) => {
+      await client.$executeRawUnsafe(
+        `
+        INSERT INTO "CertifiedAuditRecord" (
+          "id", "targetAddress", "displayName", "roleType",
+          "trustIndexScore", "lifetimeVolumeUsdc", "slaSuccessRate",
+          "completedMilestonesCount", "ipfsCid", "oracleSignature", "status",
+          "auditData", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, CURRENT_TIMESTAMP)
+        ON CONFLICT ("id") DO UPDATE SET
+          "displayName" = EXCLUDED."displayName",
+          "trustIndexScore" = EXCLUDED."trustIndexScore",
+          "lifetimeVolumeUsdc" = EXCLUDED."lifetimeVolumeUsdc",
+          "slaSuccessRate" = EXCLUDED."slaSuccessRate",
+          "completedMilestonesCount" = EXCLUDED."completedMilestonesCount",
+          "ipfsCid" = EXCLUDED."ipfsCid",
+          "oracleSignature" = EXCLUDED."oracleSignature",
+          "status" = EXCLUDED."status",
+          "auditData" = EXCLUDED."auditData",
+          "updatedAt" = CURRENT_TIMESTAMP;
+        `,
+        auditId,
+        cleanTargetAddr,
+        auditData.displayName || 'Verified Member',
+        auditData.roleType,
+        auditData.trustIndexScore || '10.0',
+        0, // Privacy protected: sensitive financial volume is not stored in CertifiedPass DB
+        auditData.slaSuccessRate || '100%',
+        auditData.completedMilestonesCount || 0,
+        auditData.ipfsCid || null,
+        auditData.oracleSignature || null,
+        auditData.status || 'VERIFIED',
+        JSON.stringify(sanitizedReport)
+      );
 
-    console.log(`[CERTIFIED_PASS_DB] Successfully replicated Audit Report ${auditId} (Volume Protected) to CertifiedPass DB`);
+      console.log(`[CERTIFIED_PASS_DB] Successfully replicated Audit Report ${auditId} (Volume Protected) to CertifiedPass DB`);
+    }, `copying Audit ${auditData.id}`);
   } catch (err: any) {
-    console.warn(`[CERTIFIED_PASS_DB] Error copying Audit ${auditData.id}:`, err?.message || err);
+    // Handled in executeWithFallback
   }
 }
 
@@ -323,7 +384,7 @@ export async function syncAuditToCertifiedPass(auditData: {
  * ID, JobID, Contract Address, SBT Token ID, Wallet Address, or IPFS CID.
  */
 export async function getCertifiedCertificate(identifier: string) {
-  if (!certifiedPassClient || !identifier) return null;
+  if (!identifier) return null;
 
   try {
     await initCertifiedPassDatabase();
@@ -335,77 +396,78 @@ export async function getCertifiedCertificate(identifier: string) {
     const rawJobId = strippedLower.replace(/^0x/i, '');
     const strippedAudit = cleanLower.replace(/^pl-aud-/i, '').replace(/^0x/i, '').trim();
 
-    // 1. Check CertifiedSBTRecord with multiple identifier possibilities
-    const sbtRecords: any[] = await certifiedPassClient.$queryRawUnsafe(
-      `SELECT * FROM "CertifiedSBTRecord" 
-       WHERE "id" = $1 
-          OR "jobId" = $1 
-          OR "jobId" = $3
-          OR LOWER("id") = $2
-          OR LOWER("jobId") = $4
-          OR LOWER("jobId") = $5
-          OR "jobId" ILIKE '%' || $5 || '%'
-          OR LOWER("contractAddress") = $2 
-          OR LOWER("sbtTokenId") = $2 
-          OR "sbtTokenId" = 'SBT-' || $3
-          OR LOWER("freelancerAddress") = $2
-          OR LOWER("clientAddress") = $2
-          OR "ipfsCid" = $1
-          OR "id" ILIKE '%' || $1 || '%'
-          OR "id" ILIKE '%' || $3 || '%'
-       LIMIT 1;`,
-      cleanId,
-      cleanLower,
-      strippedJobId,
-      strippedLower,
-      rawJobId
-    );
+    return await executeWithFallback(async (client) => {
+      // 1. Check CertifiedSBTRecord with multiple identifier possibilities
+      const sbtRecords: any[] = await client.$queryRawUnsafe(
+        `SELECT * FROM "CertifiedSBTRecord" 
+         WHERE "id" = $1 
+            OR "jobId" = $1 
+            OR "jobId" = $3
+            OR LOWER("id") = $2
+            OR LOWER("jobId") = $4
+            OR LOWER("jobId") = $5
+            OR "jobId" ILIKE '%' || $5 || '%'
+            OR LOWER("contractAddress") = $2 
+            OR LOWER("sbtTokenId") = $2 
+            OR "sbtTokenId" = 'SBT-' || $3
+            OR LOWER("freelancerAddress") = $2
+            OR LOWER("clientAddress") = $2
+            OR "ipfsCid" = $1
+            OR "id" ILIKE '%' || $1 || '%'
+            OR "id" ILIKE '%' || $3 || '%'
+         LIMIT 1;`,
+        cleanId,
+        cleanLower,
+        strippedJobId,
+        strippedLower,
+        rawJobId
+      );
 
-    if (sbtRecords && sbtRecords.length > 0) {
-      // Log verification event
-      await certifiedPassClient.$executeRawUnsafe(
-        `INSERT INTO "CertifiedVerificationLog" ("certId", "verifierPlatform") VALUES ($1, 'CertifiedPass-Web');`,
-        sbtRecords[0].id
-      ).catch(() => {});
+      if (sbtRecords && sbtRecords.length > 0) {
+        // Log verification event
+        await client.$executeRawUnsafe(
+          `INSERT INTO "CertifiedVerificationLog" ("certId", "verifierPlatform") VALUES ($1, 'CertifiedPass-Web');`,
+          sbtRecords[0].id
+        ).catch(() => {});
 
-      return {
-        type: 'SBT_ATTESTATION',
-        record: sbtRecords[0]
-      };
-    }
+        return {
+          type: 'SBT_ATTESTATION',
+          record: sbtRecords[0]
+        };
+      }
 
-    // 2. Check CertifiedAuditRecord (by audit ID, target wallet address, prefix, or IPFS CID)
-    const auditRecords: any[] = await certifiedPassClient.$queryRawUnsafe(
-      `SELECT * FROM "CertifiedAuditRecord"
-       WHERE "id" = $1
-          OR LOWER("id") = $2
-          OR LOWER("targetAddress") = $2
-          OR LOWER("targetAddress") = '0x' || $3
-          OR "targetAddress" ILIKE '%' || $3 || '%'
-          OR "id" ILIKE '%' || $1 || '%'
-          OR "id" ILIKE '%' || $3 || '%'
-          OR "ipfsCid" = $1
-       LIMIT 1;`,
-      cleanId,
-      cleanLower,
-      strippedAudit
-    );
+      // 2. Check CertifiedAuditRecord (by audit ID, target wallet address, prefix, or IPFS CID)
+      const auditRecords: any[] = await client.$queryRawUnsafe(
+        `SELECT * FROM "CertifiedAuditRecord"
+         WHERE "id" = $1
+            OR LOWER("id") = $2
+            OR LOWER("targetAddress") = $2
+            OR LOWER("targetAddress") = '0x' || $3
+            OR "targetAddress" ILIKE '%' || $3 || '%'
+            OR "id" ILIKE '%' || $1 || '%'
+            OR "id" ILIKE '%' || $3 || '%'
+            OR "ipfsCid" = $1
+         LIMIT 1;`,
+        cleanId,
+        cleanLower,
+        strippedAudit
+      );
 
-    if (auditRecords && auditRecords.length > 0) {
-      await certifiedPassClient.$executeRawUnsafe(
-        `INSERT INTO "CertifiedVerificationLog" ("certId", "verifierPlatform") VALUES ($1, 'CertifiedPass-Web');`,
-        auditRecords[0].id
-      ).catch(() => {});
+      if (auditRecords && auditRecords.length > 0) {
+        await client.$executeRawUnsafe(
+          `INSERT INTO "CertifiedVerificationLog" ("certId", "verifierPlatform") VALUES ($1, 'CertifiedPass-Web');`,
+          auditRecords[0].id
+        ).catch(() => {});
 
-      return {
-        type: 'AUDIT_REPORT',
-        record: auditRecords[0]
-      };
-    }
+        return {
+          type: 'AUDIT_REPORT',
+          record: auditRecords[0]
+        };
+      }
 
-    return null;
+      return null;
+    }, `query for identifier ${identifier}`);
   } catch (err: any) {
-    console.warn(`[CERTIFIED_PASS_DB] Query error for identifier ${identifier}:`, err?.message || err);
     return null;
   }
 }

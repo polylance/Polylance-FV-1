@@ -28,7 +28,7 @@ export const formatInlineText = (text: string): React.ReactNode => {
       return (
         <strong 
           key={index} 
-          className="font-extrabold text-slate-900 bg-purple-100/60 text-purple-950 px-1.5 py-0.5 rounded-md border border-purple-200/60 shadow-3xs inline-block mx-0.5"
+          className="font-extrabold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-300 inline-block mx-0.5"
         >
           {content}
         </strong>
@@ -40,7 +40,7 @@ export const formatInlineText = (text: string): React.ReactNode => {
       return (
         <code 
           key={index} 
-          className="font-mono text-xs text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 font-semibold"
+          className="font-mono text-xs text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-300 font-semibold"
         >
           {codeContent}
         </code>
@@ -58,10 +58,10 @@ export const formatInlineText = (text: string): React.ReactNode => {
 const getSectionIcon = (title: string) => {
   const lower = title.toLowerCase();
   if (lower.includes('work') || lower.includes('responsibilit') || lower.includes('scope') || lower.includes('feature')) {
-    return <Workflow size={15} className="text-purple-600 shrink-0" />;
+    return <Workflow size={15} className="text-[#0047AB] shrink-0" />;
   }
   if (lower.includes('blockchain') || lower.includes('web3') || lower.includes('contract') || lower.includes('solidity')) {
-    return <Cpu size={15} className="text-indigo-600 shrink-0" />;
+    return <Cpu size={15} className="text-[#0047AB] shrink-0" />;
   }
   if (lower.includes('database') || lower.includes('api') || lower.includes('backend') || lower.includes('server')) {
     return <Database size={15} className="text-cyan-600 shrink-0" />;
@@ -75,7 +75,7 @@ const getSectionIcon = (title: string) => {
   if (lower.includes('deliverable') || lower.includes('milestone') || lower.includes('output')) {
     return <Award size={15} className="text-amber-600 shrink-0" />;
   }
-  return <Sparkles size={15} className="text-purple-600 shrink-0" />;
+  return <Sparkles size={15} className="text-[#0047AB] shrink-0" />;
 };
 
 /**
@@ -180,7 +180,7 @@ export const FormattedJobDescription: React.FC<FormattedJobDescriptionProps> = (
             {/* Section Header */}
             {hasTitle && (
               <div className="flex items-center gap-2 pb-1">
-                <div className="w-6 h-6 rounded-lg bg-purple-50 border border-purple-200/60 flex items-center justify-center shadow-3xs">
+                <div className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
                   {getSectionIcon(sec.title!)}
                 </div>
                 <h4 className="font-headline font-black text-sm text-slate-900 tracking-tight">
@@ -198,10 +198,10 @@ export const FormattedJobDescription: React.FC<FormattedJobDescriptionProps> = (
                 return (
                   <div 
                     key={pIdx} 
-                    className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-50/90 via-indigo-50/70 to-purple-50/90 border border-purple-200/80 shadow-2xs space-y-1.5"
+                    className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5"
                   >
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-purple-950 font-headline">
-                      <Boxes size={14} className="text-purple-600" />
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 font-headline">
+                      <Boxes size={14} className="text-[#0047AB]" />
                       <span>Preferred Technology Stack</span>
                     </div>
                     <div className="text-xs text-slate-700 leading-relaxed font-sans">
@@ -227,9 +227,9 @@ export const FormattedJobDescription: React.FC<FormattedJobDescriptionProps> = (
                 {sec.items.map((item, itemIdx) => (
                   <div 
                     key={itemIdx}
-                    className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-3xs hover:border-purple-300 transition-colors"
+                    className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-400 transition-colors"
                   >
-                    <div className="w-5 h-5 rounded-md bg-purple-100 text-purple-800 flex items-center justify-center shrink-0 mt-0.5">
+                    <div className="w-5 h-5 rounded-md bg-slate-100 text-slate-800 flex items-center justify-center shrink-0 mt-0.5">
                       <Check size={11} className="stroke-[3]" />
                     </div>
                     <span className="text-xs text-slate-700 leading-snug font-medium">

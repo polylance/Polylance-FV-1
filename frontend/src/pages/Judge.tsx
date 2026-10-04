@@ -90,13 +90,13 @@ export const Judge: React.FC = () => {
     scrollToSection('manage-judges-roster', 200);
   };
 
-  if (!isAdmin && !isJudgeRole) {
+  if (currentRole === 'freelancer' || currentRole === 'client' || (!isAdmin && !isJudgeRole)) {
     return (
-      <div className="max-w-xl mx-auto py-16">
+      <div className="max-w-xl mx-auto py-16 px-4">
         <PermissionDeniedState
-          title="Access Restricted"
-          description="Only appointed Arbitrators and DAO Governors have permission to access the dispute arbitration panel."
-          onBack={() => window.history.back()}
+          title="Judge Panel Protected"
+          description="The Judge Arbitration Panel is strictly restricted to appointed DAO Arbitrators and Governors. Freelancers and Clients cannot access or participate in dispute rulings."
+          onBack={() => navigate('/dashboard')}
         />
       </div>
     );
@@ -105,18 +105,18 @@ export const Judge: React.FC = () => {
   return (
     <div className="space-y-6 py-6 max-w-6xl mx-auto font-sans">
       {/* Top Restricted Header */}
-      <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow flex flex-wrap items-center justify-between gap-4">
+      <div className="glass-panel p-6 sm:p-8 border-[#E2E6EC] bg-white shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="font-headline text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-              <Gavel className="text-purple-700" /> Judge Governance & Dispute Panel
+              <Gavel className="text-[#0047AB]" /> Judge Governance & Dispute Panel
             </h1>
-            <span className="bg-purple-100 text-purple-900 border border-purple-300 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
+            <span className="bg-slate-100 text-[#0B0B0C] border border-slate-200 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
               {isAdmin ? 'Admin Governance' : 'Arbitrator Access'}
             </span>
           </div>
           <p className="text-xs text-slate-600 font-mono">
-            CONNECTED_ROLE: <span className="text-purple-900 font-bold">{truncateAddress(address)}</span> ({isAdmin ? 'DAO Administrator' : 'Accredited Judge'})
+            CONNECTED_ROLE: <span className="text-[#0B0B0C] font-bold">{truncateAddress(address)}</span> ({isAdmin ? 'DAO Administrator' : 'Accredited Judge'})
           </p>
         </div>
 
@@ -125,7 +125,7 @@ export const Judge: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsInviteModalOpen(true)}
-              className="gradient-btn-primary px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all hover:scale-105"
+              className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
             >
               <UserPlus size={15} />
               <span>Invite / Appoint Judge</span>
@@ -141,7 +141,7 @@ export const Judge: React.FC = () => {
           onClick={() => setActiveTab('disputes')}
           className={`px-4 py-2 rounded-xl text-xs font-bold font-headline flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'disputes'
-              ? 'bg-purple-600 text-white shadow-md'
+              ? 'bg-[#0B0B0C] text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
           }`}
         >
@@ -161,14 +161,14 @@ export const Judge: React.FC = () => {
           onClick={() => setActiveTab('manage')}
           className={`px-4 py-2 rounded-xl text-xs font-bold font-headline flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'manage'
-              ? 'bg-purple-600 text-white shadow-md'
+              ? 'bg-[#0B0B0C] text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <Users size={14} />
           <span>Appointed Judges Roster</span>
           <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-mono font-bold ${
-            activeTab === 'manage' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-900'
+            activeTab === 'manage' ? 'bg-white/20 text-white' : 'bg-slate-100 text-[#0B0B0C]'
           }`}>
             {judges.length}
           </span>
@@ -182,7 +182,7 @@ export const Judge: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
               <p className="font-label-mono text-xs text-slate-500 font-bold">Total Resolved (30d)</p>
-              <h4 className="font-headline text-3xl font-black text-purple-900">{totalResolved}</h4>
+              <h4 className="font-headline text-3xl font-black text-[#0B0B0C]">{totalResolved}</h4>
               <div className="flex items-center text-xs text-slate-500 gap-1 font-mono pt-1 font-medium">
                 <TrendingUp size={14} /> Active arbitrator track record
               </div>
@@ -190,7 +190,7 @@ export const Judge: React.FC = () => {
 
             <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
               <p className="font-label-mono text-xs text-slate-500 font-bold">Average Resolution SLA</p>
-              <h4 className="font-headline text-3xl font-black text-purple-900">{avgSla}</h4>
+              <h4 className="font-headline text-3xl font-black text-[#0B0B0C]">{avgSla}</h4>
               <div className="flex items-center text-xs text-slate-600 gap-1 font-mono pt-1 font-medium">
                 <Clock size={14} /> Within SLA threshold
               </div>
@@ -211,7 +211,7 @@ export const Judge: React.FC = () => {
           <div className="glass-panel border-slate-200 bg-white overflow-hidden hard-shadow space-y-4">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Gavel size={18} className="text-purple-700" /> Open Dispute Queue
+                <Gavel size={18} className="text-[#0047AB]" /> Open Dispute Queue
               </h3>
               <span className="font-mono text-xs text-slate-500 font-bold">{disputedJobs.length} Pending Cases</span>
             </div>
@@ -241,11 +241,11 @@ export const Judge: React.FC = () => {
                         <tr
                           key={j.id}
                           onClick={() => setSelectedJobId(j.id)}
-                          className={`cursor-pointer hover:bg-purple-50/50 transition-colors ${
-                            selectedJobId === j.id ? 'bg-purple-50 border-l-4 border-purple-700' : ''
+                          className={`cursor-pointer hover:bg-slate-50 transition-colors ${
+                            selectedJobId === j.id ? 'bg-slate-50 border-l-4 border-[#0047AB]' : ''
                           }`}
                         >
-                          <td className="p-4 font-bold text-purple-900">{j.id}</td>
+                          <td className="p-4 font-bold text-[#0B0B0C]">{j.id}</td>
                           <td className="p-4 text-slate-700">{j.dispute?.reason || 'QUALITY'}</td>
                           <td className="p-4 font-bold text-emerald-700">${parseFloat(j.amountUsdc).toLocaleString()} USDC</td>
                           <td className="p-4">
@@ -254,7 +254,7 @@ export const Judge: React.FC = () => {
                             </span>
                           </td>
                           <td className="p-4">
-                            <button className="gradient-btn-primary px-3 py-1 rounded text-xs font-bold cursor-pointer">
+                            <button className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-3 py-1 rounded text-xs font-bold cursor-pointer transition-colors">
                               Review Detail
                             </button>
                           </td>
@@ -272,12 +272,12 @@ export const Judge: React.FC = () => {
                       onClick={() => setSelectedJobId(j.id)}
                       className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-3 ${
                         selectedJobId === j.id
-                          ? 'border-purple-500 bg-purple-50/60 ring-2 ring-purple-200'
+                          ? 'border-[#0047AB] bg-blue-50/40 ring-2 ring-blue-100'
                           : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/60'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono font-bold text-xs text-purple-900 bg-purple-100/80 px-2 py-0.5 rounded-md">
+                        <span className="font-mono font-bold text-xs text-[#0B0B0C] bg-slate-100 px-2 py-0.5 rounded-md">
                           Case #{j.id}
                         </span>
                         <span className="px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[10px] uppercase font-bold">
@@ -305,7 +305,7 @@ export const Judge: React.FC = () => {
                             e.stopPropagation();
                             setSelectedJobId(j.id);
                           }}
-                          className="gradient-btn-primary px-3.5 py-2 min-h-[44px] rounded-xl text-xs font-bold shadow-xs flex items-center justify-center"
+                          className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-3.5 py-2 min-h-[44px] rounded-xl text-xs font-bold shadow-xs flex items-center justify-center transition-colors"
                         >
                           Review Detail
                         </button>
@@ -323,7 +323,7 @@ export const Judge: React.FC = () => {
               <div className="glass-panel p-6 border-slate-200 bg-white space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div>
-                    <span className="font-mono text-xs font-bold text-purple-700 uppercase">Case: #{activeJob.id}</span>
+                    <span className="font-mono text-xs font-bold text-slate-600 uppercase">Case: #{activeJob.id}</span>
                     <h3 className="font-headline text-xl font-bold text-slate-900">{activeJob.title}</h3>
                   </div>
                   <div className="text-right">
@@ -350,7 +350,7 @@ export const Judge: React.FC = () => {
                   <div className="border border-slate-200 rounded-xl bg-slate-50 p-5 space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                       <h4 className="font-bold text-slate-900 text-xs flex items-center gap-2">
-                        <FileText size={15} className="text-purple-700" /> Freelancer Response
+                        <FileText size={15} className="text-[#0047AB]" /> Freelancer Response
                       </h4>
                       <span className="font-mono text-[10px] text-slate-500 font-bold">{truncateAddress(activeJob.freelancer)}</span>
                     </div>
@@ -363,7 +363,7 @@ export const Judge: React.FC = () => {
                 {/* Verdict Form */}
                 <form onSubmit={handleRulingsubmit} className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-5 mt-4">
                   <h4 className="font-headline text-base font-bold text-slate-900 flex items-center gap-2">
-                    <Scale size={18} className="text-purple-700" /> Issue Formal Judicial Verdict
+                    <Scale size={18} className="text-[#0047AB]" /> Issue Formal Judicial Verdict
                   </h4>
 
                   {/* Presets */}
@@ -405,10 +405,10 @@ export const Judge: React.FC = () => {
                       type="button"
                       onClick={() => handleApplyPreset(7500)}
                       className={`p-3 border rounded-xl font-mono text-xs text-center transition-all cursor-pointer ${
-                        freelancerBps === 7500 ? 'bg-purple-100 border-purple-400 text-purple-900 font-bold' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                        freelancerBps === 7500 ? 'bg-blue-50 border-[#0047AB] text-[#0B0B0C] font-bold' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
                       }`}
                     >
-                      <div className="font-bold text-purple-700 mb-0.5">75% Freelancer</div>
+                      <div className="font-bold text-[#0047AB] mb-0.5">75% Freelancer</div>
                       <div className="text-[9.5px]">25% Client Refund</div>
                     </button>
                   </div>
@@ -423,14 +423,14 @@ export const Judge: React.FC = () => {
                       placeholder="Detail the contractual evidence, GitHub commit records, and rationale leading to this ruling..."
                       value={reasoning}
                       onChange={(e) => setReasoning(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                     />
                   </div>
 
                   <div className="flex justify-end pt-1">
                     <button
                       type="submit"
-                      className="gradient-btn-emerald px-6 py-2.5 rounded-xl font-bold text-xs shadow-md cursor-pointer transition-all hover:scale-105"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs cursor-pointer transition-colors"
                     >
                       Submit Final Verdict On-Chain
                     </button>
@@ -449,7 +449,7 @@ export const Judge: React.FC = () => {
             <div className="p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Users size={18} className="text-purple-700" /> Appointed Protocol Arbitrators
+                  <Users size={18} className="text-[#0047AB]" /> Appointed Protocol Arbitrators
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
                   Decentralized jury and dispute arbiters authorized by DAO Governance
@@ -460,7 +460,7 @@ export const Judge: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsInviteModalOpen(true)}
-                  className="gradient-btn-primary px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer transition-all hover:scale-105"
+                  className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
                 >
                   <UserPlus size={14} />
                   <span>Add New Judge</span>
@@ -485,7 +485,7 @@ export const Judge: React.FC = () => {
                     <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center font-bold font-headline text-xs shrink-0">
+                          <div className="w-8 h-8 rounded-xl bg-slate-100 text-[#0B0B0C] border border-slate-200 flex items-center justify-center font-bold font-headline text-xs shrink-0">
                             {judge.name ? judge.name.slice(0, 2).toUpperCase() : 'JD'}
                           </div>
                           <div>
@@ -497,7 +497,7 @@ export const Judge: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="p-4 font-mono font-bold text-purple-900 text-xs">
+                      <td className="p-4 font-mono font-bold text-[#0B0B0C] text-xs">
                         {truncateAddress(judge.address)}
                       </td>
 
@@ -519,7 +519,7 @@ export const Judge: React.FC = () => {
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             to={`/chat?judge=${judge.address}`}
-                            className="p-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-colors inline-flex items-center gap-1 font-bold text-[11px]"
+                            className="p-1.5 rounded-lg bg-white hover:bg-slate-50 text-[#0047AB] hover:text-[#003A8C] border border-[#E2E6EC] transition-colors inline-flex items-center gap-1 font-bold text-[11px]"
                             title="Open Direct Message"
                           >
                             <MessageSquare size={13} />
@@ -571,7 +571,7 @@ export const Judge: React.FC = () => {
                 <div key={idx} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center font-bold font-headline text-xs shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 text-[#0B0B0C] border border-slate-200 flex items-center justify-center font-bold font-headline text-xs shrink-0">
                         {judge.name ? judge.name.slice(0, 2).toUpperCase() : 'JD'}
                       </div>
                       <div>
@@ -601,7 +601,7 @@ export const Judge: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <Link
                         to={`/chat?judge=${judge.address}`}
-                        className="px-3 py-2 min-h-[44px] rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs inline-flex items-center gap-1.5"
+                        className="px-3 py-2 min-h-[44px] rounded-xl bg-white hover:bg-slate-50 text-[#0047AB] hover:text-[#003A8C] border border-[#E2E6EC] font-bold text-xs inline-flex items-center gap-1.5"
                       >
                         <MessageSquare size={14} />
                         <span>Message</span>
@@ -650,10 +650,10 @@ export const Judge: React.FC = () => {
       {/* APPOINT / INVITE JUDGE MODAL */}
       {isInviteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in font-sans">
-          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full border border-purple-200 shadow-2xl space-y-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full border border-[#E2E6EC] shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center shrink-0">
                   <UserPlus size={20} />
                 </div>
                 <div>
@@ -685,7 +685,7 @@ export const Judge: React.FC = () => {
                   placeholder="0x..."
                   value={newJudgeAddress}
                   onChange={(e) => setNewJudgeAddress(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono text-xs focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono text-xs focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                 />
                 {/* Quick Presets */}
                 {import.meta.env.VITE_JUDGE_ADDRESS && (
@@ -698,7 +698,7 @@ export const Judge: React.FC = () => {
                         setNewJudgeName('Accredited Arbitrator');
                         setNewJudgeNotes('Accredited DeFi & smart contract auditor.');
                       }}
-                      className="px-2 py-0.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-mono text-[9.5px] cursor-pointer"
+                      className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0047AB] border border-slate-200 font-mono text-[9.5px] cursor-pointer"
                     >
                       Configured Arbitrator
                     </button>
@@ -716,7 +716,7 @@ export const Judge: React.FC = () => {
                   placeholder="e.g. Arbitrator Dr. Elena Vance"
                   value={newJudgeName}
                   onChange={(e) => setNewJudgeName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                 />
               </div>
 
@@ -729,7 +729,7 @@ export const Judge: React.FC = () => {
                   placeholder="e.g. Smart Contract Security, DeFi protocols, Zero-Knowledge proofs..."
                   value={newJudgeNotes}
                   onChange={(e) => setNewJudgeNotes(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"
                 />
               </div>
 
@@ -743,7 +743,7 @@ export const Judge: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold shadow-md cursor-pointer transition-all hover:scale-105"
+                  className="flex-1 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold shadow-xs cursor-pointer transition-colors"
                 >
                   Appoint & Authorize Judge
                 </button>

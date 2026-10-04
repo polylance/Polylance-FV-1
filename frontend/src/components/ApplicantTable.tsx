@@ -36,6 +36,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfileBioModal } from './UserProfileBioModal';
+import { UsdcIcon } from './TokenIcon';
 
 interface ApplicantTableProps {
   jobId?: string;
@@ -188,12 +189,12 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
   };
 
   return (
-    <div className="bg-white border border-purple-200/80 rounded-3xl overflow-hidden shadow-xl shadow-purple-900/5 space-y-0 font-sans">
+    <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm space-y-0 font-sans">
       
       {/* Header Bar with Filter & Sort Controls */}
       <div className="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-white">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-50 text-purple-700 rounded-2xl flex items-center justify-center border border-purple-100 shrink-0">
+          <div className="w-10 h-10 bg-slate-100 text-[#0047AB] rounded-2xl flex items-center justify-center border border-slate-200 shrink-0">
             <Users className="w-5 h-5" />
           </div>
           <div>
@@ -214,7 +215,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
             onClick={() => setFilterGithubOnly(!filterGithubOnly)}
             className={`text-xs px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer font-bold ${
               filterGithubOnly
-                ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                ? 'bg-[#0047AB] text-white border-[#0047AB] shadow-xs'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
@@ -246,7 +247,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
               onClick={() => handleSort('score')}
               className={`text-xs px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all cursor-pointer font-bold ${
                 sortField === 'score'
-                  ? 'bg-purple-100 border-purple-300 text-purple-950 shadow-2xs'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
                   : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
             >
@@ -257,7 +258,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
               onClick={() => handleSort('reputation')}
               className={`text-xs px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all cursor-pointer font-bold ${
                 sortField === 'reputation'
-                  ? 'bg-purple-100 border-purple-300 text-purple-950 shadow-2xs'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
                   : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
             >
@@ -299,7 +300,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
           return (
             <div 
               key={app.applicant} 
-              className="bg-white border border-slate-200/80 rounded-2xl p-5 space-y-4 hover:border-purple-300 transition-all shadow-xs"
+              className="bg-white border border-slate-200/80 rounded-2xl p-5 space-y-4 hover:border-slate-400 transition-all shadow-xs"
             >
               {/* Top Section: Applicant Info, Verified Score, and Action Buttons */}
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -310,9 +311,9 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                     <img 
                       src={profile?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${app.applicant.toLowerCase()}`} 
                       alt={name} 
-                      className="w-12 h-12 rounded-full object-cover border border-purple-200"
+                      className="w-12 h-12 rounded-full object-cover border border-slate-200"
                     />
-                    <div className="absolute bottom-0 right-0 w-4.5 h-4.5 bg-purple-600 text-white rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                    <div className="absolute bottom-0 right-0 w-4.5 h-4.5 bg-[#0047AB] text-white rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                       <span className="text-[9px] font-bold">✓</span>
                     </div>
                   </div>
@@ -321,10 +322,10 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                     <div className="flex items-center gap-2">
                       <Link
                         to={`/profile/${app.applicant}`}
-                        className="font-mono text-purple-700 hover:text-purple-900 font-bold text-sm flex items-center gap-1 hover:underline"
+                        className="font-mono text-[#0047AB] hover:text-[#003882] font-bold text-sm flex items-center gap-1 hover:underline"
                       >
                         <span>{truncateAddress(app.applicant)}</span>
-                        <ExternalLink size={12} className="text-purple-500" />
+                        <ExternalLink size={12} className="text-[#0047AB]" />
                       </Link>
                       <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
                         {truncateAddress(app.applicant)}
@@ -337,9 +338,9 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                 {/* Score & Reputation Metrics Badge */}
                 <div className="flex items-center gap-3">
                   {/* Real Reputation Score */}
-                  <div className="bg-purple-50 border border-purple-200/80 px-3.5 py-1.5 rounded-xl text-center">
-                    <div className="text-xs font-mono font-black text-purple-900">
-                      {repScores.totalPoints} <span className="text-[10px] text-purple-600 font-bold">PLREP</span>
+                  <div className="bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-xl text-center">
+                    <div className="text-xs font-mono font-black text-slate-900">
+                      {repScores.totalPoints} <span className="text-[10px] text-[#0047AB] font-bold">PLREP</span>
                     </div>
                     <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-wider block">
                       Reputation Points
@@ -368,11 +369,11 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                     onClick={() => setExpandedApplicant(isExpanded ? null : app.applicant)}
                     className={`px-3 py-2 border rounded-xl font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer transition-all ${
                       isExpanded 
-                        ? 'bg-purple-100 border-purple-300 text-purple-950 shadow-2xs' 
-                        : 'bg-slate-50 hover:bg-purple-50 border-slate-200 hover:border-purple-300 text-slate-700 hover:text-purple-900'
+                        ? 'bg-slate-900 border-slate-900 text-white shadow-2xs' 
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900'
                     }`}
                   >
-                    <Users size={14} className="text-purple-700" />
+                    <Users size={14} className={isExpanded ? "text-white" : "text-slate-700"} />
                     <span>Audit Experience</span>
                     {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                   </button>
@@ -383,9 +384,9 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                       <button
                         type="button"
                         onClick={() => navigate(`/chat?jobId=${jobId}&applicant=${app.applicant}`)}
-                        className="bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
                       >
-                        <MessageSquare size={14} className="text-purple-700" />
+                        <MessageSquare size={14} className="text-[#0047AB]" />
                         Discuss Terms in Messages
                       </button>
 
@@ -406,10 +407,10 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
               </div>
 
               {/* Proposal Text Section */}
-              <div className="bg-[#FAF5FF] border border-purple-200/60 rounded-2xl p-4 space-y-1.5">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-1.5">
                 <div className="flex items-center gap-1.5">
-                  <MessageSquare size={13} className="text-purple-600 shrink-0" />
-                  <span className="text-[10px] font-mono uppercase font-bold text-purple-900 tracking-wider">
+                  <MessageSquare size={13} className="text-slate-500 shrink-0" />
+                  <span className="text-[10px] font-mono uppercase font-bold text-slate-900 tracking-wider">
                     PROPOSAL SUBMISSION
                   </span>
                 </div>
@@ -453,7 +454,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3 shadow-2xs flex flex-col justify-start">
                         {/* Header */}
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center shrink-0">
                             <Clock size={18} />
                           </div>
                           <div>
@@ -465,8 +466,8 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                         {/* Top 2 Cards Grid */}
                         <div className="grid grid-cols-2 gap-2.5">
                           {/* Subcard 1: Jobs Completed */}
-                          <div className="bg-[#FAF9FF] p-3 rounded-2xl border border-purple-100/60 flex flex-col justify-between h-28">
-                            <div className="w-8 h-8 rounded-xl bg-purple-100/70 text-purple-600 flex items-center justify-center">
+                          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex flex-col justify-between h-28">
+                            <div className="w-8 h-8 rounded-xl bg-slate-100 text-[#0047AB] flex items-center justify-center">
                               <Briefcase size={15} />
                             </div>
                             <div>
@@ -496,12 +497,12 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                         </div>
 
                         {/* Bottom Subcard: Milestones Progress Avg. */}
-                        <div className="bg-[#FAF9FF] p-3 rounded-2xl border border-purple-100/60 space-y-2">
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-slate-800">
                               Milestones Progress Avg.
                             </span>
-                            <div className="w-6 h-6 rounded-full bg-purple-100/80 text-purple-600 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full bg-slate-100 text-[#0047AB] flex items-center justify-center">
                               <TrendingUp size={13} />
                             </div>
                           </div>
@@ -509,9 +510,9 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                             <span className="font-headline font-black text-slate-900 text-xl leading-none block">
                               {progressAvg.includes('N/A') ? '—' : progressAvg}
                             </span>
-                            <div className="w-full bg-purple-100/70 rounded-full h-1.5 mt-2 overflow-hidden">
+                            <div className="w-full bg-slate-200 rounded-full h-1.5 mt-2 overflow-hidden">
                               <div 
-                                className="bg-purple-600 h-1.5 rounded-full transition-all duration-300" 
+                                className="bg-[#0047AB] h-1.5 rounded-full transition-all duration-300" 
                                 style={{ width: progressAvg.includes('N/A') ? '0%' : (progressAvg.includes('%') ? progressAvg : '0%') }}
                               />
                             </div>
@@ -536,7 +537,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                         <div className="space-y-2 pt-1">
                           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                             <div className="flex items-center gap-2">
-                              <Smile size={16} className="text-purple-600" />
+                              <Smile size={16} className="text-[#0047AB]" />
                               <span className="text-xs text-slate-700 font-medium">Client Satisfaction</span>
                             </div>
                             {rating > 0 ? (
@@ -551,10 +552,10 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
 
                           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                             <div className="flex items-center gap-2">
-                              <Shield size={16} className="text-purple-600" />
+                              <Shield size={16} className="text-[#0047AB]" />
                               <span className="text-xs text-slate-700 font-medium">Soulbound Badges</span>
                             </div>
-                            <span className="font-mono font-extrabold text-purple-700 text-xs">
+                            <span className="font-mono font-extrabold text-[#0047AB] text-xs">
                               {soulboundCount} Attested
                             </span>
                           </div>
@@ -573,19 +574,19 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                                 soulboundCount,
                               });
                             }}
-                            className="bg-[#FAF8FF] border border-purple-100/90 rounded-2xl p-3.5 space-y-1.5 mt-2 cursor-pointer hover:border-purple-300 hover:shadow-xs transition-all group"
+                            className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-1.5 mt-2 cursor-pointer hover:border-slate-300 hover:shadow-xs transition-all group"
                             title="Click to view full bio and complete attestations popup"
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 text-purple-700 font-bold">
-                                <div className="w-5 h-5 rounded-md bg-purple-100 text-purple-700 flex items-center justify-center">
+                              <div className="flex items-center gap-1.5 text-slate-800 font-bold">
+                                <div className="w-5 h-5 rounded-md bg-slate-100 text-[#0047AB] flex items-center justify-center">
                                   <Award size={12} />
                                 </div>
-                                <span className="text-xs font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+                                <span className="text-xs font-bold text-slate-900 group-hover:text-[#0047AB] transition-colors">
                                   Bio & Attestations
                                 </span>
                               </div>
-                              <span className="text-[10px] font-mono text-purple-600 bg-purple-100/70 hover:bg-purple-200/70 px-2 py-0.5 rounded-full font-bold transition-colors">
+                              <span className="text-[10px] font-mono text-[#0047AB] bg-slate-200/80 hover:bg-slate-300/80 px-2 py-0.5 rounded-full font-bold transition-colors">
                                 View Full
                               </span>
                             </div>
@@ -710,11 +711,11 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
               {/* Modal Header */}
               <div className="flex items-start justify-between border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-bold shadow-md">
+                  <div className="w-12 h-12 rounded-2xl bg-[#0B0B0C] text-white flex items-center justify-center font-bold shadow-md">
                     <MessageSquare size={22} />
                   </div>
                   <div>
-                    <span className="text-[10px] font-mono uppercase text-purple-800 font-bold bg-purple-100 px-2 py-0.5 rounded border border-purple-200">
+                    <span className="text-[10px] font-mono uppercase text-slate-900 font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
                       PRE-ACCEPTANCE NEGOTIATION
                     </span>
                     <h3 className="font-headline text-lg sm:text-xl font-black text-slate-900 mt-1">
@@ -733,9 +734,9 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
               </div>
 
               {/* Negotiation Controls: Adjust Amount & Review Period */}
-              <div className="bg-purple-50/60 border border-purple-200/80 rounded-2xl p-4 space-y-3">
-                <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-900 uppercase">
-                  <Sliders size={14} className="text-purple-700" />
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-900 uppercase">
+                  <Sliders size={14} className="text-[#0047AB]" />
                   <span>Negotiable Job Terms (Pre-Acceptance)</span>
                 </div>
                 
@@ -744,33 +745,33 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                     <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                       Escrow Amount (USDC)
                     </label>
-                    <div className="relative">
-                      <DollarSign size={14} className="absolute left-3 top-3 text-slate-400" />
+                    <label className="flex items-center gap-2 bg-white border border-slate-300 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-900 transition-all cursor-text">
+                      <UsdcIcon size={16} className="shrink-0" />
                       <input
                         type="number"
                         min="1"
                         value={negotiatedAmount}
                         onChange={(e) => setNegotiatedAmount(e.target.value)}
-                        className="w-full bg-white border border-slate-300 text-slate-900 font-bold text-sm rounded-xl !pl-8 px-3 py-2 focus:ring-2 focus:ring-purple-200 focus:border-purple-600 outline-none"
+                        className="flex-1 min-w-0 bg-transparent text-slate-900 font-bold text-sm outline-none"
                       />
-                    </div>
+                    </label>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                       Review Window SLA (Days)
                     </label>
-                    <div className="relative">
-                      <Clock size={14} className="absolute left-3 top-3 text-slate-400" />
+                    <label className="flex items-center gap-2 bg-white border border-slate-300 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-900 transition-all cursor-text">
+                      <Clock size={15} className="shrink-0 text-slate-400" />
                       <input
                         type="number"
                         min="1"
                         max="60"
                         value={negotiatedDays}
                         onChange={(e) => setNegotiatedDays(Number(e.target.value))}
-                        className="w-full bg-white border border-slate-300 text-slate-900 font-bold text-sm rounded-xl !pl-8 px-3 py-2 focus:ring-2 focus:ring-purple-200 focus:border-purple-600 outline-none"
+                        className="flex-1 min-w-0 bg-transparent text-slate-900 font-bold text-sm outline-none"
                       />
-                    </div>
+                    </label>
                   </div>
                 </div>
                 <p className="text-[10px] text-slate-500 font-mono">
@@ -801,7 +802,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                       <div
                         className={`p-3 rounded-2xl text-xs max-w-sm font-medium ${
                           msg.senderRole === 'Client'
-                            ? 'bg-purple-600 text-white rounded-br-none shadow-xs'
+                            ? 'bg-[#0047AB] text-white rounded-br-none shadow-xs'
                             : 'bg-white border border-slate-200 text-slate-900 rounded-bl-none shadow-2xs'
                         }`}
                       >
@@ -819,12 +820,12 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                   placeholder="Type a message to discuss requirements or adjust budget..."
                   value={negotiateChatInput}
                   onChange={(e) => setNegotiateChatInput(e.target.value)}
-                  className="flex-1 bg-slate-50 border border-slate-300 text-slate-900 text-xs font-semibold rounded-xl px-4 py-2.5 focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-purple-200 outline-none"
+                  className="flex-1 bg-slate-50 border border-slate-300 text-slate-900 text-xs font-semibold rounded-xl px-4 py-2.5 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-200 outline-none"
                 />
                 <button
                   type="submit"
                   disabled={!negotiateChatInput.trim()}
-                  className="px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md disabled:opacity-50 transition-all cursor-pointer"
+                  className="px-4 py-2.5 bg-[#0047AB] hover:bg-[#003882] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md disabled:opacity-50 transition-all cursor-pointer"
                 >
                   <Send size={13} />
                   Send

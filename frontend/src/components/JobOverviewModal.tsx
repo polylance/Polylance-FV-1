@@ -9,6 +9,7 @@ import { Job } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { FormattedJobDescription } from './FormattedJobDescription';
 import { scrollToSection } from '../utils/scroll';
+import { TokenIcon } from './TokenIcon';
 
 interface JobOverviewModalProps {
   isOpen: boolean;
@@ -48,13 +49,13 @@ export const JobOverviewModal: React.FC<JobOverviewModalProps> = ({
           {/* Header */}
           <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-[#0B0B0C] text-white border border-slate-800 flex items-center justify-center shrink-0 shadow-xs">
                 <Briefcase size={22} />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold uppercase tracking-wider bg-purple-100/80 text-purple-800 border border-purple-200">
-                    <CheckCircle2 size={11} className="text-purple-700" />
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold uppercase tracking-wider bg-slate-100 text-slate-800 border border-slate-300">
+                    <CheckCircle2 size={11} className="text-[#0047AB]" />
                     {job.status.toUpperCase()} ESCROW
                   </span>
                   <span className="text-xs font-mono text-slate-400">
@@ -79,40 +80,48 @@ export const JobOverviewModal: React.FC<JobOverviewModalProps> = ({
 
           {/* Key Metrics Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="bg-[#FAF9FD] p-3.5 rounded-2xl border border-slate-100 space-y-1">
-              <span className="text-[10px] font-mono uppercase font-bold text-slate-400 block">
+            <div className="bg-[#F4F6F9] p-3.5 rounded-2xl border border-[#E2E6EC] space-y-1">
+              <span className="text-[10px] font-mono uppercase font-bold text-[#8892A0] block">
                 Escrow Deposit
               </span>
-              <div className="font-mono font-black text-slate-900 text-lg flex items-baseline gap-1">
-                <span>${parseFloat(job.amountUsdc || '0').toFixed(2)}</span>
-                <span className="text-xs font-bold text-slate-500">USDC</span>
+              <div className="font-mono font-black text-[#0B0B0C] text-lg flex items-center gap-1.5">
+                <TokenIcon token={job.paymentTokenSymbol || 'USDC'} size={18} />
+                <span>
+                  {(() => {
+                    const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
+                    const isCrypto = sym === 'POL' || sym === 'MATIC';
+                    const tokenLabel = isCrypto ? 'POL' : sym;
+                    const amt = isCrypto ? (job.amountEth || job.amountUsdc) : job.amountUsdc;
+                    return isCrypto ? `${amt} ${tokenLabel}` : `$${parseFloat(amt || '0').toFixed(2)} ${tokenLabel}`;
+                  })()}
+                </span>
               </div>
             </div>
 
-            <div className="bg-[#FAF9FD] p-3.5 rounded-2xl border border-slate-100 space-y-1">
-              <span className="text-[10px] font-mono uppercase font-bold text-slate-400 block">
+            <div className="bg-[#F4F6F9] p-3.5 rounded-2xl border border-[#E2E6EC] space-y-1">
+              <span className="text-[10px] font-mono uppercase font-bold text-[#8892A0] block">
                 SLA Timeline
               </span>
-              <div className="font-mono font-black text-slate-900 text-lg flex items-baseline gap-1">
+              <div className="font-mono font-black text-[#0B0B0C] text-lg flex items-baseline gap-1">
                 <span>{job.reviewPeriodDays || 7}</span>
-                <span className="text-xs font-bold text-slate-500">Days</span>
+                <span className="text-xs font-bold text-[#4B5563]">Days</span>
               </div>
             </div>
 
-            <div className="bg-[#FAF9FD] p-3.5 rounded-2xl border border-slate-100 space-y-1 col-span-2 sm:col-span-1">
-              <span className="text-[10px] font-mono uppercase font-bold text-slate-400 block">
+            <div className="bg-[#F4F6F9] p-3.5 rounded-2xl border border-[#E2E6EC] space-y-1 col-span-2 sm:col-span-1">
+              <span className="text-[10px] font-mono uppercase font-bold text-[#8892A0] block">
                 Client Address
               </span>
-              <div className="font-mono font-bold text-slate-800 text-xs truncate mt-1">
+              <div className="font-mono font-bold text-[#0B0B0C] text-xs truncate mt-1">
                 {truncateAddress(job.client)}
               </div>
             </div>
           </div>
 
           {/* Full Description Section */}
-          <div className="space-y-2 bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/70">
+          <div className="space-y-2 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200">
             <div className="flex items-center gap-2 text-slate-700 font-headline font-bold text-xs uppercase tracking-wider">
-              <FileText size={14} className="text-purple-600" />
+              <FileText size={14} className="text-[#0047AB]" />
               <span>Full Job Description & Specifications</span>
             </div>
             <FormattedJobDescription description={job.description} />
@@ -128,7 +137,7 @@ export const JobOverviewModal: React.FC<JobOverviewModalProps> = ({
                 {job.skillsRequired.map((skill, idx) => (
                   <span
                     key={idx}
-                    className="px-3 py-1 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 text-xs font-mono font-bold"
+                    className="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 text-xs font-mono font-bold"
                   >
                     {skill}
                   </span>
@@ -153,7 +162,7 @@ export const JobOverviewModal: React.FC<JobOverviewModalProps> = ({
                 navigate(`/jobs/${job.id}?section=job-specs`);
                 scrollToSection('job-specs');
               }}
-              className="gradient-btn-primary px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+              className="bg-[#0047AB] hover:bg-[#003882] px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
             >
               <span>View Full Escrow Page</span>
               <ArrowRight size={14} />

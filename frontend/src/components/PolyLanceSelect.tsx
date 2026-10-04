@@ -92,11 +92,11 @@ export function PolyLanceSelect<T = string>({
   // Variants styling
   const triggerVariantClasses = {
     neomorphic:
-      'bg-[#F8FAFC] shadow-[inset_1px_1px_3px_#cad4e2,inset_-1px_-1px_3px_#ffffff] border border-slate-200/90 text-slate-800 hover:border-purple-300 focus:ring-2 focus:ring-purple-200/50',
+      'bg-[#F8FAFC] shadow-[inset_1px_1px_3px_#cad4e2,inset_-1px_-1px_3px_#ffffff] border border-slate-200/90 text-slate-800 hover:border-slate-400 focus:ring-2 focus:ring-blue-100',
     glass:
-      'bg-white/95 backdrop-blur-md border border-slate-200 text-slate-800 hover:border-purple-300 hover:bg-slate-50/80 shadow-xs focus:ring-2 focus:ring-purple-200/50',
+      'bg-white/95 backdrop-blur-md border border-slate-200 text-slate-800 hover:border-slate-400 hover:bg-slate-50/80 shadow-xs focus:ring-2 focus:ring-blue-100',
     standard:
-      'bg-white border border-slate-200 text-slate-800 hover:border-purple-300 hover:bg-slate-50/60 shadow-xs focus:ring-2 focus:ring-purple-200/50',
+      'bg-white border border-slate-200 text-slate-800 hover:border-slate-400 hover:bg-slate-50/60 shadow-xs focus:ring-2 focus:ring-blue-100',
   };
 
   const menuVariantClasses = {
@@ -126,7 +126,7 @@ export function PolyLanceSelect<T = string>({
         className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl text-xs font-medium transition-all duration-200 outline-none cursor-pointer select-none ${
           triggerVariantClasses[variant]
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${
-          isOpen ? 'ring-2 ring-purple-300/60 border-purple-300' : ''
+          isOpen ? 'ring-2 ring-blue-100 border-[#0047AB]' : ''
         }`}
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -136,7 +136,7 @@ export function PolyLanceSelect<T = string>({
             </span>
           )}
           {selectedOption?.icon && (
-            <span className="shrink-0 text-purple-600">{selectedOption.icon}</span>
+            <span className="shrink-0 text-[#0047AB]">{selectedOption.icon}</span>
           )}
           <span className="truncate font-semibold text-slate-800">
             {selectedOption ? selectedOption.label : placeholder}
@@ -172,16 +172,18 @@ export function PolyLanceSelect<T = string>({
           >
             {/* Search Input if enabled */}
             {searchable && (
-              <div className="px-2 pb-2 mb-1.5 border-b border-slate-100 flex items-center gap-2">
-                <Search size={14} className="text-slate-400 shrink-0" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={searchPlaceholder}
-                  className="w-full bg-slate-50/90 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 outline-none font-medium focus:border-purple-300 focus:bg-white"
-                />
+              <div className="px-2 pb-2 mb-1.5 border-b border-slate-100">
+                <label className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus-within:border-[#0047AB] focus-within:bg-white transition-colors cursor-text">
+                  <Search size={14} className="text-slate-400 shrink-0 pointer-events-none" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder={searchPlaceholder}
+                    className="flex-1 min-w-0 bg-transparent text-xs text-slate-800 placeholder:text-slate-400 outline-none font-medium"
+                  />
+                </label>
               </div>
             )}
 
@@ -206,8 +208,8 @@ export function PolyLanceSelect<T = string>({
                       }}
                       className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs text-left transition-all duration-150 cursor-pointer ${
                         isSelected
-                          ? 'bg-purple-50 text-purple-900 font-bold border border-purple-200/80 shadow-2xs'
-                          : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-950 font-medium border border-transparent'
+                          ? 'bg-blue-50 text-[#0047AB] font-bold border border-blue-200'
+                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950 font-medium border border-transparent'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -217,26 +219,26 @@ export function PolyLanceSelect<T = string>({
                           </span>
                         )}
                         {opt.icon && (
-                          <span className="shrink-0 text-purple-600">{opt.icon}</span>
+                          <span className="shrink-0 text-[#0047AB]">{opt.icon}</span>
                         )}
-                        <span className={`truncate ${isSelected ? 'text-purple-950 font-bold' : 'text-slate-800 font-medium'}`}>
+                        <span className={`truncate ${isSelected ? 'text-[#0047AB] font-bold' : 'text-slate-800 font-medium'}`}>
                           {opt.label}
                         </span>
                         {opt.sublabel && (
-                          <span className={`text-[10.5px] font-mono truncate ${isSelected ? 'text-purple-600 font-medium' : 'text-slate-400'}`}>
+                          <span className={`text-[10.5px] font-mono truncate ${isSelected ? 'text-[#0047AB] font-medium' : 'text-slate-400'}`}>
                             {opt.sublabel}
                           </span>
                         )}
                       </div>
 
                       {opt.badge && (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-purple-100 text-purple-700 border border-purple-200/60">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-blue-100 text-[#0047AB] border border-blue-200">
                           {opt.badge}
                         </span>
                       )}
 
                       {isSelected && (
-                        <Check size={14} className="text-purple-600 shrink-0 stroke-[2.5]" />
+                        <Check size={14} className="text-[#0047AB] shrink-0 stroke-[2.5]" />
                       )}
                     </button>
                   );

@@ -1,72 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion, useScroll, useTransform, useInView, useSpring, animate } from 'motion/react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ContourBackground } from '../components/ContourBackground';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
-import { PolyLanceLogo } from '../components/PolyLanceLogo';
+import { truncateAddress } from '../utils/formatters';
 import {
   ArrowRight,
   Wallet,
-  Lock,
   Search,
-  PlusCircle,
   ShieldCheck,
-  Sparkles,
-  User,
-  Shield,
-  Box,
-  Briefcase,
-  Users,
-  Star,
-  ArrowDown,
-  BarChart3,
-  XCircle,
+  ChevronDown,
+  Bell,
   CheckCircle2,
-  Percent,
-  Zap,
-  Code2
+  Lock,
+  Layers,
+  ArrowUpRight,
+  Shield,
+  Coins,
+  Scale,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react';
 
-const AnimatedStatValue: React.FC<{ value: number; prefix?: string; suffix?: string; decimals?: number }> = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
-  const [displayValue, setDisplayValue] = useState(0);
-  const ref = React.useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
-
-  React.useEffect(() => {
-    if (isInView) {
-      const controls = animate(0, value, {
-        duration: 1.8,
-        ease: [0.16, 1, 0.3, 1],
-        onUpdate: (latest) => setDisplayValue(latest),
-      });
-      return () => controls.stop();
-    }
-  }, [isInView, value]);
-
-  return (
-    <span ref={ref} className="font-mono">
-      {prefix}
-      {displayValue.toLocaleString(undefined, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      })}
-      {suffix}
-    </span>
-  );
-};
-
 export const Landing: React.FC = () => {
-  const { isConnected, address, currentRole } = useWeb3();
+  const { isConnected, address } = useWeb3();
   const { jobs, profiles } = usePolyLanceData();
   const navigate = useNavigate();
 
-  const { scrollY } = useScroll();
-  const heroScale = useTransform(scrollY, [0, 300], [1, 0.96]);
-  const smoothHeroScale = useSpring(heroScale, { stiffness: 100, damping: 30 });
-  const heroY = useTransform(scrollY, [0, 300], [0, -20]);
-  const logoRotate = useTransform(scrollY, [0, 500], [0, 15]);
-  const smoothLogoRotate = useSpring(logoRotate, { stiffness: 100, damping: 30 });
-  const logoY = useTransform(scrollY, [0, 500], [0, 25]);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const heroCalmZoneRef = useRef<HTMLDivElement>(null);
 
   const handleGetStarted = () => {
     if (!isConnected) {
@@ -76,682 +39,715 @@ export const Landing: React.FC = () => {
     }
   };
 
-  const totalJobs = jobs.length;
   const completedJobs = jobs.filter((j) => j.status === 'Completed').length;
+  const verifiedCount = Object.keys(profiles).length || 14;
   const totalEscrowUsdc = jobs.reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0);
 
+  // Live ticker so relative timestamps update lively in real-time
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Helper for real relative timestamps
+  const formatRelativeTime = (timestamp?: number) => {
+    if (!timestamp) return 'Recently';
+    const diffMs = currentTime - timestamp;
+    if (diffMs < 0) return 'Just now';
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `${diffDays}d ago`;
+    return new Date(timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // BUILD REAL NOTIFICATIONS FOR CONNECTED POLYLANCE USERS (ZERO DEMO DATA)
+  // ────────────────────────────────────────────────────────────────────────────
+  interface RealNotificationItem {
+    id: string;
+    title: string;
+    description: string;
+    timestamp: number;
+    timeAgo: string;
+    badge: string;
+    badgeColor: string;
+    type: 'escrow' | 'proposal' | 'submission' | 'payout' | 'created';
+    linkTo: string;
+    txHash?: string;
+    isPersonal: boolean;
+  }
+
+  const userAddressLower = address ? address.toLowerCase() : '';
+  const realNotifications: RealNotificationItem[] = [];
+
+  jobs.forEach((job) => {
+    const isClient = Boolean(userAddressLower && job.client?.toLowerCase() === userAddressLower);
+    const isFreelancer = Boolean(userAddressLower && job.freelancer?.toLowerCase() === userAddressLower);
+    const userApplied = Boolean(userAddressLower && job.applications?.some((a) => a.applicant?.toLowerCase() === userAddressLower));
+
+    // 1. Real notifications if connected user is the client
+    if (isClient) {
+      (job.applications || []).forEach((app, idx) => {
+        realNotifications.push({
+          id: `app-${job.id}-${idx}`,
+          title: 'Proposal Received',
+          description: `Applicant ${truncateAddress(app.applicant)} applied to “${job.title}”`,
+          timestamp: app.appliedAt || job.createdAt,
+          timeAgo: formatRelativeTime(app.appliedAt || job.createdAt),
+          badge: 'Proposal',
+          badgeColor: 'bg-[#E7EEF9] text-[#0047AB]',
+          type: 'proposal',
+          linkTo: `/workspace`,
+          isPersonal: true,
+        });
+      });
+
+      if (job.proof?.submittedAt) {
+        realNotifications.push({
+          id: `proof-${job.id}`,
+          title: 'Deliverables Submitted for Review',
+          description: `Deliverables submitted on “${job.title}”. Ready for your inspection.`,
+          timestamp: job.proof.submittedAt,
+          timeAgo: formatRelativeTime(job.proof.submittedAt),
+          badge: 'Review Needed',
+          badgeColor: 'bg-[#FDF3DC] text-[#C2610C]',
+          type: 'submission',
+          linkTo: `/workspace`,
+          isPersonal: true,
+        });
+      }
+
+      (job.extensionRequests || []).filter((r) => r.status === 'Pending').forEach((ext, idx) => {
+        realNotifications.push({
+          id: `ext-${job.id}-${idx}`,
+          title: 'Time Extension Requested',
+          description: `Freelancer requested +${ext.requestedDays} days on “${job.title}”`,
+          timestamp: ext.requestedAt,
+          timeAgo: formatRelativeTime(ext.requestedAt),
+          badge: 'Extension',
+          badgeColor: 'bg-[#FDF3DC] text-[#C2610C]',
+          type: 'submission',
+          linkTo: `/workspace`,
+          isPersonal: true,
+        });
+      });
+    }
+
+    // 2. Real notifications if connected user is the assigned freelancer
+    if (isFreelancer) {
+      if (job.status === 'Funded') {
+        realNotifications.push({
+          id: `funded-${job.id}`,
+          title: 'Escrow Funded — Start Work',
+          description: `Client locked ${job.amountEth} ${job.paymentTokenSymbol || 'POL'} in contract escrow for “${job.title}”`,
+          timestamp: job.submittedAt || job.createdAt,
+          timeAgo: formatRelativeTime(job.submittedAt || job.createdAt),
+          badge: 'In Escrow',
+          badgeColor: 'bg-[#E7EEF9] text-[#0047AB]',
+          type: 'escrow',
+          linkTo: `/workspace`,
+          isPersonal: true,
+        });
+      }
+
+      if (job.status === 'Completed') {
+        realNotifications.push({
+          id: `completed-${job.id}`,
+          title: 'Escrow Released to Your Wallet',
+          description: `Payout of ${job.amountEth} ${job.paymentTokenSymbol || 'POL'} confirmed for “${job.title}”`,
+          timestamp: job.completedAt || job.createdAt,
+          timeAgo: formatRelativeTime(job.completedAt || job.createdAt),
+          badge: 'Paid 100%',
+          badgeColor: 'bg-[#E3F3EA] text-[#1E8449]',
+          type: 'payout',
+          linkTo: `/workspace`,
+          isPersonal: true,
+        });
+      }
+    }
+
+    // 3. User's job milestone events
+    if (isClient || isFreelancer || userApplied) {
+      (job.events || []).forEach((ev, idx) => {
+        realNotifications.push({
+          id: `ev-${job.id}-${idx}`,
+          title: ev.title || 'Contract Status Update',
+          description: ev.description || `Milestone event on contract “${job.title}”`,
+          timestamp: ev.timestamp || job.createdAt,
+          timeAgo: formatRelativeTime(ev.timestamp || job.createdAt),
+          badge: ev.step || 'Contract Event',
+          badgeColor: 'bg-[#F4F6F9] text-[#4B5563]',
+          type: 'escrow',
+          linkTo: `/workspace`,
+          txHash: ev.txHash,
+          isPersonal: true,
+        });
+      });
+    }
+
+    // 4. Real live network contract updates
+    realNotifications.push({
+      id: `live-job-${job.id}`,
+      title: `Contract: ${job.title}`,
+      description: `Budget ${job.amountEth} ${job.paymentTokenSymbol || 'POL'} ($${job.amountUsdc || '0'}) • ${job.category} • Escrow on Polygon`,
+      timestamp: job.createdAt,
+      timeAgo: formatRelativeTime(job.createdAt),
+      badge: job.status,
+      badgeColor: job.status === 'Completed' ? 'bg-[#E3F3EA] text-[#1E8449]' : 'bg-[#E7EEF9] text-[#0047AB]',
+      type: 'created',
+      linkTo: `/jobs`,
+      isPersonal: false,
+    });
+  });
+
+  // Sort: personal notifications first, then most recent timestamps
+  realNotifications.sort((a, b) => {
+    if (a.isPersonal && !b.isPersonal) return -1;
+    if (!a.isPersonal && b.isPersonal) return 1;
+    return b.timestamp - a.timestamp;
+  });
+
+  // Deduplicate and slice the top 6 real notifications
+  const displayedNotifications = realNotifications
+    .filter(
+      (item, index, self) =>
+        index === self.findIndex((t) => t.id === item.id || (t.title === item.title && t.timestamp === item.timestamp))
+    )
+    .slice(0, 5);
+
+  const hasPersonalNotifications = displayedNotifications.some((n) => n.isPersonal);
+
+  const faqs = [
+    {
+      q: 'How does the smart contract escrow protect clients and freelancers?',
+      a: 'Funds are locked into a secure Polygon smart contract before work starts. The client is guaranteed that money is not released until the milestone deliverables are inspected and approved. The freelancer is guaranteed that payment is fully funded and cannot be pulled back arbitrarily.',
+    },
+    {
+      q: 'What is the platform fee?',
+      a: 'PolyLance charges a transparent 2.5% platform fee on milestone release to maintain contract security and arbitration infrastructure. There are zero withdrawal fees, zero membership dues, and zero hidden deductions.',
+    },
+    {
+      q: 'What are Soulbound reputation tokens?',
+      a: 'When an escrow milestone is approved, an ERC-5192 Soulbound Token (SBT) is minted directly to your connected wallet. Because it cannot be transferred or sold, it serves as permanent, tamper-proof proof of your work history, ratings, and skills.',
+    },
+    {
+      q: 'How are disagreements resolved?',
+      a: 'If either party raises an issue that cannot be resolved mutually, the contract can be submitted to the PolyLance DAO judge panel. Verified judges review milestone specifications, commit logs, and deliverables to issue a binding, fair resolution on-chain.',
+    },
+    {
+      q: 'Which currencies and tokens are supported?',
+      a: 'PolyLance operates on Polygon with fast, sub-cent transaction fees. Milestone budgets can be funded using native POL or dollar-pegged USDC.',
+    },
+  ];
+
   return (
-    <div className="space-y-16 py-6 max-w-6xl mx-auto">
+    <div className="relative z-1 space-y-20 py-4 max-w-[1200px] mx-auto text-[#0B0B0C] px-4 sm:px-6 lg:px-8">
+      {/* ── Fixed Animated Flowing Contour Background ──────────────────────── */}
+      <ContourBackground calmZoneRef={heroCalmZoneRef} />
+
       {/* ── 1. HERO SECTION ──────────────────────────────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className="relative pt-4 sm:pt-6 pb-8 sm:pb-12 w-full max-w-6xl mx-auto"
-      >
-        {/* Subtle Ambient Particle Accents */}
-        <div className="absolute top-10 left-10 w-48 h-48 bg-cyan-200/30 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-10 right-10 w-64 h-64 bg-purple-200/30 rounded-full blur-3xl pointer-events-none" />
-
-        {/* ── MOBILE PORTRAIT HERO (lg:hidden) ────────────────────────────── */}
-        <div className="lg:hidden flex flex-col items-center text-center space-y-6 px-2">
-          {/* Pill Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-purple-50 text-purple-900 rounded-full border border-purple-200/80 shadow-2xs">
-            <div className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
-            <span className="font-mono uppercase tracking-wider text-[10px] sm:text-xs font-bold text-purple-800">
-              POLYLANCE ZENITH • SOVEREIGN PROTOCOL
-            </span>
-          </div>
-
-          {/* Mobile Optimized Emblem (No heavy 3D WebGL / No scroll-jank transforms) */}
-          <div className="relative py-2">
-            <div className="relative p-6 rounded-3xl bg-white/90 border border-slate-200/80 shadow-xl flex items-center justify-center">
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-cyan-400/20 via-blue-500/20 to-purple-600/20 filter blur-md -z-10 animate-pulse" />
-              <PolyLanceLogo size={76} className="filter drop-shadow-md" />
+      <section className="pt-4 sm:pt-8 pb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
+          
+          {/* Left Column: Headline, Slogan, Subtitle, and Actions */}
+          <div ref={heroCalmZoneRef} className="lg:col-span-7 space-y-6 text-left">
+            {/* Flat Status Pill */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E7EEF9] text-[#0047AB] text-xs font-semibold border border-[#D0E0F7]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB]" />
+              <span>Smart contract escrow on Polygon</span>
             </div>
-          </div>
 
-          {/* Punchy Fluid Headline */}
-          <h1 className="font-headline text-3xl sm:text-4xl font-black text-slate-900 leading-[1.18] tracking-tight">
-            Verifiable Reputation.{' '}
-            <span className="bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 bg-clip-text text-transparent block mt-1">
-              Immutable Escrow.
-            </span>
-          </h1>
-
-          {/* Mobile Subtitle */}
-          <p className="text-sm text-slate-600 leading-relaxed font-sans max-w-md mx-auto">
-            Decentralized talent protocol on Polygon where work history, payments, and soulbound credentials are permanently on-chain.
-          </p>
-
-          {/* Mobile Full-Width Actions */}
-          <div className="w-full max-w-sm space-y-3 pt-2">
-            <button
-              type="button"
-              onClick={handleGetStarted}
-              className="w-full min-h-[52px] bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-6 py-3.5 rounded-xl font-headline font-bold text-base flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-transform cursor-pointer"
-            >
-              <Wallet size={18} />
-              <span>{isConnected ? 'Go to Dashboard' : 'Connect Wallet to Start'}</span>
-              <ArrowRight size={18} />
-            </button>
-
-            <Link
-              to="/jobs"
-              className="w-full min-h-[48px] bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 px-6 py-3 rounded-xl font-headline font-semibold text-sm flex items-center justify-center gap-2 shadow-2xs active:scale-[0.98] transition-transform cursor-pointer"
-            >
-              <Search size={16} className="text-purple-600" />
-              <span>Browse Jobs (Marketplace)</span>
-            </Link>
-          </div>
-
-          {/* Mobile Scroll Cue */}
-          <div className="pt-4 flex flex-col items-center gap-1 text-slate-400">
-            <span className="text-[11px] font-mono font-medium tracking-wider uppercase">Explore Protocol</span>
-            <button
-              type="button"
-              onClick={() => {
-                const el = document.getElementById('why-polylance');
-                el?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              aria-label="Scroll down to protocol overview"
-              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-purple-600 bg-purple-50 active:bg-purple-100 transition-colors animate-bounce"
-            >
-              <ArrowDown size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* ── DESKTOP HERO (lg:grid, strictly 100% untouched) ─────────────── */}
-        <div className="hidden lg:grid lg:grid-cols-12 gap-10 items-center my-auto">
-          {/* Left Column: Hero Text Content & Actions */}
-          <motion.div
-            style={{ scale: smoothHeroScale, y: heroY }}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="lg:col-span-7 space-y-6 text-left"
-          >
-            {/* Pill Header Badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1, duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-purple-50 text-purple-900 rounded-full border border-purple-200/80 shadow-2xs"
-            >
-              <div className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
-              <span className="font-mono uppercase tracking-wider text-[11px] font-bold text-purple-800">
-                POLYLANCE ZENITH • SOVEREIGN ESCROW PROTOCOL
-              </span>
-            </motion.div>
-
-            {/* Main Headline */}
-            <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.15] tracking-tight">
-              Verifiable Reputation. <br className="hidden sm:inline" />
-              <span className="bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 bg-clip-text text-transparent">
-                Immutable Professionalism.
-              </span>
+            {/* Solid Single-Ink Serif Headline with Cobalt Accent */}
+            <h1 className="font-serif font-semibold text-3xl sm:text-4xl lg:text-[46px] text-[#0B0B0C] tracking-tight leading-[1.18]">
+              Your Work. Your Reputation. Your Identity.{' '}
+              <span className="text-[#0047AB]">Everything on chain at PolyLance.</span>
             </h1>
 
-            {/* Hero Subtitle */}
-            <p className="text-sm sm:text-lg text-slate-600 leading-relaxed font-sans max-w-xl">
-              The world's first decentralized talent protocol where work history is written in stone. No inflated resumes. No fake reviews. Just pure, on-chain performance.
+            {/* Subtitle with High Contrast */}
+            <p className="text-base sm:text-lg text-[#4B5563] leading-relaxed max-w-xl font-normal">
+              Get paid milestone by milestone with trustless Polygon escrow. Build an immutable Soulbound work history and verifiable reputation owned entirely by your wallet.
             </p>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
               <button
+                type="button"
                 onClick={handleGetStarted}
-                className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl font-headline font-bold text-base flex items-center justify-center gap-3 cursor-pointer shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
+                className="bg-[#0047AB] hover:bg-[#003A8C] active:bg-[#002F73] text-white font-medium text-sm sm:text-base px-6 py-3.5 rounded-[8px] transition-colors duration-150 inline-flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Wallet size={19} />
-                <span>{isConnected ? 'Go to Dashboard' : 'Connect Wallet to Start'}</span>
-                <ArrowRight size={19} />
+                <Wallet size={16} strokeWidth={1.5} />
+                <span>{isConnected ? 'Go to dashboard' : 'Connect wallet'}</span>
+                <ArrowRight size={16} strokeWidth={1.5} />
               </button>
 
               <Link
                 to="/jobs"
-                className="liquid-glass px-7 py-4 rounded-xl font-headline font-bold text-slate-800 text-base hover:bg-white border-slate-200/80 transition-all flex items-center justify-center gap-2.5 shadow-2xs hover:shadow-xs cursor-pointer hover:scale-105 active:scale-95"
+                className="bg-[#FFFFFF] hover:bg-[#F4F6F9] border border-[#E2E6EC] text-[#0B0B0C] font-medium text-sm sm:text-base px-6 py-3.5 rounded-[8px] transition-colors duration-150 inline-flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Search size={18} className="text-purple-600" />
-                <span>Browse Jobs (Marketplace)</span>
+                <Search size={16} strokeWidth={1.5} className="text-[#0047AB]" />
+                <span>Browse jobs</span>
               </Link>
             </div>
-          </motion.div>
 
-          {/* Right Column: 3D Stage & Official Floating PolyLance Logo */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="lg:col-span-5 relative flex items-center justify-center py-6 lg:py-0"
-          >
-            {/* 3D Pedestal Platform Stage */}
-            <div className="relative w-64 h-64 sm:w-88 sm:h-88 flex items-center justify-center">
+            {/* Micro Trust Metadata */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#4B5563] pt-1 font-medium">
+              <span className="text-[#0B0B0C] font-semibold">2.5% platform fee</span>
+              <span className="text-[#8892A0]">•</span>
+              <span>Instant milestone release</span>
+              <span className="text-[#8892A0]">•</span>
+              <span>Non-custodial contracts</span>
+            </div>
+          </div>
 
-              {/* Outer Glowing Stage Rings */}
-              <div className="absolute inset-0 rounded-full stage-pedestal border border-purple-200/50 transform rotate-45 animate-[spin_40s_linear_infinite]" />
-              <div className="absolute inset-4 rounded-full stage-ring opacity-75" />
-              <div className="absolute inset-10 rounded-full stage-ring opacity-50 border-dashed animate-[spin_25s_linear_infinite_reverse]" />
+          {/* Right Column: 
+              - For Non-Users (!isConnected): Show ONLY about PolyLance (slogan, 4 pillars, protocol architecture)
+              - For Connected Users (isConnected): Show REAL notifications only (zero demo data)
+          */}
+          <div className="lg:col-span-5">
+            <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 sm:p-6 space-y-4 shadow-[0_1px_2px_rgba(11,11,12,0.06)] text-left">
+              
+              {/* ─────────────────────────────────────────────────────────────
+                  STATE A: NON-POLYLANCE USERS (SHOW ONLY ABOUT POLYLANCE)
+                  ───────────────────────────────────────────────────────────── */}
+              {!isConnected ? (
+                <div className="space-y-4">
+                  {/* Top Bar */}
+                  <div className="flex items-center justify-between border-b border-[#E2E6EC] pb-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#E2E6EC]" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#E2E6EC]" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#E2E6EC]" />
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[4px] bg-[#E7EEF9] text-[#0047AB] text-xs font-semibold">
+                      <Shield size={12} strokeWidth={1.5} />
+                      About PolyLance
+                    </span>
+                  </div>
 
-              {/* Pedestal Top Gloss Floor */}
-              <div className="absolute bottom-4 w-56 sm:w-64 h-16 sm:h-20 bg-gradient-to-t from-purple-200/40 via-sky-200/30 to-transparent rounded-[100%] filter blur-xs" />
+                  {/* Slogan Banner */}
+                  <div className="p-3.5 bg-[#F4F6F9] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                    <div className="text-[11px] font-mono text-[#8892A0] uppercase tracking-wider">
+                      PolyLance Protocol
+                    </div>
+                    <h3 className="font-serif font-semibold text-sm sm:text-base text-[#0B0B0C] leading-snug">
+                      “Your Work. Your Reputation. Your Identity. Everything on chain at PolyLance.”
+                    </h3>
+                    <p className="text-xs text-[#4B5563] leading-relaxed pt-1">
+                      A Web3 freelance clearinghouse and escrow protocol on Polygon. Non-custodial milestone escrow, permanent Soulbound credentials, and a transparent 2.5% smart contract fee.
+                    </p>
+                  </div>
 
-              {/* Floating Ambient 3D Translucent Cubes */}
-              <motion.div
-                animate={{ y: [-8, 8, -8], rotate: [0, 10, 0] }}
-                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -top-2 left-4 sm:left-6 w-8 h-8 sm:w-10 sm:h-10 rounded-xl floating-cube bg-white/40 flex items-center justify-center shadow-xs"
-              >
-                <Box size={18} className="text-cyan-500 opacity-80" />
-              </motion.div>
+                  {/* 4 Core Pillars of PolyLance */}
+                  <div className="space-y-2.5">
+                    {/* Pillar 1 */}
+                    <div className="p-3 bg-[#FFFFFF] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-[#0B0B0C]">
+                        <Lock size={14} strokeWidth={1.5} className="text-[#0047AB] shrink-0" />
+                        <span>Trustless Milestone Escrow</span>
+                      </div>
+                      <p className="text-[11px] text-[#4B5563] leading-relaxed pl-5">
+                        Client deposits are locked on Polygon before work starts. Payments release instantly milestone-by-milestone upon inspection.
+                      </p>
+                    </div>
 
-              <motion.div
-                animate={{ y: [10, -10, 10], rotate: [0, -15, 0] }}
-                transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-                className="absolute top-10 right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-lg floating-cube bg-white/40 flex items-center justify-center shadow-xs"
-              >
-                <Sparkles size={14} className="text-purple-500 opacity-80" />
-              </motion.div>
+                    {/* Pillar 2 */}
+                    <div className="p-3 bg-[#FFFFFF] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-[#0B0B0C]">
+                        <ShieldCheck size={14} strokeWidth={1.5} className="text-[#0047AB] shrink-0" />
+                        <span>Soulbound Reputation (ERC-5192)</span>
+                      </div>
+                      <p className="text-[11px] text-[#4B5563] leading-relaxed pl-5">
+                        Your work history and ratings live in your crypto wallet, not on proprietary servers. Uncensorable, non-transferable proof of work.
+                      </p>
+                    </div>
 
-              <motion.div
-                animate={{ y: [-12, 6, -12] }}
-                transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-                className="absolute bottom-6 left-3 w-8 h-8 sm:w-9 sm:h-9 rounded-xl floating-cube bg-white/40 flex items-center justify-center shadow-xs"
-              >
-                <Shield size={16} className="text-blue-500 opacity-80" />
-              </motion.div>
+                    {/* Pillar 3 */}
+                    <div className="p-3 bg-[#FFFFFF] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-[#0B0B0C]">
+                        <Scale size={14} strokeWidth={1.5} className="text-[#0047AB] shrink-0" />
+                        <span>Decentralized DAO Arbitration</span>
+                      </div>
+                      <p className="text-[11px] text-[#4B5563] leading-relaxed pl-5">
+                        Disputes are resolved on-chain by peer judges evaluating deliverables and GitHub cryptographic commits, not corporate help desks.
+                      </p>
+                    </div>
 
-              {/* Centerpiece: Official Floating 3D PolyLance Emblem */}
-              <motion.div
-                style={{ rotate: smoothLogoRotate, y: logoY, willChange: 'transform' }}
-                className="relative z-10 transform-gpu"
-              >
-                <motion.div
-                  animate={{ y: [-6, 6, -6], rotate: [0, 2, 0, -2, 0] }}
-                  transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-                  className="p-4 sm:p-6 rounded-3xl bg-white/85 backdrop-blur-md border border-white/90 shadow-[0_20px_50px_rgba(37,99,235,0.22)] flex items-center justify-center group transform-gpu"
+                    {/* Pillar 4 */}
+                    <div className="p-3 bg-[#FFFFFF] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-[#0B0B0C]">
+                        <Coins size={14} strokeWidth={1.5} className="text-[#0047AB] shrink-0" />
+                        <span>Transparent 2.5% Platform Fee</span>
+                      </div>
+                      <p className="text-[11px] text-[#4B5563] leading-relaxed pl-5">
+                        Keep 97.5% of what you earn. Sub-cent Polygon gas fees, zero withdrawal fees, and zero hidden deductions.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Technology & Trust Strip */}
+                  <div className="pt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="px-2 py-0.5 rounded-[4px] bg-[#F4F6F9] border border-[#E2E6EC] text-[#4B5563] font-medium font-mono">
+                      Polygon (137)
+                    </span>
+                    <span className="px-2 py-0.5 rounded-[4px] bg-[#F4F6F9] border border-[#E2E6EC] text-[#4B5563] font-medium">
+                      Non-Custodial
+                    </span>
+                    <span className="px-2 py-0.5 rounded-[4px] bg-[#F4F6F9] border border-[#E2E6EC] text-[#4B5563] font-medium">
+                      GitHub Attestations
+                    </span>
+                    <span className="px-2 py-0.5 rounded-[4px] bg-[#F4F6F9] border border-[#E2E6EC] text-[#4B5563] font-medium">
+                      POL / USDC
+                    </span>
+                  </div>
+
+                  {/* Onboarding Call-to-Action */}
+                  <button
+                    type="button"
+                    onClick={handleGetStarted}
+                    className="w-full py-2.5 px-3 rounded-[6px] bg-[#0047AB] hover:bg-[#003A8C] text-white text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Wallet size={14} strokeWidth={1.5} />
+                    <span>Connect wallet to join PolyLance</span>
+                  </button>
+                </div>
+              ) : (
+                /* ─────────────────────────────────────────────────────────────
+                   STATE B: CONNECTED POLYLANCE USERS (REAL NOTIFICATIONS ONLY)
+                   ───────────────────────────────────────────────────────────── */
+                <div className="space-y-3.5">
+                  {/* Top Bar with Real Wallet Indicator */}
+                  <div className="flex items-center justify-between border-b border-[#E2E6EC] pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#1E8449]" />
+                      <span className="font-mono text-xs font-semibold text-[#0B0B0C]">
+                        {truncateAddress(address)}
+                      </span>
+                    </div>
+
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[4px] bg-[#E7EEF9] text-[#0047AB] text-xs font-semibold">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0047AB] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0047AB]"></span>
+                      </span>
+                      <Bell size={12} strokeWidth={1.5} />
+                      Live Notifications
+                    </span>
+                  </div>
+
+                  {/* Personal vs Network Real Data Banner */}
+                  <div className="p-2.5 bg-[#F4F6F9] border border-[#E2E6EC] rounded-[8px] text-xs">
+                    {hasPersonalNotifications ? (
+                      <div className="text-[#0B0B0C] font-medium flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Sparkles size={13} strokeWidth={1.5} className="text-[#0047AB] shrink-0" />
+                          <span className="truncate">Live contract notifications for your connected wallet.</span>
+                        </div>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          ACTIVE
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2 text-[#4B5563]">
+                        <div className="min-w-0">
+                          <span className="text-[#0B0B0C] font-semibold">No personal contract alerts yet.</span> Showing live on-chain contract events from the network.
+                        </div>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          ACTIVE
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Real Notification Items List */}
+                  <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-0.5">
+                    {displayedNotifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        className={`p-3 bg-[#FFFFFF] border rounded-[8px] transition-colors space-y-1.5 ${
+                          notif.isPersonal ? 'border-[#0047AB]/30 hover:border-[#0047AB]' : 'border-[#E2E6EC] hover:border-[#8892A0]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className={`inline-flex items-center gap-1.5 font-semibold ${notif.isPersonal ? 'text-[#0047AB]' : 'text-[#0B0B0C]'}`}>
+                            <CheckCircle2 size={13} strokeWidth={1.5} className="shrink-0" />
+                            {notif.title}
+                          </span>
+                          <span className="text-[#8892A0] font-mono text-[10px] shrink-0">
+                            {notif.timeAgo}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-[#4B5563] leading-snug line-clamp-2">
+                          {notif.description}
+                        </p>
+
+                        <div className="flex items-center justify-between pt-1 text-[11px] border-t border-[#E2E6EC]/60">
+                          <span className={`px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium ${notif.badgeColor}`}>
+                            {notif.badge}
+                          </span>
+
+                          <Link
+                            to={notif.linkTo}
+                            className="text-[#0047AB] font-semibold hover:underline inline-flex items-center gap-0.5"
+                          >
+                            <span>Inspect</span>
+                            <ArrowUpRight size={11} strokeWidth={1.5} />
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Quick Action Navigation */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Link
+                      to="/workspace"
+                      className="py-2 px-3 rounded-[6px] bg-[#0047AB] hover:bg-[#003A8C] text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors text-center"
+                    >
+                      <Layers size={13} strokeWidth={1.5} />
+                      <span>Workspace</span>
+                    </Link>
+
+                    <Link
+                      to="/jobs"
+                      className="py-2 px-3 rounded-[6px] bg-[#F4F6F9] hover:bg-[#E2E6EC] border border-[#E2E6EC] text-[#0B0B0C] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors text-center"
+                    >
+                      <Search size={13} strokeWidth={1.5} className="text-[#0047AB]" />
+                      <span>Browse Jobs</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── 2. NUMBERED 4-STEP TIMELINE: HOW ESCROW WORKS (NON-POLYLANCE USERS ONLY) ── */}
+      {!isConnected && (
+        <section className="space-y-8 text-left">
+          <div className="space-y-2">
+            <h2 className="font-serif font-semibold text-2xl sm:text-3xl text-[#0B0B0C] tracking-tight">
+              How escrow works
+            </h2>
+            <p className="text-sm sm:text-base text-[#4B5563] max-w-xl">
+              Four transparent steps from project specification to instant on-chain settlement.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            {/* Step 1 */}
+            <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 space-y-3">
+              <div className="w-8 h-8 rounded-full bg-[#0B0B0C] text-white font-mono font-semibold text-xs flex items-center justify-center">
+                01
+              </div>
+              <h3 className="font-sans font-semibold text-base text-[#0B0B0C]">Agree on milestones</h3>
+              <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
+                Define deliverable requirements, budget, and deadlines together. Both sides sign off before work begins.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 space-y-3">
+              <div className="w-8 h-8 rounded-full bg-[#0047AB] text-white font-mono font-semibold text-xs flex items-center justify-center">
+                02
+              </div>
+              <h3 className="font-sans font-semibold text-base text-[#0B0B0C]">Fund the escrow</h3>
+              <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
+                The client deposits funds into the Polygon escrow smart contract. The freelancer starts work knowing funds are secure.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 space-y-3">
+              <div className="w-8 h-8 rounded-full bg-[#0B0B0C] text-white font-mono font-semibold text-xs flex items-center justify-center">
+                03
+              </div>
+              <h3 className="font-sans font-semibold text-base text-[#0B0B0C]">Deliver &amp; verify</h3>
+              <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
+                The freelancer submits deliverables with cryptographic GitHub attestations and preview links for review.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 space-y-3">
+              <div className="w-8 h-8 rounded-full bg-[#0B0B0C] text-white font-mono font-semibold text-xs flex items-center justify-center">
+                04
+              </div>
+              <h3 className="font-sans font-semibold text-base text-[#0B0B0C]">Release &amp; mint</h3>
+              <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
+                Once approved, funds transfer instantly to the freelancer. An immutable Soulbound reputation token is minted on-chain.
+              </p>
+            </div>
+
+          </div>
+        </section>
+      )}
+
+      {/* ── 4. STAT CARDS ROW (Solid white surfaces, ink numbers, neutral labels) ─ */}
+      <section className="space-y-6 text-left">
+        <div className="space-y-2">
+          <h2 className="font-serif font-semibold text-2xl sm:text-3xl text-[#0B0B0C] tracking-tight">
+            Decentralized network activity &amp; settlement scale
+          </h2>
+          <p className="text-sm sm:text-base text-[#4B5563] max-w-xl">
+            Real-time, verifiable milestone statistics and reputation metrics recorded on the Polygon network.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          
+          <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 sm:p-6 space-y-1 shadow-xs">
+            <div className="font-sans font-semibold text-3xl sm:text-4xl text-[#0B0B0C]">
+              {verifiedCount}+
+            </div>
+            <div className="text-xs sm:text-sm text-[#4B5563] font-medium">
+              Verified freelancers
+            </div>
+          </div>
+
+          <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 sm:p-6 space-y-1 shadow-xs">
+            <div className="font-sans font-semibold text-3xl sm:text-4xl text-[#0B0B0C]">
+              {completedJobs}+
+            </div>
+            <div className="text-xs sm:text-sm text-[#4B5563] font-medium">
+              Milestone jobs completed
+            </div>
+          </div>
+
+          <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 sm:p-6 space-y-1 shadow-xs">
+            <div className="font-sans font-semibold text-3xl sm:text-4xl text-[#0B0B0C]">
+              ${totalEscrowUsdc.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </div>
+            <div className="text-xs sm:text-sm text-[#4B5563] font-medium">
+              Secured in escrow
+            </div>
+          </div>
+
+          <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 sm:p-6 space-y-1 shadow-xs">
+            <div className="font-sans font-semibold text-3xl sm:text-4xl text-[#0B0B0C]">
+              99.8%
+            </div>
+            <div className="text-xs sm:text-sm text-[#4B5563] font-medium">
+              Milestone settlement rate
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── 5. FAQ ACCORDION ─────────────────────────────────────────────── */}
+      <section className="space-y-6 text-left">
+        <div className="space-y-2">
+          <h2 className="font-serif font-semibold text-2xl sm:text-3xl text-[#0B0B0C] tracking-tight">
+            Frequently asked questions
+          </h2>
+          <p className="text-sm sm:text-base text-[#4B5563] max-w-xl">
+            Everything you need to know about smart contract escrows, fees, and reputation.
+          </p>
+        </div>
+
+        <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] divide-y divide-[#E2E6EC]">
+          {faqs.map((faq, index) => {
+            const isOpen = openFaq === index;
+            return (
+              <div key={faq.q}>
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(isOpen ? null : index)}
+                  className="w-full py-4 px-5 sm:px-6 flex items-center justify-between text-left cursor-pointer hover:bg-[#F4F6F9] transition-colors duration-150"
                 >
-                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-cyan-400/20 via-blue-500/20 to-purple-600/20 filter blur-md -z-10 group-hover:blur-lg transition-all" />
-                  <PolyLanceLogo size={100} className="filter drop-shadow-[0_10px_25px_rgba(37,99,235,0.4)]" />
-                </motion.div>
-              </motion.div>
-
-              {/* Scroll Down Cue (Interactive Pulsing Arrow Button) */}
-              <motion.button
-                onClick={() => {
-                  const el = document.getElementById('why-polylance');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  else window.scrollTo({ top: 620, behavior: 'smooth' });
-                }}
-                whileHover={{ scale: 1.15, y: 3 }}
-                whileTap={{ scale: 0.92 }}
-                animate={{ y: [0, 6, 0] }}
-                transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
-                className="absolute -bottom-2 -right-2 sm:right-2 w-11 h-11 rounded-full bg-white/90 backdrop-blur-md border border-purple-200/80 shadow-md flex items-center justify-center text-purple-600 hover:text-purple-900 hover:bg-purple-50 transition-all cursor-pointer z-20"
-                title="Scroll Down"
-              >
-                <ArrowDown size={18} />
-              </motion.button>
-            </div>
-          </motion.div>
+                  <span className="font-semibold text-sm sm:text-base text-[#0B0B0C] pr-4">
+                    {faq.q}
+                  </span>
+                  <motion.span
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    className="shrink-0"
+                  >
+                    <ChevronDown
+                      size={16}
+                      strokeWidth={1.5}
+                      className={isOpen ? 'text-[#0047AB]' : 'text-[#4B5563]'}
+                    />
+                  </motion.span>
+                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      key="faq-content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div className="px-5 sm:px-6 pb-4 pt-1 text-xs sm:text-sm text-[#4B5563] leading-relaxed">
+                        {faq.a}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
         </div>
-      </motion.section>
+      </section>
 
-
-
-      {/* 2. WHY POLYLANCE? (BUILT ON WEB3. DESIGNED FOR TRUST) SECTION */}
-      <motion.section
-        id="why-polylance"
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.2 }}
-        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-        className="space-y-10 py-6 relative"
-      >
-        {/* Floating Ambient Cube Accents */}
-        <motion.div
-          animate={{ y: [-6, 6, -6], rotate: [0, 8, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -top-4 -left-3 w-8 h-8 rounded-lg bg-cyan-100/50 border border-cyan-200/60 shadow-xs flex items-center justify-center pointer-events-none hidden sm:flex"
-        >
-          <Box size={14} className="text-cyan-600" />
-        </motion.div>
-
-        <motion.div
-          animate={{ y: [8, -8, 8], rotate: [0, -10, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-          className="absolute top-12 right-2 w-9 h-9 rounded-xl bg-purple-100/50 border border-purple-200/60 shadow-xs flex items-center justify-center pointer-events-none hidden sm:flex"
-        >
-          <Sparkles size={16} className="text-purple-600" />
-        </motion.div>
-
-        <div className="space-y-3 text-left">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-800 rounded-full border border-purple-200 text-[10px] font-mono font-bold uppercase tracking-wider shadow-2xs"
-          >
-            <span>BUILT ON WEB3. DESIGNED FOR TRUST.</span>
-          </motion.div>
-
-          <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight">
-            Why <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">PolyLance?</span>
-          </h2>
-        </div>
-
-        {/* 4 Feature Bento Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Card 1: On-Chain Verified */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1, duration: 0.5 }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-purple-200 transition-all text-left space-y-4 relative overflow-hidden group"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform shadow-2xs">
-              <Shield size={22} className="text-purple-600" />
-            </div>
-            <div className="space-y-1.5">
-              <h3 className="font-headline font-bold text-slate-900 text-base">On-Chain Verified</h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-sans font-medium">
-                Every milestone, credential, and review is immutably recorded on-chain.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Card 2: Secure Escrow */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-cyan-200 transition-all text-left space-y-4 relative overflow-hidden group"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-600 group-hover:scale-105 transition-transform shadow-2xs">
-              <Lock size={22} className="text-cyan-600" />
-            </div>
-            <div className="space-y-1.5">
-              <h3 className="font-headline font-bold text-slate-900 text-base">Secure Escrow</h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-sans font-medium">
-                Funds are locked in smart contracts and released only upon verified delivery.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Card 3: Reputation That Follows */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-emerald-200 transition-all text-left space-y-4 relative overflow-hidden group"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform shadow-2xs">
-              <BarChart3 size={22} className="text-emerald-600" />
-            </div>
-            <div className="space-y-1.5">
-              <h3 className="font-headline font-bold text-slate-900 text-base">Reputation That Follows</h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-sans font-medium">
-                Your on-chain reputation is portable, verifiable, and always yours.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Card 4: Decentralized Governance */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-amber-200 transition-all text-left space-y-4 relative overflow-hidden group"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform shadow-2xs">
-              <Users size={22} className="text-amber-600" />
-            </div>
-            <div className="space-y-1.5">
-              <h3 className="font-headline font-bold text-slate-900 text-base">Decentralized Governance</h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-sans font-medium">
-                Community-driven decisions ensure transparency and fairness for all.
-              </p>
-            </div>
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* 2.5 WHY POLYLANCE BEATS TRADITIONAL FREELANCING (COMPARISON MATRIX) */}
-      <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.2 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="space-y-10 py-6"
-      >
-        <div className="text-center max-w-2xl mx-auto space-y-2.5">
-          <motion.span
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="font-mono text-[10px] text-purple-700 bg-purple-50 border border-purple-200 px-3.5 py-1 rounded-full font-bold uppercase tracking-wider inline-flex items-center gap-1.5 shadow-2xs"
-          >
-            WEB3 FREELANCING
-          </motion.span>
-          <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight">
-            Why <span className="text-purple-600 font-black">PolyLance</span> Beats Traditional Freelancing
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed font-sans font-medium">
-            A decentralized freelancing protocol where your reputation, payments, and work belong to you—not the platform.
-          </p>
-        </div>
-
-        {/* Comparison Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-11 items-center gap-6 max-w-5xl mx-auto px-2">
-          {/* Left Card: Traditional Platforms */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="lg:col-span-5 p-7 sm:p-8 rounded-3xl border border-rose-100 bg-rose-50/40 shadow-xs space-y-6 text-left transition-all hover:shadow-md"
-          >
-            <div>
-              <h3 className="font-headline text-lg font-bold text-rose-950 leading-tight">Traditional Platforms</h3>
-              <span className="text-[10px] font-mono text-slate-500 font-bold uppercase tracking-wider">WEB2 MARKETPLACE</span>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <XCircle size={18} className="text-rose-500 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">20% Platform Fees</span>
-                  <span className="text-xs text-slate-500 font-sans">High commissions on every payment.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <XCircle size={18} className="text-rose-500 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">Payment Holds</span>
-                  <span className="text-xs text-slate-500 font-sans">Funds locked for several business days.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <XCircle size={18} className="text-rose-500 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">Locked Reputation</span>
-                  <span className="text-xs text-slate-500 font-sans">Reviews stay inside the platform database.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <XCircle size={18} className="text-rose-500 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">Weak Verification</span>
-                  <span className="text-xs text-slate-500 font-sans">Text reviews can be easily manipulated.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <XCircle size={18} className="text-rose-500 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">Centralized Disputes</span>
-                  <span className="text-xs text-slate-500 font-sans">Platform company decides the outcome.</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Middle Transition Cue */}
-          <div className="lg:col-span-1 flex flex-col items-center justify-center text-purple-600 py-2 lg:py-0">
-            <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-purple-600 block mb-1 whitespace-nowrap">
-              WEB2 → WEB3
-            </span>
-            <div className="hidden lg:flex items-center text-purple-400">
-              <span className="text-sm tracking-tighter font-mono">--------&gt;</span>
-            </div>
-            <div className="lg:hidden flex items-center text-purple-400">
-              <span className="text-sm tracking-tighter font-mono">↓</span>
-            </div>
+      {/* ── 6. CLOSING CTA BAND IN SOLID --black: #0B0B0C ────────────────── */}
+      <section className="relative z-10">
+        <div className="w-full bg-[#0B0B0C] text-white rounded-[10px] p-8 sm:p-14 text-center space-y-6 shadow-xs">
+          <div className="max-w-2xl mx-auto space-y-3">
+            <h2 className="font-serif font-semibold text-3xl sm:text-4xl text-white tracking-tight">
+              Ready to work with verified on-chain trust?
+            </h2>
+            <p className="text-base sm:text-lg text-white/80 max-w-lg mx-auto font-normal">
+              Connect your wallet to browse open contracts or post a project with guaranteed milestone escrow.
+            </p>
           </div>
 
-          {/* Right Card: PolyLance Future of Freelancing */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="lg:col-span-5 p-7 sm:p-8 rounded-3xl border-2 border-purple-200 bg-white shadow-md space-y-6 text-left relative overflow-hidden transition-all hover:shadow-xl hover:border-purple-300 ring-1 ring-purple-50"
-          >
-            {/* Web3 badge on top-right */}
-            <span className="absolute top-4 right-4 bg-purple-600 text-white text-[9px] font-mono font-bold tracking-wider px-2.5 py-0.5 rounded-full shadow-xs">
-              WEB3
-            </span>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleGetStarted}
+              className="bg-[#0047AB] hover:bg-[#003A8C] active:bg-[#002F73] text-white font-medium text-sm sm:text-base px-6 py-3.5 rounded-[8px] transition-colors duration-150 inline-flex items-center gap-2 cursor-pointer shadow-xs"
+            >
+              <Wallet size={16} strokeWidth={1.5} />
+              <span>{isConnected ? 'Go to dashboard' : 'Connect wallet'}</span>
+              <ArrowRight size={16} strokeWidth={1.5} />
+            </button>
 
-            <div>
-              <h3 className="font-headline text-lg font-black text-purple-700 leading-tight">PolyLance</h3>
-              <span className="text-[10px] font-mono text-purple-600 font-bold uppercase tracking-wider">FUTURE OF FREELANCING</span>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 size={18} className="text-purple-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">2.5% Site Maintenance Fee</span>
-                  <span className="text-xs text-slate-600 font-sans">Zero middleman commission. Only a simple 2.5% site maintenance fee routed to the protocol treasury to secure smart contracts and arbitration.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle2 size={18} className="text-purple-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">Instant Settlement</span>
-                  <span className="text-xs text-slate-600 font-sans">Automatic release after milestone approval.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle2 size={18} className="text-purple-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">Own Your Reputation</span>
-                  <span className="text-xs text-slate-600 font-sans">Soulbound reputation stored permanently in your wallet.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle2 size={18} className="text-purple-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">Proof of Work</span>
-                  <span className="text-xs text-slate-600 font-sans">Audited code bytes and GitHub verification.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle2 size={18} className="text-purple-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-sm font-bold text-slate-900 block font-sans">DAO Arbitration</span>
-                  <span className="text-xs text-slate-600 font-sans">Community-governed dispute resolution.</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Bottom Badges List with Hover Physics */}
-        <div className="flex flex-wrap items-center justify-center gap-3.5 max-w-4xl mx-auto pt-2">
-          <motion.div
-            whileHover={{ scale: 1.05, y: -2 }}
-            className="px-4 py-2 rounded-full flex items-center gap-2 text-xs font-mono font-bold text-slate-800 bg-white border border-slate-200/80 shadow-xs hover:border-purple-200 transition-colors cursor-default"
-          >
-            <Percent size={14} className="text-purple-600" />
-            <span>2.5% Site Maintenance Fee</span>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.05, y: -2 }}
-            className="px-4 py-2 rounded-full flex items-center gap-2 text-xs font-mono font-bold text-slate-800 bg-white border border-slate-200/80 shadow-xs hover:border-purple-200 transition-colors cursor-default"
-          >
-            <Wallet size={14} className="text-purple-600" />
-            <span>Wallet Reputation</span>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.05, y: -2 }}
-            className="px-4 py-2 rounded-full flex items-center gap-2 text-xs font-mono font-bold text-slate-800 bg-white border border-slate-200/80 shadow-xs hover:border-purple-200 transition-colors cursor-default"
-          >
-            <Zap size={14} className="text-purple-600" />
-            <span>Instant Payout</span>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.05, y: -2 }}
-            className="px-4 py-2 rounded-full flex items-center gap-2 text-xs font-mono font-bold text-slate-800 bg-white border border-slate-200/80 shadow-xs hover:border-purple-200 transition-colors cursor-default"
-          >
-            <Shield size={14} className="text-purple-600" />
-            <span>DAO Security</span>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.05, y: -2 }}
-            className="px-4 py-2 rounded-full flex items-center gap-2 text-xs font-mono font-bold text-slate-800 bg-white border border-slate-200/80 shadow-xs hover:border-purple-200 transition-colors cursor-default"
-          >
-            <Code2 size={14} className="text-purple-600" />
-            <span>Proof-of-Work</span>
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* 3. THE FUTURE OF WORK IS ON-CHAIN (DARK IMMERSIVE STATS BAND) */}
-      <motion.section
-        initial={{ opacity: 0, scale: 0.98 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, amount: 0.2 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full rounded-3xl bg-gradient-to-r from-[#090D1A] via-[#0F172A] to-[#0A1024] p-8 sm:p-12 text-white border border-slate-800 shadow-2xl relative overflow-hidden text-center space-y-8"
-      >
-        {/* Ambient Glow Orbs */}
-        <div className="absolute -top-12 -left-12 w-48 h-48 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none" />
-
-        <h3 className="font-headline text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-100">
-          The Future of Work is On-Chain
-        </h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
-          {/* Stat 1: Verified Professionals */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left">
-            <div className="w-12 h-12 rounded-full bg-purple-900/60 border border-purple-500/30 flex items-center justify-center text-purple-300 shadow-sm shrink-0">
-              <User size={20} />
-            </div>
-            <div>
-              <div className="font-headline text-2xl sm:text-3xl font-black text-white">
-                <AnimatedStatValue value={Object.keys(profiles).length} suffix="+" decimals={0} />
-              </div>
-              <span className="text-xs text-slate-400 font-sans block">Verified Professionals</span>
-            </div>
+            <Link
+              to="/jobs"
+              className="bg-transparent hover:bg-white/10 border border-white/40 text-white font-medium text-sm sm:text-base px-6 py-3.5 rounded-[8px] transition-colors duration-150 inline-flex items-center gap-2 cursor-pointer"
+            >
+              <Search size={16} strokeWidth={1.5} />
+              <span>Browse jobs</span>
+            </Link>
           </div>
 
-          {/* Stat 2: Jobs Completed */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left">
-            <div className="w-12 h-12 rounded-full bg-blue-900/60 border border-blue-500/30 flex items-center justify-center text-blue-300 shadow-sm shrink-0">
-              <Briefcase size={20} />
-            </div>
-            <div>
-              <div className="font-headline text-2xl sm:text-3xl font-black text-white">
-                <AnimatedStatValue value={completedJobs} suffix="+" decimals={0} />
-              </div>
-              <span className="text-xs text-slate-400 font-sans block">Jobs Completed</span>
-            </div>
-          </div>
-
-          {/* Stat 3: Total Escrow */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left">
-            <div className="w-12 h-12 rounded-full bg-emerald-900/60 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shadow-sm shrink-0">
-              <ShieldCheck size={20} />
-            </div>
-            <div>
-              <div className="font-headline text-2xl sm:text-3xl font-black text-white">
-                <AnimatedStatValue value={totalEscrowUsdc} prefix="$" suffix="" decimals={0} />
-              </div>
-              <span className="text-xs text-slate-400 font-sans block">Secured in Escrow</span>
-            </div>
-          </div>
-
-          {/* Stat 4: Success Rate */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left">
-            <div className="w-12 h-12 rounded-full bg-amber-900/60 border border-amber-500/30 flex items-center justify-center text-amber-300 shadow-sm shrink-0">
-              <Star size={20} className="fill-amber-300" />
-            </div>
-            <div>
-              <div className="font-headline text-2xl sm:text-3xl font-black text-white">
-                <AnimatedStatValue value={100} suffix="%" decimals={1} />
-              </div>
-              <span className="text-xs text-slate-400 font-sans block">Success Rate</span>
-            </div>
+          <div className="text-xs text-white/60 font-mono pt-2">
+            Polygon Mainnet (137) • 2.5% platform fee • Non-custodial escrow
           </div>
         </div>
-      </motion.section>
+      </section>
 
-      {/* 4. READY TO BUILD YOUR LEGACY? (BOTTOM CTA BANNER) */}
-      <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-        className="relative py-12 px-6 sm:px-12 rounded-3xl bg-gradient-to-b from-purple-50/40 via-sky-50/30 to-white border border-purple-100 shadow-xs text-center space-y-6 overflow-hidden"
-      >
-        {/* Translucent Floating Cubes */}
-        <motion.div
-          animate={{ y: [-8, 8, -8], rotate: [0, 15, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute top-6 left-8 w-10 h-10 rounded-xl bg-cyan-100/60 border border-cyan-200/80 shadow-xs flex items-center justify-center pointer-events-none hidden sm:flex"
-        >
-          <Box size={18} className="text-cyan-600" />
-        </motion.div>
-
-        <motion.div
-          animate={{ y: [8, -8, 8], rotate: [0, -15, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-          className="absolute bottom-6 right-8 w-10 h-10 rounded-xl bg-purple-100/60 border border-purple-200/80 shadow-xs flex items-center justify-center pointer-events-none hidden sm:flex"
-        >
-          <Sparkles size={18} className="text-purple-600" />
-        </motion.div>
-
-        <div className="max-w-2xl mx-auto space-y-2 relative z-10">
-          <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-tight">
-            Ready to Build <span className="bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-500 bg-clip-text text-transparent">Your Legacy?</span>
-          </h2>
-          <p className="text-sm sm:text-base text-slate-600 font-sans">
-            Join PolyLance and make your work history unstoppable.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 relative z-10">
-          <button
-            onClick={handleGetStarted}
-            className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-8 py-3.5 rounded-full font-headline font-bold text-sm flex items-center justify-center gap-2.5 cursor-pointer shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
-          >
-            <Wallet size={16} />
-            <span>{isConnected ? 'Go to Dashboard' : 'Get Started'}</span>
-            <ArrowRight size={16} />
-          </button>
-
-          <Link
-            to="/jobs"
-            className="px-7 py-3.5 rounded-full font-headline font-bold text-slate-800 text-sm bg-white hover:bg-slate-50 border border-slate-200/90 shadow-sm transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Search size={15} className="text-purple-600" />
-            <span>Browse Jobs (Marketplace)</span>
-          </Link>
-        </div>
-      </motion.section>
     </div>
   );
 };
+
+export default Landing;

@@ -117,7 +117,7 @@ export const InsufficientFundsModal: React.FC<InsufficientFundsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowQr(!showQr)}
-                  className="text-purple-600 hover:text-purple-700 text-[11px] font-mono flex items-center gap-1 cursor-pointer"
+                  className="text-[#0047AB] hover:text-[#003882] text-[11px] font-mono flex items-center gap-1 cursor-pointer"
                 >
                   <QrCode size={13} /> {showQr ? 'Hide QR' : 'Show QR'}
                 </button>
@@ -159,19 +159,19 @@ export const InsufficientFundsModal: React.FC<InsufficientFundsModalProps> = ({
                       href="https://portal.polygon.technology/bridge"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 transition-all text-xs font-sans font-bold text-slate-800 flex items-center justify-between group"
+                      className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 transition-all text-xs font-sans font-bold text-slate-800 flex items-center justify-between group"
                     >
                       <span>Polygon Bridge</span>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-purple-600" />
+                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-[#0047AB]" />
                     </a>
                     <a
                       href="https://quickswap.exchange/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 transition-all text-xs font-sans font-bold text-slate-800 flex items-center justify-between group"
+                      className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 transition-all text-xs font-sans font-bold text-slate-800 flex items-center justify-between group"
                     >
                       <span>QuickSwap DEX</span>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-purple-600" />
+                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-[#0047AB]" />
                     </a>
                   </>
                 ) : (
@@ -180,19 +180,19 @@ export const InsufficientFundsModal: React.FC<InsufficientFundsModalProps> = ({
                       href="https://faucet.polygon.technology/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 transition-all text-xs font-sans font-bold text-slate-800 flex items-center justify-between group"
+                      className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 transition-all text-xs font-sans font-bold text-slate-800 flex items-center justify-between group"
                     >
                       <span>Polygon POL Faucet</span>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-purple-600" />
+                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-[#0047AB]" />
                     </a>
                     <a
                       href="https://faucet.circle.com/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 transition-all text-xs font-sans font-bold text-slate-800 flex items-center justify-between group"
+                      className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 transition-all text-xs font-sans font-bold text-slate-800 flex items-center justify-between group"
                     >
                       <span>Circle USDC Faucet</span>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-purple-600" />
+                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-[#0047AB]" />
                     </a>
                   </>
                 )}
@@ -217,7 +217,7 @@ export const InsufficientFundsModal: React.FC<InsufficientFundsModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="gradient-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs cursor-pointer"
+                  className="bg-[#0047AB] hover:bg-[#003882] px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs cursor-pointer"
                 >
                   Done
                 </button>

@@ -7,7 +7,7 @@ import {
   ExternalLink, Lock, PlusCircle, DollarSign, CheckCircle2, ArrowUpRight,
   User, Clock, Search, Sparkles, AlertCircle, FileCheck, CheckCircle, Gavel, UserCheck,
   Paperclip, Smile, MoreVertical, Copy, Shield, Download, AlertTriangle, ChevronRight, ChevronLeft, X, Zap, Trash2, Users,
-  RotateCcw, UserPlus, PanelRightClose, PanelRightOpen, Info, TrendingUp, Calendar, RefreshCw
+  RotateCcw, UserPlus, PanelRightClose, PanelRightOpen, Info, TrendingUp, Calendar, RefreshCw, ArrowLeft
 } from 'lucide-react';
 import { truncateAddress, formatWeb3ErrorMessage } from '../utils/formatters';
 import { JudgeRecord, JudgeMessage, DisputeReason } from '../types';
@@ -20,6 +20,7 @@ import { NegotiationProposalModal } from '../components/NegotiationProposalModal
 import { NegotiationProposalCard } from '../components/NegotiationProposalCard';
 import { JobOverviewModal } from '../components/JobOverviewModal';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
+import { TokenIcon } from '../components/TokenIcon';
 
 export interface EscrowChatChannel {
   channelId: string;
@@ -48,7 +49,7 @@ export const Chat: React.FC = () => {
 
   const { address, currentRole, isConnected } = useWeb3();
   const {
-    jobs, profiles, judges, judgeMessages, sendChatMessage, sendJudgeChatMessage, sendPreAcceptMessage, proposeTerms, fundJob,
+    jobs, profiles, judges, judgeMessages, deletedChatChannels, sendChatMessage, sendJudgeChatMessage, sendPreAcceptMessage, proposeTerms, fundJob,
     releasePayment, submitWork, requestModifications, isEnclineConnected, closeChatSession, deleteChatHistory, restoreChatHistory, addJudge,
     postProgressUpdate, requestTimeExtension, respondToTimeExtension, selectFreelancer, raiseDispute,
     proposeNegotiationTerms, respondToNegotiationProposal
@@ -72,6 +73,7 @@ export const Chat: React.FC = () => {
   // 30-Second Undo Timer State
   const [undoDelete, setUndoDelete] = useState<{
     jobId?: string;
+    channelId?: string;
     judgeAddress?: string;
     backupMessages: any[];
     secondsLeft: number;
@@ -102,21 +104,45 @@ export const Chat: React.FC = () => {
     return () => clearInterval(timer);
   }, [undoDelete]);
 
+  const handleBack = () => {
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
   const handleUndoDelete = () => {
     if (!undoDelete) return;
-    restoreChatHistory(undoDelete.jobId, undoDelete.backupMessages, undoDelete.judgeAddress, undoDelete.backupMessages);
+    restoreChatHistory(undoDelete.jobId, undoDelete.backupMessages, undoDelete.judgeAddress, undoDelete.backupMessages, undoDelete.channelId);
+    if (undoDelete.channelId) {
+      setSelectedChannelId(undoDelete.channelId);
+    }
     setUndoDelete(null);
   };
 
-  const handleDeleteJobChat = (jobId: string) => {
+  const handleDeleteJobChat = (jobId: string, channelId?: string) => {
     const target = jobs.find(j => (j.id && j.id.toLowerCase() === jobId.toLowerCase()) || (j.contractAddress && j.contractAddress.toLowerCase() === jobId.toLowerCase()));
     const backup = target?.chatMessages ? [...target.chatMessages] : [];
-    deleteChatHistory(jobId);
+    deleteChatHistory(jobId, undefined, channelId);
     setUndoDelete({
       jobId,
+      channelId,
       backupMessages: backup,
       secondsLeft: 30,
     });
+
+    // Auto-switch selected channel if active one was deleted
+    if (selectedChannelId === channelId || selectedChannelId === jobId) {
+      const remaining = escrowChannels.filter(
+        c => c.channelId !== channelId && c.jobId !== jobId && !deletedChatChannels.includes(c.channelId)
+      );
+      if (remaining.length > 0) {
+        setSelectedChannelId(remaining[0].channelId);
+      } else {
+        setSelectedChannelId('');
+      }
+    }
   };
 
   const handleDeleteJudgeChat = (judgeAddr: string) => {
@@ -128,6 +154,14 @@ export const Chat: React.FC = () => {
       backupMessages: backup,
       secondsLeft: 30,
     });
+    if (selectedJudgeAddr?.toLowerCase() === lower) {
+      const remaining = judges.filter(j => j.address.toLowerCase() !== lower && !deletedChatChannels.includes(j.address.toLowerCase()));
+      if (remaining.length > 0) {
+        setSelectedJudgeAddr(remaining[0].address);
+      } else {
+        setSelectedJudgeAddr('');
+      }
+    }
   };
 
   const handleAddJudgeSubmit = (e: React.FormEvent) => {
@@ -346,13 +380,21 @@ export const Chat: React.FC = () => {
   // Sort channels by most recent activity
   escrowChannels.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
 
+  // Filter out any channels or jobs deleted by the user from PolyLance
+  const visibleEscrowChannels = escrowChannels.filter(
+    (c) =>
+      !deletedChatChannels.includes(c.channelId) &&
+      !deletedChatChannels.includes(c.jobId) &&
+      !deletedChatChannels.includes(`${c.jobId}:${(c.applicantAddress || '').toLowerCase()}`)
+  );
+
   // Sync selectedChannelId when URL parameters change
   useEffect(() => {
     if (queryJobId) {
       if (queryApplicant) {
         setSelectedChannelId(`${queryJobId}:${queryApplicant.toLowerCase()}`);
       } else {
-        const matching = escrowChannels.find((c) => c.jobId === queryJobId);
+        const matching = visibleEscrowChannels.find((c) => c.jobId === queryJobId);
         if (matching) {
           setSelectedChannelId(matching.channelId);
         } else {
@@ -361,23 +403,23 @@ export const Chat: React.FC = () => {
       }
       setChatTab('jobs');
     }
-  }, [queryJobId, queryApplicant, escrowChannels.length]);
+  }, [queryJobId, queryApplicant, visibleEscrowChannels.length]);
 
   // Set default selected channel if none is selected
   useEffect(() => {
-    if (chatTab === 'jobs' && !selectedChannelId && escrowChannels.length > 0) {
-      setSelectedChannelId(escrowChannels[0].channelId);
+    if (chatTab === 'jobs' && !selectedChannelId && visibleEscrowChannels.length > 0) {
+      setSelectedChannelId(visibleEscrowChannels[0].channelId);
     }
-  }, [chatTab, selectedChannelId, escrowChannels.length]);
+  }, [chatTab, selectedChannelId, visibleEscrowChannels.length]);
 
   const activeChannel =
-    escrowChannels.find((c) => c.channelId === selectedChannelId) ||
-    escrowChannels.find((c) => c.jobId === selectedChannelId) ||
-    (escrowChannels.length > 0 ? escrowChannels[0] : null);
+    visibleEscrowChannels.find((c) => c.channelId === selectedChannelId) ||
+    visibleEscrowChannels.find((c) => c.jobId === selectedChannelId) ||
+    (visibleEscrowChannels.length > 0 ? visibleEscrowChannels[0] : null);
 
   const activeJob = activeChannel ? jobs.find((j) => j.id === activeChannel.jobId) : (queryJobId ? jobs.find((j) => j.id === queryJobId) : undefined);
   const activeApplicantAddr = activeChannel?.applicantAddress;
-  const activeJudge = judges.find((j) => j.address.toLowerCase() === (selectedJudgeAddr || '').toLowerCase());
+  const activeJudge = judges.find((j) => j.address.toLowerCase() === (selectedJudgeAddr || '').toLowerCase() && !deletedChatChannels.includes(j.address.toLowerCase()));
 
   const isUserScrolledUpRef = useRef(false);
   const activeChannelIdRef = useRef<string | null>(null);
@@ -563,6 +605,7 @@ export const Chat: React.FC = () => {
 
   // Comprehensive Filters for Search
   const filteredJudges = judges.filter((j: JudgeRecord) => {
+    if (deletedChatChannels.includes(j.address.toLowerCase())) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
 
@@ -579,7 +622,7 @@ export const Chat: React.FC = () => {
     return false;
   });
 
-  const filteredChannels = escrowChannels.filter((c) => {
+  const filteredChannels = visibleEscrowChannels.filter((c) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
 
@@ -600,18 +643,38 @@ export const Chat: React.FC = () => {
 
       {/* Left Side: Channels Sidebar */}
       <div className={`w-full lg:w-96 shrink-0 border-r border-slate-200 flex-col h-full bg-white p-3.5 sm:p-4 space-y-3.5 overflow-hidden ${
-        showMobileChannels ? 'flex absolute inset-0 z-50 bg-white' : 'hidden lg:flex'
+        showMobileChannels || (!activeJob && !activeJudge) ? 'flex absolute inset-0 z-50 bg-white lg:static lg:z-auto' : 'hidden lg:flex'
       }`}>
           <div className="space-y-3 shrink-0">
+            {/* Top Navigation Bar: Back to Previous / Dashboard & Security Badge */}
+            <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-[#0047AB] text-slate-700 hover:text-white font-bold text-xs transition-all cursor-pointer shadow-2xs group shrink-0"
+                title="Back to previous section or Dashboard"
+              >
+                <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+                <span>Back to Dashboard</span>
+              </button>
+
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[10px] font-mono font-bold shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <Lock size={10} className="text-emerald-600" />
+                <span>Secure Workspace</span>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between">
-              <h3 className="font-headline text-sm font-black text-slate-900 flex items-center gap-2">
-                <MessageSquare size={16} className="text-purple-700" /> Channels
+              <h3 className="font-serif text-sm font-bold text-[#0B0B0C] flex items-center gap-2">
+                <MessageSquare size={16} className="text-[#0047AB]" /> Channels
               </h3>
-              {showMobileChannels && (
+              {showMobileChannels && (activeJob || activeJudge) && (
                 <button
                   type="button"
                   onClick={() => setShowMobileChannels(false)}
-                  className="lg:hidden text-slate-400 hover:text-slate-700"
+                  className="lg:hidden p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
+                  title="Return to conversation"
                 >
                   <X size={16} />
                 </button>
@@ -620,11 +683,11 @@ export const Chat: React.FC = () => {
 
             {/* Icon Tab Switcher */}
             {(isAdmin || isJudgeRole) && (
-              <div className="flex bg-slate-200/70 p-1 rounded-2xl gap-1 border border-slate-300/50">
+              <div className="flex bg-slate-100 p-1 rounded-xl gap-1 border border-[#E2E6EC]">
                 <button
                   type="button"
                   onClick={() => setChatTab('judges')}
-                  className={`flex-1 py-1.5 text-center text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${chatTab === 'judges' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  className={`flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${chatTab === 'judges' ? 'bg-[#0047AB] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                 >
                   <Gavel size={13} /> Judges
@@ -632,7 +695,7 @@ export const Chat: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setChatTab('jobs')}
-                  className={`flex-1 py-1.5 text-center text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${chatTab === 'jobs' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  className={`flex-1 py-1.5 text-center text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${chatTab === 'jobs' ? 'bg-[#0047AB] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                 >
                   <Briefcase size={13} /> Job Escrows
@@ -640,26 +703,26 @@ export const Chat: React.FC = () => {
               </div>
             )}
 
-            <div className="relative">
+            <label className="relative flex items-center gap-2 px-2.5 py-2 text-xs bg-white border border-[#E2E6EC] font-medium rounded-xl focus-within:border-[#0047AB] focus-within:ring-1 focus-within:ring-[#0047AB] transition-colors cursor-text">
+              <Search className="shrink-0 text-slate-400 pointer-events-none" size={14} />
               <input
                 type="text"
                 placeholder={chatTab === 'judges' ? "Search judges or address..." : "Search escrow channels, name, messages..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full !pl-8 !pr-8 !py-2 text-xs glass-input font-medium rounded-xl"
+                className="flex-1 min-w-0 bg-transparent text-xs font-medium outline-none placeholder:text-slate-400"
               />
-              <Search className="absolute left-2.5 top-2.5 text-slate-400" size={13} />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  className="shrink-0 text-slate-400 hover:text-slate-700 cursor-pointer p-0.5"
                   title="Clear Search"
                 >
                   <X size={13} />
                 </button>
               )}
-            </div>
+            </label>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
@@ -679,35 +742,57 @@ export const Chat: React.FC = () => {
                       <button
                         key={j.address}
                         onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); setShowMobileChannels(false); }}
-                        className={`w-full p-3 rounded-2xl text-left transition-all border flex items-start gap-3 cursor-pointer ${isSelected
-                            ? 'bg-purple-700 text-white border-purple-800 shadow-md font-bold'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        className={`w-full p-3 rounded-xl text-left transition-all border flex items-start gap-3 cursor-pointer group relative ${isSelected
+                            ? 'bg-[#0B0B0C] text-white border-slate-800 shadow-xs font-bold'
+                            : 'bg-white text-slate-700 border-[#E2E6EC] hover:bg-slate-50'
                           }`}
                       >
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${isSelected ? 'bg-purple-100 text-purple-900' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${isSelected ? 'bg-slate-800 text-white border border-slate-700' : 'bg-slate-100 text-slate-700 border border-slate-200'
                           }`}>
                           {j.name.slice(0, 2)}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex justify-between items-start">
-                            <span className={`font-extrabold text-xs truncate max-w-[110px] ${isSelected ? 'text-white' : 'text-slate-900'}`} style={isSelected ? { color: '#FFFFFF' } : undefined}>
+                            <span className={`font-bold text-xs truncate max-w-[110px] ${isSelected ? 'text-white' : 'text-slate-900'}`}>
                               {j.name}
                             </span>
-                            <span className={`text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded ${isSelected
-                                ? 'bg-purple-900 text-white font-bold'
-                                : j.status === 'Active' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
-                              }`}>
-                              {j.status}
-                            </span>
+                            <div className="flex items-center gap-1 shrink-0 ml-1">
+                              <span className={`text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded ${isSelected
+                                  ? 'bg-slate-800 text-white font-bold'
+                                  : j.status === 'Active' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
+                                }`}>
+                                {j.status}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmModal({
+                                    isOpen: true,
+                                    title: `Delete Chat with ${j.name}`,
+                                    description: `Are you sure you want to permanently delete this chat from PolyLance? Messages and this conversation channel will be removed. You will have 30 seconds to undo this action.`,
+                                    onConfirm: () => handleDeleteJudgeChat(j.address)
+                                  });
+                                }}
+                                className={`opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'text-slate-400 hover:text-rose-400 hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                }`}
+                                title="Delete this arbitrator chat from PolyLance"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           </div>
-                          <p className={`text-[10px] truncate font-mono mt-0.5 ${isSelected ? 'text-purple-100' : 'text-slate-500'}`} style={isSelected ? { color: '#F3E8FF' } : undefined}>
+                          <p className={`text-[10px] truncate font-mono mt-0.5 ${isSelected ? 'text-slate-400' : 'text-slate-500'}`}>
                             {truncateAddress(j.address)}
                           </p>
                           <div className="flex justify-between items-center mt-1">
-                            <p className={`text-[9px] truncate font-mono ${isSelected ? 'text-white font-bold' : 'text-slate-400'}`} style={isSelected ? { color: '#FFFFFF' } : undefined}>
+                            <p className={`text-[9px] truncate font-mono ${isSelected ? 'text-slate-300 font-bold' : 'text-slate-400'}`}>
                               {lastMsg ? `${lastMsg.senderRole}: ${lastMsg.text}` : 'Admin: hi'}
                             </p>
-                            <span className="bg-purple-900 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shrink-0">
+                            <span className="bg-[#0047AB] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shrink-0">
                               {msgs.length || 2}
                             </span>
                           </div>
@@ -730,9 +815,9 @@ export const Chat: React.FC = () => {
                       <button
                         key={j.address}
                         onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); setShowMobileChannels(false); }}
-                        className={`w-full p-2.5 rounded-2xl text-left transition-all border flex items-center gap-3 cursor-pointer ${isSelected
-                            ? 'bg-purple-700 text-white border-purple-800 shadow-md font-bold'
-                            : 'bg-white text-slate-700 border-slate-150 hover:bg-slate-50'
+                        className={`w-full p-2.5 rounded-xl text-left transition-all border flex items-center gap-3 cursor-pointer group relative ${isSelected
+                            ? 'bg-[#0B0B0C] text-white border-slate-800 shadow-xs font-bold'
+                            : 'bg-white text-slate-700 border-[#E2E6EC] hover:bg-slate-50'
                           }`}
                       >
                         <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-700 shrink-0">
@@ -741,7 +826,29 @@ export const Chat: React.FC = () => {
                         <div className="min-w-0 flex-1">
                           <div className="flex justify-between items-center">
                             <span className="font-bold text-xs truncate text-slate-900">{j.name}</span>
-                            <span className="text-[9px] font-mono text-slate-400">{dates[idx % dates.length]}</span>
+                            <div className="flex items-center gap-1 shrink-0 ml-1">
+                              <span className="text-[9px] font-mono text-slate-400">{dates[idx % dates.length]}</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmModal({
+                                    isOpen: true,
+                                    title: `Delete Chat with ${j.name}`,
+                                    description: `Are you sure you want to permanently delete this chat from PolyLance? Messages and this conversation channel will be removed. You will have 30 seconds to undo this action.`,
+                                    onConfirm: () => handleDeleteJudgeChat(j.address)
+                                  });
+                                }}
+                                className={`opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'text-slate-400 hover:text-rose-400 hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                }`}
+                                title="Delete this arbitrator chat from PolyLance"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           </div>
                           <p className="text-[9.5px] truncate font-mono text-slate-400 mt-0.5">
                             {truncateAddress(j.address)}
@@ -782,15 +889,15 @@ export const Chat: React.FC = () => {
                           setChatTab('jobs');
                           setShowMobileChannels(false);
                         }}
-                        className={`w-full p-3 rounded-2xl text-left transition-all border flex items-start gap-3 cursor-pointer ${
+                        className={`w-full p-3 rounded-xl text-left transition-all border flex items-start gap-3 cursor-pointer group relative ${
                           isSelected
-                            ? 'bg-purple-700 text-white border-purple-800 shadow-md font-bold'
-                            : 'bg-white text-slate-700 border-slate-150 hover:bg-slate-50'
+                            ? 'bg-[#0B0B0C] text-white border-slate-800 shadow-xs font-bold'
+                            : 'bg-white text-slate-700 border-[#E2E6EC] hover:bg-slate-50'
                         }`}
                       >
                         <div
                           className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 overflow-hidden ${
-                            isSelected ? 'bg-purple-100 text-purple-900' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            isSelected ? 'bg-slate-800 text-white border border-slate-700' : 'bg-slate-100 text-slate-700 border border-slate-200'
                           }`}
                         >
                           {channel.counterpartAvatar ? (
@@ -803,17 +910,16 @@ export const Chat: React.FC = () => {
                           <div className="flex justify-between items-start">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span
-                                className={`font-extrabold text-xs truncate max-w-[125px] ${
+                                className={`font-bold text-xs truncate max-w-[125px] ${
                                   isSelected ? 'text-white' : 'text-slate-900'
                                 }`}
-                                style={isSelected ? { color: '#FFFFFF' } : undefined}
                               >
                                 {channel.counterpartName}
                               </span>
                               <span
                                 className={`text-[8.5px] px-1.5 py-0.2 rounded-full font-mono font-bold uppercase tracking-wider shrink-0 ${
                                   isSelected
-                                    ? 'bg-purple-800 text-purple-100 border border-purple-600'
+                                    ? 'bg-slate-800 text-slate-200 border border-slate-700'
                                     : channel.badge === 'Candidate'
                                     ? 'bg-amber-50 text-amber-800 border border-amber-200'
                                     : 'bg-slate-100 text-slate-600 border border-slate-200'
@@ -822,28 +928,47 @@ export const Chat: React.FC = () => {
                                 {channel.badge}
                               </span>
                             </div>
-                            <span
-                              className={`text-[9px] font-mono shrink-0 ml-1 ${
-                                isSelected ? 'text-purple-100 font-bold' : 'text-slate-500'
-                              }`}
-                              style={isSelected ? { color: '#F3E8FF' } : undefined}
-                            >
-                              ${parseFloat(channel.amountUsdc || '0').toLocaleString()}
-                            </span>
+                            <div className="flex items-center gap-1 shrink-0 ml-1">
+                              <span
+                                className={`text-[9px] font-mono shrink-0 ${
+                                  isSelected ? 'text-slate-300 font-bold' : 'text-slate-500'
+                                }`}
+                              >
+                                ${parseFloat(channel.amountUsdc || '0').toLocaleString()}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmModal({
+                                    isOpen: true,
+                                    title: `Delete Chat with ${channel.counterpartName}`,
+                                    description: `Are you sure you want to permanently delete this chat from PolyLance? Messages and this conversation channel will be removed. You will have 30 seconds to undo this action.`,
+                                    onConfirm: () => handleDeleteJobChat(channel.jobId, channel.channelId)
+                                  });
+                                }}
+                                className={`opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'text-slate-400 hover:text-rose-400 hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                }`}
+                                title="Delete this chat from PolyLance"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           </div>
                           <p
                             className={`text-[10px] truncate font-sans mt-0.5 ${
                               isSelected ? 'text-white font-bold' : 'text-slate-700'
                             }`}
-                            style={isSelected ? { color: '#FFFFFF' } : undefined}
                           >
                             {channel.jobTitle}
                           </p>
                           <p
                             className={`text-[9px] truncate font-mono mt-1 ${
-                              isSelected ? 'text-purple-100 font-medium' : 'text-slate-500'
+                              isSelected ? 'text-slate-400 font-medium' : 'text-slate-500'
                             }`}
-                            style={isSelected ? { color: '#E9D5FF' } : undefined}
                           >
                             {channel.lastMessage || 'No messages yet'}
                           </p>
@@ -857,19 +982,19 @@ export const Chat: React.FC = () => {
           </div>
 
           {/* Bottom Sidebar Action */}
-          <div className="pt-2 border-t border-slate-200 shrink-0">
+          <div className="pt-2 border-t border-[#E2E6EC] shrink-0">
             {isAdmin ? (
               <button
                 type="button"
                 onClick={() => setIsInviteJudgeModalOpen(true)}
-                className="w-full bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border border-purple-200 text-purple-700 font-bold py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-xs transition-all cursor-pointer"
+                className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs shadow-xs transition-all cursor-pointer"
               >
-                <UserPlus size={14} className="text-purple-600" /> Invite / Appoint Judge
+                <UserPlus size={14} className="text-white" /> Invite / Appoint Judge
               </button>
             ) : (
               <Link
                 to="/jobs/post"
-                className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-purple-700 font-bold py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-xs transition-all"
+                className="w-full bg-white hover:bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs shadow-2xs transition-all"
               >
                 <PlusCircle size={14} /> Post Escrow Job
               </Link>
@@ -896,7 +1021,7 @@ export const Chat: React.FC = () => {
                     </button>
                     {/* Circle Avatar with green status dot */}
                     <div className="relative shrink-0">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-600 text-white font-extrabold flex items-center justify-center text-xs uppercase shadow-xs ring-2 ring-purple-100">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0B0B0C] text-white font-bold flex items-center justify-center text-xs uppercase shadow-xs ring-2 ring-slate-200">
                         {activeJudge.name.slice(0, 2)}
                       </div>
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-xs" />
@@ -905,11 +1030,11 @@ export const Chat: React.FC = () => {
                     {/* Header Info */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-headline font-black text-slate-900 text-sm sm:text-[15px] leading-tight truncate">
+                        <h4 className="font-serif font-bold text-[#0B0B0C] text-sm sm:text-[15px] leading-tight truncate">
                           {activeJudge.name}
                         </h4>
-                        <span className="inline-flex items-center gap-1 text-[9.5px] font-mono font-bold uppercase tracking-wider text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.2 rounded-full shrink-0">
-                          <Shield size={9} className="text-purple-600" />
+                        <span className="inline-flex items-center gap-1 text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-800 bg-slate-100 border border-slate-200 px-2 py-0.2 rounded-full shrink-0">
+                          <Shield size={9} className="text-[#0047AB]" />
                           PRIMARY ARBITRATOR
                         </span>
                       </div>
@@ -921,14 +1046,14 @@ export const Chat: React.FC = () => {
                           <span>Encrypted Channel</span>
                         </div>
                         <span className="text-slate-300 text-[10px] shrink-0">•</span>
-                        <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 px-1.5 py-0.5 rounded-md text-[10.5px] font-mono text-slate-600 shrink-0">
+                        <div className="inline-flex items-center gap-1 bg-slate-50 border border-[#E2E6EC] px-1.5 py-0.5 rounded-md text-[10.5px] font-mono text-slate-600 shrink-0">
                           <button
                             type="button"
                             onClick={() => handleCopyAddress(activeJudge.address)}
-                            className="hover:text-purple-700 cursor-pointer flex items-center gap-1"
+                            className="hover:text-[#0047AB] cursor-pointer flex items-center gap-1"
                             title="Copy Address"
                           >
-                            <Copy size={9} className="text-slate-400 hover:text-purple-600" />
+                            <Copy size={9} className="text-slate-400 hover:text-[#0047AB]" />
                             <span>{truncateAddress(activeJudge.address)}</span>
                           </button>
                           {copiedAddr && <span className="text-[8px] text-emerald-600 font-bold">Copied!</span>}
@@ -937,14 +1062,14 @@ export const Chat: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2.5">
-                    {/* Admin Only: Manage Judges button */}
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    {/* Admin Only: Manage Judges button (desktop only) */}
                     {isAdmin && (
                       <Link
                         to="/judge"
-                        className="whitespace-nowrap shrink-0 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 text-[11px] font-bold font-mono transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer leading-none"
+                        className="hidden sm:inline-flex whitespace-nowrap shrink-0 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] text-[11px] font-bold font-mono transition-all items-center gap-1.5 shadow-2xs cursor-pointer leading-none"
                       >
-                        <Users size={12} className="text-purple-600 shrink-0" /> Manage Judges <ArrowUpRight size={11} className="shrink-0" />
+                        <Users size={12} className="text-[#0047AB] shrink-0" /> Manage Judges <ArrowUpRight size={11} className="shrink-0" />
                       </Link>
                     )}
 
@@ -952,26 +1077,36 @@ export const Chat: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowJudgeMoreMenu(!showJudgeMoreMenu)}
-                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
                       >
                         <MoreVertical size={16} />
                       </button>
                       {showJudgeMoreMenu && (
                         <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 py-1 font-sans">
+                          {/* Manage Judges (mobile only) */}
+                          {isAdmin && (
+                            <Link
+                              to="/judge"
+                              onClick={() => setShowJudgeMoreMenu(false)}
+                              className="sm:hidden w-full flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                            >
+                              <Users size={13} className="text-[#0047AB]" /> Manage Judges
+                            </Link>
+                          )}
                           <button
                             type="button"
                             onClick={() => {
                               setShowJudgeMoreMenu(false);
                               setDeleteConfirmModal({
                                 isOpen: true,
-                                title: 'Delete Judge Chat History',
-                                description: 'Are you sure you want to delete this arbitrator chat history? You will have 30 seconds to undo this action.',
+                                title: 'Delete Judge Chat',
+                                description: 'Are you sure you want to permanently delete this arbitrator chat from PolyLance? Messages and this conversation channel will be removed. You will have 30 seconds to undo this action.',
                                 onConfirm: () => handleDeleteJudgeChat(activeJudge.address)
                               });
                             }}
                             className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
                           >
-                            <Trash2 size={14} /> Delete Chat History
+                            <Trash2 size={14} /> Delete Chat
                           </button>
                         </div>
                       )}
@@ -981,26 +1116,26 @@ export const Chat: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowJobDetailsSidebar(!showJobDetailsSidebar)}
-                      className={`px-2 py-1 rounded-lg border text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                      className={`p-1.5 sm:px-2 sm:py-1 rounded-lg border text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0 ${
                         showJobDetailsSidebar
-                          ? 'bg-purple-100 text-purple-800 border-purple-300'
-                          : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
+                          ? 'bg-[#0047AB] text-white border-[#003A8C]'
+                          : 'bg-white hover:bg-slate-50 text-slate-600 border-[#E2E6EC]'
                       }`}
                       title={showJobDetailsSidebar ? "Hide Details Panel" : "Show Details Panel"}
                     >
-                      {showJobDetailsSidebar ? <PanelRightClose size={13} className="text-purple-700" /> : <PanelRightOpen size={13} className="text-slate-500" />}
-                      <span className="text-[11px] leading-none">{showJobDetailsSidebar ? 'Hide Specs' : 'Show Specs'}</span>
+                      {showJobDetailsSidebar ? <PanelRightClose size={13} className="text-white" /> : <PanelRightOpen size={13} className="text-slate-500" />}
+                      <span className="hidden sm:inline text-[11px] leading-none">{showJobDetailsSidebar ? 'Hide Specs' : 'Show Specs'}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Dedicated Action Button Bar */}
-                <div className="px-4 py-2 border-b border-slate-100 bg-white/60 flex items-center justify-start gap-2 shrink-0 flex-wrap">
+                <div className="px-4 py-2 border-b border-[#E2E6EC] bg-white flex items-center justify-start gap-2 shrink-0 flex-wrap">
                   {(isAdmin || (activeJob && activeJob.client.toLowerCase() === (address || '').toLowerCase())) && (
                     <button
                       type="button"
                       onClick={handleRelease}
-                      className="bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                      className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
                     >
                       <CheckCircle2 size={13} className="text-emerald-600" />
                       Approve Payment
@@ -1018,7 +1153,7 @@ export const Chat: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsDisputeModalOpen(true)}
-                      className="bg-rose-50/70 hover:bg-rose-100/70 border border-rose-300 text-rose-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                      className="bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
                     >
                       <AlertTriangle size={13} className="text-rose-600" />
                       Raise Issue
@@ -1028,22 +1163,22 @@ export const Chat: React.FC = () => {
                   {activeJob ? (
                     <Link
                       to={`/jobs/${activeJob.id}`}
-                      className="bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200 text-purple-700 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                      className="bg-white hover:bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
                     >
-                      Job Details <ArrowUpRight size={12} className="text-purple-600" />
+                      Job Details <ArrowUpRight size={12} className="text-[#0047AB]" />
                     </Link>
                   ) : (
                     <Link
                       to="/dao"
-                      className="bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200 text-purple-700 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                      className="bg-white hover:bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
                     >
-                      DAO Court <ArrowUpRight size={12} className="text-purple-600" />
+                      DAO Court <ArrowUpRight size={12} className="text-[#0047AB]" />
                     </Link>
                   )}
                 </div>
 
                 {/* Messages List Area */}
-                <div ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-white/40 min-h-0">
+                <div ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50 min-h-0">
                   {(() => {
                     const currentJudgeMsgs = (selectedJudgeAddr && judgeMessages[selectedJudgeAddr.toLowerCase()]) || [];
                     if (currentJudgeMsgs.length === 0) {
@@ -1064,7 +1199,7 @@ export const Chat: React.FC = () => {
                       <>
                         {/* Today Date Pill */}
                         <div className="flex justify-center my-2">
-                          <span className="bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-mono font-bold px-3 py-0.5 rounded-full">
+                          <span className="bg-white border border-[#E2E6EC] text-slate-500 text-[10px] font-mono font-bold px-3 py-0.5 rounded-full shadow-2xs">
                             Today
                           </span>
                         </div>
@@ -1075,22 +1210,22 @@ export const Chat: React.FC = () => {
                           return (
                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-start gap-2.5`}>
                               {!isMe && (
-                                <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0 uppercase shadow-xs mt-1">
+                                <div className="w-8 h-8 rounded-full bg-[#0B0B0C] text-white font-bold text-xs flex items-center justify-center shrink-0 uppercase shadow-xs mt-1">
                                   {isAdmin ? activeJudge.name.slice(0, 2) : 'AD'}
                                 </div>
                               )}
                               <div className="max-w-md space-y-1">
-                                <div className={`font-mono text-[10px] font-bold px-1 ${isMe ? 'text-right text-purple-700' : 'text-purple-700'}`}>
+                                <div className={`font-mono text-[10px] font-bold px-1 ${isMe ? 'text-right text-[#0047AB]' : 'text-slate-600'}`}>
                                   {msg.senderRole === 'Admin' ? 'Admin Governance' : activeJudge.name}
                                 </div>
-                                <div className={`p-3.5 rounded-2xl border text-xs shadow-xs ${isMe
-                                    ? 'bg-purple-50/90 border-purple-200 text-slate-900 rounded-tr-none'
-                                    : 'bg-white border-slate-200 text-slate-800 rounded-tl-none font-medium'
+                                <div className={`p-3.5 rounded-xl border text-xs shadow-xs ${isMe
+                                    ? 'bg-[#0047AB] border-[#003A8C] text-white rounded-tr-none'
+                                    : 'bg-white border-[#E2E6EC] text-[#0B0B0C] rounded-tl-none font-medium'
                                   }`}>
                                   <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                                  <div className={`text-right text-[8px] font-mono mt-1 flex items-center justify-end gap-1 ${isMe ? 'text-purple-600 font-bold' : 'text-slate-400'}`}>
+                                  <div className={`text-right text-[8px] font-mono mt-1 flex items-center justify-end gap-1 ${isMe ? 'text-blue-100 font-bold' : 'text-slate-400'}`}>
                                     <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                    {isMe && <span className="text-purple-600 text-[10px]">✓✓</span>}
+                                    {isMe && <span className="text-blue-200 text-[10px]">✓✓</span>}
                                   </div>
                                 </div>
                               </div>
@@ -1112,9 +1247,9 @@ export const Chat: React.FC = () => {
                 </div>
 
                 {/* Input Panel matching Reference Image */}
-                <div className="p-4 border-t border-slate-200 bg-white shrink-0 space-y-2">
+                <div className="p-4 border-t border-[#E2E6EC] bg-white shrink-0 space-y-2">
                   <form onSubmit={handleSend} className="flex items-center gap-2">
-                    <div className="flex-1 flex items-center glass-input rounded-2xl px-3 py-1.5 bg-slate-50 border border-slate-200 shadow-inner">
+                    <div className="flex-1 flex items-center rounded-xl px-3 py-1.5 bg-slate-50 border border-[#E2E6EC]">
                       <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
                         <Paperclip size={16} />
                       </button>
@@ -1134,7 +1269,7 @@ export const Chat: React.FC = () => {
                           <Smile size={16} />
                         </button>
                         {showEmojiPicker && (
-                          <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 grid grid-cols-6 gap-1 w-48 font-sans">
+                          <div className="absolute bottom-full right-0 mb-2 bg-white border border-[#E2E6EC] rounded-xl shadow-xl z-50 p-2 grid grid-cols-6 gap-1 w-48 font-sans">
                             {['👍', '❤️', '😂', '🎉', '🔥', '🚀', '💻', '💡', '👏', '👀', '💬', '💯'].map((emoji) => (
                               <button
                                 key={emoji}
@@ -1155,7 +1290,7 @@ export const Chat: React.FC = () => {
 
                     <button
                       type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                      className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
                     >
                       <Send size={14} /> Send
                     </button>
@@ -1163,18 +1298,26 @@ export const Chat: React.FC = () => {
 
                   <div className="text-center">
                     <span className="text-[9.5px] font-mono text-slate-400 flex items-center justify-center gap-1">
-                      <Shield size={11} className="text-purple-600" /> Messages are end-to-end encrypted via XMTP
+                      <Shield size={11} className="text-[#0047AB]" /> Messages are end-to-end encrypted via XMTP
                     </span>
                   </div>
                 </div>
               </>
             ) : (
               <div className="flex-1 flex flex-col justify-center items-center text-center p-8 text-slate-400 space-y-3">
-                <UserCheck size={48} className="text-purple-600 stroke-1" />
+                <UserCheck size={48} className="text-[#0047AB] stroke-1" />
                 <div>
                   <h4 className="font-bold text-slate-800 text-sm">Select a Judge Channel</h4>
-<p className="text-xs text-slate-500 mt-1 font-mono">Choose an arbitrator from the left panel to open direct communications.</p>
+                  <p className="text-xs text-slate-500 mt-1 font-mono">Choose an arbitrator from the left panel to open direct communications.</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="mt-2 px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-[#0047AB] border border-[#E2E6EC] text-xs font-bold font-mono transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                >
+                  <ArrowLeft size={13} className="text-slate-500" />
+                  <span>Return to Dashboard</span>
+                </button>
               </div>
             )
           ) : (
@@ -1182,7 +1325,7 @@ export const Chat: React.FC = () => {
             activeJob ? (
               <>
                 {/* Header Bar */}
-                <div className="px-3.5 py-2.5 sm:px-4 sm:py-3 border-b border-slate-200 bg-white flex justify-between items-center shrink-0 gap-2.5">
+                <div className="px-3.5 py-2.5 sm:px-4 sm:py-3 border-b border-[#E2E6EC] bg-white flex justify-between items-center shrink-0 gap-2.5">
                   <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                     <button
                       type="button"
@@ -1194,7 +1337,7 @@ export const Chat: React.FC = () => {
                     </button>
                     {/* Circle Avatar with status ring */}
                     <div className="relative shrink-0">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-600 text-white font-extrabold flex items-center justify-center text-xs uppercase shadow-xs ring-2 ring-purple-100 overflow-hidden">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0B0B0C] text-white font-bold flex items-center justify-center text-xs uppercase shadow-xs ring-2 ring-slate-200 overflow-hidden">
                         {activeChannel?.counterpartAvatar ? (
                           <img src={activeChannel.counterpartAvatar} alt={activeChannel.counterpartName} className="w-full h-full object-cover" />
                         ) : (
@@ -1202,20 +1345,20 @@ export const Chat: React.FC = () => {
                         )}
                       </div>
                       <span className={`w-2.5 h-2.5 rounded-full border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-xs ${
-                        activeJob.status === 'Completed' ? 'bg-purple-500' : 'bg-emerald-400'
+                        activeJob.status === 'Completed' ? 'bg-[#0047AB]' : 'bg-emerald-400'
                       }`} />
                     </div>
 
                     {/* Header Info */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                        <h4 className="font-headline font-black text-slate-900 text-xs sm:text-[15px] leading-tight truncate">
+                        <h4 className="font-serif font-bold text-[#0B0B0C] text-xs sm:text-[15px] leading-tight truncate">
                           {activeChannel?.counterpartName || activeJob.title}
                         </h4>
                         <span className={`inline-flex items-center gap-1 text-[8px] sm:text-[9.5px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full shrink-0 ${
                           activeChannel?.badge === 'Candidate'
                             ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                            : 'bg-purple-50 text-purple-700 border border-purple-200'
+                            : 'bg-slate-100 text-slate-800 border border-slate-200'
                         }`}>
                           {activeChannel?.badge || activeJob.status}
                         </span>
@@ -1238,10 +1381,10 @@ export const Chat: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleCopyAddress(activeChannel.counterpartAddress)}
-                                className="hover:text-purple-700 cursor-pointer flex items-center gap-1"
+                                className="hover:text-[#0047AB] cursor-pointer flex items-center gap-1"
                                 title="Copy Address"
                               >
-                                <Copy size={9} className="text-slate-400 hover:text-purple-600" />
+                                <Copy size={9} className="text-slate-400 hover:text-[#0047AB]" />
                                 <span>{truncateAddress(activeChannel.counterpartAddress)}</span>
                               </button>
                               {copiedAddr && <span className="text-[8px] text-emerald-600 font-bold">Copied!</span>}
@@ -1252,18 +1395,18 @@ export const Chat: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Job Details Button (desktop only; mobile uses sub-action bar & more menu) */}
+                  <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                    {/* Job Details Button (desktop only; mobile uses more menu) */}
                     <Link
                       to={`/jobs/${activeJob.id}`}
-                      className="hidden sm:inline-flex whitespace-nowrap shrink-0 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-bold py-1 px-2.5 rounded-lg items-center justify-center gap-1 text-[11px] shadow-2xs transition-all cursor-pointer leading-none"
+                      className="hidden sm:inline-flex whitespace-nowrap shrink-0 bg-white hover:bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] font-bold py-1 px-2.5 rounded-lg items-center justify-center gap-1 text-[11px] shadow-2xs transition-all cursor-pointer leading-none"
                       title="View full job details & milestones"
                     >
                       <span>Job Details</span>
-                      <ArrowUpRight size={11} className="text-purple-600 shrink-0" />
+                      <ArrowUpRight size={11} className="text-[#0047AB] shrink-0" />
                     </Link>
 
-                    {/* Raise Issue Button - Only show after terms are agreed and contract is signed/funded (desktop only) */}
+                    {/* Raise Issue Button (desktop only) */}
                     {Boolean(
                       (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
                       activeJob.status === 'Funded' ||
@@ -1282,6 +1425,22 @@ export const Chat: React.FC = () => {
                       </button>
                     )}
 
+                    {/* Toggle Job Specs Panel Button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowJobDetailsSidebar(!showJobDetailsSidebar)}
+                      className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg border text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0 ${
+                        showJobDetailsSidebar
+                          ? 'bg-[#0047AB] text-white border-[#003A8C]'
+                          : 'bg-white hover:bg-slate-50 text-slate-600 border-[#E2E6EC]'
+                      }`}
+                      title={showJobDetailsSidebar ? "Hide Details Panel" : "Show Details Panel"}
+                    >
+                      {showJobDetailsSidebar ? <PanelRightClose size={13} className="text-white" /> : <PanelRightOpen size={13} className="text-slate-500" />}
+                      <span className="hidden sm:inline text-[11px] leading-none">{showJobDetailsSidebar ? 'Hide Specs' : 'Show Specs'}</span>
+                    </button>
+
+                    {/* 3-dot overflow menu at far right */}
                     <div className="relative">
                       <button
                         type="button"
@@ -1293,13 +1452,13 @@ export const Chat: React.FC = () => {
                       </button>
                       {showMoreMenu && (
                         <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 py-1.5 font-sans">
-                          {/* Mobile quick actions in dropdown */}
+                          {/* Mobile-only quick actions */}
                           <Link
                             to={`/jobs/${activeJob.id}`}
                             onClick={() => setShowMoreMenu(false)}
-                            className="sm:hidden w-full flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-purple-50 transition-colors cursor-pointer text-left"
+                            className="sm:hidden w-full flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer text-left"
                           >
-                            <ArrowUpRight size={13} className="text-purple-600" /> View Job Details
+                            <ArrowUpRight size={13} className="text-[#0047AB]" /> View Job Details
                           </Link>
                           {Boolean(
                             (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
@@ -1326,14 +1485,14 @@ export const Chat: React.FC = () => {
                               setShowMoreMenu(false);
                               setDeleteConfirmModal({
                                 isOpen: true,
-                                title: 'Delete Job Chat History',
-                                description: 'Are you sure you want to delete this job chat history? You will have 30 seconds to undo this action.',
-                                onConfirm: () => handleDeleteJobChat(activeJob.id)
+                                title: 'Delete Chat',
+                                description: 'Are you sure you want to permanently delete this chat from PolyLance? Messages and this conversation channel will be removed. You will have 30 seconds to undo this action.',
+                                onConfirm: () => handleDeleteJobChat(activeJob.id, activeChannel?.channelId)
                               });
                             }}
                             className="w-full flex items-center gap-2 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
                           >
-                            <Trash2 size={13} /> Delete Chat History
+                            <Trash2 size={13} /> Delete Chat
                           </button>
                           <div className="px-4 py-1.5 text-[9.5px] font-mono text-slate-400 border-t border-slate-100">
                             Completed chats auto-delete after 7 days
@@ -1341,26 +1500,11 @@ export const Chat: React.FC = () => {
                         </div>
                       )}
                     </div>
-
-                    {/* Toggle Job Specs Panel Button */}
-                    <button
-                      type="button"
-                      onClick={() => setShowJobDetailsSidebar(!showJobDetailsSidebar)}
-                      className={`p-1.5 sm:px-2 sm:py-1 rounded-lg border text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0 ${
-                        showJobDetailsSidebar
-                          ? 'bg-purple-100 text-purple-800 border-purple-300'
-                          : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
-                      }`}
-                      title={showJobDetailsSidebar ? "Hide Details Panel" : "Show Details Panel"}
-                    >
-                      {showJobDetailsSidebar ? <PanelRightClose size={13} className="text-purple-700" /> : <PanelRightOpen size={13} className="text-slate-500" />}
-                      <span className="hidden sm:inline text-[11px] leading-none">{showJobDetailsSidebar ? 'Hide Specs' : 'Show Specs'}</span>
-                    </button>
                   </div>
                 </div>
 
                 {/* Compact Dedicated Action Button Bar */}
-                <div className="px-4 py-2 border-b border-slate-100 bg-white/60 flex flex-col gap-2 shrink-0">
+                <div className="px-4 py-2 border-b border-[#E2E6EC] bg-white flex flex-col gap-2 shrink-0">
                   {(() => {
                     const isClient = activeJob.client.toLowerCase() === (address || '').toLowerCase() || currentRole === 'client';
                     const activePendingExtensions = (activeJob.extensionRequests || []).filter(
@@ -1406,11 +1550,11 @@ export const Chat: React.FC = () => {
 
                         {/* PRE-ACCEPTANCE CANDIDATE NEGOTIATION BANNER */}
                         {activeJob.status === 'Open' && (
-                          <div className="w-full bg-purple-50/90 border border-purple-200 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-2xs">
+                          <div className="w-full bg-slate-50 border border-[#E2E6EC] rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-2xs">
                             <div className="flex items-center gap-2 min-w-0">
-                              <Sparkles size={15} className="text-purple-700 shrink-0" />
+                              <Sparkles size={15} className="text-[#0047AB] shrink-0" />
                               <div>
-                                <span className="font-bold text-purple-950">Pre-Acceptance Candidate Negotiation</span>
+                                <span className="font-bold text-[#0B0B0C]">Pre-Acceptance Candidate Negotiation</span>
                                 <span className="text-slate-500 font-mono text-[11px] ml-2">
                                   Candidate: {activeChannel?.counterpartName} • Budget: ${activeJob.negotiatedAmount || activeJob.amountUsdc} USDC
                                 </span>
@@ -1435,7 +1579,7 @@ export const Chat: React.FC = () => {
 
                         {/* ACTIVE DISPUTE BANNER */}
                         {(activeJob.status === 'Disputed' || activeJob.dispute) && (
-                          <div className="w-full bg-rose-50 border-2 border-rose-300 rounded-xl p-2.5 flex items-center justify-between gap-3 text-xs shadow-2xs">
+                          <div className="w-full bg-rose-50 border border-rose-300 rounded-xl p-2.5 flex items-center justify-between gap-3 text-xs shadow-2xs">
                             <div className="flex items-center gap-2 min-w-0">
                               <Scale size={16} className="text-rose-600 shrink-0" />
                               <div>
@@ -1454,126 +1598,93 @@ export const Chat: React.FC = () => {
                         )}
 
                         {/* Standard Action Pill Row */}
-                        <div className="flex items-center justify-start gap-1.5 sm:gap-2 flex-wrap">
+                        <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5">
                           {/* Escrow & Net Amount Badge */}
-                          <div className="bg-slate-100/90 border border-slate-200 text-slate-800 font-mono py-1 px-2.5 rounded-lg flex items-center gap-1.5 text-[10.5px]">
+                          <div className="bg-slate-100/90 border border-[#E2E6EC] text-slate-800 font-mono py-1 px-2.5 rounded-lg flex items-center gap-1.5 text-[10.5px] shrink-0">
+                            <TokenIcon token={activeJob.paymentTokenSymbol || 'USDC'} size={13} />
                             <span className="font-bold text-slate-600">Escrow:</span>
-                            <strong className="text-slate-900">${parseFloat(activeJob.amountUsdc || '0').toLocaleString()} USDC</strong>
+                            <strong className="text-[#0B0B0C]">${parseFloat(activeJob.amountUsdc || '0').toLocaleString()} {activeJob.paymentTokenSymbol || 'USDC'}</strong>
                             <span className="text-slate-400">•</span>
-                            <span className="text-purple-700 font-bold">Net: ${(parseFloat(activeJob.amountUsdc || '0') * 0.975).toFixed(2)} USDC</span>
+                            <span className="text-[#0047AB] font-bold">Net: ${(parseFloat(activeJob.amountUsdc || '0') * 0.975).toFixed(2)} {activeJob.paymentTokenSymbol || 'USDC'}</span>
                           </div>
 
-                          {/* Mobile-only Job Details & Dispute Buttons */}
-                          <Link
-                            to={`/jobs/${activeJob.id}`}
-                            className="sm:hidden bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer leading-none"
-                            title="View full job details & milestones"
-                          >
-                            <span>Job Details</span>
-                            <ArrowUpRight size={11} className="text-purple-600 shrink-0" />
-                          </Link>
-
-                          {Boolean(
-                            (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
-                            activeJob.status === 'Funded' ||
-                            activeJob.status === 'Submitted' ||
-                            activeJob.status === 'Completed' ||
-                            activeJob.status === 'Disputed'
-                          ) && (
-                            <button
-                              type="button"
-                              onClick={() => setIsDisputeModalOpen(true)}
-                              className="sm:hidden bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer leading-none"
-                              title="File formal DAO dispute case"
-                            >
-                              <AlertTriangle size={11} className="text-rose-600 shrink-0" />
-                              <span>Raise Issue</span>
-                            </button>
-                          )}
-
-                          {/* COMPLETED JOB SBT ATTESTATION ACTION */}
-                          {activeJob.status === 'Completed' && (
-                            <Link
-                              to={`/jobs/${activeJob.id}/attestation`}
-                              className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-3 rounded-lg flex items-center justify-center gap-1.5 text-[10.5px] shadow-2xs transition-all hover:scale-105"
-                            >
-                              <Award size={13} className="text-white" />
-                              <span>View SBT Attestation Cert</span>
-                            </Link>
-                          )}
-
-                          {/* FREELANCER QUICK ACTIONS */}
-                          {!isClient && (activeJob.status === 'Funded' || activeJob.status === 'Selected' || (activeJob.status as string) === 'TermsAgreed') && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => setIsProgressModalOpen(true)}
-                                className="bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                          {/* Action Buttons: horizontally scrollable, cleanly separated */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {/* COMPLETED JOB SBT ATTESTATION ACTION */}
+                            {activeJob.status === 'Completed' && (
+                              <Link
+                                to={`/jobs/${activeJob.id}/attestation`}
+                                className="bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all shrink-0"
                               >
-                                <TrendingUp size={13} className="text-blue-600" />
-                                <span>Update Progress</span>
-                              </button>
+                                <Award size={12} className="text-white" />
+                                <span>SBT Attestation</span>
+                              </Link>
+                            )}
 
-                              <button
-                                type="button"
-                                onClick={() => setIsExtensionModalOpen(true)}
-                                className="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
-                              >
-                                <Clock size={13} className="text-amber-600" />
-                                <span>Request Extension</span>
-                              </button>
-                            </>
-                          )}
-
-                          {/* CLIENT ACTIONS */}
-                          {isClient && (
-                            <>
-                              {(activeJob.status === 'Submitted' || (activeJob.status as string) === 'Funded') ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={handleRelease}
-                                    className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
-                                  >
-                                    <CheckCircle2 size={13} className="text-emerald-600" />
-                                    <span>Approve Payment</span>
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => setIsModificationModalOpen(true)}
-                                    className="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
-                                  >
-                                    <RefreshCw size={13} className="text-amber-600" />
-                                    <span>Request Revisions</span>
-                                  </button>
-                                </>
-                              ) : (activeJob.status === 'Selected' || (activeJob.status as string) === 'TermsAgreed') ? (
+                            {/* FREELANCER QUICK ACTIONS */}
+                            {!isClient && (activeJob.status === 'Funded' || activeJob.status === 'Selected' || (activeJob.status as string) === 'TermsAgreed') && (
+                              <>
                                 <button
                                   type="button"
-                                  onClick={handleFund}
-                                  className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                                  onClick={() => setIsProgressModalOpen(true)}
+                                  className="bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer shrink-0"
                                 >
-                                  <DollarSign size={13} className="text-emerald-600" />
-                                  <span>Fund Escrow</span>
+                                  <TrendingUp size={12} className="text-blue-600" />
+                                  <span>Update Progress</span>
                                 </button>
-                              ) : activeJob.status === 'Completed' ? (
-                                <div className="bg-emerald-50/70 border border-emerald-200 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px]">
-                                  <CheckCircle2 size={13} className="text-emerald-600" />
-                                  <span>Escrow Completed</span>
-                                </div>
-                              ) : null}
 
-                              <button
-                                type="button"
-                                onClick={() => setIsDisputeModalOpen(true)}
-                                className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer"
-                              >
-                                <Scale size={13} className="text-rose-600" />
-                                <span>Raise Dispute</span>
-                              </button>
-                            </>
-                          )}
+                                <button
+                                  type="button"
+                                  onClick={() => setIsExtensionModalOpen(true)}
+                                  className="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer shrink-0"
+                                >
+                                  <Clock size={12} className="text-amber-600" />
+                                  <span>Request Extension</span>
+                                </button>
+                              </>
+                            )}
+
+                            {/* CLIENT ACTIONS */}
+                            {isClient && (
+                              <>
+                                {(activeJob.status === 'Submitted' || (activeJob.status as string) === 'Funded') ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={handleRelease}
+                                      className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer shrink-0"
+                                    >
+                                      <CheckCircle2 size={12} className="text-emerald-600" />
+                                      <span>Approve Payment</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setIsModificationModalOpen(true)}
+                                      className="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer shrink-0"
+                                    >
+                                      <RefreshCw size={12} className="text-amber-600" />
+                                      <span>Request Revisions</span>
+                                    </button>
+                                  </>
+                                ) : (activeJob.status === 'Selected' || (activeJob.status as string) === 'TermsAgreed') ? (
+                                  <button
+                                    type="button"
+                                    onClick={handleFund}
+                                    className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shadow-2xs transition-all cursor-pointer shrink-0"
+                                  >
+                                    <TokenIcon token={activeJob.paymentTokenSymbol || 'USDC'} size={12} />
+                                    <span>Fund Escrow</span>
+                                  </button>
+                                ) : activeJob.status === 'Completed' ? (
+                                  <div className="bg-emerald-50/70 border border-emerald-200 text-emerald-800 font-bold py-1 px-2.5 rounded-lg flex items-center justify-center gap-1 text-[10.5px] shrink-0">
+                                    <CheckCircle2 size={12} className="text-emerald-600" />
+                                    <span>Escrow Completed</span>
+                                  </div>
+                                ) : null}
+                              </>
+                            )}
+                          </div>
                         </div>
                       </>
                     );
@@ -1670,8 +1781,8 @@ export const Chat: React.FC = () => {
                           if (isSystem) {
                             return (
                               <div key={index} className="flex justify-center my-3">
-                                <div className="bg-purple-50 border border-purple-200 text-purple-900 rounded-xl px-4 py-1.5 text-[10px] font-mono font-bold flex items-center gap-1.5">
-                                  <Lock size={12} className="text-purple-700" />
+                                <div className="bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] rounded-xl px-4 py-1.5 text-[10px] font-mono font-bold flex items-center gap-1.5">
+                                  <Lock size={12} className="text-[#0047AB]" />
                                   {msg.text}
                                 </div>
                               </div>
@@ -1684,17 +1795,17 @@ export const Chat: React.FC = () => {
                               className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-start gap-2.5`}
                             >
                               {!isUser && (
-                                <div className="w-8 h-8 rounded-full bg-slate-700 text-white font-bold text-xs flex items-center justify-center shrink-0 uppercase shadow-xs mt-1">
+                                <div className="w-8 h-8 rounded-full bg-[#0B0B0C] text-white font-bold text-xs flex items-center justify-center shrink-0 uppercase shadow-xs mt-1">
                                   {msg.sender.slice(0, 2)}
                                 </div>
                               )}
                               <div className="max-w-md space-y-1">
-                                <div className={`font-mono text-[10px] font-bold px-1 ${isUser ? 'text-right text-purple-700' : 'text-purple-700'}`}>
+                                <div className={`font-mono text-[10px] font-bold px-1 ${isUser ? 'text-right text-[#0047AB]' : 'text-slate-600'}`}>
                                   {msg.sender}
                                 </div>
-                                <div className={`p-3.5 rounded-2xl border text-xs shadow-xs ${isUser
-                                    ? 'bg-purple-50/90 border-purple-200 text-slate-900 rounded-tr-none'
-                                    : 'bg-white border-slate-200 text-slate-800 rounded-tl-none font-medium'
+                                <div className={`p-3.5 rounded-xl border text-xs shadow-xs ${isUser
+                                    ? 'bg-[#0047AB] border-[#003A8C] text-white rounded-tr-none'
+                                    : 'bg-white border-[#E2E6EC] text-[#0B0B0C] rounded-tl-none font-medium'
                                   }`}>
                                   {!msg.proposal && Boolean(msg.text) && (
                                     <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
@@ -1736,9 +1847,9 @@ export const Chat: React.FC = () => {
                                     />
                                   )}
 
-                                  <div className={`text-right text-[8px] font-mono mt-1 flex items-center justify-end gap-1 ${isUser ? 'text-purple-600 font-bold' : 'text-slate-400'}`}>
+                                  <div className={`text-right text-[8px] font-mono mt-1 flex items-center justify-end gap-1 ${isUser ? 'text-blue-100 font-bold' : 'text-slate-400'}`}>
                                     <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                    {isUser && <span className="text-purple-600 text-[10px]">✓✓</span>}
+                                    {isUser && <span className="text-blue-200 text-[10px]">✓✓</span>}
                                   </div>
                                 </div>
                               </div>
@@ -1753,7 +1864,7 @@ export const Chat: React.FC = () => {
                 </div>
 
                 {/* Input Panel */}
-                <div className="p-2.5 sm:p-4 border-t border-slate-200 bg-white shrink-0 space-y-2 pb-safe">
+                <div className="p-2.5 sm:p-4 border-t border-[#E2E6EC] bg-white shrink-0 space-y-2 pb-safe">
                   {(() => {
                     const lowerAddr = (address || '').toLowerCase();
                     const isClient = activeJob.client.toLowerCase() === lowerAddr || currentRole === 'client';
@@ -1796,9 +1907,9 @@ export const Chat: React.FC = () => {
                                 setIsFinalCallMode(false);
                                 setIsProposalModalOpen(true);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-[10.5px] sm:text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B0B0C] border border-[#E2E6EC] text-[10.5px] sm:text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0"
                             >
-                              <Sparkles size={12} />
+                              <Sparkles size={12} className="text-[#0047AB]" />
                               <span>{isFreelancer ? 'Propose Price & Timeline' : 'Propose Terms'}</span>
                             </button>
 
@@ -1822,7 +1933,7 @@ export const Chat: React.FC = () => {
                   })()}
 
                   <form onSubmit={handleSend} className="flex items-center gap-1.5 sm:gap-2">
-                    <div className="flex-1 flex items-center glass-input rounded-2xl px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-50 border border-slate-200 shadow-inner min-w-0">
+                    <div className="flex-1 flex items-center rounded-xl px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-50 border border-[#E2E6EC] min-w-0">
                       <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer shrink-0">
                         <Paperclip size={15} />
                       </button>
@@ -1842,7 +1953,7 @@ export const Chat: React.FC = () => {
                           <Smile size={15} />
                         </button>
                         {showEmojiPicker && (
-                          <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 grid grid-cols-6 gap-1 w-48 font-sans">
+                          <div className="absolute bottom-full right-0 mb-2 bg-white border border-[#E2E6EC] rounded-xl shadow-xl z-50 p-2 grid grid-cols-6 gap-1 w-48 font-sans">
                             {['👍', '❤️', '😂', '🎉', '🔥', '🚀', '💻', '💡', '👏', '👀', '💬', '💯'].map((emoji) => (
                               <button
                                 key={emoji}
@@ -1863,7 +1974,7 @@ export const Chat: React.FC = () => {
 
                     <button
                       type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer shrink-0"
+                      className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
                     >
                       <Send size={13} />
                       <span>Send</span>
@@ -1872,20 +1983,28 @@ export const Chat: React.FC = () => {
 
                   <div className="text-center">
                     <span className="text-[9.5px] font-mono text-slate-400 flex items-center justify-center gap-1">
-                      <Shield size={11} className="text-purple-600" /> Messages are end-to-end encrypted via XMTP Peer-to-Peer Protocol
+                      <Shield size={11} className="text-[#0047AB]" /> Messages are end-to-end encrypted via XMTP Peer-to-Peer Protocol
                     </span>
                   </div>
                 </div>
               </>
             ) : (
               <div className="flex-1 flex flex-col justify-center items-center p-8 text-center space-y-3">
-                <div className="w-14 h-14 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center shadow-inner">
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-[#E2E6EC] text-[#0047AB] flex items-center justify-center shadow-2xs">
                   <MessageSquare size={28} />
                 </div>
                 <div>
                   <h4 className="font-bold text-slate-800 text-sm">Select a Conversation</h4>
                   <p className="text-xs text-slate-500 mt-1 font-mono max-w-xs">Choose a job or freelancer from the left panel to start messaging.</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="mt-2 px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-[#0047AB] border border-[#E2E6EC] text-xs font-bold font-mono transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                >
+                  <ArrowLeft size={13} className="text-slate-500" />
+                  <span>Return to Dashboard</span>
+                </button>
               </div>
             )
           )}
@@ -1899,11 +2018,11 @@ export const Chat: React.FC = () => {
               className="absolute inset-0 lg:hidden"
               onClick={() => setShowJobDetailsSidebar(false)}
             />
-            <div className="relative z-10 w-full max-w-sm sm:w-88 h-full bg-white flex flex-col border-l border-slate-200 shadow-2xl lg:shadow-none overflow-hidden animate-in slide-in-from-right duration-200">
+            <div className="relative z-10 w-full max-w-sm sm:w-88 h-full bg-white flex flex-col border-l border-[#E2E6EC] shadow-2xl lg:shadow-none overflow-hidden animate-in slide-in-from-right duration-200">
               {/* Mobile Drawer Header with Close Button */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 lg:hidden shrink-0 bg-slate-50/50">
-                <span className="font-headline font-bold text-xs text-slate-900 flex items-center gap-1.5 uppercase tracking-wider">
-                  <PanelRightClose size={15} className="text-purple-700" />
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#E2E6EC] lg:hidden shrink-0 bg-slate-50">
+                <span className="font-serif font-bold text-xs text-[#0B0B0C] flex items-center gap-1.5 uppercase tracking-wider">
+                  <PanelRightClose size={15} className="text-[#0047AB]" />
                   {chatTab === 'jobs' ? 'Job & Escrow Specs' : 'Arbitrator Profile'}
                 </span>
                 <button
@@ -1920,11 +2039,11 @@ export const Chat: React.FC = () => {
               <>
                 {/* Top Status Pill */}
                 <div>
-                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100 border border-purple-200 px-3 py-0.5 rounded-full">
-                    <CheckCircle2 size={12} className="text-purple-700" />
+                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-800 bg-slate-100 border border-slate-200 px-3 py-0.5 rounded-full">
+                    <CheckCircle2 size={12} className="text-emerald-600" />
                     {activeJob.status === 'Completed' ? 'COMPLETED ESCROW' : `${activeJob.status.toUpperCase()} ESCROW`}
                   </span>
-                  <h3 className="font-headline font-extrabold text-slate-900 text-sm mt-3 leading-snug">
+                  <h3 className="font-serif font-bold text-[#0B0B0C] text-sm mt-3 leading-snug">
                     {activeJob.title}
                   </h3>
                   <p className="text-xs text-slate-500 font-sans mt-1 leading-snug line-clamp-2">
@@ -1933,36 +2052,36 @@ export const Chat: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsJobOverviewModalOpen(true)}
-                    className="text-xs text-purple-700 hover:text-purple-900 font-bold mt-1 cursor-pointer hover:underline block"
+                    className="text-xs text-[#0047AB] hover:underline font-bold mt-1 cursor-pointer block"
                   >
                     View More
                   </button>
                 </div>
 
                 {/* Locked Vault Deposit Card */}
-                <div className="bg-slate-50/80 border border-slate-200/80 p-3.5 rounded-2xl space-y-1">
+                <div className="bg-slate-50 border border-[#E2E6EC] p-3.5 rounded-xl space-y-1">
                   <span className="text-[9.5px] uppercase font-mono text-slate-500 font-bold block tracking-wider">
                     LOCKED VAULT DEPOSIT
                   </span>
                   <div className="font-mono font-black text-slate-900 text-xl flex items-center justify-between">
-                    <span>${parseFloat(activeJob.amountUsdc || '10.00').toFixed(2)} <span className="text-xs text-slate-500 font-normal">USDC</span></span>
-                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
-                      $
+                    <div className="flex items-center gap-2">
+                      <TokenIcon token={activeJob.paymentTokenSymbol || 'USDC'} size={22} />
+                      <span>${parseFloat(activeJob.amountUsdc || '10.00').toFixed(2)} <span className="text-xs text-slate-500 font-normal">{activeJob.paymentTokenSymbol || 'USDC'}</span></span>
                     </div>
                   </div>
                 </div>
 
                 {/* Smart Contract Actions */}
-                <div className="space-y-2.5 pt-1 border-t border-slate-100">
+                <div className="space-y-2.5 pt-1 border-t border-[#E2E6EC]">
                   <span className="text-[9.5px] uppercase font-mono text-slate-400 font-bold block tracking-wider">
                     SMART CONTRACT ACTIONS
                   </span>
 
                   {/* Smart Escrow Card */}
-                  <div className="bg-gradient-to-br from-purple-50/90 to-indigo-50/90 border border-purple-200/90 p-3 rounded-2xl space-y-2">
+                  <div className="bg-slate-50 border border-[#E2E6EC] p-3 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <Lock size={13} className="text-purple-600" /> Smart Escrow
+                        <Lock size={13} className="text-[#0047AB]" /> Smart Escrow
                       </span>
                       <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
                         ON-CHAIN
@@ -1971,21 +2090,21 @@ export const Chat: React.FC = () => {
                     <p className="text-[11px] text-slate-600 font-mono leading-tight">
                       Funds locked in audited escrow vault:
                     </p>
-                    <div className="flex items-center gap-1.5 bg-white/80 border border-purple-200 px-2.5 py-1 rounded-xl text-[10.5px] font-mono text-purple-950 font-bold">
+                    <div className="flex items-center gap-1.5 bg-white border border-[#E2E6EC] px-2.5 py-1 rounded-lg text-[10.5px] font-mono text-[#0B0B0C] font-bold">
                       <button
                         type="button"
                         onClick={() => handleCopyAddress(activeJob.contractAddress || activeJob.client)}
-                        className="hover:text-purple-700 cursor-pointer flex items-center gap-1.5 w-full justify-between"
+                        className="hover:text-[#0047AB] cursor-pointer flex items-center gap-1.5 w-full justify-between"
                         title="Copy Escrow Address"
                       >
                         <span className="truncate">{truncateAddress(activeJob.contractAddress || activeJob.client)}</span>
-                        <Copy size={11} className="text-purple-600 shrink-0" />
+                        <Copy size={11} className="text-slate-400 hover:text-[#0047AB] shrink-0" />
                       </button>
                     </div>
                   </div>
 
                   {/* Dispute Notice */}
-                  <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl space-y-1.5">
+                  <div className="bg-slate-50 border border-[#E2E6EC] p-3 rounded-xl space-y-1.5">
                     <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                       <Scale size={13} className="text-slate-700" /> Decentralized Arbitration
                     </span>
@@ -1997,10 +2116,10 @@ export const Chat: React.FC = () => {
                   {/* Job Overview Link */}
                   <Link
                     to={`/jobs/${activeJob.id}`}
-                    className="flex items-center justify-between p-3 rounded-2xl border border-amber-200/80 bg-amber-50/50 hover:bg-amber-100/50 transition-all cursor-pointer group"
+                    className="flex items-center justify-between p-3 rounded-xl border border-amber-200/80 bg-amber-50/50 hover:bg-amber-100/50 transition-all cursor-pointer group"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
                         <Download size={14} />
                       </div>
                       <div>
@@ -2015,18 +2134,18 @@ export const Chat: React.FC = () => {
             ) : chatTab === 'judges' && activeJudge ? (
               <div className="space-y-4">
                 <div>
-                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100 border border-purple-200 px-3 py-0.5 rounded-full">
-                    <Gavel size={12} className="text-purple-700" />
+                  <span className="inline-flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-800 bg-slate-100 border border-slate-200 px-3 py-0.5 rounded-full">
+                    <Gavel size={12} className="text-[#0047AB]" />
                     ARBITRATOR PROFILE
                   </span>
-                  <h3 className="font-headline font-extrabold text-slate-900 text-base mt-3 leading-snug">
+                  <h3 className="font-serif font-bold text-[#0B0B0C] text-base mt-3 leading-snug">
                     {activeJudge.name}
                   </h3>
                   <p className="text-xs text-slate-500 font-sans mt-1 leading-snug">
                     {activeJudge.specialty || 'Decentralized Dispute Resolution Specialist'}
                   </p>
                 </div>
-                <div className="bg-slate-50/80 border border-slate-200/80 p-3.5 rounded-2xl space-y-2">
+                <div className="bg-slate-50 border border-[#E2E6EC] p-3.5 rounded-xl space-y-2">
                   <span className="text-[9.5px] uppercase font-mono text-slate-500 font-bold block tracking-wider">
                     VERIFIED CREDENTIALS
                   </span>
@@ -2048,9 +2167,9 @@ export const Chat: React.FC = () => {
 
       {/* Deliverable Submission Modal */}
       {isSubmitModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
-          <div className="glass-panel max-w-md w-full p-6 space-y-4 border-purple-200 bg-white shadow-xl">
-            <h3 className="font-headline text-base font-bold text-slate-900">Submit Deliverable Work</h3>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <h3 className="font-serif text-base font-bold text-[#0B0B0C]">Submit Deliverable Work</h3>
             <form onSubmit={handleSubmitDeliverable} className="space-y-4 text-xs">
               <div>
                 <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
@@ -2062,7 +2181,7 @@ export const Chat: React.FC = () => {
                   placeholder="e.g. Smart Contract V1 Audit & Frontend Integration"
                   value={submitTitle}
                   onChange={(e) => setSubmitTitle(e.target.value)}
-                  className="w-full glass-input text-xs"
+                  className="w-full bg-slate-50 border border-[#E2E6EC] rounded-lg p-2.5 text-xs text-[#0B0B0C] focus:bg-white focus:border-[#0047AB] outline-none"
                 />
               </div>
 
@@ -2076,7 +2195,7 @@ export const Chat: React.FC = () => {
                   placeholder="Provide summary of completed milestones..."
                   value={submitDesc}
                   onChange={(e) => setSubmitDesc(e.target.value)}
-                  className="w-full glass-input text-xs"
+                  className="w-full bg-slate-50 border border-[#E2E6EC] rounded-lg p-2.5 text-xs text-[#0B0B0C] focus:bg-white focus:border-[#0047AB] outline-none"
                 />
               </div>
 
@@ -2089,7 +2208,7 @@ export const Chat: React.FC = () => {
                   placeholder="https://github.com/..."
                   value={submitLink}
                   onChange={(e) => setSubmitLink(e.target.value)}
-                  className="w-full glass-input text-xs"
+                  className="w-full bg-slate-50 border border-[#E2E6EC] rounded-lg p-2.5 text-xs text-[#0B0B0C] focus:bg-white focus:border-[#0047AB] outline-none"
                 />
               </div>
 
@@ -2097,13 +2216,13 @@ export const Chat: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsSubmitModalOpen(false)}
-                  className="btn-secondary px-4 py-2 text-xs font-bold"
+                  className="bg-white hover:bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="gradient-btn-primary px-5 py-2 text-xs font-bold"
+                  className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-5 py-2 rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer"
                 >
                   Submit Milestone
                 </button>
@@ -2115,14 +2234,14 @@ export const Chat: React.FC = () => {
 
       {/* Custom Delete Confirmation Modal */}
       {deleteConfirmModal?.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-rose-100 shadow-2xl space-y-4 text-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full border border-rose-100 shadow-2xl space-y-4 text-center">
             <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
               <Trash2 size={26} />
             </div>
             
             <div className="space-y-1.5">
-              <h3 className="font-headline font-black text-slate-900 text-base">
+              <h3 className="font-serif font-bold text-[#0B0B0C] text-base">
                 {deleteConfirmModal.title}
               </h3>
               <p className="text-xs text-slate-500 font-sans leading-relaxed">
@@ -2134,7 +2253,7 @@ export const Chat: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDeleteConfirmModal(null)}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-all cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl border border-[#E2E6EC] text-slate-700 hover:bg-slate-50 font-bold text-xs transition-all cursor-pointer"
               >
                 Cancel
               </button>
@@ -2144,7 +2263,7 @@ export const Chat: React.FC = () => {
                   deleteConfirmModal.onConfirm();
                   setDeleteConfirmModal(null);
                 }}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
               >
                 Delete (30s Undo)
               </button>
@@ -2155,9 +2274,9 @@ export const Chat: React.FC = () => {
 
       {/* 30-Second Floating Undo Delete Banner */}
       {undoDelete && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-slate-900/95 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4 animate-slide-up backdrop-blur-md">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-[#0B0B0C] text-white px-5 py-3.5 rounded-xl shadow-2xl border border-slate-800 flex items-center gap-4 animate-slide-up">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center font-mono font-bold text-xs">
+            <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center font-mono font-bold text-xs">
               {undoDelete.secondsLeft}s
             </div>
             <div>
@@ -2168,7 +2287,7 @@ export const Chat: React.FC = () => {
           <button
             type="button"
             onClick={handleUndoDelete}
-            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all hover:scale-105"
+            className="px-4 py-2 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
           >
             <RotateCcw size={13} />
             <span>Undo ({undoDelete.secondsLeft}s)</span>
@@ -2178,15 +2297,15 @@ export const Chat: React.FC = () => {
 
       {/* Invite / Appoint Judge Modal for Admins */}
       {isInviteJudgeModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in font-sans">
-          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full border border-purple-200 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in font-sans">
+          <div className="bg-white rounded-2xl p-6 sm:p-7 max-w-lg w-full border border-[#E2E6EC] shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center">
                   <UserPlus size={20} />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900 font-headline">
+                  <h3 className="text-base font-bold text-[#0B0B0C] font-serif">
                     Appoint Protocol Arbitrator
                   </h3>
                   <p className="text-[11px] text-slate-500 font-medium">
@@ -2214,7 +2333,7 @@ export const Chat: React.FC = () => {
                   placeholder="0x..."
                   value={newJudgeAddress}
                   onChange={(e) => setNewJudgeAddress(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono text-xs focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono text-xs focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-blue-100 outline-none transition-all"
                 />
                 {/* Quick Presets */}
                 {import.meta.env.VITE_JUDGE_ADDRESS && (
@@ -2227,7 +2346,7 @@ export const Chat: React.FC = () => {
                         setNewJudgeName('Accredited Arbitrator');
                         setNewJudgeNotes('Accredited DeFi & smart contract auditor.');
                       }}
-                      className="px-2 py-0.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-mono text-[9.5px] cursor-pointer"
+                      className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B0B0C] border border-[#E2E6EC] font-mono text-[9.5px] cursor-pointer"
                     >
                       Configured Arbitrator
                     </button>
@@ -2245,7 +2364,7 @@ export const Chat: React.FC = () => {
                   placeholder="e.g. Arbitrator Elena Vance"
                   value={newJudgeName}
                   onChange={(e) => setNewJudgeName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-blue-100 outline-none transition-all"
                 />
               </div>
 
@@ -2258,7 +2377,7 @@ export const Chat: React.FC = () => {
                   placeholder="e.g. Smart Contract Security, DeFi protocols, Zero-Knowledge proofs..."
                   value={newJudgeNotes}
                   onChange={(e) => setNewJudgeNotes(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-blue-100 outline-none transition-all resize-none"
                 />
               </div>
 
@@ -2272,7 +2391,7 @@ export const Chat: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold shadow-md cursor-pointer transition-all hover:scale-105"
+                  className="flex-1 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold shadow-xs cursor-pointer transition-colors"
                 >
                   Appoint & Authorize Judge
                 </button>
@@ -2338,15 +2457,15 @@ export const Chat: React.FC = () => {
 
       {/* Client Modification / Revision Request Modal */}
       {activeJob && isModificationModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-amber-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-xs z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-amber-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-amber-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shadow-2xs">
                   <RefreshCw size={17} className="text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900 leading-tight">Request Project Revisions</h3>
+                  <h3 className="font-serif font-bold text-sm text-[#0B0B0C] leading-tight">Request Project Revisions</h3>
                   <p className="text-[11px] text-slate-500 font-medium">Send detailed feedback to developer</p>
                 </div>
               </div>
@@ -2385,7 +2504,7 @@ export const Chat: React.FC = () => {
                   placeholder="Detail the changes or corrections you would like the developer to make before releasing milestone funds..."
                   value={modificationNote}
                   onChange={(e) => setModificationNote(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 font-medium text-xs rounded-xl p-3 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none transition-all placeholder:text-slate-400 resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 font-medium text-xs rounded-xl p-3 focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-100 outline-none transition-all placeholder:text-slate-400 resize-none"
                 />
               </div>
 
@@ -2399,7 +2518,7 @@ export const Chat: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold shadow-md cursor-pointer transition-all text-center flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-xs cursor-pointer transition-colors text-center flex items-center justify-center gap-1.5"
                 >
                   <RefreshCw size={13} />
                   <span>Send Revisions</span>

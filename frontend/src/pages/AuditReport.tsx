@@ -258,7 +258,7 @@ export const AuditReport: React.FC = () => {
           stat3Label: 'Completed Escrow Projects',
           stat3Val: `${completedClientJobs.length} Projects`,
           stat3Sub: 'Verified On-Chain Milestones',
-          accentColor: 'indigo',
+          accentColor: 'blue',
           badges: [
             'Verified Escrow Patron',
             'Sovereign Milestone Funder',
@@ -266,8 +266,8 @@ export const AuditReport: React.FC = () => {
             'DAO Dispute-Free Patron'
           ],
           attestationNarrative: 'Certified by PolyLance Smart Escrow Protocol. This participant has maintained a pristine track record of funding escrow contracts prior to kickoff, defining clear cryptographic milestone specifications, and promptly releasing payments upon deliverable verification with zero fraudulent chargebacks.',
-          socialGradient: 'from-white via-slate-50 to-indigo-50/60 border-indigo-200/90',
-          sealColor: 'from-indigo-600 to-cyan-600',
+          socialCardStyle: 'bg-white border-[#E2E6EC]',
+          sealColor: 'bg-[#0B0B0C]',
         };
       case 'judge':
         return {
@@ -288,7 +288,7 @@ export const AuditReport: React.FC = () => {
           stat3Label: 'Avg Resolution Velocity',
           stat3Val: judgeVelocityVal,
           stat3Sub: 'Rapid SLA Adjudication',
-          accentColor: 'amber',
+          accentColor: 'slate',
           badges: [
             'Elected DAO Tribunal Arbitrator',
             'Impartial Judicial Record',
@@ -296,8 +296,8 @@ export const AuditReport: React.FC = () => {
             resolvedDisputes.length > 0 ? `${resolvedDisputes.length} Disputes Presided` : 'Pristine Zero-Dispute Record'
           ],
           attestationNarrative: 'Certified by JudgeDAO Governance Protocol. This arbitrator operates on cryptographic evidence, IPFS proof hashes, and milestone contracts. All rulings are cryptographically recorded on-chain with DAO quorum alignment and decentralized dispute ledger verification.',
-          socialGradient: 'from-white via-slate-50 to-amber-50/60 border-amber-200/90',
-          sealColor: 'from-amber-600 to-orange-600',
+          socialCardStyle: 'bg-white border-[#E2E6EC]',
+          sealColor: 'bg-[#0B0B0C]',
         };
       case 'admin':
         return {
@@ -318,7 +318,7 @@ export const AuditReport: React.FC = () => {
           stat3Label: 'Verified Smart Contracts',
           stat3Val: `${totalVerifiedContracts} Contract${totalVerifiedContracts === 1 ? '' : 's'}`,
           stat3Sub: `5 Core + ${deployedClonesCount} Cloned Escrows`,
-          accentColor: 'cyan',
+          accentColor: 'slate',
           badges: [
             'Timelock Multisig Guardian',
             'Open-Source Bytecode Verified',
@@ -326,8 +326,8 @@ export const AuditReport: React.FC = () => {
             `${totalVerifiedContracts} Deployed Contracts Overseen`
           ],
           attestationNarrative: 'Platform Architecture & Governance Attestation. Overseer of decentralized smart contract factory clones, autonomous fee distribution pools, and timelock governance controllers. Zero single points of failure, zero private key backdoors, and 100% verifiable open-source bytecode on Polygonscan.',
-          socialGradient: 'from-white via-slate-50 to-cyan-50/60 border-cyan-200/90',
-          sealColor: 'from-cyan-600 to-blue-700',
+          socialCardStyle: 'bg-white border-[#E2E6EC]',
+          sealColor: 'bg-[#0B0B0C]',
         };
       case 'freelancer':
       default:
@@ -349,7 +349,7 @@ export const AuditReport: React.FC = () => {
           stat3Label: 'Completed Smart Contracts',
           stat3Val: `${completedFreelancerJobs.length} Contracts`,
           stat3Sub: 'Verified On-Chain Milestones',
-          accentColor: 'purple',
+          accentColor: 'blue',
           badges: [
             devReputationScore >= 500 ? 'ERC-5192 Soulbound Achiever' : 'PolyLance Registered Contributor',
             devReputationScore >= 750 ? 'Top 5% Polygon Engineer' : 'Polygon Web3 Engineer',
@@ -357,8 +357,8 @@ export const AuditReport: React.FC = () => {
             completedFreelancerJobs.length > 0 ? `${devSuccessRate}% Clean Delivery SLA` : 'Ready for Escrows'
           ],
           attestationNarrative: 'Autonomous smart contract escrow verification. This engineer holds immutable, non-transferable ERC-5192 credentials attesting to decentralized project milestones delivered with clean peer-review consensus and verified on-chain code artifacts.',
-          socialGradient: 'from-white via-slate-50 to-purple-50/60 border-purple-200/90',
-          sealColor: 'from-purple-600 to-indigo-600',
+          socialCardStyle: 'bg-white border-[#E2E6EC]',
+          sealColor: 'bg-[#0047AB]',
         };
     }
   }, [
@@ -519,7 +519,7 @@ export const AuditReport: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/80 py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-purple-600 selection:text-white">
+    <div className="min-h-screen bg-slate-100/80 py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-[#0047AB] selection:text-white">
 
       {/* CSS print overrides */}
       <style>{`
@@ -581,7 +581,7 @@ export const AuditReport: React.FC = () => {
         {isVisitorUser && (
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700 hover:text-purple-950 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0047AB] hover:text-[#003A8C] bg-white hover:bg-slate-50 border border-[#E2E6EC] px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
           >
             <span>Explore PolyLance</span>
             <ExternalLink size={12} />
@@ -597,28 +597,28 @@ export const AuditReport: React.FC = () => {
           {(allowedPerspectives.length === 1 || isVisitorUser) ? (
             <div className="flex items-center gap-2">
               {auditPerspective === 'client' ? (
-                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-indigo-50 border border-indigo-200/90 rounded-xl text-indigo-950 text-xs font-bold shrink-0 shadow-3xs">
-                  <Building2 size={15} className="text-indigo-600" />
+                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-50 border border-[#E2E6EC] rounded-xl text-[#0B0B0C] text-xs font-bold shrink-0 shadow-3xs">
+                  <Building2 size={15} className="text-[#0047AB]" />
                   <span>Client Audit Report</span>
-                  <span className="text-[10px] font-mono text-indigo-700 font-semibold bg-indigo-100/80 px-2 py-0.5 rounded-full border border-indigo-200/60">Verified Client</span>
+                  <span className="text-[10px] font-mono text-slate-700 font-semibold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">Verified Client</span>
                 </div>
               ) : auditPerspective === 'judge' ? (
-                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-amber-50 border border-amber-200/90 rounded-xl text-amber-950 text-xs font-bold shrink-0 shadow-3xs">
-                  <ShieldCheck size={15} className="text-amber-600" />
+                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-50 border border-[#E2E6EC] rounded-xl text-[#0B0B0C] text-xs font-bold shrink-0 shadow-3xs">
+                  <ShieldCheck size={15} className="text-slate-700" />
                   <span>Judge DAO Audit Report</span>
-                  <span className="text-[10px] font-mono text-amber-700 font-semibold bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200/60">Tribunal Arbitrator</span>
+                  <span className="text-[10px] font-mono text-slate-700 font-semibold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">Tribunal Arbitrator</span>
                 </div>
               ) : auditPerspective === 'admin' ? (
-                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-cyan-50 border border-cyan-200/90 rounded-xl text-cyan-950 text-xs font-bold shrink-0 shadow-3xs">
-                  <Shield size={15} className="text-cyan-600" />
+                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-50 border border-[#E2E6EC] rounded-xl text-[#0B0B0C] text-xs font-bold shrink-0 shadow-3xs">
+                  <Shield size={15} className="text-slate-700" />
                   <span>Security & Architecture Audit</span>
-                  <span className="text-[10px] font-mono text-cyan-700 font-semibold bg-cyan-100/80 px-2 py-0.5 rounded-full border border-cyan-200/60">Protocol Guardian</span>
+                  <span className="text-[10px] font-mono text-slate-700 font-semibold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">Protocol Guardian</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-purple-50 border border-purple-200/90 rounded-xl text-purple-950 text-xs font-bold shrink-0 shadow-3xs">
-                  <Award size={15} className="text-purple-600" />
+                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-50 border border-[#E2E6EC] rounded-xl text-[#0B0B0C] text-xs font-bold shrink-0 shadow-3xs">
+                  <Award size={15} className="text-[#0047AB]" />
                   <span>Freelancer Audit Report</span>
-                  <span className="text-[10px] font-mono text-purple-700 font-semibold bg-purple-100/80 px-2 py-0.5 rounded-full border border-purple-200/60">Verified Talent</span>
+                  <span className="text-[10px] font-mono text-[#0047AB] font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">Verified Talent</span>
                 </div>
               )}
             </div>
@@ -630,11 +630,11 @@ export const AuditReport: React.FC = () => {
                   type="button"
                   onClick={() => setPerspectiveOverride('client')}
                   className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${auditPerspective === 'client'
-                      ? 'bg-white text-indigo-950 shadow-xs font-extrabold border border-indigo-200'
+                      ? 'bg-[#0B0B0C] text-white shadow-xs font-extrabold border border-[#0B0B0C]'
                       : 'text-slate-600 hover:text-slate-900'
                     }`}
                 >
-                  <Building2 size={13} className={auditPerspective === 'client' ? 'text-indigo-600' : 'text-slate-500'} />
+                  <Building2 size={13} className={auditPerspective === 'client' ? 'text-white' : 'text-slate-500'} />
                   <span>Client Report</span>
                 </button>
               )}
@@ -643,11 +643,11 @@ export const AuditReport: React.FC = () => {
                   type="button"
                   onClick={() => setPerspectiveOverride('freelancer')}
                   className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${auditPerspective === 'freelancer'
-                      ? 'bg-white text-purple-950 shadow-xs font-extrabold border border-purple-200'
+                      ? 'bg-[#0B0B0C] text-white shadow-xs font-extrabold border border-[#0B0B0C]'
                       : 'text-slate-600 hover:text-slate-900'
                     }`}
                 >
-                  <Award size={13} className={auditPerspective === 'freelancer' ? 'text-purple-600' : 'text-slate-500'} />
+                  <Award size={13} className={auditPerspective === 'freelancer' ? 'text-white' : 'text-slate-500'} />
                   <span>Freelancer Report</span>
                 </button>
               )}
@@ -656,11 +656,11 @@ export const AuditReport: React.FC = () => {
                   type="button"
                   onClick={() => setPerspectiveOverride('judge')}
                   className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${auditPerspective === 'judge'
-                      ? 'bg-white text-amber-950 shadow-xs font-extrabold border border-amber-200'
+                      ? 'bg-[#0B0B0C] text-white shadow-xs font-extrabold border border-[#0B0B0C]'
                       : 'text-slate-600 hover:text-slate-900'
                     }`}
                 >
-                  <Shield size={13} className={auditPerspective === 'judge' ? 'text-amber-600' : 'text-slate-500'} />
+                  <Shield size={13} className={auditPerspective === 'judge' ? 'text-white' : 'text-slate-500'} />
                   <span>Judge Report</span>
                 </button>
               )}
@@ -669,11 +669,11 @@ export const AuditReport: React.FC = () => {
                   type="button"
                   onClick={() => setPerspectiveOverride('admin')}
                   className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${auditPerspective === 'admin'
-                      ? 'bg-white text-cyan-950 shadow-xs font-extrabold border border-cyan-300'
+                      ? 'bg-[#0B0B0C] text-white shadow-xs font-extrabold border border-[#0B0B0C]'
                       : 'text-slate-600 hover:text-slate-900'
                     }`}
                 >
-                  <Lock size={13} className={auditPerspective === 'admin' ? 'text-cyan-600' : 'text-slate-500'} />
+                  <Lock size={13} className={auditPerspective === 'admin' ? 'text-white' : 'text-slate-500'} />
                   <span className="whitespace-nowrap font-bold">Admin Report</span>
                 </button>
               )}
@@ -718,7 +718,7 @@ export const AuditReport: React.FC = () => {
                 type="button"
                 onClick={handleCopyCertId}
                 title="Copy Audit ID"
-                className="p-0.5 hover:bg-purple-100 rounded text-slate-400 hover:text-purple-700 transition-colors cursor-pointer"
+                className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-[#0047AB] transition-colors cursor-pointer"
               >
                 {copiedCertId ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} />}
               </button>
@@ -738,9 +738,9 @@ export const AuditReport: React.FC = () => {
               target="_blank"
               rel="noopener noreferrer"
               title="Verify audit report directly on CertifiedPass"
-              className="h-9 px-3.5 sm:px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-900 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-98"
+              className="h-9 px-3.5 sm:px-4 rounded-xl text-xs font-bold text-white bg-[#0047AB] hover:bg-[#003A8C] shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-98"
             >
-              <ShieldCheck size={14} className="text-purple-200 shrink-0" />
+              <ShieldCheck size={14} className="text-blue-200 shrink-0" />
               <span>Verify on CertifiedPass</span>
               <ExternalLink size={11} className="opacity-80 shrink-0" />
             </a>
@@ -753,9 +753,9 @@ export const AuditReport: React.FC = () => {
                 onClick={handleDownloadCardImage}
                 disabled={isExporting}
                 title="Download high-resolution PNG Social Card"
-                className="h-8 sm:h-9 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold text-purple-900 hover:text-purple-950 bg-purple-50 hover:bg-purple-100/80 border border-purple-200/90 shadow-3xs transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap active:scale-98"
+                className="h-8 sm:h-9 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold text-[#0B0B0C] hover:text-black bg-white hover:bg-slate-50 border border-[#E2E6EC] shadow-3xs transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap active:scale-98"
               >
-                <Download size={12} className="text-purple-600 shrink-0" />
+                <Download size={12} className="text-[#0047AB] shrink-0" />
                 <span>{isExporting ? 'Saving...' : 'Save PNG'}</span>
               </button>
 
@@ -786,15 +786,15 @@ export const AuditReport: React.FC = () => {
 
         {/* Dynamic Image Ready Notification Toast */}
         {shareToast && (
-          <div className="p-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 text-purple-900 rounded-xl text-xs flex items-center justify-between gap-2 animate-fadeIn shadow-2xs">
+          <div className="p-2.5 bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] rounded-xl text-xs flex items-center justify-between gap-2 animate-fadeIn shadow-2xs">
             <div className="flex items-center gap-2">
-              <Sparkles size={14} className="text-purple-600 shrink-0" />
+              <Sparkles size={14} className="text-[#0047AB] shrink-0" />
               <span className="font-semibold">{shareToast}</span>
             </div>
             <button
               type="button"
               onClick={() => setShareToast(null)}
-              className="font-bold text-purple-700 hover:text-purple-900 underline text-[11px] cursor-pointer"
+              className="font-bold text-[#0047AB] hover:text-[#003A8C] underline text-[11px] cursor-pointer"
             >
               Dismiss
             </button>
@@ -808,31 +808,14 @@ export const AuditReport: React.FC = () => {
 
           <div
             ref={cardRef}
-            className={`rounded-2xl sm:rounded-3xl p-4 sm:p-10 border-2 shadow-xl relative overflow-hidden font-sans text-slate-900 transition-all ${auditPerspective === 'client'
-                ? 'bg-gradient-to-br from-white via-slate-50 to-indigo-50/60 border-indigo-200/90'
-                : auditPerspective === 'judge'
-                  ? 'bg-gradient-to-br from-white via-slate-50 to-amber-50/60 border-amber-200/90'
-                  : auditPerspective === 'admin'
-                    ? 'bg-gradient-to-br from-white via-slate-50 to-cyan-50/60 border-cyan-200/90'
-                    : 'bg-gradient-to-br from-white via-slate-50 to-purple-50/60 border-purple-200/90'
-              }`}
+            className="rounded-2xl sm:rounded-3xl p-4 sm:p-10 border-2 border-[#E2E6EC] bg-white shadow-xl relative overflow-hidden font-sans text-slate-900 transition-all"
           >
-
-            {/* Ambient Background Glow Mesh (Light) */}
-            <div className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 ${auditPerspective === 'client' ? 'bg-indigo-200/30' :
-                auditPerspective === 'judge' ? 'bg-amber-200/30' :
-                  auditPerspective === 'admin' ? 'bg-cyan-200/30' :
-                    'bg-purple-200/30'
-              }`} />
-            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-100/40 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
-            <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-20" />
-
             <div className="relative z-10 space-y-4 sm:space-y-6">
 
               {/* Header: Fixed Mobile Alignment to prevent collision */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3.5 sm:pb-4">
                 <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-white shadow-md bg-gradient-to-tr ${perspectiveData.sealColor} shrink-0`}>
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-white shadow-md ${perspectiveData.sealColor} shrink-0`}>
                     {auditPerspective === 'client' && <Building2 size={20} />}
                     {auditPerspective === 'freelancer' && <Award size={20} />}
                     {auditPerspective === 'judge' && <Shield size={20} />}
@@ -840,11 +823,7 @@ export const AuditReport: React.FC = () => {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                      <span className={`text-[9px] sm:text-[10px] font-mono font-black tracking-wider uppercase px-2 py-0.5 rounded-full border shrink-0 ${auditPerspective === 'client' ? 'text-indigo-800 bg-indigo-100 border-indigo-200' :
-                          auditPerspective === 'judge' ? 'text-amber-800 bg-amber-100 border-amber-200' :
-                            auditPerspective === 'admin' ? 'text-cyan-900 bg-cyan-100 border-cyan-300' :
-                              'text-purple-800 bg-purple-100 border-purple-200'
-                        }`}>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-black tracking-wider uppercase px-2 py-0.5 rounded-full border border-slate-200 bg-slate-100 text-slate-800 shrink-0">
                         {perspectiveData.roleType}
                       </span>
                       <span className="text-[9px] sm:text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
@@ -863,10 +842,10 @@ export const AuditReport: React.FC = () => {
                     type="button"
                     onClick={handleCopyCertId}
                     title="Click to copy canonical Audit Certificate ID"
-                    className="inline-flex items-center gap-1.5 font-black text-slate-900 text-xs sm:text-sm hover:text-purple-700 bg-white/80 hover:bg-purple-50 px-2 py-0.5 rounded-lg border border-slate-200 hover:border-purple-300 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 font-black text-slate-900 text-xs sm:text-sm hover:text-[#0047AB] bg-white hover:bg-slate-50 px-2 py-0.5 rounded-lg border border-[#E2E6EC] hover:border-slate-400 transition-colors cursor-pointer"
                   >
                     <span>{canonicalCertificateId}</span>
-                    {copiedCertId ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} className="text-slate-400 hover:text-purple-600" />}
+                    {copiedCertId ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} className="text-slate-400 hover:text-[#0047AB]" />}
                   </button>
                 </div>
               </div>
@@ -874,7 +853,7 @@ export const AuditReport: React.FC = () => {
               {/* Profile Card Summary (Fixed broken avatar & name word-wrapping) */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
                 <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr ${perspectiveData.sealColor} text-white font-headline font-black text-xl sm:text-2xl flex items-center justify-center shadow-md shrink-0 overflow-hidden`}>
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl ${perspectiveData.sealColor} text-white font-headline font-black text-xl sm:text-2xl flex items-center justify-center shadow-md shrink-0 overflow-hidden`}>
                     <img
                       src={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`)}
                       alt={displayName}
@@ -888,12 +867,12 @@ export const AuditReport: React.FC = () => {
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
                       <h2 className="font-headline text-base sm:text-xl font-black text-slate-900 whitespace-nowrap break-words">{displayName}</h2>
                       {profile?.githubVerified && (
-                        <span className="inline-flex items-center gap-1 text-[9.5px] sm:text-[10px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200 whitespace-nowrap shrink-0">
-                          <CheckCircle2 size={10} className="text-purple-600" /> @{profile.githubUsername}
+                        <span className="inline-flex items-center gap-1 text-[9.5px] sm:text-[10px] font-extrabold bg-slate-100 text-[#0B0B0C] px-2 py-0.5 rounded-full border border-slate-200 whitespace-nowrap shrink-0">
+                          <CheckCircle2 size={10} className="text-[#0047AB]" /> @{profile.githubUsername}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] sm:text-xs font-bold text-purple-700 mt-0.5 leading-snug">{title}</p>
+                    <p className="text-[11px] sm:text-xs font-bold text-slate-600 mt-0.5 leading-snug">{title}</p>
                     <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-500 block mt-0.5">{truncateAddress(targetAddress)}</span>
                   </div>
                 </div>
@@ -905,7 +884,7 @@ export const AuditReport: React.FC = () => {
                   <p className="text-xl sm:text-2xl font-black text-emerald-600 font-headline leading-tight">
                     {perspectiveData.scoreVal}
                   </p>
-                  <span className="text-[9px] sm:text-[9.5px] text-purple-700 font-bold block">
+                  <span className="text-[9px] sm:text-[9.5px] text-slate-600 font-bold block">
                     {perspectiveData.scoreSub}
                   </span>
                 </div>
@@ -937,7 +916,7 @@ export const AuditReport: React.FC = () => {
                   <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-500 uppercase font-bold block">
                     {perspectiveData.stat3Label}
                   </span>
-                  <p className="text-xl sm:text-2xl font-black text-purple-900 font-headline">
+                  <p className="text-xl sm:text-2xl font-black text-[#0B0B0C] font-headline">
                     {perspectiveData.stat3Val}
                   </p>
                   <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-400 block">{perspectiveData.stat3Sub}</span>
@@ -948,7 +927,7 @@ export const AuditReport: React.FC = () => {
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200/80 text-xs font-mono">
                 <div className="flex flex-wrap items-center gap-2">
                   {perspectiveData.badges.map((badge, bIdx) => (
-                    <span key={bIdx} className="inline-flex items-center gap-1 text-[10.5px] font-bold bg-purple-100 text-purple-900 px-2.5 py-1 rounded-lg border border-purple-200">
+                    <span key={bIdx} className="inline-flex items-center gap-1 text-[10.5px] font-bold bg-slate-100 text-[#0B0B0C] px-2.5 py-1 rounded-lg border border-slate-200">
                       <CheckCircle2 size={11} className="text-emerald-600" /> {badge}
                     </span>
                   ))}
@@ -956,7 +935,7 @@ export const AuditReport: React.FC = () => {
 
                 <div className="text-slate-500 text-[10.5px]">
                   <span>Attested on: </span>
-                  <strong className="text-purple-700 font-mono">Polygon Mainnet (137)</strong>
+                  <strong className="text-[#0B0B0C] font-mono">Polygon Mainnet (137)</strong>
                 </div>
               </div>
             </div>
@@ -970,7 +949,7 @@ export const AuditReport: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('certificate')}
-              className="text-purple-600 hover:text-purple-800 font-bold underline shrink-0 cursor-pointer"
+              className="text-[#0047AB] hover:text-[#003A8C] font-bold underline shrink-0 cursor-pointer"
             >
               View Printable PDF &rarr;
             </button>
@@ -985,10 +964,10 @@ export const AuditReport: React.FC = () => {
         style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
       >
         {/* Certificate Security Corner Brackets */}
-        <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-purple-400/60 pointer-events-none" />
-        <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-purple-400/60 pointer-events-none" />
-        <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-purple-400/60 pointer-events-none" />
-        <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-purple-400/60 pointer-events-none" />
+        <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-slate-300 pointer-events-none" />
+        <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-slate-300 pointer-events-none" />
+        <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-slate-300 pointer-events-none" />
+        <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-slate-300 pointer-events-none" />
 
         {/* Ambient Paper Security Watermark (Large centered PolyLance Logo) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-[0.05] print-watermark z-0">
@@ -998,7 +977,7 @@ export const AuditReport: React.FC = () => {
         {/* ── SECTION 1: OFFICIAL HEADER ────────────────────────────────────── */}
         <div className="border-b-2 border-slate-100 pb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 relative z-10 page-break-inside-avoid">
           <div className="flex items-center gap-3">
-            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 bg-gradient-to-tr ${perspectiveData.sealColor}`}>
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 ${perspectiveData.sealColor}`}>
               {auditPerspective === 'client' && <Building2 size={22} />}
               {auditPerspective === 'freelancer' && <Award size={22} />}
               {auditPerspective === 'judge' && <Shield size={22} />}
@@ -1006,11 +985,7 @@ export const AuditReport: React.FC = () => {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className={`text-[9px] font-mono font-black tracking-widest uppercase px-2 py-0.5 rounded border ${auditPerspective === 'client' ? 'text-indigo-900 bg-indigo-50 border-indigo-200' :
-                    auditPerspective === 'judge' ? 'text-amber-900 bg-amber-50 border-amber-200' :
-                      auditPerspective === 'admin' ? 'text-cyan-900 bg-cyan-50 border-cyan-300' :
-                        'text-purple-900 bg-purple-50 border-purple-200'
-                  }`}>
+                <span className="text-[9px] font-mono font-black tracking-widest uppercase px-2 py-0.5 rounded border border-[#E2E6EC] bg-slate-100 text-[#0B0B0C]">
                   {perspectiveData.officialHeader}
                 </span>
                 <span className="text-[9px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
@@ -1033,7 +1008,7 @@ export const AuditReport: React.FC = () => {
                 type="button"
                 onClick={handleCopyCertId}
                 title="Click to copy canonical Audit ID"
-                className="inline-flex items-center gap-1 font-black text-purple-900 text-xs hover:text-purple-700 bg-white md:bg-transparent px-1.5 py-0.5 rounded border md:border-none border-slate-200 cursor-pointer"
+                className="inline-flex items-center gap-1 font-black text-slate-900 text-xs hover:text-[#0047AB] bg-white md:bg-transparent px-1.5 py-0.5 rounded border md:border-none border-slate-200 cursor-pointer"
               >
                 <span>{canonicalCertificateId}</span>
                 {copiedCertId ? <CheckCheck size={11} className="text-emerald-600 shrink-0" /> : <Copy size={10} className="text-slate-400 shrink-0" />}
@@ -1054,7 +1029,7 @@ export const AuditReport: React.FC = () => {
         <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 space-y-2.5 relative z-10 shadow-xs">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${perspectiveData.sealColor} text-white font-headline font-black text-lg flex items-center justify-center shadow-md shrink-0 overflow-hidden`}>
+              <div className={`w-11 h-11 rounded-2xl ${perspectiveData.sealColor} text-white font-headline font-black text-lg flex items-center justify-center shadow-md shrink-0 overflow-hidden`}>
                 <img
                   src={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`)}
                   alt={displayName}
@@ -1068,12 +1043,12 @@ export const AuditReport: React.FC = () => {
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
                   <h2 className="font-headline text-sm sm:text-base font-black text-slate-900 whitespace-nowrap break-words">{displayName}</h2>
                   {profile?.githubVerified && (
-                    <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200 whitespace-nowrap shrink-0">
-                      <CheckCircle2 size={10} className="text-purple-600" /> GitHub Verified
+                    <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold bg-slate-100 text-[#0B0B0C] px-2 py-0.5 rounded-full border border-slate-200 whitespace-nowrap shrink-0">
+                      <CheckCircle2 size={10} className="text-[#0047AB]" /> GitHub Verified
                     </span>
                   )}
                 </div>
-                <p className="text-[11.5px] font-bold text-purple-700">{perspectiveData.userTitle}</p>
+                <p className="text-[11.5px] font-bold text-slate-600">{perspectiveData.userTitle}</p>
                 <div className="flex items-center gap-2 text-[10px] font-mono text-slate-600 pt-0.5">
                   <span className="text-slate-400">Wallet:</span>
                   <span className="font-bold text-slate-900 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-[10px]">
@@ -1090,7 +1065,7 @@ export const AuditReport: React.FC = () => {
               <p className="text-sm font-black text-emerald-700 font-headline">
                 {perspectiveData.scoreVal}
               </p>
-              <span className="text-[9px] text-purple-700 font-bold block">{perspectiveData.scoreSub}</span>
+              <span className="text-[9px] text-slate-600 font-bold block">{perspectiveData.scoreSub}</span>
             </div>
           </div>
 
@@ -1103,7 +1078,7 @@ export const AuditReport: React.FC = () => {
             <span className="text-[10px] font-bold text-slate-500 mr-1">Attested Credentials:</span>
             {perspectiveData.badges.map((b, idx) => (
               <span key={idx} className="px-2 py-0.5 bg-slate-50 border border-slate-200 text-slate-800 text-[10px] font-bold rounded-lg shadow-3xs flex items-center gap-1">
-                <CheckCircle2 size={10} className="text-purple-600" />
+                <CheckCircle2 size={10} className="text-[#0047AB]" />
                 {b}
               </span>
             ))}
@@ -1111,14 +1086,14 @@ export const AuditReport: React.FC = () => {
         </div>
 
         {/* ── SECTION 3: SBT CRYPTOGRAPHIC LEDGER CARD (LIGHT THEME) ────────── */}
-        <div className="p-3.5 rounded-2xl border border-purple-200/80 bg-gradient-to-r from-purple-50/70 via-slate-50 to-indigo-50/70 space-y-2.5 font-mono relative z-10 page-break-inside-avoid shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200/60 pb-2">
+        <div className="p-3.5 rounded-2xl border border-[#E2E6EC] bg-slate-50/70 space-y-2.5 font-mono relative z-10 page-break-inside-avoid shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E2E6EC] pb-2">
             <div className="flex items-center gap-2">
-              <div className={`w-7 h-7 rounded-lg bg-gradient-to-tr ${perspectiveData.sealColor} flex items-center justify-center text-white shadow-2xs`}>
+              <div className={`w-7 h-7 rounded-lg ${perspectiveData.sealColor} flex items-center justify-center text-white shadow-2xs`}>
                 <Award size={15} />
               </div>
               <div>
-                <span className="text-[8.5px] uppercase font-black tracking-wider text-purple-800 block">
+                <span className="text-[8.5px] uppercase font-black tracking-wider text-slate-600 block">
                   DECENTRALIZED IDENTITY ATTESTATION
                 </span>
                 <h3 className="font-headline text-xs sm:text-sm font-black text-slate-950">
@@ -1139,7 +1114,7 @@ export const AuditReport: React.FC = () => {
             <div className="bg-white p-2.5 rounded-xl border border-slate-200/90 space-y-0.5 shadow-2xs">
               <span className="text-[8.5px] uppercase text-slate-500 block font-bold">Credential Identifier</span>
               <span className="font-black text-slate-900 text-[11px] tracking-wide block font-mono">{sbtTokenId}</span>
-              <span className="text-[8.5px] text-purple-700 block font-mono">Standard: ERC-5192 / EIP-5484</span>
+              <span className="text-[8.5px] text-slate-500 block font-mono">Standard: ERC-5192 / EIP-5484</span>
             </div>
             <div className="bg-white p-2.5 rounded-xl border border-slate-200/90 space-y-0.5 shadow-2xs">
               <span className="text-[8.5px] uppercase text-slate-500 block font-bold">Reputation Tier</span>
@@ -1164,7 +1139,7 @@ export const AuditReport: React.FC = () => {
               <span className="font-black text-slate-900 text-[10.5px] truncate block font-mono">
                 {truncateAddress(CONTRACTS.ReputationSBT || '0x6aa20d433e5cAf336b2fA7FcdFE9923D384b0fEB')}
               </span>
-              <span className="text-[8.5px] text-purple-700 block font-mono">Polygon Mainnet Sovereign Ledger</span>
+              <span className="text-[8.5px] text-slate-500 block font-mono">Polygon Mainnet Sovereign Ledger</span>
             </div>
           </div>
         </div>
@@ -1175,7 +1150,7 @@ export const AuditReport: React.FC = () => {
             <span className="text-slate-500 text-[9px] uppercase font-black block">
               {perspectiveData.scoreLabel}
             </span>
-            <p className="text-lg font-black text-purple-700 font-headline">
+            <p className="text-lg font-black text-[#0B0B0C] font-headline">
               {perspectiveData.scoreVal}
             </p>
             <span className="text-[9px] text-slate-500 font-bold block font-mono">
@@ -1207,7 +1182,7 @@ export const AuditReport: React.FC = () => {
             <span className="text-slate-500 text-[9px] uppercase font-black block">
               {perspectiveData.stat3Label}
             </span>
-            <p className="text-lg font-black text-purple-700 font-headline">
+            <p className="text-lg font-black text-[#0B0B0C] font-headline">
               {perspectiveData.stat3Val}
             </p>
             <span className="text-[9px] text-slate-500 font-bold block font-mono">{perspectiveData.stat3Sub}</span>
@@ -1218,7 +1193,7 @@ export const AuditReport: React.FC = () => {
         <div className="space-y-2.5 relative z-10">
           <div className="flex items-center justify-between border-b border-slate-200 pb-2">
             <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-purple-100 text-purple-800 rounded-lg">
+              <span className="p-1.5 bg-slate-100 text-slate-800 rounded-lg">
                 <FileCheck size={14} />
               </span>
               <div>
@@ -1233,7 +1208,7 @@ export const AuditReport: React.FC = () => {
                 </p>
               </div>
             </div>
-            <span className="text-[11px] font-mono font-bold text-purple-900 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200 shrink-0">
+            <span className="text-[11px] font-mono font-bold text-[#0B0B0C] bg-slate-100 px-2.5 py-1 rounded-lg border border-[#E2E6EC] shrink-0">
               {auditPerspective === 'client' && `${completedClientJobs.length} Settled Escrows`}
               {auditPerspective === 'freelancer' && `${completedFreelancerJobs.length} Settled Contracts`}
               {auditPerspective === 'judge' && `${disputedJobs.length} Disputes Presided`}
@@ -1264,7 +1239,7 @@ export const AuditReport: React.FC = () => {
                       <div className="flex items-center gap-3 text-[10.5px] font-mono text-slate-500 flex-wrap">
                         <span>Address: <strong className="text-slate-800">{truncateAddress(c.address)}</strong></span>
                         <span>•</span>
-                        <span className="text-purple-700 font-bold">{c.role}</span>
+                        <span className="text-slate-600 font-bold">{c.role}</span>
                         <span>•</span>
                         <span>0 High/Critical Vulns</span>
                       </div>
@@ -1273,7 +1248,7 @@ export const AuditReport: React.FC = () => {
                       href={`https://polygonscan.com/address/${c.address}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 text-purple-700 hover:text-purple-950 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] shrink-0"
+                      className="p-2 text-[#0047AB] hover:text-[#003A8C] bg-white hover:bg-slate-50 border border-[#E2E6EC] rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] shrink-0"
                     >
                       <span>Polygonscan</span>
                       <ExternalLink size={12} />
@@ -1313,7 +1288,7 @@ export const AuditReport: React.FC = () => {
                     </div>
                     <Link
                       to={`/jobs/${j.id}`}
-                      className="p-2 text-purple-700 hover:text-purple-950 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] shrink-0"
+                      className="p-2 text-[#0047AB] hover:text-[#003A8C] bg-white hover:bg-slate-50 border border-[#E2E6EC] rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] shrink-0"
                     >
                       <span>View Case</span>
                       <ArrowUpRight size={13} />
@@ -1346,7 +1321,7 @@ export const AuditReport: React.FC = () => {
                 return (
                   <div
                     key={j.id || idx}
-                    className="job-card-item p-3 rounded-2xl border border-slate-200/90 bg-white hover:border-purple-300 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-sans shadow-2xs hover:shadow-xs"
+                    className="job-card-item p-3 rounded-2xl border border-slate-200/90 bg-white hover:border-slate-300 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-sans shadow-2xs hover:shadow-xs"
                   >
                     <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1357,7 +1332,7 @@ export const AuditReport: React.FC = () => {
                               ? 'bg-rose-50 text-rose-700 border-rose-200'
                               : isFunded
                                 ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                : 'bg-purple-50 text-purple-700 border-purple-200'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
                           }`}>
                           {isCompleted ? '● Settled' : isDisputed ? '⚠️ Disputed' : isFunded ? '● Funded & Active' : `● ${j.status || 'Open'}`}
                         </span>
@@ -1382,11 +1357,11 @@ export const AuditReport: React.FC = () => {
                     <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
                       <div className="text-left sm:text-right font-mono">
                         <span className="font-headline font-black text-slate-950 text-sm sm:text-base">${amount.toLocaleString()} USDC</span>
-                        <span className="text-[9.5px] text-purple-700 font-bold block">0% Protocol Extraction</span>
+                        <span className="text-[9.5px] text-slate-600 font-bold block">0% Protocol Extraction</span>
                       </div>
                       <Link
                         to={`/jobs/${j.id}/attestation`}
-                        className="p-2 text-purple-700 hover:text-purple-950 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-all no-print flex items-center gap-1 font-bold text-[11px]"
+                        className="p-2 text-[#0047AB] hover:text-[#003A8C] bg-white hover:bg-slate-50 border border-[#E2E6EC] rounded-xl transition-all no-print flex items-center gap-1 font-bold text-[11px]"
                         title="View Individual Milestone Attestation"
                       >
                         <span>Attestation</span>
@@ -1413,13 +1388,13 @@ export const AuditReport: React.FC = () => {
                 This performance audit is compiled deterministically from Ethereum/Polygon smart contracts, decentralized SBT attestations, and Safe MultiSig execution states.
               </p>
             </div>
-            <div className="text-[9px] break-all text-purple-950 bg-purple-50 p-1.5 rounded-xl border border-purple-200 font-mono font-black shadow-2xs">
+            <div className="text-[9px] break-all text-[#0B0B0C] bg-slate-100 p-1.5 rounded-xl border border-[#E2E6EC] font-mono font-black shadow-2xs">
               IPFS CID: {auditIpfsCid}
             </div>
           </div>
 
           {/* Center Column: Official Protocol Seal Stamp (Embossed Emblem with Logo Watermark) */}
-          <div className="md:col-span-3 flex flex-col items-center justify-center text-center p-2 rounded-2xl bg-gradient-to-b from-purple-50/70 to-slate-50 border border-purple-200/90 shadow-xs relative overflow-hidden">
+          <div className="md:col-span-3 flex flex-col items-center justify-center text-center p-2 rounded-2xl bg-slate-50 border border-[#E2E6EC] shadow-xs relative overflow-hidden">
 
             {/* Watermark Logo Behind Seal */}
             <img
@@ -1429,14 +1404,14 @@ export const AuditReport: React.FC = () => {
             />
 
             {/* Official Circular Seal Emblem */}
-            <div className="w-14 h-14 rounded-full border-2 border-dashed border-purple-500 flex flex-col items-center justify-center bg-white shadow-2xs relative z-10 p-0.5">
-              <div className="w-full h-full rounded-full border border-purple-300 flex flex-col items-center justify-center bg-purple-50">
-                <ShieldCheck size={16} className="text-purple-700" />
-                <span className="text-[6px] font-black text-purple-950 uppercase tracking-tighter mt-0.5">POLYLANCE</span>
+            <div className="w-14 h-14 rounded-full border-2 border-dashed border-slate-800 flex flex-col items-center justify-center bg-white shadow-2xs relative z-10 p-0.5">
+              <div className="w-full h-full rounded-full border border-slate-300 flex flex-col items-center justify-center bg-white">
+                <ShieldCheck size={16} className="text-[#0047AB]" />
+                <span className="text-[6px] font-black text-[#0B0B0C] uppercase tracking-tighter mt-0.5">POLYLANCE</span>
                 <span className="text-[5px] font-bold text-emerald-700 uppercase">AUDITED</span>
               </div>
             </div>
-            <span className="text-[8px] font-mono text-purple-950 font-black uppercase mt-1 tracking-tight relative z-10">
+            <span className="text-[8px] font-mono text-[#0B0B0C] font-black uppercase mt-1 tracking-tight relative z-10">
               Official Oracle Seal
             </span>
             <span className="text-[7px] font-mono text-slate-500 font-bold relative z-10">Polygon Protocol Verified</span>
@@ -1451,7 +1426,7 @@ export const AuditReport: React.FC = () => {
               target="_blank"
               rel="noopener noreferrer"
               title="Scan QR to open PolyLance Report / Click to Verify on CertifiedPass"
-              className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group"
+              className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-slate-400 hover:shadow-md transition-all cursor-pointer group"
             >
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(shareUrl)}`}
@@ -1459,7 +1434,7 @@ export const AuditReport: React.FC = () => {
                 className="w-12 h-12 rounded-lg shrink-0"
               />
               <div className="text-left font-mono">
-                <span className="text-[7.5px] uppercase tracking-wider text-purple-800 font-black block group-hover:underline">CertifiedPass™ ↗</span>
+                <span className="text-[7.5px] uppercase tracking-wider text-[#0047AB] font-black block group-hover:underline">CertifiedPass™ ↗</span>
                 <span className="text-[8.5px] font-bold text-slate-800 block">Scan / Click to Verify</span>
                 <span className="text-[7px] text-slate-400 block">Universal Trust QR</span>
               </div>

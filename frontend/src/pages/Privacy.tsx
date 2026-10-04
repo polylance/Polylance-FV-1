@@ -9,21 +9,16 @@ export const Privacy: React.FC = () => {
   return (
     <div className="space-y-12 py-8 max-w-6xl mx-auto px-4 font-sans text-slate-900 select-none">
       
-      {/* 3D Glassmorphic Header */}
-      <section className="relative overflow-hidden rounded-3xl p-8 sm:p-12 bg-gradient-to-br from-white/90 via-blue-50/40 to-slate-50 border border-blue-100/80 shadow-md text-left">
-        <div className="hidden lg:block absolute -right-4 -top-4 w-36 h-36 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-3xl rotate-12 opacity-15 blur-sm pointer-events-none" />
-        
+      {/* Clean Modern Header */}
+      <section className="relative overflow-hidden rounded-3xl p-8 sm:p-12 bg-white border border-slate-200 shadow-sm text-left">
         <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-white border border-blue-200 text-blue-700 rounded-full shadow-3xs text-[11px] font-mono font-black uppercase tracking-wider">
-            <Sparkles size={12} className="text-blue-600 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-slate-100 border border-slate-200 text-slate-800 rounded-full shadow-3xs text-[11px] font-mono font-black uppercase tracking-wider">
+            <Sparkles size={12} className="text-[#0047AB] animate-pulse" />
             <span>Decentralized Data Sovereignty</span>
           </div>
 
           <h1 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-            Privacy Policy &{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-500">
-              Data Control
-            </span>
+            Privacy Policy & <span className="text-[#0047AB]">Data Control</span>
           </h1>
 
           <p className="text-xs sm:text-sm text-slate-600 font-sans leading-relaxed font-medium">
@@ -73,7 +68,7 @@ export const Privacy: React.FC = () => {
           whileHover={{ y: -4 }}
           className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4 hover:shadow-md transition-all duration-300 relative overflow-hidden"
         >
-          <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center shrink-0 shadow-3xs">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 text-[#0B0B0C] flex items-center justify-center shrink-0 shadow-3xs">
             <Key size={22} />
           </div>
           <h3 className="font-headline font-bold text-xl text-slate-900">
@@ -84,10 +79,10 @@ export const Privacy: React.FC = () => {
           </p>
           <ul className="space-y-2 text-xs text-slate-500 font-mono">
             <li className="flex items-center gap-2">
-              <CheckCircle2 size={13} className="text-purple-500" /> Pseudonymous public key identity
+              <CheckCircle2 size={13} className="text-emerald-500" /> Pseudonymous public key identity
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 size={13} className="text-purple-500" /> Verifiable on Polygonscan
+              <CheckCircle2 size={13} className="text-emerald-500" /> Verifiable on Polygonscan
             </li>
           </ul>
         </motion.div>
@@ -168,7 +163,7 @@ export const Privacy: React.FC = () => {
           </div>
           <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 space-y-1">
             <span className="text-slate-400 text-[10px] block font-bold">USER CONTROL</span>
-            <span className="text-purple-400 font-bold text-sm block">100% Private Key Owned</span>
+            <span className="text-emerald-400 font-bold text-sm block">100% Private Key Owned</span>
           </div>
         </div>
       </section>

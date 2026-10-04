@@ -23,6 +23,7 @@ import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceA
 import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { useLiveCurrencyRates } from '../utils/currency';
 import { scrollToSection, extractTargetSection } from '../utils/scroll';
+import { TokenIcon } from '../components/TokenIcon';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -209,10 +210,10 @@ export const JobDetail: React.FC = () => {
     if (isResolvingJob) {
       return (
         <div className="max-w-xl mx-auto py-24 text-center space-y-4 font-sans">
-          <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto border border-purple-100 shadow-sm animate-pulse">
+          <div className="w-14 h-14 rounded-xl bg-slate-100 text-[#0047AB] flex items-center justify-center mx-auto border border-[#E2E6EC]">
             <RefreshCw className="animate-spin" size={24} />
           </div>
-          <h2 className="text-xl font-headline font-bold text-slate-900">
+          <h2 className="text-xl font-serif font-bold text-[#0B0B0C]">
             Synchronizing Escrow Contract...
           </h2>
           <p className="text-xs text-slate-500 font-mono">
@@ -413,34 +414,34 @@ export const JobDetail: React.FC = () => {
           <Link to="/jobs" className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 font-mono font-bold">
             <ArrowLeft size={14} /> Back to Find Jobs
           </Link>
-          <span className="badge-status bg-purple-100 text-purple-900 border border-purple-200 font-mono text-xs font-bold px-3 py-1 rounded-full">
+          <span className="badge-status bg-slate-100 text-[#0B0B0C] border border-[#E2E6EC] font-mono text-xs font-bold px-3 py-1 rounded-full">
             ● Talent Selected • Private Workspace
           </span>
         </div>
 
-        <div className="glass-panel p-8 sm:p-10 border-purple-200 bg-white hard-shadow text-center space-y-5 rounded-3xl relative overflow-hidden">
-          <div className="w-16 h-16 rounded-2xl bg-purple-100 border border-purple-200 text-purple-700 flex items-center justify-center mx-auto shadow-xs">
+        <div className="p-8 sm:p-10 border border-[#E2E6EC] bg-white text-center space-y-5 rounded-xl relative overflow-hidden shadow-xs">
+          <div className="w-16 h-16 rounded-xl bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] flex items-center justify-center mx-auto">
             <Lock size={32} />
           </div>
 
           <div className="space-y-1.5 max-w-lg mx-auto">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-200 inline-block">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0B0B0C] bg-slate-100 px-2.5 py-0.5 rounded-full border border-[#E2E6EC] inline-block">
               Confidential Contract Workspace
             </span>
-            <h2 className="font-headline text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0B0B0C] tracking-tight">
               Access Restricted to Contract Parties
             </h2>
           </div>
 
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
-            The client has selected a verified freelancer for this work. To protect proprietary specifications, intellectual property, and milestone deliverables, full job details and escrow management are strictly confidential between the client (<strong className="text-slate-900">{clientDisplayName}</strong>) and the selected talent (<strong className="text-slate-900">{freelancerDisplayName}</strong>).
+            The client has selected a verified freelancer for this work. To protect proprietary specifications, intellectual property, and milestone deliverables, full job details and escrow management are strictly confidential between the client (<strong className="text-[#0B0B0C]">{clientDisplayName}</strong>) and the selected talent (<strong className="text-[#0B0B0C]">{freelancerDisplayName}</strong>).
           </p>
 
           {/* Public Non-Confidential Escrow Summary */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-2.5 font-mono text-xs max-w-lg mx-auto">
+          <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] text-left space-y-2.5 font-mono text-xs max-w-lg mx-auto">
             <div className="flex justify-between items-center text-slate-600">
               <span className="text-[11px]">Job Title:</span>
-              <strong className="text-slate-900 truncate max-w-[220px]">{job.title}</strong>
+              <strong className="text-[#0B0B0C] truncate max-w-[220px]">{job.title}</strong>
             </div>
             <div className="flex justify-between items-center text-slate-600">
               <span className="text-[11px]">Category:</span>
@@ -450,7 +451,7 @@ export const JobDetail: React.FC = () => {
             </div>
             <div className="flex justify-between items-center text-slate-600">
               <span className="text-[11px]">Contract Status:</span>
-              <span className="font-bold text-purple-700 uppercase text-[10.5px] bg-purple-50 border border-purple-200 px-2 py-0.5 rounded">
+              <span className="font-bold text-[#0047AB] uppercase text-[10.5px] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
                 {job.status === 'Completed' ? 'Completed & Settled' : 'Assigned & Active'}
               </span>
             </div>
@@ -462,8 +463,8 @@ export const JobDetail: React.FC = () => {
 
           {/* If the viewer previously applied */}
           {hasApplied && (
-            <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-xs text-blue-900 max-w-lg mx-auto flex items-center gap-2.5 text-left">
-              <ShieldCheck size={18} className="text-blue-600 shrink-0" />
+            <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 max-w-lg mx-auto flex items-center gap-2.5 text-left">
+              <ShieldCheck size={18} className="text-[#0047AB] shrink-0" />
               <span>
                 You submitted a proposal for this role. The client has finalized selection with another candidate. Thank you for your application!
               </span>
@@ -473,14 +474,14 @@ export const JobDetail: React.FC = () => {
           <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               to="/jobs"
-              className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
+              className="px-5 py-2.5 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
             >
               <Briefcase size={14} />
               <span>Browse Open Jobs</span>
             </Link>
             <Link
               to="/workspace"
-              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+              className="px-5 py-2.5 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold text-xs transition-all flex items-center justify-center gap-1.5"
             >
               <span>Go to My Workspace</span>
             </Link>
@@ -508,12 +509,12 @@ export const JobDetail: React.FC = () => {
 
       {/* 10-Day Client Inactivity Reminder Banner (14-Day Auto-Removal Policy) */}
       {inactivityStatus.isReminderActive && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="p-4 sm:p-5 rounded-xl bg-amber-50 border border-amber-300 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={20} />
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="font-headline font-bold text-amber-950 text-sm">
+                <span className="font-serif font-bold text-amber-950 text-sm">
                   10-Day Client Inactivity Reminder
                 </span>
                 <span className="bg-amber-200 text-amber-900 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
@@ -542,7 +543,7 @@ export const JobDetail: React.FC = () => {
                     });
                   }
                 }}
-                className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                className="px-3.5 py-2 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
               >
                 <RefreshCw size={13} />
                 <span>Renew (Keep Active)</span>
@@ -563,7 +564,7 @@ export const JobDetail: React.FC = () => {
                     },
                   });
                 }}
-                className="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-3.5 py-2 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <Trash2 size={13} />
                 <span>Remove Now</span>
@@ -573,13 +574,13 @@ export const JobDetail: React.FC = () => {
         </div>
       )}
 
-      {/* Main 2-Column Layout matching job_detail_status_open/code.html */}
+      {/* Main 2-Column Layout */}
       <div className="grid grid-cols-12 gap-8 items-start">
         {/* Left Column: Job Details & Status Action Panels */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
-          {/* Header Block matching reference design */}
-          <div id="job-overview" className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          {/* Header Block */}
+          <div id="job-overview" className="p-6 sm:p-8 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E6EC] pb-4">
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-mono font-bold rounded-full flex items-center gap-1">
                   <CheckCircle2 size={13} /> Status: {job.status}
@@ -592,10 +593,10 @@ export const JobDetail: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsModifyModalOpen(true)}
-                      className="px-3 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      className="px-3 py-1 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
                       title="Modify job title, description, category, and budget"
                     >
-                      <Edit3 size={13} className="text-purple-600" />
+                      <Edit3 size={13} className="text-[#0047AB]" />
                       <span>Modify Job</span>
                     </button>
 
@@ -615,7 +616,7 @@ export const JobDetail: React.FC = () => {
                           },
                         });
                       }}
-                      className="px-3.5 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      className="px-3.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
                       title="Delete this job posting"
                     >
                       <Trash2 size={13} className="text-rose-600" />
@@ -623,39 +624,39 @@ export const JobDetail: React.FC = () => {
                     </button>
                   </div>
                 )}
-                <div className="flex items-center gap-1.5 text-purple-700 text-xs font-mono font-bold">
+                <div className="flex items-center gap-1.5 text-[#0047AB] text-xs font-mono font-bold">
                   <Shield size={16} /> ESCROW SECURED
                 </div>
               </div>
             </div>
 
-            <h1 className="font-headline text-2xl sm:text-3xl font-extrabold text-slate-900 leading-snug">
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#0B0B0C] leading-snug">
               {job.title}
             </h1>
 
             <div className="flex flex-wrap gap-2 pt-1">
-              <span className="bg-purple-50 border border-purple-200 px-3 py-1 rounded text-xs font-mono text-purple-900 font-bold">
+              <span className="bg-slate-100 border border-[#E2E6EC] px-3 py-1 rounded text-xs font-mono text-[#0B0B0C] font-bold">
                 {job.category}
               </span>
-              <span className="bg-purple-50 text-purple-800 border border-purple-200 px-3 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5">
-                <Clock size={13} className="text-purple-600" />
+              <span className="bg-slate-100 text-[#0B0B0C] border border-[#E2E6EC] px-3 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5">
+                <Clock size={13} className="text-[#0047AB]" />
                 Posted: {new Date(job.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ({formatTimeAgo(job.createdAt || Date.now())})
               </span>
-              <span className="bg-slate-100 border border-slate-200 px-3 py-1 rounded text-xs font-mono text-slate-700">
+              <span className="bg-slate-100 border border-[#E2E6EC] px-3 py-1 rounded text-xs font-mono text-slate-700">
                 Review Window: {job.reviewPeriodDays} Days
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-mono text-slate-500 border-t border-slate-100 pt-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-mono text-slate-500 border-t border-[#E2E6EC] pt-4">
               <div className="flex items-center gap-1.5">
                 <span className="text-slate-400 font-bold">CLIENT:</span>
                 <Link 
                   to={`/profile/${job.client}`}
-                  className="text-purple-700 font-extrabold hover:text-purple-900 hover:underline flex items-center gap-1"
+                  className="text-[#0047AB] font-bold hover:underline flex items-center gap-1"
                 >
                   <span>{clientDisplayName}</span>
                   <span className="text-slate-400 font-normal">({truncateAddress(job.client)})</span>
-                  <ExternalLink size={11} className="text-purple-500" />
+                  <ExternalLink size={11} className="text-[#0047AB]" />
                 </Link>
               </div>
               {job.freelancer && (
@@ -663,11 +664,11 @@ export const JobDetail: React.FC = () => {
                   <span className="text-slate-400 font-bold">FREELANCER:</span>
                   <Link 
                     to={`/profile/${job.freelancer}`}
-                    className="text-purple-700 font-extrabold hover:text-purple-900 hover:underline flex items-center gap-1"
+                    className="text-[#0047AB] font-bold hover:underline flex items-center gap-1"
                   >
                     <span>{freelancerDisplayName}</span>
                     <span className="text-slate-400 font-normal">({truncateAddress(job.freelancer)})</span>
-                    <ExternalLink size={11} className="text-purple-500" />
+                    <ExternalLink size={11} className="text-[#0047AB]" />
                   </Link>
                 </div>
               )}
@@ -714,28 +715,28 @@ export const JobDetail: React.FC = () => {
           )}
 
           {/* Job Description Card with CID tag & Posted Date */}
-          <div id="job-specs" className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-                <FileText size={18} className="text-purple-700" /> Job Description
+          <div id="job-specs" className="p-6 sm:p-8 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E2E6EC] pb-3">
+              <h2 className="font-serif text-lg font-bold text-[#0B0B0C] flex items-center gap-2">
+                <FileText size={18} className="text-[#0047AB]" /> Job Description
               </h2>
-              <span className="font-data-hash text-[11px] text-purple-900 bg-purple-50 px-2.5 py-1 rounded border border-purple-200 font-bold">
+              <span className="font-data-hash text-[11px] text-[#0B0B0C] bg-slate-100 px-2.5 py-1 rounded border border-[#E2E6EC] font-bold">
                 CID: {generateIpfsCid(job.title).slice(0, 16)}...
               </span>
             </div>
 
             {/* Prominent Posted Date Banner */}
-            <div className="flex flex-wrap items-center justify-between text-xs font-mono text-slate-600 bg-purple-50/60 p-3 rounded-xl border border-purple-100 gap-2">
-              <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                <Calendar size={14} className="text-purple-600" />
+            <div className="flex flex-wrap items-center justify-between text-xs font-mono text-slate-600 bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] gap-2">
+              <div className="flex items-center gap-1.5 font-bold text-[#0B0B0C]">
+                <Calendar size={14} className="text-[#0047AB]" />
                 <span>Posted Date: {new Date(job.createdAt || Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}</span>
               </div>
-              <span className="text-purple-800 font-bold bg-white px-2.5 py-0.5 rounded-full border border-purple-200 shadow-2xs">
+              <span className="text-[#0B0B0C] font-bold bg-white px-2.5 py-0.5 rounded-full border border-[#E2E6EC] shadow-2xs">
                 {formatTimeAgo(job.createdAt || Date.now())}
               </span>
             </div>
 
-            <div className="bg-slate-50/80 p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs">
+            <div className="bg-slate-50 p-5 sm:p-6 rounded-xl border border-[#E2E6EC]">
               <FormattedJobDescription description={job.description} />
             </div>
           </div>
@@ -761,10 +762,10 @@ export const JobDetail: React.FC = () => {
               ) : (
                 <div className="space-y-4">
                   {/* Status Banner */}
-                  <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-4">
+                  <div className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div>
-                        <h3 className="font-headline text-lg font-bold text-slate-900">
+                        <h3 className="font-serif text-lg font-bold text-[#0B0B0C]">
                           {hasApplied ? 'Proposal Submitted & Under Review' : 'Submit Proposal'}
                         </h3>
                         <p className="text-xs text-slate-600">
@@ -775,7 +776,7 @@ export const JobDetail: React.FC = () => {
                       </div>
 
                       {!isConnected ? (
-                        <button onClick={connectWallet} className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold">
+                        <button onClick={connectWallet} className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">
                           Connect Wallet to Apply
                         </button>
                       ) : !isUserVerified ? (
@@ -785,7 +786,7 @@ export const JobDetail: React.FC = () => {
                           </span>
                           <Link
                             to="/profile"
-                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all shrink-0"
+                            className="bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold px-4 py-2.5 rounded-lg text-xs flex items-center gap-1.5 shadow-xs transition-all shrink-0"
                           >
                             <Github size={15} /> Verify GitHub Account
                           </Link>
@@ -799,7 +800,7 @@ export const JobDetail: React.FC = () => {
                       ) : (
                         <button
                           onClick={() => setIsApplyingModalOpen(true)}
-                          className="gradient-btn-emerald px-6 py-3 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md"
+                          className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-3 rounded-lg text-xs font-bold flex items-center gap-2 shadow-xs transition-all cursor-pointer"
                         >
                           <Send size={15} /> Apply for this Job
                         </button>
@@ -809,11 +810,11 @@ export const JobDetail: React.FC = () => {
 
                   {/* Pre-Acceptance Direct Negotiation with Client (Redirect to Messages) */}
                   {hasApplied && (
-                    <div className="bg-white border border-purple-200/80 rounded-2xl p-5 space-y-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="bg-white border border-[#E2E6EC] rounded-xl p-5 space-y-3 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <MessageSquare size={16} className="text-purple-700" />
-                          <h4 className="text-sm font-bold text-slate-900">
+                          <MessageSquare size={16} className="text-[#0047AB]" />
+                          <h4 className="text-sm font-bold text-[#0B0B0C]">
                             Discuss Terms & Scope in Messages
                           </h4>
                         </div>
@@ -825,7 +826,7 @@ export const JobDetail: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => navigate(`/chat?jobId=${job.id}`)}
-                        className="gradient-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shrink-0 cursor-pointer"
+                        className="bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] px-5 py-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs shrink-0 cursor-pointer transition-colors"
                       >
                         <MessageSquare size={14} />
                         <span>Open Messages</span>
@@ -859,17 +860,17 @@ export const JobDetail: React.FC = () => {
               <div className="space-y-6">
                 {/* Dedicated Freelancer Acceptance Banner */}
                 {isFreelancer && (
-                  <div className="glass-panel p-6 sm:p-8 border-purple-300 bg-gradient-to-br from-purple-50 via-white to-indigo-50 hard-shadow space-y-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-100 pb-4">
+                  <div className="p-6 sm:p-8 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E6EC] pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-bold shadow-md">
+                        <div className="w-12 h-12 rounded-xl bg-slate-100 border border-[#E2E6EC] text-[#0047AB] flex items-center justify-center font-bold">
                           <Sparkles size={24} />
                         </div>
                         <div>
-                          <span className="text-[10px] font-mono uppercase text-purple-800 font-bold bg-purple-100 px-2 py-0.5 rounded border border-purple-200">
+                          <span className="text-[10px] font-mono uppercase text-[#0047AB] font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                             ACTION REQUIRED • PROPOSAL ACCEPTED
                           </span>
-                          <h3 className="font-headline text-xl font-extrabold text-slate-900 mt-1">
+                          <h3 className="font-serif text-xl font-bold text-[#0B0B0C] mt-1">
                             🎉 Congratulations! The client selected your proposal
                           </h3>
                         </div>
@@ -881,7 +882,7 @@ export const JobDetail: React.FC = () => {
 
                     {/* Proposal & Scope Summary */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
-                      <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs space-y-1">
+                      <div className="bg-white p-4 rounded-xl border border-[#E2E6EC] shadow-2xs space-y-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase block">Escrow Payout</span>
                         {(() => {
                           const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
@@ -890,9 +891,12 @@ export const JobDetail: React.FC = () => {
                           const tokenAmt = isCrypto ? (job.amountEth || job.amountUsdc) : job.amountUsdc;
                           return (
                             <>
-                              <span className="text-lg font-black text-emerald-700">
-                                {isCrypto ? `${tokenAmt} ${tokenLabel}` : `$${parseFloat(job.amountUsdc || '0').toLocaleString()} ${tokenLabel}`}
-                              </span>
+                              <div className="flex items-center gap-1.5 pt-0.5">
+                                <TokenIcon token={tokenLabel} size={18} />
+                                <span className="text-lg font-black text-emerald-700">
+                                  {isCrypto ? `${tokenAmt} ${tokenLabel}` : `$${parseFloat(job.amountUsdc || '0').toLocaleString()} ${tokenLabel}`}
+                                </span>
+                              </div>
                               {isCrypto && (
                                 <span className="text-[10px] text-slate-500 block">≈ ${parseFloat(job.amountUsdc || '0').toFixed(2)} USDC</span>
                               )}
@@ -900,12 +904,12 @@ export const JobDetail: React.FC = () => {
                           );
                         })()}
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs space-y-1">
+                      <div className="bg-white p-4 rounded-xl border border-[#E2E6EC] shadow-2xs space-y-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase block">Review Window SLA</span>
-                        <span className="text-lg font-black text-purple-900">{job.reviewPeriodDays || 7} Days</span>
+                        <span className="text-lg font-bold text-[#0B0B0C]">{job.reviewPeriodDays || 7} Days</span>
                         <span className="text-[10px] text-slate-500 block">Auto-release after submission</span>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs space-y-1">
+                      <div className="bg-white p-4 rounded-xl border border-[#E2E6EC] shadow-2xs space-y-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase block">Agreement Terms</span>
                         <span className="text-base font-bold text-slate-800 flex items-center gap-1">
                           {job.freelancerAgreedTerms ? (
@@ -928,15 +932,15 @@ export const JobDetail: React.FC = () => {
                     {(() => {
                       const selApp = (job.applications || []).find((a) => a.applicant.toLowerCase() === address.toLowerCase());
                       return selApp?.proposalText ? (
-                        <div className="bg-white/80 p-4 rounded-xl border border-purple-100 text-xs space-y-1">
-                          <span className="text-[10px] font-mono font-bold text-purple-900 uppercase">Your Accepted Proposal</span>
+                        <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] text-xs space-y-1">
+                          <span className="text-[10px] font-mono font-bold text-[#0B0B0C] uppercase">Your Accepted Proposal</span>
                           <p className="text-slate-700 italic">"{selApp.proposalText}"</p>
                         </div>
                       ) : null;
                     })()}
 
                     {/* Acceptance Action CTA */}
-                    <div className="pt-2 flex flex-wrap items-center justify-between gap-4 border-t border-purple-100">
+                    <div className="pt-2 flex flex-wrap items-center justify-between gap-4 border-t border-[#E2E6EC]">
                       <p className="text-xs text-slate-600 max-w-md">
                         {job.freelancerAgreedTerms
                           ? '✓ You have accepted the assignment terms. Once the client funds the on-chain escrow, work can begin!'
@@ -946,13 +950,13 @@ export const JobDetail: React.FC = () => {
                       {!job.freelancerAgreedTerms ? (
                         <button
                           onClick={() => handleProposeTermsAction(job.id, address || '')}
-                          className="gradient-btn-emerald px-6 py-3 rounded-xl font-bold text-xs shadow-md flex items-center gap-2 cursor-pointer animate-pulse"
+                          className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-3 rounded-lg font-bold text-xs shadow-xs flex items-center gap-2 cursor-pointer transition-colors"
                         >
                           <CheckCircle2 size={16} />
                           Accept Assignment & Agree to Terms
                         </button>
                       ) : (
-                        <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 font-mono">
+                        <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 font-mono">
                           <CheckCircle2 size={16} /> Terms Agreed & Finalized
                         </span>
                       )}
@@ -962,14 +966,14 @@ export const JobDetail: React.FC = () => {
 
                 {/* Client Selection Status Banner */}
                 {isClient && (
-                  <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                  <div className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E6EC] pb-3">
                       <div>
-                        <span className="text-[10px] font-mono uppercase text-purple-800 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                        <span className="text-[10px] font-mono uppercase text-[#0047AB] font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                           HIRING PIPELINE
                         </span>
-                        <h3 className="font-headline text-lg font-bold text-slate-900 mt-1">
-                          Freelancer Selected: <span className="text-purple-900 font-black">{freelancerDisplayName}</span>
+                        <h3 className="font-serif text-lg font-bold text-[#0B0B0C] mt-1">
+                          Freelancer Selected: <span className="text-[#0047AB] font-bold">{freelancerDisplayName}</span>
                         </h3>
                         <p className="text-xs text-slate-500 font-mono mt-0.5">
                           Address: {truncateAddress(job.freelancer)}
@@ -977,7 +981,7 @@ export const JobDetail: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono px-3 py-1 rounded-full font-bold bg-purple-100 text-purple-900 border border-purple-200">
+                        <span className="text-xs font-mono px-3 py-1 rounded-full font-bold bg-slate-100 text-[#0B0B0C] border border-[#E2E6EC]">
                           Freelancer Status: {job.freelancerAgreedTerms ? '✓ Agreed Terms' : 'Pending Acceptance'}
                         </span>
                       </div>
@@ -985,7 +989,7 @@ export const JobDetail: React.FC = () => {
 
                     <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
                       <div className="space-y-1">
-                        <h4 className="font-headline text-sm font-bold text-slate-900">Next Step: Fund Escrow Deposit</h4>
+                        <h4 className="font-serif text-sm font-bold text-[#0B0B0C]">Next Step: Fund Escrow Deposit</h4>
                         <p className="text-xs text-slate-600">
                           {(() => {
                             const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
@@ -1003,16 +1007,16 @@ export const JobDetail: React.FC = () => {
                         {!job.clientAgreedTerms && (
                           <button
                             onClick={() => handleProposeTermsAction(job.id, address || '')}
-                            className="bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer"
+                            className="bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold px-4 py-2.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
                           >
                             <CheckCircle2 size={15} /> Propose Terms Hash
                           </button>
                         )}
                         <button
                           onClick={() => handleFundJobAction(job.id)}
-                          className="gradient-btn-emerald px-6 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
+                          className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-2.5 rounded-lg font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                         >
-                          <DollarSign size={16} /> Fund Escrow Contract
+                          <TokenIcon token={job.paymentTokenSymbol || 'USDC'} size={15} /> Fund Escrow Contract
                         </button>
                       </div>
                     </div>
@@ -1020,11 +1024,11 @@ export const JobDetail: React.FC = () => {
                 )}
 
                 {/* Direct Messages & Terms Negotiation Hub Card */}
-                <div className="glass-panel p-6 border-purple-200 bg-white hard-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <MessageSquare size={18} className="text-purple-700" />
-                      <h3 className="font-headline text-base font-bold text-slate-900">
+                      <MessageSquare size={18} className="text-[#0047AB]" />
+                      <h3 className="font-serif text-base font-bold text-[#0B0B0C]">
                         Encrypted Negotiation & Communication Hub
                       </h3>
                     </div>
@@ -1035,7 +1039,7 @@ export const JobDetail: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => navigate(`/chat?jobId=${job.id}`)}
-                    className="gradient-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shrink-0 cursor-pointer"
+                    className="bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] px-5 py-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs shrink-0 cursor-pointer transition-colors"
                   >
                     <MessageSquare size={14} />
                     <span>Open Messages</span>
@@ -1044,9 +1048,9 @@ export const JobDetail: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow text-center">
-                <MessageSquare className="w-10 h-10 text-purple-700 mx-auto mb-3" />
-                <h4 className="text-sm font-bold text-slate-900">Encrypted Negotiation in Progress</h4>
+              <div className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs text-center">
+                <MessageSquare className="w-10 h-10 text-[#0047AB] mx-auto mb-3" />
+                <h4 className="text-sm font-bold text-[#0B0B0C]">Encrypted Negotiation in Progress</h4>
                 <p className="text-xs text-slate-500 mt-1 font-mono">
                   The client and selected freelancer are currently finalizing terms in an end-to-end encrypted session.
                 </p>
@@ -1063,17 +1067,17 @@ export const JobDetail: React.FC = () => {
 
           {/* 4. STATUS: COMPLETED (Official Digital Transaction Bill) */}
           {job.status === 'Completed' && (
-            <div id="transaction-bill" className="glass-panel p-6 sm:p-8 border-emerald-300 bg-white hard-shadow space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-emerald-100 pb-4">
+            <div id="transaction-bill" className="p-6 sm:p-8 border border-emerald-300 bg-white rounded-xl shadow-xs space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E2E6EC] pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center font-bold">
+                  <div className="w-12 h-12 bg-slate-100 text-[#0047AB] rounded-xl flex items-center justify-center font-bold border border-[#E2E6EC]">
                     <Receipt size={24} />
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                       OFFICIAL TRANSACTION BILL RECORD
                     </span>
-                    <h3 className="font-headline text-xl font-black text-slate-900 mt-1">
+                    <h3 className="font-serif text-xl font-bold text-[#0B0B0C] mt-1">
                       Payment Released & Escrow Closed
                     </h3>
                   </div>
@@ -1081,12 +1085,12 @@ export const JobDetail: React.FC = () => {
 
                 <div className="text-right font-mono text-xs">
                   <span className="text-slate-500 block">Record ID</span>
-                  <span className="font-bold text-purple-900">#INV-2026-POLYLANCE-{job.id.slice(0, 6)}</span>
+                  <span className="font-bold text-[#0B0B0C]">#INV-2026-POLYLANCE-{job.id.slice(0, 6)}</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] space-y-1">
                   <span className="text-slate-500 text-[10px] uppercase font-bold">
                     {job.dispute?.resolved ? "Escrow Payout Distribution" : "Total Amount Released"}
                   </span>
@@ -1095,7 +1099,7 @@ export const JobDetail: React.FC = () => {
                       <p className="font-extrabold text-emerald-700 text-[11px]">
                         Dev: ${(parseFloat(job.amountUsdc) * (job.dispute.rulingBps ?? 0) / 10000).toLocaleString()} USDC
                       </p>
-                      <p className="font-extrabold text-indigo-750 text-indigo-700 text-[11px]">
+                      <p className="font-extrabold text-slate-700 text-[11px]">
                         Client: ${(parseFloat(job.amountUsdc) * (10000 - (job.dispute.rulingBps ?? 0)) / 10000).toLocaleString()} USDC
                       </p>
                     </div>
@@ -1103,30 +1107,30 @@ export const JobDetail: React.FC = () => {
                     <p className="font-extrabold text-emerald-700 text-lg">${parseFloat(job.amountUsdc).toLocaleString()} USDC</p>
                   )}
                 </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] space-y-1">
                   <span className="text-slate-500 text-[10px] uppercase font-bold">Contractor Payout</span>
-                  <p className="font-bold text-slate-900 text-sm">
+                  <p className="font-bold text-[#0B0B0C] text-sm">
                     {job.dispute?.resolved && (job.dispute.rulingBps ?? 0) === 0 ? "None (100% Refunded)" : freelancerDisplayName}
                   </p>
                   {!(job.dispute?.resolved && (job.dispute.rulingBps ?? 0) === 0) && (
                     <p className="text-[10px] font-mono text-slate-500">{truncateAddress(job.freelancer)}</p>
                   )}
                 </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] space-y-1">
                   <span className="text-slate-500 text-[10px] uppercase font-bold">Soulbound SBT Minted</span>
                   {job.dispute?.resolved && (job.dispute.rulingBps ?? 0) === 0 ? (
                     <p className="font-bold text-slate-400 text-xs">None (No SBT for 0% Payout)</p>
                   ) : (
-                    <p className="font-bold text-purple-700 text-sm flex items-center gap-1">
+                    <p className="font-bold text-[#0047AB] text-sm flex items-center gap-1">
                       <Award size={14} /> Token #{job.sbtTokenId || getDeterministicSbtId(job.id)}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="p-4 bg-purple-50 rounded-xl border border-purple-200 font-mono text-xs text-purple-950 flex justify-between items-center">
+              <div className="p-4 bg-slate-50 rounded-xl border border-[#E2E6EC] font-mono text-xs text-[#0B0B0C] flex justify-between items-center">
                 <span>Immutable Proof of Delivery on Polygon Ledger</span>
-                <span className="font-bold text-purple-900">Block Verified ✓</span>
+                <span className="font-bold text-[#0047AB]">Block Verified ✓</span>
               </div>
             </div>
           )}
@@ -1149,24 +1153,24 @@ export const JobDetail: React.FC = () => {
           )}
         </div>
 
-        {/* Right Column Sidebar matching job_detail_status_open/code.html */}
+        {/* Right Column Sidebar */}
         <aside className="col-span-12 lg:col-span-4 space-y-6">
           {/* Budget & Escrow Platform Maintenance Fee Breakdown Card */}
-          <div id="escrow-details" className="glass-panel p-6 border-purple-200 bg-white hard-shadow space-y-4 font-sans">
-            {/* Header matching requested visual design */}
-            <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2.5">
+          <div id="escrow-details" className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-4 font-sans">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between border-b border-[#E2E6EC] pb-3 gap-2.5">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-purple-50/90 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0 shadow-2xs">
-                  <Wallet size={22} className="text-purple-600 stroke-[2.2]" />
+                <div className="w-11 h-11 rounded-xl bg-slate-100 border border-[#E2E6EC] flex items-center justify-center text-[#0B0B0C] shrink-0">
+                  <Wallet size={22} className="text-[#0B0B0C] stroke-[2.2]" />
                 </div>
-                <div className="font-mono text-xs font-black tracking-wider text-slate-900 leading-tight uppercase">
+                <div className="font-mono text-xs font-bold tracking-wider text-[#0B0B0C] leading-tight uppercase">
                   <div>JOB ESCROW</div>
                   <div>BUDGET</div>
                 </div>
               </div>
 
-              <div className="px-3 py-1.5 rounded-full bg-purple-50/70 border border-purple-200 text-purple-900 font-mono text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs">
-                <ShieldCheck size={13} className="text-purple-600 shrink-0 stroke-[2.5]" />
+              <div className="px-3 py-1.5 rounded-full bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] font-mono text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                <ShieldCheck size={13} className="text-[#0047AB] shrink-0 stroke-[2.5]" />
                 <span>2.5% Site Maintenance Fee</span>
               </div>
             </div>
@@ -1206,10 +1210,10 @@ export const JobDetail: React.FC = () => {
                 <>
                   <div className="space-y-1">
                     <div className="flex items-baseline gap-2">
-                      <span className="font-headline text-3xl font-extrabold text-slate-900">
+                      <span className="font-serif text-3xl font-bold text-[#0B0B0C]">
                         {formatToken(tokenGrossNum)}
                       </span>
-                      <span className="font-headline text-base font-bold text-purple-700">{sym}</span>
+                      <span className="font-mono text-base font-bold text-[#0047AB]">{sym}</span>
                     </div>
                     {isCrypto && (
                       <span className="text-xs text-slate-500 font-mono block font-semibold">
@@ -1219,35 +1223,35 @@ export const JobDetail: React.FC = () => {
                   </div>
 
                   {/* 2.5% Maintenance Fee & Escrow Details */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100 text-xs font-mono">
+                  <div className="space-y-2 pt-2 border-t border-[#E2E6EC] text-xs font-mono">
                     <div className="flex justify-between items-center text-slate-600">
                       <span>Escrow Principal Budget:</span>
-                      <span className="font-bold text-slate-900">
+                      <span className="font-bold text-[#0B0B0C]">
                         {isCrypto
                           ? `${formatToken(tokenGrossNum)} ${sym} (~$${usdGrossNum.toFixed(2)} USDC)`
                           : `$${usdGrossNum.toFixed(2)} USDC`}
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center text-indigo-700">
+                    <div className="flex justify-between items-center text-slate-600">
                       <span>Site Maintenance Fee (2.5%):</span>
-                      <span className="font-bold">
+                      <span className="font-bold text-[#0B0B0C]">
                         {isCrypto
                           ? `+${formatToken(tokenClientFee)} ${sym} (+$${usdClientFee.toFixed(2)} USDC)`
                           : `+$${usdClientFee.toFixed(2)} USDC`}
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center text-slate-900 font-bold border-t border-slate-100 pt-1">
+                    <div className="flex justify-between items-center text-[#0B0B0C] font-bold border-t border-[#E2E6EC] pt-1">
                       <span>Total Escrow Deposit:</span>
-                      <span className="text-purple-900 font-extrabold">
+                      <span className="text-[#0B0B0C] font-bold">
                         {isCrypto
                           ? `${formatToken(tokenTotalClient)} ${sym} (~$${usdTotalClient.toFixed(2)} USDC)`
                           : `$${usdTotalClient.toFixed(2)} USDC`}
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center p-2.5 rounded-xl bg-purple-50/80 border border-purple-200 text-purple-950 font-bold">
+                    <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] font-bold">
                       <span>{isMeFreelancer ? 'Your Net Payout:' : 'Developer Net Payout:'}</span>
                       <span className="text-emerald-700 text-sm font-black">
                         {isCrypto
@@ -1256,7 +1260,7 @@ export const JobDetail: React.FC = () => {
                       </span>
                     </div>
 
-                    <p className="text-[10px] font-sans text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-200/80">
+                    <p className="text-[10px] font-sans text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-lg border border-[#E2E6EC]">
                       💡 <strong>2.5% Site Maintenance Fee:</strong> Standard 2.5% site maintenance fee provides sovereign smart contract escrow protection and dispute resolution.
                     </p>
                   </div>
@@ -1349,7 +1353,7 @@ export const JobDetail: React.FC = () => {
 
                 {/* Profile Info */}
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[#0B0B0C] shrink-0">
                     <Building2 size={20} />
                   </div>
                   <div className="min-w-0">
@@ -1453,7 +1457,7 @@ export const JobDetail: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-[9px] text-slate-400 font-bold uppercase block">Spent Volume</span>
-                    <span className="font-extrabold text-purple-900">${totalSpentUsdc.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC</span>
+                    <span className="font-extrabold text-[#0B0B0C]">${totalSpentUsdc.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC</span>
                   </div>
                 </div>
               </div>
@@ -1468,14 +1472,14 @@ export const JobDetail: React.FC = () => {
         const userProfile = userProfileKey ? profiles[userProfileKey] : null;
         return createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-purple-100 shadow-[0_20px_50px_rgba(147,51,234,0.12)] relative space-y-5 animate-in fade-in zoom-in duration-200">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="font-headline text-xl font-black text-slate-900 tracking-tight">Submit Proposal</h3>
+            <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 border border-[#E2E6EC] shadow-2xl relative space-y-5 animate-in fade-in zoom-in duration-200">
+              <div className="border-b border-[#E2E6EC] pb-3">
+                <h3 className="font-serif text-xl font-bold text-[#0B0B0C] tracking-tight">Submit Proposal</h3>
                 <p className="text-xs text-slate-500 font-mono mt-1">Specify proposal terms and attest Github developer footprints on-chain.</p>
               </div>
 
               {userProfile?.githubVerified && (
-                <div className="bg-emerald-50/70 border border-emerald-200 p-3.5 rounded-2xl flex items-center justify-between text-xs text-emerald-950 font-mono">
+                <div className="bg-emerald-50/70 border border-emerald-200 p-3.5 rounded-xl flex items-center justify-between text-xs text-emerald-950 font-mono">
                   <div className="flex items-start gap-2">
                     <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
                     <div>
@@ -1491,7 +1495,7 @@ export const JobDetail: React.FC = () => {
 
               <form onSubmit={handleApplySubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     Proposal Statement & Milestones *
                   </label>
                   <textarea
@@ -1500,7 +1504,7 @@ export const JobDetail: React.FC = () => {
                     placeholder="Describe your technical roadmap, milestones breakdown, and delivery schedule..."
                     value={applyProposalText}
                     onChange={(e) => setApplyProposalText(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none rounded-2xl p-4 text-xs font-sans text-slate-800 transition-all placeholder:text-slate-455 leading-relaxed"
+                    className="w-full bg-white border border-[#E2E6EC] focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none rounded-xl p-4 text-xs font-sans text-[#0B0B0C] transition-all placeholder:text-slate-400 leading-relaxed"
                   />
                 </div>
 
@@ -1508,11 +1512,11 @@ export const JobDetail: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsApplyingModalOpen(false)}
-                    className="px-5 py-2.5 rounded-2xl text-xs font-bold text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer"
+                    className="px-5 py-2.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-50 border border-[#E2E6EC] transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="gradient-btn-emerald px-6 py-2.5 rounded-xl text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5">
+                  <button type="submit" className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-2.5 rounded-lg text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5 transition-colors">
                     <Send size={14} /> Submit Proposal On-Chain
                   </button>
                 </div>
@@ -1525,9 +1529,9 @@ export const JobDetail: React.FC = () => {
 
       {isDisputeModalOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-rose-100 shadow-[0_20px_50px_rgba(244,63,94,0.12)] relative space-y-5 animate-in fade-in zoom-in duration-200">
-            <div className="border-b border-rose-100 pb-3">
-              <h3 className="font-headline text-xl font-black text-rose-900 tracking-tight flex items-center gap-2">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 border border-[#E2E6EC] shadow-2xl relative space-y-5 animate-in fade-in zoom-in duration-200">
+            <div className="border-b border-[#E2E6EC] pb-3">
+              <h3 className="font-serif text-xl font-bold text-rose-900 tracking-tight flex items-center gap-2">
                 <AlertTriangle className="text-rose-600 animate-pulse" /> Raise On-Chain Dispute
               </h3>
               <p className="text-xs text-rose-600 font-mono mt-1">DAO Judge Panel arbitration requires full evidence disclosure.</p>
@@ -1562,7 +1566,7 @@ export const JobDetail: React.FC = () => {
                   placeholder="Explain why the submitted work is non-compliant or disputed..."
                   value={disputeEvidenceText}
                   onChange={(e) => setDisputeEvidenceText(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 outline-none rounded-2xl p-4 text-xs font-sans text-slate-800 transition-all placeholder:text-slate-400 leading-relaxed"
+                  className="w-full bg-white border border-[#E2E6EC] focus:border-rose-600 focus:ring-1 focus:ring-rose-600 outline-none rounded-xl p-4 text-xs font-sans text-[#0B0B0C] transition-all placeholder:text-slate-400 leading-relaxed"
                 />
               </div>
 
@@ -1570,11 +1574,11 @@ export const JobDetail: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsDisputeModalOpen(false)}
-                  className="px-5 py-2.5 rounded-2xl text-xs font-bold text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer"
+                  className="px-5 py-2.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-50 border border-[#E2E6EC] transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="bg-rose-600 hover:bg-rose-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5">
+                <button type="submit" className="bg-rose-600 hover:bg-rose-700 text-white px-6 py-2.5 rounded-lg text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5 transition-colors">
                   <AlertTriangle size={14} /> File Dispute Claim
                 </button>
               </div>

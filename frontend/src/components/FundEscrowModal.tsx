@@ -152,12 +152,12 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
                   <span className="text-slate-600 font-sans">Escrow Principal Budget:</span>
                   <span className="font-bold font-mono text-slate-900">{principalAmount.toFixed(4)} {tokenSymbol}</span>
                 </div>
-                <div className="p-3.5 flex justify-between items-center bg-indigo-50/40">
-                  <div className="flex items-center gap-1.5 text-indigo-900 font-sans">
+                <div className="p-3.5 flex justify-between items-center bg-slate-50">
+                  <div className="flex items-center gap-1.5 text-slate-700 font-sans">
                     <span>Site Maintenance Fee (2.5%):</span>
-                    <span title="Credited directly to Treasury for escrow protection and security"><Info size={12} className="text-indigo-400" /></span>
+                    <span title="Credited directly to Treasury for escrow protection and security"><Info size={12} className="text-slate-400" /></span>
                   </div>
-                  <span className="font-bold font-mono text-indigo-700">+{clientFee.toFixed(4)} {tokenSymbol}</span>
+                  <span className="font-bold font-mono text-slate-900">+{clientFee.toFixed(4)} {tokenSymbol}</span>
                 </div>
                 <div className="p-4 flex justify-between items-center bg-blue-50/70 font-bold border-t border-blue-100">
                   <span className="text-slate-900 font-heading text-sm">Total Deposit to Escrow:</span>

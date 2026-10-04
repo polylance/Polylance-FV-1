@@ -8,78 +8,53 @@ interface PolyLanceLogoProps {
   src?: string;
 }
 
-export const PolyLanceLogo: React.FC<PolyLanceLogoProps> = ({ size = 92, className = '', src }) => {
+export const PolyLanceLogo: React.FC<PolyLanceLogoProps> = ({ size = 28, className = '', src }) => {
   const [imageError, setImageError] = useState(false);
   const logoSrc = src || defaultLogo;
   const shouldUseImage = LOGO_CONFIG.useCustomImage && logoSrc && !imageError;
 
   return (
     <div
-      className={`inline-flex items-center justify-center shrink-0 transition-all duration-300 ${className}`}
+      className={`inline-flex items-center justify-center shrink-0 ${className}`}
       style={{ width: size, height: size, minWidth: size, minHeight: size }}
     >
       {shouldUseImage ? (
         <img
           src={logoSrc}
           alt="PolyLance Logo"
-          className="w-full h-full object-contain filter drop-shadow-[0_0_16px_rgba(2,132,199,0.7)] hover:drop-shadow-[0_0_26px_rgba(2,132,199,0.95)] transition-all duration-300"
+          className="w-full h-full object-contain"
           style={{ width: size, height: size, minWidth: size, minHeight: size }}
           onError={() => setImageError(true)}
         />
       ) : (
-        /* High-Precision Bold 3D Cyan Vector SVG Logo */
+        /* Clean Editorial Geometric Hexagon SVG Logo */
         <svg
           width={size}
           height={size}
           viewBox="0 0 100 100"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="filter drop-shadow-[0_0_18px_rgba(56,189,248,0.75)] transition-all duration-300 hover:drop-shadow-[0_0_28px_rgba(56,189,248,1)]"
         >
-          <defs>
-            <linearGradient id="polyCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#38bdf8" />
-              <stop offset="50%" stopColor="#0284c7" />
-              <stop offset="100%" stopColor="#621bcb" />
-            </linearGradient>
-
-            <linearGradient id="polyBevelBright" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#0284c7" />
-              <stop offset="100%" stopColor="#e0f2fe" />
-            </linearGradient>
-          </defs>
-
-          {/* Outer 3D Hexagon Rim */}
+          {/* Hexagon Rim */}
           <polygon
-            points="50,5 92,27.5 92,72.5 50,95 8,72.5 8,27.5"
+            points="50,6 90,28 90,72 50,94 10,72 10,28"
             fill="none"
-            stroke="url(#polyCyanGrad)"
-            strokeWidth="9"
+            stroke="#0047AB"
+            strokeWidth="8"
             strokeLinejoin="round"
           />
-
-          {/* Inner Bevel Rim */}
-          <polygon
-            points="50,13 83,30.5 83,69.5 50,87 17,69.5 17,30.5"
-            fill="none"
-            stroke="url(#polyBevelBright)"
-            strokeWidth="3"
-            strokeLinejoin="round"
-            opacity="0.9"
-          />
-
-          {/* 3D Isometric "P" Symbol Geometry */}
+          {/* Inner P glyph */}
           <path
-            d="M 32 23 L 48 23 L 48 77 L 32 77 Z"
-            fill="url(#polyCyanGrad)"
+            d="M 34 26 L 50 26 L 50 74 L 34 74 Z"
+            fill="#0047AB"
           />
           <path
-            d="M 48 23 L 68 23 C 78 23 83 30 83 40 C 83 50 78 57 68 57 L 48 57 Z"
-            fill="url(#polyBevelBright)"
+            d="M 50 26 L 66 26 C 76 26 80 32 80 41 C 80 50 76 56 66 56 L 50 56 Z"
+            fill="#0047AB"
           />
           <path
-            d="M 48 33 L 64 33 C 68 33 71 36 71 40 C 71 44 68 47 64 47 L 48 47 Z"
-            fill="#faf8ff"
+            d="M 50 36 L 64 36 C 68 36 70 38 70 41 C 70 44 68 46 64 46 L 50 46 Z"
+            fill="#FFFFFF"
           />
         </svg>
       )}

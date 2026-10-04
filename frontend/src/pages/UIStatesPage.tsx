@@ -25,9 +25,9 @@ export const UIStatesPage: React.FC = () => {
   };
 
   const palette = [
-    { name: 'Primary Purple', hex: '#7C3AED', bg: 'bg-[#7C3AED]' },
-    { name: 'Primary Blue', hex: '#2563EB', bg: 'bg-[#2563EB]' },
-    { name: 'Accent Cyan', hex: '#06B6D4', bg: 'bg-[#06B6D4]' },
+    { name: 'Brand Black', hex: '#0B0B0C', bg: 'bg-[#0B0B0C]' },
+    { name: 'Cobalt Blue', hex: '#0047AB', bg: 'bg-[#0047AB]' },
+    { name: 'Slate Accent', hex: '#64748B', bg: 'bg-[#64748B]' },
     { name: 'Success Green', hex: '#059669', bg: 'bg-[#059669]' },
     { name: 'Warning Amber', hex: '#F59E0B', bg: 'bg-[#F59E0B]' },
     { name: 'Error Red', hex: '#EF4444', bg: 'bg-[#EF4444]' },
@@ -51,14 +51,14 @@ export const UIStatesPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-3 mb-5">
                 <PolyLanceLogo size={36} />
-                <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-purple-700 via-indigo-700 to-blue-600 bg-clip-text text-transparent">
+                <span className="font-extrabold text-2xl tracking-tight text-slate-900">
                   PolyLance
                 </span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
                 UI STATE PAGES
               </h1>
-              <p className="text-base font-semibold text-purple-600 mb-2">
+              <p className="text-base font-semibold text-[#0047AB] mb-2">
                 Consistent. Clear. On-Brand.
               </p>
               <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
@@ -80,7 +80,7 @@ export const UIStatesPage: React.FC = () => {
                   onClick={() => setActiveFilter(tab.id as any)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
                     activeFilter === tab.id
-                      ? 'bg-purple-600 text-white shadow-xs'
+                      ? 'bg-[#0B0B0C] text-white shadow-xs'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                   }`}
                 >
@@ -94,7 +94,7 @@ export const UIStatesPage: React.FC = () => {
           <div className="lg:col-span-4 bg-white p-7 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Sparkles size={16} className="text-purple-600" />
+                <Sparkles size={16} className="text-[#0047AB]" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">COLOR PALETTE</h3>
               </div>
               
@@ -226,79 +226,79 @@ export const UIStatesPage: React.FC = () => {
             </h3>
 
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wide">USE COMPONENTS CONSISTENTLY</h4>
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide">USE COMPONENTS CONSISTENTLY</h4>
               <ul className="space-y-2 text-xs text-slate-600">
                 <li className="flex items-start gap-2">
-                  <Check size={14} className="text-purple-600 shrink-0 mt-0.5" />
+                  <Check size={14} className="text-[#0047AB] shrink-0 mt-0.5" />
                   <span>Use these states across Dashboard, Proposals, Escrow, Messages, Profile, Settings, Jobs, and all other modules.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check size={14} className="text-purple-600 shrink-0 mt-0.5" />
+                  <Check size={14} className="text-[#0047AB] shrink-0 mt-0.5" />
                   <span>Maintain consistent spacing, typography, icons, and colors.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check size={14} className="text-purple-600 shrink-0 mt-0.5" />
+                  <Check size={14} className="text-[#0047AB] shrink-0 mt-0.5" />
                   <span>Use smooth transitions and micro-animations.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check size={14} className="text-purple-600 shrink-0 mt-0.5" />
+                  <Check size={14} className="text-[#0047AB] shrink-0 mt-0.5" />
                   <span>Always provide clear next steps for users.</span>
                 </li>
               </ul>
             </div>
 
             <div className="space-y-3 pt-4 border-t border-slate-100">
-              <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wide">BEST PRACTICES</h4>
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide">BEST PRACTICES</h4>
               <ul className="space-y-2 text-xs text-slate-600">
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB] mt-1.5 shrink-0" />
                   <span>Keep messages short, clear, and helpful.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB] mt-1.5 shrink-0" />
                   <span>Provide primary and secondary actions.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB] mt-1.5 shrink-0" />
                   <span>Use relevant illustrations to improve clarity.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB] mt-1.5 shrink-0" />
                   <span>Maintain accessibility and responsive behavior.</span>
                 </li>
               </ul>
             </div>
           </div>
 
-          {/* PolyLance Zenith Protocol Card */}
+          {/* PolyLance Protocol Card */}
           <div className="lg:col-span-4 bg-white p-7 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between items-center text-center">
             <div className="my-auto flex flex-col items-center">
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-indigo-500/15 flex items-center justify-center border border-blue-200/60 shadow-inner mb-4">
+              <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center border border-slate-200 shadow-inner mb-4">
                 <PolyLanceLogo size={46} className="filter drop-shadow-md" />
               </div>
               <h3 className="text-xl font-extrabold text-slate-900 tracking-tight mb-1">
-                Build. Trust. <span className="text-purple-600">Earn.</span>
+                Build. Trust. <span className="text-[#0047AB]">Earn.</span>
               </h3>
               <p className="text-xs text-slate-500 mb-6">
                 The future of work is on-chain.
               </p>
             </div>
 
-            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl text-xs font-semibold">
-              <ShieldCheck size={16} /> PolyLance Zenith Protocol
+            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-xs font-semibold">
+              <ShieldCheck size={16} className="text-[#0047AB]" /> PolyLance Protocol
             </div>
           </div>
         </div>
 
         {/* ── TECHNICAL SPECIFICATION FOOTER CONTAINER ───────────────────── */}
         <div className="p-7 bg-white rounded-3xl border border-slate-200/80 text-xs text-slate-500 leading-relaxed shadow-3xs">
-          <div className="font-mono text-[11px] font-bold text-purple-600 uppercase tracking-widest mb-3">
+          <div className="font-mono text-[11px] font-bold text-[#0047AB] uppercase tracking-widest mb-3">
             TECHNICAL ARCHITECTURE & SPECIFICATIONS
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-slate-600">
             <div>
               <p className="font-semibold text-slate-900 mb-1">Design Tokens</p>
-              <p>Light theme standard with curated HSL tailored colors (Purple, Blue, Cyan, Green, Amber, Red).</p>
+              <p>Editorial fintech theme standard with Black (#0B0B0C), White (#FFFFFF), and Cobalt Blue (#0047AB).</p>
             </div>
             <div>
               <p className="font-semibold text-slate-900 mb-1">Card Architecture</p>
@@ -306,7 +306,7 @@ export const UIStatesPage: React.FC = () => {
             </div>
             <div>
               <p className="font-semibold text-slate-900 mb-1">Integration Ready</p>
-              <p>Modular component export via <code className="text-purple-600 font-mono text-[11px]">@components/UIStates</code> with custom action callbacks.</p>
+              <p>Modular component export via <code className="text-[#0047AB] font-mono text-[11px]">@components/UIStates</code> with custom action callbacks.</p>
             </div>
           </div>
         </div>

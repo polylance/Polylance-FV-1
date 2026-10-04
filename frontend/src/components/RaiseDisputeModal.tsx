@@ -9,6 +9,7 @@ import { generateIpfsCid } from '../utils/ipfs';
 import { truncateAddress } from '../utils/formatters';
 import { scrollToSection } from '../utils/scroll';
 import { PolyLanceSelect, SelectOption } from './PolyLanceSelect';
+import { useWeb3 } from '../context/Web3Context';
 
 export interface RaiseDisputeModalProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
   onRaiseDispute,
 }) => {
   const navigate = useNavigate();
+  const { currentRole } = useWeb3();
+  const isJudgeOrAdmin = currentRole === 'judge' || currentRole === 'admin';
   const [selectedJobId, setSelectedJobId] = useState<string>(() => {
     if (job) return job.id;
     if (jobs && jobs.length > 0) return jobs[0].id;
@@ -120,9 +123,9 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
       <div className="w-full max-w-2xl bg-white border border-rose-200 rounded-3xl shadow-2xl overflow-hidden font-sans space-y-0 my-auto animate-in zoom-in-95 duration-150">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-rose-50 via-rose-100/60 to-orange-50 p-5 sm:p-6 border-b border-rose-100 flex items-start justify-between gap-4">
+        <div className="bg-rose-50 p-5 sm:p-6 border-b border-rose-100 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-600 to-red-600 text-white flex items-center justify-center shadow-md shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow-xs shrink-0">
               <Scale size={24} />
             </div>
             <div>
@@ -131,8 +134,8 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                   DAO Court Escalation
                 </span>
                 {judge && (
-                  <span className="text-[10px] font-mono font-bold text-purple-700 bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <ShieldCheck size={11} className="text-purple-600" />
+                  <span className="text-[10px] font-mono font-bold text-slate-800 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <ShieldCheck size={11} className="text-[#0047AB]" />
                     Arbitrator: {judge.name}
                   </span>
                 )}
@@ -152,18 +155,20 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                navigate('/judge?tab=disputes');
-              }}
-              className="hidden sm:flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-white/80 hover:bg-white border border-rose-200 px-2.5 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer"
-              title="Navigate to DAO Disputes Court page"
-            >
-              <span>Court Page</span>
-              <ArrowUpRight size={12} className="text-rose-600" />
-            </button>
+            {isJudgeOrAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate('/judge?tab=disputes');
+                }}
+                className="hidden sm:flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-white/80 hover:bg-white border border-rose-200 px-2.5 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer"
+                title="Navigate to DAO Disputes Judge Panel"
+              >
+                <span>Judge Console</span>
+                <ArrowUpRight size={12} className="text-rose-600" />
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -204,7 +209,7 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                     navigate(`/jobs/${job.id}?section=job-specs`);
                     scrollToSection('job-specs');
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-purple-300 text-purple-700 font-bold text-[11px] flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-slate-400 text-slate-900 font-bold text-[11px] flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
                 >
                   View Job <ArrowUpRight size={11} />
                 </button>
@@ -223,8 +228,8 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                 />
 
                 {currentSelectedJob && (
-                  <div className="mt-2 bg-purple-50/60 border border-purple-100 rounded-xl p-2.5 flex items-center justify-between gap-2">
-                    <div className="text-[11px] text-purple-900 font-medium">
+                  <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                    <div className="text-[11px] text-slate-900 font-medium">
                       <strong>Escrow Locked:</strong> ${parseFloat(currentSelectedJob.amountUsdc || '0').toLocaleString()} USDC • Status: <strong>{currentSelectedJob.status}</strong>
                     </div>
                     <button
@@ -234,7 +239,7 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                         navigate(`/jobs/${currentSelectedJob.id}?section=job-specs`);
                         scrollToSection('job-specs');
                       }}
-                      className="text-[11px] font-bold text-purple-700 hover:underline flex items-center gap-0.5 cursor-pointer"
+                      className="text-[11px] font-bold text-[#0047AB] hover:underline flex items-center gap-0.5 cursor-pointer"
                     >
                       Inspect Specs <ExternalLink size={11} />
                     </button>
@@ -245,9 +250,9 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
 
             {/* Arbitrator Info Banner if chatting with a Judge */}
             {judge && (
-              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl p-3 flex items-center justify-between gap-3">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-purple-600 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
+                  <div className="w-8 h-8 rounded-xl bg-[#0B0B0C] border border-slate-800 text-white font-bold flex items-center justify-center text-xs shadow-xs">
                     {judge.name ? judge.name.slice(0, 2).toUpperCase() : 'JD'}
                   </div>
                   <div>
@@ -262,7 +267,7 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono text-purple-700 bg-white/80 border border-purple-200 px-2 py-1 rounded-lg font-bold shrink-0">
+                <span className="text-[10px] font-mono text-slate-800 bg-white border border-slate-300 px-2 py-1 rounded-lg font-bold shrink-0">
                   Assigned Judge
                 </span>
               </div>
@@ -341,7 +346,7 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                   htmlFor="dispute-file-upload"
                   className="cursor-pointer flex flex-col items-center justify-center gap-1.5 text-slate-600"
                 >
-                  <UploadCloud size={22} className="text-purple-600" />
+                  <UploadCloud size={22} className="text-[#0047AB]" />
                   <span className="font-bold text-xs text-slate-800">
                     {fileName ? (
                       <span className="text-emerald-700 flex items-center gap-1">
@@ -358,37 +363,70 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
               </div>
             </div>
 
-            {/* Quick Link to Dedicated Court / DAO Page */}
-            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 flex items-center justify-between text-[11px] text-amber-900">
-              <span className="flex items-center gap-1.5">
-                <Gavel size={13} className="text-amber-700 shrink-0" />
-                Want to review all open disputes or arbitrator rulings?
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  navigate('/judge?tab=disputes');
-                }}
-                className="font-bold text-amber-800 hover:text-amber-950 underline flex items-center gap-0.5 cursor-pointer"
-              >
-                Go to DAO Court <ArrowUpRight size={11} />
-              </button>
-            </div>
+            {/* Quick Link to DAO / Court */}
+            {isJudgeOrAdmin ? (
+              <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 flex items-center justify-between text-[11px] text-amber-900">
+                <span className="flex items-center gap-1.5">
+                  <Gavel size={13} className="text-amber-700 shrink-0" />
+                  Review open disputes or arbitrator rulings:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate('/judge?tab=disputes');
+                  }}
+                  className="font-bold text-amber-800 hover:text-amber-950 underline flex items-center gap-0.5 cursor-pointer"
+                >
+                  Go to Judge Panel <ArrowUpRight size={11} />
+                </button>
+              </div>
+            ) : (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center justify-between text-[11px] text-slate-700">
+                <span className="flex items-center gap-1.5">
+                  <Scale size={13} className="text-slate-500 shrink-0" />
+                  Disputes are arbitrated on-chain by the decentralized DAO jury.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate('/dao');
+                  }}
+                  className="font-bold text-[#0047AB] hover:underline flex items-center gap-0.5 cursor-pointer"
+                >
+                  DAO Governance <ArrowUpRight size={11} />
+                </button>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  navigate('/judge?tab=disputes');
-                }}
-                className="px-3 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all cursor-pointer text-xs flex items-center gap-1"
-              >
-                <Gavel size={12} className="text-slate-500" />
-                <span>Court Dashboard</span>
-              </button>
+              {isJudgeOrAdmin ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate('/judge?tab=disputes');
+                  }}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all cursor-pointer text-xs flex items-center gap-1"
+                >
+                  <Gavel size={12} className="text-slate-500" />
+                  <span>Judge Panel</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate('/dao');
+                  }}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all cursor-pointer text-xs flex items-center gap-1"
+                >
+                  <Scale size={12} className="text-slate-500" />
+                  <span>DAO Overview</span>
+                </button>
+              )}
 
               <div className="flex items-center gap-2">
                 <button
@@ -401,7 +439,7 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting || !evidenceText.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold flex items-center gap-1.5 shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-xs disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer text-xs disabled:opacity-50"
                 >
                   <Scale size={14} />
                   <span>{isSubmitting ? 'Submitting Case...' : 'Submit Case to DAO Court'}</span>

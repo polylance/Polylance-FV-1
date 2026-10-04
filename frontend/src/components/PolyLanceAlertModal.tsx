@@ -61,22 +61,22 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
     confirm: {
       bgIcon: options.isDestructive
         ? 'bg-rose-50 text-rose-600 border-rose-100'
-        : 'bg-indigo-50 text-indigo-600 border-indigo-100',
+        : 'bg-blue-50 text-[#0047AB] border-blue-100',
       btn: options.isDestructive
-        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
-        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20',
+        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs'
+        : 'bg-[#0047AB] hover:bg-[#003882] text-white shadow-xs',
       icon: options.isDestructive ? <AlertTriangle size={22} /> : <HelpCircle size={22} />,
       title: options.title || 'Please Confirm',
     },
     success: {
       bgIcon: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-      btn: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20',
+      btn: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs',
       icon: <CheckCircle2 size={22} />,
       title: options.title || 'Success',
     },
     info: {
-      bgIcon: 'bg-purple-50 text-purple-600 border-purple-100',
-      btn: 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/20',
+      bgIcon: 'bg-blue-50 text-[#0047AB] border-blue-100',
+      btn: 'bg-[#0047AB] hover:bg-[#003882] text-white shadow-xs',
       icon: <Info size={22} />,
       title: options.title || 'Information',
     },

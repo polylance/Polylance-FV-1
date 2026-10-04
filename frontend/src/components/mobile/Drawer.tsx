@@ -117,7 +117,7 @@ export const Drawer: React.FC<DrawerProps> = ({
             {/* Header with visible close button */}
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="font-bold text-lg text-slate-900 truncate">
-                {title || 'Navigation'}
+                {title || 'PolyLance'}
               </div>
               <button
                 type="button"

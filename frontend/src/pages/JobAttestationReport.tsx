@@ -16,6 +16,7 @@ import {
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
 import { LoginModal } from '../components/LoginModal';
 import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
+import { TokenIcon, PolygonIcon } from '../components/TokenIcon';
 import { truncateAddress, generateDeterministicHash, getCanonicalCertificateId, getCertifiedPassVerifyUrl, getPolygonScanUrl, formatWeb3ErrorMessage } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { generateCode128Bars } from '../utils/barcode';
@@ -173,34 +174,6 @@ export const JobAttestationReport: React.FC = () => {
         }
       }
     } catch (_) {}
-
-    // Fallback for demo certs if entered directly
-    if (cleanParam === '101' || lower.includes('job-101')) {
-      return {
-        id: '101',
-        title: 'Solidity Reentrancy & Flash Loan Arbitrage Audit',
-        description: 'Comprehensive smart contract security audit against flash loan attack vectors.',
-        category: 'backend',
-        client: (import.meta.env.VITE_CLIENT_ADDRESS || '') as string,
-        freelancer: (import.meta.env.VITE_TESTER_ADDRESS || import.meta.env.VITE_FREELANCER_ADDRESS || '') as string,
-        amountUsdc: '500.00',
-        amountEth: '0.25',
-        paymentToken: (import.meta.env.VITE_USDC_ADDRESS || '') as string,
-        paymentTokenSymbol: 'USDC',
-        paymentTokenDecimals: 6,
-        status: 'Completed',
-        contractAddress: (import.meta.env.VITE_JOB_ESCROW_ADDRESS || '') as string,
-        createdAt: 1787301836668,
-        completedAt: 1787576392906,
-        sbtTokenId: 101,
-        reviewPeriodDays: 3,
-        applications: [],
-        events: [
-          { step: 'Completed', actor: 'Client', title: 'Payment Released (100%)', status: 'completed', txHash: '0x7a89b3f12c98d45e76a1098b12f45c90812e34d567a89b012c34d56e78f901ab', timestamp: 1787576392906 },
-          { step: 'Minted', actor: 'JobFactory', title: 'Mint Reputation SBT', status: 'completed', txHash: '0x1f9240c89b3672fbe85f3c194ccdb182122ec3aa6f12279d35c442af4c905326', timestamp: 1787576392906 }
-        ]
-      } as unknown as Job;
-    }
 
     return null;
   }, [jobs, syncedJobs, jobIdParam]);
@@ -647,7 +620,7 @@ export const JobAttestationReport: React.FC = () => {
   }
 
   return (
-    <div className="attestation-sheet-wrapper min-h-screen bg-[#F6F9FC] py-6 px-3 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-purple-600 selection:text-white">
+    <div className="attestation-sheet-wrapper min-h-screen bg-[#F6F9FC] py-6 px-3 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-[#0047AB] selection:text-white">
       
       {/* CSS print overrides for Single-Page Certificate Guarantee */}
       <style>{`
@@ -718,7 +691,7 @@ export const JobAttestationReport: React.FC = () => {
       {userCompletedJobs.length > 0 && (
         <div className="max-w-6xl mx-auto mb-6 space-y-4 no-print">
           {/* Hero Banner for User's Attestation Vault */}
-          <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-950 rounded-3xl p-5 sm:p-7 text-white shadow-md relative overflow-hidden border border-slate-800">
+          <div className="bg-[#0B0B0C] rounded-3xl p-5 sm:p-7 text-white shadow-md relative overflow-hidden border border-slate-800">
             <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-2 max-w-2xl">
@@ -760,25 +733,25 @@ export const JobAttestationReport: React.FC = () => {
           <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-xs space-y-3">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               {/* Search Input */}
-              <div className="relative flex-1">
-                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <label className="relative flex-1 flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all cursor-text">
+                <Search size={16} className="shrink-0 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search your certificates by ID, milestone title, counterparty, amount..."
-                  className="w-full pl-10 pr-9 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
+                  className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm font-medium outline-none placeholder:text-slate-400"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="shrink-0 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
                   >
                     <X size={14} />
                   </button>
                 )}
-              </div>
+              </label>
 
               {/* Sort Order Selector */}
               <div className="flex items-center gap-2 shrink-0 min-w-[190px]">
@@ -897,8 +870,9 @@ export const JobAttestationReport: React.FC = () => {
 
                       {/* Payout & Role */}
                       <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                        <span className="font-mono font-extrabold text-emerald-700">
-                          ${parseFloat(j.amountUsdc || '0').toLocaleString()} USDC
+                        <span className="font-mono font-extrabold text-emerald-700 flex items-center gap-1.5">
+                          <TokenIcon token={j.paymentTokenSymbol || 'USDC'} size={13} />
+                          <span>${parseFloat(j.amountUsdc || '0').toLocaleString()} {j.paymentTokenSymbol || 'USDC'}</span>
                         </span>
                         <span className="text-[10px] uppercase font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
                           {isClient ? 'Patronage' : 'Proof of Work'}
@@ -988,8 +962,8 @@ export const JobAttestationReport: React.FC = () => {
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-xs font-bold font-mono">
                   {viewRole === 'client' ? (
                     <>
-                      <Building2 size={13} className="text-indigo-600" />
-                      <span className="text-indigo-900">Client Sponsorship</span>
+                      <Building2 size={13} className="text-[#0047AB]" />
+                      <span className="text-[#0B0B0C]">Client Sponsorship</span>
                     </>
                   ) : (
                     <>
@@ -1014,7 +988,7 @@ export const JobAttestationReport: React.FC = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Verify certificate directly on CertifiedPass"
-                  className="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white font-extrabold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-3xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
+                  className="bg-[#0047AB] hover:bg-[#003A8C] text-white font-extrabold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-3xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
                 >
                   <span>Verify on CertifiedPass</span>
                   <ExternalLink size={11} />
@@ -1083,7 +1057,7 @@ export const JobAttestationReport: React.FC = () => {
 
             {/* Dynamic Toast Feedback */}
             {shareToast && (
-              <div className="p-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-900 rounded-xl text-xs flex items-center justify-between gap-2 animate-fadeIn shadow-3xs">
+              <div className="p-2 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs flex items-center justify-between gap-2 animate-fadeIn shadow-3xs">
                 <div className="flex items-center gap-2">
                   <Sparkles size={14} className="text-blue-600 shrink-0" />
                   <span className="font-semibold">{shareToast}</span>
@@ -1103,13 +1077,13 @@ export const JobAttestationReport: React.FC = () => {
           <div 
             ref={cardRef}
             id="polylance-escrow-certificate"
-            className="attestation-sheet relative mx-auto bg-[#FFFFFF] text-[#101936] font-sans box-border overflow-hidden select-text flex flex-col justify-between"
+            className="attestation-sheet relative mx-auto bg-[#FFFFFF] text-[#0B0B0C] font-sans box-border overflow-hidden select-text flex flex-col justify-between"
             style={{
               width: '100%',
               maxWidth: '794px',
               aspectRatio: '210 / 297',
               padding: '24px 28px',
-              boxShadow: '0 25px 60px -15px rgba(37, 99, 235, 0.12), 0 0 0 1px rgba(216, 229, 245, 0.8)',
+              boxShadow: '0 25px 60px -15px rgba(0, 71, 171, 0.12), 0 0 0 1px rgba(226, 230, 236, 0.8)',
             }}
           >
             {/* Guilloche Security Border & Watermarks (Vector SVG) */}
@@ -1119,17 +1093,6 @@ export const JobAttestationReport: React.FC = () => {
               preserveAspectRatio="none"
             >
               <defs>
-                <linearGradient id="certBorderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#1E3A8A" stopOpacity="0.9" />
-                  <stop offset="50%" stopColor="#0284C7" stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="#1D4ED8" stopOpacity="0.9" />
-                </linearGradient>
-
-                <linearGradient id="plWatermarkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#0284C7" />
-                  <stop offset="100%" stopColor="#1E3A8A" />
-                </linearGradient>
-
                 <pattern id="bgSecurityWaves" width="120" height="20" patternUnits="userSpaceOnUse">
                   <path d="M 0 5 Q 30 0 60 5 T 120 5" fill="none" stroke="#BAE6FD" strokeWidth="0.45" opacity="0.45" />
                   <path d="M 0 10 Q 30 15 60 10 T 120 10" fill="none" stroke="#93C5FD" strokeWidth="0.4" opacity="0.4" />
@@ -1137,38 +1100,38 @@ export const JobAttestationReport: React.FC = () => {
                 </pattern>
 
                 <pattern id="guillocheRibbonH" width="28" height="16" patternUnits="userSpaceOnUse">
-                  <path d="M 0 8 C 7 0 14 0 21 8 C 28 16 35 16 42 8" fill="none" stroke="#1D4ED8" strokeWidth="0.85" opacity="0.75" />
-                  <path d="M 0 8 C 7 16 14 16 21 8 C 28 0 35 0 42 8" fill="none" stroke="#0284C7" strokeWidth="0.85" opacity="0.75" />
+                  <path d="M 0 8 C 7 0 14 0 21 8 C 28 16 35 16 42 8" fill="none" stroke="#0047AB" strokeWidth="0.85" opacity="0.75" />
+                  <path d="M 0 8 C 7 16 14 16 21 8 C 28 0 35 0 42 8" fill="none" stroke="#003A8C" strokeWidth="0.85" opacity="0.75" />
                   <path d="M 7 8 C 14 2 21 2 28 8 C 35 14 42 14 49 8" fill="none" stroke="#38BDF8" strokeWidth="0.6" opacity="0.65" />
                   <path d="M 7 8 C 14 14 21 14 28 8 C 35 2 42 2 49 8" fill="none" stroke="#60A5FA" strokeWidth="0.6" opacity="0.65" />
                 </pattern>
 
                 <pattern id="guillocheRibbonV" width="16" height="28" patternUnits="userSpaceOnUse">
-                  <path d="M 8 0 C 0 7 0 14 8 21 C 16 28 16 35 8 42" fill="none" stroke="#1D4ED8" strokeWidth="0.85" opacity="0.75" />
-                  <path d="M 8 0 C 16 7 16 14 8 21 C 0 28 0 35 8 42" fill="none" stroke="#0284C7" strokeWidth="0.85" opacity="0.75" />
+                  <path d="M 8 0 C 0 7 0 14 8 21 C 16 28 16 35 8 42" fill="none" stroke="#0047AB" strokeWidth="0.85" opacity="0.75" />
+                  <path d="M 8 0 C 16 7 16 14 8 21 C 0 28 0 35 8 42" fill="none" stroke="#003A8C" strokeWidth="0.85" opacity="0.75" />
                   <path d="M 8 7 C 2 14 2 21 8 28 C 14 35 14 42 8 49" fill="none" stroke="#38BDF8" strokeWidth="0.6" opacity="0.65" />
                   <path d="M 8 7 C 14 14 14 21 8 28 C 2 35 2 42 8 49" fill="none" stroke="#60A5FA" strokeWidth="0.6" opacity="0.65" />
                 </pattern>
 
                 <g id="cornerRosetteG">
-                  <path d="M 0 0 L 52 0 L 0 52 Z" fill="#EFF6FF" opacity="0.7" />
-                  <path d="M 0 10 L 42 0 M 0 18 L 34 0 M 0 26 L 26 0 M 0 34 L 18 0 M 0 42 L 10 0" stroke="#0284C7" strokeWidth="0.5" opacity="0.6" />
-                  <path d="M 0 0 L 54 0 M 0 0 L 0 54" stroke="#1E3A8A" strokeWidth="2.4" />
+                  <path d="M 0 0 L 52 0 L 0 52 Z" fill="#E7EEF9" opacity="0.7" />
+                  <path d="M 0 10 L 42 0 M 0 18 L 34 0 M 0 26 L 26 0 M 0 34 L 18 0 M 0 42 L 10 0" stroke="#0047AB" strokeWidth="0.5" opacity="0.6" />
+                  <path d="M 0 0 L 54 0 M 0 0 L 0 54" stroke="#002F73" strokeWidth="2.4" />
                   <path d="M 4 4 L 50 4 M 4 4 L 4 50" stroke="#38BDF8" strokeWidth="1" opacity="0.7" />
                   <g transform="translate(24, 24)">
                     {Array.from({ length: 16 }).map((_, i) => (
-                      <ellipse key={i} cx="0" cy="0" rx="18" ry="6" fill="none" stroke="#0284C7" strokeWidth="0.6" opacity="0.55" transform={`rotate(${i * 11.25})`} />
+                      <ellipse key={i} cx="0" cy="0" rx="18" ry="6" fill="none" stroke="#0047AB" strokeWidth="0.6" opacity="0.55" transform={`rotate(${i * 11.25})`} />
                     ))}
-                    <circle cx="0" cy="0" r="22" fill="none" stroke="#1D4ED8" strokeWidth="1" strokeDasharray="1.5 2" opacity="0.75" />
+                    <circle cx="0" cy="0" r="22" fill="none" stroke="#0047AB" strokeWidth="1" strokeDasharray="1.5 2" opacity="0.75" />
                     <circle cx="0" cy="0" r="14" fill="none" stroke="#38BDF8" strokeWidth="0.8" opacity="0.8" />
-                    <circle cx="0" cy="0" r="7" fill="#EFF6FF" stroke="#1D4ED8" strokeWidth="1" />
-                    <circle cx="0" cy="0" r="3" fill="#2563EB" />
+                    <circle cx="0" cy="0" r="7" fill="#E7EEF9" stroke="#0047AB" strokeWidth="1" />
+                    <circle cx="0" cy="0" r="3" fill="#0047AB" />
                   </g>
                 </g>
               </defs>
 
               <rect x="12" y="12" width="calc(100% - 24px)" height="calc(100% - 24px)" fill="url(#bgSecurityWaves)" />
-              <rect x="8" y="8" width="calc(100% - 16px)" height="calc(100% - 16px)" fill="none" stroke="url(#certBorderGrad)" strokeWidth="2" />
+              <rect x="8" y="8" width="calc(100% - 16px)" height="calc(100% - 16px)" fill="none" stroke="#0047AB" strokeWidth="2" />
               <rect x="48" y="10" width="calc(100% - 96px)" height="16" fill="url(#guillocheRibbonH)" />
               <rect x="10" y="48" width="16" height="calc(100% - 96px)" fill="url(#guillocheRibbonV)" />
               <svg x="0" y="100%" overflow="visible">
@@ -1243,7 +1206,7 @@ export const JobAttestationReport: React.FC = () => {
                     className="w-10 h-10 object-contain shrink-0 filter drop-shadow-2xs" 
                   />
                   <div>
-                    <h2 className="font-extrabold text-2xl text-[#0F172A] tracking-tight leading-none font-headline">
+                    <h2 className="font-extrabold text-2xl text-[#0B0B0C] tracking-tight leading-none font-headline">
                       PolyLance
                     </h2>
                     <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase block font-bold mt-1">
@@ -1275,8 +1238,8 @@ export const JobAttestationReport: React.FC = () => {
                     <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold">
                       NETWORK
                     </span>
-                    <Hexagon size={12} className="text-purple-600 fill-purple-100" />
-                    <span className="font-bold text-purple-700">Polygon PoS (137)</span>
+                    <PolygonIcon size={12} className="text-[#7B3FE4]" />
+                    <span className="font-bold text-slate-800">Polygon PoS (137)</span>
                   </div>
 
                   <div className="flex items-center justify-end gap-1.5 text-[11px]">
@@ -1300,17 +1263,17 @@ export const JobAttestationReport: React.FC = () => {
 
               {/* 2. Certificate Title */}
               <div className="text-center space-y-1 my-0.5">
-                <div className="flex items-center justify-center gap-2 text-[#1E3A8A] opacity-90">
-                  <div className="h-[1.5px] w-12 sm:w-20 bg-gradient-to-r from-transparent via-[#1E3A8A] to-[#0284C7]" />
-                  <span className="text-[7px] text-[#0284C7]">◆</span>
-                  <span className="text-[9.5px] sm:text-[10px] font-mono font-bold tracking-[0.26em] uppercase text-[#1E3A8A]">
+                <div className="flex items-center justify-center gap-2 text-[#0047AB] opacity-90">
+                  <div className="h-[1.5px] w-12 sm:w-20 bg-[#0047AB]" />
+                  <span className="text-[7px] text-[#0047AB]">◆</span>
+                  <span className="text-[9.5px] sm:text-[10px] font-mono font-bold tracking-[0.26em] uppercase text-[#0B0B0C]">
                     OFFICIAL ATTESTATION CERTIFICATE
                   </span>
-                  <span className="text-[7px] text-[#0284C7]">◆</span>
-                  <div className="h-[1.5px] w-12 sm:w-20 bg-gradient-to-l from-transparent via-[#1E3A8A] to-[#0284C7]" />
+                  <span className="text-[7px] text-[#0047AB]">◆</span>
+                  <div className="h-[1.5px] w-12 sm:w-20 bg-[#0047AB]" />
                 </div>
 
-                <h1 className="font-certificate-title text-2xl sm:text-[32px] font-black tracking-tight text-[#0F2942] uppercase leading-[1.08] bg-gradient-to-r from-[#0F172A] via-[#1E3A8A] to-[#0284C7] bg-clip-text text-transparent">
+                <h1 className="font-certificate-title text-2xl sm:text-[32px] font-black tracking-tight text-[#0B0B0C] uppercase leading-[1.08]">
                   {viewRole === 'client' ? (
                     <>
                       ESCROW PATRON &amp;<br />
@@ -1324,7 +1287,7 @@ export const JobAttestationReport: React.FC = () => {
                   )}
                 </h1>
 
-                <div className="flex items-center justify-center gap-1.5 text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-[#0284C7]">
+                <div className="flex items-center justify-center gap-1.5 text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-[#0047AB]">
                   <span>✧</span>
                   <span>VERIFIED ON POLYGON</span>
                   <span>✧</span>
@@ -1349,11 +1312,11 @@ export const JobAttestationReport: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-[#FAF5FF]/80 border border-[#E9D5FF] rounded-xl px-2.5 py-1.5 flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-purple-600 shrink-0" />
+                <div className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-[#0047AB] shrink-0" />
                   <div className="min-w-0">
                     <div className="text-[10px] font-black text-slate-900 leading-tight uppercase font-mono">ON-CHAIN VERIFIED</div>
-                    <div className="text-[8.5px] text-purple-700 font-semibold leading-tight">Immutable Record</div>
+                    <div className="text-[8.5px] text-slate-600 font-semibold leading-tight">Immutable Record</div>
                   </div>
                 </div>
 
@@ -1405,14 +1368,14 @@ export const JobAttestationReport: React.FC = () => {
               <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
                 {/* Escrow Amount */}
                 <div className="bg-white/80 border border-slate-200 rounded-xl p-2.5 space-y-0.5">
-                  <div className="flex items-center gap-1.5 text-blue-600">
-                    <Coins size={14} />
+                  <div className="flex items-center gap-1.5 text-[#0047AB]">
+                    <TokenIcon token={job?.paymentTokenSymbol || 'USDC'} size={14} />
                     <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold font-mono">
                       ESCROW AMOUNT
                     </span>
                   </div>
                   <div className="font-black text-slate-900 text-sm sm:text-base font-headline">
-                    ${amountUsdc.toFixed(2)} USDC
+                    ${amountUsdc.toFixed(2)} {job?.paymentTokenSymbol || 'USDC'}
                   </div>
                   <div className="text-[9px] text-slate-500 font-medium">
                     Released to Talent
@@ -1421,7 +1384,7 @@ export const JobAttestationReport: React.FC = () => {
 
                 {/* Escrow Contract */}
                 <div className="bg-white/80 border border-slate-200 rounded-xl p-2.5 space-y-0.5">
-                  <div className="flex items-center gap-1.5 text-purple-600">
+                  <div className="flex items-center gap-1.5 text-[#0047AB]">
                     <Lock size={14} />
                     <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold font-mono">
                       ESCROW CONTRACT
@@ -1431,8 +1394,8 @@ export const JobAttestationReport: React.FC = () => {
                     {truncateAddress(contractAddress)}
                   </div>
                   <div>
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8.5px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                      <Hexagon size={8} className="fill-purple-300" />
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8.5px] font-mono font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                      <PolygonIcon size={10} className="text-[#7B3FE4]" />
                       Polygon PoS
                     </span>
                   </div>
@@ -1540,8 +1503,8 @@ export const JobAttestationReport: React.FC = () => {
                       <span className="text-[7.5px] uppercase tracking-wider text-slate-400 font-bold block">
                         NETWORK
                       </span>
-                      <span className="font-bold text-purple-700 flex items-center gap-1">
-                        <Hexagon size={9} className="text-purple-600 fill-purple-100" />
+                      <span className="font-bold text-slate-800 flex items-center gap-1">
+                        <PolygonIcon size={11} className="text-[#7B3FE4]" />
                         Polygon PoS (137)
                       </span>
                     </div>
@@ -1578,7 +1541,7 @@ export const JobAttestationReport: React.FC = () => {
                       className="h-10 sm:h-11 w-auto max-w-[190px] sm:max-w-[220px] object-contain mix-blend-multiply drop-shadow-2xs" 
                     />
                   </div>
-                  <div className="font-bold text-xs sm:text-[13px] text-[#0F172A] leading-tight font-headline">
+                  <div className="font-bold text-xs sm:text-[13px] text-[#0B0B0C] leading-tight font-headline">
                     PolyLance Oracle Network
                   </div>
                   <div className="text-[8px] font-mono tracking-[0.2em] text-slate-500 uppercase font-bold">
@@ -1603,7 +1566,7 @@ export const JobAttestationReport: React.FC = () => {
                         shapeRendering="crispEdges"
                       >
                         {barcodeData.bars.map((bar, i) => (
-                          <rect key={i} x={bar.x} y={0} width={bar.width} height={32} fill="#0F172A" shapeRendering="crispEdges" />
+                          <rect key={i} x={bar.x} y={0} width={bar.width} height={32} fill="#0B0B0C" shapeRendering="crispEdges" />
                         ))}
                       </svg>
                       <div className="flex items-center justify-center gap-1.5 text-[8px] font-mono text-slate-600 font-bold mt-0.5 tracking-wider">

@@ -20,6 +20,7 @@ import { RaiseDisputeModal } from './RaiseDisputeModal';
 import { FormattedJobDescription } from './FormattedJobDescription';
 import { PaymentReleasedModal } from './PaymentReleasedModal';
 import { scrollToSection } from '../utils/scroll';
+import { TokenIcon } from './TokenIcon';
 
 interface DeliverableWorkSubmissionPanelProps {
   job: Job;
@@ -29,28 +30,6 @@ interface DeliverableWorkSubmissionPanelProps {
 const ChecklistIllustration = () => (
   <div className="relative w-24 h-20 flex items-center justify-center shrink-0 select-none">
     <svg width="100%" height="100%" viewBox="0 0 160 115" fill="none" xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
-      <defs>
-        <linearGradient id="clipBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="100%" stopColor="#F8FAFC" />
-        </linearGradient>
-        <linearGradient id="clipBorderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#BFDBFE" />
-          <stop offset="100%" stopColor="#60A5FA" />
-        </linearGradient>
-        <linearGradient id="cubeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FDE68A" />
-          <stop offset="100%" stopColor="#F59E0B" />
-        </linearGradient>
-        <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#3B82F6" />
-          <stop offset="100%" stopColor="#1D4ED8" />
-        </linearGradient>
-        <filter id="shadow3D" x="-10%" y="-10%" width="130%" height="130%">
-          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#1E3A8A" floodOpacity="0.10" />
-        </filter>
-      </defs>
-
       {/* Floating Golden 3D Cube */}
       <g transform="translate(118, 12) rotate(16)">
         <polygon points="10,0 20,5 20,16 10,11" fill="#FBBF24" />
@@ -67,26 +46,26 @@ const ChecklistIllustration = () => (
       <path d="M28 18 L29.5 22 L33.5 23.5 L29.5 25 L28 29 L26.5 25 L22.5 23.5 L26.5 22 Z" fill="#60A5FA" opacity="0.75" />
 
       {/* Main Clipboard Container */}
-      <g filter="url(#shadow3D)">
-        <rect x="42" y="8" width="68" height="90" rx="14" fill="url(#clipBodyGrad)" stroke="url(#clipBorderGrad)" strokeWidth="2.5" />
-        <rect x="62" y="3" width="28" height="10" rx="5" fill="#3B82F6" />
+      <g>
+        <rect x="42" y="8" width="68" height="90" rx="14" fill="#FFFFFF" stroke="#93C5FD" strokeWidth="2.5" />
+        <rect x="62" y="3" width="28" height="10" rx="5" fill="#0047AB" />
         <circle cx="76" cy="8" r="2.5" fill="#DBEAFE" />
 
-        <rect x="52" y="24" width="10" height="10" rx="3" fill="#38BDF8" />
+        <rect x="52" y="24" width="10" height="10" rx="3" fill="#0047AB" />
         <path d="M54.5 29 L56.5 31 L60 26.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         <rect x="66" y="27" width="34" height="4" rx="2" fill="#BAE6FD" />
 
-        <rect x="52" y="42" width="10" height="10" rx="3" fill="#38BDF8" />
+        <rect x="52" y="42" width="10" height="10" rx="3" fill="#0047AB" />
         <path d="M54.5 47 L56.5 49 L60 44.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         <rect x="66" y="45" width="30" height="4" rx="2" fill="#BAE6FD" />
 
-        <rect x="52" y="60" width="10" height="10" rx="3" fill="#38BDF8" />
+        <rect x="52" y="60" width="10" height="10" rx="3" fill="#0047AB" />
         <path d="M54.5 65 L56.5 67 L60 62.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         <rect x="66" y="63" width="24" height="4" rx="2" fill="#BAE6FD" />
       </g>
 
       {/* 3D Green Check Shield */}
-      <g transform="translate(90, 58)" filter="url(#shadow3D)">
+      <g transform="translate(90, 58)">
         <path d="M16 0 C25 0 30 4 30 14 C30 26 18 33 16 35 C14 33 2 26 2 14 C2 4 7 0 16 0 Z" fill="#10B981" />
         <path d="M16 3 C23 3 27 6 27 14 C27 24 17 30 16 32 C15 30 5 24 5 14 C5 6 9 3 16 3 Z" fill="#34D399" opacity="0.3" />
         <path d="M11 16 L14.5 19.5 L21.5 12.5" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -99,34 +78,15 @@ const ChecklistIllustration = () => (
 const CompactClockIllustration = () => (
   <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
     <svg width="100%" height="100%" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg" className="select-none">
-      <defs>
-        <radialGradient id="clockOuterGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#FEF3C7" stopOpacity="0.8" />
-          <stop offset="100%" stopColor="#FEF3C7" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="clockRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FDE68A" />
-          <stop offset="50%" stopColor="#F59E0B" />
-          <stop offset="100%" stopColor="#D97706" />
-        </linearGradient>
-        <linearGradient id="clockInnerBevel" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#B45309" />
-          <stop offset="100%" stopColor="#FBBF24" />
-        </linearGradient>
-        <filter id="clockShadow" x="-15%" y="-15%" width="130%" height="130%">
-          <feDropShadow dx="0" dy="5" stdDeviation="6" floodColor="#D97706" floodOpacity="0.2" />
-        </filter>
-      </defs>
-
-      <circle cx="75" cy="75" r="65" fill="url(#clockOuterGlow)" />
+      <circle cx="75" cy="75" r="65" fill="#FEF3C7" opacity="0.6" />
       <circle cx="75" cy="75" r="58" stroke="#FDE68A" strokeWidth="1.5" strokeDasharray="3 6" opacity="0.85" />
       <path d="M28 32 L30 35 L33 37 L30 39 L28 42 L26 39 L23 37 L26 35 Z" fill="#38BDF8" />
-      <path d="M122 28 L123.5 31 L126.5 32.5 L123.5 34 L122 37 L120.5 34 L117.5 32.5 L120.5 31 Z" fill="#3B82F6" />
+      <path d="M122 28 L123.5 31 L126.5 32.5 L123.5 34 L122 37 L120.5 34 L117.5 32.5 L120.5 31 Z" fill="#0047AB" />
       <path d="M132 94 L133.5 96.5 L136 98 L133.5 99.5 L132 102 L130.5 99.5 L128 98 L130.5 96.5 Z" fill="#F59E0B" />
       <path d="M34 114 L35.5 116.5 L38 118 L35.5 119.5 L34 122 L32.5 119.5 L30 118 L32.5 116.5 Z" fill="#10B981" />
 
-      <g filter="url(#clockShadow)">
-        <circle cx="75" cy="75" r="41" fill="url(#clockRingGrad)" stroke="url(#clockInnerBevel)" strokeWidth="3" />
+      <g>
+        <circle cx="75" cy="75" r="41" fill="#F59E0B" stroke="#B45309" strokeWidth="3" />
         <circle cx="75" cy="75" r="31" fill="#FFFDF8" stroke="#FEF3C7" strokeWidth="2" />
         <circle cx="75" cy="48" r="1.5" fill="#D97706" />
         <circle cx="102" cy="75" r="1.5" fill="#D97706" />
@@ -143,17 +103,11 @@ const CompactClockIllustration = () => (
 /* Compact 3D Mailbox for Client View */
 const CompactMailboxIllustration = () => (
   <svg width="48" height="32" viewBox="0 0 80 54" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 select-none">
-    <defs>
-      <linearGradient id="mailBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#3B82F6" />
-        <stop offset="100%" stopColor="#1D4ED8" />
-      </linearGradient>
-    </defs>
     <ellipse cx="68" cy="47" rx="9" ry="5" fill="#10B981" />
     <ellipse cx="72" cy="43" rx="6" ry="7" fill="#34D399" />
     <rect x="47" y="29" width="6" height="25" rx="2" fill="#64748B" />
-    <rect x="32" y="9" width="34" height="24" rx="12" fill="url(#mailBodyGrad)" />
-    <circle cx="66" cy="21" r="12" fill="#2563EB" />
+    <rect x="32" y="9" width="34" height="24" rx="12" fill="#0047AB" />
+    <circle cx="66" cy="21" r="12" fill="#003882" />
     <rect x="45" y="3" width="3" height="12" rx="1.5" fill="#EF4444" />
     <rect x="45" y="3" width="10" height="6" rx="1" fill="#EF4444" />
     <circle cx="46.5" cy="15" r="2" fill="#B91C1C" />
@@ -631,9 +585,9 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         subtitle: currentJob.proof.description || 'Deliverables & IPFS Proof uploaded for client review.',
         statusPill: {
           text: currentJob.status === 'Completed' ? 'Approved & Paid' : 'Under Review',
-          pillClass: currentJob.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-purple-50 text-purple-700 border border-purple-200',
+          pillClass: currentJob.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-800 border border-slate-300',
           showCheck: currentJob.status === 'Completed',
-          dotClass: currentJob.status === 'Completed' ? undefined : 'bg-purple-600',
+          dotClass: currentJob.status === 'Completed' ? undefined : 'bg-[#0047AB]',
         },
         icon: <FileText size={13} />,
         demoUrl: currentJob.proof.externalLink,
@@ -745,11 +699,11 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               currentJob.status === 'Completed'
                 ? 'bg-emerald-100/70 text-emerald-800 border border-emerald-200'
                 : currentJob.status === 'Submitted'
-                ? 'bg-purple-100 text-purple-900 border border-purple-300 shadow-2xs'
+                ? 'bg-slate-100 text-slate-900 border border-slate-300 shadow-2xs'
                 : 'bg-amber-50 text-amber-700 border border-amber-200'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${
-                currentJob.status === 'Completed' ? 'bg-emerald-500' : currentJob.status === 'Submitted' ? 'bg-purple-600 animate-pulse' : 'bg-amber-500 animate-pulse'
+                currentJob.status === 'Completed' ? 'bg-emerald-500' : currentJob.status === 'Submitted' ? 'bg-[#0047AB] animate-pulse' : 'bg-amber-500 animate-pulse'
               }`} />
               {currentJob.status === 'Completed' 
                 ? 'COMPLETED / SETTLED' 
@@ -777,7 +731,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           <button
             type="button"
             onClick={() => navigate(`/chat?jobId=${currentJob.id}`)}
-            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs hover:shadow transition-all cursor-pointer shrink-0 active:scale-95 w-full sm:w-auto"
+            className="px-3.5 py-2 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs hover:shadow transition-all cursor-pointer shrink-0 active:scale-95 w-full sm:w-auto"
           >
             <MessageSquare size={13} />
             <span>Open Messages Hub</span>
@@ -819,7 +773,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               "{currentJob.dispute?.evidenceText || 'Case file awaiting Decentralized Court decision.'}"
             </p>
             {currentJob.dispute?.evidenceIpfsHash && (
-              <div className="pt-1.5 flex items-center gap-1.5 font-mono text-[11px] text-purple-700">
+              <div className="pt-1.5 flex items-center gap-1.5 font-mono text-[11px] text-[#0047AB]">
                 <FileText size={12} />
                 <span>Evidence IPFS CID: <strong>{currentJob.dispute.evidenceIpfsHash}</strong></span>
               </div>
@@ -834,19 +788,18 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       {currentJob.status === 'Completed' ? (
         <div className="space-y-4 animate-fadeIn">
           {/* COMPLETED JOB SBT ATTESTATION BANNER (COMPACT, PROPORTIONAL & RESPONSIVE) */}
-          <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white border border-purple-500/30 shadow-xs relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/15 rounded-full blur-3xl pointer-events-none -mr-12 -mt-12" />
+          <div className="p-3 sm:p-4 rounded-2xl bg-[#0B0B0C] text-white border border-slate-800 shadow-xs relative overflow-hidden">
             <div className="relative z-10 flex flex-col gap-2.5">
               <div className="flex items-start gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-400/30 text-purple-300 flex items-center justify-center shadow-inner shrink-0 mt-0.5">
-                  <Award size={15} className="text-purple-300" />
+                <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 text-[#0047AB] flex items-center justify-center shadow-inner shrink-0 mt-0.5">
+                  <Award size={15} className="text-[#0047AB]" />
                 </div>
                 <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
                       ● Escrow Settled
                     </span>
-                    <span className="text-[9.5px] text-purple-200/70 font-mono shrink-0">ERC-5192 SBT</span>
+                    <span className="text-[9.5px] text-slate-400 font-mono shrink-0">ERC-5192 SBT</span>
                     
                     {/* Canonical Certificate ID Badge with click-to-copy */}
                     {(() => {
@@ -856,13 +809,13 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                           type="button"
                           onClick={handleCopySbtCertId}
                           title="Click to copy Certificate ID"
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-900/60 hover:bg-purple-800/80 border border-purple-400/40 text-[9px] font-mono font-bold text-purple-200 hover:text-white transition-colors cursor-pointer max-w-[160px] sm:max-w-xs truncate"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-[9px] font-mono font-bold text-slate-300 hover:text-white transition-colors cursor-pointer max-w-[160px] sm:max-w-xs truncate"
                         >
                           <span className="truncate">{certId}</span>
                           {copiedSbtCertId ? (
                             <CheckCheck size={10} className="text-emerald-400 shrink-0" />
                           ) : (
-                            <Copy size={9} className="text-purple-300 shrink-0" />
+                            <Copy size={9} className="text-slate-400 shrink-0" />
                           )}
                         </button>
                       );
@@ -872,14 +825,14 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   <h3 className="font-headline font-bold text-sm sm:text-base text-white tracking-tight">
                     Official Soulbound Token (SBT) Issued
                   </h3>
-                  <p className="text-[11px] text-purple-200/80 font-sans leading-snug line-clamp-2">
+                  <p className="text-[11px] text-slate-300 font-sans leading-snug line-clamp-2">
                     On-chain proof of work minted to Polygon PoS. Verify and share this cryptographic milestone attestation.
                   </p>
                 </div>
               </div>
 
               {/* Compact Action Buttons Group */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-purple-800/40 w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800 w-full">
                 <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
                   {(() => {
                     const certId = getCanonicalCertificateId(currentJob.id, currentJob.contractAddress);
@@ -890,7 +843,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                           type="button"
                           onClick={handleCopySbtCertId}
                           title="Copy Certificate ID"
-                          className="px-2.5 py-1.5 rounded-lg bg-purple-900/60 hover:bg-purple-800 text-purple-200 hover:text-white border border-purple-400/30 text-[11px] font-bold font-mono flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
+                          className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white border border-white/20 text-[11px] font-bold font-mono flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
                         >
                           {copiedSbtCertId ? <CheckCheck size={11} className="text-emerald-400 shrink-0" /> : <Copy size={11} className="shrink-0" />}
                           <span className="truncate">{copiedSbtCertId ? 'Copied!' : 'Copy ID'}</span>
@@ -924,7 +877,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   <button
                     type="button"
                     onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
-                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto shrink-0"
+                    className="px-3 py-1.5 rounded-lg bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto shrink-0"
                   >
                     <Award size={13} />
                     <span>View Certificate</span>
@@ -937,7 +890,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
 
           {/* Final Submitted Deliverables & Proof of Work Card */}
-          <div className="bg-white border border-purple-200/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-sm space-y-3.5 sm:space-y-5">
+          <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-sm space-y-3.5 sm:space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-slate-100 pb-3 sm:pb-4">
               <div className="flex items-center gap-2.5 sm:gap-3">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold shrink-0">
@@ -965,7 +918,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     href={currentJob.proof.externalLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-extrabold text-[11px] sm:text-xs border border-purple-200 flex items-center gap-1.5 transition-all shadow-2xs"
+                    className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-[11px] sm:text-xs border border-slate-300 flex items-center gap-1.5 transition-all shadow-2xs"
                   >
                     <ExternalLink size={12} />
                     <span>Open Deliverable / PR</span>
@@ -996,10 +949,10 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   {currentJob.proof.evidenceFiles.map((file: DeliverableFile, idx: number) => (
                     <div 
                       key={idx} 
-                      className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/90 flex items-center justify-between gap-2.5 sm:gap-3 shadow-2xs hover:border-purple-300 hover:shadow-xs transition-all"
+                      className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/90 flex items-center justify-between gap-2.5 sm:gap-3 shadow-2xs hover:border-slate-400 hover:shadow-xs transition-all"
                     >
                       <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
                           <FileText size={16} className="sm:hidden" />
                           <FileText size={18} className="hidden sm:block" />
                         </div>
@@ -1010,7 +963,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                           <span className="text-[10px] sm:text-[10.5px] font-mono text-slate-500 flex items-center gap-1.5 whitespace-nowrap mt-0.5">
                             <span>{(file.size / 1024).toFixed(1)} KB</span>
                             <span>•</span>
-                            <span className="text-[9px] sm:text-[9.5px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200/60">
+                            <span className="text-[9px] sm:text-[9.5px] font-bold text-[#0047AB] bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
                               IPFS
                             </span>
                           </span>
@@ -1019,7 +972,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                       <button
                         type="button"
                         onClick={() => openOrDownloadIpfsFile(file.cid, file.name)}
-                        className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-extrabold text-[11px] sm:text-xs flex items-center gap-1 shadow-2xs transition-all cursor-pointer shrink-0 active:scale-95"
+                        className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-[#0047AB] font-extrabold text-[11px] sm:text-xs flex items-center gap-1 shadow-2xs transition-all cursor-pointer shrink-0 active:scale-95"
                       >
                         <Download size={12} />
                         <span>Download</span>
@@ -1031,7 +984,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             )}
 
             {/* Escrow Settlement Financial Breakdown */}
-            <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-200 space-y-2.5 sm:space-y-3">
+            <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2.5 sm:space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-emerald-200/70 pb-2">
                 <span className="font-mono text-[10px] sm:text-[11px] font-bold uppercase text-emerald-900 flex items-center gap-1.5">
                   <CheckCircle2 size={13} className="text-emerald-600" />
@@ -1068,7 +1021,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           <div className="lg:col-span-8 space-y-4">
             {/* Prominent Client Modification Request Alert Box for Freelancer */}
             {latestModificationRequest && (
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50/60 to-amber-50 border-2 border-amber-300 shadow-xs space-y-2.5 animate-fadeIn">
+              <div className="p-4 rounded-2xl bg-amber-50/80 border-2 border-amber-300 shadow-xs space-y-2.5 animate-fadeIn">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-amber-200/80 pb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
@@ -1105,8 +1058,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
             {/* Gating for Selection Phase / Awaiting Escrow Funding */}
             {currentJob.status === 'Selected' ? (
-              <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50/40 to-slate-50 border-2 border-purple-200 shadow-xs text-center space-y-2.5">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto shadow-2xs">
+              <div className="p-6 rounded-2xl bg-slate-50 border-2 border-slate-200 shadow-xs text-center space-y-2.5">
+                <div className="w-12 h-12 rounded-xl bg-slate-100 text-[#0047AB] flex items-center justify-center mx-auto shadow-2xs">
                   <Clock size={24} />
                 </div>
                 <h4 className="font-headline font-bold text-slate-900 text-sm">Escrow Funding in Progress</h4>
@@ -1118,27 +1071,27 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               <>
                 {/* Submitted Deliverables Card (Awaiting Client Review) */}
                 {(currentJob.status === 'Submitted' || Boolean(currentJob.proof)) && !latestModificationRequest ? (
-                  <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50/40 to-slate-50 border-2 border-purple-300/80 text-xs space-y-3.5 shadow-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200/80 pb-2.5">
+                  <div className="p-5 rounded-2xl bg-slate-50 border-2 border-slate-300 text-xs space-y-3.5 shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
                           <CheckCircle2 size={15} className="text-white" />
                         </div>
                         <div>
-                          <span className="font-extrabold text-purple-950 text-xs sm:text-sm block">
+                          <span className="font-extrabold text-slate-900 text-xs sm:text-sm block">
                             Deliverables Submitted • Under Client Review
                           </span>
-                          <span className="text-[10px] text-purple-700 font-mono">
+                          <span className="text-[10px] text-[#0047AB] font-mono">
                             Escrow milestone is locked & awaiting client payout release
                           </span>
                         </div>
                       </div>
-                      <span className="text-purple-800 font-mono text-[10px] bg-purple-100/90 px-2.5 py-1 rounded-full border border-purple-200 font-bold">
+                      <span className="text-slate-800 font-mono text-[10px] bg-slate-100 px-2.5 py-1 rounded-full border border-slate-300 font-bold">
                         Submitted: {new Date(currentJob.proof?.submittedAt || currentJob.submittedAt || Date.now()).toLocaleDateString()}
                       </span>
                     </div>
 
-                    <div className="space-y-1 bg-white p-3.5 rounded-xl border border-purple-100/90">
+                    <div className="space-y-1 bg-white p-3.5 rounded-xl border border-slate-200">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Deliverable Title:</span>
                       <strong className="text-slate-900 text-xs sm:text-sm block font-headline">
                         {currentJob.proof?.title || currentJob.title || 'Milestone Deliverables'}
@@ -1149,14 +1102,14 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     </div>
 
                     {currentJob.proof?.externalLink && (
-                      <div className="flex items-center justify-between gap-2 text-xs font-mono text-purple-800 bg-white p-2.5 rounded-xl border border-purple-100">
+                      <div className="flex items-center justify-between gap-2 text-xs font-mono text-slate-800 bg-white p-2.5 rounded-xl border border-slate-200">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Link2 size={13} className="text-purple-600 shrink-0" />
+                          <Link2 size={13} className="text-[#0047AB] shrink-0" />
                           <a href={currentJob.proof.externalLink} target="_blank" rel="noopener noreferrer" className="hover:underline truncate font-bold">
                             {currentJob.proof.externalLink}
                           </a>
                         </div>
-                        <ExternalLink size={12} className="text-purple-500 shrink-0" />
+                        <ExternalLink size={12} className="text-[#0047AB] shrink-0" />
                       </div>
                     )}
 
@@ -1172,9 +1125,9 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                               key={idx}
                               type="button"
                               onClick={() => openOrDownloadIpfsFile(file.cid, file.name)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-purple-50 border border-purple-200 text-slate-800 text-[11px] font-medium shadow-2xs transition-all cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[11px] font-medium shadow-2xs transition-all cursor-pointer"
                             >
-                              <FileText size={12} className="text-purple-600" />
+                              <FileText size={12} className="text-[#0047AB]" />
                               <span className="truncate max-w-[160px] font-bold">{file.name}</span>
                               <Download size={11} className="text-slate-400" />
                             </button>
@@ -1183,7 +1136,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                       </div>
                     )}
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-purple-200/80 text-[11px]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-200 text-[11px]">
                       <span className="text-slate-500 font-medium">
                         Waiting for client inspection. Upon client approval, official ERC-5192 Soulbound Token will be issued.
                       </span>
@@ -1191,7 +1144,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                         <button
                           type="button"
                           onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] shadow-2xs transition-all cursor-pointer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-[11px] shadow-2xs transition-all cursor-pointer"
                         >
                           <Award size={12} />
                           <span>View Attestation</span>
@@ -1199,7 +1152,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                         <button
                           type="button"
                           onClick={() => setShowUpdateForm(!showUpdateForm)}
-                          className="text-purple-700 hover:text-purple-900 font-bold underline cursor-pointer text-xs"
+                          className="text-[#0047AB] hover:text-[#003882] font-bold underline cursor-pointer text-xs"
                         >
                           {showUpdateForm ? 'Hide Uploader' : 'Update / Re-submit'}
                         </button>
@@ -1222,8 +1175,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-3.5">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center shrink-0">
-                    <Sparkles size={14} className="text-purple-600" />
+                  <div className="w-7 h-7 rounded-xl bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center shrink-0">
+                    <Sparkles size={14} className="text-[#0047AB]" />
                   </div>
                   <div>
                     <h4 className="font-bold text-xs text-slate-900 leading-tight">Project Coordination</h4>
@@ -1241,13 +1194,13 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   if (counterpart) params.set('applicant', counterpart);
                   navigate(`/chat?${params.toString()}`);
                 }}
-                className="w-full py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-bold flex items-center justify-between transition-all cursor-pointer shadow-2xs group"
+                className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold flex items-center justify-between transition-all cursor-pointer shadow-2xs group"
               >
                 <div className="flex items-center gap-2">
-                  <MessageSquare size={14} className="text-purple-600" />
+                  <MessageSquare size={14} className="text-[#0047AB]" />
                   <span>Open Messages Hub</span>
                 </div>
-                <ChevronRight size={13} className="text-purple-400 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight size={13} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
               </button>
 
               {/* Side Quick Actions: Progress & Extension Drawer Toggles */}
@@ -1402,7 +1355,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           
           {/* APPLICANT OVERSIGHT NOTICE (FOR APPLICANTS NOT SELECTED OR AWAITING SELECTION) */}
           {isApplicant && !isAssignedFreelancer && (
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-blue-50 border border-blue-200 text-xs text-blue-900 flex items-center justify-between gap-3 shadow-2xs">
+            <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200 text-xs text-blue-900 flex items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
                   <UserCheck size={16} />
@@ -1468,8 +1421,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
             {/* Box 3: Funded Amount */}
             <div className="bg-white p-2 rounded-xl border border-black/15 shadow-2xs flex items-center gap-1.5 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
-                <DollarSign size={12} className="text-emerald-600" />
+              <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                <TokenIcon token={fundedAmount.symbol} size={14} />
               </div>
               <div className="min-w-0 flex-1">
                 <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-wide block truncate">
@@ -1485,8 +1438,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             {/* Box 4: Milestones (Real-Time Dynamic Progress) */}
             <div className="bg-white p-2 rounded-xl border border-black/15 shadow-2xs flex items-center justify-between gap-1 min-w-0">
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <div className="w-6 h-6 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
-                  <Flag size={12} className="text-purple-600" />
+                <div className="w-6 h-6 rounded-lg bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center shrink-0">
+                  <Flag size={12} className="text-[#0047AB]" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-wide block truncate">
@@ -1502,10 +1455,10 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           </div>
 
           {/* ASSIGNED FREELANCER IDENTITY & COLLABORATION CARD */}
-          <div className="bg-gradient-to-r from-purple-50/80 via-indigo-50/40 to-slate-50 border border-purple-200/90 rounded-2xl p-4 shadow-xs">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-xs">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-headline font-black text-lg flex items-center justify-center shadow-sm shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-[#0B0B0C] text-white font-headline font-black text-lg flex items-center justify-center shadow-sm shrink-0">
                   {freelancerProfile?.avatarUrl ? (
                     <img src={freelancerProfile.avatarUrl} alt={freelancerDisplayName} className="w-full h-full object-cover rounded-2xl" />
                   ) : (
@@ -1517,7 +1470,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     <h4 className="font-headline font-black text-sm sm:text-base text-slate-900 truncate">
                       {freelancerDisplayName}
                     </h4>
-                    <span className="text-[9.5px] font-mono font-bold uppercase text-purple-900 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200 shrink-0">
+                    <span className="text-[9.5px] font-mono font-bold uppercase text-slate-900 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-300 shrink-0">
                       ● Assigned Talent
                     </span>
                     {freelancerProfile?.githubVerified && (
@@ -1547,7 +1500,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     if (freelancerAddr) params.set('applicant', freelancerAddr);
                     navigate(`/chat?${params.toString()}`);
                   }}
-                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+                  className="px-3.5 py-2 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
                 >
                   <MessageSquare size={13} />
                   <span>Chat with Talent</span>
@@ -1569,7 +1522,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
               <div className="space-y-0.5">
-                <span className="text-[10px] font-mono font-bold uppercase text-purple-700 tracking-wider">
+                <span className="text-[10px] font-mono font-bold uppercase text-slate-700 tracking-wider">
                   Project Scope & Specifications
                 </span>
                 <h3 className="font-headline font-black text-base text-slate-900">
@@ -1594,7 +1547,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
           {/* LIVE PROGRESS STATUS & MILESTONE TRACKER */}
           {latestProgressUpdate && (
-            <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-white border border-blue-200 rounded-2xl p-4 shadow-xs space-y-2.5">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-xs space-y-2.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-200/70 pb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
@@ -1612,7 +1565,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               {/* Progress Bar */}
               <div className="w-full bg-blue-100 rounded-full h-2.5 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2.5 rounded-full transition-all duration-500"
+                  className="bg-[#0047AB] h-2.5 rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, Math.max(5, latestProgressUpdate.progressPercent || 75))}%` }}
                 />
               </div>
@@ -1647,7 +1600,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               {pendingExtensionRequests.map((req) => (
                 <div
                   key={req.id}
-                  className="bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/40 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3 relative overflow-hidden"
+                  className="bg-amber-50/80 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3 relative overflow-hidden"
                 >
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
                     <div className="flex items-center gap-3">
@@ -1710,7 +1663,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
           {/* Awaiting Freelancer Deliverables Showcase Card (CLIENT ONLY) */}
           {!currentJob.proof ? (
-            <div className="bg-gradient-to-br from-[#FFFDF7] via-[#FFFBEB]/50 to-[#FEF3C7]/30 border border-amber-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs relative overflow-hidden">
+            <div className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs relative overflow-hidden">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4">
                 <CompactClockIllustration />
                 <div className="space-y-0.5 text-center sm:text-left flex-1 min-w-0">
@@ -1726,7 +1679,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-blue-50/90 via-sky-50/70 to-indigo-50/50 border border-blue-200/80 rounded-xl p-2 px-3 flex items-center justify-between gap-2.5 mt-2.5 shadow-2xs">
+              <div className="bg-blue-50/80 border border-blue-200/80 rounded-xl p-2 px-3 flex items-center justify-between gap-2.5 mt-2.5 shadow-2xs">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-[9px] font-bold">
                     <Info size={10} className="text-white" />
@@ -1740,20 +1693,20 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             </div>
           ) : (
             /* Deliverable Review Card for Client */
-            <div className="p-4 rounded-2xl border border-purple-200 bg-purple-50/60 space-y-3">
+            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
               {/* Prominent Action Required Alert for Client */}
-              <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-indigo-500/15 border-2 border-purple-300 shadow-xs space-y-2">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-purple-200/80 pb-2">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-amber-50 border-2 border-amber-300 shadow-xs space-y-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-amber-200 pb-2">
                   <div className="flex items-center gap-2">
                     <span className="flex h-3 w-3 relative">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
                     </span>
-                    <span className="font-mono font-black text-[10px] sm:text-[11px] uppercase tracking-wider text-purple-950 bg-purple-200/90 px-2.5 py-0.5 rounded-full">
+                    <span className="font-mono font-black text-[10px] sm:text-[11px] uppercase tracking-wider text-amber-950 bg-amber-200/90 px-2.5 py-0.5 rounded-full">
                       Action Required • Review Work Deliverables
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-950 bg-white/90 px-2.5 py-1 rounded-xl border border-purple-200 shadow-2xs">
+                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-900 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
                     <Clock size={13} className={isReviewPeriodExpired ? "text-rose-600" : "text-amber-600"} />
                     <span>Review SLA: <strong className={isReviewPeriodExpired ? "text-rose-600" : "text-emerald-700"}>{reviewTimeRemainingStr}</strong></span>
                   </div>
@@ -1763,16 +1716,16 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200/80 pb-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
                 <div>
-                  <span className="text-[9px] font-mono font-bold uppercase text-purple-900 bg-purple-200/80 px-2 py-0.5 rounded-full">
+                  <span className="text-[9px] font-mono font-bold uppercase text-slate-900 bg-slate-100 px-2 py-0.5 rounded-full">
                     Deliverable Submitted
                   </span>
                   <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 font-heading mt-0.5">
                     {currentJob.proof.title}
                   </h3>
                 </div>
-                <span className="text-[11px] font-mono text-purple-900 font-bold">
+                <span className="text-[11px] font-mono text-slate-700 font-bold">
                   Submitted: {new Date(currentJob.proof.submittedAt).toLocaleDateString()}
                 </span>
               </div>
@@ -1783,16 +1736,16 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
               {/* Verified Project Deliverable Link / Demo Repo */}
               {currentJob.proof.externalLink && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 p-3 rounded-2xl bg-white border border-purple-200/90 shadow-2xs">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 p-3 rounded-2xl bg-white border border-slate-200 shadow-2xs">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-2xs">
+                    <div className="w-8 h-8 rounded-xl bg-slate-100 text-[#0047AB] flex items-center justify-center shrink-0 shadow-2xs">
                       <Link2 size={14} />
                     </div>
                     <div className="min-w-0">
                       <span className="text-[9.5px] font-bold text-slate-500 uppercase tracking-wider block">
                         Deliverable Project Repository / Demo URL
                       </span>
-                      <span className="font-mono text-purple-700 font-bold truncate block text-xs">
+                      <span className="font-mono text-[#0047AB] font-bold truncate block text-xs">
                         {currentJob.proof.externalLink}
                       </span>
                     </div>
@@ -1801,7 +1754,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     href={currentJob.proof.externalLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-[11.5px] shadow-xs cursor-pointer transition-all hover:scale-105 shrink-0 self-end sm:self-center"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-[11.5px] shadow-xs cursor-pointer transition-all hover:scale-105 shrink-0 self-end sm:self-center"
                   >
                     <span>Open Project Demo / Repo</span>
                     <ExternalLink size={12} />
@@ -1811,7 +1764,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
               {/* Attached Deliverable Files (Real IPFS Resolution & File Previews) */}
               <div className="space-y-2 pt-1 font-sans">
-                <span className="text-[10.5px] font-bold text-purple-950 uppercase tracking-wide block">
+                <span className="text-[10.5px] font-bold text-slate-900 uppercase tracking-wide block">
                   Attached Deliverable Files ({currentJob.proof.evidenceHashes.length})
                 </span>
                 
@@ -1885,7 +1838,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     return (
                       <div
                         key={idx}
-                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 bg-white p-2.5 sm:p-3 rounded-2xl border border-purple-200/90 shadow-2xs"
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200 shadow-2xs"
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           <div
@@ -1898,7 +1851,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                                 ? 'bg-rose-50 text-rose-600 border border-rose-200'
                                 : isZip
                                 ? 'bg-amber-50 text-amber-600 border border-amber-200'
-                                : 'bg-purple-50 text-purple-600 border border-purple-200'
+                                : 'bg-slate-100 text-[#0047AB] border border-slate-200'
                             }`}
                           >
                             {isImage ? (
@@ -1924,7 +1877,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                                   ({fileSizeStr})
                                 </span>
                               )}
-                              <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-purple-100/70 text-purple-800">
+                              <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-slate-100 text-slate-800">
                                 {isImage
                                   ? 'IMAGE'
                                   : isExcel
@@ -1936,7 +1889,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                                   : 'FILE'}
                               </span>
                             </div>
-                            <span className="text-[9.5px] font-mono text-purple-700/80 truncate block mt-0.5">
+                            <span className="text-[9.5px] font-mono text-slate-500 truncate block mt-0.5">
                               CID: {cleanCid}
                             </span>
                           </div>
@@ -1946,15 +1899,15 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                           <button
                             type="button"
                             onClick={() => setPreviewFile(cached!)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-[11px] cursor-pointer transition-all hover:scale-105 shadow-2xs"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 font-bold text-[11px] cursor-pointer transition-all hover:scale-105 shadow-2xs"
                           >
-                            <Eye size={12} className="text-purple-700" />
+                            <Eye size={12} className="text-[#0047AB]" />
                             <span>Preview</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => openOrDownloadIpfsFile(cleanCid, fileName)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] shadow-xs cursor-pointer transition-all hover:scale-105"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-[11px] shadow-xs cursor-pointer transition-all hover:scale-105"
                           >
                             <Download size={12} className="text-white" />
                             <span>Download</span>
@@ -1972,14 +1925,14 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 const netDevPayout = grossAmount - maintFeeAmount;
 
                 return (
-                  <div className="pt-2.5 border-t border-purple-200 space-y-2.5 font-sans">
-                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-purple-100/70 border border-purple-200 text-xs font-mono">
+                  <div className="pt-2.5 border-t border-slate-200 space-y-2.5 font-sans">
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono">
                       <div className="flex items-center gap-3">
                         <span className="text-slate-600">Escrow Release: <strong className="text-slate-900">{formatAmountWithToken(grossAmount)}</strong></span>
                         <span className="text-slate-400">|</span>
                         <span className="text-slate-600">Platform Maintenance Fee (2.5%): <strong className="text-rose-600">-{formatAmountWithToken(maintFeeAmount)}</strong></span>
                       </div>
-                      <div className="text-purple-950 font-bold">
+                      <div className="text-slate-900 font-bold">
                         <span>Net Sent to Talent: </span>
                         <strong className="text-emerald-700 text-sm font-black">{formatAmountWithToken(netDevPayout)}</strong>
                       </div>
@@ -2025,11 +1978,11 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <div className="p-3 rounded-xl bg-purple-50/80 border border-purple-200 text-xs text-purple-900 flex flex-wrap items-center justify-between gap-2">
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <Info size={14} className="text-purple-600 shrink-0" />
+                            <Info size={14} className="text-[#0047AB] shrink-0" />
                             <span>
-                              Deliverables are under client review (Review SLA: {reviewPeriodDays} Days • <strong className={isReviewPeriodExpired ? "text-rose-600" : "text-purple-950"}>{reviewTimeRemainingStr}</strong>).
+                              Deliverables are under client review (Review SLA: {reviewPeriodDays} Days • <strong className={isReviewPeriodExpired ? "text-rose-600" : "text-slate-900"}>{reviewTimeRemainingStr}</strong>).
                               {isReviewPeriodExpired 
                                 ? ' The review period has elapsed. You can now claim autonomous auto-release directly to your wallet.'
                                 : ' If the client does not take action or request revisions before the deadline, you can claim autonomous auto-release.'}
@@ -2043,7 +1996,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                               !isReviewPeriodExpired
                                 ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
                                 : isClaimingAutoRelease
-                                ? 'bg-purple-200 text-purple-700 cursor-not-allowed'
+                                ? 'bg-slate-200 text-slate-600 cursor-not-allowed'
                                 : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer hover:scale-105'
                             }`}
                             title={
@@ -2227,7 +2180,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 }}
                 className="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-200 shadow-2xs hover:border-slate-300 transition-all inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
               >
-                <ArrowUpDown size={10} className="text-indigo-500 shrink-0" />
+                <ArrowUpDown size={10} className="text-[#0047AB] shrink-0" />
                 <span className="whitespace-nowrap">{sortOrder === 'latest' ? 'Newest First' : 'Oldest First'}</span>
                 <ChevronDown size={10} className={`text-slate-400 shrink-0 transition-transform ${isSortDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -2265,7 +2218,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             <div className="absolute top-2.5 bottom-2.5 w-[1.5px] bg-slate-200 z-0" />
             
             {displayedActivities.map((act, i) => {
-              const nodeBg = act.type === 'progress' ? 'bg-blue-600 ring-blue-100' : act.type === 'milestone' ? 'bg-emerald-500 ring-emerald-100' : act.type === 'extension' ? 'bg-purple-600 ring-purple-100' : 'bg-amber-500 ring-amber-100';
+              const nodeBg = act.type === 'progress' ? 'bg-blue-600 ring-blue-100' : act.type === 'milestone' ? 'bg-emerald-500 ring-emerald-100' : act.type === 'extension' ? 'bg-[#0047AB] ring-slate-100' : 'bg-amber-500 ring-amber-100';
               return (
                 <div key={`node-${act.id}-${i}`} className={`w-2.5 h-2.5 rounded-full ${nodeBg} border-2 border-white ring-2 z-10 shadow-2xs my-auto`} />
               );
@@ -2280,8 +2233,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               </div>
             ) : (
               displayedActivities.map((act) => {
-                const cardBg = act.type === 'progress' ? 'bg-[#F4F8FF] border-blue-200/90' : act.type === 'milestone' ? 'bg-[#F0FDF4] border-emerald-200/90' : act.type === 'extension' ? 'bg-purple-50/70 border-purple-200/90' : 'bg-[#FFFBEB]/70 border-amber-200/90';
-                const iconBg = act.type === 'progress' ? 'bg-blue-100/80 text-blue-700 border-blue-200' : act.type === 'milestone' ? 'bg-emerald-100/80 text-emerald-700 border-emerald-200' : act.type === 'extension' ? 'bg-purple-100/80 text-purple-700 border-purple-200' : 'bg-amber-100/80 text-amber-700 border-amber-200';
+                const cardBg = act.type === 'progress' ? 'bg-[#F4F8FF] border-blue-200/90' : act.type === 'milestone' ? 'bg-[#F0FDF4] border-emerald-200/90' : act.type === 'extension' ? 'bg-slate-50 border-slate-200' : 'bg-[#FFFBEB]/70 border-amber-200/90';
+                const iconBg = act.type === 'progress' ? 'bg-blue-100/80 text-blue-700 border-blue-200' : act.type === 'milestone' ? 'bg-emerald-100/80 text-emerald-700 border-emerald-200' : act.type === 'extension' ? 'bg-slate-100 text-[#0047AB] border-slate-200' : 'bg-amber-100/80 text-amber-700 border-amber-200';
 
                 return (
                   <div
@@ -2308,7 +2261,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                             href={act.demoUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-[8.5px] sm:text-[9px] shadow-2xs transition-all cursor-pointer shrink-0"
+                            className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg bg-[#0047AB] text-white font-bold text-[8.5px] sm:text-[9px] shadow-2xs transition-all cursor-pointer shrink-0"
                             title="Open Live Staging / Demo URL"
                           >
                             <span>Demo</span>
@@ -2381,14 +2334,14 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center shrink-0">
                   <FileText size={15} />
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-black text-slate-900 truncate">
                     {previewFile.name}
                   </h3>
-                  <span className="text-[10px] font-mono text-purple-700 truncate block">
+                  <span className="text-[10px] font-mono text-slate-600 truncate block">
                     CID: {previewFile.cid}
                   </span>
                 </div>
@@ -2398,7 +2351,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 <button
                   type="button"
                   onClick={() => openOrDownloadIpfsFile(previewFile.cid, previewFile.name)}
-                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-all hover:scale-105"
+                  className="px-3 py-1.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-all hover:scale-105"
                 >
                   <Download size={12} />
                   <span>Download</span>
@@ -2434,7 +2387,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 </div>
               ) : (
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 mx-auto flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-[#0047AB] mx-auto flex items-center justify-center">
                     <FileSpreadsheet size={24} />
                   </div>
                   <div>
@@ -2449,7 +2402,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   <button
                     type="button"
                     onClick={() => openOrDownloadIpfsFile(previewFile.cid, previewFile.name)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md cursor-pointer transition-all hover:scale-105"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-xs shadow-md cursor-pointer transition-all hover:scale-105"
                   >
                     <Download size={14} />
                     <span>Open / Download {previewFile.name}</span>

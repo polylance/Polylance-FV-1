@@ -11,6 +11,7 @@ import { getJobInactivityStatus } from '../utils/inactivity';
 import { staggerContainer, staggerItem, scrollReveal, transition } from '../lib/motion';
 import { NoSearchResultState } from '../components/UIStates';
 import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
+import { TokenIcon } from '../components/TokenIcon';
 
 export const FindJobs: React.FC = () => {
   const { currentRole } = useWeb3();
@@ -56,18 +57,18 @@ export const FindJobs: React.FC = () => {
       {...scrollReveal}
       className="space-y-8 py-6 max-w-6xl mx-auto"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-4 sm:pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#E2E6EC] pb-4 sm:pb-6 text-left">
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">
+            <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-[#0B0B0C]">
               Find Verifiable Escrow Jobs
             </h1>
-            <span className="text-[10px] sm:text-xs bg-purple-100 text-purple-900 border border-purple-200 px-2.5 py-0.5 rounded-full font-mono font-bold shrink-0 whitespace-nowrap">
+            <span className="text-[10px] sm:text-xs bg-[#E7EEF9] text-[#0047AB] border border-[#D0E0F7] px-2.5 py-0.5 rounded-[4px] font-mono font-bold shrink-0 whitespace-nowrap">
               CREDENTIAL-FIRST MARKETPLACE
             </span>
           </div>
-          <p className="text-xs text-slate-600 font-medium">
-            Browse active jobs with smart contract escrow deposits. Earn soulbound reputation tokens upon completion.
+          <p className="text-xs sm:text-sm text-[#4B5563] font-normal">
+            Browse active jobs with smart contract escrow deposits. Earn Soulbound reputation tokens upon completion.
           </p>
         </div>
 
@@ -75,7 +76,7 @@ export const FindJobs: React.FC = () => {
         {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') && (
           <Link
             to="/jobs/post"
-            className="gradient-btn-primary px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow self-start md:self-auto shrink-0"
+            className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-[8px] font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors self-start md:self-auto shrink-0 shadow-xs cursor-pointer"
           >
             <Briefcase size={14} />
             <span>Post a Job</span>
@@ -84,19 +85,19 @@ export const FindJobs: React.FC = () => {
       </div>
 
       {/* Filter Tabs & Search Bar */}
-      <div className="space-y-3">
+      <div className="space-y-3 text-left">
         <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
           {/* Search */}
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-3.5 top-2.5 text-slate-400" />
+          <label className="relative flex-1 flex items-center gap-2 bg-[#FFFFFF] border border-[#E2E6EC] focus-within:border-[#0047AB] rounded-[8px] px-3 py-2.5 transition-colors cursor-text">
+            <Search size={15} className="shrink-0 text-[#8892A0] pointer-events-none" />
             <input
               type="text"
               placeholder="Search by keywords (e.g. Solidity, Circom, React)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full glass-input !pl-9 !py-2 text-xs"
+              className="flex-1 min-w-0 bg-transparent text-[#0B0B0C] placeholder:text-[#8892A0] text-xs outline-none"
             />
-          </div>
+          </label>
 
           {/* Global Currency Conversion Dropdown for Freelancers */}
           <div className="flex items-center gap-1.5 shrink-0 min-w-[140px]">
@@ -118,13 +119,13 @@ export const FindJobs: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium border whitespace-nowrap transition-all text-left cursor-pointer shrink-0 ${isSelected
-                    ? 'bg-purple-100 border-purple-300 text-purple-950 font-bold shadow-xs'
-                    : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                className={`px-3 py-2 rounded-[8px] text-xs transition-colors text-left cursor-pointer shrink-0 border ${isSelected
+                    ? 'bg-[#E7EEF9] border-[#0047AB] text-[#0047AB] font-semibold'
+                    : 'bg-[#FFFFFF] border-[#E2E6EC] text-[#4B5563] hover:text-[#0B0B0C] hover:border-[#8892A0]'
                   }`}
               >
-                <div className="font-bold text-[11px] sm:text-xs">{cat.label}</div>
-                <div className="text-[9px] sm:text-[10px] text-slate-500 font-mono">{cat.sub}</div>
+                <div className="font-semibold text-[11px] sm:text-xs">{cat.label}</div>
+                <div className="text-[9px] sm:text-[10px] text-[#8892A0] font-mono">{cat.sub}</div>
               </button>
             );
           })}
@@ -165,11 +166,11 @@ export const FindJobs: React.FC = () => {
                 key={job.id}
                 variants={staggerItem}
                 onClick={() => navigate(`/jobs/${job.id}`)}
-                className="glass-panel p-4 sm:p-5 border-slate-200 hover:border-purple-300 bg-white flex flex-col justify-between space-y-3 group transition-all hard-shadow cursor-pointer premium-card overflow-hidden"
+                className="bg-[#FFFFFF] p-5 sm:p-6 border border-[#E2E6EC] hover:border-[#0047AB] rounded-[10px] flex flex-col justify-between space-y-3 group transition-colors shadow-[0_1px_2px_rgba(11,11,12,0.06)] cursor-pointer text-left"
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#4B5563] bg-[#F4F6F9] px-2 py-0.5 rounded-[4px] border border-[#E2E6EC]">
                       {job.category}
                     </span>
                     <span className={`badge-status badge-${job.status.toLowerCase()}`}>
@@ -179,47 +180,48 @@ export const FindJobs: React.FC = () => {
 
                   <div>
                     <h3
-                      className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-purple-700 font-heading transition-colors line-clamp-1"
+                      className="text-base sm:text-lg font-semibold text-[#0B0B0C] group-hover:text-[#0047AB] transition-colors line-clamp-1"
                     >
                       {job.title}
                     </h3>
-                    <p className="text-xs text-slate-600 line-clamp-2 mt-1 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-[#4B5563] line-clamp-2 mt-1 leading-relaxed">
                       {job.description}
                     </p>
                   </div>
 
-                  {/* Credential First Badges matching reference HTML */}
+                  {/* Credential First Badges */}
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5 font-mono text-[10px] sm:text-[11px]">
-                    <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                    <span className="bg-[#E3F3EA] text-[#1E8449] border border-[#B7E2CB] px-2 py-0.5 rounded-[4px] font-medium flex items-center gap-1">
                       <CheckCircle2 size={11} /> Verified Client
                     </span>
-                    <span className="bg-purple-50 text-purple-800 border border-purple-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
-                      <Clock size={10} className="text-purple-600" /> Posted {formatTimeAgo(job.createdAt || Date.now())}
+                    <span className="bg-[#F4F6F9] text-[#4B5563] border border-[#E2E6EC] px-2 py-0.5 rounded-[4px] font-medium flex items-center gap-1">
+                      <Clock size={10} className="text-[#0047AB]" /> Posted {formatTimeAgo(job.createdAt || Date.now())}
                     </span>
                     {getJobInactivityStatus(job).isReminderActive && (
-                      <span className="bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded font-bold flex items-center gap-1 animate-pulse">
+                      <span className="bg-[#FDF3DC] text-[#C2610C] border border-[#F6D896] px-2 py-0.5 rounded-[4px] font-medium flex items-center gap-1">
                         ⚠️ Inactive • Closes in {getJobInactivityStatus(job).daysRemaining}d
                       </span>
                     )}
-                    <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
-                      <Award size={11} className="text-purple-700" /> Req Score &gt; 700
+                    <span className="bg-[#F4F6F9] text-[#4B5563] border border-[#E2E6EC] px-2 py-0.5 rounded-[4px] font-medium flex items-center gap-1">
+                      <Award size={11} className="text-[#0047AB]" /> Req Score &gt; 700
                     </span>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                <div className="pt-3 border-t border-[#E2E6EC] flex items-center justify-between gap-2 text-xs">
                   <div className="min-w-0 flex-1">
-                    <span className="text-[9.5px] uppercase font-mono text-slate-400 font-bold block">Budget / Escrow</span>
-                    <div className="font-mono font-extrabold text-sm text-emerald-700 flex items-baseline flex-wrap gap-1">
+                    <span className="text-[9.5px] uppercase font-mono text-[#8892A0] font-semibold block">Budget / Escrow</span>
+                    <div className="font-mono font-bold text-sm text-[#0B0B0C] flex items-center flex-wrap gap-1.5">
+                      <TokenIcon token={payToken} size={15} />
                       <span>{payAmountNum.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-                      <span className="text-xs font-normal text-slate-500">{payToken}</span>
+                      <span className="text-xs font-normal text-[#4B5563]">{payToken}</span>
                       {isCrypto && (
-                        <span className="text-[10px] font-normal text-slate-400">
+                        <span className="text-[10px] font-normal text-[#8892A0]">
                           (≈ ${usdAmountNum.toFixed(2)} USDC)
                         </span>
                       )}
                     </div>
-                    <span className="text-[9.5px] text-purple-700 font-bold font-mono block truncate">
+                    <span className="text-[10px] text-[#0047AB] font-semibold font-mono block truncate pt-0.5">
                       {isCrypto
                         ? `Net: ${netToken.toFixed(dec)} ${payToken} (~$${netUsd.toFixed(2)} USDC, 2.5% fee)`
                         : `Net: $${netUsd.toFixed(2)} USDC (2.5% fee)`}
@@ -228,12 +230,12 @@ export const FindJobs: React.FC = () => {
 
                   <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     <div className="text-right">
-                      <span className="text-[9.5px] uppercase font-mono text-slate-400 font-bold block">Applicants</span>
-                      <span className="font-mono text-slate-700 font-bold text-xs">{job.applications.length} submitted</span>
+                      <span className="text-[9.5px] uppercase font-mono text-[#8892A0] font-semibold block">Applicants</span>
+                      <span className="font-mono text-[#0B0B0C] font-semibold text-xs">{job.applications.length} submitted</span>
                     </div>
 
                     <div
-                      className="w-8 h-8 rounded-xl bg-purple-50 group-hover:bg-purple-600 text-purple-700 group-hover:text-white transition-all shadow-2xs flex items-center justify-center shrink-0"
+                      className="w-8 h-8 rounded-[6px] bg-[#F4F6F9] border border-[#E2E6EC] group-hover:bg-[#0047AB] group-hover:border-[#0047AB] text-[#0B0B0C] group-hover:text-white transition-colors flex items-center justify-center shrink-0"
                     >
                       <ArrowRight size={14} />
                     </div>

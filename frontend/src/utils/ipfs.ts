@@ -14,56 +14,92 @@ export interface CachedIpfsFile {
 const memoryIpfsCache = new Map<string, CachedIpfsFile>();
 
 const FILEBASE_API_KEY = import.meta.env.VITE_FILEBASE_API_KEY;
+const PINATA_JWT = import.meta.env.VITE_PINATA_JWT;
 
 /**
- * Upload JSON payload directly to Filebase IPFS
+ * Upload JSON payload directly to IPFS (supports Pinata, Filebase, and deterministic local caching)
  */
 export async function pinJsonToFilebase(body: Record<string, any>, name: string = 'payload.json'): Promise<string> {
-  if (!FILEBASE_API_KEY) {
-    const fallbackCid = generateIpfsCid(body);
-    storeIpfsFile(fallbackCid, {
-      cid: fallbackCid,
-      name,
-      type: 'application/json',
-      size: JSON.stringify(body).length,
-      dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(body))}`,
-      uploadedAt: Date.now(),
-    });
-    return fallbackCid;
+  // 1. Try Pinata if JWT is configured
+  if (PINATA_JWT) {
+    try {
+      const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${PINATA_JWT}`,
+        },
+        body: JSON.stringify({
+          pinataContent: body,
+          pinataMetadata: { name },
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const cid = data.IpfsHash || data.cid;
+        if (cid) {
+          storeIpfsFile(cid, {
+            cid,
+            name,
+            type: 'application/json',
+            size: JSON.stringify(body).length,
+            dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(body))}`,
+            uploadedAt: Date.now(),
+          });
+          return cid;
+        }
+      }
+    } catch (err) {
+      console.warn('Pinata JSON upload notice:', err);
+    }
   }
 
-  try {
-    const blob = new Blob([JSON.stringify(body)], { type: 'application/json' });
-    const formData = new FormData();
-    formData.append('file', blob, name);
+  // 2. Try Filebase if API Key is configured
+  if (FILEBASE_API_KEY) {
+    try {
+      const blob = new Blob([JSON.stringify(body)], { type: 'application/json' });
+      const formData = new FormData();
+      formData.append('file', blob, name);
 
-    const res = await fetch('https://rpc.filebase.io/ipfs/upload', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${FILEBASE_API_KEY}`,
-      },
-      body: formData,
-    });
+      const res = await fetch('https://rpc.filebase.io/ipfs/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${FILEBASE_API_KEY}`,
+        },
+        body: formData,
+      });
 
-    if (!res.ok) throw new Error(`Filebase error: ${res.statusText}`);
-    const data = await res.json();
-    const cid = data.cid || data.Hash || data.IpfsHash;
-
-    storeIpfsFile(cid, {
-      cid,
-      name,
-      type: 'application/json',
-      size: JSON.stringify(body).length,
-      dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(body))}`,
-      uploadedAt: Date.now(),
-    });
-
-    return cid;
-  } catch (err) {
-    console.warn('Filebase upload fallback to local CID:', err);
-    const fallbackCid = generateIpfsCid(body);
-    return fallbackCid;
+      if (res.ok) {
+        const data = await res.json();
+        const cid = data.cid || data.Hash || data.IpfsHash;
+        if (cid) {
+          storeIpfsFile(cid, {
+            cid,
+            name,
+            type: 'application/json',
+            size: JSON.stringify(body).length,
+            dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(body))}`,
+            uploadedAt: Date.now(),
+          });
+          return cid;
+        }
+      }
+    } catch (err) {
+      console.warn('Filebase upload notice:', err);
+    }
   }
+
+  // 3. Resilient deterministic CID generation + local cache storage
+  const fallbackCid = generateIpfsCid(body);
+  storeIpfsFile(fallbackCid, {
+    cid: fallbackCid,
+    name,
+    type: 'application/json',
+    size: JSON.stringify(body).length,
+    dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(body))}`,
+    uploadedAt: Date.now(),
+  });
+  return fallbackCid;
 }
 
 /**
@@ -147,6 +183,7 @@ export function getCachedIpfsFile(cid: string): CachedIpfsFile | null {
 }
 
 export const IPFS_GATEWAYS = [
+  'https://gateway.pinata.cloud/ipfs/',
   import.meta.env.VITE_FILEBASE_GATEWAY || 'https://ipfs.filebase.io/ipfs/',
   'https://ipfs.io/ipfs/',
   'https://cloudflare-ipfs.com/ipfs/',

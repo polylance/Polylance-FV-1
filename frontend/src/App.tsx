@@ -210,10 +210,19 @@ const AppContent: React.FC = () => {
   const showFooter = !isChat && !isAudit && (location.pathname === '/' || location.pathname === '/dashboard');
 
   return (
-    <div className={isChat ? "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white" : (isAudit ? "min-h-[100dvh] bg-[#E2E8F0]/40 text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white" : "min-h-[100dvh] bg-[#F6F9FC] text-[#111827] flex flex-col font-sans selection:bg-purple-600 selection:text-white")}>
+    <div
+      id="app"
+      className={
+        isChat
+          ? "relative z-1 h-[100dvh] max-h-[100dvh] overflow-hidden bg-transparent text-[#0B0B0C] flex flex-col font-sans selection:bg-[#E7EEF9] selection:text-[#0047AB]"
+          : isAudit
+          ? "relative z-1 min-h-[100dvh] bg-[#FFFFFF] text-[#0B0B0C] flex flex-col font-sans selection:bg-[#E7EEF9] selection:text-[#0047AB]"
+          : "relative z-1 min-h-[100dvh] bg-transparent text-[#0B0B0C] flex flex-col font-sans selection:bg-[#E7EEF9] selection:text-[#0047AB]"
+      }
+    >
       {/* Admin Developer Bypass Notification Bar */}
       {maintenanceState?.enabled && isAdmin && (
-        <div className="w-full bg-amber-500 text-slate-950 font-sans text-xs px-4 py-2 font-bold flex flex-col sm:flex-row items-center justify-between gap-2 shadow-md sticky top-0 z-[100] border-b border-amber-600">
+        <div className="w-full bg-amber-500 text-slate-950 font-sans text-xs px-4 py-2 font-bold flex flex-col sm:flex-row items-center justify-between gap-2 shadow-sm sticky top-0 z-[100] border-b border-amber-600">
           <div className="flex items-center gap-2 text-center sm:text-left">
             <span className="w-2 h-2 rounded-full bg-slate-900 animate-ping shrink-0" />
             <span>⚠️ Platform is currently under Maintenance Mode for regular users (writes locked). You have Developer Bypass access.</span>
@@ -229,7 +238,7 @@ const AppContent: React.FC = () => {
             <button
               type="button"
               onClick={() => toggleMaintenanceMode(false)}
-              className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[11px] font-bold cursor-pointer transition-colors shadow-2xs"
+              className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
             >
               Exit Maintenance Mode
             </button>
@@ -237,11 +246,11 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      {/* Production Navbar with Role-Aware Perception Navigation (Hidden on Audit Document) */}
-      {!isAudit && <Navbar />}
+      {/* Production Navbar with Role-Aware Perception Navigation (Hidden on Audit Document and Chat/Messages Section) */}
+      {!isAudit && !isChat && <Navbar />}
 
       {/* Main Application Content */}
-      <main className={isChat ? "flex-1 w-full min-h-0 overflow-hidden flex flex-col pb-16 lg:pb-0" : (isAudit ? "w-full p-0 m-0" : "flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6 pb-24 lg:pb-6")}>
+      <main className={isChat ? "flex-1 w-full h-[100dvh] min-h-0 overflow-hidden flex flex-col p-0 m-0" : (isAudit ? "w-full p-0 m-0" : "flex-1 max-w-[1200px] w-full mx-auto px-4 md:px-8 py-6 pb-24 lg:pb-8")}>
         <ErrorBoundary>
           <AnimatedRoutes />
         </ErrorBoundary>
@@ -250,8 +259,8 @@ const AppContent: React.FC = () => {
       {/* Footer ONLY on Dashboard and Landing Page */}
       {showFooter && <Footer />}
 
-      {/* Mobile-only Authenticated dApp Bottom Tab Bar (Hidden on Audit Document) */}
-      {!isAudit && <BottomTabBar />}
+      {/* Mobile-only Authenticated dApp Bottom Tab Bar (Hidden on Audit Document and Chat/Messages Section) */}
+      {!isAudit && !isChat && <BottomTabBar />}
     </div>
   );
 };

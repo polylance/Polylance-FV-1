@@ -114,7 +114,7 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
           <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200">
             {dispute.evidenceText || 'Client filed a dispute claim regarding deliverable quality.'}
           </p>
-          <div className="mt-2 text-[11px] font-mono text-indigo-600 flex items-center gap-1">
+          <div className="mt-2 text-[11px] font-mono text-[#0047AB] flex items-center gap-1">
             <FileText size={12} />
             <a
               href={getIpfsGatewayUrl(dispute.evidenceIpfsHash)}
@@ -130,7 +130,7 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
         {/* Freelancer Response */}
         <div className="glass-panel p-4 border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
               Freelancer Response Evidence
             </span>
             <span className="text-[10px] font-mono text-slate-400">
@@ -144,7 +144,7 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
                 {dispute.responseText}
               </p>
               {dispute.responseIpfsHash && (
-                <div className="mt-2 text-[11px] font-mono text-indigo-600 flex items-center gap-1">
+                <div className="mt-2 text-[11px] font-mono text-[#0047AB] flex items-center gap-1">
                   <FileText size={12} />
                   <a
                     href={getIpfsGatewayUrl(dispute.responseIpfsHash)}
@@ -169,7 +169,7 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
               />
               <button
                 type="submit"
-                className="gradient-btn-primary px-3 py-1.5 rounded-lg text-xs font-bold"
+                className="bg-[#0047AB] hover:bg-[#003882] text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs"
               >
                 Submit Response
               </button>
@@ -273,7 +273,7 @@ export const DisputePanel: React.FC<DisputePanelProps> = ({
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-lg flex items-center justify-center gap-2"
+            className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-xs flex items-center justify-center gap-2"
           >
             <Scale size={16} />
             Submit Binding On-Chain Ruling

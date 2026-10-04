@@ -29,6 +29,7 @@ import { useLiveCurrencyRates } from '../utils/currency';
 import { useNavigate } from 'react-router-dom';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
 import { scrollToSection } from '../utils/scroll';
+import { PolygonIcon, UsdcIcon, UsdtIcon } from './TokenIcon';
 
 interface WalletBalanceModalProps {
   isOpen: boolean;
@@ -213,16 +214,14 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 <button
                   type="button"
                   onClick={() => setView('balances')}
-                  className="w-10 h-10 rounded-2xl bg-purple-100/80 hover:bg-purple-200 text-purple-800 flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0"
+                  className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0"
                   title="Back to Balances"
                 >
                   <ArrowLeft size={18} strokeWidth={2.5} />
                 </button>
               ) : (
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#3b82f6] via-[#6366f1] to-[#8b5cf6] p-[2px] shadow-sm shadow-indigo-500/20 shrink-0 flex items-center justify-center">
-                  <div className="w-full h-full rounded-[14px] bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center text-white">
-                    <Wallet size={20} strokeWidth={2} />
-                  </div>
+                <div className="w-11 h-11 rounded-2xl bg-[#0B0B0C] border border-slate-800 text-white shadow-2xs shrink-0 flex items-center justify-center">
+                  <Wallet size={20} strokeWidth={2} />
                 </div>
               )}
 
@@ -232,7 +231,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                     {view === 'polygon_history' ? 'Polygon Transaction History' : 'Wallet & Balances'}
                   </h3>
                   {view === 'polygon_history' && (
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-300 shrink-0">
                       {polygonTransactions.length} Txs
                     </span>
                   )}
@@ -286,48 +285,30 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
             /* ── VIEW 1: TOKEN BALANCES ── */
             <div className="p-4 sm:p-5 pt-3 flex-1 overflow-y-auto custom-scrollbar space-y-3">
               {/* Total Wallet Value Card */}
-              <div className="relative overflow-hidden rounded-2xl border border-blue-100/90 bg-gradient-to-r from-[#eff6ff] via-[#f5f8ff] to-[#f5f3ff] p-3.5 sm:p-4 shadow-3xs shrink-0 min-h-[105px] flex flex-col justify-between">
-                {/* Ambient Sinusoidal Flow Wave SVG */}
-                <svg className="absolute right-0 bottom-0 w-60 h-24 pointer-events-none opacity-80" viewBox="0 0 240 100" fill="none">
-                  <defs>
-                    <linearGradient id="totalWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#bfdbfe" stopOpacity="0.15" />
-                      <stop offset="60%" stopColor="#c7d2fe" stopOpacity="0.35" />
-                      <stop offset="100%" stopColor="#ddd6fe" stopOpacity="0.45" />
-                    </linearGradient>
-                    <linearGradient id="totalWaveStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#93c5fd" stopOpacity="0.5" />
-                      <stop offset="50%" stopColor="#818cf8" stopOpacity="0.8" />
-                      <stop offset="100%" stopColor="#a855f7" stopOpacity="0.9" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0 72 C 45 72, 65 30, 110 46 C 150 60, 175 22, 240 38 L 240 100 L 0 100 Z" fill="url(#totalWaveGrad)" />
-                  <path d="M0 72 C 45 72, 65 30, 110 46 C 150 60, 175 22, 240 38" stroke="url(#totalWaveStroke)" strokeWidth="2.5" strokeLinecap="round" />
-                </svg>
-
+              <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#0B0B0C] p-3.5 sm:p-4 shadow-sm shrink-0 min-h-[105px] flex flex-col justify-between">
                 <div className="relative z-10 flex items-center justify-between">
-                  <span className="text-[13px] font-semibold text-slate-500 tracking-tight font-sans">
+                  <span className="text-[13px] font-semibold text-slate-400 tracking-tight font-sans">
                     Total Wallet Value
                   </span>
-                  <div className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/90 text-emerald-700 text-[11px] font-semibold flex items-center gap-1.5 shadow-3xs">
-                    <Activity size={12} className="text-emerald-600" />
+                  <div className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-emerald-400 text-[11px] font-semibold flex items-center gap-1.5 shadow-3xs">
+                    <Activity size={12} className="text-emerald-400" />
                     <span>Live Sync</span>
                   </div>
                 </div>
 
                 <div className="relative z-10 my-2 flex items-baseline">
-                  <span className="text-3xl font-black text-slate-900 font-sans tracking-tight leading-none">
+                  <span className="text-3xl font-black text-white font-sans tracking-tight leading-none">
                     ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <span className="text-sm font-semibold text-slate-500 ml-1.5 font-sans">USD</span>
+                  <span className="text-sm font-semibold text-slate-400 ml-1.5 font-sans">USD</span>
                 </div>
 
                 <div className="relative z-10 flex items-center gap-2 text-xs">
-                  <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     Live Sync
                   </span>
-                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-600">•</span>
                   <span className="text-slate-400 font-medium">Updated just now</span>
                 </div>
               </div>
@@ -337,26 +318,23 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 {/* 1. Native POL (Clickable to view Polygon Transaction History in PolyLance) */}
                 <div
                   onClick={() => setView('polygon_history')}
-                  className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-purple-400 hover:shadow-md flex items-center justify-between transition-all group shrink-0 cursor-pointer hover:bg-purple-50/20"
+                  className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-[#0047AB] hover:shadow-xs flex items-center justify-between transition-all group shrink-0 cursor-pointer hover:bg-slate-50/50"
                   title="Click to view Polygon transaction history in PolyLance"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#7c3aed] to-[#9333ea] flex items-center justify-center text-white shadow-sm shadow-purple-500/20 shrink-0">
-                      <svg width="22" height="22" viewBox="0 0 40 40" fill="currentColor">
-                        <path d="M28.3 15.6c-.6-.4-1.4-.4-2 0l-4.5 2.6-2.5 1.5-4.5 2.6c-.6.4-1.4.4-2 0l-3.5-2c-.6-.4-1-.1-1 .6v4.1c0 .7.4 1.3 1 1.6l3.5 2c.6.4 1.4.4 2 0l4.5-2.6 2.5-1.5 4.5-2.6c.6-.4 1.4-.4 2 0l3.5 2c.6.4 1 .1 1-.6v-4.1c0-.7-.4-1.3-1-1.6l-3.5-2.1z" />
-                        <path d="M28.3 6.6c-.6-.4-1.4-.4-2 0l-4.5 2.6-2.5 1.5-4.5 2.6c-.6.4-1.4.4-2 0l-3.5-2c-.6-.4-1-.1-1 .6v4.1c0 .7.4 1.3 1 1.6l3.5 2c.6.4 1.4.4 2 0l4.5-2.6 2.5-1.5 4.5-2.6c.6-.4 1.4-.4 2 0l3.5 2c.6.4 1 .1 1-.6V9.9c0-.7-.4-1.3-1-1.6l-3.5-1.7z" opacity="0.8" />
-                      </svg>
+                    <div className="w-11 h-11 rounded-full bg-[#7B3FE4] border border-[#6929d5] flex items-center justify-center text-white shadow-2xs shrink-0">
+                      <PolygonIcon size={24} className="text-white" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+                        <span className="text-sm font-bold text-slate-900 group-hover:text-[#0047AB] transition-colors">
                           Polygon Native
                         </span>
-                        <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/70">
+                        <span className="text-[10px] font-bold text-[#7B3FE4] bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
                           POL
                         </span>
                       </div>
-                      <p className="text-xs text-purple-600 font-medium mt-0.5 flex items-center gap-1">
+                      <p className="text-xs text-slate-500 group-hover:text-[#0047AB] font-medium mt-0.5 flex items-center gap-1">
                         <span>Click to view Tx History</span>
                         <ChevronRight size={12} />
                       </p>
@@ -366,13 +344,13 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="text-right">
                       <div className="text-sm font-bold text-slate-900">
-                        {polNum.toFixed(3)} <span className="font-extrabold text-[#7c3aed]">POL</span>
+                        {polNum.toFixed(3)} <span className="font-extrabold text-slate-900">POL</span>
                       </div>
                       <div className="text-xs text-slate-400 font-mono">
                         ≈ ${polUsd.toFixed(2)} USD
                       </div>
                     </div>
-                    <div className="w-7 h-7 rounded-full bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center text-purple-600 transition-colors ml-1">
+                    <div className="w-7 h-7 rounded-full bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center text-slate-600 group-hover:text-[#0047AB] transition-colors ml-1">
                       <ChevronRight size={16} />
                     </div>
                   </div>
@@ -381,9 +359,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 {/* 2. USD Coin (USDC) */}
                 <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-blue-300 hover:shadow-xs flex items-center justify-between transition-all group shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-full bg-[#2775CA] flex items-center justify-center text-white font-extrabold text-lg shadow-sm shadow-blue-500/20 shrink-0 font-sans">
-                      $
-                    </div>
+                    <UsdcIcon size={44} className="w-11 h-11 shrink-0 drop-shadow-xs" />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-slate-900">USD Coin</span>
@@ -391,16 +367,16 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                           USDC
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">1:1 Stable Escrow Token</p>
+                      <p className="text-xs text-slate-400 mt-0.5">1:1 Dollar Stablecoin</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="text-right">
-                      <div className="text-sm font-bold text-slate-900">
-                        ${usdcNum.toFixed(2)} <span className="font-extrabold text-[#2563eb]">USDC</span>
+                      <div className="text-sm font-bold text-[#0B0B0C]">
+                        ${usdcNum.toFixed(2)} <span className="font-extrabold text-[#0047AB]">USDC</span>
                       </div>
-                      <div className="text-xs text-slate-400 font-mono">
+                      <div className="text-xs text-[#8892A0] font-mono">
                         Exact: ${balanceUsdc}
                       </div>
                     </div>
@@ -408,28 +384,26 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 </div>
 
                 {/* 3. Tether USD (USDT) */}
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-teal-300 hover:shadow-xs flex items-center justify-between transition-all group shrink-0">
+                <div className="p-3.5 rounded-2xl bg-white border border-[#E2E6EC] hover:border-emerald-300 hover:shadow-xs flex items-center justify-between transition-all group shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-full bg-[#26A17B] flex items-center justify-center text-white font-black text-lg shadow-sm shadow-teal-500/20 shrink-0 font-sans">
-                      ₮
-                    </div>
+                    <UsdtIcon size={44} className="w-11 h-11 shrink-0 drop-shadow-xs" />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900">Tether USD</span>
-                        <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200/70">
+                        <span className="text-sm font-bold text-[#0B0B0C]">Tether USD</span>
+                        <span className="text-[10px] font-bold text-[#1E8449] bg-[#E3F3EA] px-2 py-0.5 rounded-full border border-[#1E8449]/30">
                           USDT
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">Multi-Chain Stablecoin</p>
+                      <p className="text-xs text-[#8892A0] mt-0.5">Multi-Chain Stablecoin</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="text-right">
-                      <div className="text-sm font-bold text-slate-900">
-                        ${usdtNum.toFixed(2)} <span className="font-extrabold text-[#059669]">USDT</span>
+                      <div className="text-sm font-bold text-[#0B0B0C]">
+                        ${usdtNum.toFixed(2)} <span className="font-extrabold text-[#1E8449]">USDT</span>
                       </div>
-                      <div className="text-xs text-slate-400 font-mono">
+                      <div className="text-xs text-[#8892A0] font-mono">
                         Exact: ${balanceUsdt}
                       </div>
                     </div>
@@ -440,10 +414,8 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
               {/* Network Connection Strip */}
               <div className="p-3 rounded-2xl bg-[#f8fafc] border border-slate-200/80 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-xl bg-purple-600 flex items-center justify-center text-white shrink-0 shadow-3xs">
-                    <svg width="15" height="15" viewBox="0 0 40 40" fill="currentColor">
-                      <path d="M28.3 15.6c-.6-.4-1.4-.4-2 0l-4.5 2.6-2.5 1.5-4.5 2.6c-.6.4-1.4.4-2 0l-3.5-2c-.6-.4-1-.1-1 .6v4.1c0 .7.4 1.3 1 1.6l3.5 2c.6.4 1.4.4 2 0l4.5-2.6 2.5-1.5 4.5-2.6c.6-.4 1.4-.4 2 0l3.5 2c.6.4 1 .1 1-.6v-4.1c0-.7-.4-1.3-1-1.6l-3.5-2.1z" />
-                    </svg>
+                  <div className="w-7 h-7 rounded-xl bg-[#7B3FE4] flex items-center justify-center text-white shrink-0 shadow-2xs">
+                    <PolygonIcon size={16} className="text-white" />
                   </div>
                   <span className="text-xs font-semibold text-slate-700 truncate">
                     {NETWORK_CONFIG.chainName || 'Polygon Mainnet'} ({NETWORK_CONFIG.chainId || '137'})
@@ -476,7 +448,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                     navigate(`/profile/${address}?section=reputation-overview`);
                     scrollToSection('reputation-overview', 250);
                   }}
-                  className="flex-1 py-3 px-4 rounded-2xl border border-purple-200/90 bg-purple-50/50 hover:bg-purple-100/70 text-purple-700 font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 shadow-3xs"
+                  className="flex-1 py-3 px-4 rounded-2xl border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
                 >
                   <User size={15} />
                   <span>View Full Profile</span>
@@ -485,7 +457,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 <button
                   type="button"
                   onClick={onClose}
-                  className="py-3 px-8 rounded-2xl bg-[#0f172a] hover:bg-[#1e293b] text-white font-bold text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-sm"
+                  className="py-3 px-8 rounded-2xl bg-[#0B0B0C] hover:bg-slate-900 text-white font-bold text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                 >
                   <X size={15} />
                   <span>Close</span>
@@ -507,16 +479,16 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
             /* ── VIEW 2: POLYGON TRANSACTION HISTORY ── */
             <div className="p-4 sm:p-5 pt-3 flex-1 overflow-y-auto custom-scrollbar space-y-3">
               {/* Back to Balances Banner */}
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50/50 to-purple-50 border border-purple-200/80">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
                 <button
                   type="button"
                   onClick={() => setView('balances')}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700 hover:text-purple-900 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 hover:text-[#0047AB] transition-colors cursor-pointer"
                 >
                   <ArrowLeft size={14} />
                   <span>&larr; Back to Balances</span>
                 </button>
-                <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-purple-950 bg-white/80 px-2.5 py-0.5 rounded-full border border-purple-200 shadow-2xs">
+                <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-800 bg-white px-2.5 py-0.5 rounded-full border border-slate-300 shadow-2xs">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span>Polygon Mainnet (137)</span>
                 </div>
@@ -526,7 +498,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
               <div className="space-y-2">
                 {polygonTransactions.length === 0 ? (
                   <div className="text-center py-10 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto shadow-2xs">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center mx-auto shadow-2xs">
                       <Clock size={24} />
                     </div>
                     <div className="space-y-1">
@@ -539,7 +511,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                       href={explorerUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-600 hover:text-purple-700 underline pt-1"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0047AB] hover:underline pt-1"
                     >
                       <span>Check Address on PolygonScan</span>
                       <ExternalLink size={12} />
@@ -553,7 +525,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                     return (
                       <div
                         key={tx.id}
-                        className="p-3.5 rounded-2xl bg-white border border-slate-200/90 hover:border-purple-300 shadow-3xs hover:shadow-xs transition-all space-y-2"
+                        className="p-3.5 rounded-2xl bg-white border border-slate-200/90 hover:border-[#0047AB] shadow-3xs hover:shadow-xs transition-all space-y-2"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2.5 min-w-0">
@@ -562,9 +534,9 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                                 tx.type === 'release'
                                   ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                                   : tx.type === 'fund'
-                                  ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                                  ? 'bg-blue-50 text-[#0047AB] border border-blue-200'
                                   : tx.type === 'sbt'
-                                  ? 'bg-purple-50 text-purple-600 border border-purple-200'
+                                  ? 'bg-slate-100 text-slate-800 border border-slate-300'
                                   : tx.type === 'submission'
                                   ? 'bg-blue-50 text-blue-600 border border-blue-200'
                                   : 'bg-slate-100 text-slate-700 border border-slate-200'
@@ -630,7 +602,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                               href={polygonScanTxUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-1 rounded hover:bg-slate-100 text-purple-600 hover:text-purple-800 transition-colors"
+                              className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-[#0047AB] transition-colors"
                               title="View on PolygonScan"
                             >
                               <ExternalLink size={11} />
@@ -648,7 +620,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 <button
                   type="button"
                   onClick={() => setView('balances')}
-                  className="flex-1 py-3 px-4 rounded-2xl border border-purple-200/90 bg-purple-50/50 hover:bg-purple-100/70 text-purple-700 font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 shadow-3xs"
+                  className="flex-1 py-3 px-4 rounded-2xl border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
                 >
                   <ArrowLeft size={15} />
                   <span>Back to Balances</span>
@@ -657,7 +629,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 <button
                   type="button"
                   onClick={onClose}
-                  className="py-3 px-8 rounded-2xl bg-[#0f172a] hover:bg-[#1e293b] text-white font-bold text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-sm"
+                  className="py-3 px-8 rounded-2xl bg-[#0B0B0C] hover:bg-slate-900 text-white font-bold text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                 >
                   <X size={15} />
                   <span>Close</span>

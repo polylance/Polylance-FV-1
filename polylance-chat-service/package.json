@@ -28,6 +28,7 @@
     "polylance": "file:..",
     "prisma": "^6.3.1",
     "socket.io": "^4.8.1",
+    "telegraf": "^4.16.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   },

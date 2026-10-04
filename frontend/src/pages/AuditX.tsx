@@ -55,7 +55,7 @@ export const AuditX: React.FC = () => {
       particleCount: 75,
       spread: 80,
       origin: { y: 0.55 },
-      colors: ['#10b981', '#14b8a6', '#6366f1', '#3b82f6', '#8b5cf6'],
+      colors: ['#0047AB', '#003A8C', '#334155', '#1E8449', '#E8A317'],
     });
 
     // Smooth animated sequence before opening in a new tab
@@ -66,7 +66,7 @@ export const AuditX: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen ${UI.canvas} text-slate-800 selection:bg-emerald-500 selection:text-white font-sans pb-24`}>
+    <div className={`min-h-screen ${UI.canvas} text-[#0B0B0C] selection:bg-[#E7EEF9] selection:text-[#0047AB] font-sans pb-24`}>
       {/* ── TOP HEADER / BREADCRUMB ── */}
       <header className="sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-slate-200/70 py-3.5 px-4 sm:px-8">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -97,7 +97,7 @@ export const AuditX: React.FC = () => {
             </button>
             <Link
               to="/certifiedpass"
-              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:text-purple-600 font-mono text-xs font-bold transition-colors inline-flex items-center gap-1"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:text-[#0047AB] font-mono text-xs font-bold transition-colors inline-flex items-center gap-1"
             >
               <span>CertifiedPass</span>
               <ArrowRight size={12} />
@@ -117,7 +117,7 @@ export const AuditX: React.FC = () => {
 
           <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight font-headline leading-tight">
             AuditX: Web3 Security, <br />
-            <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="text-[#0047AB]">
               Built for Verifiable Trust.
             </span>
           </h1>
@@ -155,16 +155,16 @@ export const AuditX: React.FC = () => {
 
           {/* Quick Pillar Jump Indicators (Non-breaking visual pills) */}
           <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
-            <span className="px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-mono font-bold shadow-2xs flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="px-3.5 py-1.5 rounded-lg bg-white border border-[#E2E6EC] text-[#0B0B0C] text-xs font-mono font-bold shadow-xs flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#1E8449]" />
               1. What is AuditX?
             </span>
-            <span className="px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-mono font-bold shadow-2xs flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-teal-500" />
+            <span className="px-3.5 py-1.5 rounded-lg bg-white border border-[#E2E6EC] text-[#0B0B0C] text-xs font-mono font-bold shadow-xs flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#0047AB]" />
               2. How It Works
             </span>
-            <span className="px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-mono font-bold shadow-2xs flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+            <span className="px-3.5 py-1.5 rounded-lg bg-white border border-[#E2E6EC] text-[#0B0B0C] text-xs font-mono font-bold shadow-xs flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#334155]" />
               3. What It Is For
             </span>
           </div>
@@ -241,7 +241,7 @@ export const AuditX: React.FC = () => {
               </div>
 
               <div className="p-5 rounded-xl bg-[#F8FAFC] border border-slate-200/80 space-y-2.5 text-left">
-                <div className="w-8 h-8 rounded-lg bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-xs">
+                <div className="w-8 h-8 rounded-lg bg-[#E7EEF9] text-[#0047AB] flex items-center justify-center font-bold text-xs">
                   <Layers size={16} />
                 </div>
                 <h3 className="font-bold text-slate-900 text-sm font-headline">Multi-Engine Fusion</h3>
@@ -251,7 +251,7 @@ export const AuditX: React.FC = () => {
               </div>
 
               <div className="p-5 rounded-xl bg-[#F8FAFC] border border-slate-200/80 space-y-2.5 text-left">
-                <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center font-bold text-xs">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-xs">
                   <Lock size={16} />
                 </div>
                 <h3 className="font-bold text-slate-900 text-sm font-headline">Decentralized Trust Layer</h3>
@@ -262,12 +262,12 @@ export const AuditX: React.FC = () => {
             </div>
 
             {/* Quick Summary Pill Strip */}
-            <div className="p-4 rounded-xl bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-mono">
+            <div className="p-4 rounded-xl bg-[#0B0B0C] text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-mono">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-[#1E8449]" />
                 <span className="font-bold text-slate-200">Integrated Security Technologies:</span>
               </div>
-              <div className="text-emerald-400 font-bold tracking-wide">
+              <div className="text-[#1E8449] font-bold tracking-wide">
                 Slither · Mythril · Custom AST · Semgrep · Gitleaks · Gemini 2.5 · IPFS · EAS
               </div>
             </div>
@@ -280,11 +280,11 @@ export const AuditX: React.FC = () => {
         ══════════════════════════════════════════════════════════════ */}
         <section className="space-y-8">
           <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
-            <div className="w-9 h-9 rounded-xl bg-teal-600 text-white font-mono text-sm font-black flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-[#0047AB] text-white font-mono text-sm font-black flex items-center justify-center shadow-sm">
               02
             </div>
             <div>
-              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-teal-600">Technical Workflow</span>
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#0047AB]">Technical Workflow</span>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-headline">How Does AuditX Work?</h2>
             </div>
           </div>
@@ -304,32 +304,32 @@ export const AuditX: React.FC = () => {
                 </p>
               </div>
 
-              <div className={`${UI.card} p-4 space-y-2 text-left border-l-4 border-l-emerald-500`}>
-                <div className="text-[10px] font-mono font-black text-emerald-600">STAGE 02</div>
+              <div className={`${UI.card} p-4 space-y-2 text-left border-l-4 border-l-[#1E8449]`}>
+                <div className="text-[10px] font-mono font-black text-[#1E8449]">STAGE 02</div>
                 <h4 className="text-xs font-black text-slate-900 font-headline">Rust Orchestrator</h4>
                 <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
                   Dispatches parallel jobs to isolated engine sandboxes with zero overhead.
                 </p>
               </div>
 
-              <div className={`${UI.card} p-4 space-y-2 text-left border-l-4 border-l-teal-500`}>
-                <div className="text-[10px] font-mono font-black text-teal-600">STAGE 03</div>
+              <div className={`${UI.card} p-4 space-y-2 text-left border-l-4 border-l-[#0047AB]`}>
+                <div className="text-[10px] font-mono font-black text-[#0047AB]">STAGE 03</div>
                 <h4 className="text-xs font-black text-slate-900 font-headline">Multi-Engine Scan</h4>
                 <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
                   Runs Slither, Mythril, AST analysis, Semgrep, Gitleaks, & dependency checks.
                 </p>
               </div>
 
-              <div className={`${UI.card} p-4 space-y-2 text-left border-l-4 border-l-indigo-500`}>
-                <div className="text-[10px] font-mono font-black text-indigo-600">STAGE 04</div>
+              <div className={`${UI.card} p-4 space-y-2 text-left border-l-4 border-l-[#0047AB]`}>
+                <div className="text-[10px] font-mono font-black text-[#0047AB]">STAGE 04</div>
                 <h4 className="text-xs font-black text-slate-900 font-headline">AI Fusion (Gemini 2.5)</h4>
                 <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
                   Synthesizes individual findings into multi-step attack chains and context.
                 </p>
               </div>
 
-              <div className={`${UI.card} p-4 space-y-2 text-left border-l-4 border-l-purple-500`}>
-                <div className="text-[10px] font-mono font-black text-purple-600">STAGE 05</div>
+              <div className={`${UI.card} p-4 space-y-2 text-left border-l-4 border-l-[#0B0B0C]`}>
+                <div className="text-[10px] font-mono font-black text-[#0B0B0C]">STAGE 05</div>
                 <h4 className="text-xs font-black text-slate-900 font-headline">Trust Layer (IPFS/EAS)</h4>
                 <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
                   Pins audit report to IPFS and mints immutable on-chain EAS attestation.
@@ -378,7 +378,7 @@ export const AuditX: React.FC = () => {
 
             {/* Web2 Infrastructure Security */}
             <div className={`${UI.card} p-6 space-y-4 text-left`}>
-              <div className="flex items-center gap-2 text-indigo-700 font-mono text-xs font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-slate-800 font-mono text-xs font-bold uppercase tracking-wider">
                 <Server size={16} />
                 <span>Web2 Infrastructure Scanning</span>
               </div>
@@ -390,23 +390,23 @@ export const AuditX: React.FC = () => {
               </p>
               <ul className="space-y-2 text-xs text-slate-700 font-medium">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                  <CheckCircle2 size={14} className="text-[#0047AB] shrink-0 mt-0.5" />
                   <span><strong>Hardcoded Credentials:</strong> Gitleaks integration prevents leaked private keys, API secrets, and seed phrases.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                  <CheckCircle2 size={14} className="text-[#0047AB] shrink-0 mt-0.5" />
                   <span><strong>Injection Risks:</strong> Semgrep rules detect SQL injection, command execution, and unsafe deserialization.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                  <CheckCircle2 size={14} className="text-[#0047AB] shrink-0 mt-0.5" />
                   <span><strong>Vulnerable Dependencies:</strong> Automated cargo-audit and npm-audit for known CVEs in upstream packages.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                  <CheckCircle2 size={14} className="text-[#0047AB] shrink-0 mt-0.5" />
                   <span><strong>Permissive CORS:</strong> Detects misconfigured headers exposing frontend wallets to unauthorized domains.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                  <CheckCircle2 size={14} className="text-[#0047AB] shrink-0 mt-0.5" />
                   <span><strong>Missing Rate Limiting:</strong> Identifies denial-of-service and relay exhaustion vectors.</span>
                 </li>
               </ul>
@@ -456,7 +456,7 @@ export const AuditX: React.FC = () => {
           {/* 4. AI Security Analysis & Verifiable Trust */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className={`${UI.card} p-6 space-y-3 text-left`}>
-              <div className="flex items-center gap-2 text-purple-700 font-mono text-xs font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-[#0047AB] font-mono text-xs font-bold uppercase tracking-wider">
                 <Sparkles size={16} />
                 <span>AI Security Analysis (Gemini 2.5)</span>
               </div>
@@ -469,7 +469,7 @@ export const AuditX: React.FC = () => {
             </div>
 
             <div className={`${UI.card} p-6 space-y-3 text-left`}>
-              <div className="flex items-center gap-2 text-teal-700 font-mono text-xs font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-[#0047AB] font-mono text-xs font-bold uppercase tracking-wider">
                 <ShieldCheck size={16} />
                 <span>Verifiable Audit Infrastructure</span>
               </div>
@@ -522,11 +522,11 @@ export const AuditX: React.FC = () => {
         ══════════════════════════════════════════════════════════════ */}
         <section className="space-y-6">
           <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white font-mono text-sm font-black flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-[#0B0B0C] text-white font-mono text-sm font-black flex items-center justify-center shadow-sm">
               03
             </div>
             <div>
-              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-indigo-600">Purpose & Value</span>
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#0047AB]">Purpose & Value</span>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-headline">What is AuditX For?</h2>
             </div>
           </div>
@@ -534,7 +534,7 @@ export const AuditX: React.FC = () => {
           <div className={`${UI.card} p-6 sm:p-8 space-y-6`}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-left">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+                <div className="w-8 h-8 rounded-lg bg-[#E3F3EA] text-[#1E8449] flex items-center justify-center font-bold text-xs">
                   <Shield size={16} />
                 </div>
                 <h4 className="font-bold text-slate-900 text-sm font-headline">Vulnerability Prevention</h4>
@@ -544,7 +544,7 @@ export const AuditX: React.FC = () => {
               </div>
 
               <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-left">
-                <div className="w-8 h-8 rounded-lg bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-xs">
+                <div className="w-8 h-8 rounded-lg bg-[#E7EEF9] text-[#0047AB] flex items-center justify-center font-bold text-xs">
                   <Activity size={16} />
                 </div>
                 <h4 className="font-bold text-slate-900 text-sm font-headline">Live Runtime Sentinel</h4>
@@ -554,7 +554,7 @@ export const AuditX: React.FC = () => {
               </div>
 
               <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-left">
-                <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center font-bold text-xs">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-xs">
                   <ShieldCheck size={16} />
                 </div>
                 <h4 className="font-bold text-slate-900 text-sm font-headline">Tamper-Proof Verification</h4>
@@ -565,7 +565,7 @@ export const AuditX: React.FC = () => {
             </div>
 
             {/* PolyLance + AuditX Synergy Card */}
-            <div className="rounded-2xl p-6 bg-gradient-to-br from-slate-950 via-[#0B132B] to-slate-900 text-white border border-slate-800 space-y-4 text-left">
+            <div className="rounded-2xl p-6 bg-[#0B0B0C] text-white border border-slate-800 space-y-4 text-left">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[11px] font-bold uppercase tracking-wider">
                 <Boxes size={13} />
                 <span>PolyLance Ecosystem Synergy</span>
@@ -581,7 +581,7 @@ export const AuditX: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
-                  <div className="text-purple-400 font-mono text-xs font-bold uppercase tracking-wide">
+                  <div className="text-[#0047AB] font-mono text-xs font-bold uppercase tracking-wide">
                     PolyLance Focus
                   </div>
                   <div className="text-base font-bold text-white">Identity + Reputation + Work</div>

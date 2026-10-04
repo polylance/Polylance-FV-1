@@ -5,6 +5,7 @@ import { truncateAddress } from '../utils/formatters';
 import { TREASURY_WALLET } from '../config/contracts';
 import { ShieldCheck, Terminal, DollarSign, Users, CheckCircle2, AlertTriangle, FileCode, Zap, Wallet } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { PolygonIcon, UsdcIcon } from '../components/TokenIcon';
 
 export const Treasury: React.FC = () => {
   const { address } = useWeb3();
@@ -156,19 +157,19 @@ export const Treasury: React.FC = () => {
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
       {/* Restricted Header matching treasury_admin_management/code.html */}
-      <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
+      <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="font-headline text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-                <ShieldCheck className="text-purple-700" /> Safe Multisig Treasury Admin
+                <ShieldCheck className="text-[#0047AB]" /> Safe Multisig Treasury Admin
               </h1>
-              <span className="bg-purple-100 text-purple-900 border border-purple-200 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
+              <span className="bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
                 Restricted Access
               </span>
             </div>
             <p className="text-xs text-slate-600 font-mono">
-              TREASURY_ADMIN_ROLE: <span className="text-purple-900 font-bold">{truncateAddress(address)}</span> ({treasury.requiredSignatures}-of-{treasury.signers.length} Threshold Safe)
+              TREASURY_ADMIN_ROLE: <span className="text-[#0B0B0C] font-bold">{truncateAddress(address)}</span> ({treasury.requiredSignatures}-of-{treasury.signers.length} Threshold Safe)
             </p>
           </div>
 
@@ -176,7 +177,7 @@ export const Treasury: React.FC = () => {
             <button
               onClick={() => setActiveTab('overview')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                activeTab === 'overview' ? 'bg-purple-700 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                activeTab === 'overview' ? 'bg-[#0B0B0C] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               Overview
@@ -189,7 +190,7 @@ export const Treasury: React.FC = () => {
                 }, 80);
               }}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                activeTab === 'terminal' ? 'bg-purple-700 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                activeTab === 'terminal' ? 'bg-[#0B0B0C] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               CLI Terminal Log
@@ -201,9 +202,12 @@ export const Treasury: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
             <p className="font-label-mono text-xs text-slate-500 font-bold">Available Treasury Balance</p>
-            <h4 className="font-headline text-3xl font-black text-emerald-700">
-              ${parseFloat(treasury.balanceUsdc).toLocaleString()} USDC
-            </h4>
+            <div className="flex items-center gap-2">
+              <UsdcIcon size={30} className="shrink-0" />
+              <h4 className="font-headline text-3xl font-black text-emerald-700">
+                ${parseFloat(treasury.balanceUsdc).toLocaleString()} <span className="text-xl font-bold text-slate-500">USDC</span>
+              </h4>
+            </div>
             <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
               Accumulated from 2.5% site maintenance fees
             </div>
@@ -211,9 +215,14 @@ export const Treasury: React.FC = () => {
 
           <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
             <p className="font-label-mono text-xs text-slate-500 font-bold">Native Gas Vault</p>
-            <h4 className="font-headline text-3xl font-black text-purple-900">
-              {treasury.balanceEth} ETH
-            </h4>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-[#7B3FE4] flex items-center justify-center text-white shrink-0 shadow-2xs">
+                <PolygonIcon size={18} className="text-white" />
+              </div>
+              <h4 className="font-headline text-3xl font-black text-slate-900">
+                {treasury.balanceEth} <span className="text-xl font-bold text-[#7B3FE4]">POL</span>
+              </h4>
+            </div>
             <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
               Polygon Gas Subsidy Vault
             </div>
@@ -237,20 +246,20 @@ export const Treasury: React.FC = () => {
           {/* Propose Multisig Withdrawal Form matching reference HTML */}
           <form onSubmit={handlePropose} className="glass-panel p-6 sm:p-8 border-slate-200 bg-white space-y-6 hard-shadow">
             <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <DollarSign size={20} className="text-purple-700" /> Propose Multisig Disbursement
+              <DollarSign size={20} className="text-[#0047AB]" /> Propose Multisig Disbursement
             </h3>
 
-            <div className="bg-purple-50/80 border border-purple-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
               <div className="flex items-center gap-2">
-                <Wallet size={14} className="text-purple-600 shrink-0" />
+                <Wallet size={14} className="text-[#0047AB] shrink-0" />
                 <span className="text-slate-600 font-bold">Official Protocol Treasury Wallet:</span>
-                <span className="font-mono text-purple-900 font-bold break-all">{TREASURY_WALLET}</span>
+                <span className="font-mono text-slate-900 font-bold break-all">{TREASURY_WALLET}</span>
               </div>
               {recipient !== TREASURY_WALLET && (
                 <button
                   type="button"
                   onClick={() => setRecipient(TREASURY_WALLET)}
-                  className="px-2.5 py-1 bg-white border border-purple-200 text-purple-700 font-bold rounded-lg text-[10px] hover:bg-purple-100 transition-colors"
+                  className="px-2.5 py-1 bg-white border border-slate-200 text-[#0047AB] font-bold rounded-lg text-[10px] hover:bg-slate-100 transition-colors"
                 >
                   Use Official Treasury
                 </button>
@@ -302,7 +311,7 @@ export const Treasury: React.FC = () => {
             </div>
 
             <div className="flex justify-end">
-              <button type="submit" className="gradient-btn-primary px-8 py-3 rounded-xl font-headline font-bold text-xs">
+              <button type="submit" className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-8 py-3 rounded-xl font-headline font-bold text-xs shadow-sm transition-all cursor-pointer">
                 Create Withdrawal Proposal
               </button>
             </div>
@@ -311,7 +320,7 @@ export const Treasury: React.FC = () => {
           {/* Pending Multisig Proposals Grid matching reference HTML */}
           <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-4">
             <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Users size={18} className="text-purple-700" /> Multisig Proposals Queue
+              <Users size={18} className="text-[#0047AB]" /> Multisig Proposals Queue
             </h3>
 
             <div className="space-y-4">
@@ -327,14 +336,14 @@ export const Treasury: React.FC = () => {
                         <span className="text-emerald-700 font-bold">${parseFloat(prop.amountUsdc).toLocaleString()} USDC</span>
                       </div>
                       <p className="text-slate-600">
-                        To: <span className="text-purple-900 font-bold">{truncateAddress(prop.recipient)}</span> | Signers: {prop.signatures.length}/{treasury.requiredSignatures} Approved
+                        To: <span className="text-slate-900 font-bold">{truncateAddress(prop.recipient)}</span> | Signers: {prop.signatures.length}/{treasury.requiredSignatures} Approved
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setSelectedProposalModal(prop.id)}
-                        className="bg-white hover:bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-lg text-slate-700 font-bold"
+                        className="bg-white hover:bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-lg text-slate-700 font-bold cursor-pointer"
                       >
                         Inspect Payload
                       </button>
@@ -346,18 +355,18 @@ export const Treasury: React.FC = () => {
                       ) : prop.signatures.length >= treasury.requiredSignatures ? (
                         <button
                           onClick={() => handleExecute(prop.id)}
-                          className="gradient-btn-emerald px-4 py-2 rounded-xl text-xs font-bold"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                         >
                           Execute Disbursement
                         </button>
                       ) : hasSigned ? (
-                        <span className="text-purple-800 font-bold bg-purple-100 px-3 py-1 rounded-full border border-purple-200">
+                        <span className="text-slate-800 font-bold bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
                           ✓ Approved by You
                         </span>
                       ) : (
                         <button
                           onClick={() => handleSign(prop.id)}
-                          className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold"
+                          className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                         >
                           Sign Transaction
                         </button>
@@ -380,7 +389,7 @@ export const Treasury: React.FC = () => {
           {/* Header Panel */}
           <div className="flex items-center justify-between border-b border-slate-100 pb-5">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-[#0B0B0C] shrink-0">
                 <Terminal size={22} className="stroke-[2]" />
               </div>
               <div>
@@ -426,7 +435,7 @@ export const Treasury: React.FC = () => {
                 <CheckCircle2 size={13} className="stroke-[2.5]" />
               </div>
               <div className="font-bold text-emerald-600 leading-relaxed">
-                SAFE STATUS: HEALTHY (TVL ${parseFloat(treasury.balanceUsdc).toLocaleString()} USDC, {treasury.balanceEth} ETH)
+                SAFE STATUS: HEALTHY (TVL ${parseFloat(treasury.balanceUsdc).toLocaleString()} USDC, {treasury.balanceEth} POL)
               </div>
               <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full text-[10px] font-bold font-sans flex items-center gap-1 shadow-3xs">
                 <Zap size={10} className="fill-emerald-100" />
@@ -435,7 +444,7 @@ export const Treasury: React.FC = () => {
             </div>
 
             {logs.map((log, idx) => {
-              let iconBorder = "border-indigo-100 bg-indigo-50/50 text-indigo-600";
+              let iconBorder = "border-slate-200 bg-slate-100 text-slate-700";
               let Icon = FileCode;
               if (log.iconType === 'check') {
                 iconBorder = "border-emerald-100 bg-emerald-50/50 text-emerald-600";
@@ -444,7 +453,7 @@ export const Treasury: React.FC = () => {
                 iconBorder = "border-amber-100 bg-amber-50/50 text-amber-600";
                 Icon = AlertTriangle;
               } else if (log.iconType === 'zap') {
-                iconBorder = "border-purple-100 bg-purple-50/50 text-purple-600";
+                iconBorder = "border-slate-300 bg-slate-100 text-[#0047AB]";
                 Icon = Zap;
               }
 
@@ -454,10 +463,10 @@ export const Treasury: React.FC = () => {
                     <Icon size={12} />
                   </div>
                   <div className="flex items-center gap-2.5 leading-relaxed flex-wrap">
-                    <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md font-bold text-[10px]">
+                    <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-800 rounded-md font-bold text-[10px]">
                       [LOG {log.timestamp}]
                     </span>
-                    <span className="text-slate-600 text-slate-600 font-medium font-sans">
+                    <span className="text-slate-600 font-medium font-sans">
                       {log.text}
                     </span>
                   </div>
@@ -472,14 +481,14 @@ export const Treasury: React.FC = () => {
             )}
 
             {/* Line 6: Ready Proposal state banner */}
-            <div className="relative p-4 rounded-2xl bg-purple-50/50 border border-purple-100 flex items-center justify-between gap-4 flex-wrap">
-              <div className="absolute -left-8 w-6 h-6 rounded-full border border-purple-200 bg-purple-100/80 flex items-center justify-center text-purple-700 shadow-3xs select-none">
-                <Zap size={11} className="fill-purple-300 text-purple-700" />
+            <div className="relative p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4 flex-wrap">
+              <div className="absolute -left-8 w-6 h-6 rounded-full border border-slate-300 bg-slate-100 flex items-center justify-center text-[#0047AB] shadow-3xs select-none">
+                <Zap size={11} className="text-[#0047AB]" />
               </div>
-              <div className="font-bold text-purple-700 leading-relaxed">
+              <div className="font-bold text-slate-900 leading-relaxed">
                 SAFE REQUIRED THRESHOLD: {treasury.requiredSignatures}-OF-{treasury.signers.length} OWNER SIGNATURES
               </div>
-              <span className="bg-purple-100 text-purple-700 border border-purple-200 px-3 py-1 rounded-full text-[10px] font-bold font-sans flex items-center gap-1 shadow-3xs">
+              <span className="bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-full text-[10px] font-bold font-sans flex items-center gap-1 shadow-3xs">
                 <CheckCircle2 size={11} className="stroke-[2.5]" />
                 ENFORCED
               </span>
@@ -491,12 +500,12 @@ export const Treasury: React.FC = () => {
       {/* PROPOSALS MODAL INSPECTOR matching treasury_proposed_changes_approval_modal */}
       {selectedProposalModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="glass-panel p-6 sm:p-8 rounded-2xl max-w-lg w-full border-purple-200 bg-white hard-shadow space-y-4">
+          <div className="glass-panel p-6 sm:p-8 rounded-2xl max-w-lg w-full border-slate-200 bg-white hard-shadow space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-                <FileCode size={18} className="text-purple-700" /> Multisig Payload Inspector
+                <FileCode size={18} className="text-[#0047AB]" /> Multisig Payload Inspector
               </h3>
-              <button onClick={() => setSelectedProposalModal(null)} className="text-slate-400 hover:text-slate-700 font-bold">
+              <button onClick={() => setSelectedProposalModal(null)} className="text-slate-400 hover:text-slate-700 font-bold cursor-pointer">
                 ✕
               </button>
             </div>
@@ -508,18 +517,18 @@ export const Treasury: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Safe Target:</span>
-                <span className="font-bold text-purple-900">TreasuryVault.sol</span>
+                <span className="font-bold text-slate-900">TreasuryVault.sol</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Calldata Hash:</span>
-                <span className="font-bold text-purple-700">0x8a9b...c1d2</span>
+                <span className="font-bold text-[#0047AB]">0x8a9b...c1d2</span>
               </div>
             </div>
 
             <div className="flex justify-end">
               <button
                 onClick={() => setSelectedProposalModal(null)}
-                className="gradient-btn-primary px-6 py-2 rounded-xl text-xs font-bold"
+                className="bg-[#0B0B0C] hover:bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
                 Close Inspector
               </button>

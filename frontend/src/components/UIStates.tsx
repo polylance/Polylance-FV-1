@@ -36,14 +36,14 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center text-center p-8 sm:p-10 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto ${className}`}>
-      {/* 3D Purple Folder Search Illustration */}
+      {/* Editorial Folder Search Illustration */}
       <div className="relative mb-6 flex items-center justify-center">
-        <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-purple-500/15 via-indigo-500/10 to-purple-400/20 flex items-center justify-center border border-purple-200/60 shadow-inner">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/25">
+        <div className="w-24 h-24 rounded-3xl bg-slate-100 flex items-center justify-center border border-slate-200 shadow-2xs">
+          <div className="w-16 h-16 rounded-2xl bg-[#0B0B0C] flex items-center justify-center text-white shadow-sm border border-slate-800">
             <FolderSearch size={32} className="stroke-[1.75]" />
           </div>
         </div>
-        <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border border-purple-200 flex items-center justify-center text-purple-600 shadow-md">
+        <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[#0047AB] shadow-md">
           <Search size={14} className="stroke-[2.5]" />
         </div>
       </div>
@@ -54,7 +54,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       {actionText && (
         <button
           onClick={onAction}
-          className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-all duration-200 shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 cursor-pointer"
+          className="px-6 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-medium text-sm transition-colors duration-200 shadow-xs cursor-pointer"
         >
           {actionText}
         </button>
@@ -77,12 +77,12 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center text-center p-8 sm:p-10 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto ${className}`}>
-      {/* 3D PolyLance Logo with Pulsing Ring */}
+      {/* PolyLance Logo with Pulsing Container */}
       <div className="relative mb-6 flex items-center justify-center">
         <motion.div
           animate={{ scale: [1, 1.06, 1], rotate: [0, 5, -5, 0] }}
           transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
-          className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-indigo-500/15 flex items-center justify-center border border-blue-200/60 shadow-inner"
+          className="w-24 h-24 rounded-3xl bg-slate-100 flex items-center justify-center border border-slate-200 shadow-2xs"
         >
           <PolyLanceLogo size={52} className="filter drop-shadow-md" />
         </motion.div>
@@ -96,7 +96,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
         <motion.div
           animate={{ x: ['-100%', '100%'] }}
           transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-          className="w-1/2 h-full bg-gradient-to-r from-purple-600 via-blue-500 to-indigo-600 rounded-full"
+          className="w-1/2 h-full bg-[#0047AB] rounded-full"
         />
       </div>
     </div>
@@ -121,10 +121,10 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center text-center p-8 sm:p-10 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto ${className}`}>
-      {/* 3D Glowing Red Triangle Badge */}
+      {/* Red Triangle Badge */}
       <div className="relative mb-6 flex items-center justify-center">
         <div className="w-24 h-24 rounded-3xl bg-red-50 flex items-center justify-center border border-red-200/60 shadow-inner">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-red-500 to-rose-600 flex items-center justify-center text-white shadow-lg shadow-red-500/25">
+          <div className="w-16 h-16 rounded-2xl bg-rose-600 flex items-center justify-center text-white shadow-xs">
             <AlertTriangle size={32} className="stroke-[2]" />
           </div>
         </div>
@@ -137,7 +137,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
         {onRetry && (
           <button
             onClick={onRetry}
-            className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium text-sm transition-all duration-200 shadow-md shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/30 hover:-translate-y-0.5 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium text-sm transition-colors duration-200 shadow-xs cursor-pointer"
           >
             Try Again
           </button>
@@ -145,7 +145,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
         {onDashboard && (
           <button
             onClick={onDashboard}
-            className="px-5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-medium text-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-medium text-sm transition-colors duration-200 cursor-pointer"
           >
             Go to Dashboard
           </button>
@@ -171,10 +171,10 @@ export const NoInternetState: React.FC<NoInternetStateProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center text-center p-8 sm:p-10 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto ${className}`}>
-      {/* 3D Satellite / Connection Lost Illustration */}
+      {/* Connection Lost Illustration */}
       <div className="relative mb-6 flex items-center justify-center">
-        <div className="w-24 h-24 rounded-3xl bg-indigo-50/80 flex items-center justify-center border border-indigo-200/60 shadow-inner">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+        <div className="w-24 h-24 rounded-3xl bg-slate-100 flex items-center justify-center border border-slate-200 shadow-2xs">
+          <div className="w-16 h-16 rounded-2xl bg-[#0B0B0C] flex items-center justify-center text-white shadow-sm border border-slate-800">
             <WifiOff size={32} className="stroke-[1.75]" />
           </div>
         </div>
@@ -186,7 +186,7 @@ export const NoInternetState: React.FC<NoInternetStateProps> = ({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-all duration-200 shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 cursor-pointer"
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-medium text-sm transition-colors duration-200 shadow-xs cursor-pointer"
         >
           <RotateCcw size={15} /> Retry
         </button>
@@ -211,10 +211,10 @@ export const SlowNetworkState: React.FC<SlowNetworkStateProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center text-center p-8 sm:p-10 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto ${className}`}>
-      {/* 3D Speedometer Gauge Illustration */}
+      {/* Speedometer Gauge Illustration */}
       <div className="relative mb-6 flex items-center justify-center">
         <div className="w-24 h-24 rounded-3xl bg-cyan-50 flex items-center justify-center border border-cyan-200/60 shadow-inner">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25">
+          <div className="w-16 h-16 rounded-2xl bg-cyan-700 flex items-center justify-center text-white shadow-xs">
             <Gauge size={32} className="stroke-[1.75]" />
           </div>
         </div>
@@ -226,7 +226,7 @@ export const SlowNetworkState: React.FC<SlowNetworkStateProps> = ({
       {onContinue && (
         <button
           onClick={onContinue}
-          className="px-6 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer shadow-xs"
+          className="px-6 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors duration-200 cursor-pointer shadow-xs"
         >
           Continue Anyway
         </button>
@@ -251,10 +251,10 @@ export const NoSearchResultState: React.FC<NoSearchResultStateProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center text-center p-8 sm:p-10 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto ${className}`}>
-      {/* 3D Magnifying Glass Search Illustration */}
+      {/* Search Illustration */}
       <div className="relative mb-6 flex items-center justify-center">
-        <div className="w-24 h-24 rounded-3xl bg-purple-50 flex items-center justify-center border border-purple-200/60 shadow-inner">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/25">
+        <div className="w-24 h-24 rounded-3xl bg-slate-100 flex items-center justify-center border border-slate-200 shadow-2xs">
+          <div className="w-16 h-16 rounded-2xl bg-[#0B0B0C] flex items-center justify-center text-white shadow-sm border border-slate-800">
             <SearchX size={32} className="stroke-[1.75]" />
           </div>
         </div>
@@ -266,7 +266,7 @@ export const NoSearchResultState: React.FC<NoSearchResultStateProps> = ({
       {onClear && (
         <button
           onClick={onClear}
-          className="px-6 py-2.5 rounded-xl bg-white border border-purple-200 hover:bg-purple-50/50 text-purple-700 font-medium text-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer shadow-xs"
+          className="px-6 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 font-medium text-sm transition-colors duration-200 cursor-pointer shadow-xs"
         >
           Clear Search
         </button>
@@ -291,10 +291,10 @@ export const PermissionDeniedState: React.FC<PermissionDeniedStateProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center text-center p-8 sm:p-10 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto ${className}`}>
-      {/* 3D Glassmorphic Shield Lock Illustration */}
+      {/* Shield Lock Illustration */}
       <div className="relative mb-6 flex items-center justify-center">
-        <div className="w-24 h-24 rounded-3xl bg-purple-50/90 flex items-center justify-center border border-purple-200/60 shadow-inner">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-700 flex items-center justify-center text-white shadow-lg shadow-purple-600/25">
+        <div className="w-24 h-24 rounded-3xl bg-slate-100 flex items-center justify-center border border-slate-200 shadow-2xs">
+          <div className="w-16 h-16 rounded-2xl bg-[#0B0B0C] flex items-center justify-center text-white shadow-sm border border-slate-800">
             <ShieldAlert size={32} className="stroke-[1.75]" />
           </div>
         </div>
@@ -306,7 +306,7 @@ export const PermissionDeniedState: React.FC<PermissionDeniedStateProps> = ({
       {onBack && (
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer shadow-xs"
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors duration-200 cursor-pointer shadow-xs"
         >
           <ArrowLeft size={15} /> Go Back
         </button>
@@ -331,10 +331,10 @@ export const SessionExpiredState: React.FC<SessionExpiredStateProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center text-center p-8 sm:p-10 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto ${className}`}>
-      {/* 3D Purple Hourglass Illustration */}
+      {/* Hourglass Illustration */}
       <div className="relative mb-6 flex items-center justify-center">
-        <div className="w-24 h-24 rounded-3xl bg-indigo-50/80 flex items-center justify-center border border-indigo-200/60 shadow-inner">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/25">
+        <div className="w-24 h-24 rounded-3xl bg-slate-100 flex items-center justify-center border border-slate-200 shadow-2xs">
+          <div className="w-16 h-16 rounded-2xl bg-[#0B0B0C] flex items-center justify-center text-white shadow-sm border border-slate-800">
             <Hourglass size={32} className="stroke-[1.75]" />
           </div>
         </div>
@@ -346,7 +346,7 @@ export const SessionExpiredState: React.FC<SessionExpiredStateProps> = ({
       {onLogin && (
         <button
           onClick={onLogin}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-all duration-200 shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 cursor-pointer"
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-medium text-sm transition-colors duration-200 shadow-xs cursor-pointer"
         >
           <LogIn size={15} /> Login Again
         </button>
@@ -388,7 +388,7 @@ export const FormValidationCard: React.FC<FormValidationCardProps> = ({ classNam
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:border-[#0047AB] transition-colors"
             />
             <CheckCircle2 size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-600" />
           </div>
@@ -419,7 +419,7 @@ export const FormValidationCard: React.FC<FormValidationCardProps> = ({ classNam
               type="text"
               value={wallet}
               onChange={(e) => setWallet(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-900 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-900 focus:outline-none focus:border-[#0047AB] transition-colors"
             />
             <CheckCircle2 size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-600" />
           </div>
@@ -446,7 +446,7 @@ export const FormValidationCard: React.FC<FormValidationCardProps> = ({ classNam
         <div className="pt-2">
           <button
             type="submit"
-            className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-all duration-200 shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30 cursor-pointer"
+            className="w-full py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-medium text-sm transition-colors duration-200 shadow-xs cursor-pointer"
           >
             Submit Proposal
           </button>
@@ -474,7 +474,7 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center text-center p-8 sm:p-10 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto ${className}`}>
-      {/* 3D Emerald Checkmark Badge */}
+      {/* Emerald Checkmark Badge */}
       <div className="relative mb-6 flex items-center justify-center">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
@@ -482,7 +482,7 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           className="w-24 h-24 rounded-3xl bg-emerald-50 flex items-center justify-center border border-emerald-200/60 shadow-inner"
         >
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shadow-xs">
             <CheckCircle2 size={34} className="stroke-[2]" />
           </div>
         </motion.div>
@@ -494,7 +494,7 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
       {actionText && (
         <button
           onClick={onAction}
-          className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-all duration-200 shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 cursor-pointer"
+          className="px-6 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-medium text-sm transition-colors duration-200 shadow-xs cursor-pointer"
         >
           {actionText}
         </button>

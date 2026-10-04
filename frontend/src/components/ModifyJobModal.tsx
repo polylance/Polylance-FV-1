@@ -5,6 +5,7 @@ import { Job, SkillCategory } from '../types';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { useLiveCurrencyRates } from '../utils/currency';
 import { scrollToSection } from '../utils/scroll';
+import { TokenIcon } from './TokenIcon';
 
 interface ModifyJobModalProps {
   isOpen: boolean;
@@ -145,7 +146,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
           {/* Header */}
           <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 shadow-xs">
+              <div className="w-11 h-11 rounded-2xl bg-[#0B0B0C] text-white border border-slate-800 flex items-center justify-center shrink-0 shadow-xs">
                 <Edit3 size={22} />
               </div>
               <div>
@@ -203,7 +204,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Full-Stack Web3 Marketplace Development"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 font-sans text-sm text-slate-800 transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#0047AB] font-sans text-sm text-slate-800 transition-all"
                 required
               />
             </div>
@@ -223,13 +224,13 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                       onClick={() => setCategory(c.value)}
                       className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
                         isSelected
-                          ? 'border-purple-500 bg-purple-50/70 text-purple-900 ring-1 ring-purple-300'
+                          ? 'border-[#0047AB] bg-blue-50/70 text-[#0047AB] ring-1 ring-blue-300'
                           : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold font-headline">{c.label}</span>
-                        <Tag size={13} className={isSelected ? 'text-purple-600' : 'text-slate-400'} />
+                        <Tag size={13} className={isSelected ? 'text-[#0047AB]' : 'text-slate-400'} />
                       </div>
                       <p className="text-[11px] text-slate-500 font-sans mt-0.5 line-clamp-1">
                         {c.desc}
@@ -247,10 +248,8 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                 <label className="block text-xs font-headline font-bold uppercase tracking-wider text-slate-700">
                   Target Budget ({sym}) <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <DollarSign size={16} />
-                  </div>
+                <label className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-[#0047AB] transition-all cursor-text">
+                  <TokenIcon token={sym} size={18} />
                   <input
                     type="number"
                     step="any"
@@ -258,13 +257,13 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                     value={amountUsdc}
                     onChange={(e) => setAmountUsdc(e.target.value)}
                     placeholder={isCrypto ? '10' : '250.00'}
-                    className="w-full pl-9 pr-14 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 font-mono text-sm text-slate-800 transition-all"
+                    className="flex-1 min-w-0 bg-transparent font-mono text-sm text-slate-800 outline-none"
                     required
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-mono font-bold text-slate-500">
+                  <span className="font-mono text-xs font-bold text-slate-500 shrink-0">
                     {sym}
-                  </div>
-                </div>
+                  </span>
+                </label>
                 {isCrypto && (
                   <span className="text-[10.5px] font-mono text-slate-500 block">
                     ≈ ${(parseFloat(amountUsdc || '0') * tokenPriceUsd).toFixed(2)} USDC
@@ -287,7 +286,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                     max="30"
                     value={reviewPeriodDays}
                     onChange={(e) => setReviewPeriodDays(parseInt(e.target.value) || 1)}
-                    className="w-full pl-9 pr-14 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 font-mono text-sm text-slate-800 transition-all"
+                    className="w-full pl-9 pr-14 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#0047AB] font-mono text-sm text-slate-800 transition-all"
                     required
                   />
                   <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-mono font-medium text-slate-400">
@@ -307,7 +306,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                 onChange={(e) => setDescription(e.target.value)}
                 rows={5}
                 placeholder="Describe project deliverables, tech stack requirements, milestones, and expectations..."
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 font-sans text-sm text-slate-800 transition-all resize-y"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#0047AB] font-sans text-sm text-slate-800 transition-all resize-y"
                 required
               />
             </div>
@@ -325,7 +324,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-98 text-white font-mono font-bold text-xs flex items-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-50"
+                className="px-6 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] active:scale-98 text-white font-mono font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50"
               >
                 <Save size={15} />
                 <span>{isSubmitting ? 'Saving Changes...' : 'Save Changes'}</span>

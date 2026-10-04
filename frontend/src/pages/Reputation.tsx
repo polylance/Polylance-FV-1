@@ -259,9 +259,9 @@ export const Reputation: React.FC = () => {
     rankLabel = 'Unranked';
   }
 
-  const firstPlace = leaderboardData[0] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k', address: '' };
-  const secondPlace = leaderboardData[1] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k', address: '' };
-  const thirdPlace = leaderboardData[2] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', successRate: '0%', earnings: '$0.0k', address: '' };
+  const firstPlace = leaderboardData[0] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: '', successRate: '0%', earnings: '$0.0k', address: '' };
+  const secondPlace = leaderboardData[1] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: '', successRate: '0%', earnings: '$0.0k', address: '' };
+  const thirdPlace = leaderboardData[2] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: '', successRate: '0%', earnings: '$0.0k', address: '' };
 
   const openTierDetails = (tier: string) => {
     if (tier === 'Diamond') {
@@ -307,14 +307,14 @@ export const Reputation: React.FC = () => {
     }
     if (normalized.includes('judge') || normalized.includes('arbitrat')) {
       return (
-        <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-purple-50 text-purple-800 border border-purple-200/80 font-mono tracking-wide">
-          <Scale size={10} className="text-purple-600" /> {role}
+        <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-slate-100 text-slate-800 border border-slate-200 font-mono tracking-wide">
+          <Scale size={10} className="text-[#0047AB]" /> {role}
         </span>
       );
     }
     return (
       <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-blue-50 text-blue-800 border border-blue-200/80 font-mono tracking-wide">
-        <span className="text-[10px] font-black font-mono text-blue-600">&lt;/&gt;</span> {role}
+        <span className="text-[10px] font-black font-mono text-[#0047AB]">&lt;/&gt;</span> {role}
       </span>
     );
   };
@@ -351,44 +351,40 @@ export const Reputation: React.FC = () => {
       {/* Top Hero Section */}
       <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Diamond Level Card */}
-        <div className="md:col-span-2 relative overflow-hidden bg-gradient-to-br from-[#0F172A] via-[#1E1B4B] to-[#311042] p-7 sm:p-8 rounded-3xl text-white shadow-[0_15px_40px_-10px_rgba(37,99,235,0.35)] border border-cyan-500/30 flex flex-col justify-between min-h-[220px] group">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(6,207,238,0.2),transparent_60%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(168,230,58,0.1),transparent_60%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:18px_18px] pointer-events-none" />
-          
+        <div className="md:col-span-2 relative overflow-hidden bg-[#0B0B0C] p-7 sm:p-8 rounded-2xl text-white shadow-xs border border-slate-800 flex flex-col justify-between min-h-[220px]">
           <div className="relative z-10 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2 bg-cyan-950/80 px-3.5 py-1 rounded-full border border-cyan-500/40 shadow-xs">
-                <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-                <span className="font-mono text-xs uppercase tracking-widest text-cyan-300 font-extrabold">
+              <div className="flex items-center gap-2 bg-slate-900 px-3.5 py-1 rounded-full border border-slate-700 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-[#0047AB]" />
+                <span className="font-mono text-xs uppercase tracking-widest text-slate-300 font-extrabold">
                   Global Standing • Soulbound Reputation
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 bg-purple-900/60 border border-purple-400/40 px-3 py-1 rounded-full text-xs font-mono font-bold text-purple-200">
-                <Sparkles size={13} className="text-cyan-300" />
+              <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-1 rounded-full text-xs font-mono font-bold text-slate-300">
+                <Sparkles size={13} className="text-[#0047AB]" />
                 <span>Ranked Verified Builder</span>
               </div>
             </div>
 
-            <h1 className="font-headline text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight pt-1">
-              <span className="text-white drop-shadow-md" style={{ color: '#FFFFFF' }}>Verified Tier: </span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-purple-300 to-lime-300 drop-shadow-[0_2px_12px_rgba(6,207,238,0.4)]">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight pt-1">
+              <span>Verified Tier: </span>
+              <span className="text-[#0047AB]">
                 {activeTier === 'None' ? 'Starter League' : activeTier + ' League'}
               </span>
             </h1>
           </div>
 
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t border-white/10">
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-800">
             {Boolean(address) && totalPoints > 0 ? (
               <div className="flex items-baseline gap-4">
-                <span className="text-6xl sm:text-7xl font-black tracking-tight text-[#FFFFFF] drop-shadow-[0_6px_20px_rgba(6,207,238,0.6)] font-space" style={{ color: '#FFFFFF' }}>
+                <span className="text-6xl sm:text-7xl font-black tracking-tight text-white font-mono">
                   {rankLabel}
                 </span>
                 <div className="space-y-0.5">
-                  <span className="text-base sm:text-lg font-black text-cyan-100 tracking-tight block">
+                  <span className="text-base sm:text-lg font-bold text-slate-200 tracking-tight block">
                     of {leaderboardData.length} Verified On-Chain Freelancers
                   </span>
-                  <span className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider block">
+                  <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">
                     SBT Reputation Index • Polygon Mainnet
                   </span>
                 </div>
@@ -396,10 +392,10 @@ export const Reputation: React.FC = () => {
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-xs font-extrabold text-cyan-300 bg-cyan-950/80 border border-cyan-500/40 px-3.5 py-1 rounded-xl">
+                  <span className="text-xs font-extrabold text-[#0047AB] bg-blue-950/40 border border-blue-800 px-3.5 py-1 rounded-xl">
                     Status: Unranked
                   </span>
-                  <span className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">
+                  <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
                     SBT Reputation Index • Polygon Mainnet
                   </span>
                 </div>
@@ -409,13 +405,13 @@ export const Reputation: React.FC = () => {
               </div>
             )}
 
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl flex items-center gap-3 shrink-0 shadow-sm">
-              <div className="w-9 h-9 rounded-xl bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+            <div className="bg-white/5 border border-white/10 px-4 py-2.5 rounded-xl flex items-center gap-3 shrink-0 shadow-xs">
+              <div className="w-9 h-9 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-[#0047AB]">
                 <Trophy size={18} />
               </div>
               <div>
                 <span className="text-xs font-mono font-black text-white block">{totalPoints} PLREP</span>
-                <span className="text-[10px] font-mono text-cyan-200 font-bold block">Soulbound Score</span>
+                <span className="text-[10px] font-mono text-slate-400 font-bold block">Soulbound Score</span>
               </div>
             </div>
           </div>
@@ -424,54 +420,41 @@ export const Reputation: React.FC = () => {
         {/* Reputation Score Card */}
         <motion.div 
           whileHover={{ y: -4, scale: 1.01 }}
-          className="bg-white border border-slate-100 shadow-xl p-5 rounded-2xl flex flex-col justify-center items-center text-center space-y-4 relative overflow-hidden group"
+          className="bg-white border border-[#E2E6EC] shadow-xs p-5 rounded-2xl flex flex-col justify-center items-center text-center space-y-4 relative overflow-hidden group"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(168,85,247,0.04),transparent_60%)] pointer-events-none" />
-          
           <div className="relative w-32 h-32 flex items-center justify-center mt-1">
             <div className="absolute left-[-18px] top-[40%] -translate-y-1/2 opacity-20 select-none pointer-events-none">
               <svg width="18" height="30" viewBox="0 0 18 30" fill="none">
-                <circle cx="3" cy="3" r="1" fill="#8b5cf6" />
-                <circle cx="11" cy="3" r="1" fill="#8b5cf6" />
-                <circle cx="3" cy="11" r="1" fill="#8b5cf6" />
-                <circle cx="11" cy="11" r="1" fill="#8b5cf6" />
-                <circle cx="3" cy="19" r="1" fill="#8b5cf6" />
-                <circle cx="11" cy="19" r="1" fill="#8b5cf6" />
-                <circle cx="3" cy="27" r="1" fill="#8b5cf6" />
-                <circle cx="11" cy="27" r="1" fill="#8b5cf6" />
+                <circle cx="3" cy="3" r="1" fill="#94A3B8" />
+                <circle cx="11" cy="3" r="1" fill="#94A3B8" />
+                <circle cx="3" cy="11" r="1" fill="#94A3B8" />
+                <circle cx="11" cy="11" r="1" fill="#94A3B8" />
+                <circle cx="3" cy="19" r="1" fill="#94A3B8" />
+                <circle cx="11" cy="19" r="1" fill="#94A3B8" />
+                <circle cx="3" cy="27" r="1" fill="#94A3B8" />
+                <circle cx="11" cy="27" r="1" fill="#94A3B8" />
               </svg>
             </div>
             
             <div className="absolute right-[-18px] top-[40%] -translate-y-1/2 opacity-20 select-none pointer-events-none">
               <svg width="18" height="30" viewBox="0 0 18 30" fill="none">
-                <circle cx="7" cy="3" r="1" fill="#8b5cf6" />
-                <circle cx="15" cy="3" r="1" fill="#8b5cf6" />
-                <circle cx="7" cy="11" r="1" fill="#8b5cf6" />
-                <circle cx="15" cy="11" r="1" fill="#8b5cf6" />
-                <circle cx="7" cy="19" r="1" fill="#8b5cf6" />
-                <circle cx="15" cy="19" r="1" fill="#8b5cf6" />
-                <circle cx="7" cy="27" r="1" fill="#8b5cf6" />
-                <circle cx="15" cy="27" r="1" fill="#8b5cf6" />
+                <circle cx="7" cy="3" r="1" fill="#94A3B8" />
+                <circle cx="15" cy="3" r="1" fill="#94A3B8" />
+                <circle cx="7" cy="11" r="1" fill="#94A3B8" />
+                <circle cx="15" cy="11" r="1" fill="#94A3B8" />
+                <circle cx="7" cy="19" r="1" fill="#94A3B8" />
+                <circle cx="15" cy="19" r="1" fill="#94A3B8" />
+                <circle cx="7" cy="27" r="1" fill="#94A3B8" />
+                <circle cx="15" cy="27" r="1" fill="#94A3B8" />
               </svg>
             </div>
 
-            <div className="absolute left-[-8px] bottom-[20%] text-purple-400 opacity-50 animate-pulse pointer-events-none">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0L14.8 9.2L24 12L14.8 14.8L12 24L9.2 14.8L0 12L9.2 9.2Z" />
-              </svg>
-            </div>
-            <div className="absolute right-[-8px] top-[15%] text-purple-400 opacity-50 animate-pulse pointer-events-none">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0L14.8 9.2L24 12L14.8 14.8L12 24L9.2 14.8L0 12L9.2 9.2Z" />
-              </svg>
-            </div>
-
-            <div className="absolute w-full h-full rounded-full border border-purple-100/40 flex items-center justify-center">
-              <div className="w-[114px] h-[114px] rounded-full border border-purple-50/60 bg-white/20 flex items-center justify-center shadow-[0_3px_12px_rgba(168,85,247,0.01)]">
-                <div className="w-[98px] h-[98px] rounded-full border border-purple-100/70 bg-white flex flex-col items-center justify-center p-2.5 relative shadow-[0_4px_12px_-3px_rgba(168,85,247,0.05),inset_0_1.5px_4px_rgba(168,85,247,0.03)]">
+            <div className="absolute w-full h-full rounded-full border border-slate-200 flex items-center justify-center">
+              <div className="w-[114px] h-[114px] rounded-full border border-slate-100 bg-slate-50/50 flex items-center justify-center shadow-xs">
+                <div className="w-[98px] h-[98px] rounded-full border border-slate-200 bg-white flex flex-col items-center justify-center p-2.5 relative shadow-xs">
                   {totalPoints > 0 && (
                     <div 
-                      className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-purple-600 text-white p-0.5 shadow-[0_1.5px_6px_rgba(98,27,203,0.25)] border border-purple-400/30 flex items-center justify-center w-5.5 h-5.5"
+                      className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#0047AB] text-white p-0.5 shadow-xs border border-blue-400/30 flex items-center justify-center w-5.5 h-5.5"
                       style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
                     >
                       <svg className="w-2.5 h-2.5 fill-current text-white" viewBox="0 0 24 24">
@@ -480,7 +463,7 @@ export const Reputation: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="text-3xl font-extrabold tracking-tight bg-gradient-to-br from-purple-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mt-1">
+                  <div className="text-3xl font-extrabold tracking-tight text-[#0B0B0C] mt-1">
                     {totalPoints}
                   </div>
                   
@@ -493,23 +476,23 @@ export const Reputation: React.FC = () => {
           </div>
 
           <div className="space-y-0.5 z-10">
-            <h2 className="font-headline font-extrabold text-slate-800 text-lg tracking-tight">
-              Reputation <span className="text-purple-600">Points</span>
+            <h2 className="font-serif font-bold text-[#0B0B0C] text-lg tracking-tight">
+              Reputation <span className="text-[#0047AB]">Points</span>
             </h2>
             <p className="text-[10px] text-slate-400 font-medium">Soulbound ledger verified score</p>
           </div>
 
-          <div className="w-full max-w-[220px] bg-purple-50/30 border border-purple-100/50 rounded-xl p-2 flex items-center shadow-2xs z-10">
-            <div className="w-7 h-7 rounded-full bg-purple-100/60 flex items-center justify-center text-purple-600 shrink-0">
+          <div className="w-full max-w-[220px] bg-slate-50 border border-[#E2E6EC] rounded-xl p-2 flex items-center shadow-2xs z-10">
+            <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center text-[#0047AB] shrink-0 border border-blue-100">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h12l4 6-10 12L2 9zM11 3v6M5 9h14M12 21l3-12M12 21l-3-12" />
               </svg>
             </div>
             
-            <div className="w-[1px] h-5 bg-purple-100/80 mx-2" />
+            <div className="w-[1px] h-5 bg-slate-200 mx-2" />
 
-            <div className="flex items-center text-purple-600 pr-0.5">
-              <Trophy size={12} className="text-purple-600 mr-1.5 shrink-0" />
+            <div className="flex items-center text-[#0047AB] pr-0.5">
+              <Trophy size={12} className="text-[#0047AB] mr-1.5 shrink-0" />
               <span className="font-extrabold text-[10px] uppercase tracking-wide mr-1 select-none">
                 {activeTier === 'None' ? 'UNRANKED' : activeTier === 'Diamond' ? 'TOP 2%' : activeTier === 'Gold' ? 'TOP 10%' : 'TOP 30%'}
               </span>
@@ -527,8 +510,8 @@ export const Reputation: React.FC = () => {
           className="lg:col-span-8 bg-white border border-slate-100 shadow-md rounded-2xl p-4 space-y-3.5 flex flex-col justify-start"
         >
           <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-            <div className="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-700 shrink-0">
-              <Bookmark size={18} className="text-purple-700 fill-purple-100/50" />
+            <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-[#0047AB] shrink-0">
+              <Bookmark size={18} className="text-[#0047AB]" />
             </div>
             <div>
               <h2 className="font-headline text-lg font-extrabold text-slate-900 leading-tight">
@@ -635,9 +618,9 @@ export const Reputation: React.FC = () => {
             </div>
 
             {/* Breakdown item 4 */}
-            <div className="bg-purple-50/15 border border-purple-100/60 p-3 rounded-xl flex items-center gap-3 transition-all duration-300 hover:shadow-3xs">
-              <div className="w-9 h-9 rounded-lg bg-purple-100/70 border border-purple-200 flex items-center justify-center text-purple-600 shrink-0 shadow-3xs">
-                <Star size={16} className="stroke-[2.5] fill-purple-100 text-purple-700" />
+            <div className="bg-slate-50 border border-[#E2E6EC] p-3 rounded-xl flex items-center gap-3 transition-all duration-300 hover:shadow-3xs">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0047AB] shrink-0 shadow-3xs">
+                <Star size={16} className="stroke-[2.5] text-[#0047AB]" />
               </div>
               <div className="flex-1 flex items-center justify-between gap-4">
                 <div className="space-y-0.5">
@@ -648,20 +631,17 @@ export const Reputation: React.FC = () => {
                 </div>
                 
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-mono text-purple-700 font-black text-sm shrink-0">
+                  <span className="font-mono text-[#0047AB] font-black text-sm shrink-0">
                     +{totalPoints} pts
                   </span>
                   
-                  <div className="relative w-10 h-10 flex items-center justify-center shrink-0 overflow-hidden">
-                    <div className="absolute inset-2 bg-purple-500/10 blur-sm rounded-full" />
+                  <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
                     <div 
-                      className="relative w-5.5 h-5.5 bg-purple-600 text-white flex items-center justify-center shadow-[0_1px_4px_rgba(124,58,237,0.3)] z-10"
+                      className="relative w-5.5 h-5.5 bg-[#0047AB] text-white flex items-center justify-center shadow-xs z-10"
                       style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
                     >
                       <Star size={10} className="fill-current text-white" />
                     </div>
-                    <Star size={4} className="absolute top-1 right-2 text-purple-500 fill-current animate-pulse" />
-                    <Sparkles size={6} className="absolute bottom-1 left-2 text-purple-400" />
                   </div>
                 </div>
               </div>
@@ -676,8 +656,8 @@ export const Reputation: React.FC = () => {
         >
           <div className="space-y-3.5">
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-              <div className="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-700 shrink-0">
-                <Trophy size={18} className="text-purple-700 fill-purple-100/50" />
+              <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-[#0047AB] shrink-0">
+                <Trophy size={18} className="text-[#0047AB]" />
               </div>
               <div>
                 <h2 className="font-headline text-base font-bold text-slate-900 leading-tight">
@@ -698,13 +678,13 @@ export const Reputation: React.FC = () => {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openTierDetails('Diamond'); }}
                 className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all cursor-pointer select-none active:scale-[0.98] ${
                   activeTier === 'Diamond'
-                    ? 'bg-purple-50/20 border border-purple-300 shadow-xs'
-                    : 'border border-slate-100 bg-white hover:border-slate-300'
+                    ? 'bg-[#F4F6F9] border-2 border-[#3B82C4] shadow-xs'
+                    : 'border border-[#E2E6EC] bg-white hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center gap-2.5 relative z-10">
                   <div 
-                    className="w-8 h-8 bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm"
+                    className="w-8 h-8 bg-[#3B82C4] text-white flex items-center justify-center shrink-0 shadow-xs"
                     style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
                   >
                     <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -712,12 +692,12 @@ export const Reputation: React.FC = () => {
                     </svg>
                   </div>
                   <div>
-                    <span className={`font-bold text-xs block leading-tight ${activeTier === 'Diamond' ? 'text-slate-900' : 'text-slate-700'}`}>Diamond Tier</span>
-                    <span className="text-[9px] text-slate-400 font-medium">Top 2% of verified freelancers</span>
+                    <span className={`font-bold text-xs block leading-tight ${activeTier === 'Diamond' ? 'text-[#0B0B0C]' : 'text-slate-700'}`}>Diamond Tier</span>
+                    <span className="text-[9px] text-[#8892A0] font-medium">Top 2% of verified freelancers</span>
                   </div>
                 </div>
                 {activeTier === 'Diamond' ? (
-                  <span className="font-mono text-[9px] bg-purple-600 px-1.5 py-0.2 rounded text-white relative z-10 font-black shrink-0 shadow-sm">
+                  <span className="font-mono text-[9px] bg-[#E8A317] px-2 py-0.5 rounded text-[#0B0B0C] relative z-10 font-black shrink-0 shadow-xs">
                     CURRENT
                   </span>
                 ) : (
@@ -733,24 +713,24 @@ export const Reputation: React.FC = () => {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openTierDetails('Gold'); }}
                 className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all cursor-pointer select-none active:scale-[0.98] ${
                   activeTier === 'Gold'
-                    ? 'bg-purple-50/20 border border-purple-300 shadow-xs'
-                    : 'border border-slate-100 bg-white hover:border-slate-300'
+                    ? 'bg-[#FDF3DC]/40 border-2 border-[#C98A1B] shadow-xs'
+                    : 'border border-[#E2E6EC] bg-white hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <div 
-                    className="w-8 h-8 bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm"
+                    className="w-8 h-8 bg-[#C98A1B] text-white flex items-center justify-center shrink-0 shadow-xs"
                     style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
                   >
                     <Trophy size={14} className="stroke-[2.5]" />
                   </div>
                   <div>
-                    <span className={`font-bold text-xs block leading-tight ${activeTier === 'Gold' ? 'text-slate-900' : 'text-slate-700'}`}>Gold Tier</span>
-                    <span className="text-[9px] text-slate-400 font-medium">Top 10% of verified freelancers</span>
+                    <span className={`font-bold text-xs block leading-tight ${activeTier === 'Gold' ? 'text-[#0B0B0C]' : 'text-slate-700'}`}>Gold Tier</span>
+                    <span className="text-[9px] text-[#8892A0] font-medium">Top 10% of verified freelancers</span>
                   </div>
                 </div>
                 {activeTier === 'Gold' ? (
-                  <span className="font-mono text-[9px] bg-purple-600 px-1.5 py-0.2 rounded text-white relative z-10 font-black shrink-0 shadow-sm">
+                  <span className="font-mono text-[9px] bg-[#E8A317] px-2 py-0.5 rounded text-[#0B0B0C] relative z-10 font-black shrink-0 shadow-xs">
                     CURRENT
                   </span>
                 ) : (
@@ -766,24 +746,24 @@ export const Reputation: React.FC = () => {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openTierDetails('Silver'); }}
                 className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all cursor-pointer select-none active:scale-[0.98] ${
                   activeTier === 'Silver'
-                    ? 'bg-purple-50/20 border border-purple-300 shadow-xs'
-                    : 'border border-slate-100 bg-white hover:border-slate-300'
+                    ? 'bg-[#F4F6F9] border-2 border-[#8C929B] shadow-xs'
+                    : 'border border-[#E2E6EC] bg-white hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <div 
-                    className="w-8 h-8 bg-slate-500 text-white flex items-center justify-center shrink-0 shadow-sm"
+                    className="w-8 h-8 bg-[#8C929B] text-white flex items-center justify-center shrink-0 shadow-xs"
                     style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
                   >
                     <Star size={14} className="fill-current text-white stroke-[2.5]" />
                   </div>
                   <div>
-                    <span className={`font-bold text-xs block leading-tight ${activeTier === 'Silver' ? 'text-slate-900' : 'text-slate-700'}`}>Silver Tier</span>
-                    <span className="text-[9px] text-slate-400 font-medium">Top 30% of verified freelancers</span>
+                    <span className={`font-bold text-xs block leading-tight ${activeTier === 'Silver' ? 'text-[#0B0B0C]' : 'text-slate-700'}`}>Silver Tier</span>
+                    <span className="text-[9px] text-[#8892A0] font-medium">Top 30% of verified freelancers</span>
                   </div>
                 </div>
                 {activeTier === 'Silver' ? (
-                  <span className="font-mono text-[9px] bg-purple-600 px-1.5 py-0.2 rounded text-white relative z-10 font-black shrink-0 shadow-sm">
+                  <span className="font-mono text-[9px] bg-[#E8A317] px-2 py-0.5 rounded text-[#0B0B0C] relative z-10 font-black shrink-0 shadow-xs">
                     CURRENT
                   </span>
                 ) : (
@@ -793,11 +773,11 @@ export const Reputation: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-3 bg-purple-50/20 border border-purple-100/60 rounded-xl space-y-2 mt-2">
+          <div className="p-3 bg-slate-50 border border-[#E2E6EC] rounded-xl space-y-2 mt-2">
             <div className="flex justify-between items-center text-xs font-bold text-slate-900">
               <span>Next Tier Goal</span>
               {ptsLeft > 0 ? (
-                <span className="font-mono text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 text-[10px] font-bold">
+                <span className="font-mono text-[#0047AB] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-bold">
                   {ptsLeft} pts left
                 </span>
               ) : (
@@ -816,7 +796,7 @@ export const Reputation: React.FC = () => {
                 initial={{ width: 0 }}
                 animate={{ width: `${tierProgress}%` }}
                 transition={{ duration: 1.2, ease: 'easeOut' }}
-                className="bg-purple-600 h-full rounded-full" 
+                className="bg-[#0047AB] h-full rounded-full" 
               />
             </div>
           </div>
@@ -831,10 +811,10 @@ export const Reputation: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 border-b border-slate-200/60 pb-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-purple-600/10 text-purple-700 rounded-lg shadow-sm">
-                <Trophy size={18} className="text-purple-700" />
+              <div className="p-1.5 bg-blue-50 text-[#0047AB] rounded-lg border border-blue-100 shadow-2xs">
+                <Trophy size={18} className="text-[#0047AB]" />
               </div>
-              <h2 className="font-headline text-lg font-extrabold text-slate-900 leading-tight">
+              <h2 className="font-serif text-lg font-bold text-[#0B0B0C] leading-tight">
                 Global Freelancer Standings
               </h2>
             </div>
@@ -848,7 +828,7 @@ export const Reputation: React.FC = () => {
               onClick={() => setFilterPeriod('all')}
               className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all duration-200 cursor-pointer ${
                 filterPeriod === 'all'
-                  ? 'bg-white text-purple-950 shadow-sm border border-slate-200/50 font-black'
+                  ? 'bg-white text-[#0B0B0C] shadow-xs border border-slate-200 font-bold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -858,7 +838,7 @@ export const Reputation: React.FC = () => {
               onClick={() => setFilterPeriod('monthly')}
               className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all duration-200 cursor-pointer ${
                 filterPeriod === 'monthly'
-                  ? 'bg-white text-purple-950 shadow-sm border border-slate-200/50 font-black'
+                  ? 'bg-white text-[#0B0B0C] shadow-xs border border-slate-200 font-bold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -869,20 +849,20 @@ export const Reputation: React.FC = () => {
 
         {/* GUEST PREVIEW NOTICE FOR NON-POLYLANCERS */}
         {!isConnected && (
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-white to-amber-50/50 border border-purple-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-4">
+          <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200 shadow-2xs">
-                <Lock size={15} className="text-purple-700" />
+              <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0047AB] flex items-center justify-center shrink-0 border border-blue-100 shadow-2xs">
+                <Lock size={15} className="text-[#0047AB]" />
               </div>
               <div className="min-w-0">
-                <p className="font-bold text-slate-800">Public Leaderboard Standings (Guest Preview)</p>
+                <p className="font-bold text-[#0B0B0C]">Public Leaderboard Standings (Guest Preview)</p>
                 <p className="text-slate-500 text-[11px] leading-relaxed">Detailed developer profiles, verified GitHub identities, and soulbound attestations are restricted. Connect your wallet to inspect credentials.</p>
               </div>
             </div>
             <button
               type="button"
               onClick={connectWallet}
-              className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono font-bold text-xs shadow-xs transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white font-mono font-bold text-xs shadow-xs transition-colors shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Zap size={13} />
               <span>Connect Wallet</span>
@@ -943,14 +923,14 @@ export const Reputation: React.FC = () => {
               <div>
                 {secondPlace.address ? (
                   isConnected ? (
-                    <Link to={`/profile/${secondPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
+                    <Link to={`/profile/${secondPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-[#0047AB] hover:underline block leading-tight">
                       {secondPlace.name}
                     </Link>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setIsAuthModalOpen(true)}
-                      className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline flex items-center justify-center gap-1 leading-tight mx-auto cursor-pointer"
+                      className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-[#0047AB] hover:underline flex items-center justify-center gap-1 leading-tight mx-auto cursor-pointer"
                     >
                       <span>{secondPlace.name}</span>
                       <Lock size={11} className="text-amber-600 inline shrink-0" />
@@ -1122,14 +1102,14 @@ export const Reputation: React.FC = () => {
               <div>
                 {thirdPlace.address ? (
                   isConnected ? (
-                    <Link to={`/profile/${thirdPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline block leading-tight">
+                    <Link to={`/profile/${thirdPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-[#0047AB] hover:underline block leading-tight">
                       {thirdPlace.name}
                     </Link>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setIsAuthModalOpen(true)}
-                      className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-purple-700 hover:underline flex items-center justify-center gap-1 leading-tight mx-auto cursor-pointer"
+                      className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-[#0047AB] hover:underline flex items-center justify-center gap-1 leading-tight mx-auto cursor-pointer"
                     >
                       <span>{thirdPlace.name}</span>
                       <Lock size={11} className="text-amber-600 inline shrink-0" />
@@ -1178,7 +1158,7 @@ export const Reputation: React.FC = () => {
               {leaderboardData.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-sans">
-                    <Trophy size={36} className="mx-auto text-purple-300 mb-2" />
+                    <Trophy size={36} className="mx-auto text-slate-300 mb-2" />
                     <p className="font-bold text-slate-800 text-sm">No Attested Developers Yet</p>
                     <p className="text-xs text-slate-500 font-mono mt-1">
                       Complete escrow milestones and mint Reputation SBTs to claim the #1 spot on the global leaderboard.
@@ -1191,7 +1171,7 @@ export const Reputation: React.FC = () => {
                     key={row.address}
                     className={`hover:bg-slate-50/50 transition-colors ${
                       row.isUser 
-                        ? 'bg-purple-50/20 border-y border-purple-150' 
+                        ? 'bg-blue-50/40 border-y border-blue-200' 
                         : ''
                     }`}
                   >
@@ -1222,11 +1202,11 @@ export const Reputation: React.FC = () => {
                                 src={row.avatar}
                                 alt={row.name}
                                 className={`w-9 h-9 rounded-full object-cover border ${
-                                  row.isUser ? 'border-purple-600 ring-2 ring-purple-600/20' : 'border-slate-200'
+                                  row.isUser ? 'border-[#0047AB] ring-2 ring-[#0047AB]/20' : 'border-slate-200'
                                 }`}
                               />
                               {row.isUser && (
-                                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-purple-600 text-white rounded-full flex items-center justify-center text-[8px] font-black font-mono border-2 border-white">
+                                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#0047AB] text-white rounded-full flex items-center justify-center text-[8px] font-black font-mono border-2 border-white">
                                   ★
                                 </span>
                               )}
@@ -1242,7 +1222,7 @@ export const Reputation: React.FC = () => {
                                 src={row.avatar}
                                 alt={row.name}
                                 className={`w-9 h-9 rounded-full object-cover border ${
-                                  row.isUser ? 'border-purple-600 ring-2 ring-purple-600/20' : 'border-slate-200'
+                                  row.isUser ? 'border-[#0047AB] ring-2 ring-[#0047AB]/20' : 'border-slate-200'
                                 }`}
                               />
                               <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center shadow-xs">
@@ -1262,7 +1242,7 @@ export const Reputation: React.FC = () => {
                               <Link 
                                 to={`/profile/${row.address}`} 
                                 className={`font-bold hover:underline block leading-tight text-xs ${
-                                  row.isUser ? 'text-purple-950 font-black' : 'text-slate-900'
+                                  row.isUser ? 'text-[#0047AB] font-black' : 'text-slate-900'
                                 }`}
                               >
                                 {row.name}
@@ -1272,7 +1252,7 @@ export const Reputation: React.FC = () => {
                                 type="button"
                                 onClick={() => setIsAuthModalOpen(true)}
                                 className={`font-bold hover:underline flex items-center gap-1.5 leading-tight text-xs text-left cursor-pointer ${
-                                  row.isUser ? 'text-purple-950 font-black' : 'text-slate-900'
+                                  row.isUser ? 'text-[#0047AB] font-black' : 'text-slate-900'
                                 }`}
                               >
                                 <span>{row.name}</span>
@@ -1303,7 +1283,7 @@ export const Reputation: React.FC = () => {
                       {row.earnings}
                     </td>
                     
-                    <td className="px-4 py-3 text-right font-mono font-black text-purple-600 pr-6">
+                    <td className="px-4 py-3 text-right font-mono font-black text-[#0047AB] pr-6">
                       {row.points} pts
                     </td>
                   </tr>
@@ -1317,7 +1297,7 @@ export const Reputation: React.FC = () => {
         <div className="md:hidden space-y-3 mt-4">
           {leaderboardData.length === 0 ? (
             <div className="p-8 text-center text-slate-500 bg-slate-50 rounded-2xl border border-slate-150">
-              <Trophy size={32} className="mx-auto text-purple-300 mb-2" />
+              <Trophy size={32} className="mx-auto text-slate-300 mb-2" />
               <p className="font-bold text-slate-800 text-sm">No Attested Developers Yet</p>
               <p className="text-xs text-slate-500 mt-1">Complete escrow milestones to claim the top spot.</p>
             </div>
@@ -1325,7 +1305,7 @@ export const Reputation: React.FC = () => {
             leaderboardData.map((row) => (
               <PressableCard
                 key={row.address}
-                className={row.isUser ? 'border-purple-300 bg-purple-50/20' : ''}
+                className={row.isUser ? 'border-[#0047AB] bg-blue-50/40' : ''}
                 onClick={() => {
                   if (!isConnected) {
                     setIsAuthModalOpen(true);
@@ -1341,14 +1321,14 @@ export const Reputation: React.FC = () => {
                     {/* Avatar & Names */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className={`font-bold text-sm truncate ${row.isUser ? 'text-purple-950' : 'text-slate-900'}`}>
+                        <span className={`font-bold text-sm truncate ${row.isUser ? 'text-[#0047AB]' : 'text-slate-900'}`}>
                           {row.name}
                         </span>
                         {!isConnected && (
                           <Lock size={10} className="text-amber-600 shrink-0" />
                         )}
                         {row.isUser && (
-                          <span className="bg-purple-600 text-white text-[9px] font-mono px-1.5 py-0.2 rounded font-bold">YOU</span>
+                          <span className="bg-[#0047AB] text-white text-[9px] font-mono px-1.5 py-0.2 rounded font-bold">YOU</span>
                         )}
                       </div>
                       <span className="text-[11px] text-slate-400 font-mono block">
@@ -1359,7 +1339,7 @@ export const Reputation: React.FC = () => {
 
                   {/* Points Badge */}
                   <div className="text-right shrink-0">
-                    <span className="font-mono text-sm font-black text-purple-700 block">{row.points} pts</span>
+                    <span className="font-mono text-sm font-black text-[#0047AB] block">{row.points} pts</span>
                     <span className="text-[10px] text-emerald-600 font-bold font-mono">{row.earnings}</span>
                   </div>
                 </div>
@@ -1384,12 +1364,12 @@ export const Reputation: React.FC = () => {
       >
         {selectedBadge && (
           <div className="space-y-4 py-2">
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200/60 flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] flex items-center justify-between">
               <div>
-                <span className="text-xs font-mono font-bold text-purple-600 uppercase tracking-wider">Standing Requirement</span>
-                <div className="text-2xl font-black font-space text-purple-950 mt-0.5">{selectedBadge.pointsRequired}+ Points</div>
+                <span className="text-xs font-mono font-bold text-[#0047AB] uppercase tracking-wider">Standing Requirement</span>
+                <div className="text-2xl font-black font-space text-[#0B0B0C] mt-0.5">{selectedBadge.pointsRequired}+ Points</div>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-md">
+              <div className="w-12 h-12 rounded-xl bg-[#0047AB] text-white flex items-center justify-center shadow-xs">
                 <Trophy size={24} />
               </div>
             </div>
@@ -1413,7 +1393,7 @@ export const Reputation: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsBadgeSheetOpen(false)}
-              className="w-full min-h-[48px] py-3 bg-purple-600 active:bg-purple-700 text-white font-bold text-sm rounded-xl transition-colors cursor-pointer mt-2"
+              className="w-full min-h-[44px] py-2.5 bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold text-sm rounded-lg transition-colors cursor-pointer mt-2"
             >
               Close Details
             </button>
@@ -1423,7 +1403,7 @@ export const Reputation: React.FC = () => {
       {/* Non-Polylancer Profile Protection Modal */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="relative w-full max-w-md bg-white rounded-3xl border border-purple-200 p-6 sm:p-8 shadow-2xl text-center space-y-5 animate-scaleUp">
+          <div className="relative w-full max-w-md bg-white rounded-2xl border border-[#E2E6EC] p-6 sm:p-8 shadow-2xl text-center space-y-5 animate-scaleUp">
             <button
               type="button"
               onClick={() => setIsAuthModalOpen(false)}
@@ -1431,14 +1411,14 @@ export const Reputation: React.FC = () => {
             >
               <X size={18} />
             </button>
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 mx-auto flex items-center justify-center shadow-inner border border-purple-200">
-              <ShieldAlert size={32} className="text-purple-700 animate-pulse" />
+            <div className="w-16 h-16 rounded-xl bg-blue-50 text-[#0047AB] mx-auto flex items-center justify-center border border-blue-100">
+              <ShieldAlert size={32} className="text-[#0047AB]" />
             </div>
             <div className="space-y-2">
               <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
                 POLYLANCER AUTHENTICATION REQUIRED
               </span>
-              <h3 className="font-headline text-xl font-black text-slate-900">
+              <h3 className="font-serif text-xl font-bold text-[#0B0B0C]">
                 Developer Profile Protected
               </h3>
               <p className="text-xs text-slate-600 font-sans leading-relaxed">
@@ -1452,7 +1432,7 @@ export const Reputation: React.FC = () => {
                   setIsAuthModalOpen(false);
                   connectWallet();
                 }}
-                className="w-full py-3.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white font-mono font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
               >
                 <Zap size={15} />
                 <span>Connect Polylancer Wallet</span>

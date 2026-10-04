@@ -10,6 +10,7 @@ import { Job } from '../types';
 import { modalOverlayVariants, modalContentVariants, transition } from '../lib/motion';
 import { getPolygonScanUrl, getPolygonScanAddressUrl } from '../utils/formatters';
 import { scrollToSection } from '../utils/scroll';
+import { TokenIcon } from './TokenIcon';
 
 interface PaymentReleasedModalProps {
   isOpen: boolean;
@@ -128,7 +129,10 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
                 <span className="text-xs font-semibold text-slate-600">Total Escrow Vault:</span>
-                <span className="font-mono font-bold text-sm text-slate-900">{formatTokens(totalAmount)} {tokenSymbol}</span>
+                <span className="font-mono font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                  <TokenIcon token={tokenSymbol} size={15} />
+                  <span>{formatTokens(totalAmount)} {tokenSymbol}</span>
+                </span>
               </div>
 
               <div className="flex justify-between items-center text-xs">
@@ -136,7 +140,10 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
                   <Wallet size={14} className="text-emerald-600" />
                   <span>Net Payout to Freelancer (97.5%):</span>
                 </div>
-                <span className="font-mono font-bold text-emerald-700">+{formatTokens(netAmount)} {tokenSymbol}</span>
+                <span className="font-mono font-bold text-emerald-700 flex items-center gap-1.5">
+                  <TokenIcon token={tokenSymbol} size={15} />
+                  <span>+{formatTokens(netAmount)} {tokenSymbol}</span>
+                </span>
               </div>
 
               <div className="flex justify-between items-center text-xs">
@@ -159,19 +166,19 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {/* Freelancer Proof-of-Work SBT */}
-                <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200 flex items-center justify-between text-xs">
+                <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-[#0047AB] shrink-0">
                       <Award size={15} />
                     </div>
                     <div className="min-w-0">
-                      <div className="font-bold text-purple-900 truncate text-[11.5px]">Talent Proof of Work SBT</div>
-                      <div className="text-[10px] text-purple-700 font-mono truncate">
+                      <div className="font-bold text-slate-900 truncate text-[11.5px]">Talent Proof of Work SBT</div>
+                      <div className="text-[10px] text-slate-600 font-mono truncate">
                         {truncateAddress(job.freelancer || '')}
                       </div>
                     </div>
                   </div>
-                  <div className="px-1.5 py-0.5 bg-purple-100 rounded text-[9.5px] font-bold text-purple-800 uppercase tracking-wide shrink-0">
+                  <div className="px-1.5 py-0.5 bg-blue-100 rounded text-[9.5px] font-bold text-[#0047AB] uppercase tracking-wide shrink-0">
                     +1 SBT
                   </div>
                 </div>

@@ -100,7 +100,7 @@ export const DevPrimitivesPage: React.FC = () => {
           {[1, 2, 3, 4].map((item) => (
             <div
               key={item}
-              className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 rounded-2xl flex flex-col justify-between h-44"
+              className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between h-44"
             >
               <div>
                 <span className="text-xs font-bold text-blue-600">Card #{item}</span>

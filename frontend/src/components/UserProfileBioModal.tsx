@@ -86,7 +86,7 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
           {/* Top Header with Avatar and Cancel (X) */}
           <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-extrabold text-xl flex items-center justify-center shadow-md shadow-purple-500/20 shrink-0 uppercase">
+              <div className="w-14 h-14 rounded-2xl bg-[#0B0B0C] border border-slate-800 text-white font-extrabold text-xl flex items-center justify-center shadow-xs shrink-0 uppercase">
                 {displayName.slice(0, 2)}
               </div>
               <div className="min-w-0">
@@ -107,10 +107,10 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
                   <span className="text-[11px] font-bold font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md">
                     ⭐ {bytecodeMatrix.primaryScore}/1000 Score
                   </span>
-                  <span className="text-[11px] font-bold font-mono text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md">
+                  <span className="text-[11px] font-bold font-mono text-slate-800 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
                     {bytecodeMatrix.reputationTier}
                   </span>
-                  <span className="text-[11px] font-bold font-mono text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+                  <span className="text-[11px] font-bold font-mono text-[#0047AB] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
                     🛡️ {soulboundCount} SBT Badges
                   </span>
                 </div>
@@ -129,9 +129,9 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
           </div>
 
           {/* Full Bio Section */}
-          <div className="space-y-2 bg-[#FAF8FF] p-4 sm:p-5 rounded-2xl border border-purple-100/90">
-            <div className="flex items-center gap-2 text-purple-800 font-headline font-bold text-xs uppercase tracking-wider">
-              <Award size={14} className="text-purple-600" />
+          <div className="space-y-2 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200">
+            <div className="flex items-center gap-2 text-slate-900 font-headline font-bold text-xs uppercase tracking-wider">
+              <Award size={14} className="text-[#0047AB]" />
               <span>Full Biography & Attestations</span>
             </div>
             <p className="font-sans text-xs sm:text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap">
@@ -149,7 +149,7 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
                 {skills.map((skill: string, idx: number) => (
                   <span
                     key={idx}
-                    className="px-3 py-1 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 text-xs font-mono font-bold"
+                    className="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 text-xs font-mono font-bold"
                   >
                     {skill}
                   </span>
@@ -231,7 +231,7 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
                 navigate(`/profile/${applicantAddress}?section=reputation-overview`);
                 scrollToSection('reputation-overview');
               }}
-              className="gradient-btn-primary px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+              className="bg-[#0047AB] hover:bg-[#003882] px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
             >
               <span>View Full Reputation & Profile</span>
               <ArrowRight size={14} />

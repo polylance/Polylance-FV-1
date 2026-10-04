@@ -6,7 +6,7 @@ import { useWeb3 } from '../../context/Web3Context';
 interface TabItem {
   to: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
   exact?: boolean;
 }
 
@@ -49,7 +49,7 @@ export const BottomTabBar: React.FC = () => {
     <nav
       role="navigation"
       aria-label="Mobile Navigation Bar"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-safe lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] border-t border-[#E2E6EC] pb-safe lg:hidden shadow-[0_-1px_2px_rgba(11,11,12,0.04)]"
     >
       <div className="flex items-center justify-around px-2 h-16 max-w-md mx-auto">
         {tabs.map((tab) => {
@@ -64,15 +64,15 @@ export const BottomTabBar: React.FC = () => {
               to={tab.to}
               aria-current={isActive ? 'page' : undefined}
               className={`flex-1 min-h-[48px] flex flex-col items-center justify-center gap-1 transition-colors relative select-none ${
-                isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600 active:text-blue-500'
+                isActive ? 'text-[#0047AB]' : 'text-[#8892A0] hover:text-[#0B0B0C]'
               }`}
             >
-              {/* Active top glow indicator */}
+              {/* Active top 2px bar */}
               {isActive && (
-                <span className="absolute -top-2 w-8 h-1 bg-blue-600 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.6)]" />
+                <span className="absolute -top-[1px] w-8 h-[2px] bg-[#0047AB]" />
               )}
-              <Icon size={20} className={isActive ? 'stroke-[2.4]' : 'stroke-[1.8]'} />
-              <span className={`text-[11px] leading-none ${isActive ? 'font-bold' : 'font-medium'}`}>
+              <Icon size={18} strokeWidth={1.5} />
+              <span className={`text-[11px] leading-none ${isActive ? 'font-semibold' : 'font-normal'}`}>
                 {tab.label}
               </span>
             </Link>

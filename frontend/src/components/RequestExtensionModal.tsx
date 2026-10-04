@@ -30,7 +30,7 @@ export const RequestExtensionModal: React.FC<RequestExtensionModalProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-150">
       <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden font-sans space-y-0">
-        <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100/60 p-5 border-b border-amber-200/80 flex items-start justify-between">
+        <div className="bg-amber-50 p-5 border-b border-amber-200 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shrink-0">
               <Calendar size={20} />
@@ -101,7 +101,7 @@ export const RequestExtensionModal: React.FC<RequestExtensionModalProps> = ({
             <button
               type="submit"
               disabled={!reason.trim()}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
             >
               <Clock size={13} />
               <span>Send Request</span>

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { ethers } from 'ethers';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, DeliverableFile, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage, NegotiationProposal, ChatMessage, SkillCategory } from '../types';
 import { generateMockTxHash, generateDeterministicHash, truncateAddress } from '../utils/formatters';
-import { generateIpfsCid } from '../utils/ipfs';
+import { generateIpfsCid, pinJsonToFilebase, storeIpfsFile, getCachedIpfsFile } from '../utils/ipfs';
 import { fetchLiveExchangeRates, startRatePolling } from '../utils/currency';
 import { CONTRACTS, CHAIN_ID } from '../config/contracts';
 import { PAYMENT_TOKENS, getTokenBySymbol, getTokenByAddress } from '../config/paymentTokens';
@@ -18,14 +18,10 @@ import { getPolygonGasOverrides } from '../utils/gas';
 
 export const getSyncEndpoints = (): string[] => {
   const list: string[] = [];
-  const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
-
-  if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
-    list.push(envUrl.replace(/\/$/, ''));
-  }
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
     list.push('http://localhost:3001');
   }
+  const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
   if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
     list.push(envUrl.replace(/\/$/, ''));
   }
@@ -35,6 +31,9 @@ export const getSyncEndpoints = (): string[] => {
 };
 
 export const getBackendSyncUrl = (): string => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:3001';
+  }
   const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
   if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
     return envUrl.replace(/\/$/, '');
@@ -113,9 +112,10 @@ interface PolyLanceDataContextType {
   sendJudgeChatMessage: (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => void;
   isEnclineConnected: boolean;
   judgeMessages: Record<string, JudgeMessage[]>;
+  deletedChatChannels: string[];
   closeChatSession: (jobId: string) => Promise<string | null>;
-  deleteChatHistory: (jobId?: string, judgeAddress?: string) => Promise<void> | void;
-  restoreChatHistory: (jobId?: string, messages?: any[], judgeAddress?: string, judgeMsgs?: JudgeMessage[]) => void;
+  deleteChatHistory: (jobId?: string, judgeAddress?: string, channelId?: string) => Promise<void> | void;
+  restoreChatHistory: (jobId?: string, messages?: any[], judgeAddress?: string, judgeMsgs?: JudgeMessage[], channelId?: string) => void;
   accountDeletionRequests: Record<string, { requestedAt: number; executeAfter: number }>;
   requestAccountDeletion: (address: string) => Promise<void>;
   cancelAccountDeletion: (address: string) => Promise<void>;
@@ -171,10 +171,13 @@ const MOCK_ADDRESSES_TO_PURGE = parseEnvAddressSet(
 
 const MOCK_NAMES_TO_PURGE = new Set([
   'alex rivera',
+  'alex thorne',
   'elena rostova',
   'marcus sterling',
   'nadia chen',
-  'devpioneer'
+  'devpioneer',
+  'zenith global',
+  'zenith global ventures'
 ]);
 
 const HARDHAT_TEST_ADDRESSES = parseEnvAddressSet(
@@ -470,8 +473,18 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
     if (norm.contractAddress) idIndex.set(String(norm.contractAddress).toLowerCase(), key);
   });
 
-  const isGenericEscrowTitle = (t?: string) => !t || String(t).trim().toLowerCase().startsWith('smart contract escrow 0x');
-  const isGenericEscrowDesc = (d?: string) => !d || String(d).trim().toLowerCase().startsWith('decentralized jobescrow verified on polygon');
+  const isGenericEscrowTitle = (t?: string) => {
+    if (!t) return true;
+    const clean = String(t).trim().toLowerCase();
+    return clean.startsWith('smart contract escrow') || /^smart contract escrow\s*[\(\[]?0x/i.test(clean);
+  };
+  const isGenericEscrowDesc = (d?: string) => {
+    if (!d) return true;
+    const clean = String(d).trim().toLowerCase();
+    return clean.startsWith('decentralized jobescrow verified on polygon') ||
+      clean.startsWith('smart contract escrow verified') ||
+      clean.includes('decentralized jobescrow verified');
+  };
 
   (incoming || []).forEach((inJobRaw) => {
     if (!inJobRaw || isDemoOrMockJob(inJobRaw) || isRecentlyDeletedJob(inJobRaw.id, inJobRaw.contractAddress)) return;
@@ -671,20 +684,42 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         resolvedStatus = inPriority >= currPriority ? (inJob.status || curr.status) : curr.status;
       }
 
-      // Title: Always preserve real user-created title over generic "Smart Contract Escrow 0x..."
-      const resolvedTitle = (!isGenericEscrowTitle(curr.title) && isGenericEscrowTitle(inJob.title))
+      // Title: Always preserve real user-created title over generic "Smart Contract Escrow (0x...)"
+      const isCurrGenericTitle = isGenericEscrowTitle(curr.title);
+      const isInGenericTitle = isGenericEscrowTitle(inJob.title);
+      const resolvedTitle = (!isCurrGenericTitle && isInGenericTitle)
         ? curr.title
-        : (!isGenericEscrowTitle(inJob.title) ? inJob.title : (curr.title || inJob.title));
+        : (!isInGenericTitle ? inJob.title : (curr.title || inJob.title));
 
       // Description: Always preserve real user-created description over generic escrow text
-      const resolvedDesc = (!isGenericEscrowDesc(curr.description) && isGenericEscrowDesc(inJob.description))
+      const isCurrGenericDesc = isGenericEscrowDesc(curr.description);
+      const isInGenericDesc = isGenericEscrowDesc(inJob.description);
+      const resolvedDesc = (!isCurrGenericDesc && isInGenericDesc)
         ? curr.description
-        : (!isGenericEscrowDesc(inJob.description) ? inJob.description : (curr.description || inJob.description));
+        : (!isInGenericDesc ? inJob.description : (curr.description || inJob.description));
 
       // Category: Keep user category if incoming defaulted to 'web3'
       const resolvedCategory = (curr.category && curr.category !== 'web3' && inJob.category === 'web3')
         ? curr.category
         : (inJob.category || curr.category || 'web3');
+
+      // Budget & Amounts: Never overwrite a valid positive budget with 0.0 or 0.00 from an unfunded clone
+      const currEthNum = parseFloat(curr.amountEth || '0');
+      const inEthNum = parseFloat(inJob.amountEth || '0');
+      const resolvedAmountEth = inEthNum > 0
+        ? inJob.amountEth
+        : (currEthNum > 0 ? curr.amountEth : (inJob.amountEth || curr.amountEth || '0'));
+
+      const currUsdcNum = parseFloat(curr.amountUsdc || '0');
+      const inUsdcNum = parseFloat(inJob.amountUsdc || '0');
+      const resolvedAmountUsdc = inUsdcNum > 0
+        ? inJob.amountUsdc
+        : (currUsdcNum > 0 ? curr.amountUsdc : (inJob.amountUsdc || curr.amountUsdc || '0.00'));
+
+      // Payment Token Symbol: Preserve POL, USDT, USDC if incoming defaulted to generic MATIC
+      const resolvedTokenSymbol = (inJob.paymentTokenSymbol === 'MATIC' && curr.paymentTokenSymbol && curr.paymentTokenSymbol !== 'MATIC')
+        ? curr.paymentTokenSymbol
+        : (inJob.paymentTokenSymbol || curr.paymentTokenSymbol || 'POL');
 
       const mergedJob: Job = {
         ...curr,
@@ -699,9 +734,9 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         clientAgreedTerms: inJob.clientAgreedTerms !== undefined ? inJob.clientAgreedTerms : curr.clientAgreedTerms,
         freelancerAgreedTerms: inJob.freelancerAgreedTerms !== undefined ? inJob.freelancerAgreedTerms : curr.freelancerAgreedTerms,
         termsHash: inJob.termsHash || curr.termsHash,
-        amountUsdc: inJob.amountUsdc || curr.amountUsdc,
-        amountEth: inJob.amountEth || curr.amountEth,
-        paymentTokenSymbol: inJob.paymentTokenSymbol || curr.paymentTokenSymbol,
+        amountUsdc: resolvedAmountUsdc,
+        amountEth: resolvedAmountEth,
+        paymentTokenSymbol: resolvedTokenSymbol,
         reviewPeriodDays: inJob.reviewPeriodDays || curr.reviewPeriodDays,
         negotiatedAmount: inJob.negotiatedAmount || curr.negotiatedAmount,
         negotiatedDeadlineDays: inJob.negotiatedDeadlineDays !== undefined ? inJob.negotiatedDeadlineDays : curr.negotiatedDeadlineDays,
@@ -1019,19 +1054,34 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
+  const [deletedChatChannels, setDeletedChatChannelsRaw] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('polylance_deleted_chat_channels');
+        if (saved) return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+  const setDeletedChatChannels = (val: React.SetStateAction<string[]>) => {
+    setDeletedChatChannelsRaw((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('polylance_deleted_chat_channels', JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
   const [maintenanceState, setMaintenanceStateRaw] = useState<MaintenanceState>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_maintenance');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (parsed?.estimatedEnd && Date.now() > parsed.estimatedEnd) {
-            localStorage.removeItem('polylance_maintenance');
-            return { enabled: false };
-          }
-          // Never lock the entire site on initial cold load from stale localStorage
-          // Live status will be fetched from server within 200ms
-          return { enabled: false, changelog: parsed?.changelog || [] };
+          return parsed?.enabled ? { ...parsed, enabled: true } : { enabled: false, changelog: parsed?.changelog || [] };
         } catch {
           localStorage.removeItem('polylance_maintenance');
         }
@@ -1042,11 +1092,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setMaintenanceState = (val: React.SetStateAction<MaintenanceState>) => {
     setMaintenanceStateRaw((prev) => {
-      let next = typeof val === 'function' ? val(prev) : val;
-      // Auto-expire if estimatedEnd has passed
-      if (next?.enabled && next.estimatedEnd && Date.now() > next.estimatedEnd) {
-        next = { ...next, enabled: false };
-      }
+      const next = typeof val === 'function' ? val(prev) : val;
       if (typeof window !== 'undefined') {
         if (!next?.enabled) {
           localStorage.removeItem('polylance_maintenance');
@@ -1199,11 +1245,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           .then((res) => res.json())
           .then((data) => {
             if (data && data.maintenance) {
-              const m = data.maintenance;
-              if (m.enabled && m.estimatedEnd && Date.now() > m.estimatedEnd) {
-                m.enabled = false;
-              }
-              setMaintenanceState(m);
+              setMaintenanceState(data.maintenance);
             }
           })
           .catch(() => {});
@@ -1606,7 +1648,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!jobAddr || !ethers.isAddress(jobAddr)) continue;
         try {
           const escrow = new ethers.Contract(jobAddr, getAbi(JobEscrowABI), provider);
-          const [client, statusRaw, freelancer, amountRaw, reviewPeriod, submittedAt, termsHash, paymentToken] = await Promise.all([
+          const [client, statusRaw, freelancer, amountRaw, reviewPeriod, submittedAt, termsHash, paymentToken, descriptionIpfsHash] = await Promise.all([
             escrow.client().catch(() => ethers.ZeroAddress),
             escrow.status().catch(() => 0n),
             escrow.freelancer().catch(() => ethers.ZeroAddress),
@@ -1615,6 +1657,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             escrow.submittedAt().catch(() => 0n),
             escrow.termsHash().catch(() => ''),
             escrow.paymentToken().catch(() => ethers.ZeroAddress),
+            escrow.descriptionIpfsHash().catch(() => ''),
           ]);
 
           if (!client || client === ethers.ZeroAddress) continue;
@@ -1637,6 +1680,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
             if (jContract === targetAddr) return true;
             if (jId === targetAddr.slice(0, 14) || jId === targetAddr) return true;
+            if (jId === `job-escrow-${targetAddr.slice(0, 10)}`) return true;
 
             // Only consider client-level matching if the client matches exactly
             if (jClient === client.toLowerCase()) {
@@ -1668,27 +1712,54 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!existingMatch) {
             const isNative = tokenConfig.symbol === 'POL' || tokenConfig.symbol === 'MATIC';
             const safeAmount = formattedAmount || '0';
+            const defaultSymbol = tokenConfig.symbol === 'MATIC' ? 'POL' : tokenConfig.symbol;
+
+            // Try resolving authored metadata from IPFS cache or gateway
+            let ipfsTitle = '';
+            let ipfsDesc = '';
+            let ipfsCategory: SkillCategory = 'web3';
+            let ipfsAmountEth = '';
+            let ipfsAmountUsdc = '';
+            let ipfsTokenSymbol = defaultSymbol;
+            let ipfsReviewDays = Math.round(Number(reviewPeriod) / 86400) || 7;
+
+            if (descriptionIpfsHash) {
+              const cached = getCachedIpfsFile(descriptionIpfsHash);
+              if (cached && cached.dataUrl && cached.dataUrl.startsWith('data:application/json')) {
+                try {
+                  const parsed = JSON.parse(decodeURIComponent(cached.dataUrl.split(',')[1]));
+                  if (parsed.title) ipfsTitle = parsed.title;
+                  if (parsed.description) ipfsDesc = parsed.description;
+                  if (parsed.category) ipfsCategory = parsed.category;
+                  if (parsed.amountEth) ipfsAmountEth = parsed.amountEth;
+                  if (parsed.amountUsdc) ipfsAmountUsdc = parsed.amountUsdc;
+                  if (parsed.paymentTokenSymbol) ipfsTokenSymbol = parsed.paymentTokenSymbol;
+                  if (parsed.reviewPeriodDays) ipfsReviewDays = parsed.reviewPeriodDays;
+                } catch {}
+              }
+            }
+
             const reconstructedJob: Job = {
               id: `job-escrow-${jobAddr.slice(0, 10).toLowerCase()}`,
               contractAddress: jobAddr,
               client,
               freelancer: (freelancer && freelancer !== ethers.ZeroAddress) ? freelancer : undefined,
-              amountEth: isNative ? safeAmount : (parseFloat(safeAmount) / 2800).toFixed(4),
-              amountUsdc: !isNative ? safeAmount : (parseFloat(safeAmount) * 0.45).toFixed(2),
+              amountEth: ipfsAmountEth || (isNative ? safeAmount : (parseFloat(safeAmount) / 2800).toFixed(4)),
+              amountUsdc: ipfsAmountUsdc || (!isNative ? safeAmount : (parseFloat(safeAmount) * 0.45).toFixed(2)),
               paymentToken: tokenConfig.address,
-              paymentTokenSymbol: tokenConfig.symbol,
+              paymentTokenSymbol: (ipfsTokenSymbol as any) || defaultSymbol,
               paymentTokenDecimals: tokenConfig.decimals,
               status: (onChainStatusParsed === 'Completed' || onChainStatusParsed === 'Disputed' || onChainStatusParsed === 'Submitted')
                 ? onChainStatusParsed
                 : (hasOnChainFunds ? 'Funded' : (freelancer && freelancer !== ethers.ZeroAddress ? 'Selected' : 'Open')),
-              title: `Smart Contract Escrow (${jobAddr.slice(0, 8)})`,
-              description: `Decentralized JobEscrow verified on Polygon PoS Mainnet at contract ${jobAddr}. Escrow secured with ${safeAmount} ${tokenConfig.symbol}.`,
-              category: 'web3',
-              reviewPeriodDays: 7,
+              title: ipfsTitle || `Smart Contract Escrow (${jobAddr.slice(0, 8)})`,
+              description: ipfsDesc || `Decentralized JobEscrow verified on Polygon PoS Mainnet at contract ${jobAddr}. Escrow secured with ${safeAmount} ${tokenConfig.symbol}.`,
+              category: ipfsCategory,
+              reviewPeriodDays: ipfsReviewDays,
               createdAt: Date.now() - 3600000,
               applications: [],
               events: [
-                { step: 'Posted', title: `Job Posted (${tokenConfig.symbol} Escrow)`, timestamp: Date.now() - 3600000, txHash: '', status: 'completed', actor: 'Client' },
+                { step: 'Posted', title: `Job Posted (${(ipfsTokenSymbol || defaultSymbol)} Escrow)`, timestamp: Date.now() - 3600000, txHash: '', status: 'completed', actor: 'Client' },
                 { step: 'Funded', title: 'Fund Escrow', timestamp: hasOnChainFunds ? Date.now() - 1800000 : 0, txHash: '', status: hasOnChainFunds ? 'completed' : 'pending' },
                 { step: 'Submitted', title: 'Submit Work', timestamp: 0, txHash: '', status: (onChainStatusParsed === 'Submitted' || onChainStatusParsed === 'Completed') ? 'completed' : (hasOnChainFunds ? 'current' : 'pending') },
                 { step: 'Completed', title: 'Release Payment', timestamp: onChainStatusParsed === 'Completed' ? Date.now() : 0, txHash: '', status: onChainStatusParsed === 'Completed' ? 'completed' : 'pending' },
@@ -1752,16 +1823,18 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             contractAddress: jobAddr,
             client,
             freelancer: finalFreelancer || existingMatch.freelancer,
-            amountEth: existingMatch.amountEth || ((tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL')
-              ? formattedAmount 
-              : formattedAmount),
-            amountUsdc: existingMatch.amountUsdc || (
-              (tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL')
-                ? (parseFloat(formattedAmount) * 0.45).toFixed(2)
-                : formattedAmount
-            ),
+            amountEth: (existingMatch.amountEth && parseFloat(existingMatch.amountEth) > 0)
+              ? existingMatch.amountEth
+              : (hasOnChainFunds ? formattedAmount : (existingMatch.amountEth || formattedAmount)),
+            amountUsdc: (existingMatch.amountUsdc && parseFloat(existingMatch.amountUsdc) > 0)
+              ? existingMatch.amountUsdc
+              : (hasOnChainFunds
+                ? ((tokenConfig.symbol === 'MATIC' || (tokenConfig.symbol as string) === 'POL')
+                    ? (parseFloat(formattedAmount) * 0.45).toFixed(2)
+                    : formattedAmount)
+                : (existingMatch.amountUsdc || '0.00')),
             paymentToken: paymentToken !== ethers.ZeroAddress ? paymentToken : (existingMatch.paymentToken || paymentToken),
-            paymentTokenSymbol: existingMatch.paymentTokenSymbol || tokenConfig.symbol,
+            paymentTokenSymbol: existingMatch.paymentTokenSymbol || ((tokenConfig.symbol === 'MATIC') ? 'POL' : tokenConfig.symbol),
             paymentTokenDecimals: existingMatch.paymentTokenDecimals || tokenConfig.decimals,
             status: finalStatus,
             title: existingMatch.title, // ALWAYS retain the real job title!
@@ -1838,7 +1911,31 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   ): Promise<Job> => {
     const tokenSymbol = (jobData.paymentTokenSymbol || 'POL').toUpperCase();
     const tokenConfig = getTokenBySymbol(tokenSymbol);
-    const descriptionIpfsHash = generateIpfsCid({ title: jobData.title, description: jobData.description });
+    const ethAmount = jobData.amountEth || (
+      tokenConfig.symbol === 'MATIC' || tokenConfig.symbol === 'POL'
+        ? jobData.amountUsdc
+        : (parseFloat(jobData.amountUsdc) / 2800).toFixed(4)
+    );
+
+    const ipfsMetadata = {
+      title: jobData.title,
+      description: jobData.description,
+      category: jobData.category,
+      amountEth: ethAmount,
+      amountUsdc: jobData.amountUsdc,
+      paymentTokenSymbol: tokenConfig.symbol,
+      reviewPeriodDays: jobData.reviewPeriodDays,
+      createdAt: Date.now(),
+    };
+    const descriptionIpfsHash = await pinJsonToFilebase(ipfsMetadata, `job-${Date.now()}.json`).catch(() => generateIpfsCid(ipfsMetadata));
+    storeIpfsFile(descriptionIpfsHash, {
+      cid: descriptionIpfsHash,
+      name: `job-${Date.now()}.json`,
+      type: 'application/json',
+      size: JSON.stringify(ipfsMetadata).length,
+      dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(ipfsMetadata))}`,
+      uploadedAt: Date.now(),
+    });
     let contractAddr = '';
     let txHash = '';
 
@@ -1938,12 +2035,6 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       txHash = generateMockTxHash();
     }
 
-    const ethAmount = jobData.amountEth || (
-      tokenConfig.symbol === 'MATIC' || tokenConfig.symbol === 'POL'
-        ? jobData.amountUsdc
-        : (parseFloat(jobData.amountUsdc) / 2800).toFixed(4)
-    );
-
     const newJob: Job = {
       id: contractAddr.slice(0, 14),
       contractAddress: contractAddr,
@@ -1973,8 +2064,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setJobs((prev) => [newJob, ...prev]);
 
-    // Instant dual-write to backend for immediate availability across network
-    const syncUrl = getBackendSyncUrl();
+    // Instant multi-endpoint dual-write to backend for immediate availability across network
     const clientAddr = (clientAddress || address || '').toLowerCase().trim();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -1982,11 +2072,14 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     broadcastSync({ jobs: [newJob] }, clientAddr);
 
-    fetch(`${syncUrl}/api/jobs`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(newJob),
-    }).catch(() => {});
+    const endpoints = getSyncEndpoints();
+    endpoints.forEach((ep) => {
+      fetch(`${ep}/api/jobs`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(newJob),
+      }).catch(() => {});
+    });
 
     return newJob;
   };
@@ -3005,6 +3098,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               role: 'freelancer',
               primaryScore: 750,
               reputationSbtCount: 0,
+              avatarUrl: '',
+              ipfsHash: '',
+              githubVerified: false,
             };
             next[key] = {
               ...existing,
@@ -3025,6 +3121,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               role: 'client',
               primaryScore: 750,
               reputationSbtCount: 0,
+              avatarUrl: '',
+              ipfsHash: '',
+              githubVerified: false,
             };
             next[clientKey] = {
               ...existingClient,
@@ -4017,8 +4116,25 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => clearInterval(interval);
   }, [accountDeletionRequests]);
 
-  const deleteChatHistory = async (jobId?: string, judgeAddress?: string) => {
+  const deleteChatHistory = async (jobId?: string, judgeAddress?: string, channelId?: string) => {
     const userAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
+    const toDeleteIds: string[] = [];
+    if (channelId) toDeleteIds.push(channelId);
+    if (jobId) {
+      toDeleteIds.push(jobId);
+      toDeleteIds.push(`${jobId}:open`);
+      toDeleteIds.push(`${jobId}:contract`);
+    }
+    if (judgeAddress) toDeleteIds.push(judgeAddress.toLowerCase());
+
+    setDeletedChatChannels((prev) => {
+      const updated = Array.from(new Set([...prev, ...toDeleteIds]));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('polylance_deleted_chat_channels', JSON.stringify(updated));
+      }
+      return updated;
+    });
+
     if (jobId) {
       const now = Date.now();
       let updatedJobsList: Job[] = [];
@@ -4087,7 +4203,24 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const restoreChatHistory = (jobId?: string, messages?: any[], judgeAddress?: string, judgeMsgs?: JudgeMessage[]) => {
+  const restoreChatHistory = (jobId?: string, messages?: any[], judgeAddress?: string, judgeMsgs?: JudgeMessage[], channelId?: string) => {
+    const toRestoreIds: string[] = [];
+    if (channelId) toRestoreIds.push(channelId);
+    if (jobId) {
+      toRestoreIds.push(jobId);
+      toRestoreIds.push(`${jobId}:open`);
+      toRestoreIds.push(`${jobId}:contract`);
+    }
+    if (judgeAddress) toRestoreIds.push(judgeAddress.toLowerCase());
+
+    setDeletedChatChannels((prev) => {
+      const updated = prev.filter((id) => !toRestoreIds.includes(id));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('polylance_deleted_chat_channels', JSON.stringify(updated));
+      }
+      return updated;
+    });
+
     if (jobId && messages) {
       setJobs((prev) =>
         prev.map((j) => {
@@ -4307,6 +4440,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     sendJudgeChatMessage,
     isEnclineConnected: false,
     judgeMessages,
+    deletedChatChannels,
     closeChatSession,
     deleteChatHistory,
     restoreChatHistory,
@@ -4366,6 +4500,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     sendChatMessage,
     sendJudgeChatMessage,
     judgeMessages,
+    deletedChatChannels,
     closeChatSession,
     deleteChatHistory,
     restoreChatHistory,
@@ -4435,6 +4570,7 @@ const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
   sendJudgeChatMessage: () => {},
   isEnclineConnected: false,
   judgeMessages: {},
+  deletedChatChannels: [],
   closeChatSession: async () => null,
   deleteChatHistory: () => {},
   restoreChatHistory: () => {},

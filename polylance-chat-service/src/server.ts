@@ -22,6 +22,13 @@ import {
   formatCanonicalCertId,
   formatUsdcString
 } from "./certifiedPassSync.js";
+import { 
+  initTelegramBot, 
+  generateTelegramPairingToken, 
+  isWalletTelegramBound, 
+  unlinkWalletTelegram,
+  sendTelegramNotification 
+} from "./telegramBot.js";
 
 dotenv.config();
 
@@ -100,9 +107,6 @@ try {
   if (fs.existsSync(STATE_FILE)) {
     const raw = fs.readFileSync(STATE_FILE, "utf-8");
     sharedState = { ...sharedState, ...JSON.parse(raw) };
-    if (sharedState.maintenance?.enabled && sharedState.maintenance.estimatedEnd && Date.now() > sharedState.maintenance.estimatedEnd) {
-      sharedState.maintenance.enabled = false;
-    }
   }
 } catch (err) {
   console.warn("[STATE] Could not load initial shared state file:", err);
@@ -202,9 +206,6 @@ export async function loadStateFromDatabase() {
   } catch (err: any) {
     console.warn("[DB] Backup DB load note:", err?.message || err);
   } finally {
-    if (sharedState.maintenance?.enabled && sharedState.maintenance.estimatedEnd && Date.now() > sharedState.maintenance.estimatedEnd) {
-      sharedState.maintenance.enabled = false;
-    }
     if (sharedState.jobs && sharedState.jobs.length > 0) {
       pruneExpiredJobsOnServer();
     }
@@ -398,8 +399,18 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
     }
   });
 
-  const isGenericEscrowTitle = (t?: string) => !t || String(t).trim().toLowerCase().startsWith('smart contract escrow 0x');
-  const isGenericEscrowDesc = (d?: string) => !d || String(d).trim().toLowerCase().startsWith('decentralized jobescrow verified on polygon');
+  const isGenericEscrowTitle = (t?: string) => {
+    if (!t) return true;
+    const clean = String(t).trim().toLowerCase();
+    return clean.startsWith('smart contract escrow') || /^smart contract escrow\s*[\(\[]?0x/i.test(clean);
+  };
+  const isGenericEscrowDesc = (d?: string) => {
+    if (!d) return true;
+    const clean = String(d).trim().toLowerCase();
+    return clean.startsWith('decentralized jobescrow verified on polygon') ||
+      clean.startsWith('smart contract escrow verified') ||
+      clean.includes('decentralized jobescrow verified');
+  };
 
   (incomingJobs || []).forEach((inJobRaw) => {
     if (!inJobRaw) return;
@@ -551,20 +562,42 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
       const inPriority = getStatusPriority(inJob.status);
       const resolvedStatus = inPriority >= currPriority ? (inJob.status || curr.status) : curr.status;
 
-      // Title: Always preserve real user-created title over generic "Smart Contract Escrow 0x..."
-      const resolvedTitle = (!isGenericEscrowTitle(curr.title) && isGenericEscrowTitle(inJob.title))
+      // Title: Always preserve real user-created title over generic "Smart Contract Escrow (0x...)"
+      const isCurrGenericTitle = isGenericEscrowTitle(curr.title);
+      const isInGenericTitle = isGenericEscrowTitle(inJob.title);
+      const resolvedTitle = (!isCurrGenericTitle && isInGenericTitle)
         ? curr.title
-        : (!isGenericEscrowTitle(inJob.title) ? inJob.title : (curr.title || inJob.title));
+        : (!isInGenericTitle ? inJob.title : (curr.title || inJob.title));
 
       // Description: Always preserve real user-created description over generic escrow text
-      const resolvedDesc = (!isGenericEscrowDesc(curr.description) && isGenericEscrowDesc(inJob.description))
+      const isCurrGenericDesc = isGenericEscrowDesc(curr.description);
+      const isInGenericDesc = isGenericEscrowDesc(inJob.description);
+      const resolvedDesc = (!isCurrGenericDesc && isInGenericDesc)
         ? curr.description
-        : (!isGenericEscrowDesc(inJob.description) ? inJob.description : (curr.description || inJob.description));
+        : (!isInGenericDesc ? inJob.description : (curr.description || inJob.description));
 
       // Category: Keep user category if incoming defaulted to 'web3'
       const resolvedCategory = (curr.category && curr.category !== 'web3' && inJob.category === 'web3')
         ? curr.category
         : (inJob.category || curr.category || 'web3');
+
+      // Budget & Amounts: Never overwrite a valid positive budget with 0.0 or 0.00 from an unfunded clone
+      const currEthNum = parseFloat(curr.amountEth || '0');
+      const inEthNum = parseFloat(inJob.amountEth || '0');
+      const resolvedAmountEth = inEthNum > 0
+        ? inJob.amountEth
+        : (currEthNum > 0 ? curr.amountEth : (inJob.amountEth || curr.amountEth || '0'));
+
+      const currUsdcNum = parseFloat(curr.amountUsdc || '0');
+      const inUsdcNum = parseFloat(inJob.amountUsdc || '0');
+      const resolvedAmountUsdc = inUsdcNum > 0
+        ? inJob.amountUsdc
+        : (currUsdcNum > 0 ? curr.amountUsdc : (inJob.amountUsdc || curr.amountUsdc || '0.00'));
+
+      // Payment Token Symbol: Preserve POL, USDT, USDC if incoming defaulted to generic MATIC
+      const resolvedTokenSymbol = (inJob.paymentTokenSymbol === 'MATIC' && curr.paymentTokenSymbol && curr.paymentTokenSymbol !== 'MATIC')
+        ? curr.paymentTokenSymbol
+        : (inJob.paymentTokenSymbol || curr.paymentTokenSymbol || 'POL');
 
       const merged = {
         ...curr,
@@ -579,9 +612,9 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
         clientAgreedTerms: inJob.clientAgreedTerms !== undefined ? inJob.clientAgreedTerms : curr.clientAgreedTerms,
         freelancerAgreedTerms: inJob.freelancerAgreedTerms !== undefined ? inJob.freelancerAgreedTerms : curr.freelancerAgreedTerms,
         termsHash: inJob.termsHash || curr.termsHash,
-        amountUsdc: inJob.amountUsdc || curr.amountUsdc,
-        amountEth: inJob.amountEth || curr.amountEth,
-        paymentTokenSymbol: inJob.paymentTokenSymbol || curr.paymentTokenSymbol,
+        amountUsdc: resolvedAmountUsdc,
+        amountEth: resolvedAmountEth,
+        paymentTokenSymbol: resolvedTokenSymbol,
         reviewPeriodDays: inJob.reviewPeriodDays || curr.reviewPeriodDays,
         negotiatedAmount: inJob.negotiatedAmount || curr.negotiatedAmount,
         negotiatedDeadlineDays: inJob.negotiatedDeadlineDays !== undefined ? inJob.negotiatedDeadlineDays : curr.negotiatedDeadlineDays,
@@ -1177,7 +1210,9 @@ io.on("connection", (socket) => {
         return client === socketAddr || freelancer === socketAddr || isApplicant;
       });
       if (allowedJobs.length > 0) {
+        const prevJobs = [...(sharedState.jobs || [])];
         sharedState.jobs = mergeJobsOnServer(sharedState.jobs, allowedJobs);
+        checkAndDispatchTelegramAlerts(prevJobs, sharedState.jobs);
       }
     }
 
@@ -1267,12 +1302,6 @@ app.get("/api/sync", async (req: Request, res: Response) => {
 
 // ── Platform Maintenance Mode Endpoints ─────────────────────────────────────
 app.get("/api/maintenance", (req: Request, res: Response) => {
-  if (sharedState.maintenance?.enabled && sharedState.maintenance.estimatedEnd && Date.now() > sharedState.maintenance.estimatedEnd) {
-    sharedState.maintenance.enabled = false;
-    if (io) {
-      io.emit("maintenance-mode-changed", sharedState.maintenance);
-    }
-  }
   res.json({
     success: true,
     maintenance: sharedState.maintenance || { enabled: false }
@@ -1462,24 +1491,21 @@ app.post("/api/sync", async (req: Request, res: Response) => {
 
     // Maintenance Guard: When platform maintenance is active, lock state writes for non-admins to protect data integrity
     if (sharedState.maintenance?.enabled) {
-      if (sharedState.maintenance.estimatedEnd && Date.now() > sharedState.maintenance.estimatedEnd) {
-        sharedState.maintenance.enabled = false;
-        if (io) io.emit("maintenance-mode-changed", sharedState.maintenance);
-      } else {
-        const isAdmin = isAuthorizedAdmin(requesterAddress);
-        if (!isAdmin) {
-          console.warn(`[MAINTENANCE] Blocked mutation attempt from non-admin ${requesterAddress} during active maintenance`);
-          return res.status(503).json({
-            error: "PolyLance is currently under scheduled maintenance. State mutations are paused to safeguard user data.",
-            code: "MAINTENANCE_LOCKED"
-          });
-        }
+      const isAdmin = isAuthorizedAdmin(requesterAddress);
+      if (!isAdmin) {
+        console.warn(`[MAINTENANCE] Blocked mutation attempt from non-admin ${requesterAddress} during active maintenance`);
+        return res.status(503).json({
+          error: "PolyLance is currently under scheduled maintenance. State mutations are paused to safeguard user data.",
+          code: "MAINTENANCE_LOCKED"
+        });
       }
     }
 
     const incoming = req.body;
     if (incoming) {
       const isAdmin = isAuthorizedAdmin(requesterAddress);
+
+      const prevJobs = (sharedState.jobs || []).map((j: any) => ({ ...j }));
 
       // 1. Jobs: Users can only create or update jobs they are party to (or admin)
       if (Array.isArray(incoming.jobs)) {
@@ -1493,6 +1519,7 @@ app.post("/api/sync", async (req: Request, res: Response) => {
         });
         if (allowedJobs.length > 0) {
           sharedState.jobs = mergeJobsOnServer(sharedState.jobs, allowedJobs);
+          checkAndDispatchTelegramAlerts(prevJobs, sharedState.jobs);
         }
       }
 
@@ -1608,17 +1635,12 @@ app.post("/api/jobs", async (req: Request, res: Response) => {
 
     // Maintenance Guard
     if (sharedState.maintenance?.enabled) {
-      if (sharedState.maintenance.estimatedEnd && Date.now() > sharedState.maintenance.estimatedEnd) {
-        sharedState.maintenance.enabled = false;
-        if (io) io.emit("maintenance-mode-changed", sharedState.maintenance);
-      } else {
-        const isAdmin = isAuthorizedAdmin(requesterAddress);
-        if (!isAdmin) {
-          return res.status(503).json({
-            error: "PolyLance is currently under scheduled maintenance. State mutations are paused to safeguard user data.",
-            code: "MAINTENANCE_LOCKED"
-          });
-        }
+      const isAdmin = isAuthorizedAdmin(requesterAddress);
+      if (!isAdmin) {
+        return res.status(503).json({
+          error: "PolyLance is currently under scheduled maintenance. State mutations are paused to safeguard user data.",
+          code: "MAINTENANCE_LOCKED"
+        });
       }
     }
 
@@ -2271,6 +2293,109 @@ app.get("/api/auth/github/status/:address", (req: Request, res: Response) => {
   });
 });
 
+// ─── TELEGRAM BOT PRIVATE NOTIFICATION ENDPOINTS ─────────────────────────────
+app.post("/api/telegram/pair-token", (req: Request, res: Response) => {
+  const { address } = req.body;
+  if (!address || typeof address !== 'string' || !address.startsWith('0x')) {
+    return res.status(400).json({ error: "Valid wallet address required" });
+  }
+  const pairing = generateTelegramPairingToken(address);
+  res.json({ success: true, ...pairing });
+});
+
+app.get("/api/telegram/status/:address", (req: Request, res: Response) => {
+  const addr = String(req.params.address || "").toLowerCase().trim();
+  const isBound = isWalletTelegramBound(addr);
+  res.json({ isBound });
+});
+
+app.post("/api/telegram/unlink", (req: Request, res: Response) => {
+  const { address } = req.body;
+  if (!address) {
+    return res.status(400).json({ error: "Address required" });
+  }
+  const unlinked = unlinkWalletTelegram(address);
+  res.json({ success: unlinked });
+});
+
+function checkAndDispatchTelegramAlerts(prevJobs: any[], newJobs: any[]) {
+  try {
+    const prevMap = new Map((prevJobs || []).map((j: any) => [String(j.id), j]));
+    for (const newJob of newJobs) {
+      if (!newJob || !newJob.id) continue;
+      const oldJob = prevMap.get(String(newJob.id));
+
+      // 1. Escrow Funded
+      if (newJob.status === 'Funded' && (!oldJob || oldJob.status !== 'Funded')) {
+        if (newJob.freelancer) {
+          sendTelegramNotification(newJob.freelancer, {
+            title: `Escrow Funded for "${newJob.title}"`,
+            description: `Client deposited funds in smart contract escrow. You may safely begin work.`,
+            badge: 'Funded',
+            type: 'milestone',
+            actionUrl: `https://polylance.codes/#/workspace?jobId=${newJob.id}`
+          });
+        }
+      }
+
+      // 2. Deliverables submitted
+      if (newJob.proof?.submittedAt && (!oldJob || !oldJob.proof?.submittedAt)) {
+        if (newJob.client) {
+          sendTelegramNotification(newJob.client, {
+            title: `Deliverables Submitted for "${newJob.title}"`,
+            description: `Developer has submitted milestone deliverables and proof of work for your inspection.`,
+            badge: 'Review Needed',
+            type: 'submission',
+            actionUrl: `https://polylance.codes/#/workspace?jobId=${newJob.id}`
+          });
+        }
+      }
+
+      // 3. Completed & Payout
+      if (newJob.status === 'Completed' && (!oldJob || oldJob.status !== 'Completed')) {
+        if (newJob.freelancer) {
+          sendTelegramNotification(newJob.freelancer, {
+            title: `Milestone Released — Payout Confirmed!`,
+            description: `Client approved deliverables for "${newJob.title}". Funds have been released to your wallet.`,
+            badge: 'Paid',
+            type: 'payout',
+            actionUrl: `https://polylance.codes/#/workspace?jobId=${newJob.id}`
+          });
+        }
+      }
+
+      // 4. Dispute raised
+      if (newJob.status === 'Disputed' && (!oldJob || oldJob.status !== 'Disputed')) {
+        const alert = {
+          title: `DAO Dispute Case Opened`,
+          description: `A formal arbitration dispute has been raised on "${newJob.title}". Arbitrators will review specifications and deliverables.`,
+          badge: 'Disputed',
+          type: 'dispute' as const,
+          actionUrl: `https://polylance.codes/#/workspace?jobId=${newJob.id}`
+        };
+        if (newJob.client) sendTelegramNotification(newJob.client, alert);
+        if (newJob.freelancer) sendTelegramNotification(newJob.freelancer, alert);
+      }
+
+      // 5. New proposal received
+      const oldAppCount = (oldJob?.applications || []).length;
+      const newApps = newJob.applications || [];
+      if (newApps.length > oldAppCount && newJob.client) {
+        const latestApp = newApps[newApps.length - 1];
+        sendTelegramNotification(newJob.client, {
+          title: `New Proposal Received`,
+          description: `Applicant ${latestApp?.applicant ? latestApp.applicant.slice(0, 6) + '...' : ''} applied to "${newJob.title}".`,
+          badge: 'Proposal',
+          type: 'proposal',
+          actionUrl: `https://polylance.codes/#/workspace?jobId=${newJob.id}`
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[TELEGRAM ALERT DISPATCH NOTICE]', err);
+  }
+}
+
 // Renew a job timestamp (Authorized Client / Admin only)
 app.post("/api/jobs/:id/renew", async (req: Request, res: Response) => {
   try {
@@ -2903,9 +3028,11 @@ app.get("/api/health", (req: Request, res: Response) => {
 if (process.env.NODE_ENV !== "test") {
   (async () => {
     await loadStateFromDatabase();
-    await persistStateToDatabases();
-    await initCertifiedPassDatabase().catch((err) => console.warn("[CERTIFIED_PASS_DB] Startup notice:", err?.message || err));
-    startPaymentListener(prisma, io);
+
+    // Start Telegram bot with in-memory live jobs getter immediately
+    console.log('[STARTUP] Initializing Telegram bot with token prefix:', process.env.TELEGRAM_BOT_TOKEN?.slice(0, 10));
+    const bot = initTelegramBot(() => sharedState.jobs);
+    console.log('[STARTUP] initTelegramBot result:', bot ? 'Active Telegraf instance' : 'Disabled / null');
 
     const PORT = process.env.PORT || 3001;
     let bindAttempts = 0;
@@ -2926,10 +3053,14 @@ if (process.env.NODE_ENV !== "test") {
       }
     });
 
-
     server.listen(PORT, () => {
       console.log(`[CHAT SERVICE] PolyLance Hardened Escrow Chat Server listening on http://localhost:${PORT}`);
     });
+
+    // Run remote database replication and payment listener asynchronously in background
+    persistStateToDatabases().catch((err) => console.warn("[DB] Persist notice:", err?.message || err));
+    initCertifiedPassDatabase().catch((err) => console.warn("[CERTIFIED_PASS_DB] Startup notice:", err?.message || err));
+    startPaymentListener(prisma, io);
 
     const cleanup = () => {
       try {

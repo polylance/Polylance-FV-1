@@ -33,71 +33,17 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-// Neomorphic design token utility classes (Soft UI concave/convex surfaces and tactile insets)
+// Clean design tokens (Black, White, Cobalt Blue)
 const NEO = {
-  canvas: 'bg-[#EBECF0]',
-  card: 'bg-[#EBECF0] rounded-3xl shadow-[8px_8px_18px_#cbced6,-8px_-8px_18px_#ffffff] border border-white/60 transition-all duration-300',
-  cardHover: 'hover:shadow-[12px_12px_24px_#cbced6,-12px_-12px_24px_#ffffff] hover:-translate-y-1',
-  cardInset: 'bg-[#EBECF0] rounded-2xl shadow-[inset_4px_4px_8px_#cbced6,inset_-4px_-4px_8px_#ffffff]',
-  button: 'bg-[#EBECF0] rounded-xl shadow-[5px_5px_10px_#cbced6,-5px_-5px_10px_#ffffff] active:shadow-[inset_4px_4px_8px_#cbced6,inset_-4px_-4px_8px_#ffffff] text-slate-700 hover:text-purple-700 font-bold transition-all duration-200 border border-white/70',
-  buttonPrimary: 'bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-[5px_5px_12px_#b8bec9,-5px_-5px_12px_#ffffff] active:scale-[0.98] text-white font-bold transition-all duration-200 hover:brightness-105',
-  pill: 'bg-[#EBECF0] rounded-full shadow-[4px_4px_8px_#cbced6,-4px_-4px_8px_#ffffff] text-slate-600 font-mono text-xs',
-  pillInset: 'bg-[#EBECF0] rounded-full shadow-[inset_3px_3px_6px_#cbced6,inset_-3px_-3px_6px_#ffffff] font-mono text-xs',
-  badge3D: 'bg-[#EBECF0] rounded-2xl shadow-[6px_6px_14px_#cbced6,-6px_-6px_14px_#ffffff] border border-white/80',
-};
-
-// Demo certificate records for testing the interactive verifier
-const DEMO_CERTS: Record<string, {
-  certId: string;
-  jobTitle: string;
-  category: string;
-  freelancerAddress: string;
-  freelancerName: string;
-  freelancerGithub: string;
-  clientAddress: string;
-  clientName: string;
-  sbtTokenId: string;
-  ipfsCid: string;
-  oracleSignature: string;
-  contractAddress: string;
-  networkChainId: number;
-  completedAt: string;
-  privacyShieldedAmount: string;
-}> = {
-  'PL-SBT-JOB-101': {
-    certId: 'PL-SBT-JOB-101',
-    jobTitle: 'Solidity Reentrancy & Flash Loan Arbitrage Audit',
-    category: 'Security & Smart Contracts',
-    freelancerAddress: (import.meta.env.VITE_TESTER_ADDRESS || import.meta.env.VITE_FREELANCER_ADDRESS || '') as string,
-    freelancerName: 'Alex Thorne',
-    freelancerGithub: 'sunny200551',
-    clientAddress: (import.meta.env.VITE_CLIENT_ADDRESS || '') as string,
-    clientName: 'Aegis Protocol Labs',
-    sbtTokenId: 'SBT-101',
-    ipfsCid: 'bafybeihkovi2mfl4vj6l3k4o7v7q4d4pkm6e6377k47x2',
-    oracleSignature: '0x7a89b3f12c98d45e76a1098b12f45c90812e34d567a89b012c34d56e78f901ab23cd45ef67890123456789abcdef0123456789abcdef0123456789abcdef01234567891b',
-    contractAddress: (import.meta.env.VITE_JOB_ESCROW_ADDRESS || '') as string,
-    networkChainId: 137,
-    completedAt: '2026-09-18T14:32:00Z',
-    privacyShieldedAmount: 'PROTECTED (Zero-Knowledge Verified)',
-  },
-  'PL-SBT-JOB-001': {
-    certId: 'PL-SBT-JOB-001',
-    jobTitle: 'Polygon zkEVM Cross-Chain Bridge Integration',
-    category: 'Web3 Core Protocol',
-    freelancerAddress: (import.meta.env.VITE_TESTER_ADDRESS || import.meta.env.VITE_FREELANCER_ADDRESS || '') as string,
-    freelancerName: 'Elena Rostova',
-    freelancerGithub: 'elena-crypto',
-    clientAddress: (import.meta.env.VITE_CLIENT_ADDRESS || '') as string,
-    clientName: 'Zenith Global Ventures',
-    sbtTokenId: 'SBT-001',
-    ipfsCid: 'bafybeicg2k3p4d4pkm6e6377k47x2kovi2mfl4vj6l3k4o7v7q',
-    oracleSignature: '0x4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d1c',
-    contractAddress: (import.meta.env.VITE_JOB_ESCROW_ADDRESS || '') as string,
-    networkChainId: 137,
-    completedAt: '2026-09-10T11:15:00Z',
-    privacyShieldedAmount: 'PROTECTED (Zero-Knowledge Verified)',
-  },
+  canvas: 'bg-[#F4F6F9]',
+  card: 'bg-white rounded-[10px] border border-[#E2E6EC] shadow-xs transition-colors',
+  cardHover: 'hover:border-[#0047AB]',
+  cardInset: 'bg-[#F4F6F9] rounded-[8px] border border-[#E2E6EC]',
+  button: 'bg-white rounded-[8px] border border-[#E2E6EC] text-[#0B0B0C] hover:bg-[#F4F6F9] font-medium transition-colors cursor-pointer',
+  buttonPrimary: 'bg-[#0047AB] hover:bg-[#003A8C] rounded-[8px] text-white font-medium transition-colors cursor-pointer',
+  pill: 'bg-[#F4F6F9] border border-[#E2E6EC] rounded-full text-[#4B5563] font-mono text-xs',
+  pillInset: 'bg-[#F4F6F9] border border-[#E2E6EC] rounded-full font-mono text-xs text-[#0B0B0C]',
+  badge3D: 'bg-white rounded-[8px] border border-[#E2E6EC]',
 };
 
 export const CertifiedPass: React.FC = () => {
@@ -344,47 +290,14 @@ export const CertifiedPass: React.FC = () => {
       };
     }
 
-    // 3. Fallback to DEMO_CERTS
-    if (DEMO_CERTS[cleanUpper]) {
-      const demo = DEMO_CERTS[cleanUpper];
-      return {
-        type: 'job' as const,
-        isRealMatch: true,
-        ...demo,
-        targetUrl: `/attestation/${encodeURIComponent(demo.certId)}`,
-      };
-    }
-
-    // 4. Default fallback with clean cert ID
-    const displayCertId = cleanUpper.startsWith('PL-') ? cleanUpper : `PL-SBT-JOB-${cleanUpper}`;
-    return {
-      type: 'job' as const,
-      isRealMatch: false,
-      certId: displayCertId,
-      jobId: stripped,
-      jobTitle: 'PolyLance Verified Attestation Deliverable',
-      category: 'Decentralized Milestone',
-      freelancerAddress: (import.meta.env.VITE_TESTER_ADDRESS || import.meta.env.VITE_FREELANCER_ADDRESS || '') as string,
-      freelancerName: 'Verified Freelancer',
-      freelancerGithub: 'polylance-dev',
-      clientAddress: (import.meta.env.VITE_CLIENT_ADDRESS || '') as string,
-      clientName: 'Verified Client Escrow',
-      sbtTokenId: `SBT-${stripped.slice(0, 6).toUpperCase() || '001'}`,
-      ipfsCid: 'bafybeihkovi2mfl4vj6l3k4o7v7q4d4pkm6e6377k47x2',
-      oracleSignature: '0x7a89b3f12c98d45e76a1098b12f45c90812e34d567a89b012c34d56e78f901ab23cd45ef67890123456789abcdef0123456789abcdef0123456789abcdef01234567891b',
-      contractAddress: (import.meta.env.VITE_JOB_ESCROW_ADDRESS || '') as string,
-      networkChainId: 137,
-      completedAt: new Date().toISOString(),
-      privacyShieldedAmount: 'PROTECTED (Zero-Knowledge Verified)',
-      targetUrl: `/attestation/${encodeURIComponent(displayCertId)}`,
-    };
+    return null;
   }, [jobs, syncedJobs, profiles]);
 
   // Interactive Live Verifier State
-  const [certInput, setCertInput] = useState('PL-SBT-JOB-101');
+  const [certInput, setCertInput] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<any>(() => resolveTarget('PL-SBT-JOB-101'));
-  const [verificationSteps, setVerificationSteps] = useState<number>(4);
+  const [verificationResult, setVerificationResult] = useState<any>(null);
+  const [verificationSteps, setVerificationSteps] = useState<number>(0);
   const [copied, setCopied] = useState(false);
   const { certId: pathCertId } = useParams();
 
@@ -462,12 +375,12 @@ export const CertifiedPass: React.FC = () => {
     if (isLaunchingPortal) return;
     setIsLaunchingPortal(true);
 
-    // Multi-color celebratory confetti burst
+    // Celebratory confetti burst in brand colors
     confetti({
       particleCount: 75,
       spread: 80,
       origin: { y: 0.55 },
-      colors: ['#9333ea', '#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'],
+      colors: ['#0047AB', '#003A8C', '#334155', '#1E8449', '#E8A317', '#C98A1B'],
     });
 
     if (isCertifiedPassDomain) {
@@ -493,70 +406,64 @@ export const CertifiedPass: React.FC = () => {
     <div className={`min-h-screen ${NEO.canvas} text-slate-700 py-8 px-4 sm:px-6 lg:px-8 font-sans select-none relative overflow-x-hidden`}>
       {/* Scroll Progress Meter */}
       <motion.div
-        className="fixed top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-cyan-400 z-50 origin-left"
+        className="fixed top-0 left-0 right-0 h-1 bg-[#0047AB] z-50 origin-left"
         style={{ scaleX }}
       />
 
-      {/* Decorative Neomorphic Ambient Orbs */}
-      <div className="fixed -top-24 -left-24 w-96 h-96 rounded-full bg-purple-200/40 blur-3xl pointer-events-none -z-10" />
-      <div className="fixed top-1/3 -right-32 w-96 h-96 rounded-full bg-blue-200/40 blur-3xl pointer-events-none -z-10" />
-      <div className="fixed bottom-10 left-1/4 w-80 h-80 rounded-full bg-indigo-200/30 blur-3xl pointer-events-none -z-10" />
-
       <div className="max-w-6xl mx-auto space-y-16 py-4">
 
-        {/* ── 1. HERO SECTION: 3D Neomorphic Badge & Title ── */}
+        {/* ── 1. HERO SECTION ── */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="text-center space-y-6 pt-4"
         >
-          {/* 3D Floating Neomorphic Shield Emblem */}
-          <div className="relative inline-flex items-center justify-center p-6 sm:p-8 rounded-[36px] bg-[#EBECF0] shadow-[14px_14px_28px_#cbced6,-14px_-14px_28px_#ffffff] border border-white/70 group hover:rotate-3 transition-transform duration-500">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-[#EBECF0] shadow-[inset_6px_6px_12px_#cbced6,inset_-6px_-6px_12px_#ffffff] flex items-center justify-center relative">
-              <ShieldCheck className="w-12 h-12 sm:w-14 sm:h-14 text-purple-600 drop-shadow-[0_4px_8px_rgba(147,51,234,0.3)]" />
-              <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 border-2 border-[#EBECF0] shadow-sm animate-pulse" />
+          {/* Emblem */}
+          <div className="relative inline-flex items-center justify-center p-6 rounded-[16px] bg-white border border-[#E2E6EC] shadow-xs">
+            <div className="w-16 h-16 rounded-[12px] bg-[#F4F6F9] border border-[#E2E6EC] flex items-center justify-center relative">
+              <ShieldCheck className="w-10 h-10 text-[#0047AB]" />
+              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
             </div>
           </div>
 
           <div className="space-y-3 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#EBECF0] shadow-[inset_3px_3px_6px_#cbced6,inset_-3px_-3px_6px_#ffffff] text-purple-700 text-xs font-mono font-bold uppercase tracking-widest">
-              <Sparkles size={12} className="text-purple-600 animate-spin" style={{ animationDuration: '4s' }} />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F4F6F9] border border-[#E2E6EC] text-[#0047AB] text-xs font-mono font-semibold uppercase tracking-wider">
+              <Sparkles size={12} className="text-[#0047AB]" />
               <span>Cross-Protocol Attestation Engine</span>
             </div>
 
-            <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight">
-              Certified<span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent">Pass</span>
+            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#0B0B0C] tracking-tight leading-tight">
+              Certified<span className="text-[#0047AB]">Pass</span>
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base text-[#4B5563] font-medium max-w-2xl mx-auto leading-relaxed">
               The sovereign decentralized verification oracle for PolyLance credentials, soulbound work histories, and autonomous milestone deliveries.
             </p>
           </div>
 
           {/* Quick Action Pills */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            {/* Minimalist Official App Portal Button */}
             <button
               type="button"
               onClick={handleLaunchPortal}
               disabled={isLaunchingPortal}
-              className={`px-5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider font-bold transition-all duration-200 cursor-pointer active:scale-95 inline-flex items-center gap-2 ${
+              className={`px-5 py-2.5 rounded-[8px] font-mono text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer active:scale-95 inline-flex items-center gap-2 ${
                 isLaunchingPortal
-                  ? 'bg-slate-900 text-white animate-pulse border border-slate-800'
-                  : 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm border border-slate-800'
+                  ? 'bg-[#0B0B0C] text-white animate-pulse'
+                  : 'bg-[#0B0B0C] hover:bg-[#1A1A1E] text-white shadow-xs'
               }`}
             >
               {isLaunchingPortal ? (
                 <>
-                  <Sparkles size={14} className="animate-spin text-purple-300" />
+                  <Sparkles size={14} className="animate-spin text-white" />
                   <span>Opening CertifiedPass...</span>
                 </>
               ) : (
                 <>
-                  <Globe size={14} className="text-slate-400" />
+                  <Globe size={14} className="text-white/70" />
                   <span>Explore CertifiedPass</span>
-                  <ExternalLink size={13} className="text-slate-400" />
+                  <ExternalLink size={13} className="text-white/70" />
                 </>
               )}
             </button>
@@ -569,7 +476,7 @@ export const CertifiedPass: React.FC = () => {
                   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
               }}
-              className={`px-6 py-2.5 ${NEO.buttonPrimary} text-xs uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer active:scale-95 transition-transform`}
+              className="px-6 py-2.5 bg-[#0047AB] hover:bg-[#003A8C] text-white rounded-[8px] text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer transition-colors"
             >
               <Search size={14} />
               <span>Verify a Certificate</span>
@@ -582,31 +489,31 @@ export const CertifiedPass: React.FC = () => {
                   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
               }}
-              className={`px-6 py-2.5 ${NEO.button} text-xs uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer active:scale-95 transition-transform`}
+              className="px-6 py-2.5 bg-white border border-[#E2E6EC] text-[#0B0B0C] hover:bg-[#F4F6F9] rounded-[8px] text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer transition-colors"
             >
               <BookOpen size={14} />
               <span>How It Works</span>
             </button>
             <Link
               to="/reputation"
-              className={`px-6 py-2.5 ${NEO.button} text-xs uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer active:scale-95 transition-transform`}
+              className="px-6 py-2.5 bg-white border border-[#E2E6EC] text-[#0B0B0C] hover:bg-[#F4F6F9] rounded-[8px] text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer transition-colors"
             >
-              <Award size={14} className="text-purple-600" />
+              <Award size={14} className="text-[#0047AB]" />
               <span>SBT Leaderboard</span>
             </Link>
           </div>
 
           {/* Official CertifiedPass Standalone Web App Showcase Banner */}
-          <div className="max-w-3xl mx-auto p-5 sm:p-6 rounded-3xl bg-[#EBECF0] shadow-[8px_8px_18px_#cbced6,-8px_-8px_18px_#ffffff] border border-white/80 flex flex-col sm:flex-row items-center justify-between gap-5 text-left transition-all duration-300 hover:shadow-[12px_12px_24px_#cbced6,-12px_-12px_24px_#ffffff] mt-6">
+          <div className="max-w-3xl mx-auto p-5 sm:p-6 rounded-[10px] bg-white border border-[#E2E6EC] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5 text-left transition-colors mt-6">
             <div className="space-y-1.5 flex-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-700 font-mono text-[10px] font-extrabold uppercase tracking-wider">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-[4px] bg-[#E3F3EA] border border-[#1E8449]/20 text-[#1E8449] font-mono text-[10px] font-bold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1E8449]" />
                 <span>Official Web Application • Live Protocol</span>
               </div>
-              <h3 className="text-base sm:text-lg font-black text-slate-900 font-heading">
+              <h3 className="text-base sm:text-lg font-serif font-semibold text-[#0B0B0C]">
                 Explore CertifiedPass
               </h3>
-              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+              <p className="text-xs text-[#4B5563] font-normal leading-relaxed">
                 Experience the official decentralized CertifiedPass web portal with 3D interactive credentials, live verification oracle, and cross-protocol proof of work.
               </p>
             </div>
@@ -615,22 +522,22 @@ export const CertifiedPass: React.FC = () => {
               type="button"
               onClick={handleLaunchPortal}
               disabled={isLaunchingPortal}
-              className={`shrink-0 w-full sm:w-auto px-6 py-3 rounded-xl font-mono text-xs uppercase tracking-wider font-bold transition-all duration-200 cursor-pointer active:scale-95 inline-flex items-center justify-center gap-2 ${
+              className={`shrink-0 w-full sm:w-auto px-5 py-2.5 rounded-[8px] font-mono text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer active:scale-95 inline-flex items-center justify-center gap-2 ${
                 isLaunchingPortal
-                  ? 'bg-slate-900 text-white animate-pulse border border-slate-800'
-                  : 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm border border-slate-800'
+                  ? 'bg-[#0B0B0C] text-white animate-pulse'
+                  : 'bg-[#0B0B0C] hover:bg-[#1A1A1E] text-white shadow-xs'
               }`}
             >
               {isLaunchingPortal ? (
                 <>
-                  <Sparkles size={14} className="animate-spin text-purple-300" />
+                  <Sparkles size={14} className="animate-spin text-white" />
                   <span>Launching App...</span>
                 </>
               ) : (
                 <>
-                  <Globe size={15} className="text-slate-400" />
+                  <Globe size={15} className="text-white/70" />
                   <span>Explore CertifiedPass</span>
-                  <ExternalLink size={13} className="text-slate-400" />
+                  <ExternalLink size={13} className="text-white/70" />
                 </>
               )}
             </button>
@@ -638,7 +545,7 @@ export const CertifiedPass: React.FC = () => {
         </motion.section>
 
 
-        {/* ── 2. WHAT IS CERTIFIEDPASS? (3-Column Neomorphic Cards) ── */}
+        {/* ── 2. WHAT IS CERTIFIEDPASS? ── */}
         <motion.section
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -647,61 +554,61 @@ export const CertifiedPass: React.FC = () => {
           className="space-y-8"
         >
           <div className="text-center space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">
-              What is <span className="text-purple-700">CertifiedPass</span>?
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#0B0B0C]">
+              What is <span className="text-[#0047AB]">CertifiedPass</span>?
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-xl mx-auto">
+            <p className="text-xs sm:text-sm text-[#4B5563] max-w-xl mx-auto">
               An independent attestation layer designed to eliminate resume fraud, fake code portfolios, and unverifiable freelance claims in Web3.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             {/* Card 1: Soulbound Authenticity */}
-            <div className={`${NEO.card} ${NEO.cardHover} p-6 sm:p-8 space-y-4`}>
-              <div className="w-14 h-14 rounded-2xl bg-[#EBECF0] shadow-[inset_4px_4px_8px_#cbced6,inset_-4px_-4px_8px_#ffffff] flex items-center justify-center text-purple-600">
-                <Fingerprint size={28} />
+            <div className="bg-white border border-[#E2E6EC] hover:border-[#0047AB] rounded-[10px] p-6 shadow-xs space-y-4 transition-colors">
+              <div className="w-12 h-12 rounded-[8px] bg-[#F4F6F9] border border-[#E2E6EC] flex items-center justify-center text-[#0047AB]">
+                <Fingerprint size={24} />
               </div>
-              <h3 className="text-lg font-black text-slate-900 font-heading">
+              <h3 className="text-base font-serif font-semibold text-[#0B0B0C]">
                 Soulbound Identity (SBT)
               </h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              <p className="text-xs text-[#4B5563] leading-relaxed">
                 Every milestone approval on PolyLance mints a non-transferable ERC-5192 Soulbound Token. Credentials are permanently bound to the developer's wallet address and cannot be sold, transferred, or faked.
               </p>
-              <div className="pt-2 text-[11px] font-mono font-bold text-purple-600 flex items-center gap-1.5">
+              <div className="pt-2 text-[11px] font-mono font-semibold text-[#0047AB] flex items-center gap-1.5">
                 <span>ERC-5192 Standard</span>
                 <CheckCircle2 size={13} />
               </div>
             </div>
 
             {/* Card 2: Cryptographic Deliverable Proof */}
-            <div className={`${NEO.card} ${NEO.cardHover} p-6 sm:p-8 space-y-4`}>
-              <div className="w-14 h-14 rounded-2xl bg-[#EBECF0] shadow-[inset_4px_4px_8px_#cbced6,inset_-4px_-4px_8px_#ffffff] flex items-center justify-center text-indigo-600">
-                <FileCode size={28} />
+            <div className="bg-white border border-[#E2E6EC] hover:border-[#0047AB] rounded-[10px] p-6 shadow-xs space-y-4 transition-colors">
+              <div className="w-12 h-12 rounded-[8px] bg-[#F4F6F9] border border-[#E2E6EC] flex items-center justify-center text-[#0047AB]">
+                <FileCode size={24} />
               </div>
-              <h3 className="text-lg font-black text-slate-900 font-heading">
+              <h3 className="text-base font-serif font-semibold text-[#0B0B0C]">
                 Cryptographic Deliverables
               </h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              <p className="text-xs text-[#4B5563] leading-relaxed">
                 Deliverable repositories, git commit shas, pull request diffs, and work logs are hashed and pinned to IPFS. The IPFS Content Identifier (CID) is cryptographically stamped directly into the token metadata.
               </p>
-              <div className="pt-2 text-[11px] font-mono font-bold text-indigo-600 flex items-center gap-1.5">
+              <div className="pt-2 text-[11px] font-mono font-semibold text-[#0047AB] flex items-center gap-1.5">
                 <span>IPFS Content Stamping</span>
                 <CheckCircle2 size={13} />
               </div>
             </div>
 
             {/* Card 3: Zero-Knowledge Privacy Shield */}
-            <div className={`${NEO.card} ${NEO.cardHover} p-6 sm:p-8 space-y-4`}>
-              <div className="w-14 h-14 rounded-2xl bg-[#EBECF0] shadow-[inset_4px_4px_8px_#cbced6,inset_-4px_-4px_8px_#ffffff] flex items-center justify-center text-blue-600">
-                <Lock size={28} />
+            <div className="bg-white border border-[#E2E6EC] hover:border-[#0047AB] rounded-[10px] p-6 shadow-xs space-y-4 transition-colors">
+              <div className="w-12 h-12 rounded-[8px] bg-[#F4F6F9] border border-[#E2E6EC] flex items-center justify-center text-[#0047AB]">
+                <Lock size={24} />
               </div>
-              <h3 className="text-lg font-black text-slate-900 font-heading">
+              <h3 className="text-base font-serif font-semibold text-[#0B0B0C]">
                 Confidentiality Shield
               </h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                Contract financial settlement amounts and commercial agreements remain strictly confidential. CertifiedPass proves <strong className="text-slate-800">what was built</strong> and <strong className="text-slate-800">client satisfaction</strong> without exposing private pricing data.
+              <p className="text-xs text-[#4B5563] leading-relaxed">
+                Contract financial settlement amounts and commercial agreements remain strictly confidential. CertifiedPass proves <strong className="text-[#0B0B0C]">what was built</strong> and <strong className="text-[#0B0B0C]">client satisfaction</strong> without exposing private pricing data.
               </p>
-              <div className="pt-2 text-[11px] font-mono font-bold text-blue-600 flex items-center gap-1.5">
+              <div className="pt-2 text-[11px] font-mono font-semibold text-[#0047AB] flex items-center gap-1.5">
                 <span>Zero-Knowledge Privacy</span>
                 <CheckCircle2 size={13} />
               </div>
@@ -710,67 +617,49 @@ export const CertifiedPass: React.FC = () => {
         </motion.section>
 
 
-        {/* ── 3. INTERACTIVE LIVE VERIFIER (The Heart of CertifiedPass) ── */}
+        {/* ── 3. INTERACTIVE LIVE VERIFIER ── */}
         <motion.section
           id="verifier"
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className={`${NEO.card} p-6 sm:p-10 space-y-8 relative overflow-hidden scroll-mt-24`}
+          className="bg-white border border-[#E2E6EC] rounded-[10px] p-6 sm:p-10 space-y-8 shadow-xs relative overflow-hidden scroll-mt-24"
         >
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-300/60 pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E2E6EC] pb-6">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 text-xs font-mono font-black text-purple-700 uppercase tracking-wider">
-                <Shield size={14} className="text-purple-600" />
+              <div className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-[#0047AB] uppercase tracking-wider">
+                <Shield size={14} className="text-[#0047AB]" />
                 <span>Live Attestation Verifier Tool</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#0B0B0C]">
                 Verify a PolyLance Certificate
               </h2>
             </div>
-
-            {/* Demo ID Preset Buttons */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-mono text-slate-500 font-bold">Try Demo:</span>
-              {Object.keys(DEMO_CERTS).map((demoId) => (
-                <button
-                  key={demoId}
-                  type="button"
-                  onClick={() => {
-                    setCertInput(demoId);
-                    runVerification(demoId);
-                  }}
-                  className={`px-3 py-1 text-[11px] ${certInput === demoId ? NEO.buttonPrimary : NEO.button}`}
-                >
-                  {demoId}
-                </button>
-              ))}
-            </div>
           </div>
 
-          {/* Search Input Bar with Neomorphic Inset Well */}
+          {/* Search Input Bar */}
           <div className="space-y-3">
-            <label className="block text-xs font-mono font-bold text-slate-700 tracking-wide">
-              ENTER CERTIFICATE ID (e.g. PL-SBT-JOB-101):
+            <label className="block text-xs font-mono font-semibold text-[#0B0B0C] tracking-wide">
+              ENTER CERTIFICATE ID (e.g. PL-SBT-JOB-...):
             </label>
             <div className="flex flex-col sm:flex-row items-center gap-3">
-              <div className="w-full relative flex-1">
+              <label className="w-full relative flex-1 flex items-center gap-3 px-4 py-3 bg-[#F4F6F9] border border-[#E2E6EC] focus-within:border-[#0047AB] focus-within:bg-white rounded-[8px] transition-colors cursor-text">
+                <Search className="shrink-0 text-[#8892A0] pointer-events-none" size={18} />
                 <input
                   type="text"
                   value={certInput}
                   onChange={(e) => setCertInput(e.target.value)}
-                  placeholder="Enter Certificate ID (e.g., PL-SBT-JOB-101)..."
-                  className={`w-full py-3.5 pl-11 pr-4 ${NEO.cardInset} text-sm font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/40`}
+                  placeholder="Enter Certificate ID..."
+                  className="flex-1 min-w-0 bg-transparent text-sm font-mono text-[#0B0B0C] placeholder:text-[#8892A0] outline-none"
                 />
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              </div>
+              </label>
               <button
                 type="button"
                 disabled={isVerifying || !certInput.trim()}
                 onClick={() => runVerification(certInput)}
-                className={`w-full sm:w-auto px-8 py-3.5 ${NEO.buttonPrimary} text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shrink-0 disabled:opacity-50`}
+                className="w-full sm:w-auto px-6 py-3 bg-[#0047AB] hover:bg-[#003A8C] text-white rounded-[8px] text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shrink-0 disabled:opacity-50 transition-colors"
               >
                 {isVerifying ? (
                   <>
@@ -790,75 +679,75 @@ export const CertifiedPass: React.FC = () => {
           {/* 4-Stage Verification Progress Dials */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
             {/* Step 1 */}
-            <div className={`p-4 rounded-2xl ${verificationSteps >= 1 ? 'bg-emerald-500/10 border border-emerald-500/30' : NEO.cardInset} transition-all`}>
-              <div className="flex items-center gap-2 text-xs font-mono font-bold">
+            <div className={`p-4 rounded-[8px] border transition-colors ${verificationSteps >= 1 ? 'bg-[#E3F3EA] border-[#1E8449]/30' : 'bg-[#F4F6F9] border-[#E2E6EC]'}`}>
+              <div className="flex items-center gap-2 text-xs font-mono font-semibold">
                 {verificationSteps >= 1 ? (
-                  <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                  <CheckCircle2 size={16} className="text-[#1E8449] shrink-0" />
                 ) : (
-                  <Clock size={16} className="text-slate-400 shrink-0" />
+                  <Clock size={16} className="text-[#8892A0] shrink-0" />
                 )}
-                <span className={verificationSteps >= 1 ? 'text-emerald-800' : 'text-slate-500'}>1. Oracle Signature</span>
+                <span className={verificationSteps >= 1 ? 'text-[#1E8449]' : 'text-[#8892A0]'}>1. Oracle Signature</span>
               </div>
-              <p className="text-[10px] text-slate-500 mt-1">ECDSA Cryptographic Key Match</p>
+              <p className="text-[10px] text-[#4B5563] mt-1">ECDSA Cryptographic Key Match</p>
             </div>
 
             {/* Step 2 */}
-            <div className={`p-4 rounded-2xl ${verificationSteps >= 2 ? 'bg-emerald-500/10 border border-emerald-500/30' : NEO.cardInset} transition-all`}>
-              <div className="flex items-center gap-2 text-xs font-mono font-bold">
+            <div className={`p-4 rounded-[8px] border transition-colors ${verificationSteps >= 2 ? 'bg-[#E3F3EA] border-[#1E8449]/30' : 'bg-[#F4F6F9] border-[#E2E6EC]'}`}>
+              <div className="flex items-center gap-2 text-xs font-mono font-semibold">
                 {verificationSteps >= 2 ? (
-                  <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                  <CheckCircle2 size={16} className="text-[#1E8449] shrink-0" />
                 ) : (
-                  <Clock size={16} className="text-slate-400 shrink-0" />
+                  <Clock size={16} className="text-[#8892A0] shrink-0" />
                 )}
-                <span className={verificationSteps >= 2 ? 'text-emerald-800' : 'text-slate-500'}>2. Polygon Contract</span>
+                <span className={verificationSteps >= 2 ? 'text-[#1E8449]' : 'text-[#8892A0]'}>2. Polygon Contract</span>
               </div>
-              <p className="text-[10px] text-slate-500 mt-1">JobFactory & SBT Code Audit</p>
+              <p className="text-[10px] text-[#4B5563] mt-1">JobFactory & SBT Code Audit</p>
             </div>
 
             {/* Step 3 */}
-            <div className={`p-4 rounded-2xl ${verificationSteps >= 3 ? 'bg-emerald-500/10 border border-emerald-500/30' : NEO.cardInset} transition-all`}>
-              <div className="flex items-center gap-2 text-xs font-mono font-bold">
+            <div className={`p-4 rounded-[8px] border transition-colors ${verificationSteps >= 3 ? 'bg-[#E3F3EA] border-[#1E8449]/30' : 'bg-[#F4F6F9] border-[#E2E6EC]'}`}>
+              <div className="flex items-center gap-2 text-xs font-mono font-semibold">
                 {verificationSteps >= 3 ? (
-                  <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                  <CheckCircle2 size={16} className="text-[#1E8449] shrink-0" />
                 ) : (
-                  <Clock size={16} className="text-slate-400 shrink-0" />
+                  <Clock size={16} className="text-[#8892A0] shrink-0" />
                 )}
-                <span className={verificationSteps >= 3 ? 'text-emerald-800' : 'text-slate-500'}>3. IPFS Content CID</span>
+                <span className={verificationSteps >= 3 ? 'text-[#1E8449]' : 'text-[#8892A0]'}>3. IPFS Content CID</span>
               </div>
-              <p className="text-[10px] text-slate-500 mt-1">Deliverable Hash Integrity</p>
+              <p className="text-[10px] text-[#4B5563] mt-1">Deliverable Hash Integrity</p>
             </div>
 
             {/* Step 4 */}
-            <div className={`p-4 rounded-2xl ${verificationSteps >= 4 ? 'bg-emerald-500/10 border border-emerald-500/30' : NEO.cardInset} transition-all`}>
-              <div className="flex items-center gap-2 text-xs font-mono font-bold">
+            <div className={`p-4 rounded-[8px] border transition-colors ${verificationSteps >= 4 ? 'bg-[#E3F3EA] border-[#1E8449]/30' : 'bg-[#F4F6F9] border-[#E2E6EC]'}`}>
+              <div className="flex items-center gap-2 text-xs font-mono font-semibold">
                 {verificationSteps >= 4 ? (
-                  <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                  <CheckCircle2 size={16} className="text-[#1E8449] shrink-0" />
                 ) : (
-                  <Clock size={16} className="text-slate-400 shrink-0" />
+                  <Clock size={16} className="text-[#8892A0] shrink-0" />
                 )}
-                <span className={verificationSteps >= 4 ? 'text-emerald-800' : 'text-slate-500'}>4. Privacy Shield</span>
+                <span className={verificationSteps >= 4 ? 'text-[#1E8449]' : 'text-[#8892A0]'}>4. Privacy Shield</span>
               </div>
-              <p className="text-[10px] text-slate-500 mt-1">Confidential Financial Guard</p>
+              <p className="text-[10px] text-[#4B5563] mt-1">Confidential Financial Guard</p>
             </div>
           </div>
 
-          {/* Verification Result Inspection Card */}
+          {/* Verification Result Card */}
           {verificationResult && verificationSteps === 4 && (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`p-6 sm:p-8 rounded-3xl ${NEO.cardInset} space-y-6 border border-emerald-500/20`}
+              className="p-6 sm:p-8 rounded-[10px] bg-white border border-[#E2E6EC] space-y-6 shadow-xs"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-300 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E2E6EC] pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-sm">
+                  <div className="w-10 h-10 rounded-[8px] bg-[#E3F3EA] text-[#1E8449] flex items-center justify-center border border-[#1E8449]/20">
                     <ShieldCheck size={22} />
                   </div>
                   <div>
-                    <span className="text-[10px] font-mono font-bold text-emerald-700 uppercase tracking-widest block">
+                    <span className="text-[10px] font-mono font-bold text-[#1E8449] uppercase tracking-wider block">
                       STATUS: CRYPTOGRAPHICALLY VERIFIED
                     </span>
-                    <h3 className="text-lg font-black text-slate-900 font-heading">
+                    <h3 className="text-lg font-serif font-bold text-[#0B0B0C]">
                       {verificationResult.certId}
                     </h3>
                   </div>
@@ -868,14 +757,14 @@ export const CertifiedPass: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => copyToClipboard(`https://polylance.codes/#${verificationResult.targetUrl || `/attestation/${verificationResult.certId}`}`)}
-                    className={`px-3 py-1.5 ${NEO.button} text-xs flex items-center gap-1.5`}
+                    className="px-3 py-1.5 bg-white border border-[#E2E6EC] hover:bg-[#F4F6F9] text-[#0B0B0C] text-xs font-medium rounded-[8px] flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                    {copied ? <Check size={14} className="text-[#1E8449]" /> : <Copy size={14} />}
                     <span>{copied ? 'Copied' : 'Share Proof'}</span>
                   </button>
                   <Link
                     to={verificationResult.targetUrl || `/attestation/${verificationResult.certId}`}
-                    className={`px-3 py-1.5 ${NEO.buttonPrimary} text-xs flex items-center gap-1.5`}
+                    className="px-3 py-1.5 bg-[#0047AB] hover:bg-[#003A8C] text-white text-xs font-medium rounded-[8px] flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <span>{verificationResult.type === 'audit' ? 'View Audit Report' : 'View Attestation'}</span>
                     <ExternalLink size={13} />
@@ -884,13 +773,13 @@ export const CertifiedPass: React.FC = () => {
               </div>
 
               {/* Canonical Certificate URL Display */}
-              <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold block">
+              <div className="p-3 bg-[#F4F6F9] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                <span className="text-[10px] text-[#8892A0] font-semibold block">
                   {verificationResult.type === 'audit' ? 'OFFICIAL AUDIT REPORT URL' : 'OFFICIAL CERTIFICATE VERIFICATION URL'}
                 </span>
                 <Link
                   to={verificationResult.targetUrl || `/attestation/${verificationResult.certId}`}
-                  className="font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1.5 break-all text-[11px]"
+                  className="font-mono text-xs font-semibold text-[#0047AB] hover:underline flex items-center gap-1.5 break-all"
                 >
                   <span>{`https://polylance.codes/#${verificationResult.targetUrl || `/attestation/${verificationResult.certId}`}`}</span>
                   <ExternalLink size={12} className="shrink-0" />
@@ -900,49 +789,49 @@ export const CertifiedPass: React.FC = () => {
               {/* Data Field Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">
                 {/* Milestone Title */}
-                <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                  <span className="text-[10px] text-slate-400 font-bold block">
+                <div className="p-3 bg-[#F4F6F9] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                  <span className="text-[10px] text-[#8892A0] font-semibold block">
                     {verificationResult.type === 'audit' ? 'AUDIT REPORT TITLE' : 'PROJECT DELIVERABLE'}
                   </span>
-                  <span className="font-bold text-slate-800 font-sans block">{verificationResult.jobTitle}</span>
+                  <span className="font-semibold text-[#0B0B0C] font-serif block">{verificationResult.jobTitle}</span>
                 </div>
 
                 {/* Freelancer */}
-                <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                  <span className="text-[10px] text-slate-400 font-bold block">
+                <div className="p-3 bg-[#F4F6F9] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                  <span className="text-[10px] text-[#8892A0] font-semibold block">
                     {verificationResult.type === 'audit' ? 'AUDITED SUBJECT' : 'FREELANCER (REPUTATION HOLDER)'}
                   </span>
-                  <span className="font-bold text-purple-700 block truncate">
+                  <span className="font-semibold text-[#0047AB] block truncate">
                     {verificationResult.freelancerName} ({truncateAddress(verificationResult.freelancerAddress)})
                   </span>
                 </div>
 
                 {/* Client */}
-                <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                  <span className="text-[10px] text-slate-400 font-bold block">
+                <div className="p-3 bg-[#F4F6F9] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                  <span className="text-[10px] text-[#8892A0] font-semibold block">
                     {verificationResult.type === 'audit' ? 'GOVERNANCE ISSUER' : 'CLIENT (ESCROW RELEASER)'}
                   </span>
-                  <span className="font-bold text-slate-800 block truncate">
+                  <span className="font-semibold text-[#0B0B0C] block truncate">
                     {verificationResult.clientName} ({truncateAddress(verificationResult.clientAddress)})
                   </span>
                 </div>
 
                 {/* Token ID */}
-                <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                  <span className="text-[10px] text-slate-400 font-bold block">SOULBOUND TOKEN ID</span>
-                  <span className="font-bold text-indigo-700 block">{verificationResult.sbtTokenId} (ERC-5192)</span>
+                <div className="p-3 bg-[#F4F6F9] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                  <span className="text-[10px] text-[#8892A0] font-semibold block">SOULBOUND TOKEN ID</span>
+                  <span className="font-semibold text-[#0B0B0C] block">{verificationResult.sbtTokenId} (ERC-5192)</span>
                 </div>
 
                 {/* IPFS CID */}
-                <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                  <span className="text-[10px] text-slate-400 font-bold block">IMMUTABLE IPFS CID</span>
-                  <span className="font-bold text-slate-700 block truncate">{verificationResult.ipfsCid}</span>
+                <div className="p-3 bg-[#F4F6F9] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                  <span className="text-[10px] text-[#8892A0] font-semibold block">IMMUTABLE IPFS CID</span>
+                  <span className="font-semibold text-[#0B0B0C] block truncate">{verificationResult.ipfsCid}</span>
                 </div>
 
                 {/* Settlement Privacy Shield */}
-                <div className="p-3 bg-white/60 rounded-xl space-y-1">
-                  <span className="text-[10px] text-slate-400 font-bold block">FINANCIAL SETTLEMENT</span>
-                  <span className="font-bold text-emerald-700 flex items-center gap-1">
+                <div className="p-3 bg-[#F4F6F9] border border-[#E2E6EC] rounded-[8px] space-y-1">
+                  <span className="text-[10px] text-[#8892A0] font-semibold block">FINANCIAL SETTLEMENT</span>
+                  <span className="font-semibold text-[#1E8449] flex items-center gap-1">
                     <Lock size={12} />
                     <span>{verificationResult.privacyShieldedAmount}</span>
                   </span>
@@ -950,16 +839,34 @@ export const CertifiedPass: React.FC = () => {
               </div>
 
               {/* Cryptographic Signature Well */}
-              <div className="p-3.5 bg-slate-900 text-slate-300 rounded-xl text-[11px] font-mono space-y-1 overflow-x-auto">
-                <span className="text-[10px] text-purple-400 font-bold block uppercase tracking-wider">Oracle ECDSA Signature:</span>
-                <span className="text-slate-400 break-all">{verificationResult.oracleSignature}</span>
+              <div className="p-3.5 bg-[#0B0B0C] text-white rounded-[8px] text-[11px] font-mono space-y-1 overflow-x-auto">
+                <span className="text-[10px] text-white/60 font-semibold block uppercase tracking-wider">Oracle ECDSA Signature:</span>
+                <span className="text-white/80 break-all">{verificationResult.oracleSignature}</span>
               </div>
+            </motion.div>
+          )}
+
+          {/* Unverified / Not Found State */}
+          {!verificationResult && verificationSteps === 4 && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-6 sm:p-8 rounded-[10px] bg-white border border-[#E2E6EC] space-y-3 text-center shadow-xs"
+            >
+              <div className="w-12 h-12 rounded-full bg-[#FFF9E6] border border-[#F0D58C] text-[#8C6B00] flex items-center justify-center mx-auto">
+                <Shield size={24} />
+              </div>
+              <h3 className="text-base font-serif font-semibold text-[#0B0B0C]">
+                No Matching On-Chain Attestation Found
+              </h3>
+              <p className="text-xs text-[#4B5563] max-w-md mx-auto">
+                The identifier "{certInput}" does not match an active or completed PolyLance escrow milestone, audited address, or verified soulbound token.
+              </p>
             </motion.div>
           )}
         </motion.section>
 
-
-        {/* ── 4. HOW ARE CERTS VERIFIED IN CERTIFIEDPASS? (Step-by-Step 3D Grid) ── */}
+        {/* ── 4. HOW ARE CERTS VERIFIED IN CERTIFIEDPASS? ── */}
         <motion.section
           id="how-it-works"
           initial={{ opacity: 0, y: 30 }}
@@ -969,67 +876,67 @@ export const CertifiedPass: React.FC = () => {
           className="space-y-8 scroll-mt-24"
         >
           <div className="text-center space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#0B0B0C]">
               How Verifications Work
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-xl mx-auto">
+            <p className="text-xs sm:text-sm text-[#4B5563] max-w-xl mx-auto">
               Every certificate in CertifiedPass passes through a 4-layer decentralized validation pipeline before being attested as genuine.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Step 1 */}
-            <div className={`${NEO.card} p-6 sm:p-7 space-y-3 relative group`}>
+            <div className="bg-white border border-[#E2E6EC] rounded-[10px] p-6 sm:p-7 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-black text-purple-600/30 font-mono">01</span>
-                <div className="w-10 h-10 rounded-xl bg-[#EBECF0] shadow-[inset_3px_3px_6px_#cbced6,inset_-3px_-3px_6px_#ffffff] flex items-center justify-center text-purple-600">
+                <span className="text-3xl font-bold text-[#0B0B0C]/20 font-mono">01</span>
+                <div className="w-10 h-10 rounded-[8px] bg-[#F4F6F9] border border-[#E2E6EC] flex items-center justify-center text-[#0047AB]">
                   <Cpu size={20} />
                 </div>
               </div>
-              <h4 className="text-base font-black text-slate-900 font-heading">1. Oracle Signature Verification</h4>
-              <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              <h4 className="text-base font-serif font-semibold text-[#0B0B0C]">1. Oracle Signature Verification</h4>
+              <p className="text-xs text-[#4B5563] leading-relaxed">
                 The deliverable bundle is signed off-chain by the PolyLance Oracle node. CertifiedPass checks the ECDSA signature against the Oracle's verified public key to confirm that no data was tampered with in transit.
               </p>
             </div>
 
             {/* Step 2 */}
-            <div className={`${NEO.card} p-6 sm:p-7 space-y-3 relative group`}>
+            <div className="bg-white border border-[#E2E6EC] rounded-[10px] p-6 sm:p-7 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-black text-indigo-600/30 font-mono">02</span>
-                <div className="w-10 h-10 rounded-xl bg-[#EBECF0] shadow-[inset_3px_3px_6px_#cbced6,inset_-3px_-3px_6px_#ffffff] flex items-center justify-center text-indigo-600">
+                <span className="text-3xl font-bold text-[#0B0B0C]/20 font-mono">02</span>
+                <div className="w-10 h-10 rounded-[8px] bg-[#F4F6F9] border border-[#E2E6EC] flex items-center justify-center text-[#0047AB]">
                   <Database size={20} />
                 </div>
               </div>
-              <h4 className="text-base font-black text-slate-900 font-heading">2. On-Chain Smart Contract Audit</h4>
-              <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                CertifiedPass directly queries Polygon Mainnet contracts (<code className="text-indigo-700 bg-indigo-50 px-1 rounded">JobFactory</code> & <code className="text-indigo-700 bg-indigo-50 px-1 rounded">ReputationSBT</code>) to verify that the Soulbound Token actually exists in the recipient's wallet and was issued through authentic escrow settlement.
+              <h4 className="text-base font-serif font-semibold text-[#0B0B0C]">2. On-Chain Smart Contract Audit</h4>
+              <p className="text-xs text-[#4B5563] leading-relaxed">
+                CertifiedPass directly queries Polygon Mainnet contracts (<code className="text-[#0047AB] bg-[#F4F6F9] px-1 py-0.5 rounded border border-[#E2E6EC]">JobFactory</code> & <code className="text-[#0047AB] bg-[#F4F6F9] px-1 py-0.5 rounded border border-[#E2E6EC]">ReputationSBT</code>) to verify that the Soulbound Token actually exists in the recipient's wallet and was issued through authentic escrow settlement.
               </p>
             </div>
 
             {/* Step 3 */}
-            <div className={`${NEO.card} p-6 sm:p-7 space-y-3 relative group`}>
+            <div className="bg-white border border-[#E2E6EC] rounded-[10px] p-6 sm:p-7 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-black text-blue-600/30 font-mono">03</span>
-                <div className="w-10 h-10 rounded-xl bg-[#EBECF0] shadow-[inset_3px_3px_6px_#cbced6,inset_-3px_-3px_6px_#ffffff] flex items-center justify-center text-blue-600">
+                <span className="text-3xl font-bold text-[#0B0B0C]/20 font-mono">03</span>
+                <div className="w-10 h-10 rounded-[8px] bg-[#F4F6F9] border border-[#E2E6EC] flex items-center justify-center text-[#0047AB]">
                   <Layers size={20} />
                 </div>
               </div>
-              <h4 className="text-base font-black text-slate-900 font-heading">3. IPFS Content Addressing</h4>
-              <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              <h4 className="text-base font-serif font-semibold text-[#0B0B0C]">3. IPFS Content Addressing</h4>
+              <p className="text-xs text-[#4B5563] leading-relaxed">
                 The milestone work deliverable is pinned to IPFS using cryptographic content addressing. CertifiedPass matches the IPFS CID to ensure the original work files, code commits, and milestone requirements are immutable.
               </p>
             </div>
 
             {/* Step 4 */}
-            <div className={`${NEO.card} p-6 sm:p-7 space-y-3 relative group`}>
+            <div className="bg-white border border-[#E2E6EC] rounded-[10px] p-6 sm:p-7 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-black text-emerald-600/30 font-mono">04</span>
-                <div className="w-10 h-10 rounded-xl bg-[#EBECF0] shadow-[inset_3px_3px_6px_#cbced6,inset_-3px_-3px_6px_#ffffff] flex items-center justify-center text-emerald-600">
+                <span className="text-3xl font-bold text-[#0B0B0C]/20 font-mono">04</span>
+                <div className="w-10 h-10 rounded-[8px] bg-[#F4F6F9] border border-[#E2E6EC] flex items-center justify-center text-[#0047AB]">
                   <Lock size={20} />
                 </div>
               </div>
-              <h4 className="text-base font-black text-slate-900 font-heading">4. Zero-Knowledge Privacy Preservation</h4>
-              <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              <h4 className="text-base font-serif font-semibold text-[#0B0B0C]">4. Zero-Knowledge Privacy Preservation</h4>
+              <p className="text-xs text-[#4B5563] leading-relaxed">
                 Commercial compensation terms and private escrow volumes are permanently shielded. Third-party employers see proof of milestone completion, technical skill tags, and client rating without seeing confidential financial contracts.
               </p>
             </div>
@@ -1037,7 +944,7 @@ export const CertifiedPass: React.FC = () => {
         </motion.section>
 
 
-        {/* ── 5. HOW TO USE CERTIFIEDPASS (For Freelancers & Clients) ── */}
+        {/* ── 5. HOW TO USE CERTIFIEDPASS ── */}
         <motion.section
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1046,41 +953,41 @@ export const CertifiedPass: React.FC = () => {
           className="space-y-8"
         >
           <div className="text-center space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#0B0B0C]">
               How to Use CertifiedPass
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-xl mx-auto">
+            <p className="text-xs sm:text-sm text-[#4B5563] max-w-xl mx-auto">
               Empowering developers to showcase verified proof-of-work and giving clients trustless verification.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* For Freelancers / Developers */}
-            <div className={`${NEO.card} p-6 sm:p-8 space-y-5 text-left`}>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EBECF0] shadow-[inset_2px_2px_5px_#cbced6,inset_-2px_-2px_5px_#ffffff] text-purple-700 text-xs font-mono font-bold">
+            <div className="bg-white border border-[#E2E6EC] rounded-[10px] p-6 sm:p-8 space-y-5 text-left shadow-xs">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F4F6F9] border border-[#E2E6EC] text-[#0047AB] text-xs font-mono font-semibold">
                 <span>FOR FREELANCERS & AUDITORS</span>
               </div>
-              <h3 className="text-xl font-black text-slate-900 font-heading">
+              <h3 className="text-xl font-serif font-bold text-[#0B0B0C]">
                 Turn Proof-of-Work Into Sovereign Capital
               </h3>
-              <ul className="space-y-3 text-xs text-slate-600 font-medium">
+              <ul className="space-y-3 text-xs text-[#4B5563]">
                 <li className="flex items-start gap-2.5">
-                  <CheckCircle2 size={16} className="text-purple-600 shrink-0 mt-0.5" />
-                  <span><strong>Automatic Minting:</strong> Complete any milestone on PolyLance; your Soulbound Token and Certificate ID are generated automatically upon escrow settlement.</span>
+                  <CheckCircle2 size={16} className="text-[#0047AB] shrink-0 mt-0.5" />
+                  <span><strong className="text-[#0B0B0C]">Automatic Minting:</strong> Complete any milestone on PolyLance; your Soulbound Token and Certificate ID are generated automatically upon escrow settlement.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <CheckCircle2 size={16} className="text-purple-600 shrink-0 mt-0.5" />
-                  <span><strong>Exportable Trust Badges:</strong> Embed your CertifiedPass badge or QR code on your personal website, GitHub README, or LinkedIn portfolio.</span>
+                  <CheckCircle2 size={16} className="text-[#0047AB] shrink-0 mt-0.5" />
+                  <span><strong className="text-[#0B0B0C]">Exportable Trust Badges:</strong> Embed your CertifiedPass badge or QR code on your personal website, GitHub README, or LinkedIn portfolio.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <CheckCircle2 size={16} className="text-purple-600 shrink-0 mt-0.5" />
-                  <span><strong>Direct Proof Links:</strong> Share your unique attestation URL (<code className="bg-slate-200 px-1 rounded font-mono">https://polylance.codes/#/attestation/PL-SBT-JOB-...</code>) with prospective clients for instant verification.</span>
+                  <CheckCircle2 size={16} className="text-[#0047AB] shrink-0 mt-0.5" />
+                  <span><strong className="text-[#0B0B0C]">Direct Proof Links:</strong> Share your unique attestation URL (<code className="bg-[#F4F6F9] border border-[#E2E6EC] px-1 py-0.5 rounded font-mono text-[#0B0B0C]">https://polylance.codes/#/attestation/...</code>) with prospective clients for instant verification.</span>
                 </li>
               </ul>
               <div className="pt-2">
                 <Link
                   to="/reputation"
-                  className={`inline-flex items-center gap-2 px-5 py-2.5 ${NEO.button} text-xs font-bold text-purple-700`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#E2E6EC] hover:bg-[#F4F6F9] text-[#0B0B0C] rounded-[8px] text-xs font-medium transition-colors"
                 >
                   <span>View Your Reputation SBTs</span>
                   <ArrowRight size={14} />
@@ -1089,31 +996,31 @@ export const CertifiedPass: React.FC = () => {
             </div>
 
             {/* For Clients, Recruiter DAOs & Protocols */}
-            <div className={`${NEO.card} p-6 sm:p-8 space-y-5 text-left`}>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EBECF0] shadow-[inset_2px_2px_5px_#cbced6,inset_-2px_-2px_5px_#ffffff] text-indigo-700 text-xs font-mono font-bold">
+            <div className="bg-white border border-[#E2E6EC] rounded-[10px] p-6 sm:p-8 space-y-5 text-left shadow-xs">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F4F6F9] border border-[#E2E6EC] text-[#0047AB] text-xs font-mono font-semibold">
                 <span>FOR CLIENTS & PROTOCOLS</span>
               </div>
-              <h3 className="text-xl font-black text-slate-900 font-heading">
+              <h3 className="text-xl font-serif font-bold text-[#0B0B0C]">
                 Verify Web3 Talent in Seconds
               </h3>
-              <ul className="space-y-3 text-xs text-slate-600 font-medium">
+              <ul className="space-y-3 text-xs text-[#4B5563]">
                 <li className="flex items-start gap-2.5">
-                  <CheckCircle2 size={16} className="text-indigo-600 shrink-0 mt-0.5" />
-                  <span><strong>Certificate ID Search:</strong> Input any candidate's PolyLance Certificate ID into CertifiedPass to verify smart contract ownership and deliverable specs.</span>
+                  <CheckCircle2 size={16} className="text-[#0047AB] shrink-0 mt-0.5" />
+                  <span><strong className="text-[#0B0B0C]">Certificate ID Search:</strong> Input any candidate's PolyLance Certificate ID into CertifiedPass to verify smart contract ownership and deliverable specs.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <CheckCircle2 size={16} className="text-indigo-600 shrink-0 mt-0.5" />
-                  <span><strong>QR Code Scanning:</strong> Scan the QR code stamped on any PolyLance attestation certificate with your phone for instant mobile validation.</span>
+                  <CheckCircle2 size={16} className="text-[#0047AB] shrink-0 mt-0.5" />
+                  <span><strong className="text-[#0B0B0C]">QR Code Scanning:</strong> Scan the QR code stamped on any PolyLance attestation certificate with your phone for instant mobile validation.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <CheckCircle2 size={16} className="text-indigo-600 shrink-0 mt-0.5" />
-                  <span><strong>REST API Automation:</strong> Integrate our verification API into your hiring portal or DAO governance to gate proposals to verified developers.</span>
+                  <CheckCircle2 size={16} className="text-[#0047AB] shrink-0 mt-0.5" />
+                  <span><strong className="text-[#0B0B0C]">REST API Automation:</strong> Integrate our verification API into your hiring portal or DAO governance to gate proposals to verified developers.</span>
                 </li>
               </ul>
               <div className="pt-2">
                 <Link
                   to="/jobs"
-                  className={`inline-flex items-center gap-2 px-5 py-2.5 ${NEO.buttonPrimary} text-xs font-bold`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0047AB] hover:bg-[#003A8C] text-white rounded-[8px] text-xs font-semibold transition-colors"
                 >
                   <span>Post a Protected Job</span>
                   <ArrowRight size={14} />
@@ -1124,40 +1031,40 @@ export const CertifiedPass: React.FC = () => {
         </motion.section>
 
 
-        {/* ── 6. DEVELOPER API INTEGRATION (Neomorphic Code Block) ── */}
+        {/* ── 6. DEVELOPER API INTEGRATION ── */}
         <motion.section
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className={`${NEO.card} p-6 sm:p-8 space-y-4 text-left`}
+          className="bg-white border border-[#E2E6EC] rounded-[10px] p-6 sm:p-8 space-y-4 text-left shadow-xs"
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5 text-xs font-mono font-black text-slate-800 uppercase tracking-wider">
-              <Terminal size={16} className="text-purple-600" />
+            <div className="flex items-center gap-2.5 text-xs font-mono font-bold text-[#0B0B0C] uppercase tracking-wider">
+              <Terminal size={16} className="text-[#0047AB]" />
               <span>Programmatic Verification Endpoint</span>
             </div>
-            <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 font-bold border border-emerald-500/30">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-[4px] bg-[#E3F3EA] text-[#1E8449] font-bold border border-[#1E8449]/20">
               REST v1 ACTIVE
             </span>
           </div>
 
-          <p className="text-xs text-slate-600 font-medium">
+          <p className="text-xs text-[#4B5563]">
             Automate verification in your DAO or recruitment pipeline by querying the CertifiedPass verification endpoint:
           </p>
 
-          <div className="p-4 bg-slate-900 text-slate-200 rounded-2xl font-mono text-xs overflow-x-auto space-y-2 border border-slate-800 shadow-inner">
-            <div className="text-slate-500"># Verify any PolyLance certificate via curl</div>
-            <div className="text-purple-400">
-              curl -X GET "https://polylance.codes/api/certified-pass/verify/PL-SBT-JOB-101"
+          <div className="p-4 bg-[#0B0B0C] text-white rounded-[8px] font-mono text-xs overflow-x-auto space-y-2">
+            <div className="text-white/40"># Verify any PolyLance certificate via curl</div>
+            <div className="text-[#0047AB]">
+              curl -X GET "https://polylance.codes/api/certified-pass/verify/:certId"
             </div>
-            <div className="text-slate-500 pt-2"># Response (200 OK):</div>
-            <div className="text-emerald-400">
-              {`{ "status": "VERIFIED", "certId": "PL-SBT-JOB-101", "chainId": 137, "sbtTokenId": "SBT-101", "valid": true }`}
+            <div className="text-white/40 pt-2"># Response (200 OK):</div>
+            <div className="text-[#1E8449]">
+              {`{ "status": "VERIFIED", "certId": ":certId", "chainId": 137, "valid": true }`}
             </div>
-            <div className="text-slate-500 pt-2"># Canonical Certificate Web Link:</div>
-            <div className="text-cyan-400">
-              https://polylance.codes/#/attestation/PL-SBT-JOB-101
+            <div className="text-white/40 pt-2"># Canonical Certificate Web Link:</div>
+            <div className="text-white/80">
+              https://polylance.codes/#/attestation/:certId
             </div>
           </div>
         </motion.section>
@@ -1170,10 +1077,10 @@ export const CertifiedPass: React.FC = () => {
           viewport={{ once: true }}
           className="text-center py-6 space-y-4"
         >
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#EBECF0] shadow-[6px_6px_12px_#cbced6,-6px_-6px_12px_#ffffff] text-slate-600 text-xs font-medium">
-            <ShieldCheck size={16} className="text-purple-600" />
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#E2E6EC] shadow-xs text-[#4B5563] text-xs font-medium">
+            <ShieldCheck size={16} className="text-[#0047AB]" />
             <span>
-              CertifiedPass is powered by the <strong>PolyLance Sovereign Protocol</strong>. Anchored to Polygon Mainnet.
+              CertifiedPass is powered by the <strong className="text-[#0B0B0C]">PolyLance Sovereign Protocol</strong>. Anchored to Polygon Mainnet.
             </span>
           </div>
         </motion.section>

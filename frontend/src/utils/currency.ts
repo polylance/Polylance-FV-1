@@ -31,7 +31,7 @@ export const SUPPORTED_FIAT: FiatCurrency[] = [
 ];
 
 export const SUPPORTED_CRYPTO: CryptoToken[] = [
-  { id: 'POL', name: 'Polygon', symbol: 'POL', priceUsd: 0.45, color: 'text-purple-600 border-purple-200 bg-purple-50/50', iconBg: 'bg-purple-600' },
+  { id: 'POL', name: 'Polygon', symbol: 'POL', priceUsd: 0.45, color: 'text-slate-900 border-slate-300 bg-slate-100', iconBg: 'bg-[#0B0B0C]' },
   { id: 'USDC', name: 'USD Coin', symbol: 'USDC', priceUsd: 1.0, color: 'text-blue-600 border-blue-200 bg-blue-50/50', iconBg: 'bg-blue-500' },
   { id: 'USDT', name: 'Tether', symbol: 'USDT', priceUsd: 1.0, color: 'text-emerald-600 border-emerald-200 bg-emerald-50/50', iconBg: 'bg-emerald-500' }
 ];

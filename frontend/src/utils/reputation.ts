@@ -81,10 +81,10 @@ export const calculateReputationScores = (
 };
 
 export const getReputationTier = (totalPoints: number): { tier: string; label: string; color: string } => {
-  if (totalPoints >= 800) return { tier: 'Diamond', label: 'Diamond League', color: 'cyan' };
-  if (totalPoints >= 300) return { tier: 'Gold', label: 'Gold League', color: 'amber' };
-  if (totalPoints >= 100) return { tier: 'Silver', label: 'Silver League', color: 'slate' };
-  return { tier: 'None', label: 'Starter League', color: 'purple' };
+  if (totalPoints >= 800) return { tier: 'Diamond', label: 'Diamond League', color: 'blue' };
+  if (totalPoints >= 300) return { tier: 'Gold', label: 'Gold League', color: 'gold' };
+  if (totalPoints >= 100) return { tier: 'Silver', label: 'Silver League', color: 'silver' };
+  return { tier: 'None', label: 'Starter League', color: 'slate' };
 };
 
 export const formatEarnings = (val: number): string => {

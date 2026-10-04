@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useWeb3 } from '../context/Web3Context';
-import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { usePolyLanceData, getBackendSyncUrl, getSyncEndpoints } from '../context/PolyLanceDataContext';
 import {
   User,
   Settings as SettingsIcon,
@@ -32,7 +32,9 @@ import {
   FileText,
   ArrowUpRight,
   ShieldAlert,
-  Clock
+  Clock,
+  Send,
+  Bell
 } from 'lucide-react';
 import { scrollReveal } from '../lib/motion';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
@@ -40,6 +42,7 @@ import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { scoreGithubUser } from '../utils/githubOracle';
 import { SkillSelector } from '../components/SkillSelector';
 import { findSkillByIdOrName, formatSkillDisplayName } from '../data/skillsData';
+import { UsdcIcon } from '../components/TokenIcon';
 
 export const Settings: React.FC = () => {
   const { address, currentRole, isConnected } = useWeb3();
@@ -85,6 +88,117 @@ export const Settings: React.FC = () => {
   const [judgeNotificationsActive, setJudgeNotificationsActive] = useState(true);
   const [judgeAvailability, setJudgeAvailability] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
+
+  // Telegram Bot Live Alerts State
+  const [isTelegramBound, setIsTelegramBound] = useState(false);
+  const [telegramLoading, setTelegramLoading] = useState(false);
+
+  // Check Telegram status on wallet change across sync endpoints
+  useEffect(() => {
+    if (!address) {
+      setIsTelegramBound(false);
+      return;
+    }
+    let isCancelled = false;
+    const checkTelegram = async () => {
+      const endpoints = getSyncEndpoints();
+      for (const endpoint of endpoints) {
+        try {
+          const res = await fetch(`${endpoint}/api/telegram/status/${address}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (!isCancelled) {
+              setIsTelegramBound(Boolean(data.isBound));
+            }
+            return;
+          }
+        } catch {
+          // Fallback to next endpoint
+        }
+      }
+    };
+    checkTelegram();
+    return () => { isCancelled = true; };
+  }, [address]);
+
+  const handleConnectTelegram = async () => {
+    if (!address) return;
+    setTelegramLoading(true);
+    const endpoints = getSyncEndpoints();
+    let connected = false;
+
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(`${endpoint}/api/telegram/pair-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.deepLink) {
+            window.open(data.deepLink, '_blank');
+            setAlertModalOptions({
+              title: 'Opening Telegram...',
+              message: 'Telegram is opening. Tap "Start" in the chat to verify your wallet and activate 1-on-1 private contract notifications!',
+              type: 'info'
+            });
+            connected = true;
+            break;
+          }
+        }
+      } catch {
+        // Try next endpoint
+      }
+    }
+
+    if (!connected) {
+      setAlertModalOptions({
+        title: 'Connection Notice',
+        message: 'Could not connect to Telegram alert service right now. Please ensure the backend is running.',
+        type: 'warning'
+      });
+    }
+    setTelegramLoading(false);
+  };
+
+  const handleUnlinkTelegram = async () => {
+    if (!address) return;
+    setTelegramLoading(true);
+    const endpoints = getSyncEndpoints();
+    let unlinked = false;
+
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(`${endpoint}/api/telegram/unlink`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address })
+        });
+        if (res.ok) {
+          setIsTelegramBound(false);
+          setAlertModalOptions({
+            title: 'Telegram Disconnected',
+            message: 'Your wallet has been unlinked from Telegram notifications. You can reconnect anytime.',
+            type: 'success'
+          });
+          unlinked = true;
+          break;
+        }
+      } catch {
+        // Try next endpoint
+      }
+    }
+
+    if (!unlinked) {
+      setAlertModalOptions({
+        title: 'Notice',
+        message: 'Failed to unlink Telegram. Please try again.',
+        type: 'warning'
+      });
+    }
+    setTelegramLoading(false);
+  };
 
   // Sync state if profile loads asynchronously (ONLY when not actively editing)
   useEffect(() => {
@@ -208,15 +322,15 @@ export const Settings: React.FC = () => {
       
       {/* Header Banner */}
       <motion.div {...scrollReveal} className="space-y-3 text-left">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 text-purple-800 rounded-full border border-purple-200 text-xs font-mono font-bold uppercase tracking-wider">
-          <SettingsIcon size={14} className="text-purple-600 animate-spin" />
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 text-slate-800 rounded-full border border-slate-200 text-xs font-mono font-bold uppercase tracking-wider">
+          <SettingsIcon size={14} className="text-[#0047AB] animate-spin" />
           <span>System & Preferences Protocol</span>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-headline text-3xl sm:text-4xl font-black text-slate-900 leading-tight">
-              Settings & <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent">Identity Studio</span>
+              Settings & <span className="text-[#0047AB]">Identity Studio</span>
             </h1>
             <p className="text-sm text-slate-600 font-sans mt-1">
               Configure your profile credentials, skill stack, and Web3 role preferences.
@@ -233,8 +347,8 @@ export const Settings: React.FC = () => {
             )}
 
             {currentRole === 'freelancer' && (
-              <div className="px-4 py-2 rounded-2xl bg-purple-50 border border-purple-200 text-purple-800 flex items-center gap-2 shadow-2xs">
-                <Zap size={16} className="text-purple-600" />
+              <div className="px-4 py-2 rounded-2xl bg-slate-100 border border-slate-200 text-slate-900 flex items-center gap-2 shadow-2xs">
+                <Zap size={16} className="text-[#0047AB]" />
                 <span className="font-headline font-extrabold text-xs uppercase tracking-wider">Freelancer Role</span>
               </div>
             )}
@@ -267,7 +381,7 @@ export const Settings: React.FC = () => {
             {/* Header: Title + Mode Switch */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[#0B0B0C] shrink-0">
                   <User size={20} />
                 </div>
                 <div>
@@ -284,7 +398,7 @@ export const Settings: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-xl font-headline font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
+                  className="px-4 py-2 bg-[#0B0B0C] hover:bg-slate-800 text-white rounded-xl font-headline font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
                 >
                   <Pencil size={14} />
                   <span>Edit Profile</span>
@@ -317,7 +431,7 @@ export const Settings: React.FC = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 pb-4">
                     <div className="flex items-center gap-4">
                       {/* Avatar Image */}
-                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-purple-100 border-2 border-purple-300 shadow-sm shrink-0">
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 border-2 border-slate-300 shadow-sm shrink-0">
                         <img
                           src={avatarUrl || fallbackDefaultAvatar}
                           alt={displayName || 'User Avatar'}
@@ -334,12 +448,12 @@ export const Settings: React.FC = () => {
                             {displayName || 'Anonymous PolyLancer'}
                           </h2>
                           {githubUsername && (
-                            <span className="px-2 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 rounded-full text-[10px] font-mono font-bold">
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-[10px] font-mono font-bold">
                               VERIFIED
                             </span>
                           )}
                         </div>
-                        <p className="text-xs font-sans font-semibold text-purple-700 mt-0.5">
+                        <p className="text-xs font-sans font-semibold text-slate-600 mt-0.5">
                           {title || 'Senior Web3 Developer'}
                         </p>
                       </div>
@@ -347,7 +461,7 @@ export const Settings: React.FC = () => {
 
                     <div className="flex items-center gap-2 self-start sm:self-auto">
                       <div className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono font-bold rounded-xl flex items-center gap-1.5 shadow-2xs">
-                        <DollarSign size={14} className="text-emerald-600" />
+                        <UsdcIcon size={14} />
                         <span>{hourlyRateUsdc || '75'} USDC/hr</span>
                       </div>
                     </div>
@@ -370,7 +484,7 @@ export const Settings: React.FC = () => {
                         href={`https://github.com/${githubUsername}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-purple-600 hover:underline inline-flex items-center gap-1"
+                        className="text-[#0047AB] hover:underline inline-flex items-center gap-1"
                       >
                         @{githubUsername}
                       </a>
@@ -392,12 +506,12 @@ export const Settings: React.FC = () => {
                         return (
                           <span
                             key={idx}
-                            className="px-3 py-1.5 rounded-xl bg-white text-slate-800 border border-purple-200 text-xs font-bold font-mono shadow-2xs flex items-center gap-1.5 group hover:border-purple-300 transition-all"
+                            className="px-3 py-1.5 rounded-xl bg-white text-slate-800 border border-slate-200 text-xs font-bold font-mono shadow-2xs flex items-center gap-1.5 group hover:border-slate-400 transition-all"
                           >
-                            <Tag size={12} className="text-purple-600 shrink-0" />
+                            <Tag size={12} className="text-[#0047AB] shrink-0" />
                             <span>{formatSkillDisplayName(skill)}</span>
                             {matched?.subcategory && (
-                              <span className="text-[9px] font-mono text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded font-normal">
+                              <span className="text-[9px] font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded font-normal">
                                 {matched.subcategory}
                               </span>
                             )}
@@ -415,7 +529,7 @@ export const Settings: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                    className="w-full py-3 bg-[#0B0B0C] hover:bg-slate-800 text-white rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
                   >
                     <Pencil size={15} />
                     <span>Edit Profile & Skills</span>
@@ -427,20 +541,20 @@ export const Settings: React.FC = () => {
               <form onSubmit={handleSaveProfile} className="space-y-5">
                 
                 {/* Avatar Image Controls */}
-                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-200/70 space-y-3">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                      <Camera size={14} className="text-purple-600" />
+                      <Camera size={14} className="text-[#0047AB]" />
                       Profile Avatar & Photo
                     </label>
-                    <span className="text-[11px] text-purple-700 font-sans font-semibold">
+                    <span className="text-[11px] text-slate-600 font-sans font-semibold">
                       Auto-syncs with GitHub
                     </span>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center gap-4">
                     {/* Avatar Preview */}
-                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white border-2 border-purple-300 shadow-sm shrink-0">
+                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white border-2 border-slate-300 shadow-sm shrink-0">
                       <img
                         src={avatarUrl || fallbackDefaultAvatar}
                         alt="Avatar Preview"
@@ -458,7 +572,7 @@ export const Settings: React.FC = () => {
                         value={avatarUrl}
                         onChange={(e) => setAvatarUrl(e.target.value)}
                         placeholder="https://... image URL or avatar"
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 font-mono focus:border-purple-400 transition-all"
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 font-mono focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all"
                       />
 
                       <div className="flex flex-wrap items-center gap-2">
@@ -466,7 +580,7 @@ export const Settings: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setAvatarUrl(`https://github.com/${githubUsername.trim().replace(/^@/, '')}.png`)}
-                            className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-[11px] font-bold font-sans flex items-center gap-1 transition-all cursor-pointer shadow-3xs"
+                            className="px-2.5 py-1 bg-white hover:bg-slate-100 text-[#0047AB] border border-slate-200 rounded-lg text-[11px] font-bold font-sans flex items-center gap-1 transition-all cursor-pointer shadow-3xs"
                           >
                             <Github size={12} />
                             Use GitHub Avatar
@@ -504,7 +618,7 @@ export const Settings: React.FC = () => {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="e.g. Satoshi Nakamoto or Alex Developer"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-purple-400 transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all"
                   />
                 </div>
 
@@ -518,7 +632,7 @@ export const Settings: React.FC = () => {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Senior Smart Contract Auditor & Fullstack Engineer"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-purple-400 transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all"
                   />
                 </div>
 
@@ -530,7 +644,9 @@ export const Settings: React.FC = () => {
                       Target Hourly Rate (USDC)
                     </label>
                     <div className="relative">
-                      <DollarSign size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <UsdcIcon size={16} />
+                      </div>
                       <input
                         type="number"
                         min="0"
@@ -538,7 +654,7 @@ export const Settings: React.FC = () => {
                         value={hourlyRateUsdc}
                         onChange={(e) => setHourlyRateUsdc(e.target.value)}
                         placeholder="75"
-                        className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-mono focus:bg-white focus:border-purple-400 transition-all"
+                        className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-mono focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all"
                       />
                     </div>
                   </div>
@@ -554,7 +670,7 @@ export const Settings: React.FC = () => {
                           type="button"
                           onClick={() => handleFetchFromGithub()}
                           disabled={isFetchingGithub}
-                          className="text-[11px] text-purple-600 hover:text-purple-800 font-bold font-sans flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-50"
+                          className="text-[11px] text-[#0047AB] hover:text-[#003A8C] font-bold font-sans flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-50"
                         >
                           {isFetchingGithub ? <RefreshCw size={11} className="animate-spin" /> : <DownloadCloud size={11} />}
                           <span>Sync GitHub Details</span>
@@ -568,7 +684,7 @@ export const Settings: React.FC = () => {
                         value={githubUsername}
                         onChange={(e) => setGithubUsername(e.target.value)}
                         placeholder="e.g. octocat or web3dev"
-                        className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-purple-400 transition-all"
+                        className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all"
                       />
                     </div>
                   </div>
@@ -584,7 +700,7 @@ export const Settings: React.FC = () => {
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Describe your expertise, past projects, or freelancing background..."
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-purple-400 transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all resize-none"
                   />
                 </div>
 
@@ -603,7 +719,7 @@ export const Settings: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl px-7 py-3 rounded-xl font-headline font-extrabold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                    className="bg-[#0047AB] hover:bg-[#003A8C] text-white shadow-sm hover:shadow px-7 py-3 rounded-xl font-headline font-extrabold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
                   >
                     {isSaving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
                     <span>Save Profile Settings</span>
@@ -677,7 +793,7 @@ export const Settings: React.FC = () => {
                         onClick={() => setPreferredToken('MATIC')}
                         className={`flex-1 p-2 rounded-xl border font-bold text-center transition-all ${
                           preferredToken === 'MATIC'
-                            ? 'border-purple-600 bg-purple-50 text-purple-800'
+                            ? 'border-[#0B0B0C] bg-[#0B0B0C] text-white'
                             : 'border-slate-200 bg-slate-50 text-slate-600'
                         }`}
                       >
@@ -693,7 +809,7 @@ export const Settings: React.FC = () => {
             {currentRole === 'freelancer' && (
               <div className="space-y-5">
                 <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                  <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-slate-100 text-[#0B0B0C] border border-slate-200 flex items-center justify-center shrink-0">
                     <Zap size={18} />
                   </div>
                   <div>
@@ -703,7 +819,7 @@ export const Settings: React.FC = () => {
                 </div>
 
                 <div className="space-y-4 text-xs font-sans">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50/60 border border-purple-100">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
                     <div>
                       <span className="font-bold text-slate-900 block">Auto-Claim Approved Milestones</span>
                       <span className="text-slate-500 text-[11px]">Trigger immediate smart contract fund release upon client approval</span>
@@ -712,7 +828,7 @@ export const Settings: React.FC = () => {
                       type="checkbox"
                       checked={freelancerAutoClaim}
                       onChange={(e) => setFreelancerAutoClaim(e.target.checked)}
-                      className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
+                      className="w-4 h-4 accent-[#0047AB] rounded cursor-pointer"
                     />
                   </div>
                 </div>
@@ -778,7 +894,7 @@ export const Settings: React.FC = () => {
             {address && (
               <div className="space-y-4 pt-4 border-t border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-slate-100 text-[#0B0B0C] border border-slate-200 flex items-center justify-center shrink-0">
                     <FileText size={18} />
                   </div>
                   <div>
@@ -787,18 +903,87 @@ export const Settings: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50/60 to-indigo-50/60 border border-purple-200 text-xs space-y-3">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-3">
                   <p className="text-slate-700 leading-relaxed font-sans">
                     Generate an official audit document containing your verified wallet details, Soulbound Reputation Tokens (SBT), completed escrow history, and platform metrics formatted for PDF export & printing.
                   </p>
                   <Link
                     to={`/audit-report/${address}`}
-                    className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all"
+                    className="inline-flex items-center gap-2 bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all"
                   >
                     <FileText size={14} />
                     <span>View & Download Audit Report (PDF)</span>
                     <ArrowUpRight size={13} />
                   </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Telegram Live Contract Notifications Card */}
+            {address && (
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-sky-50 text-[#0088cc] border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Send size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-headline text-base font-extrabold text-slate-900">Telegram Live Alerts</h3>
+                        {isTelegramBound ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            LINKED
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            OPTIONAL
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 font-sans">Instant 1-on-1 private escrow & milestone updates</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-sky-50/50 border border-sky-100 text-xs space-y-3">
+                  <p className="text-slate-700 leading-relaxed font-sans">
+                    Receive instantaneous, encrypted direct messages whenever a client funds your milestone, deliverables are submitted, or funds are released to your wallet on Polygon.
+                  </p>
+
+                  <div className="bg-white/80 p-2.5 rounded-xl border border-sky-100/80 space-y-1 text-[11px] font-sans text-slate-600">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                      <Shield size={12} className="text-[#0047AB]" />
+                      <span>Strict 1-to-1 Privacy Guarantee</span>
+                    </div>
+                    <p className="text-[10.5px] text-slate-500">
+                      Your address and contracts are strictly isolated. The bot never shares or broadcasts your data to other users or public channels.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 pt-1">
+                    {!isTelegramBound ? (
+                      <button
+                        type="button"
+                        onClick={handleConnectTelegram}
+                        disabled={telegramLoading}
+                        className="bg-[#0088cc] hover:bg-[#0077b5] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Send size={13} />
+                        <span>{telegramLoading ? 'Generating Link...' : 'Connect Telegram Alerts'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleUnlinkTelegram}
+                        disabled={telegramLoading}
+                        className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold px-3 py-1.5 rounded-xl text-xs shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Trash2 size={13} />
+                        <span>Disconnect Telegram</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

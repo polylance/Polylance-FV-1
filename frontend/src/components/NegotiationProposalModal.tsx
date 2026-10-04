@@ -126,7 +126,7 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 ${
                   isFinalCall
                     ? 'bg-amber-50 border border-amber-200'
-                    : 'bg-purple-50 border border-purple-100'
+                    : 'bg-blue-50 border border-blue-200'
                 }`}>
                   {headingEmoji}
                 </div>
@@ -177,7 +177,7 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
                     value={amountUsdc}
                     onChange={(e) => setAmountUsdc(e.target.value)}
                     placeholder="e.g. 2500"
-                    className="w-full pl-8 pr-16 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono font-bold text-sm focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all outline-none"
+                    className="w-full pl-8 pr-16 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono font-bold text-sm focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 transition-all outline-none"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-mono font-bold text-slate-400">
                     USDC
@@ -212,7 +212,7 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
                     value={deadlineDays}
                     onChange={(e) => setDeadlineDays(e.target.value)}
                     placeholder="e.g. 7"
-                    className="w-full pl-10 pr-16 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono font-bold text-sm focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all outline-none"
+                    className="w-full pl-10 pr-16 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono font-bold text-sm focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 transition-all outline-none"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-mono font-bold text-slate-400">
                     DAYS
@@ -230,7 +230,7 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder={notePlaceholder}
-                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs font-sans focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all outline-none resize-none leading-relaxed"
+                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs font-sans focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none leading-relaxed"
                 />
               </div>
 
@@ -281,10 +281,10 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all cursor-pointer ${
+                  className={`px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer ${
                     isFinalCall
-                      ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100 disabled:opacity-60'
-                      : 'bg-purple-600 hover:bg-purple-700 shadow-purple-100 disabled:opacity-60'
+                      ? 'bg-amber-500 hover:bg-amber-600 shadow-xs disabled:opacity-60'
+                      : 'bg-[#0047AB] hover:bg-[#003882] shadow-xs disabled:opacity-60'
                   }`}
                 >
                   {isSubmitting ? (

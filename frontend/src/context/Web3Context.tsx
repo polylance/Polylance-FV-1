@@ -247,17 +247,15 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         if (typeof window !== 'undefined') localStorage.setItem('polylance_demo_role', r);
       };
 
-      if (isActuallyJudge) {
+      const activeRole = (typeof window !== 'undefined' ? localStorage.getItem('polylance_demo_role') : null) as DemoRole;
+      if (activeRole === 'freelancer' || activeRole === 'client') {
+        persistRole(activeRole);
+      } else if (isActuallyJudge) {
         persistRole('judge');
       } else if (isActuallyAdmin) {
         persistRole('admin');
       } else {
-        const activeRole = localStorage.getItem('polylance_demo_role') as DemoRole;
-        if (!activeRole || activeRole === 'visitor' || activeRole === 'judge' || activeRole === 'admin') {
-          persistRole('freelancer');
-        } else {
-          persistRole(activeRole);
-        }
+        persistRole('freelancer');
       }
     } catch (err) {
       console.warn('On-chain permissions check notice:', err);
@@ -267,7 +265,10 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentRole(r);
         if (typeof window !== 'undefined') localStorage.setItem('polylance_demo_role', r);
       };
-      if (privilegedRole === 'judge') {
+      const activeRoleCatch = (typeof window !== 'undefined' ? localStorage.getItem('polylance_demo_role') : null) as DemoRole;
+      if (activeRoleCatch === 'freelancer' || activeRoleCatch === 'client') {
+        persistRoleCatch(activeRoleCatch);
+      } else if (privilegedRole === 'judge') {
         persistRoleCatch('judge');
         setIsArbitrator(true);
         setIsTreasuryAdmin(false);
@@ -279,6 +280,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsArbitrator(false);
         setIsTreasuryAdmin(false);
         setReputationCount(0);
+        persistRoleCatch(activeRoleCatch || 'freelancer');
       }
     } finally {
       setLoading(false);
@@ -498,7 +500,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
           chainId: chain?.id || CHAIN_ID,
           name: chain?.name || NETWORK_CONFIG.chainName,
         };
-        bp = new ethers.BrowserProvider(transport, network);
+        bp = new ethers.BrowserProvider(transport as any, network);
         targetAddr = ethers.getAddress(account.address);
       } else {
         let rawProvider: any = null;

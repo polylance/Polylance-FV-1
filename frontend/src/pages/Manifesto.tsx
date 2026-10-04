@@ -25,16 +25,16 @@ export const Manifesto: React.FC = () => {
         iconClass: 'text-emerald-600',
       },
       icon: Cpu,
-      accentColor: 'purple',
-      specialtyColor: 'text-purple-600',
-      badgeStyle: 'bg-purple-50 text-purple-700 border-purple-100',
-      avatarGradient: 'from-purple-600 via-indigo-600 to-indigo-700',
-      avatarShadow: 'shadow-purple-500/25',
-      avatarRing: 'bg-purple-100 border-purple-200',
-      iconStyle: 'bg-purple-50 text-purple-600 border-purple-100',
-      bottomAccent: 'border-b-purple-600',
-      headingColor: 'text-purple-700',
-      checkColor: 'text-purple-600',
+      accentColor: 'blue',
+      specialtyColor: 'text-[#0047AB]',
+      badgeStyle: 'bg-slate-100 text-slate-800 border-slate-200',
+      avatarBg: 'bg-[#0B0B0C]',
+      avatarShadow: 'shadow-slate-900/10',
+      avatarRing: 'bg-slate-100 border-slate-200',
+      iconStyle: 'bg-slate-100 text-[#0047AB] border-slate-200',
+      bottomAccent: 'border-b-[#0047AB]',
+      headingColor: 'text-slate-900',
+      checkColor: 'text-[#0047AB]',
       bio: 'Lead Architect of the PolyLance protocol & Creator of AuditX. Pioneering sovereign identity, smart contract escrows, and automated bytecode security verification.',
       strengths: [
         'Smart Contract Architecture',
@@ -49,16 +49,16 @@ export const Manifesto: React.FC = () => {
       role: 'Chief Security Officer (CSO)',
       specialty: 'CROSS-CHAIN STRATEGY',
       icon: ShieldCheck,
-      accentColor: 'indigo',
-      specialtyColor: 'text-indigo-600',
-      badgeStyle: 'bg-indigo-50 text-indigo-700 border-indigo-100',
-      avatarGradient: 'from-violet-600 via-purple-700 to-indigo-800',
-      avatarShadow: 'shadow-indigo-500/25',
-      avatarRing: 'bg-indigo-100 border-indigo-200',
-      iconStyle: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-      bottomAccent: 'border-b-indigo-600',
-      headingColor: 'text-indigo-700',
-      checkColor: 'text-indigo-600',
+      accentColor: 'slate',
+      specialtyColor: 'text-slate-700',
+      badgeStyle: 'bg-slate-100 text-slate-800 border-slate-200',
+      avatarBg: 'bg-[#0B0B0C]',
+      avatarShadow: 'shadow-slate-900/10',
+      avatarRing: 'bg-slate-100 border-slate-200',
+      iconStyle: 'bg-slate-100 text-slate-700 border-slate-200',
+      bottomAccent: 'border-b-slate-700',
+      headingColor: 'text-slate-900',
+      checkColor: 'text-slate-700',
       bio: 'Chief Security Officer. Safeguarding protocol expansion, cross-chain interoperability, and enterprise infrastructure across the multichain ecosystem.',
       strengths: [
         'Cross-Chain Interoperability',
@@ -74,15 +74,15 @@ export const Manifesto: React.FC = () => {
       specialty: 'FINANCIAL STRATEGY',
       icon: LineChart,
       accentColor: 'amber',
-      specialtyColor: 'text-amber-600',
-      badgeStyle: 'bg-amber-50 text-amber-700 border-amber-100',
-      avatarGradient: 'from-amber-500 via-orange-500 to-yellow-600',
-      avatarShadow: 'shadow-amber-500/25',
-      avatarRing: 'bg-amber-100 border-amber-200',
-      iconStyle: 'bg-amber-50 text-amber-600 border-amber-100',
-      bottomAccent: 'border-b-amber-500',
-      headingColor: 'text-amber-700',
-      checkColor: 'text-amber-600',
+      specialtyColor: 'text-amber-700',
+      badgeStyle: 'bg-amber-50 text-amber-800 border-amber-200',
+      avatarBg: 'bg-[#0B0B0C]',
+      avatarShadow: 'shadow-slate-900/10',
+      avatarRing: 'bg-amber-50 border-amber-200',
+      iconStyle: 'bg-amber-50 text-amber-700 border-amber-200',
+      bottomAccent: 'border-b-amber-600',
+      headingColor: 'text-slate-900',
+      checkColor: 'text-amber-700',
       bio: 'Chief Financial Officer. Spearheading capital architecture, sustainable tokenomics, treasury reserves, and enterprise Web3 business modeling.',
       strengths: [
         'Business Strategies',
@@ -102,21 +102,21 @@ export const Manifesto: React.FC = () => {
         link: '/certifiedpass',
         title: 'Explore CertifiedPass On-Chain Credential Oracle',
         icon: Award,
-        badgeClass: 'bg-purple-50 text-purple-800 border-purple-200/90 hover:bg-purple-100 hover:border-purple-300',
-        dotClass: 'bg-purple-500',
-        iconClass: 'text-purple-600',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200 hover:border-slate-300',
+        dotClass: 'bg-[#0047AB]',
+        iconClass: 'text-[#0047AB]',
       },
       icon: Code2,
-      accentColor: 'teal',
-      specialtyColor: 'text-teal-600',
-      badgeStyle: 'bg-teal-50 text-teal-700 border-teal-100',
-      avatarGradient: 'from-emerald-500 via-teal-600 to-cyan-600',
-      avatarShadow: 'shadow-teal-500/25',
-      avatarRing: 'bg-teal-100 border-teal-200',
-      iconStyle: 'bg-teal-50 text-teal-600 border-teal-100',
-      bottomAccent: 'border-b-teal-500',
-      headingColor: 'text-teal-700',
-      checkColor: 'text-teal-600',
+      accentColor: 'blue',
+      specialtyColor: 'text-[#0047AB]',
+      badgeStyle: 'bg-slate-100 text-slate-800 border-slate-200',
+      avatarBg: 'bg-[#0B0B0C]',
+      avatarShadow: 'shadow-slate-900/10',
+      avatarRing: 'bg-slate-100 border-slate-200',
+      iconStyle: 'bg-slate-100 text-[#0047AB] border-slate-200',
+      bottomAccent: 'border-b-[#0047AB]',
+      headingColor: 'text-slate-900',
+      checkColor: 'text-[#0047AB]',
       bio: 'Chief Marketing Officer & Lead Frontend Developer for PolyLance & Creator of CertifiedPass. Crafting next-generation Web3 experiences and sovereign credential verification.',
       strengths: [
         'Web3 UI/UX Design',
@@ -130,29 +130,29 @@ export const Manifesto: React.FC = () => {
     {
       title: '1. Immutable Meritocracy',
       icon: Award,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50 border-purple-100',
+      color: 'text-[#0047AB]',
+      bgColor: 'bg-slate-100 border-slate-200',
       description: 'Your career should not depend on centralized platform algorithms. Earned work history belongs to you permanently via ERC-5192 Soulbound Tokens.'
     },
     {
       title: '2. Non-Custodial Financial Escrow',
       icon: Lock,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50 border-blue-100',
+      color: 'text-slate-800',
+      bgColor: 'bg-slate-100 border-slate-200',
       description: 'No middleman holds your funds. Escrow vaults are isolated smart contract proxies (EIP-1167) that release funds strictly upon milestone verification.'
     },
     {
       title: '3. Decentralized Peer Arbitration',
       icon: Scale,
-      color: 'text-rose-600',
-      bgColor: 'bg-rose-50 border-rose-100',
+      color: 'text-slate-800',
+      bgColor: 'bg-slate-100 border-slate-200',
       description: 'Disputes are judged transparently by on-chain Arbitrators governed by JudgeDAO, eliminating unfair corporate account suspensions.'
     },
     {
       title: '4. Zero Friction & Privacy',
       icon: ShieldCheck,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50 border-emerald-100',
+      color: 'text-emerald-700',
+      bgColor: 'bg-emerald-50 border-emerald-200',
       description: 'Sign in with your wallet. Zero invasive KYC or personal data collection. End-to-end encrypted negotiation chat via XMTP protocol.'
     }
   ];
@@ -160,11 +160,6 @@ export const Manifesto: React.FC = () => {
   return (
     <div className="bg-[#F8FAFC] text-[#111827] min-h-screen py-10 md:py-14 font-sans select-none relative overflow-hidden">
       
-      {/* Soft Ambient Background Glows */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-purple-200/40 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-[40%] right-0 w-[500px] h-[400px] bg-blue-200/30 rounded-full blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[400px] bg-teal-200/30 rounded-full blur-[130px] pointer-events-none" />
-
       <div className="max-w-7xl mx-auto space-y-16 sm:space-y-20 relative z-10">
         
         {/* SECTION 1: MANIFESTO HERO HEADER */}
@@ -173,9 +168,9 @@ export const Manifesto: React.FC = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-50 border border-purple-200 text-purple-700 rounded-full text-xs font-mono font-bold uppercase tracking-widest shadow-3xs"
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-100 border border-slate-200 text-slate-800 rounded-full text-xs font-mono font-bold uppercase tracking-widest shadow-3xs"
           >
-            <Sparkles size={13} className="text-purple-600 animate-pulse" />
+            <Sparkles size={13} className="text-[#0047AB] animate-pulse" />
             <span>The PolyLance Protocol Manifesto</span>
           </motion.div>
 
@@ -186,7 +181,7 @@ export const Manifesto: React.FC = () => {
             className="font-headline text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight text-slate-900"
           >
             DECENTRALIZING THE{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-700 via-indigo-600 to-cyan-600">
+            <span className="text-[#0047AB]">
               FUTURE OF WORK
             </span>
           </motion.h1>
@@ -212,7 +207,7 @@ export const Manifesto: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 * idx }}
                 whileHover={{ y: -5 }}
-                className="bg-white/90 backdrop-blur-md border border-slate-200/90 rounded-3xl p-6 space-y-4 shadow-xs hover:border-purple-300 hover:shadow-md transition-all duration-300 relative overflow-hidden group"
+                className="bg-white/90 backdrop-blur-md border border-slate-200/90 rounded-3xl p-6 space-y-4 shadow-xs hover:border-slate-400 hover:shadow-md transition-all duration-300 relative overflow-hidden group"
               >
                 <div className={`w-12 h-12 rounded-2xl ${pillar.bgColor} border flex items-center justify-center shrink-0 shadow-3xs group-hover:scale-105 transition-transform duration-300`}>
                   <Icon size={24} className={pillar.color} />
@@ -238,9 +233,9 @@ export const Manifesto: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4 }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-purple-50 border border-purple-200/80 text-purple-700 rounded-full text-xs font-mono font-bold uppercase tracking-widest shadow-2xs"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 border border-slate-200 text-slate-800 rounded-full text-xs font-mono font-bold uppercase tracking-widest shadow-2xs"
             >
-              <Users size={14} className="text-purple-600" />
+              <Users size={14} className="text-[#0047AB]" />
               <span>THE POLYLANCE CORE</span>
             </motion.div>
 
@@ -286,7 +281,7 @@ export const Manifesto: React.FC = () => {
                     <div className="flex items-start justify-between">
                       {/* Premium Circular Avatar */}
                       <div className={`p-1 ${m.avatarRing} rounded-full border shadow-md shadow-slate-200/50`}>
-                        <div className={`w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br ${m.avatarGradient} rounded-full flex items-center justify-center shadow-md ${m.avatarShadow} border-2 border-white transform group-hover:scale-105 transition-transform duration-300`}>
+                        <div className={`w-16 h-16 sm:w-18 sm:h-18 ${m.avatarBg} rounded-full flex items-center justify-center shadow-md ${m.avatarShadow} border-2 border-white transform group-hover:scale-105 transition-transform duration-300`}>
                           <span className="font-headline font-black text-white text-2xl tracking-tight drop-shadow-sm">
                             {m.initials}
                           </span>
@@ -365,12 +360,12 @@ export const Manifesto: React.FC = () => {
         </section>
 
         {/* SECTION 4: CALL TO ACTION FOOTER BANNER */}
-        <section className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-8 sm:p-10 text-center space-y-5 relative overflow-hidden shadow-xl">
+        <section className="bg-[#0B0B0C] text-white rounded-3xl p-8 sm:p-10 text-center space-y-5 relative overflow-hidden shadow-xl">
           <div className="max-w-2xl mx-auto space-y-3 relative z-10">
             <h3 className="font-headline font-black text-2xl sm:text-3xl text-white">
               Ready to Join the Decentralized Work Revolution?
             </h3>
-            <p className="text-xs sm:text-sm text-purple-200 font-sans font-medium">
+            <p className="text-xs sm:text-sm text-slate-300 font-sans font-medium">
               Start freelancing or hiring talent with on-chain escrows and permanent soulbound reputation.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 pt-2">

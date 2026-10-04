@@ -114,55 +114,55 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
   const renderCategoryIcon = (category: SkillCategoryName | 'All', size = 14) => {
     switch (category) {
       case 'All':
-        return <Sparkles size={size} className="text-purple-600" />;
+        return <Sparkles size={size} className="text-[#0047AB]" />;
       case 'Programming Languages':
-        return <Code2 size={size} className="text-blue-600" />;
+        return <Code2 size={size} className="text-[#0047AB]" />;
       case 'Blockchain & Web3':
-        return <Blocks size={size} className="text-purple-600" />;
+        return <Blocks size={size} className="text-[#0047AB]" />;
       case 'Smart Contract Development':
-        return <FileCode2 size={size} className="text-indigo-600" />;
+        return <FileCode2 size={size} className="text-[#334155]" />;
       case 'Smart Contract Security':
-        return <ShieldAlert size={size} className="text-rose-600" />;
+        return <ShieldAlert size={size} className="text-[#C0392B]" />;
       case 'Frontend Development':
-        return <Layout size={size} className="text-emerald-600" />;
+        return <Layout size={size} className="text-[#0047AB]" />;
       case 'Backend Development':
-        return <Server size={size} className="text-amber-600" />;
+        return <Server size={size} className="text-[#334155]" />;
       case 'Mobile Development':
-        return <Smartphone size={size} className="text-cyan-600" />;
+        return <Smartphone size={size} className="text-[#0047AB]" />;
       case 'Databases':
-        return <Database size={size} className="text-teal-600" />;
+        return <Database size={size} className="text-[#334155]" />;
       case 'Data Engineering':
-        return <Workflow size={size} className="text-violet-600" />;
+        return <Workflow size={size} className="text-[#334155]" />;
       case 'Cloud Computing':
-        return <Cloud size={size} className="text-sky-600" />;
+        return <Cloud size={size} className="text-[#0047AB]" />;
       case 'DevOps & Infrastructure':
-        return <Cpu size={size} className="text-orange-600" />;
+        return <Cpu size={size} className="text-[#334155]" />;
       case 'Cybersecurity':
-        return <ShieldCheck size={size} className="text-red-600" />;
+        return <ShieldCheck size={size} className="text-[#1E8449]" />;
       case 'Artificial Intelligence':
-        return <Bot size={size} className="text-fuchsia-600" />;
+        return <Bot size={size} className="text-[#334155]" />;
       case 'Generative AI & LLMs':
-        return <Sparkles size={size} className="text-purple-600" />;
+        return <Sparkles size={size} className="text-[#0047AB]" />;
       case 'Machine Learning':
-        return <Brain size={size} className="text-pink-600" />;
+        return <Brain size={size} className="text-[#334155]" />;
       case 'Data Science':
-        return <LineChart size={size} className="text-emerald-600" />;
+        return <LineChart size={size} className="text-[#1E8449]" />;
       case 'APIs & Networking':
-        return <Network size={size} className="text-blue-500" />;
+        return <Network size={size} className="text-[#0047AB]" />;
       case 'Testing & QA':
-        return <CheckCircle2 size={size} className="text-green-600" />;
+        return <CheckCircle2 size={size} className="text-[#1E8449]" />;
       case 'System Design & Architecture':
-        return <Layers size={size} className="text-indigo-500" />;
+        return <Layers size={size} className="text-[#334155]" />;
       case 'UI/UX & Product Design':
-        return <Palette size={size} className="text-rose-500" />;
+        return <Palette size={size} className="text-[#E8A317]" />;
       case 'Game Development & Graphics':
-        return <Gamepad2 size={size} className="text-amber-500" />;
+        return <Gamepad2 size={size} className="text-[#334155]" />;
       case 'IoT & Embedded Systems':
-        return <Radio size={size} className="text-lime-600" />;
+        return <Radio size={size} className="text-[#334155]" />;
       case 'AR/VR/XR':
-        return <Glasses size={size} className="text-violet-500" />;
+        return <Glasses size={size} className="text-[#334155]" />;
       case 'Operating Systems':
-        return <Terminal size={size} className="text-slate-700" />;
+        return <Terminal size={size} className="text-[#334155]" />;
       case 'Search & SEO':
         return <Search size={size} className="text-blue-600" />;
       case 'Emerging Technologies':
@@ -178,7 +178,7 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider font-heading flex items-center gap-1.5">
-            <Tag size={13} className="text-purple-600" />
+            <Tag size={13} className="text-[#0047AB]" />
             {label}
             <span className="text-[10px] font-mono font-normal text-slate-500 normal-case">
               ({selectedSkills.length} selected)
@@ -212,10 +212,10 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
             return (
               <span
                 key={skillName}
-                className="inline-flex items-center gap-1.5 bg-white border border-purple-200 text-purple-900 px-2.5 py-1 rounded-xl text-xs font-bold font-mono shadow-2xs group hover:border-purple-300 transition-all"
+                className="inline-flex items-center gap-1.5 bg-white border border-slate-300 text-slate-900 px-2.5 py-1 rounded-xl text-xs font-bold font-mono shadow-2xs group hover:border-[#0047AB] transition-all"
               >
                 {matched?.category && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB]" />
                 )}
                 <span>{formatSkillDisplayName(skillName)}</span>
                 {isEditing && (
@@ -239,25 +239,25 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
         <div className="border border-slate-200 bg-white rounded-2xl p-3.5 space-y-3 shadow-sm">
           {/* Search Bar & Custom Skill Add */}
           <div className="flex flex-col sm:flex-row items-center gap-2">
-            <div className="relative flex-1 w-full">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <label className="relative flex-1 w-full flex items-center gap-2.5 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus-within:bg-white focus-within:border-[#0047AB] focus-within:ring-2 focus-within:ring-blue-100 transition-all cursor-text">
+              <Search size={14} className="shrink-0 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search across 260+ technologies, frameworks, libraries..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400"
+                className="flex-1 min-w-0 bg-transparent text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="shrink-0 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                 >
                   <X size={13} />
                 </button>
               )}
-            </div>
+            </label>
 
             {/* Custom Skill Input & Add Button */}
             <form onSubmit={handleAddCustomSkill} className="flex items-center gap-1.5 w-full sm:w-auto">
@@ -266,12 +266,12 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
                 placeholder="Add custom skill..."
                 value={customInput}
                 onChange={(e) => setCustomInput(e.target.value)}
-                className="w-full sm:w-44 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-purple-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+                className="w-full sm:w-44 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0047AB] outline-none text-slate-900 placeholder:text-slate-400 font-medium"
               />
               <button
                 type="submit"
                 disabled={!customInput.trim()}
-                className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 disabled:opacity-40 disabled:pointer-events-none px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer shadow-2xs"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 disabled:opacity-40 disabled:pointer-events-none px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer shadow-2xs"
               >
                 <Plus size={13} /> Add
               </button>
@@ -285,7 +285,7 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
               onClick={() => setSelectedCategory('All')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold font-heading whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                 selectedCategory === 'All'
-                  ? 'bg-purple-700 text-white shadow-xs'
+                  ? 'bg-[#0B0B0C] text-white shadow-xs'
                   : 'bg-slate-100 hover:bg-slate-200/70 text-slate-700'
               }`}
             >
@@ -302,7 +302,7 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold font-heading whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                     isSelected
-                      ? 'bg-purple-700 text-white shadow-xs'
+                      ? 'bg-[#0B0B0C] text-white shadow-xs'
                       : 'bg-slate-100 hover:bg-slate-200/70 text-slate-700'
                   }`}
                 >
@@ -336,7 +336,7 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
                       onClick={() => handleToggleSkill(skill.name)}
                       className={`p-2.5 rounded-xl border text-left flex items-start justify-between gap-2 transition-all cursor-pointer ${
                         isChecked
-                          ? 'bg-purple-50/90 border-purple-300 ring-1 ring-purple-200 text-purple-950 shadow-2xs'
+                          ? 'bg-blue-50/70 border-[#0047AB] ring-1 ring-blue-200 text-slate-900 shadow-2xs'
                           : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-800'
                       }`}
                     >
@@ -353,7 +353,7 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
                           {skill.subcategory && (
                             <>
                               <span className="text-slate-300 text-[8px]">•</span>
-                              <span className="text-[9px] font-mono text-purple-700 bg-purple-50 px-1 rounded truncate">
+                              <span className="text-[9px] font-mono text-slate-700 bg-slate-100 px-1 rounded truncate">
                                 {skill.subcategory}
                               </span>
                             </>
@@ -364,7 +364,7 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
                       <div
                         className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 border transition-all mt-0.5 ${
                           isChecked
-                            ? 'bg-purple-600 border-purple-700 text-white'
+                            ? 'bg-[#0047AB] border-[#0047AB] text-white'
                             : 'border-slate-300 bg-white'
                         }`}
                       >

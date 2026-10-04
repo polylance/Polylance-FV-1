@@ -369,14 +369,14 @@ export const Onboarding: React.FC = () => {
   if (!isConnected) {
     return (
       <div className="max-w-md mx-auto py-16 text-center space-y-6">
-        <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+        <div className="w-16 h-16 bg-slate-100 text-[#0047AB] rounded-2xl flex items-center justify-center mx-auto">
           <ShieldCheck size={32} />
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">Connect Wallet Required</h1>
           <p className="text-slate-500 text-sm">Please connect your Web3 wallet to configure your sovereign identity profile.</p>
         </div>
-        <button onClick={connectWallet} className="gradient-btn-primary w-full py-3.5 rounded-xl font-bold">
+        <button onClick={connectWallet} className="w-full py-3.5 rounded-xl font-bold bg-[#0047AB] hover:bg-[#003882] text-white shadow-sm transition-colors cursor-pointer">
           Connect Wallet
         </button>
       </div>
@@ -392,14 +392,14 @@ export const Onboarding: React.FC = () => {
       {isClient ? (
         <div className="space-y-4">
           <div className="flex justify-between items-center text-xs font-mono">
-            <span className="font-bold text-purple-800 uppercase tracking-widest text-[11px] tracking-[0.18em]">
+            <span className="font-bold text-slate-900 uppercase tracking-widest text-[11px] tracking-[0.18em]">
               Client Identity Profile
             </span>
             <span className="text-slate-500 font-semibold">100% Complete</span>
           </div>
-          <div className="w-full h-2.5 bg-purple-100 rounded-full overflow-hidden border border-purple-200">
+          <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
             <div
-              className="h-full bg-gradient-to-r from-purple-600 to-indigo-600"
+              className="h-full bg-[#0047AB]"
               style={{ width: '100%' }}
             />
           </div>
@@ -407,16 +407,16 @@ export const Onboarding: React.FC = () => {
       ) : (
         <div className="space-y-4">
           <div className="flex justify-between items-center text-xs font-mono">
-            <span className="font-bold text-purple-800 uppercase tracking-widest text-[11px] tracking-[0.18em]">
+            <span className="font-bold text-slate-900 uppercase tracking-widest text-[11px] tracking-[0.18em]">
               Step {step}: {stepLabels[step - 1]}
             </span>
             <span className="text-slate-500 font-semibold">{progressPercent}% Complete</span>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full h-2.5 bg-purple-100 rounded-full overflow-hidden border border-purple-200">
+          <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
             <div
-              className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-500"
+              className="h-full bg-[#0047AB] transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -449,7 +449,7 @@ export const Onboarding: React.FC = () => {
                     <div>
                       <h3 className="font-headline font-bold text-sm text-slate-900 flex items-center gap-2">
                         GitHub Identity Attestation (OAuth 2.0)
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold border border-purple-200">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-bold border border-slate-200">
                           v2.0 Verified
                         </span>
                       </h3>
@@ -475,10 +475,10 @@ export const Onboarding: React.FC = () => {
                 </div>
 
                 {/* Security Shield Callout */}
-                <div className="bg-indigo-50/70 border border-indigo-200/80 p-4 rounded-xl flex items-start gap-3 text-xs">
-                  <ShieldCheck size={20} className="text-indigo-600 shrink-0 mt-0.5" />
+                <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-start gap-3 text-xs">
+                  <ShieldCheck size={20} className="text-[#0047AB] shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <p className="font-bold text-indigo-950">Sybil-Resistant Developer Binding</p>
+                    <p className="font-bold text-slate-900">Sybil-Resistant Developer Binding</p>
                     <p className="text-slate-600 leading-relaxed">
                       To prevent impersonation and Sybil manipulation, PolyLance replaces manual handle entry with authenticated GitHub OAuth 2.0. Each GitHub account is uniquely bound to one verified Web3 wallet, preserving authentic developer identity and credentials.
                     </p>
@@ -518,7 +518,7 @@ export const Onboarding: React.FC = () => {
                         >
                           {isScanningGithub ? (
                             <>
-                              <Loader2 className="animate-spin text-purple-400" size={16} />
+                              <Loader2 className="animate-spin text-slate-400" size={16} />
                               <span>Authorizing with GitHub OAuth...</span>
                             </>
                           ) : (
@@ -594,7 +594,7 @@ export const Onboarding: React.FC = () => {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-emerald-100 font-mono text-center">
                         <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs">
                           <div className="text-slate-400 text-[9px] uppercase font-bold">Reputation</div>
-                          <div className="font-headline font-black text-sm text-purple-700">
+                          <div className="font-headline font-black text-sm text-[#0047AB]">
                             {githubResult?.reputationTier || (existing.reputationTier || 'GOLD')}
                           </div>
                         </div>
@@ -622,7 +622,7 @@ export const Onboarding: React.FC = () => {
                       {attestationUID && (
                         <div className="bg-white p-3 rounded-xl border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] font-mono">
                           <span className="text-slate-500">
-                            Attestation Proof: <code className="text-purple-800 font-bold">{attestationUID.slice(0, 32)}...</code>
+                            Attestation Proof: <code className="text-slate-800 font-bold">{attestationUID.slice(0, 32)}...</code>
                           </span>
                           <span className="text-emerald-700 font-bold flex items-center gap-1">
                             <ShieldCheck size={12} /> Bound to Wallet
@@ -637,7 +637,7 @@ export const Onboarding: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start pt-2">
               <div className="md:col-span-1 flex flex-col items-center">
-                <div className="w-28 h-28 rounded-2xl bg-purple-50 border-2 border-dashed border-purple-300 flex items-center justify-center overflow-hidden relative shadow-xs">
+                <div className="w-28 h-28 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden relative shadow-xs">
                   <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 </div>
                 <span className="font-label-mono text-[10px] text-slate-500 font-bold mt-2 text-[11px] tracking-[0.18em]">AVATAR (IPFS)</span>
@@ -666,21 +666,21 @@ export const Onboarding: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80" alt="Preset Building 1" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=150&auto=format&fit=crop&q=80" alt="Preset Logo 2" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80" alt="Preset Office 3" className="w-full h-full object-cover" />
                           </button>
@@ -690,21 +690,21 @@ export const Onboarding: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 1" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 2" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-600 transition-all hover:scale-105 active:scale-95"
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
                           >
                             <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 3" className="w-full h-full object-cover" />
                           </button>
@@ -739,7 +739,7 @@ export const Onboarding: React.FC = () => {
                     onChange={(e) => setBio(e.target.value)}
                     className="w-full glass-input resize-none"
                   />
-                  <p className="font-data-hash text-[11px] text-purple-700 font-bold italic flex items-center gap-1 mt-1">
+                  <p className="font-data-hash text-[11px] text-[#0047AB] font-bold italic flex items-center gap-1 mt-1">
                     <span className="material-symbols-outlined text-sm">cloud_done</span>
                     Pinned to IPFS Gateway: w3s.link/ipfs/bafybei...
                   </p>
@@ -751,7 +751,7 @@ export const Onboarding: React.FC = () => {
               {isClient ? (
                 <button
                   type="submit"
-                  className="gradient-btn-emerald px-10 py-3.5 rounded-xl font-headline font-bold text-sm flex items-center gap-2 shadow-md cursor-pointer"
+                  className="px-10 py-3.5 rounded-xl font-headline font-bold text-sm flex items-center gap-2 shadow-sm cursor-pointer bg-[#0047AB] hover:bg-[#003882] text-white transition-colors"
                 >
                   <Sparkles size={16} /> Finalize & Save Client Profile
                 </button>
@@ -759,7 +759,7 @@ export const Onboarding: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="gradient-btn-primary px-8 py-3 rounded-xl font-headline font-bold text-sm flex items-center gap-2 cursor-pointer"
+                  className="px-8 py-3 rounded-xl font-headline font-bold text-sm flex items-center gap-2 cursor-pointer bg-[#0047AB] hover:bg-[#003882] text-white transition-colors"
                 >
                   Next Stage <ArrowRight size={16} />
                 </button>
@@ -776,7 +776,7 @@ export const Onboarding: React.FC = () => {
                 Define Your Technical Stack
               </h1>
               <p className="text-xs text-slate-600">
-                Enter your technologies and skill tags. Tags are written via <code className="text-purple-700 font-bold">ProfileRegistry.addSkill()</code>.
+                Enter your technologies and skill tags. Tags are written via <code className="text-[#0047AB] font-bold">ProfileRegistry.addSkill()</code>.
               </p>
             </div>
 
@@ -788,7 +788,7 @@ export const Onboarding: React.FC = () => {
                 helperText="Browse 26 specialized tech categories or search to configure your exact stack on-chain."
               />
 
-              <div className="flex items-center gap-3 bg-purple-50/80 border border-purple-200/80 text-purple-950 p-4 rounded-2xl text-xs font-medium shadow-2xs">
+              <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 text-slate-800 p-4 rounded-2xl text-xs font-medium shadow-2xs">
                 <ShieldCheck size={26} className="text-emerald-600 shrink-0" />
                 <p className="leading-tight text-slate-700">
                   These technical skills will be stored as immutable metadata attributes on your PolyLance Reputation NFT and verifiable profile registry.
@@ -807,7 +807,7 @@ export const Onboarding: React.FC = () => {
 
               <button
                 type="submit"
-                className="gradient-btn-emerald px-10 py-3.5 rounded-xl font-headline font-bold text-sm flex items-center gap-2 shadow-md cursor-pointer"
+                className="px-10 py-3.5 rounded-xl font-headline font-bold text-sm flex items-center gap-2 shadow-sm cursor-pointer bg-[#0047AB] hover:bg-[#003882] text-white transition-colors"
               >
                 <Sparkles size={16} /> Finalize & Mint On-Chain Identity
               </button>
@@ -819,7 +819,7 @@ export const Onboarding: React.FC = () => {
       {/* Success Screen Overlay Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="glass-panel p-8 sm:p-10 rounded-2xl max-w-md w-full text-center border-purple-200 bg-white hard-shadow space-y-6">
+          <div className="glass-panel p-8 sm:p-10 rounded-2xl max-w-md w-full text-center border-slate-200 bg-white hard-shadow space-y-6">
             <div className="w-20 h-20 bg-emerald-100 border-2 border-emerald-400 rounded-full flex items-center justify-center mx-auto text-emerald-700 shadow-md">
               <CheckCircle2 size={48} />
             </div>
@@ -835,13 +835,13 @@ export const Onboarding: React.FC = () => {
               </p>
             </div>
 
-            <div className="font-data-hash text-[11px] bg-slate-50 p-3 rounded-xl border border-slate-200 text-purple-900 font-bold break-all">
+            <div className="font-data-hash text-[11px] bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-800 font-bold break-all">
               TX Hash: {mintedTxHash}
             </div>
 
             <button
               onClick={() => navigate('/dashboard')}
-              className="gradient-btn-emerald w-full py-3.5 rounded-xl font-headline font-bold text-sm shadow-md cursor-pointer"
+              className="w-full py-3.5 rounded-xl font-headline font-bold text-sm shadow-sm cursor-pointer bg-[#0047AB] hover:bg-[#003882] text-white transition-colors"
             >
               Go to Dashboard
             </button>

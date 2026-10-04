@@ -14,7 +14,6 @@ export const Terms: React.FC = () => {
       id: 'escrow',
       title: '1. Non-Custodial Smart Escrow Mechanics',
       icon: Lock,
-      color: 'from-purple-600 to-indigo-600',
       badge: 'EIP-1167 Proxy Clone',
       summary: 'All project funds deposited by Clients are locked directly into individual EIP-1167 Minimal Proxy Clone contracts deployed on the Polygon blockchain.',
       details: [
@@ -27,7 +26,6 @@ export const Terms: React.FC = () => {
       id: 'milestones',
       title: '2. Review Periods & Auto-Release SLA',
       icon: CheckCircle2,
-      color: 'from-blue-600 to-cyan-600',
       badge: '7-Day SLA Default',
       summary: 'Developers submit proof of deliverable (code PRs, IPFS hashes, or documentation) which triggers a timed review window for the Client.',
       details: [
@@ -40,7 +38,6 @@ export const Terms: React.FC = () => {
       id: 'disputes',
       title: '3. Decentralized Dispute Arbitration',
       icon: Scale,
-      color: 'from-rose-600 to-pink-600',
       badge: 'JudgeDAO Governance',
       summary: 'When a Client or Freelancer raises a dispute on a funded escrow, arbitration is delegated to verified Arbitrators holding the ARBITRATOR_ROLE.',
       details: [
@@ -53,7 +50,6 @@ export const Terms: React.FC = () => {
       id: 'sbt',
       title: '4. Soulbound Reputation (ERC-5192)',
       icon: Award,
-      color: 'from-amber-600 to-orange-600',
       badge: 'Non-Transferable Token',
       summary: 'Successful project completion automatically mints an ERC-5192 Soulbound Token (SBT) to the Developer’s wallet address.',
       details: [
@@ -66,7 +62,6 @@ export const Terms: React.FC = () => {
       id: 'fees',
       title: '5. Gas Fees & Protocol Operating Rules',
       icon: Cpu,
-      color: 'from-emerald-600 to-teal-600',
       badge: '0% Platform Fee on Beta',
       summary: 'PolyLance operates with transparent on-chain execution rules.',
       details: [
@@ -80,23 +75,16 @@ export const Terms: React.FC = () => {
   return (
     <div className="space-y-12 py-8 max-w-6xl mx-auto px-4 font-sans text-slate-900 select-none">
       
-      {/* 3D Glassmorphic Header */}
-      <section className="relative overflow-hidden rounded-3xl p-8 sm:p-12 bg-gradient-to-br from-white/90 via-purple-50/40 to-slate-50 border border-purple-100/80 shadow-md text-left">
-        {/* Decorative 3D Floating Ornaments */}
-        <div className="hidden lg:block absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-3xl rotate-12 opacity-15 blur-sm pointer-events-none" />
-        <div className="hidden lg:block absolute right-12 bottom-4 w-28 h-28 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full opacity-20 blur-md pointer-events-none" />
-
+      {/* Clean Modern Header */}
+      <section className="relative overflow-hidden rounded-3xl p-8 sm:p-12 bg-white border border-slate-200 shadow-sm text-left">
         <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-white border border-purple-200 text-purple-700 rounded-full shadow-3xs text-[11px] font-mono font-black uppercase tracking-wider">
-            <Sparkles size={12} className="text-purple-600 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-slate-100 border border-slate-200 text-slate-800 rounded-full shadow-3xs text-[11px] font-mono font-black uppercase tracking-wider">
+            <Sparkles size={12} className="text-[#0047AB] animate-pulse" />
             <span>Legal Framework & Smart Contracts</span>
           </div>
 
           <h1 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-            Terms of Service &{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-700 via-indigo-600 to-blue-600">
-              Escrow Protocol Rules
-            </span>
+            Terms of Service & <span className="text-[#0047AB]">Escrow Protocol Rules</span>
           </h1>
 
           <p className="text-xs sm:text-sm text-slate-600 font-sans leading-relaxed font-medium">
@@ -107,7 +95,7 @@ export const Terms: React.FC = () => {
             <span className="bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 font-bold">
               Last Updated: August 2026
             </span>
-            <span className="bg-purple-50 text-purple-700 px-3 py-1 rounded-lg border border-purple-100 font-bold">
+            <span className="bg-slate-100 text-slate-800 px-3 py-1 rounded-lg border border-slate-200 font-bold">
               Protocol Version: V1.0-Mainnet
             </span>
           </div>
@@ -123,7 +111,7 @@ export const Terms: React.FC = () => {
             <h3 className="font-mono text-[11px] font-black uppercase tracking-wider text-slate-400">
               Contract Terms Index
             </h3>
-            <span className="text-[10px] font-mono text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+            <span className="text-[10px] font-mono text-slate-800 font-bold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
               {activeTab + 1} of {sections.length} Selected
             </span>
           </div>
@@ -139,11 +127,11 @@ export const Terms: React.FC = () => {
                   onClick={() => setActiveTab(idx)}
                   className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-3xs ${
                     isActive
-                      ? 'bg-purple-900 text-white shadow-sm ring-2 ring-purple-500/30'
+                      ? 'bg-[#0B0B0C] text-white shadow-sm'
                       : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <Icon size={13} className={isActive ? 'text-purple-300' : 'text-purple-600'} />
+                  <Icon size={13} className={isActive ? 'text-white' : 'text-[#0047AB]'} />
                   <span>
                     {sec.id === 'escrow' ? '1. Escrow' : 
                      sec.id === 'milestones' ? '2. SLA Release' : 
@@ -169,29 +157,29 @@ export const Terms: React.FC = () => {
             return (
               <motion.div
                 key={sec.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={() => setActiveTab(idx)}
                 className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-4 shadow-3xs ${
                   isActive
-                    ? 'bg-white border-purple-500 ring-2 ring-purple-500/15 shadow-md'
-                    : 'bg-white/60 border-slate-200/80 hover:bg-white hover:border-slate-300'
+                    ? 'bg-[#0B0B0C] text-white border-[#0B0B0C] shadow-md'
+                    : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center gap-3.5 min-w-0">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${sec.color} flex items-center justify-center text-white shrink-0 shadow-sm`}>
+                  <div className={`w-10 h-10 rounded-xl ${isActive ? 'bg-white/10 text-white' : 'bg-[#0B0B0C] text-white'} flex items-center justify-center shrink-0 shadow-sm`}>
                     <Icon size={18} />
                   </div>
                   <div className="min-w-0 text-left">
-                    <span className="font-satoshi font-bold text-slate-900 text-sm block truncate">
+                    <span className={`font-satoshi font-bold text-sm block truncate ${isActive ? 'text-white' : 'text-slate-900'}`}>
                       {sec.title}
                     </span>
-                    <span className="text-[10px] font-mono text-purple-600 font-bold uppercase tracking-wider">
+                    <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isActive ? 'text-slate-300' : 'text-[#0047AB]'}`}>
                       {sec.badge}
                     </span>
                   </div>
                 </div>
-                <ChevronRight size={16} className={`text-slate-400 transition-transform ${isActive ? 'translate-x-1 text-purple-600' : ''}`} />
+                <ChevronRight size={16} className={`transition-transform ${isActive ? 'translate-x-1 text-white' : 'text-slate-400'}`} />
               </motion.div>
             );
           })}
@@ -210,14 +198,14 @@ export const Terms: React.FC = () => {
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-slate-100 pb-3 sm:pb-4">
                 <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br ${sections[activeTab].color} flex items-center justify-center text-white shadow-sm shrink-0`}>
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#0B0B0C] flex items-center justify-center text-white shadow-sm shrink-0">
                     {React.createElement(sections[activeTab].icon, { size: 18 })}
                   </div>
                   <h3 className="font-headline font-black text-base sm:text-xl text-slate-900 leading-tight">
                     {sections[activeTab].title}
                   </h3>
                 </div>
-                <span className="px-2.5 py-1 bg-purple-50 border border-purple-200 text-purple-700 font-mono text-[9px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider shrink-0 self-start sm:self-auto">
+                <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-800 font-mono text-[9px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider shrink-0 self-start sm:self-auto">
                   {sections[activeTab].badge}
                 </span>
               </div>
@@ -233,7 +221,7 @@ export const Terms: React.FC = () => {
                 <ul className="space-y-2.5 sm:space-y-3">
                   {sections[activeTab].details.map((detail, dIdx) => (
                     <li key={dIdx} className="flex items-start gap-2.5 sm:gap-3 text-xs text-slate-700 font-sans leading-relaxed font-medium">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono text-[9px] sm:text-[10px]">
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-slate-100 text-[#0047AB] flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono text-[9px] sm:text-[10px]">
                         ✓
                       </div>
                       <span>{detail}</span>
@@ -244,7 +232,7 @@ export const Terms: React.FC = () => {
 
               <div className="pt-4 sm:pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono text-slate-400">
                 <span className="text-[11px] sm:text-xs">Autonomous Smart Contract Logic</span>
-                <Link to="/security" className="text-purple-600 font-bold hover:underline inline-flex items-center gap-1 self-start sm:self-auto">
+                <Link to="/security" className="text-[#0047AB] font-bold hover:underline inline-flex items-center gap-1 self-start sm:self-auto">
                   View Contract Audits <ArrowRight size={12} />
                 </Link>
               </div>

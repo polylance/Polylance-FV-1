@@ -32,7 +32,7 @@ export const PostProgressModal: React.FC<PostProgressModalProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-150">
       <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden font-sans space-y-0">
-        <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 p-5 border-b border-slate-100 flex items-start justify-between">
+        <div className="bg-slate-50 p-5 border-b border-slate-200 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shrink-0">
               <TrendingUp size={20} />
@@ -118,7 +118,7 @@ export const PostProgressModal: React.FC<PostProgressModalProps> = ({
             <button
               type="submit"
               disabled={!note.trim()}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
             >
               <Send size={13} />
               <span>Post Update</span>

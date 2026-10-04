@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Link2, Sparkles, ShieldCheck, RefreshCw, Copy, Check, Send, AlertTriangle } from 'lucide-react';
+import { FileText, Link2, ShieldCheck, RefreshCw, Copy, Check, Send, AlertTriangle } from 'lucide-react';
 import { generateIpfsCid, storeIpfsFile, getCachedIpfsFile } from '../utils/ipfs';
 import { DeliverableFile } from '../types';
 
@@ -28,13 +28,7 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 const CloudUploadIllustration = () => (
   <svg width="48" height="36" viewBox="0 0 48 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto mb-2">
-    <defs>
-      <linearGradient id="cloudGradIcon" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#60A5FA" />
-        <stop offset="100%" stopColor="#2563EB" />
-      </linearGradient>
-    </defs>
-    <path d="M38 15 C37.5 7.5 31 2 24 2 C18 2 12.8 6 11 11.5 C5 12.5 1 17.5 1 23.5 C1 30 6.5 35 13 35 L37 35 C42.5 35 47 30.5 47 25 C47 19.8 43 15.5 38 15 Z" fill="url(#cloudGradIcon)" />
+    <path d="M38 15 C37.5 7.5 31 2 24 2 C18 2 12.8 6 11 11.5 C5 12.5 1 17.5 1 23.5 C1 30 6.5 35 13 35 L37 35 C42.5 35 47 30.5 47 25 C47 19.8 43 15.5 38 15 Z" fill="#0047AB" />
     <path d="M24 13 L17 20 L21.5 20 L21.5 28 L26.5 28 L26.5 20 L31 20 Z" fill="#FFFFFF" />
   </svg>
 );
@@ -189,11 +183,11 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
 
   return (
     <form onSubmit={handleSubmit} className="border border-slate-200/90 rounded-3xl p-5 sm:p-7 bg-white shadow-xs space-y-5">
-      {/* Form Header (Matching Image 3) */}
+      {/* Form Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 shadow-2xs">
-            <Send size={18} className="text-purple-600" />
+          <div className="w-10 h-10 rounded-2xl bg-[#0B0B0C] text-white border border-slate-800 flex items-center justify-center shrink-0 shadow-2xs">
+            <Send size={18} className="text-white" />
           </div>
           <div>
             <h3 className="text-base font-black text-slate-900 font-headline leading-tight">
@@ -205,8 +199,8 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 shrink-0 font-mono shadow-2xs">
-          <ShieldCheck size={13} className="text-purple-600" />
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-slate-800 bg-slate-100 border border-slate-300 shrink-0 font-mono shadow-2xs">
+          <ShieldCheck size={13} className="text-[#0047AB]" />
           On-Chain Evidence
         </span>
       </div>
@@ -224,9 +218,9 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               placeholder="e.g. Completed Smart Contract Suite & Test Coverage Report"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
             />
-            <FileText size={15} className="absolute left-3 top-3 text-blue-500 pointer-events-none" />
+            <FileText size={15} className="absolute left-3 top-3 text-slate-400 pointer-events-none" />
           </div>
         </div>
 
@@ -243,9 +237,9 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               placeholder="https://github.com/your-org/repo/pull/1 or https://demo.yourproject.xyz"
               value={externalLink}
               onChange={(e) => setExternalLink(e.target.value)}
-              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
             />
-            <Link2 size={15} className="absolute left-3 top-3 text-purple-500 pointer-events-none" />
+            <Link2 size={15} className="absolute left-3 top-3 text-slate-400 pointer-events-none" />
           </div>
           <p className="text-[11px] text-slate-400 font-medium mt-1">
             Provide a working repository, pull request, Figma prototype, or live deployment URL.
@@ -264,9 +258,9 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               placeholder="Describe what was built, how to run tests, and any relevant deployment details..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400 resize-none"
+              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400 resize-none"
             />
-            <FileText size={15} className="absolute left-3 top-3 text-blue-500 pointer-events-none" />
+            <FileText size={15} className="absolute left-3 top-3 text-slate-400 pointer-events-none" />
           </div>
         </div>
 
@@ -276,14 +270,14 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
             <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
               Media & Evidence Files <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
-            <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 font-mono">
+            <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-mono">
               Optional
             </span>
           </div>
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
-            className="border-2 border-dashed border-blue-200 hover:border-blue-500 rounded-2xl p-6 text-center bg-blue-50/20 hover:bg-blue-50/40 transition-all cursor-pointer relative group"
+            className="border-2 border-dashed border-slate-300 hover:border-[#0047AB] rounded-2xl p-6 text-center bg-slate-50 hover:bg-slate-100/70 transition-all cursor-pointer relative group"
           >
             <input
               type="file"
@@ -293,7 +287,7 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
             />
             <CloudUploadIllustration />
             <p className="text-xs font-bold text-slate-800">
-              Drag & drop deliverable files here, or <span className="text-blue-600 underline">browse</span>
+              Drag & drop deliverable files here, or <span className="text-[#0047AB] underline">browse</span>
             </p>
             <p className="text-[11px] text-slate-400 font-medium mt-1">
               Supports code archives, PDFs, screenshots, json (Max 50MB per file)
@@ -311,7 +305,7 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               <div key={file.id} className="bg-white p-2.5 rounded-xl border border-slate-200 text-xs shadow-2xs">
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2 truncate">
-                    <FileText size={14} className="text-purple-600 shrink-0" />
+                    <FileText size={14} className="text-[#0047AB] shrink-0" />
                     <span className="font-mono font-bold text-slate-800 truncate text-xs">{file.name}</span>
                     <span className="text-slate-400 font-semibold text-[11px]">({file.size})</span>
                   </div>
@@ -332,18 +326,18 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
 
                 <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-200 ${file.error ? 'bg-rose-500' : 'bg-blue-600'}`}
+                    className={`h-full transition-all duration-200 ${file.error ? 'bg-rose-500' : 'bg-[#0047AB]'}`}
                     style={{ width: `${file.error ? 100 : file.progress}%` }}
                   />
                 </div>
 
                 {file.cid && (
-                  <div className="flex items-center justify-between gap-1.5 text-[10.5px] font-mono text-purple-700 pt-1.5 mt-1 border-t border-slate-100">
+                  <div className="flex items-center justify-between gap-1.5 text-[10.5px] font-mono text-slate-800 pt-1.5 mt-1 border-t border-slate-100">
                     <span className="truncate text-slate-500">CID: {file.cid}</span>
                     <button
                       type="button"
                       onClick={() => handleCopyCid(file.cid!)}
-                      className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-purple-700 transition-colors"
+                      className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-[#0047AB] transition-colors"
                       title="Copy CID"
                     >
                       {copiedCid === file.cid ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
@@ -364,15 +358,14 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
         </div>
       )}
 
-      {/* Submit Button (Matching Image 3) */}
+      {/* Submit Button */}
       <button
         type="submit"
         disabled={!title.trim() || !description.trim() || !externalLink.trim() || files.some((f) => !f.done)}
-        className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-fuchsia-600 hover:from-blue-700 hover:to-fuchsia-700 text-white font-bold py-3 px-6 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all hover:scale-[1.005] disabled:opacity-50"
+        className="w-full bg-[#0047AB] hover:bg-[#003882] text-white font-bold py-3 px-6 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Send size={15} className="text-white" />
         <span>Submit Deliverables for Review</span>
-        <Sparkles size={16} className="text-purple-200 ml-auto sm:ml-2" />
       </button>
     </form>
   );

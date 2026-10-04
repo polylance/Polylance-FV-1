@@ -127,7 +127,7 @@ export const GithubVerifyModal: React.FC<GithubVerifyModalProps> = ({
           <div>
             <h3 className="text-base font-bold text-slate-900 font-heading flex items-center gap-1.5">
               GitHub Identity Attestation
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold border border-purple-200">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-bold border border-slate-300">
                 OAuth 2.0
               </span>
             </h3>
@@ -139,10 +139,10 @@ export const GithubVerifyModal: React.FC<GithubVerifyModalProps> = ({
 
         {!result ? (
           <div className="space-y-4">
-            <div className="bg-indigo-50/70 border border-indigo-200/80 p-3.5 rounded-xl flex items-start gap-2.5 text-xs">
-              <ShieldCheck size={18} className="text-indigo-600 shrink-0 mt-0.5" />
+            <div className="bg-blue-50 border border-blue-200 p-3.5 rounded-xl flex items-start gap-2.5 text-xs">
+              <ShieldCheck size={18} className="text-[#0047AB] shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-bold text-indigo-950">Anti-Impersonation Protection Active</p>
+                <p className="font-bold text-slate-900">Anti-Impersonation Protection Active</p>
                 <p className="text-slate-600 leading-relaxed text-[11px]">
                   PolyLance requires GitHub OAuth 2.0 authentication to ensure genuine developer ownership. One GitHub account is uniquely bound to one Web3 wallet.
                 </p>
@@ -162,11 +162,11 @@ export const GithubVerifyModal: React.FC<GithubVerifyModalProps> = ({
                 type="button"
                 onClick={handleConnectOAuth}
                 disabled={oauthLoading}
-                className="w-full py-3 px-4 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-98 cursor-pointer disabled:opacity-75"
+                className="w-full py-3 px-4 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98 cursor-pointer disabled:opacity-75"
               >
                 {oauthLoading ? (
                   <>
-                    <Loader2 size={16} className="animate-spin text-purple-400" />
+                    <Loader2 size={16} className="animate-spin text-white" />
                     <span>Connecting to GitHub OAuth...</span>
                   </>
                 ) : (
@@ -225,7 +225,7 @@ export const GithubVerifyModal: React.FC<GithubVerifyModalProps> = ({
                       className="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between text-xs font-mono shadow-2xs"
                     >
                       <span className="text-slate-700 capitalize font-medium">{cat}</span>
-                      <span className="text-purple-700 font-bold">
+                      <span className="text-slate-900 font-bold">
                         {result.secondaryScores[idx]} / 1000
                       </span>
                     </div>
@@ -235,13 +235,13 @@ export const GithubVerifyModal: React.FC<GithubVerifyModalProps> = ({
 
               {/* Oracle Attestation Sign details */}
               <div className="text-[10px] font-mono text-slate-600 bg-white p-2 rounded-lg border border-slate-200 truncate">
-                Attestation UID: <code className="text-purple-800 font-bold">{result.attestationUID.slice(0, 24)}...</code>
+                Attestation UID: <code className="text-slate-900 font-bold">{result.attestationUID.slice(0, 24)}...</code>
               </div>
             </div>
 
             <button
               onClick={handleConfirmOnChain}
-              className="w-full gradient-btn-emerald py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer"
             >
               <ShieldCheck size={16} />
               Confirm & Bind On-Chain

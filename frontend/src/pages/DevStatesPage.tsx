@@ -42,7 +42,7 @@ export const DevStatesPage: React.FC = () => {
             onClick={() => setSelectedState(tab.id)}
             className={`px-3.5 py-2 min-h-[44px] rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               selectedState === tab.id
-                ? 'bg-purple-600 text-white shadow-sm'
+                ? 'bg-[#0B0B0C] text-white shadow-sm'
                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
             }`}
           >

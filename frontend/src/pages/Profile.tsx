@@ -85,15 +85,15 @@ export const Profile: React.FC = () => {
 
   if (!isConnected) {
     return (
-      <div className="max-w-lg mx-auto my-16 p-8 bg-white rounded-3xl border border-purple-200/80 shadow-xl text-center space-y-5">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 mx-auto flex items-center justify-center shadow-inner border border-purple-200">
-          <ShieldCheck size={32} className="text-purple-700 animate-pulse" />
+      <div className="max-w-lg mx-auto my-16 p-8 bg-white rounded-2xl border border-[#E2E6EC] shadow-xl text-center space-y-5">
+        <div className="w-16 h-16 rounded-xl bg-blue-50 text-[#0047AB] mx-auto flex items-center justify-center border border-blue-100">
+          <ShieldCheck size={32} className="text-[#0047AB]" />
         </div>
         <div className="space-y-2">
           <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
             POLYLANCE SECURITY GATEWAY • NON-MEMBER ACCESS RESTRICTED
           </span>
-          <h2 className="font-headline text-2xl font-black text-slate-900">
+          <h2 className="font-serif text-2xl font-bold text-[#0B0B0C]">
             Connect Wallet to View Profile
           </h2>
           <p className="text-xs text-slate-600 font-sans leading-relaxed">
@@ -103,7 +103,7 @@ export const Profile: React.FC = () => {
         <div className="pt-2">
           <button
             onClick={connectWallet}
-            className="w-full py-3.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white font-mono font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
           >
             <Zap size={15} />
             <span>Connect Polylancer Wallet</span>
@@ -119,10 +119,10 @@ export const Profile: React.FC = () => {
       {isClientProfile ? (
         <div className="space-y-8">
           {/* Organizational Header Card */}
-          <div id="reputation-overview" className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
+          <div id="reputation-overview" className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-6 sm:p-8 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-6">
               <div className="flex items-center gap-5">
-                <div className="w-20 h-20 bg-purple-100 border-2 border-purple-300 rounded-2xl flex items-center justify-center text-purple-700 overflow-hidden shrink-0">
+                <div className="w-20 h-20 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center text-[#0047AB] overflow-hidden shrink-0">
                   {userProfile.avatarUrl && !userProfile.avatarUrl.includes('photo-1517841905240') ? (
                     <img src={userProfile.avatarUrl} alt={userProfile.displayName} className="w-full h-full object-cover" />
                   ) : (
@@ -131,11 +131,11 @@ export const Profile: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-extrabold text-slate-900 font-heading">
+                    <h1 className="text-2xl font-serif font-bold text-[#0B0B0C]">
                       {userProfile.displayName}
                     </h1>
-                    <span className="text-xs bg-purple-100 text-purple-900 border border-purple-300 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1">
-                      <ShieldCheck size={14} className="text-purple-700" /> VERIFIED ENTERPRISE
+                    <span className="text-xs bg-blue-50 text-[#0047AB] border border-blue-200 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1">
+                      <ShieldCheck size={14} className="text-[#0047AB]" /> VERIFIED ENTERPRISE
                     </span>
                     {completedClientJobs.length > 0 && (
                       <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1">
@@ -143,7 +143,7 @@ export const Profile: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-mono text-purple-900 font-bold">
+                  <p className="text-xs font-mono text-slate-600 font-bold">
                     Organization Safe Wallet: {truncateAddress(userProfile.address)}
                   </p>
                   <p className="text-xs text-slate-600 max-w-xl pt-1 leading-relaxed">{userProfile.bio}</p>
@@ -154,7 +154,7 @@ export const Profile: React.FC = () => {
                 <div>
                   <span className="text-slate-500 font-bold uppercase tracking-wider block">Credibility Rating</span>
                   <div className="flex items-center justify-end gap-1.5 mt-1">
-                    <span className="font-headline text-2xl font-black text-purple-900">AA+</span>
+                    <span className="font-serif text-2xl font-black text-[#0B0B0C]">AA+</span>
                     <div className="flex text-amber-500">
                       <Star size={16} className="fill-amber-500" />
                       <Star size={16} className="fill-amber-500" />
@@ -167,7 +167,7 @@ export const Profile: React.FC = () => {
                 {isOwnProfile && (
                   <Link
                     to="/onboarding"
-                    className="gradient-btn-primary px-4 py-2 rounded-xl text-xs font-bold shadow-md"
+                    className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-lg text-xs font-bold shadow-xs transition-colors"
                   >
                     Edit Profile
                   </Link>
@@ -187,7 +187,7 @@ export const Profile: React.FC = () => {
 
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
                 <span className="text-[10px] text-slate-500 uppercase font-bold block">Avg Payout Speed</span>
-                <p className="font-extrabold text-purple-900 text-xl">
+                <p className="font-extrabold text-[#0B0B0C] text-xl">
                   {(() => {
                     const releaseSpeeds = clientJobs
                       .filter(j => j.status === 'Completed')
@@ -205,7 +205,7 @@ export const Profile: React.FC = () => {
                       : 'N/A';
                   })()}
                 </p>
-                <span className="text-[10px] text-purple-700 font-bold flex items-center gap-1">
+                <span className="text-[10px] text-[#0047AB] font-bold flex items-center gap-1">
                   <Zap size={12} /> {completedClientJobs.length > 0 ? 'Top Tier Payout Speed' : 'No releases yet'}
                 </span>
               </div>
@@ -346,12 +346,12 @@ export const Profile: React.FC = () => {
                 </div>
 
                 {completedClientJobs.length > 0 && (
-                  <div className="bg-purple-50 border border-purple-200 p-5 rounded-xl space-y-2 text-[11px] text-purple-950 font-sans shadow-2xs">
-                    <span className="font-headline font-bold text-purple-900 block text-xs">Freelancer Trust Endorsement</span>
+                  <div className="bg-slate-50 border border-[#E2E6EC] p-5 rounded-xl space-y-2 text-[11px] text-slate-800 font-sans shadow-2xs">
+                    <span className="font-serif font-bold text-[#0B0B0C] block text-xs">Freelancer Trust Endorsement</span>
                     <p className="leading-relaxed">
                       "Client is highly professional. The scope was clear, escrow was immediately funded, and payouts were approved upon milestone verification."
                     </p>
-                    <p className="text-[10px] font-mono text-purple-700 font-bold pt-1">— Verified Freelancer Partner</p>
+                    <p className="text-[10px] font-mono text-[#0047AB] font-bold pt-1">— Verified Freelancer Partner</p>
                   </div>
                 )}
               </div>
@@ -359,9 +359,9 @@ export const Profile: React.FC = () => {
           </div>
 
           {/* Verified Ledger Activity & Escrow Protection Guarantee */}
-          <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-6">
-            <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Activity size={20} className="text-purple-700" /> Client Verified Ledger & Active Escrows
+          <div className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-6 space-y-6">
+            <h3 className="font-serif text-lg font-bold text-[#0B0B0C] flex items-center gap-2">
+              <Activity size={20} className="text-[#0047AB]" /> Client Verified Ledger & Active Escrows
             </h3>
 
             <div className="space-y-4 font-mono text-xs">
@@ -390,18 +390,18 @@ export const Profile: React.FC = () => {
           </div>
 
           {/* Soulbound Escrow Patron Tokens Collection */}
-          <div className="glass-panel p-4 sm:p-6 border-slate-200 bg-white hard-shadow space-y-4">
+          <div className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-4 sm:p-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
-                  <Award size={20} className="text-purple-700" /> Soulbound Escrow Patron Tokens ({completedClientJobs.length})
+                <h3 className="text-lg font-serif font-bold text-[#0B0B0C] flex items-center gap-2">
+                  <Award size={20} className="text-[#0047AB]" /> Soulbound Escrow Patron Tokens ({completedClientJobs.length})
                 </h3>
                 <p className="text-xs text-slate-500 font-mono mt-0.5">
                   Cryptographically minted, non-transferable on-chain proof of capital funding and payout release
                 </p>
               </div>
-              <span className="text-[10px] font-mono text-purple-900 bg-purple-100 px-3 py-1 rounded-full border border-purple-200 font-bold flex items-center gap-1">
-                <ShieldCheck size={12} className="text-purple-700" /> Polygon ERC-721 Soulbound
+              <span className="text-[10px] font-mono text-[#0047AB] bg-blue-50 px-3 py-1 rounded-full border border-blue-200 font-bold flex items-center gap-1">
+                <ShieldCheck size={12} className="text-[#0047AB]" /> Polygon ERC-721 Soulbound
               </span>
             </div>
 
@@ -414,10 +414,10 @@ export const Profile: React.FC = () => {
                   return (
                     <div
                       key={j.id}
-                      className="bg-gradient-to-br from-purple-50/40 via-white to-slate-50 p-5 rounded-2xl border border-purple-200/80 space-y-3 relative overflow-hidden group hover:border-purple-400 hover:shadow-xs transition-all"
+                      className="bg-slate-50 p-5 rounded-xl border border-[#E2E6EC] space-y-3 relative overflow-hidden group hover:border-slate-300 transition-colors"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-black text-purple-900 bg-purple-100/80 px-2.5 py-0.5 rounded-lg border border-purple-200">
+                        <span className="text-xs font-mono font-bold text-[#0047AB] bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
                           PATRON SBT #{j.sbtTokenId || getDeterministicSbtId(j.id)}
                         </span>
                         <span className="text-xs font-mono font-black text-emerald-700">
@@ -433,16 +433,16 @@ export const Profile: React.FC = () => {
                           <span className="text-slate-500">
                             Talent: {truncateAddress(j.freelancer || '')}
                           </span>
-                          <span className="text-[9.5px] sm:text-[10px] text-purple-800 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 truncate max-w-full">
+                          <span className="text-[9.5px] sm:text-[10px] text-slate-700 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200 truncate max-w-full font-mono">
                             {certId}
                           </span>
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-purple-100/80 flex items-center justify-between text-[11px] font-mono flex-wrap gap-2">
+                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] font-mono flex-wrap gap-2">
                         <Link
                           to={`/jobs/${j.id}/attestation`}
-                          className="text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1 hover:underline"
+                          className="text-[#0047AB] hover:text-[#003A8C] font-bold flex items-center gap-1 hover:underline"
                         >
                           <span>View Attestation</span>
                           <ExternalLink size={10} />
@@ -500,7 +500,7 @@ export const Profile: React.FC = () => {
             </div>
           )}
           {/* Header Profile Card */}
-          <div id="reputation-overview" className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow space-y-6">
+          <div id="reputation-overview" className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-6 sm:p-8 space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 border-b border-slate-100 pb-6">
               <div className="flex items-start sm:items-center gap-4 sm:gap-5 min-w-0">
                 <img
@@ -509,11 +509,11 @@ export const Profile: React.FC = () => {
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${userProfile.address}`;
                   }}
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-purple-200 object-cover shadow-xs shrink-0"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl border border-slate-200 object-cover shadow-2xs shrink-0"
                 />
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
-                    <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-heading break-words">
+                    <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#0B0B0C] break-words">
                       {userProfile.displayName}
                     </h1>
                     {userProfile.githubVerified && (
@@ -522,7 +522,7 @@ export const Profile: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-mono text-purple-900 font-bold break-words">
+                  <p className="text-xs font-mono text-slate-600 font-bold break-words">
                     Wallet Address: {truncateAddress(userProfile.address)}
                   </p>
                   <p className="text-xs text-slate-600 max-w-md pt-1 leading-relaxed">{userProfile.bio}</p>
@@ -532,14 +532,14 @@ export const Profile: React.FC = () => {
               {isOwnProfile && (
                 <Link
                   to="/settings"
-                  className="gradient-btn-primary px-4 py-2.5 rounded-xl text-xs font-bold shadow-md w-full sm:w-auto text-center shrink-0"
+                  className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-xs w-full sm:w-auto text-center shrink-0 transition-colors"
                 >
                   Edit Profile & Skills
                 </Link>
               )}
             </div>
 
-            {/* Audited Code Byte Matrix & Reputation Card for ALL Users (Apple Neumorphic / Glass Design) */}
+            {/* Audited Code Byte Matrix & Reputation Card for ALL Users */}
             <GithubEkycCard
               bytecodeMatrix={bytecodeMatrix}
               userProfile={userProfile}
@@ -554,7 +554,7 @@ export const Profile: React.FC = () => {
                 {userProfile.skills.map((sk) => (
                   <span
                     key={sk}
-                    className="bg-purple-50 border border-purple-200 text-purple-900 px-3 py-1 rounded-lg text-xs font-mono font-bold"
+                    className="bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] px-3 py-1 rounded-lg text-xs font-mono font-medium hover:border-slate-300 transition-colors"
                   >
                     {sk}
                   </span>
@@ -564,10 +564,10 @@ export const Profile: React.FC = () => {
           </div>
 
           {/* VERIFIABLE PORTFOLIO SECTION matching manage_profile_verifiable_portfolio */}
-          <div className="glass-panel p-4 sm:p-6 border-slate-200 bg-white hard-shadow space-y-4">
+          <div className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-4 sm:p-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
-                <FolderGit2 size={20} className="text-purple-700" /> Verifiable Portfolio Deliverables
+              <h3 className="text-lg font-serif font-bold text-[#0B0B0C] flex items-center gap-2">
+                <FolderGit2 size={20} className="text-[#0047AB]" /> Verifiable Portfolio Deliverables
               </h3>
               <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">
                 ON-CHAIN AUDITED
@@ -580,12 +580,12 @@ export const Profile: React.FC = () => {
                   <div key={j.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-slate-900 text-sm">{j.title}</span>
-                      <ExternalLink size={14} className="text-purple-700" />
+                      <ExternalLink size={14} className="text-[#0047AB]" />
                     </div>
                     <p className="text-[11px] text-slate-600 font-sans line-clamp-2">
                       {j.description}
                     </p>
-                    <div className="pt-2 flex justify-between items-center text-[10px] text-purple-900 font-bold">
+                    <div className="pt-2 flex justify-between items-center text-[10px] text-slate-800 font-bold">
                       <span>Payout: ${parseFloat(j.amountUsdc).toLocaleString()} USDC</span>
                       <span>Contract: {truncateAddress(j.contractAddress)}</span>
                     </div>
@@ -601,18 +601,18 @@ export const Profile: React.FC = () => {
 
           {/* Soulbound Reputation Tokens Collection */}
           {/* On-Chain Soulbound Token (SBT) Vault */}
-          <div id="soulbound-reputation-vault" className="glass-panel p-4 sm:p-6 border-slate-200 bg-white hard-shadow space-y-4">
+          <div id="soulbound-reputation-vault" className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-4 sm:p-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
-                  <Award size={20} className="text-purple-700" /> Soulbound Reputation Tokens ({completedFreelancerJobs.length})
+                <h3 className="text-lg font-serif font-bold text-[#0B0B0C] flex items-center gap-2">
+                  <Award size={20} className="text-[#0047AB]" /> Soulbound Reputation Tokens ({completedFreelancerJobs.length})
                 </h3>
                 <p className="text-xs text-slate-500 font-mono mt-0.5">
                   Cryptographically minted, non-transferable on-chain escrow credentials
                 </p>
               </div>
-              <span className="text-[10px] font-mono text-purple-900 bg-purple-100 px-3 py-1 rounded-full border border-purple-200 font-bold flex items-center gap-1">
-                <ShieldCheck size={12} className="text-purple-700" /> Polygon ERC-721 Soulbound
+              <span className="text-[10px] font-mono text-[#0047AB] bg-blue-50 px-3 py-1 rounded-full border border-blue-200 font-bold flex items-center gap-1">
+                <ShieldCheck size={12} className="text-[#0047AB]" /> Polygon ERC-721 Soulbound
               </span>
             </div>
 
@@ -625,10 +625,10 @@ export const Profile: React.FC = () => {
                   return (
                     <div
                       key={j.id}
-                      className="bg-gradient-to-br from-purple-50/40 via-white to-slate-50 p-5 rounded-2xl border border-purple-200/80 space-y-3 relative overflow-hidden group hover:border-purple-400 hover:shadow-xs transition-all"
+                      className="bg-slate-50 p-5 rounded-xl border border-[#E2E6EC] space-y-3 relative overflow-hidden group hover:border-slate-300 transition-colors"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-black text-purple-900 bg-purple-100/80 px-2.5 py-0.5 rounded-lg border border-purple-200">
+                        <span className="text-xs font-mono font-bold text-[#0047AB] bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
                           SBT #{j.sbtTokenId || getDeterministicSbtId(j.id)}
                         </span>
                         <span className="text-xs font-mono font-black text-emerald-700">
@@ -644,16 +644,16 @@ export const Profile: React.FC = () => {
                           <span className="text-slate-500">
                             Client: {truncateAddress(j.client)}
                           </span>
-                          <span className="text-[9.5px] sm:text-[10px] text-purple-800 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 truncate max-w-full">
+                          <span className="text-[9.5px] sm:text-[10px] text-slate-700 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200 truncate max-w-full font-mono">
                             {certId}
                           </span>
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-purple-100/80 flex items-center justify-between text-[11px] font-mono flex-wrap gap-2">
+                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] font-mono flex-wrap gap-2">
                         <Link
                           to={`/jobs/${j.id}/attestation`}
-                          className="text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1 hover:underline"
+                          className="text-[#0047AB] hover:text-[#003A8C] font-bold flex items-center gap-1 hover:underline"
                         >
                           <span>View Attestation</span>
                           <ExternalLink size={10} />
@@ -716,28 +716,28 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
   const bytecodeMatrix = getUserBytecodeMatrix(userProfile, (completedFreelancerJobs || []).length, devVolumeHandled);
 
   return (
-    <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-5">
-      <div className="border-b border-slate-100 pb-3 flex flex-wrap justify-between items-center gap-4">
+    <div className="border border-[#E2E6EC] bg-white rounded-xl shadow-xs p-6 sm:p-8 space-y-5">
+      <div className="border-b border-[#E2E6EC] pb-3 flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h3 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
-            <Search size={20} className="text-amber-600 animate-pulse" /> Participant Score Auditor Tool
+          <h3 className="text-lg font-bold text-[#0B0B0C] font-serif flex items-center gap-2">
+            <Search size={20} className="text-[#0047AB]" /> Participant Score Auditor Tool
           </h3>
           <p className="text-xs text-slate-500 font-mono mt-1">
             Check client trust ratings and developer reputation scores for escrow evaluations.
           </p>
         </div>
 
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex bg-slate-100 p-1 rounded-lg border border-[#E2E6EC]">
           <button
             onClick={() => setAuditType('freelancer')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${auditType === 'freelancer' ? 'bg-purple-700 bg-purple-700 text-white shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${auditType === 'freelancer' ? 'bg-[#0047AB] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
           >
             Audit Freelancer
           </button>
           <button
             onClick={() => setAuditType('client')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${auditType === 'client' ? 'bg-indigo-700 bg-indigo-700 text-white shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${auditType === 'client' ? 'bg-[#0047AB] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
           >
             Audit Client
@@ -748,32 +748,32 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
       {auditType === 'freelancer' ? (
         /* FREELANCER AUDIT REPORT WIDGET */
         <div className="space-y-4">
-          <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-700 font-extrabold text-lg">
+          <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-[#0B0B0C] border border-slate-700 flex items-center justify-center text-white font-bold text-lg">
               {userProfile.displayName.slice(0, 2).toUpperCase()}
             </div>
             <div className="text-left">
-              <span className="font-extrabold text-slate-900 text-sm">{userProfile.displayName}</span>
-              <p className="text-[10px] font-mono text-purple-900 font-bold mt-0.5">Address: {userProfile.address}</p>
+              <span className="font-extrabold text-[#0B0B0C] text-sm">{userProfile.displayName}</span>
+              <p className="text-[10px] font-mono text-slate-500 font-bold mt-0.5">Address: {userProfile.address}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center">
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Reputation Score</span>
-              <span className="font-extrabold text-purple-900 text-base">{completedFreelancerJobs.length * 100} PLREP</span>
+              <span className="font-extrabold text-[#0047AB] text-base">{completedFreelancerJobs.length * 100} PLREP</span>
             </div>
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Escrow Success Rate</span>
               <span className="font-extrabold text-emerald-700 text-base">{freelancerJobs.length > 0 ? '100%' : '0%'}</span>
             </div>
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Completed Jobs</span>
               <span className="font-extrabold text-slate-800 text-base">{completedFreelancerJobs.length} Smart Contracts</span>
             </div>
           </div>
 
-          {/* Audited Developer Score & Bytecode Matrix (New Apple-Style Neumorphic / Glass Design) */}
+          {/* Audited Developer Score & Bytecode Matrix (Brand Design) */}
           <GithubEkycCard
             bytecodeMatrix={bytecodeMatrix}
             userProfile={userProfile}
@@ -782,35 +782,35 @@ const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
       ) : (
         /* CLIENT AUDIT REPORT WIDGET */
         <div className="space-y-4 text-left">
-          <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-extrabold text-lg">
+          <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-[#0B0B0C] border border-slate-700 flex items-center justify-center text-white font-bold text-lg">
               {userProfile.displayName.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <span className="font-extrabold text-slate-900 text-sm">{userProfile.displayName}</span>
-              <p className="text-[10px] font-mono text-indigo-900 font-bold mt-0.5">Address: {userProfile.address}</p>
+              <span className="font-extrabold text-[#0B0B0C] text-sm">{userProfile.displayName}</span>
+              <p className="text-[10px] font-mono text-slate-500 font-bold mt-0.5">Address: {userProfile.address}</p>
             </div>
           </div>
 
           {/* Trust Score & Ratings */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center">
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Client Trust Index</span>
-              <span className="font-extrabold text-slate-900 text-base">{reliabilityScore} / 10.0</span>
+              <span className="font-extrabold text-[#0B0B0C] text-base">{reliabilityScore} / 10.0</span>
             </div>
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Total Capital TVL</span>
               <span className="font-extrabold text-emerald-700 text-base">${clientTvl.toLocaleString()}</span>
             </div>
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
               <span className="text-[9px] text-slate-400 uppercase block font-bold">Avg Payout Speed</span>
-              <span className="font-extrabold text-purple-900 text-base">{completedClientJobs.length > 0 ? '4.2 Hours' : 'N/A'}</span>
+              <span className="font-extrabold text-slate-900 text-base">{completedClientJobs.length > 0 ? '4.2 Hours' : 'N/A'}</span>
             </div>
           </div>
 
           {/* Verification Parameters */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs space-y-2.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase block tracking-wider border-b border-slate-200 pb-1.5">Audit Security Parameters</span>
+          <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] font-mono text-xs space-y-2.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase block tracking-wider border-b border-[#E2E6EC] pb-1.5">Audit Security Parameters</span>
             <div className="flex items-center gap-2 text-[11px]">
               <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
               <span>100% Pre-funded Escrow Ratio (No financial defaulting)</span>

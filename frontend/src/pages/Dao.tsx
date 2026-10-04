@@ -25,13 +25,13 @@ export const Dao: React.FC = () => {
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
       {/* Top Banner matching dao_judge_governance/code.html */}
-      <div className="glass-panel p-6 sm:p-8 border-purple-200 bg-white hard-shadow flex flex-wrap items-center justify-between gap-4">
+      <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="font-headline text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-              <Vote className="text-purple-700" /> Judge Governance DAO
+              <Vote className="text-[#0047AB]" /> Judge Governance DAO
             </h1>
-            <span className="bg-purple-100 text-purple-900 border border-purple-200 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
+            <span className="bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
               JudgeDAO.sol (Governor)
             </span>
           </div>
@@ -44,12 +44,12 @@ export const Dao: React.FC = () => {
           {isConnected ? (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="gradient-btn-primary px-6 py-3 rounded-xl font-headline font-bold text-xs flex items-center gap-2"
+              className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-3 rounded-xl font-headline font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer"
             >
               <Plus size={16} /> Propose Arbitrator Candidate
             </button>
           ) : (
-            <button onClick={connectWallet} className="gradient-btn-primary px-6 py-3 rounded-xl font-headline font-bold text-xs">
+            <button onClick={connectWallet} className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-3 rounded-xl font-headline font-bold text-xs shadow-sm transition-all cursor-pointer">
               Connect Wallet to Vote
             </button>
           )}
@@ -67,7 +67,7 @@ export const Dao: React.FC = () => {
       {/* Active Proposals Grid matching reference HTML */}
       <div className="space-y-6">
         <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-          <Gavel size={18} className="text-purple-700" /> Active Judge Election Proposals
+          <Gavel size={18} className="text-[#0047AB]" /> Active Judge Election Proposals
         </h3>
 
         <div className="space-y-4">
@@ -95,7 +95,7 @@ export const Dao: React.FC = () => {
                     <p className="text-xs text-slate-500 font-mono">Proposed by: {truncateAddress(prop.proposer)}</p>
                   </div>
 
-                  <span className="bg-purple-50 border border-purple-200 px-3 py-1 rounded-full text-xs font-mono text-purple-900 font-bold">
+                  <span className="bg-slate-100 border border-slate-200 px-3 py-1 rounded-full text-xs font-mono text-slate-900 font-bold">
                     Status: {prop.status}
                   </span>
                 </div>
@@ -119,8 +119,8 @@ export const Dao: React.FC = () => {
                 {prop.status === 'Active' && isConnected && (
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100/50">
                     {prop.userVoted ? (
-                      <span className="text-xs font-mono text-purple-950 font-black bg-purple-50 px-3.5 py-2 rounded-xl border border-purple-200 flex items-center gap-1.5 shadow-sm">
-                        <CheckCircle2 size={14} className="text-purple-700" />
+                      <span className="text-xs font-mono text-slate-900 font-black bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 shadow-sm">
+                        <CheckCircle2 size={14} className="text-[#0047AB]" />
                         Your One-Time Vote Recorded: {prop.userVoted === 'FOR' ? 'For 👍' : 'Against 👎'}
                       </span>
                     ) : (
@@ -133,7 +133,7 @@ export const Dao: React.FC = () => {
                         </button>
                         <button
                           onClick={() => castVote(prop.id, true, address)}
-                          className="gradient-btn-emerald px-6 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
                         >
                           Vote For
                         </button>
@@ -151,7 +151,7 @@ export const Dao: React.FC = () => {
       {/* Propose Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
-          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-purple-200 bg-white shadow-xl">
+          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-slate-200 bg-white shadow-xl rounded-2xl">
             <h3 className="font-headline text-lg font-bold text-slate-900">Nominate Judge Candidate</h3>
             <form onSubmit={handleCreateProposal} className="space-y-4">
               <div>
@@ -186,11 +186,11 @@ export const Dao: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="gradient-btn-primary px-5 py-2 rounded-xl text-xs font-bold">
+                <button type="submit" className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer">
                   Submit Candidate Proposal
                 </button>
               </div>
