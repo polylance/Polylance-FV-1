@@ -324,13 +324,17 @@ const parseAddressSet = (raw?: string): Set<string> => {
   return set;
 };
 
-const MOCK_OR_TEST_CLIENTS = parseAddressSet(
-  process.env.TEST_CLIENT_ADDRESSES ||
-  process.env.MOCK_CLIENT_ADDRESSES ||
-  process.env.VITE_TEST_ADDRESSES ||
-  process.env.VITE_PURGE_ADDRESSES ||
-  ''
-);
+const MOCK_OR_TEST_CLIENTS = new Set([
+  ...parseAddressSet(
+    process.env.TEST_CLIENT_ADDRESSES ||
+    process.env.MOCK_CLIENT_ADDRESSES ||
+    process.env.VITE_TEST_ADDRESSES ||
+    process.env.VITE_PURGE_ADDRESSES ||
+    ''
+  ),
+  '0x9999888877776666555544443333222211110000',
+  '0x3333444455556666777788889999000011112222',
+]);
 
 export function isDemoOrMockJobOnServer(job: any): boolean {
   if (!job) return true;
@@ -340,6 +344,7 @@ export function isDemoOrMockJobOnServer(job: any): boolean {
     id === 'job-102' ||
     id.startsWith('mock-') ||
     id.startsWith('test-') ||
+    id.startsWith('demo-') ||
     id.startsWith('job-mock-')
   ) {
     return true;
@@ -372,6 +377,22 @@ export function isJobExpiredOnServer(job: any): boolean {
   if (job.status !== 'Open' || Boolean(job.freelancer)) return false;
   const postedAt = job.createdAt || Date.now();
   return (Date.now() - postedAt) >= (JOB_AUTO_EXPIRY_DAYS * MS_PER_DAY);
+}
+
+export function matchJobServer(j: any, targetId: string): boolean {
+  if (!j || !targetId) return false;
+  const tid = targetId.toLowerCase().trim();
+  const jId = String(j.id || '').toLowerCase().trim();
+  const jContract = String(j.contractAddress || '').toLowerCase().trim();
+  if (jId === tid || jContract === tid) return true;
+  const cleanTid = tid.replace(/^job-escrow-/, '');
+  const cleanJid = jId.replace(/^job-escrow-/, '');
+  if (cleanTid && (cleanJid === cleanTid || jContract === cleanTid)) return true;
+  if (cleanJid && (cleanJid === tid || cleanJid === cleanTid)) return true;
+  if (cleanTid.length >= 8 && (jContract.startsWith(cleanTid) || cleanJid.startsWith(cleanTid))) return true;
+  if (cleanJid.length >= 8 && (tid.startsWith(cleanJid) || jContract.startsWith(cleanJid))) return true;
+  if (jContract.length >= 8 && (cleanTid.startsWith(jContract) || tid.startsWith(jContract))) return true;
+  return false;
 }
 
 export function pruneExpiredJobsOnServer() {
@@ -963,6 +984,7 @@ export function sanitizeSharedStateForRequester(
     for (const [addr, p] of Object.entries(state.profiles)) {
       if (!p) continue;
       const lowerKey = addr.toLowerCase().trim();
+      if (MOCK_OR_TEST_CLIENTS.has(lowerKey)) continue;
       const isOwner = Boolean(reqAddr && lowerKey === reqAddr);
       if (isAdmin || isOwner) {
         sanitizedProfiles[addr] = p;
@@ -1005,6 +1027,7 @@ export function sanitizeSharedStateForRequester(
     judges: state.judges || [],
     treasuryProposals: sanitizedTreasuryProposals,
     treasuryHistory: sanitizedTreasuryHistory,
+    maintenance: state.maintenance || { enabled: false },
   };
 }
 
@@ -1332,6 +1355,7 @@ app.post("/api/maintenance/reset", async (req: Request, res: Response) => {
     if (io) {
       io.emit("maintenance-mode-changed", sharedState.maintenance);
     }
+    broadcastScopedRealtimeSync();
     console.log(`[MAINTENANCE RESET] Platform maintenance forced to DISABLED by admin ${requesterAddress}`);
     res.json({ success: true, maintenance: sharedState.maintenance });
   } catch (err: any) {
@@ -1373,6 +1397,7 @@ app.post("/api/maintenance/toggle", async (req: Request, res: Response) => {
     if (io) {
       io.emit("maintenance-mode-changed", sharedState.maintenance);
     }
+    broadcastScopedRealtimeSync();
     console.log(`[MAINTENANCE] Mode toggled to ${isEnabled ? "ENABLED" : "DISABLED"} by admin ${requesterAddress}`);
     res.json({ success: true, maintenance: sharedState.maintenance });
   } catch (err: any) {
@@ -1688,9 +1713,7 @@ app.patch("/api/jobs/:id", async (req: Request, res: Response) => {
       ""
     ).toLowerCase().trim();
 
-    const targetJob = (sharedState.jobs || []).find((j: any) =>
-      j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId)
-    );
+    const targetJob = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
 
     if (targetJob && requesterAddress) {
       const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
@@ -1701,7 +1724,7 @@ app.patch("/api/jobs/:id", async (req: Request, res: Response) => {
     }
 
     sharedState.jobs = (sharedState.jobs || []).map((j: any) => {
-      if (j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId)) {
+      if (matchJobServer(j, jobId)) {
         return {
           ...j,
           ...updates,
@@ -1733,9 +1756,7 @@ app.delete("/api/jobs/:id", async (req: Request, res: Response) => {
       ""
     ).toLowerCase().trim();
 
-    const targetJob = (sharedState.jobs || []).find((j: any) => 
-      j && (String(j.id).toLowerCase() === jobId || String(j.contractAddress || '').toLowerCase() === jobId)
-    );
+    const targetJob = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
 
     if (targetJob) {
       const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
@@ -1745,9 +1766,7 @@ app.delete("/api/jobs/:id", async (req: Request, res: Response) => {
       }
     }
 
-    sharedState.jobs = (sharedState.jobs || []).filter(
-      (j: any) => j && String(j.id).toLowerCase() !== jobId && String(j.contractAddress || '').toLowerCase() !== jobId
-    );
+    sharedState.jobs = (sharedState.jobs || []).filter((j: any) => !matchJobServer(j, jobId));
 
     await persistStateToDatabases();
     broadcastScopedRealtimeSync();

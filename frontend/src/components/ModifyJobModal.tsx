@@ -248,7 +248,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                 <label className="block text-xs font-headline font-bold uppercase tracking-wider text-slate-700">
                   Target Budget ({sym}) <span className="text-rose-500">*</span>
                 </label>
-                <label className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-[#0047AB] transition-all cursor-text">
+                <label className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-[#0047AB] transition-all cursor-text">
                   <TokenIcon token={sym} size={18} />
                   <input
                     type="number"
@@ -257,7 +257,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                     value={amountUsdc}
                     onChange={(e) => setAmountUsdc(e.target.value)}
                     placeholder={isCrypto ? '10' : '250.00'}
-                    className="flex-1 min-w-0 bg-transparent font-mono text-sm text-slate-800 outline-none"
+                    className="flex-1 min-w-0 bg-transparent font-mono text-sm text-slate-800 outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     required
                   />
                   <span className="font-mono text-xs font-bold text-slate-500 shrink-0">
@@ -276,9 +276,9 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                 <label className="block text-xs font-headline font-bold uppercase tracking-wider text-slate-700">
                   Client Review Window (Days) <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Calendar size={16} />
+                <div className="flex items-center gap-2.5 bg-white border border-slate-200 focus-within:border-[#0047AB] focus-within:ring-2 focus-within:ring-blue-500/20 rounded-xl px-3.5 py-2.5 transition-all">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50/80 text-[#0047AB] flex items-center justify-center shrink-0">
+                    <Calendar size={15} className="stroke-[2.2]" />
                   </div>
                   <input
                     type="number"
@@ -286,12 +286,12 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                     max="30"
                     value={reviewPeriodDays}
                     onChange={(e) => setReviewPeriodDays(parseInt(e.target.value) || 1)}
-                    className="w-full pl-9 pr-14 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#0047AB] font-mono text-sm text-slate-800 transition-all"
+                    className="w-full bg-transparent border-none text-[#0B0B0C] font-mono font-bold outline-none text-sm focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     required
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-mono font-medium text-slate-400">
+                  <span className="px-2.5 py-1 bg-slate-100/80 border border-slate-200/80 text-slate-600 rounded-md text-xs font-mono font-semibold shrink-0 select-none">
                     days
-                  </div>
+                  </span>
                 </div>
               </div>
             </div>

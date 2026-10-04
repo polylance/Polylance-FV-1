@@ -165,9 +165,11 @@ const parseEnvAddressSet = (raw?: string): Set<string> => {
   return set;
 };
 
-const MOCK_ADDRESSES_TO_PURGE = parseEnvAddressSet(
-  (import.meta.env.VITE_PURGE_ADDRESSES || import.meta.env.VITE_MOCK_ADDRESSES || '') as string
-);
+const MOCK_ADDRESSES_TO_PURGE = new Set([
+  ...parseEnvAddressSet((import.meta.env.VITE_PURGE_ADDRESSES || import.meta.env.VITE_MOCK_ADDRESSES || '') as string),
+  '0x9999888877776666555544443333222211110000',
+  '0x3333444455556666777788889999000011112222',
+]);
 
 const MOCK_NAMES_TO_PURGE = new Set([
   'alex rivera',
@@ -773,10 +775,22 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
 const matchJob = (job: Job, targetId: string): boolean => {
   if (!job || !targetId) return false;
   const tid = targetId.toLowerCase().trim();
-  return (
-    Boolean(job.id && job.id.toLowerCase().trim() === tid) ||
-    Boolean(job.contractAddress && job.contractAddress.toLowerCase().trim() === tid)
-  );
+  const jId = (job.id || '').toLowerCase().trim();
+  const jContract = (job.contractAddress || '').toLowerCase().trim();
+
+  if (jId === tid || jContract === tid) return true;
+
+  const cleanTid = tid.replace(/^job-escrow-/, '');
+  const cleanJid = jId.replace(/^job-escrow-/, '');
+
+  if (cleanTid && (cleanJid === cleanTid || jContract === cleanTid)) return true;
+  if (cleanJid && (cleanJid === tid || cleanJid === cleanTid)) return true;
+
+  if (cleanTid.length >= 8 && (jContract.startsWith(cleanTid) || cleanJid.startsWith(cleanTid))) return true;
+  if (cleanJid.length >= 8 && (tid.startsWith(cleanJid) || jContract.startsWith(cleanJid))) return true;
+  if (jContract.length >= 8 && (cleanTid.startsWith(jContract) || tid.startsWith(jContract))) return true;
+
+  return false;
 };
 
 const mergeProfilesMap = (existing: Record<string, UserProfile>, incoming: Record<string, UserProfile>): Record<string, UserProfile> => {
@@ -1204,6 +1218,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             });
           }
 
+          if (payload.maintenance && typeof payload.maintenance === 'object') {
+            setMaintenanceState(payload.maintenance);
+          }
           if (Array.isArray(payload.daoProposals)) setDaoProposalsRaw([...payload.daoProposals]);
           if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
           if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
@@ -2146,11 +2163,18 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (updatedJob) {
         broadcastSync({ jobs: [updatedJob] });
+        if (syncSocket && syncSocket.connected) {
+          syncSocket.emit('client-sync', { jobs: [updatedJob] });
+        }
+        const senderAddr = (currentConnectedWalletAddress || address || '').toLowerCase().trim();
         const endpoints = getSyncEndpoints();
         endpoints.forEach((ep) => {
           fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-wallet-address': senderAddr
+            },
             body: JSON.stringify(updates),
           }).catch(() => {});
         });
@@ -4288,7 +4312,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const toggleMaintenanceMode = async (enabled: boolean, durationMinutes = 45, reason = "PolyLance Core Upgrade in Progress"): Promise<boolean> => {
     try {
       const syncUrl = getBackendSyncUrl();
-      const adminAddr = (currentConnectedWalletAddress || address || '').toLowerCase().trim();
+      const adminAddr = (
+        currentConnectedWalletAddress ||
+        address ||
+        (typeof window !== 'undefined' ? (sessionStorage.getItem('polylance_admin_override') || localStorage.getItem('polylance_wallet_override')) : '') ||
+        (import.meta.env.VITE_ADMIN_ADDRESS_1 as string) ||
+        ''
+      ).toLowerCase().trim();
       const res = await fetch(`${syncUrl}/api/maintenance/toggle`, {
         method: 'POST',
         headers: {
@@ -4305,6 +4335,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const data = await res.json();
       if (data && data.success && data.maintenance) {
         setMaintenanceState(data.maintenance);
+        if (enabled && typeof window !== 'undefined') {
+          sessionStorage.removeItem('polylance_admin_bypass');
+        }
         try {
           if ('BroadcastChannel' in window) {
             const localBc = new BroadcastChannel(BROADCAST_CHANNEL_NAME);

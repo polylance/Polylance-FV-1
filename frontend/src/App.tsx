@@ -197,6 +197,15 @@ const AppContent: React.FC = () => {
     }
   };
 
+  React.useEffect(() => {
+    if (!maintenanceState?.enabled) {
+      setAdminBypassed(false);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('polylance_admin_bypass');
+      }
+    }
+  }, [maintenanceState?.enabled]);
+
   // Direct Route to /maintenance or full platform lock for non-admins
   const isMaintenanceRoute = location.pathname === '/maintenance';
   const isSiteLocked = Boolean(maintenanceState?.enabled && (!isAdmin || !adminBypassed));

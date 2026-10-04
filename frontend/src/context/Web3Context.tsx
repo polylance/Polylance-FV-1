@@ -19,28 +19,28 @@ export const DEMO_WALLETS: Record<DemoRole, { address: string; label: string; is
     reputationCount: 0,
   },
   client: {
-    address: import.meta.env.VITE_CLIENT_ADDRESS as string || '',
+    address: '',
     label: 'Client (Project Owner)',
     isArbitrator: false,
     isTreasuryAdmin: false,
     reputationCount: 0,
   },
   freelancer: {
-    address: import.meta.env.VITE_TESTER_ADDRESS as string || '',
+    address: '',
     label: 'Freelancer (Dev)',
     isArbitrator: false,
     isTreasuryAdmin: false,
     reputationCount: 0,
   },
   judge: {
-    address: import.meta.env.VITE_JUDGE_ADDRESS as string || '',
+    address: '',
     label: 'Arbitrator / Judge',
     isArbitrator: true,
     isTreasuryAdmin: false,
     reputationCount: 0,
   },
   admin: {
-    address: import.meta.env.VITE_ADMIN_ADDRESS_1 as string || '',
+    address: '',
     label: 'Protocol Admin',
     isArbitrator: false,
     isTreasuryAdmin: true,
@@ -290,7 +290,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const isRefreshingBalancesRef = useRef(false);
 
   const refreshBalances = useCallback(async (overrideAddress?: string) => {
-    const targetAddr = overrideAddress || (walletIsConnected ? walletAddress : (DEMO_WALLETS[currentRole]?.address || ''));
+    const targetAddr = overrideAddress || (walletIsConnected ? walletAddress : '');
     if (!targetAddr || !ethers.isAddress(targetAddr)) {
       setBalanceNative('0.00');
       setBalanceUsdc('0.00');

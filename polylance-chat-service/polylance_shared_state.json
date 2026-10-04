@@ -485,6 +485,7 @@
         }
       ],
       "preAcceptMessages": [],
+      "paymentTokenSymbol": "POL",
       "modificationRequests": [
         {
           "id": "v0uay5wmcsf",
@@ -3090,6 +3091,63 @@
       "negotiatedDeadlineDays": 2
     },
     {
+      "id": "0xdaCCE6fd6665",
+      "title": "Enhance PolyLance UI with Minimalist Redesign",
+      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Posted (MATIC Escrow)",
+          "status": "completed",
+          "txHash": "",
+          "timestamp": 1791122761269
+        },
+        {
+          "step": "Funded",
+          "title": "Fund Escrow",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Submitted",
+          "title": "Submit Work",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Completed",
+          "title": "Release Payment",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        }
+      ],
+      "status": "Open",
+      "category": "frontend",
+      "amountEth": "0.05",
+      "createdAt": 1791122761269,
+      "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "amountUsdc": "25.00",
+      "description": "Enhance the Entire Polylance UI and also change the design to Minimalist design",
+      "applications": [],
+      "chatMessages": [],
+      "paymentToken": "0x0000000000000000000000000000000000000000",
+      "contractAddress": "0xdacce6fd6665ab8bb24cd0834eb44cf2455450fe",
+      "progressUpdates": [],
+      "reviewPeriodDays": 7,
+      "clientAgreedTerms": true,
+      "extensionRequests": [],
+      "preAcceptMessages": [],
+      "paymentTokenSymbol": "POL",
+      "modificationRequests": [],
+      "negotiationProposals": [],
+      "paymentTokenDecimals": 18,
+      "freelancerAgreedTerms": true
+    },
+    {
       "id": "0x16db4bd8e5f5",
       "proof": {
         "title": "Test 2 completed ",
@@ -3179,10 +3237,10 @@
         "reasoningIpfsHash": "bafybeib27koylejuycvot6cm7y5imwjchswatm"
       },
       "category": "frontend",
-      "amountEth": "0.00",
+      "amountEth": "0.0008",
       "createdAt": 1786289919096,
       "termsHash": "0xf071dbe386063232fa614661043b2f688933c5d00fefa839df2084a0db63db8f",
-      "amountUsdc": "0.00",
+      "amountUsdc": "2",
       "freelancer": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
       "description": "test 2 for polylance",
       "submittedAt": 1786290456074,
@@ -3576,63 +3634,6 @@
       "paymentTokenDecimals": 18,
       "freelancerAgreedTerms": true,
       "negotiatedDeadlineDays": 1
-    },
-    {
-      "id": "job-escrow-0xdacce6fd",
-      "title": "Enhance PolyLance UI with Minimalist Redesign",
-      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-      "events": [
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Posted (MATIC Escrow)",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1791122761269
-        },
-        {
-          "step": "Funded",
-          "title": "Fund Escrow",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Submitted",
-          "title": "Submit Work",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Completed",
-          "title": "Release Payment",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        }
-      ],
-      "status": "Open",
-      "category": "frontend",
-      "amountEth": "0.05",
-      "createdAt": 1791122761269,
-      "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "amountUsdc": "25.00",
-      "description": "Enhance the Entire Polylance UI and also change the design to Minimalist design",
-      "applications": [],
-      "chatMessages": [],
-      "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0xdacce6fd6665ab8bb24cd0834eb44cf2455450fe",
-      "progressUpdates": [],
-      "reviewPeriodDays": 7,
-      "clientAgreedTerms": true,
-      "extensionRequests": [],
-      "preAcceptMessages": [],
-      "paymentTokenSymbol": "POL",
-      "modificationRequests": [],
-      "negotiationProposals": [],
-      "paymentTokenDecimals": 18,
-      "freelancerAgreedTerms": true
     }
   ],
   "profiles": {
