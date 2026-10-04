@@ -171,9 +171,13 @@ export const MOCK_ADDRESSES_TO_PURGE = new Set([
   '0x3333444455556666777788889999000011112222',
   '0x474d8c97445fbcf4e13c257556adbced11a9def8',
   '0xcaf6aac649b8a7aefa76a870fa180fc580a3e2e8',
+  '0x9999999999999999999999999999999999999999',
+  '0x1111111111111111111111111111111111111111',
+  '0x2222222222222222222222222222222222222222',
+  '0x0000000000000000000000000000000000000000',
 ]);
 
-const MOCK_NAMES_TO_PURGE = new Set([
+export const MOCK_NAMES_TO_PURGE = new Set([
   'alex rivera',
   'alex thorne',
   'elena rostova',
@@ -181,8 +185,27 @@ const MOCK_NAMES_TO_PURGE = new Set([
   'nadia chen',
   'devpioneer',
   'zenith global',
-  'zenith global ventures'
+  'zenith global ventures',
+  'test developer',
+  'demo developer',
+  'test user',
+  'demo user',
+  'test client',
+  'demo client',
+  'test freelancer',
+  'demo freelancer',
 ]);
+
+export const isMockOrDemoProfile = (p?: Partial<UserProfile> | null): boolean => {
+  if (!p) return true;
+  const addr = (p.address || '').toLowerCase().trim();
+  if (!addr || MOCK_ADDRESSES_TO_PURGE.has(addr)) return true;
+  if (/^0x(.)\1{39}$/i.test(addr)) return true;
+  const name = (p.displayName || '').toLowerCase().trim();
+  if (MOCK_NAMES_TO_PURGE.has(name)) return true;
+  if (name.startsWith('test ') || name.startsWith('demo ') || name === 'test' || name === 'demo') return true;
+  return false;
+};
 
 const HARDHAT_TEST_ADDRESSES = parseEnvAddressSet(
   (import.meta.env.VITE_TEST_ADDRESSES || '') as string
@@ -247,8 +270,7 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
     const lowerAddr = addr.toLowerCase();
 
     // Strip legacy mock records
-    if (MOCK_ADDRESSES_TO_PURGE.has(lowerAddr)) continue;
-    if (profile.displayName && MOCK_NAMES_TO_PURGE.has(profile.displayName.toLowerCase().trim())) continue;
+    if (MOCK_ADDRESSES_TO_PURGE.has(lowerAddr) || isMockOrDemoProfile(profile)) continue;
 
     let cleanedProfile = { ...profile };
     const currGh = cleanedProfile.githubUsername?.toLowerCase().trim();

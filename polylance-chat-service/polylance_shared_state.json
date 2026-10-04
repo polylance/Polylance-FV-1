@@ -122,64 +122,32 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1791131999377",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hey",
-          "timestamp": 1791131999377
-        },
-        {
-          "id": "msg-1791132013541",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132013541,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132024225",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hey",
-          "timestamp": 1791132024225
-        },
-        {
-          "id": "msg-1791132051410",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hey",
-          "timestamp": 1791132051410
-        },
-        {
-          "id": "msg-1791132058428",
+          "id": "msg-1791132757611",
           "sender": "Client",
           "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132058428
+          "timestamp": 1791132757611
         },
         {
-          "id": "msg-1791132090406",
-          "text": "hello",
+          "id": "msg-1791132766558",
+          "text": "hi",
           "sender": "Freelancer",
-          "timestamp": 1791132090406,
+          "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "id": "msg-1791132095237",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "id": "msg-1791132909819",
+          "sender": "Freelancer",
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hi",
-          "timestamp": 1791132095237
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-      "chatClearedAt": 1788070314652,
+      "chatClearedAt": 1791132720846,
       "contractAddress": "0xd8582456fd66337707be2c2574c9e4a1dbd21c09",
       "progressUpdates": [],
       "reviewPeriodDays": 1,
@@ -189,50 +157,22 @@
         {
           "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "senderRole": "Client",
-          "text": "hey",
-          "timestamp": 1791131999365,
+          "text": "hello",
+          "timestamp": 1791132757606,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "text": "hi",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hey",
-          "timestamp": 1791132024214,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hey",
-          "timestamp": 1791132051400,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hello",
-          "timestamp": 1791132058419,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
           "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hi",
-          "timestamp": 1791132095225,
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -421,6 +361,22 @@
           "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132592500",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132592500,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132766558",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132766558,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "USDC",
@@ -465,6 +421,20 @@
           "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132090386,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132592480,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
@@ -590,6 +560,30 @@
           "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132592500",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132592500,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132766558",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132766558,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132909819",
+          "sender": "Freelancer",
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
@@ -630,6 +624,27 @@
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132090386,
           "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132592480,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132766541,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -764,77 +779,28 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1790171242406",
-          "text": "hey client",
-          "sender": "Freelancer",
-          "timestamp": 1790171242406,
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "id": "msg-1790171264913",
-          "text": "I'm Capable to build the UI to polylance",
-          "sender": "Freelancer",
-          "timestamp": 1790171264913,
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "id": "msg-1790171281619",
-          "text": "so I need some more Tokens as payments",
-          "sender": "Freelancer",
-          "timestamp": 1790171281619,
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "id": "msg-1790171299537",
-          "text": "📋 Freelancer proposed: $1 USDC in 3 days",
-          "sender": "Freelancer",
-          "proposal": {
-            "id": "prop-1790171299537-zejkm",
-            "note": "",
-            "jobId": "0x7fa1CD890C3e",
-            "status": "Pending",
-            "createdAt": 1790171299537,
-            "amountUsdc": "1",
-            "proposedBy": "Freelancer",
-            "isFinalCall": false,
-            "deadlineDays": 3,
-            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-          },
-          "timestamp": 1790171299537,
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "id": "msg-1790434998022",
-          "text": "🎉 Client ACCEPTED the terms: $1 USDC in 3 days! Full contract terms are updated on-chain.",
+          "id": "msg-1791132757611",
           "sender": "Client",
-          "timestamp": 1790434998022,
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hello",
+          "timestamp": 1791132757611
         },
         {
-          "id": "msg-1790520262862",
-          "text": "🚀 Progress Update: 100% Complete\n\ncompleted\nDemo: https://certifiedpass.polylance.codes/#/",
-          "sender": "Freelancer",
-          "timestamp": 1790520262862
-        },
-        {
-          "id": "msg-1791132013541",
+          "id": "msg-1791132766558",
           "text": "hi",
           "sender": "Freelancer",
-          "timestamp": 1791132013541,
+          "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "id": "msg-1791132090406",
-          "text": "hello",
+          "id": "msg-1791132909819",
           "sender": "Freelancer",
-          "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
@@ -856,64 +822,24 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "text": "hey client",
           "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "timestamp": 1790171242400,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "text": "I'm Capable to build the UI to polylance",
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "timestamp": 1790171264908,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "text": "so I need some more Tokens as payments",
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "timestamp": 1790171281615,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "text": "📋 Freelancer proposed: $1 USDC in 3 days",
-          "sender": "Freelancer",
-          "proposal": {
-            "id": "prop-1790171299537-zejkm",
-            "note": "",
-            "jobId": "0x7fa1CD890C3e",
-            "status": "Pending",
-            "createdAt": 1790171299537,
-            "amountUsdc": "1",
-            "proposedBy": "Freelancer",
-            "isFinalCall": false,
-            "deadlineDays": 3,
-            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-          },
-          "timestamp": 1790171299537,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "text": "🎉 Client ACCEPTED the terms: $1 USDC in 3 days! Full contract terms are updated on-chain.",
-          "sender": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
-          "timestamp": 1790434998022,
           "senderRole": "Client",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+          "text": "hello",
+          "timestamp": 1791132757606,
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "text": "hi",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
           "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -937,7 +863,8 @@
       ],
       "paymentTokenDecimals": 18,
       "freelancerAgreedTerms": true,
-      "negotiatedDeadlineDays": 3
+      "negotiatedDeadlineDays": 3,
+      "chatClearedAt": 1791132720846
     },
     {
       "id": "0x0e1d5BC7c878",
@@ -1085,24 +1012,32 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1791132013541",
+          "id": "msg-1791132757611",
+          "sender": "Client",
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hello",
+          "timestamp": 1791132757611
+        },
+        {
+          "id": "msg-1791132766558",
           "text": "hi",
           "sender": "Freelancer",
-          "timestamp": 1791132013541,
+          "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "id": "msg-1791132090406",
-          "text": "hello",
+          "id": "msg-1791132909819",
           "sender": "Freelancer",
-          "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
-      "chatClearedAt": 1789224419056,
+      "chatClearedAt": 1791132720846,
       "contractAddress": "0x0e1d5bc7c8789731a9935f05081ccac9821d4f4b",
       "progressUpdates": [
         {
@@ -1119,17 +1054,24 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hello",
+          "timestamp": 1791132757606,
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
           "text": "hi",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
           "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -1141,6 +1083,12 @@
     },
     {
       "id": "0x37835B31461a",
+      "proof": {
+        "title": "asdfghjkl;",
+        "description": "sdfghjk",
+        "submittedAt": 1787311736541,
+        "evidenceHashes": []
+      },
       "title": "Test Payment Workflow ",
       "client": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
       "events": [
@@ -1204,6 +1152,7 @@
       "amountUsdc": "20.00",
       "freelancer": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
       "description": "**Test**Real payments in polylance by issuing the Demo Jobs and Test with a real Freelancer in Polylance and check the workflow of transactions like ,\n* Payment Fund Escrow \n* Hash is verified in Polyscan \n* amount in client amount is deduct or not .\n* After Freelancer Complete his job Funds are **Transfered** or not \nCheck every payment related Vulnerabilities in Polylance .",
+      "submittedAt": 1787311736601,
       "applications": [
         {
           "applicant": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
@@ -1242,64 +1191,32 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1791131999377",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hey",
-          "timestamp": 1791131999377
-        },
-        {
-          "id": "msg-1791132013541",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132013541,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132024225",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hey",
-          "timestamp": 1791132024225
-        },
-        {
-          "id": "msg-1791132051410",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hey",
-          "timestamp": 1791132051410
-        },
-        {
-          "id": "msg-1791132058428",
+          "id": "msg-1791132757611",
           "sender": "Client",
           "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132058428
+          "timestamp": 1791132757611
         },
         {
-          "id": "msg-1791132090406",
-          "text": "hello",
+          "id": "msg-1791132766558",
+          "text": "hi",
           "sender": "Freelancer",
-          "timestamp": 1791132090406,
+          "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "id": "msg-1791132095237",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "id": "msg-1791132909819",
+          "sender": "Freelancer",
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hi",
-          "timestamp": 1791132095237
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
-      "chatClearedAt": 1791120000413,
+      "chatClearedAt": 1791132720846,
       "contractAddress": "0x37835b31461aee749e49a06431518cbd628e3501",
       "progressUpdates": [
         {
@@ -1341,50 +1258,22 @@
         {
           "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "senderRole": "Client",
-          "text": "hey",
-          "timestamp": 1791131999365,
+          "text": "hello",
+          "timestamp": 1791132757606,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "text": "hi",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hey",
-          "timestamp": 1791132024214,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hey",
-          "timestamp": 1791132051400,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hello",
-          "timestamp": 1791132058419,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
           "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hi",
-          "timestamp": 1791132095225,
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -1392,14 +1281,7 @@
       "modificationRequests": [],
       "negotiationProposals": [],
       "paymentTokenDecimals": 6,
-      "freelancerAgreedTerms": true,
-      "proof": {
-        "title": "asdfghjkl;",
-        "description": "sdfghjk",
-        "submittedAt": 1787311736541,
-        "evidenceHashes": []
-      },
-      "submittedAt": 1787311736601
+      "freelancerAgreedTerms": true
     },
     {
       "id": "0x2F463F3dB8C0",
@@ -1530,6 +1412,22 @@
           "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132592500",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132592500,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132766558",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132766558,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
@@ -1550,6 +1448,20 @@
           "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132090386,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132592480,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
@@ -1696,77 +1608,28 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1790171242406",
-          "text": "hey client",
-          "sender": "Freelancer",
-          "timestamp": 1790171242406,
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "id": "msg-1790171264913",
-          "text": "I'm Capable to build the UI to polylance",
-          "sender": "Freelancer",
-          "timestamp": 1790171264913,
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "id": "msg-1790171281619",
-          "text": "so I need some more Tokens as payments",
-          "sender": "Freelancer",
-          "timestamp": 1790171281619,
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "id": "msg-1790171299537",
-          "text": "📋 Freelancer proposed: $1 USDC in 3 days",
-          "sender": "Freelancer",
-          "proposal": {
-            "id": "prop-1790171299537-zejkm",
-            "note": "",
-            "jobId": "0x7fa1CD890C3e",
-            "status": "Pending",
-            "createdAt": 1790171299537,
-            "amountUsdc": "1",
-            "proposedBy": "Freelancer",
-            "isFinalCall": false,
-            "deadlineDays": 3,
-            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-          },
-          "timestamp": 1790171299537,
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "id": "msg-1790434998022",
-          "text": "🎉 Client ACCEPTED the terms: $1 USDC in 3 days! Full contract terms are updated on-chain.",
+          "id": "msg-1791132757611",
           "sender": "Client",
-          "timestamp": 1790434998022,
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hello",
+          "timestamp": 1791132757611
         },
         {
-          "id": "msg-1790520262862",
-          "text": "🚀 Progress Update: 100% Complete\n\ncompleted\nDemo: https://certifiedpass.polylance.codes/#/",
-          "sender": "Freelancer",
-          "timestamp": 1790520262862
-        },
-        {
-          "id": "msg-1791132013541",
+          "id": "msg-1791132766558",
           "text": "hi",
           "sender": "Freelancer",
-          "timestamp": 1791132013541,
+          "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "id": "msg-1791132090406",
-          "text": "hello",
+          "id": "msg-1791132909819",
           "sender": "Freelancer",
-          "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
@@ -1788,64 +1651,24 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
-          "text": "hey client",
           "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "timestamp": 1790171242400,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "text": "I'm Capable to build the UI to polylance",
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "timestamp": 1790171264908,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "text": "so I need some more Tokens as payments",
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "timestamp": 1790171281615,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "text": "📋 Freelancer proposed: $1 USDC in 3 days",
-          "sender": "Freelancer",
-          "proposal": {
-            "id": "prop-1790171299537-zejkm",
-            "note": "",
-            "jobId": "0x7fa1CD890C3e",
-            "status": "Pending",
-            "createdAt": 1790171299537,
-            "amountUsdc": "1",
-            "proposedBy": "Freelancer",
-            "isFinalCall": false,
-            "deadlineDays": 3,
-            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-          },
-          "timestamp": 1790171299537,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
-        },
-        {
-          "text": "🎉 Client ACCEPTED the terms: $1 USDC in 3 days! Full contract terms are updated on-chain.",
-          "sender": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
-          "timestamp": 1790434998022,
           "senderRole": "Client",
-          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+          "text": "hello",
+          "timestamp": 1791132757606,
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "text": "hi",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
           "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -1869,7 +1692,8 @@
       ],
       "paymentTokenDecimals": 18,
       "freelancerAgreedTerms": true,
-      "negotiatedDeadlineDays": 3
+      "negotiatedDeadlineDays": 3,
+      "chatClearedAt": 1791132720846
     },
     {
       "id": "0x64707664854e",
@@ -1967,60 +1791,28 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1791131999377",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hey",
-          "timestamp": 1791131999377
-        },
-        {
-          "id": "msg-1791132013541",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132013541,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132024225",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hey",
-          "timestamp": 1791132024225
-        },
-        {
-          "id": "msg-1791132051410",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hey",
-          "timestamp": 1791132051410
-        },
-        {
-          "id": "msg-1791132058428",
+          "id": "msg-1791132757611",
           "sender": "Client",
           "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "text": "hello",
-          "timestamp": 1791132058428
+          "timestamp": 1791132757611
         },
         {
-          "id": "msg-1791132090406",
-          "text": "hello",
+          "id": "msg-1791132766558",
+          "text": "hi",
           "sender": "Freelancer",
-          "timestamp": 1791132090406,
+          "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "id": "msg-1791132095237",
-          "sender": "Client",
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "id": "msg-1791132909819",
+          "sender": "Freelancer",
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hi",
-          "timestamp": 1791132095237
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
@@ -2032,57 +1824,30 @@
         {
           "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
           "senderRole": "Client",
-          "text": "hey",
-          "timestamp": 1791131999365,
+          "text": "hello",
+          "timestamp": 1791132757606,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
           "text": "hi",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hey",
-          "timestamp": 1791132024214,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hey",
-          "timestamp": 1791132051400,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hello",
-          "timestamp": 1791132058419,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
           "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "senderRole": "Client",
-          "text": "hi",
-          "timestamp": 1791132095225,
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentTokenSymbol": "POL",
       "modificationRequests": [],
       "negotiationProposals": [],
-      "paymentTokenDecimals": 18
+      "paymentTokenDecimals": 18,
+      "chatClearedAt": 1791132720846
     },
     {
       "id": "0xce1376c2272E",
@@ -2232,24 +1997,32 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1791132013541",
+          "id": "msg-1791132757611",
+          "sender": "Client",
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hello",
+          "timestamp": 1791132757611
+        },
+        {
+          "id": "msg-1791132766558",
           "text": "hi",
           "sender": "Freelancer",
-          "timestamp": 1791132013541,
+          "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "id": "msg-1791132090406",
-          "text": "hello",
+          "id": "msg-1791132909819",
           "sender": "Freelancer",
-          "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-      "chatClearedAt": 1791105169678,
+      "chatClearedAt": 1791132720846,
       "contractAddress": "0xce1376c2272ec6ed6e1d547a42ce80afca835487",
       "progressUpdates": [
         {
@@ -2318,17 +2091,24 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hello",
+          "timestamp": 1791132757606,
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
           "text": "hi",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
           "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -2468,24 +2248,32 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1791132013541",
+          "id": "msg-1791132757611",
+          "sender": "Client",
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hello",
+          "timestamp": 1791132757611
+        },
+        {
+          "id": "msg-1791132766558",
           "text": "hi",
           "sender": "Freelancer",
-          "timestamp": 1791132013541,
+          "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "id": "msg-1791132090406",
-          "text": "hello",
+          "id": "msg-1791132909819",
           "sender": "Freelancer",
-          "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "chatClearedAt": 1791105169678,
+      "chatClearedAt": 1791132720846,
       "contractAddress": "0xf04890e8003cb3920399d116728506c2fc738771",
       "progressUpdates": [
         {
@@ -2511,17 +2299,24 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hello",
+          "timestamp": 1791132757606,
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
           "text": "hi",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
           "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -2638,44 +2433,28 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1789365118624",
-          "text": "hi",
+          "id": "msg-1791132757611",
           "sender": "Client",
-          "timestamp": 1789365118624,
           "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hello",
+          "timestamp": 1791132757611
         },
         {
-          "id": "msg-1789365142750",
-          "text": "hey hi",
-          "sender": "Freelancer",
-          "timestamp": 1789365142750,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1789365154427",
-          "text": "what's up",
-          "sender": "Freelancer",
-          "timestamp": 1789365154427,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132013541",
+          "id": "msg-1791132766558",
           "text": "hi",
           "sender": "Freelancer",
-          "timestamp": 1791132013541,
+          "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "id": "msg-1791132090406",
-          "text": "hello",
+          "id": "msg-1791132909819",
           "sender": "Freelancer",
-          "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
@@ -2720,17 +2499,24 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hello",
+          "timestamp": 1791132757606,
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
           "text": "hi",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
           "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -2745,7 +2531,8 @@
       ],
       "negotiationProposals": [],
       "paymentTokenDecimals": 18,
-      "freelancerAgreedTerms": true
+      "freelancerAgreedTerms": true,
+      "chatClearedAt": 1791132720846
     },
     {
       "id": "0x03B7a86F3bfC",
@@ -3024,6 +2811,30 @@
           "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132592500",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132592500,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132766558",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132766558,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132909819",
+          "sender": "Freelancer",
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
@@ -3045,6 +2856,27 @@
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132090386,
           "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132592480,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132766541,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -3216,6 +3048,22 @@
           "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132592500",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132592500,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132766558",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132766558,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "USDC",
@@ -3278,6 +3126,20 @@
           "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132090386,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132592480,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
@@ -3450,6 +3312,22 @@
           "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132592500",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132592500,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132766558",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132766558,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
@@ -3523,6 +3401,20 @@
           "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
           "timestamp": 1791132090386,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132592480,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
@@ -3781,24 +3673,32 @@
       ],
       "chatMessages": [
         {
-          "id": "msg-1791132013541",
+          "id": "msg-1791132757611",
+          "sender": "Client",
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hello",
+          "timestamp": 1791132757611
+        },
+        {
+          "id": "msg-1791132766558",
           "text": "hi",
           "sender": "Freelancer",
-          "timestamp": 1791132013541,
+          "timestamp": 1791132766558,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "id": "msg-1791132090406",
-          "text": "hello",
+          "id": "msg-1791132909819",
           "sender": "Freelancer",
-          "timestamp": 1791132090406,
           "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "text": "hey",
+          "timestamp": 1791132909819
         }
       ],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "chatClearedAt": 1790172693650,
+      "chatClearedAt": 1791132720846,
       "contractAddress": "0xcf3665d90001e7335a3eca9a00ceb2d88f9e9550",
       "progressUpdates": [],
       "negotiatedAmount": "1",
@@ -3807,17 +3707,24 @@
       "extensionRequests": [],
       "preAcceptMessages": [
         {
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "senderRole": "Client",
+          "text": "hello",
+          "timestamp": 1791132757606,
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
           "text": "hi",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
+          "timestamp": 1791132766541,
           "senderRole": "Freelancer",
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         },
         {
-          "text": "hello",
           "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
           "senderRole": "Freelancer",
+          "text": "hey",
+          "timestamp": 1791132909803,
           "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
         }
       ],
@@ -4019,48 +3926,16 @@
           "proposalIpfsHash": "bafybeirtpery35zo3cfhdyfmprncpwz3xmzadf"
         }
       ],
-      "chatMessages": [
-        {
-          "id": "msg-1791132013541",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hi",
-          "timestamp": 1791132013541
-        },
-        {
-          "id": "msg-1791132090406",
-          "sender": "Freelancer",
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "text": "hello",
-          "timestamp": 1791132090406
-        }
-      ],
+      "chatMessages": [],
       "paymentToken": "0x0000000000000000000000000000000000000000",
-      "chatClearedAt": 1790172693650,
+      "chatClearedAt": 1791132721298,
       "contractAddress": "0xa1b17f36c1927d53b0efe67881d3ded9896dd9b8",
       "progressUpdates": [],
       "negotiatedAmount": "1",
       "reviewPeriodDays": 2,
       "clientAgreedTerms": true,
       "extensionRequests": [],
-      "preAcceptMessages": [
-        {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
-          "text": "hi",
-          "timestamp": 1791132013526,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "senderRole": "Freelancer",
-          "text": "hello",
-          "timestamp": 1791132090386,
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        }
-      ],
+      "preAcceptMessages": [],
       "paymentTokenSymbol": "POL",
       "modificationRequests": [],
       "negotiationProposals": [
@@ -4099,6 +3974,12 @@
     },
     {
       "id": "0xDd717Bf1C023",
+      "proof": {
+        "title": "asdfghjkl;",
+        "description": "sdfghjk",
+        "submittedAt": 1787311736541,
+        "evidenceHashes": []
+      },
       "title": "Test the Real Payments in Polylance ",
       "client": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
       "events": [
@@ -4136,6 +4017,7 @@
       "sbtTokenId": 2974,
       "completedAt": 1788687516056,
       "description": "Test the real payments works on polylance and also check the real crypto tokens top-up and also auto debit when the fund escrow is signed and release the amount to the freelancers ",
+      "submittedAt": 1787311736601,
       "applications": [
         {
           "applicant": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
@@ -4217,14 +4099,7 @@
       "modificationRequests": [],
       "negotiationProposals": [],
       "paymentTokenDecimals": 18,
-      "freelancerAgreedTerms": true,
-      "proof": {
-        "title": "asdfghjkl;",
-        "description": "sdfghjk",
-        "submittedAt": 1787311736541,
-        "evidenceHashes": []
-      },
-      "submittedAt": 1787311736601
+      "freelancerAgreedTerms": true
     }
   ],
   "profiles": {

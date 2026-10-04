@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
-import { usePolyLanceData, isDemoOrMockJob, MOCK_ADDRESSES_TO_PURGE } from '../context/PolyLanceDataContext';
+import { usePolyLanceData, isDemoOrMockJob, MOCK_ADDRESSES_TO_PURGE, isMockOrDemoProfile } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
 import { 
   Award, 
@@ -83,7 +83,7 @@ export const Reputation: React.FC = () => {
     Object.values(profiles || {}).forEach((p) => {
       if (p && p.address) {
         const lower = p.address.toLowerCase().trim();
-        if (MOCK_ADDRESSES_TO_PURGE.has(lower)) return;
+        if (MOCK_ADDRESSES_TO_PURGE.has(lower) || isMockOrDemoProfile(p)) return;
         map.set(lower, p);
       }
     });
@@ -92,7 +92,7 @@ export const Reputation: React.FC = () => {
     (jobs || []).filter((j) => !isDemoOrMockJob(j)).forEach((j) => {
       if (j.freelancer) {
         const lower = j.freelancer.toLowerCase().trim();
-        if (!MOCK_ADDRESSES_TO_PURGE.has(lower) && !map.has(lower)) {
+        if (!MOCK_ADDRESSES_TO_PURGE.has(lower) && !isMockOrDemoProfile({ address: lower }) && !map.has(lower)) {
           map.set(lower, {
             address: lower,
             displayName: `${lower.slice(0, 6)}...${lower.slice(-4)}`,
@@ -108,7 +108,7 @@ export const Reputation: React.FC = () => {
       }
       if (j.client) {
         const lower = j.client.toLowerCase().trim();
-        if (!MOCK_ADDRESSES_TO_PURGE.has(lower) && !map.has(lower)) {
+        if (!MOCK_ADDRESSES_TO_PURGE.has(lower) && !isMockOrDemoProfile({ address: lower }) && !map.has(lower)) {
           map.set(lower, {
             address: lower,
             displayName: `${lower.slice(0, 6)}...${lower.slice(-4)}`,
