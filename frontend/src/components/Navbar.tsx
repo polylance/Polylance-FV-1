@@ -18,6 +18,7 @@ import {
   Power,
   Shield,
   ShieldCheck,
+  Hexagon,
   Trophy,
   Landmark,
   MessageSquare,
@@ -41,7 +42,7 @@ import { isJudgeAddress, isAdminAddress } from '../utils/adminGuard';
 import { PolygonIcon } from './TokenIcon';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Nav Item: Clean Editorial Full-Width Navbar Tab with Teal Underline
+// Nav Item: Sculpted Contoured Glowing Tab Dock (Matching Image 3)
 // ──────────────────────────────────────────────────────────────────────────────
 interface NavItemProps {
   to: string;
@@ -51,23 +52,65 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ to, active, icon, label }) => {
+  const gradId = `tabGrad-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
   return (
     <Link
       to={to}
       className={`
-        relative h-16 flex items-center gap-1.5 px-3 text-[13px] font-medium select-none
-        border-b-2 transition-colors duration-150 whitespace-nowrap
+        relative h-16 flex items-center gap-1.5 px-3.5 text-[13px] select-none
+        transition-colors duration-150 whitespace-nowrap group
         ${
           active
-            ? 'text-[#0047AB] border-[#0047AB] font-semibold'
-            : 'text-[#4B5563] hover:text-[#0B0B0C] border-transparent'
+            ? 'text-[#0047AB] font-bold'
+            : 'text-[#4B5563] hover:text-[#0047AB] font-medium'
         }
       `}
     >
-      <span className={active ? 'text-[#0047AB]' : 'text-[#8892A0]'}>
+      <span className={`transition-colors duration-150 ${active ? 'text-[#0066FF]' : 'text-[#6B7280] group-hover:text-[#0047AB]'}`}>
         {icon}
       </span>
       <span>{label}</span>
+
+      {/* ── Glowing Contoured Underline Dock (Matching 3rd Image) ── */}
+      {active && (
+        <div className="absolute -bottom-px left-0 right-0 pointer-events-none flex flex-col items-center">
+          <svg
+            viewBox="0 0 100 8"
+            preserveAspectRatio="none"
+            className="w-full h-[7px] overflow-visible"
+          >
+            <defs>
+              <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#0047AB" />
+                <stop offset="20%" stopColor="#0052CC" />
+                <stop offset="50%" stopColor="#00D2FF" />
+                <stop offset="80%" stopColor="#0052CC" />
+                <stop offset="100%" stopColor="#0047AB" />
+              </linearGradient>
+              <filter id={`tabGlow-${gradId}`} x="-20%" y="-20%" width="140%" height="200%">
+                <feGaussianBlur stdDeviation="1.2" result="glow" />
+                <feMerge>
+                  <feMergeNode in="glow" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            {/* Contoured bracket curve: starts at y=0, flairs down to y=3.5, runs across, flairs back up to y=0 */}
+            <path
+              d="M 2 0 C 7 0, 10 3.5, 17 3.5 L 83 3.5 C 90 3.5, 93 0, 98 0"
+              fill="none"
+              stroke={`url(#${gradId})`}
+              strokeWidth="2.8"
+              strokeLinecap="round"
+              filter={`url(#tabGlow-${gradId})`}
+            />
+            {/* Center radiant cyan node */}
+            <circle cx="50" cy="3.5" r="1.3" fill="#00E5FF" />
+          </svg>
+          {/* Ambient diffuse electric blue radiance radiating downward */}
+          <div className="w-[85%] h-2.5 -mt-0.5 rounded-full bg-[#0066FF]/40 blur-[6px] pointer-events-none" />
+        </div>
+      )}
     </Link>
   );
 };
@@ -85,9 +128,9 @@ const DropdownLink: React.FC<DropdownLinkProps> = ({ to, icon, label, onClick })
     <Link
       to={to}
       onClick={onClick}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-[8px] text-[13px] font-medium text-[#0B0B0C] hover:bg-[#F4F6F9] transition-colors duration-150 group"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-[8px] text-[13px] font-medium text-[#0B0B0C] hover:bg-[#EBF3FF] hover:text-[#0047AB] transition-colors duration-150 group"
     >
-      <span className="text-[#8892A0] group-hover:text-[#0047AB] transition-colors">{icon}</span>
+      <span className="text-[#8892A0] group-hover:text-[#0066FF] transition-colors">{icon}</span>
       <span>{label}</span>
     </Link>
   );
@@ -205,11 +248,13 @@ export const Navbar: React.FC = () => {
   if (isAuditPage) {
     return (
       <header className="sticky top-0 z-50 w-full h-16 bg-[#FFFFFF] border-b border-[#E2E6EC] no-print">
-        <div className="max-w-[1200px] mx-auto h-full flex items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2.5">
-            <PolyLanceLogo size={26} />
-            <span className="font-serif font-semibold text-lg text-[#0B0B0C]">
-              {isCertifiedPassDomain ? 'CertifiedPass' : 'PolyLance'}
+        <div className="w-full max-w-[1760px] mx-auto h-full flex items-center justify-between px-[clamp(16px,3vw,56px)] pl-[max(env(safe-area-inset-left,0px),clamp(16px,3vw,56px))] pr-[max(env(safe-area-inset-right,0px),clamp(16px,3vw,56px))]">
+          <Link to="/" className="flex items-center gap-3 group select-none">
+            <div className="flex items-center justify-center p-1 rounded-xl bg-slate-50 border border-[#E2E6EC] group-hover:border-[#0047AB]/30 transition-all">
+              <PolyLanceLogo size={32} className="transition-transform duration-200 group-hover:scale-105" />
+            </div>
+            <span className="font-serif font-bold text-xl sm:text-2xl text-[#0B0B0C] tracking-tight">
+              {isCertifiedPassDomain ? 'CertifiedPass' : <>Poly<span className="text-[#0047AB]">Lance</span></>}
             </span>
           </Link>
 
@@ -247,7 +292,7 @@ export const Navbar: React.FC = () => {
       {/* ── Wrong Network Alert Banner ────────────────────── */}
       {isWrongNetwork && (
         <div className="bg-[#FCEBDD] border-b border-[#E2E6EC] text-[#C2610C] text-xs font-medium px-4 py-2 flex items-center justify-between no-print relative z-50">
-          <div className="flex items-center gap-2 max-w-[1200px] mx-auto w-full">
+          <div className="flex items-center gap-2 w-full max-w-[1760px] mx-auto px-[clamp(16px,3vw,56px)] pl-[max(env(safe-area-inset-left,0px),clamp(16px,3vw,56px))] pr-[max(env(safe-area-inset-right,0px),clamp(16px,3vw,56px))]">
             <AlertTriangle size={14} strokeWidth={1.5} className="shrink-0" />
             <span>
               <strong>Wrong Network:</strong> Wallet connected to unsupported chain. Please switch to <strong>{targetChainName}</strong> (Chain ID: {targetChainId}).
@@ -265,13 +310,19 @@ export const Navbar: React.FC = () => {
 
       {/* ── Full-Width White Editorial Navbar ───────────────── */}
       <header className="sticky top-0 z-50 w-full bg-[#FFFFFF] border-b border-[#E2E6EC] no-print">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div className="w-full max-w-[1760px] mx-auto px-[clamp(16px,3vw,56px)] pl-[max(env(safe-area-inset-left,0px),clamp(16px,3vw,56px))] pr-[max(env(safe-area-inset-right,0px),clamp(16px,3vw,56px))] h-16 flex items-center justify-between gap-4">
           
           {/* ── LEFT: Brand Logo & Wordmark ──────────────────── */}
           <div className="flex items-center gap-6 shrink-0">
-            <Link to="/" className="flex items-center gap-2.5 select-none">
-              <PolyLanceLogo size={26} />
-              <span className="font-serif font-semibold text-xl tracking-tight text-[#0B0B0C] leading-none">
+            <Link 
+              to="/" 
+              className="flex items-center gap-3 py-1 px-0.5 select-none group transition-all duration-200"
+              title="PolyLance - The Sovereign Labor Protocol"
+            >
+              <div className="flex items-center justify-center p-1.5 rounded-xl bg-slate-50 border border-[#E2E6EC] group-hover:border-[#0047AB]/35 group-hover:bg-blue-50/40 shadow-xs transition-all duration-200">
+                <PolyLanceLogo size={38} className="transition-transform duration-200 group-hover:scale-105 shrink-0" />
+              </div>
+              <span className="font-serif font-bold text-2xl sm:text-[26px] tracking-tight text-[#0B0B0C] leading-none">
                 {isCertifiedPassDomain ? (
                   <>CertifiedPass</>
                 ) : (
@@ -400,26 +451,53 @@ export const Navbar: React.FC = () => {
                       setIsAvatarMenuOpen(false);
                     }}
                     className={`
-                      h-16 flex items-center gap-1.5 px-3 text-[13px] font-medium select-none cursor-pointer
-                      border-b-2 transition-colors duration-150 whitespace-nowrap
+                      relative h-16 flex items-center gap-1.5 px-3.5 text-[13px] select-none cursor-pointer
+                      transition-colors duration-150 whitespace-nowrap group
                       ${
                         isMoreActive
-                          ? 'text-[#0047AB] border-[#0047AB] font-semibold'
-                          : 'text-[#4B5563] hover:text-[#0B0B0C] border-transparent'
+                          ? 'text-[#0047AB] font-bold'
+                          : 'text-[#4B5563] hover:text-[#0047AB] font-medium'
                       }
                     `}
                   >
                     <MoreHorizontal
                       size={15}
                       strokeWidth={1.5}
-                      className={isMoreActive ? 'text-[#0047AB]' : 'text-[#8892A0]'}
+                      className={isMoreActive ? 'text-[#0066FF]' : 'text-[#6B7280] group-hover:text-[#0047AB] transition-colors'}
                     />
                     <span>More</span>
                     <ChevronDown
                       size={12}
                       strokeWidth={1.5}
-                      className={`transition-transform duration-150 ${isMoreOpen ? 'rotate-180' : ''}`}
+                      className={`text-[#8892A0] transition-transform duration-150 ${isMoreOpen ? 'rotate-180' : ''}`}
                     />
+
+                    {isMoreActive && (
+                      <div className="absolute -bottom-px left-0 right-0 pointer-events-none flex flex-col items-center">
+                        <svg
+                          viewBox="0 0 100 8"
+                          preserveAspectRatio="none"
+                          className="w-full h-[7px] overflow-visible"
+                        >
+                          <defs>
+                            <linearGradient id="tabGrad-more" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="#0047AB" />
+                              <stop offset="50%" stopColor="#00D2FF" />
+                              <stop offset="100%" stopColor="#0047AB" />
+                            </linearGradient>
+                          </defs>
+                          <path
+                            d="M 2 0 C 7 0, 10 3.5, 17 3.5 L 83 3.5 C 90 3.5, 93 0, 98 0"
+                            fill="none"
+                            stroke="url(#tabGrad-more)"
+                            strokeWidth="2.8"
+                            strokeLinecap="round"
+                          />
+                          <circle cx="50" cy="3.5" r="1.3" fill="#00E5FF" />
+                        </svg>
+                        <div className="w-[85%] h-2.5 -mt-0.5 rounded-full bg-[#0066FF]/40 blur-[6px] pointer-events-none" />
+                      </div>
+                    )}
                   </button>
 
                   {/* More Dropdown Menu */}
@@ -504,18 +582,18 @@ export const Navbar: React.FC = () => {
                   </span>
                 )}
 
-                {/* 1. Neutral Balance Chip (--bg-subtle, mono text) */}
+                {/* 1. Neutral Balance Chip (Matching Image 3) */}
                 <button
                   type="button"
                   onClick={() => setIsBalanceModalOpen(true)}
                   title="View wallet token balances"
-                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#F4F6F9] border border-[#E2E6EC] text-[#0B0B0C] font-mono text-xs font-medium hover:bg-[#E2E6EC] transition-colors duration-150 cursor-pointer"
+                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-[#F8FAFC] border border-[#E2E6EC] text-[#0B0B0C] font-mono text-xs font-semibold hover:border-[#0047AB]/30 hover:bg-white transition-all duration-150 cursor-pointer shadow-2xs"
                 >
                   <PolygonIcon size={14} className="text-[#7B3FE4]" />
                   <span>{formatPolBalance(balanceNative)} POL</span>
                 </button>
 
-                {/* 2. Neutral Wallet Address Chip */}
+                {/* 2. Neutral Wallet Address Chip with Hexagon Icon (Matching Image 3) */}
                 <div className="relative" ref={addressMenuRef}>
                   <button
                     type="button"
@@ -525,9 +603,9 @@ export const Navbar: React.FC = () => {
                       setIsMoreOpen(false);
                     }}
                     title="Address details"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#F4F6F9] border border-[#E2E6EC] text-[#0B0B0C] font-mono text-xs font-medium hover:bg-[#E2E6EC] transition-colors duration-150 cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-[#FFFFFF] border border-[#E2E6EC] text-[#0B0B0C] font-mono text-xs font-semibold hover:border-[#0047AB]/30 hover:bg-[#F8FAFC] transition-all duration-150 cursor-pointer shadow-2xs"
                   >
-                    <Shield size={12} strokeWidth={1.5} className="text-[#0047AB]" />
+                    <Hexagon size={13} strokeWidth={2} className="text-[#0047AB]" />
                     <span>{truncateAddress(address)}</span>
                     <ChevronDown
                       size={11}
@@ -688,9 +766,9 @@ export const Navbar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsLoginModalOpen(true)}
-                className="bg-[#0047AB] hover:bg-[#003A8C] text-white font-medium text-xs sm:text-sm px-4 py-2 rounded-[8px] transition-colors duration-150 flex items-center gap-1.5 cursor-pointer"
+                className="bg-[#0047AB] hover:bg-[#003A8C] active:bg-[#002F73] text-white font-medium text-xs sm:text-sm px-4 py-2 rounded-[8px] transition-colors duration-150 flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
-                <LogIn size={14} strokeWidth={1.5} />
+                <LogIn size={14} strokeWidth={1.5} className="text-white" />
                 <span>Connect Wallet</span>
               </button>
             )}
@@ -712,9 +790,11 @@ export const Navbar: React.FC = () => {
           isOpen={isMobileOpen}
           onClose={() => setIsMobileOpen(false)}
           title={
-            <div className="flex items-center gap-2">
-              <PolyLanceLogo size={24} />
-              <span className="font-serif font-semibold text-[#0B0B0C] text-base">PolyLance</span>
+            <div className="flex items-center gap-2.5">
+              <PolyLanceLogo size={30} />
+              <span className="font-serif font-bold text-[#0B0B0C] text-lg">
+                Poly<span className="text-[#0047AB]">Lance</span>
+              </span>
             </div>
           }
           side="right"

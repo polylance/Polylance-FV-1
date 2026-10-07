@@ -348,29 +348,35 @@ export const Reputation: React.FC = () => {
       initial="hidden"
       animate="show"
       variants={containerVariants}
-      className="space-y-8 py-6 max-w-6xl mx-auto px-4 md:px-0"
+      className="space-y-8 py-6 w-full"
     >
       {/* Top Hero Section */}
       <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Diamond Level Card */}
-        <div className="md:col-span-2 relative overflow-hidden bg-[#0B0B0C] p-7 sm:p-8 rounded-2xl text-white shadow-xs border border-slate-800 flex flex-col justify-between min-h-[220px]">
+        <div className="md:col-span-2 relative overflow-hidden bg-[#0B0B0C] p-7 sm:p-8 rounded-2xl text-white shadow-xs border border-[#0066FF]/25 hover:border-[#00D2FF]/40 transition-colors flex flex-col justify-between min-h-[220px]">
+          {/* Ambient electric blue & cobalt glow */}
+          <div 
+            className="absolute top-0 right-0 w-80 h-80 pointer-events-none rounded-full blur-3xl opacity-20"
+            style={{ background: 'radial-gradient(circle, #00D2FF 0%, #0066FF 40%, transparent 70%)' }}
+          />
+
           <div className="relative z-10 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2 bg-slate-900 px-3.5 py-1 rounded-full border border-slate-700 shadow-xs">
-                <span className="h-2 w-2 rounded-full bg-[#0047AB]" />
+              <div className="flex items-center gap-2 bg-slate-900/90 px-3.5 py-1 rounded-full border border-[#0066FF]/30 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] animate-pulse" />
                 <span className="font-mono text-xs uppercase tracking-widest text-slate-300 font-extrabold">
                   Global Standing • Soulbound Reputation
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-3 py-1 rounded-full text-xs font-mono font-bold text-slate-300">
-                <Sparkles size={13} className="text-[#0047AB]" />
+              <div className="flex items-center gap-1.5 bg-slate-900/90 border border-[#0066FF]/30 px-3 py-1 rounded-full text-xs font-mono font-bold text-slate-300">
+                <Sparkles size={13} className="text-[#00D2FF]" />
                 <span>Ranked Verified Builder</span>
               </div>
             </div>
 
             <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight pt-1">
               <span>Verified Tier: </span>
-              <span className="text-[#0047AB]">
+              <span className="bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#00D2FF] bg-clip-text text-transparent font-bold">
                 {activeTier === 'None' ? 'Starter League' : activeTier + ' League'}
               </span>
             </h1>

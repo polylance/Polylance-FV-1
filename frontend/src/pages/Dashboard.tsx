@@ -167,7 +167,7 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 py-6 max-w-6xl mx-auto">
+    <div className="space-y-8 py-6 w-full">
       {/* Top Banner with Role Context */}
       <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 sm:p-6 shadow-[0_1px_2px_rgba(11,11,12,0.06)] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div className="flex flex-col gap-2.5 min-w-0 w-full lg:w-auto">
@@ -203,7 +203,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-[#0B0B0C] font-semibold">{truncateAddress(address)}</span>
             <span className="text-[#8892A0]">•</span>
             <span className="inline-flex items-center gap-1 text-[#0047AB] font-medium truncate">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#1E8449] shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00D2FF] shadow-[0_0_6px_#00D2FF] animate-pulse shrink-0" />
               Polygon Mainnet Connected
             </span>
           </div>
@@ -214,17 +214,17 @@ export const Dashboard: React.FC = () => {
           {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') ? (
             <Link
               to="/jobs/post"
-              className="flex-1 sm:flex-none bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-[8px] font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              className="flex-1 sm:flex-none bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] hover:from-[#003A8C] hover:via-[#0052CC] hover:to-[#003A8C] text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-[8px] font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-[0_2px_10px_rgba(0,102,255,0.25)] hover:shadow-[0_4px_16px_rgba(0,210,255,0.4)] transition-all duration-200 cursor-pointer"
             >
-              <PlusCircle size={14} />
+              <PlusCircle size={14} className="text-[#00D2FF]" />
               <span>Post Escrow Job</span>
             </Link>
           ) : (
             <Link
               to="/jobs"
-              className="flex-1 sm:flex-none bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-[8px] font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              className="flex-1 sm:flex-none bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] hover:from-[#003A8C] hover:via-[#0052CC] hover:to-[#003A8C] text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-[8px] font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-[0_2px_10px_rgba(0,102,255,0.25)] hover:shadow-[0_4px_16px_rgba(0,210,255,0.4)] transition-all duration-200 cursor-pointer"
             >
-              <Search size={14} />
+              <Search size={14} className="text-[#00D2FF]" />
               <span>Browse Marketplace</span>
             </Link>
           )}
@@ -796,10 +796,10 @@ export const Dashboard: React.FC = () => {
                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 pt-0.5 border-b border-[#E2E6EC] pb-3">
                   <button
                     onClick={() => setActiveHubTab('contracts')}
-                    className={`px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors cursor-pointer flex items-center justify-center sm:justify-start gap-1.5 truncate ${
+                    className={`px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all duration-150 cursor-pointer flex items-center justify-center sm:justify-start gap-1.5 truncate ${
                       activeHubTab === 'contracts'
-                        ? 'bg-[#0047AB] text-white'
-                        : 'bg-[#F4F6F9] text-[#4B5563] hover:bg-[#EAEFF5] border border-[#E2E6EC]'
+                        ? 'bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] text-white shadow-[0_2px_8px_rgba(0,102,255,0.3)] font-semibold'
+                        : 'bg-[#F4F6F9] text-[#4B5563] hover:bg-[#EBF3FF] hover:text-[#0047AB] border border-[#E2E6EC]'
                     }`}
                   >
                     <Briefcase size={12} className="shrink-0" />
@@ -809,10 +809,10 @@ export const Dashboard: React.FC = () => {
 
                   <button
                     onClick={() => setActiveHubTab('applications')}
-                    className={`px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors cursor-pointer flex items-center justify-center sm:justify-start gap-1.5 truncate ${
+                    className={`px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all duration-150 cursor-pointer flex items-center justify-center sm:justify-start gap-1.5 truncate ${
                       activeHubTab === 'applications'
-                        ? 'bg-[#0047AB] text-white'
-                        : 'bg-[#F4F6F9] text-[#4B5563] hover:bg-[#EAEFF5] border border-[#E2E6EC]'
+                        ? 'bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] text-white shadow-[0_2px_8px_rgba(0,102,255,0.3)] font-semibold'
+                        : 'bg-[#F4F6F9] text-[#4B5563] hover:bg-[#EBF3FF] hover:text-[#0047AB] border border-[#E2E6EC]'
                     }`}
                   >
                     <Send size={12} className="shrink-0" />
@@ -822,10 +822,10 @@ export const Dashboard: React.FC = () => {
 
                   <button
                     onClick={() => setActiveHubTab('posted')}
-                    className={`px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors cursor-pointer flex items-center justify-center sm:justify-start gap-1.5 truncate ${
+                    className={`px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all duration-150 cursor-pointer flex items-center justify-center sm:justify-start gap-1.5 truncate ${
                       activeHubTab === 'posted'
-                        ? 'bg-[#0047AB] text-white'
-                        : 'bg-[#F4F6F9] text-[#4B5563] hover:bg-[#EAEFF5] border border-[#E2E6EC]'
+                        ? 'bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] text-white shadow-[0_2px_8px_rgba(0,102,255,0.3)] font-semibold'
+                        : 'bg-[#F4F6F9] text-[#4B5563] hover:bg-[#EBF3FF] hover:text-[#0047AB] border border-[#E2E6EC]'
                     }`}
                   >
                     <PlusCircle size={12} className="shrink-0" />
@@ -835,10 +835,10 @@ export const Dashboard: React.FC = () => {
 
                   <button
                     onClick={() => setActiveHubTab('explore')}
-                    className={`px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors cursor-pointer flex items-center justify-center sm:justify-start gap-1.5 truncate ${
+                    className={`px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all duration-150 cursor-pointer flex items-center justify-center sm:justify-start gap-1.5 truncate ${
                       activeHubTab === 'explore'
-                        ? 'bg-[#0047AB] text-white'
-                        : 'bg-[#F4F6F9] text-[#4B5563] hover:bg-[#EAEFF5] border border-[#E2E6EC]'
+                        ? 'bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] text-white shadow-[0_2px_8px_rgba(0,102,255,0.3)] font-semibold'
+                        : 'bg-[#F4F6F9] text-[#4B5563] hover:bg-[#EBF3FF] hover:text-[#0047AB] border border-[#E2E6EC]'
                     }`}
                   >
                     <Search size={12} className="shrink-0" />

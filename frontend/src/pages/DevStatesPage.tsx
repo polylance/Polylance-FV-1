@@ -14,7 +14,7 @@ export const DevStatesPage: React.FC = () => {
   const [selectedState, setSelectedState] = useState<string>('skeletons');
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8 font-sans">
+    <div className="w-full py-4 space-y-8 font-sans">
       <div className="border-b border-slate-200 pb-4">
         <h1 className="text-2xl font-black text-slate-900 font-headline">
           UI States & Skeletons Showcase

@@ -155,7 +155,7 @@ export const Treasury: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 py-6 max-w-6xl mx-auto">
+    <div className="space-y-8 py-6 w-full">
       {/* Restricted Header matching treasury_admin_management/code.html */}
       <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -177,7 +177,7 @@ export const Treasury: React.FC = () => {
             <button
               onClick={() => setActiveTab('overview')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                activeTab === 'overview' ? 'bg-[#0B0B0C] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                activeTab === 'overview' ? 'bg-gradient-to-r from-[#0047AB] to-[#0066FF] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               Overview
@@ -190,7 +190,7 @@ export const Treasury: React.FC = () => {
                 }, 80);
               }}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                activeTab === 'terminal' ? 'bg-[#0B0B0C] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                activeTab === 'terminal' ? 'bg-gradient-to-r from-[#0047AB] to-[#0066FF] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               CLI Terminal Log

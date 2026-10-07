@@ -458,12 +458,15 @@ export function getUserBytecodeMatrix(
     ? profile.primaryScore
     : 0;
 
-  const escrowJobScore = userCompletedJobsCount * 40;
-  const escrowVolumeScore = Math.min(60, Math.floor(userCompletedVolume / 100) * 5);
-
+  // Strict Rule: If user has a verified GitHub score, their primary score strictly reflects their real repository audit score without inflation.
+  // If user does not have GitHub connected, score is based on verified on-chain escrow contract completions.
   let dynamicScore = 0;
-  if (githubScore > 0 || userCompletedJobsCount > 0) {
-    dynamicScore = githubScore + escrowJobScore + escrowVolumeScore;
+  if (githubScore > 0) {
+    dynamicScore = githubScore;
+  } else if (userCompletedJobsCount > 0) {
+    const escrowJobScore = Math.min(400, userCompletedJobsCount * 40);
+    const escrowVolumeScore = Math.min(60, Math.floor(userCompletedVolume / 100) * 5);
+    dynamicScore = escrowJobScore + escrowVolumeScore;
   }
   const primaryScore = Math.min(1000, dynamicScore);
 

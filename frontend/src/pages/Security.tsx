@@ -25,7 +25,7 @@ export const Security: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-12 py-8 max-w-6xl mx-auto px-4 font-sans text-slate-900 select-none">
+    <div className="space-y-12 py-4 w-full font-sans text-slate-900 select-none">
       
       {/* Clean Modern Header */}
       <section className="relative overflow-hidden rounded-3xl p-8 sm:p-12 bg-white border border-slate-200 shadow-sm text-left">

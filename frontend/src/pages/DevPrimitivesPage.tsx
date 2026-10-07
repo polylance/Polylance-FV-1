@@ -60,7 +60,7 @@ export const DevPrimitivesPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-xl mx-auto py-8 px-4 space-y-10 pb-28">
+    <div className="max-w-4xl mx-auto py-4 space-y-10 pb-28">
       {/* Header */}
       <div className="border-b border-slate-200 pb-4">
         <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">

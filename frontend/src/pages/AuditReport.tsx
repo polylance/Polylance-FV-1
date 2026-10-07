@@ -571,7 +571,7 @@ export const AuditReport: React.FC = () => {
       `}</style>
 
       {/* ── Top Navigation (Role-Aware Back Button Outside Card) ──────────────── */}
-      <div className="max-w-4xl mx-auto mb-3 flex items-center justify-between no-print">
+      <div className="max-w-5xl xl:max-w-6xl mx-auto mb-3 flex items-center justify-between no-print">
         <Link
           to={isVisitorUser ? "/" : "/dashboard"}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
@@ -590,7 +590,7 @@ export const AuditReport: React.FC = () => {
       </div>
 
       {/* ── Unified Modern Header & Action Bar (Hidden in Print) ──────────────── */}
-      <div className="max-w-4xl mx-auto mb-6 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3.5 no-print">
+      <div className="max-w-5xl xl:max-w-6xl mx-auto mb-6 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3.5 no-print">
         {/* Tier 1: Role Report Selector / Indicator + View Mode Switcher */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           {/* If only 1 allowed perspective (Freelancer or Client) or visitor, show a sleek verified role indicator */}
@@ -804,7 +804,7 @@ export const AuditReport: React.FC = () => {
 
       {/* ── TAB 1: SOCIAL MEDIA CARD VIEW (LIGHT THEME - 1200x630 DESIGN) ─────────── */}
       {activeTab === 'social' && (
-        <div className="max-w-4xl mx-auto space-y-4 no-print animate-fadeIn">
+        <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 no-print animate-fadeIn">
 
           <div
             ref={cardRef}
@@ -960,7 +960,7 @@ export const AuditReport: React.FC = () => {
 
       {/* ── TAB 2 / PRINT: FORMAL AUDIT CERTIFICATE SHEET ────────────────────────── */}
       <div
-        className={`audit-sheet shadow-2xl rounded-3xl border-4 border-slate-200/80 bg-white p-5 sm:p-7 max-w-4xl mx-auto space-y-3.5 relative overflow-hidden gpu-layer text-slate-900 ${activeTab === 'social' ? 'hidden print:block' : 'block'}`}
+        className={`audit-sheet shadow-2xl rounded-3xl border-4 border-slate-200/80 bg-white p-5 sm:p-7 max-w-5xl xl:max-w-6xl mx-auto space-y-3.5 relative overflow-hidden gpu-layer text-slate-900 ${activeTab === 'social' ? 'hidden print:block' : 'block'}`}
         style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
       >
         {/* Certificate Security Corner Brackets */}

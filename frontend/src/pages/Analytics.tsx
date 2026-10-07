@@ -82,7 +82,7 @@ export const Analytics: React.FC = () => {
   const backendBps = totalClientSpent > 0 ? ((backendSpent / totalClientSpent) * 100).toFixed(0) : '0';
 
   return (
-    <div className="space-y-8 py-6 max-w-6xl mx-auto">
+    <div className="space-y-8 py-6 w-full">
       {isAdminRole ? (
         /* ==================== ADMIN REVENUE & TREASURY ANALYTICS VIEW (EMERALD / SLATE) ==================== */
         <div className="space-y-8">

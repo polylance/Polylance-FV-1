@@ -1933,7 +1933,7 @@ export const Chat: React.FC = () => {
                   })()}
 
                   <form onSubmit={handleSend} className="flex items-center gap-1.5 sm:gap-2">
-                    <div className="flex-1 flex items-center rounded-xl px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-50 border border-[#E2E6EC] min-w-0">
+                    <div className="flex-1 flex items-center rounded-xl px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-50 border border-[#E2E6EC] focus-within:border-[#0066FF] focus-within:ring-2 focus-within:ring-[#0066FF]/20 min-w-0 transition-all">
                       <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer shrink-0">
                         <Paperclip size={15} />
                       </button>

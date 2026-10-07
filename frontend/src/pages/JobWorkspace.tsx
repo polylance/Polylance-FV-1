@@ -111,9 +111,10 @@ export const JobWorkspace: React.FC = () => {
   const userAddr = (address || '').toLowerCase();
   const isClientRole = currentRole === 'client';
 
-  // Filter jobs strictly relevant to current user:
-  // Shows jobs where connected user is Client (posted), Freelancer (assigned), Applicant, or active Negotiator.
-  // Note: We do NOT hide user's own contracts due to inactivity expiration so clients and freelancers can always access their jobs.
+  // Filter jobs strictly relevant to connected user and active role:
+  // - Client mode: ONLY shows jobs posted by the connected client.
+  // - Freelancer mode: ONLY shows contracts awarded to the connected freelancer, or open proposals where no candidate has been hired yet.
+  // STRICT DATA PROTECTION: Completed, funded, or ongoing contracts of other developers are NEVER shown.
   const myJobs = useMemo(() => {
     if (!userAddr) return [];
 
@@ -122,23 +123,42 @@ export const JobWorkspace: React.FC = () => {
 
       const isClientOfJob = Boolean(job.client && job.client.toLowerCase() === userAddr);
       const isFreelancerOfJob = Boolean(job.freelancer && job.freelancer.toLowerCase() === userAddr);
+
+      // In Client Role: Strictly isolate to jobs posted by this client
+      if (isClientRole) {
+        return isClientOfJob;
+      }
+
+      // In Freelancer Role:
+      // 1. If user is the hired freelancer on the contract, they have full access to their working contract.
+      if (isFreelancerOfJob) {
+        return true;
+      }
+
+      // 2. If the contract has already been awarded to another freelancer, unselected applicants must NEVER see it
+      if (job.freelancer && job.freelancer.toLowerCase() !== userAddr) {
+        return false;
+      }
+
+      // 3. For jobs that are still Open or in candidate review (no freelancer selected yet):
+      // Show only if the user has an active application or negotiation
       const hasApplied = Boolean(job.applications && job.applications.some((a) => a.applicant && a.applicant.toLowerCase() === userAddr));
       const hasNegotiated = Boolean(
         (job.negotiationProposals && job.negotiationProposals.some((p: any) => p.sender?.toLowerCase() === userAddr || p.applicantAddress?.toLowerCase() === userAddr)) ||
         (job.preAcceptMessages && job.preAcceptMessages.some((m: any) => m.sender?.toLowerCase() === userAddr || m.senderAddress?.toLowerCase() === userAddr || m.applicantAddress?.toLowerCase() === userAddr))
       );
 
-      return isClientOfJob || isFreelancerOfJob || hasApplied || hasNegotiated;
+      return (job.status === 'Open' || job.status === 'Selected') && (hasApplied || hasNegotiated);
     });
-  }, [jobs, userAddr]);
+  }, [jobs, userAddr, isClientRole]);
 
   const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
 
   const handleDeleteActiveJob = () => {
     if (!activeJob) return;
     setAlertModalOptions({
-      title: 'Remove Job Posting',
-      message: `Are you sure you want to delete/remove the job "${activeJob.title}"?`,
+      title: 'Remove Job Posting (Free & Gasless)',
+      message: `Are you sure you want to remove the job "${activeJob.title}"? Deleting an unescrowed job is 100% free with no fee charged to the client.`,
       type: 'confirm',
       showCancel: true,
       isDestructive: true,
@@ -478,9 +498,9 @@ export const JobWorkspace: React.FC = () => {
         <div className="pt-2">
           <button
             onClick={connectWallet}
-            className="w-full py-3 px-4 rounded-[8px] bg-[#0047AB] hover:bg-[#003A8C] text-white font-medium text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 rounded-[8px] bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] hover:from-[#003A8C] hover:via-[#0052CC] hover:to-[#003A8C] text-white font-medium text-xs shadow-[0_2px_10px_rgba(0,102,255,0.25)] hover:shadow-[0_4px_16px_rgba(0,210,255,0.4)] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
           >
-            <Zap size={15} />
+            <Zap size={15} className="text-[#00D2FF]" />
             <span>Connect Polylancer Wallet</span>
           </button>
         </div>
@@ -524,7 +544,7 @@ export const JobWorkspace: React.FC = () => {
 
   if (!activeJob) {
     return (
-      <div className="max-w-4xl mx-auto my-12 p-6 space-y-6">
+      <div className="w-full my-12 p-6 space-y-6">
         <EmptyState
           title="No Project Escrows Found"
           description={
@@ -546,7 +566,7 @@ export const JobWorkspace: React.FC = () => {
   const counterpartName = counterpartProfile?.displayName || (counterpartAddress ? truncateAddress(counterpartAddress) : 'Unassigned');
 
   return (
-    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 space-y-6">
+    <div className="w-full py-6 space-y-6">
 
       {/* ── TOP HEADER & INTERACTIVE MULTI-JOB SWITCHER ── */}
       <div className="bg-white border border-[#E2E6EC] rounded-xl p-3 sm:p-5 shadow-xs">
@@ -557,7 +577,7 @@ export const JobWorkspace: React.FC = () => {
             {/* Label row */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 mb-2">
               <span className="text-[10px] sm:text-[11px] font-mono uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1.5">
-                <Layers size={13} className="text-[#0047AB] shrink-0" />
+                <Layers size={13} className="text-[#0066FF] shrink-0" />
                 <span>{isClient ? 'Client Project Workspace' : 'Freelancer Deliverable Workspace'}</span>
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -574,8 +594,8 @@ export const JobWorkspace: React.FC = () => {
               onClick={toggleDropdown}
               className={`relative overflow-hidden w-full flex items-center justify-between gap-3 p-3 sm:p-4 rounded-xl border text-left transition-all cursor-pointer group ${
                 isJobDropdownOpen
-                  ? 'bg-slate-50 border-[#0047AB] ring-1 ring-[#0047AB]'
-                  : 'bg-white hover:bg-slate-50 border-[#E2E6EC] hover:border-slate-300'
+                  ? 'bg-slate-50 border-[#0066FF] ring-2 ring-[#00D2FF]/25 shadow-[0_0_15px_rgba(0,102,255,0.12)]'
+                  : 'bg-white hover:bg-slate-50 border-[#E2E6EC] hover:border-[#0066FF]/40'
               }`}
               title="Click to switch active project workspace"
             >
@@ -634,12 +654,12 @@ export const JobWorkspace: React.FC = () => {
                       dotBg = 'bg-rose-500';
                       badgeLabel = 'DISPUTED';
                     } else if (activeJob.status === 'Submitted' || activeJob.proof) {
-                      badgeBg = 'bg-slate-100 text-[#0B0B0C] border-[#E2E6EC]';
-                      dotBg = 'bg-[#0047AB]';
+                      badgeBg = 'bg-blue-50/80 text-[#0066FF] border-[#0066FF]/30';
+                      dotBg = 'bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] animate-pulse';
                       badgeLabel = 'SUBMITTED • IN REVIEW';
                     } else if (activeJob.status === 'Funded') {
-                      badgeBg = 'bg-blue-50 text-[#0047AB] border-blue-200';
-                      dotBg = 'bg-[#0047AB]';
+                      badgeBg = 'bg-blue-50/80 text-[#0066FF] border-[#0066FF]/30';
+                      dotBg = 'bg-[#0066FF]';
                       badgeLabel = 'FUNDED';
                     }
 

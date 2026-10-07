@@ -33,7 +33,9 @@ import {
   Bold,
   List,
   Code,
-  AlertTriangle
+  AlertTriangle,
+  Award,
+  Scale
 } from 'lucide-react';
 import { RocketIcon, RocketIconHandle } from '../components/RocketIcon';
 import { generateIpfsCid } from '../utils/ipfs';
@@ -246,7 +248,7 @@ export const PostJob: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen py-10 px-4 sm:px-6 bg-[#F8FAFC] text-[#0B0B0C] space-y-8">
+    <div className="py-6 w-full text-[#0B0B0C] space-y-8">
       {/* Page Header */}
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#0B0B0C] tracking-tight leading-tight">
@@ -255,13 +257,15 @@ export const PostJob: React.FC = () => {
         <p className="text-xs sm:text-sm text-slate-500 font-medium">
           Create milestone-protected jobs with automated escrow and sovereign oracle pricing.
         </p>
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-[#E2E6EC] shadow-2xs text-slate-700 text-[11px] sm:text-xs font-semibold">
-          <span className="w-2 h-2 rounded-full bg-[#0047AB] shrink-0" />
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-[#0066FF]/25 shadow-xs text-slate-700 text-[11px] sm:text-xs font-semibold">
+          <span className="w-2 h-2 rounded-full bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] shrink-0 animate-pulse" />
           <span><strong>2.5% Protocol Fee:</strong> Transparent on-chain escrow protection routed to protocol treasury.</span>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xs border border-[#E2E6EC] p-6 sm:p-10 max-w-3xl mx-auto space-y-8 relative overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="lg:col-span-8">
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xs border border-[#E2E6EC] p-6 sm:p-8 space-y-8 relative overflow-hidden">
         {/* Job Title Row */}
         <div className="flex gap-4 items-start">
           <div className="w-10 h-10 rounded-xl bg-slate-50 border border-[#E2E6EC] flex items-center justify-center text-[#0047AB] shrink-0 mt-0.5">
@@ -277,7 +281,7 @@ export const PostJob: React.FC = () => {
               placeholder="e.g. Full-Stack Web3 Application with Smart Contract Integration"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-3 bg-white border border-[#E2E6EC] rounded-xl text-[#0B0B0C] text-sm font-medium focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none transition-all placeholder:text-slate-400"
+              className="w-full px-4 py-3 bg-white border border-[#E2E6EC] rounded-xl text-[#0B0B0C] text-sm font-medium focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/20 outline-none transition-all placeholder:text-slate-400"
             />
           </div>
         </div>
@@ -327,13 +331,13 @@ export const PostJob: React.FC = () => {
                   onClick={() => setCategory(cat.id as SkillCategory)}
                   className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
                     category === cat.id
-                      ? 'bg-blue-50/40 border-2 border-[#0047AB] shadow-xs'
+                      ? 'bg-gradient-to-r from-blue-50/70 to-cyan-50/40 border-2 border-[#0066FF] shadow-xs'
                       : 'bg-white border-[#E2E6EC] hover:border-slate-300 shadow-2xs'
                   }`}
                 >
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
                     category === cat.id 
-                      ? 'bg-[#0047AB] text-white shadow-xs' 
+                      ? 'bg-gradient-to-r from-[#0047AB] to-[#0066FF] text-white shadow-xs' 
                       : 'bg-slate-50 border border-[#E2E6EC] text-slate-700'
                   }`}>
                     {cat.icon}
@@ -344,7 +348,7 @@ export const PostJob: React.FC = () => {
                   </div>
                   <div className="shrink-0 ml-auto">
                     {category === cat.id ? (
-                      <div className="w-5 h-5 rounded-full bg-[#0047AB] text-white flex items-center justify-center shadow-xs">
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#0047AB] to-[#0066FF] text-white flex items-center justify-center shadow-xs">
                         <CheckCircle2 size={14} className="stroke-[3]" />
                       </div>
                     ) : (
@@ -912,7 +916,81 @@ export const PostJob: React.FC = () => {
             </div>
           </div>
         </div>
-      </form>
+        </form>
+        </div>
+
+        {/* Live Escrow Contract Summary Sidebar Rail */}
+        <aside className="lg:col-span-4 lg:sticky lg:top-24 space-y-6">
+          <div className="bg-white rounded-2xl shadow-xs border border-[#E2E6EC] p-6 space-y-5 text-left">
+            <div className="flex items-center justify-between border-b border-[#E2E6EC] pb-3">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#4B5563]">
+                Escrow Live Summary
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#E7EEF9] text-[#0047AB] font-bold">
+                {selectedToken} Escrow
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <span className="text-[11px] text-[#8892A0] uppercase font-mono block">Estimated Budget</span>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <span className="font-serif text-2xl sm:text-3xl font-bold text-[#0B0B0C]">
+                    {tokenAmount || '0'} {selectedToken}
+                  </span>
+                  <span className="text-xs font-mono text-[#8892A0]">
+                    ≈ {selectedFiat} {fiatInputVal}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#F4F6F9] rounded-xl border border-[#E2E6EC] space-y-2 text-xs font-mono">
+                <div className="flex justify-between items-center text-[#4B5563]">
+                  <span>2.5% Platform Fee:</span>
+                  <span className="font-semibold text-[#0B0B0C]">
+                    {(parseFloat(tokenAmount || '0') * 0.025).toFixed(4)} {selectedToken}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[#4B5563]">
+                  <span>Freelancer Net:</span>
+                  <span className="font-semibold text-[#1E8449]">
+                    {(parseFloat(tokenAmount || '0') * 0.975).toFixed(4)} {selectedToken}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[#4B5563] pt-1 border-t border-[#E2E6EC]">
+                  <span>Review SLA Window:</span>
+                  <span className="font-semibold text-[#0B0B0C]">
+                    {reviewPeriodDays} Days
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Smart Contract Guarantee Checklist */}
+            <div className="space-y-2.5 pt-2 border-t border-[#E2E6EC] text-xs">
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#8892A0] block">
+                Escrow Guarantees
+              </span>
+              <div className="flex items-start gap-2 text-[#4B5563]">
+                <ShieldCheck size={15} className="text-[#0047AB] shrink-0 mt-0.5" />
+                <span>Non-custodial smart contract locked on Polygon</span>
+              </div>
+              <div className="flex items-start gap-2 text-[#4B5563]">
+                <Lock size={15} className="text-[#1E8449] shrink-0 mt-0.5" />
+                <span>Funds released milestone-by-milestone upon inspection</span>
+              </div>
+              <div className="flex items-start gap-2 text-[#4B5563]">
+                <Scale size={15} className="text-[#0047AB] shrink-0 mt-0.5" />
+                <span>Decentralized DAO Judge panel arbitration</span>
+              </div>
+              <div className="flex items-start gap-2 text-[#4B5563]">
+                <Award size={15} className="text-[#0047AB] shrink-0 mt-0.5" />
+                <span>Soulbound (ERC-5192) reputation token minted upon release</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
 
       {/* Modern Dialog Modal */}
       <PolyLanceAlertModal

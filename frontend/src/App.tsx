@@ -258,8 +258,8 @@ const AppContent: React.FC = () => {
       {/* Production Navbar with Role-Aware Perception Navigation (Hidden on Audit Document and Chat/Messages Section) */}
       {!isAudit && !isChat && <Navbar />}
 
-      {/* Main Application Content */}
-      <main className={isChat ? "flex-1 w-full h-[100dvh] min-h-0 overflow-hidden flex flex-col p-0 m-0" : (isAudit ? "w-full p-0 m-0" : "flex-1 max-w-[1200px] w-full mx-auto px-4 md:px-8 py-6 pb-24 lg:pb-8")}>
+      {/* Main Application Content - Unified Fluid Container */}
+      <main className={isChat ? "flex-1 w-full h-[100dvh] min-h-0 overflow-hidden flex flex-col p-0 m-0" : (isAudit ? "w-full p-0 m-0" : "flex-1 w-full max-w-[1760px] mx-auto px-[clamp(16px,3vw,56px)] pl-[max(env(safe-area-inset-left,0px),clamp(16px,3vw,56px))] pr-[max(env(safe-area-inset-right,0px),clamp(16px,3vw,56px))] py-6 pb-24 lg:pb-8")}>
         <ErrorBoundary>
           <AnimatedRoutes />
         </ErrorBoundary>

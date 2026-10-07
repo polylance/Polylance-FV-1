@@ -111,64 +111,103 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
   };
 
   // Helper icon selector based on category
-  const renderCategoryIcon = (category: SkillCategoryName | 'All', size = 14) => {
+  // Helper icon selector based on category with dynamic high-contrast selection colors
+  const renderCategoryIcon = (
+    category: SkillCategoryName | 'All',
+    size = 14,
+    isSelected = false
+  ) => {
+    // When selected on the dark background, use radiant high-contrast colors (Electric Cyan, Luminous Emerald, Golden Amber, Vivid Coral)
+    const activeColor =
+      category === 'Smart Contract Security'
+        ? 'text-[#FF6B6B] drop-shadow-[0_0_6px_rgba(255,107,107,0.7)]'
+        : category === 'Cybersecurity' || category === 'Testing & QA' || category === 'Data Science'
+        ? 'text-[#34D399] drop-shadow-[0_0_6px_rgba(52,211,153,0.7)]'
+        : category === 'UI/UX & Product Design'
+        ? 'text-[#FBBF24] drop-shadow-[0_0_6px_rgba(251,191,36,0.7)]'
+        : 'text-[#00D2FF] drop-shadow-[0_0_6px_rgba(0,210,255,0.8)]';
+
+    const inactiveColor =
+      category === 'Smart Contract Security'
+        ? 'text-[#C0392B]'
+        : category === 'Cybersecurity' || category === 'Testing & QA' || category === 'Data Science'
+        ? 'text-[#1E8449]'
+        : category === 'UI/UX & Product Design'
+        ? 'text-[#D97706]'
+        : category === 'Smart Contract Development' ||
+          category === 'Backend Development' ||
+          category === 'Databases' ||
+          category === 'Data Engineering' ||
+          category === 'DevOps & Infrastructure' ||
+          category === 'Artificial Intelligence' ||
+          category === 'Machine Learning' ||
+          category === 'System Design & Architecture' ||
+          category === 'Game Development & Graphics' ||
+          category === 'IoT & Embedded Systems' ||
+          category === 'AR/VR/XR' ||
+          category === 'Operating Systems'
+        ? 'text-slate-600'
+        : 'text-[#0047AB]';
+
+    const iconClass = isSelected ? activeColor : inactiveColor;
+
     switch (category) {
       case 'All':
-        return <Sparkles size={size} className="text-[#0047AB]" />;
+        return <Sparkles size={size} className={iconClass} />;
       case 'Programming Languages':
-        return <Code2 size={size} className="text-[#0047AB]" />;
+        return <Code2 size={size} className={iconClass} />;
       case 'Blockchain & Web3':
-        return <Blocks size={size} className="text-[#0047AB]" />;
+        return <Blocks size={size} className={iconClass} />;
       case 'Smart Contract Development':
-        return <FileCode2 size={size} className="text-[#334155]" />;
+        return <FileCode2 size={size} className={iconClass} />;
       case 'Smart Contract Security':
-        return <ShieldAlert size={size} className="text-[#C0392B]" />;
+        return <ShieldAlert size={size} className={iconClass} />;
       case 'Frontend Development':
-        return <Layout size={size} className="text-[#0047AB]" />;
+        return <Layout size={size} className={iconClass} />;
       case 'Backend Development':
-        return <Server size={size} className="text-[#334155]" />;
+        return <Server size={size} className={iconClass} />;
       case 'Mobile Development':
-        return <Smartphone size={size} className="text-[#0047AB]" />;
+        return <Smartphone size={size} className={iconClass} />;
       case 'Databases':
-        return <Database size={size} className="text-[#334155]" />;
+        return <Database size={size} className={iconClass} />;
       case 'Data Engineering':
-        return <Workflow size={size} className="text-[#334155]" />;
+        return <Workflow size={size} className={iconClass} />;
       case 'Cloud Computing':
-        return <Cloud size={size} className="text-[#0047AB]" />;
+        return <Cloud size={size} className={iconClass} />;
       case 'DevOps & Infrastructure':
-        return <Cpu size={size} className="text-[#334155]" />;
+        return <Cpu size={size} className={iconClass} />;
       case 'Cybersecurity':
-        return <ShieldCheck size={size} className="text-[#1E8449]" />;
+        return <ShieldCheck size={size} className={iconClass} />;
       case 'Artificial Intelligence':
-        return <Bot size={size} className="text-[#334155]" />;
+        return <Bot size={size} className={iconClass} />;
       case 'Generative AI & LLMs':
-        return <Sparkles size={size} className="text-[#0047AB]" />;
+        return <Sparkles size={size} className={iconClass} />;
       case 'Machine Learning':
-        return <Brain size={size} className="text-[#334155]" />;
+        return <Brain size={size} className={iconClass} />;
       case 'Data Science':
-        return <LineChart size={size} className="text-[#1E8449]" />;
+        return <LineChart size={size} className={iconClass} />;
       case 'APIs & Networking':
-        return <Network size={size} className="text-[#0047AB]" />;
+        return <Network size={size} className={iconClass} />;
       case 'Testing & QA':
-        return <CheckCircle2 size={size} className="text-[#1E8449]" />;
+        return <CheckCircle2 size={size} className={iconClass} />;
       case 'System Design & Architecture':
-        return <Layers size={size} className="text-[#334155]" />;
+        return <Layers size={size} className={iconClass} />;
       case 'UI/UX & Product Design':
-        return <Palette size={size} className="text-[#E8A317]" />;
+        return <Palette size={size} className={iconClass} />;
       case 'Game Development & Graphics':
-        return <Gamepad2 size={size} className="text-[#334155]" />;
+        return <Gamepad2 size={size} className={iconClass} />;
       case 'IoT & Embedded Systems':
-        return <Radio size={size} className="text-[#334155]" />;
+        return <Radio size={size} className={iconClass} />;
       case 'AR/VR/XR':
-        return <Glasses size={size} className="text-[#334155]" />;
+        return <Glasses size={size} className={iconClass} />;
       case 'Operating Systems':
-        return <Terminal size={size} className="text-[#334155]" />;
+        return <Terminal size={size} className={iconClass} />;
       case 'Search & SEO':
-        return <Search size={size} className="text-blue-600" />;
+        return <Search size={size} className={iconClass} />;
       case 'Emerging Technologies':
-        return <Atom size={size} className="text-cyan-500" />;
+        return <Atom size={size} className={iconClass} />;
       default:
-        return <Tag size={size} className="text-slate-500" />;
+        return <Tag size={size} className={iconClass} />;
     }
   };
 
@@ -280,18 +319,23 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
 
           {/* Category Tabs (Scrollable Horizontal Pill Navigation) */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin">
-            <button
-              type="button"
-              onClick={() => setSelectedCategory('All')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold font-heading whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                selectedCategory === 'All'
-                  ? 'bg-[#0B0B0C] text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200/70 text-slate-700'
-              }`}
-            >
-              {renderCategoryIcon('All', 12)}
-              <span>All Categories</span>
-            </button>
+            {(() => {
+              const isSelected = selectedCategory === 'All';
+              return (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('All')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold font-heading whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer shrink-0 border ${
+                    isSelected
+                      ? 'bg-[#0B0B0C] text-white border-[#0047AB]/60 shadow-[0_2px_10px_rgba(0,71,171,0.25)] ring-1 ring-[#00D2FF]/40'
+                      : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700 border-slate-200/60 shadow-2xs'
+                  }`}
+                >
+                  {renderCategoryIcon('All', 13, isSelected)}
+                  <span>All Categories</span>
+                </button>
+              );
+            })()}
 
             {SKILL_CATEGORIES.map((cat) => {
               const isSelected = selectedCategory === cat;
@@ -300,13 +344,13 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold font-heading whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold font-heading whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer shrink-0 border ${
                     isSelected
-                      ? 'bg-[#0B0B0C] text-white shadow-xs'
-                      : 'bg-slate-100 hover:bg-slate-200/70 text-slate-700'
+                      ? 'bg-[#0B0B0C] text-white border-[#0047AB]/60 shadow-[0_2px_10px_rgba(0,71,171,0.25)] ring-1 ring-[#00D2FF]/40'
+                      : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700 border-slate-200/60 shadow-2xs'
                   }`}
                 >
-                  {renderCategoryIcon(cat, 12)}
+                  {renderCategoryIcon(cat, 13, isSelected)}
                   <span>{cat}</span>
                 </button>
               );

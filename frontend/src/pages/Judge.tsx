@@ -92,7 +92,7 @@ export const Judge: React.FC = () => {
 
   if (currentRole === 'freelancer' || currentRole === 'client' || (!isAdmin && !isJudgeRole)) {
     return (
-      <div className="max-w-xl mx-auto py-16 px-4">
+      <div className="w-full py-16">
         <PermissionDeniedState
           title="Judge Panel Protected"
           description="The Judge Arbitration Panel is strictly restricted to appointed DAO Arbitrators and Governors. Freelancers and Clients cannot access or participate in dispute rulings."
@@ -103,7 +103,7 @@ export const Judge: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 py-6 max-w-6xl mx-auto font-sans">
+    <div className="space-y-6 py-6 w-full font-sans">
       {/* Top Restricted Header */}
       <div className="glass-panel p-6 sm:p-8 border-[#E2E6EC] bg-white shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -180,47 +180,47 @@ export const Judge: React.FC = () => {
         <div className="space-y-6">
           {/* Helpful Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
-              <p className="font-label-mono text-xs text-slate-500 font-bold">Total Resolved (30d)</p>
+            <div className="p-6 border border-slate-200/90 rounded-2xl bg-white shadow-xs space-y-2 hover:border-slate-300 transition-colors">
+              <p className="font-label-mono text-xs text-slate-500 font-bold uppercase tracking-wider">Total Resolved (30d)</p>
               <h4 className="font-headline text-3xl font-black text-[#0B0B0C]">{totalResolved}</h4>
-              <div className="flex items-center text-xs text-slate-500 gap-1 font-mono pt-1 font-medium">
-                <TrendingUp size={14} /> Active arbitrator track record
+              <div className="flex items-center text-xs text-slate-500 gap-1.5 font-mono pt-1 font-medium">
+                <TrendingUp size={14} className="text-slate-400" /> Active arbitrator track record
               </div>
             </div>
 
-            <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
-              <p className="font-label-mono text-xs text-slate-500 font-bold">Average Resolution SLA</p>
+            <div className="p-6 border border-slate-200/90 rounded-2xl bg-white shadow-xs space-y-2 hover:border-slate-300 transition-colors">
+              <p className="font-label-mono text-xs text-slate-500 font-bold uppercase tracking-wider">Average Resolution SLA</p>
               <h4 className="font-headline text-3xl font-black text-[#0B0B0C]">{avgSla}</h4>
-              <div className="flex items-center text-xs text-slate-600 gap-1 font-mono pt-1 font-medium">
-                <Clock size={14} /> Within SLA threshold
+              <div className="flex items-center text-xs text-slate-600 gap-1.5 font-mono pt-1 font-medium">
+                <Clock size={14} className="text-slate-400" /> Within SLA threshold
               </div>
             </div>
 
-            <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
-              <p className="font-label-mono text-xs text-slate-500 font-bold">Arbitrator Fee Earned</p>
+            <div className="p-6 border border-slate-200/90 rounded-2xl bg-white shadow-xs space-y-2 hover:border-slate-300 transition-colors">
+              <p className="font-label-mono text-xs text-slate-500 font-bold uppercase tracking-wider">Arbitrator Fee Earned</p>
               <h4 className="font-headline text-3xl font-black text-emerald-700">
                 ${arbitratorFeeEarned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
               </h4>
-              <div className="flex items-center text-xs text-slate-600 gap-1 font-mono pt-1 font-medium">
-                <CreditCard size={14} /> 2.5% protocol resolution fee
+              <div className="flex items-center text-xs text-slate-600 gap-1.5 font-mono pt-1 font-medium">
+                <CreditCard size={14} className="text-emerald-600/70" /> 2.5% protocol resolution fee
               </div>
             </div>
           </div>
 
           {/* Open Disputes Table */}
-          <div className="glass-panel border-slate-200 bg-white overflow-hidden hard-shadow space-y-4">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div className="border border-slate-200/90 rounded-2xl bg-white overflow-hidden shadow-xs space-y-0 divide-y divide-slate-100">
+            <div className="p-6 flex items-center justify-between bg-slate-50/50">
               <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Gavel size={18} className="text-[#0047AB]" /> Open Dispute Queue
               </h3>
-              <span className="font-mono text-xs text-slate-500 font-bold">{disputedJobs.length} Pending Cases</span>
+              <span className="font-mono text-xs text-slate-500 font-bold bg-white px-3 py-1 rounded-full border border-slate-200">{disputedJobs.length} Pending Cases</span>
             </div>
 
             {disputedJobs.length === 0 ? (
               <div className="p-12 text-center text-slate-500 space-y-2">
                 <CheckCircle2 size={36} className="text-emerald-600 mx-auto" />
-                <h4 className="font-bold text-slate-900">No Open Disputes</h4>
-                <p className="text-xs">All smart contract escrows are in good standing.</p>
+                <h4 className="font-bold text-slate-900 text-sm">No Open Disputes</h4>
+                <p className="text-xs text-slate-500">All smart contract escrows are in good standing.</p>
               </div>
             ) : (
               <>

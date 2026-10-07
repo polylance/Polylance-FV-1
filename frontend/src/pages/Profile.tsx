@@ -114,7 +114,7 @@ export const Profile: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 py-6 max-w-4xl mx-auto">
+    <div className="space-y-8 py-6 w-full">
       {/* 1. VERIFIED ENTERPRISE CLIENT PROFILE VIEW matching client_profile_verified_enterprise & client_trust_profile_verified_reliability_score */}
       {isClientProfile ? (
         <div className="space-y-8">

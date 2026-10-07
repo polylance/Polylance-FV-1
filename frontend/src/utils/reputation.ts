@@ -44,7 +44,17 @@ export const calculateReputationScores = (
     (j) => j.freelancer?.toLowerCase() === lower
   );
   const completedJobs = profileJobs.filter((j) => j.status === 'Completed');
-  const completedCount = completedJobs.length;
+
+  // Verified completed deliveries count:
+  // Must strictly reflect verified completed freelance deliverables.
+  // Guards against client-side payment releases or phantom metadata inflating developer scores.
+  const verifiedDeliveriesCount = completedJobs.length;
+  const onChainCount = typeof sbtCount === 'number' && sbtCount > 0 ? sbtCount : 0;
+  // If local jobs are tracked, anchor strictly to verified freelance completions.
+  // Fall back to genuine on-chain SBT count only if no local jobs are loaded yet.
+  const completedCount = verifiedDeliveriesCount > 0
+    ? verifiedDeliveriesCount
+    : onChainCount;
 
   const completedVolume = completedJobs.reduce((sum, j) => {
     const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
@@ -56,17 +66,25 @@ export const calculateReputationScores = (
   const hasGithub = Boolean(profileObj?.githubVerified);
   const attestationBonus = hasGithub ? 50 : 0;
   
-  // Real arbitration points: only awarded when judge actually resolved a dispute
+  // Real arbitration points: ONLY awarded when the judge actually presided over and resolved that dispute
   const resolvedDisputes = jobs.filter(
-    (j) => j.dispute?.resolved && (j.dispute.judge?.toLowerCase() === lower || (isJudgeAccount && j.dispute.resolved))
+    (j) => j.dispute?.resolved && j.dispute.judge?.toLowerCase() === lower
   );
   const arbitrationPts = resolvedDisputes.length * 50;
 
   const totalPts = escrowPts + volumePts + attestationBonus + arbitrationPts;
 
-  const successRatePercent = completedCount > 0
-    ? Math.round((completedJobs.filter(j => !j.dispute || (j.dispute.resolved && (j.dispute.rulingBps ?? 0) >= 5000)).length / completedCount) * 100)
-    : 0;
+  // Real success rate percentage:
+  // (Completed jobs with good ruling or no dispute) / (Total finished jobs = completed + resolved disputes)
+  const finishedJobs = profileJobs.filter(
+    (j) => j.status === 'Completed' || (j.status === 'Disputed' && j.dispute?.resolved)
+  );
+  const successfulJobs = completedJobs.filter(
+    (j) => !j.dispute || (j.dispute.resolved && (j.dispute.rulingBps ?? 0) >= 5000)
+  );
+  const successRatePercent = finishedJobs.length > 0
+    ? Math.round((successfulJobs.length / finishedJobs.length) * 100)
+    : (completedJobs.length > 0 ? 100 : 0);
 
   return {
     totalPoints: totalPts,

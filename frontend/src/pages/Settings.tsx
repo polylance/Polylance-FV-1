@@ -318,7 +318,7 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="space-y-12 pt-6 pb-64 max-w-6xl mx-auto px-4 sm:px-6">
+    <div className="space-y-12 pt-6 pb-64 w-full">
       
       {/* Header Banner */}
       <motion.div {...scrollReveal} className="space-y-3 text-left">
@@ -643,9 +643,9 @@ export const Settings: React.FC = () => {
                     <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 block">
                       Target Hourly Rate (USDC)
                     </label>
-                    <div className="relative">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <UsdcIcon size={16} />
+                    <div className="relative flex items-center">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center justify-center">
+                        <UsdcIcon size={18} />
                       </div>
                       <input
                         type="number"
@@ -654,7 +654,8 @@ export const Settings: React.FC = () => {
                         value={hourlyRateUsdc}
                         onChange={(e) => setHourlyRateUsdc(e.target.value)}
                         placeholder="75"
-                        className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-mono focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all"
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-mono focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all"
+                        style={{ paddingLeft: '2.75rem' }}
                       />
                     </div>
                   </div>
@@ -677,14 +678,17 @@ export const Settings: React.FC = () => {
                         </button>
                       )}
                     </div>
-                    <div className="relative">
-                      <Github size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <div className="relative flex items-center">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center justify-center text-slate-400">
+                        <Github size={18} />
+                      </div>
                       <input
                         type="text"
                         value={githubUsername}
                         onChange={(e) => setGithubUsername(e.target.value)}
                         placeholder="e.g. octocat or web3dev"
-                        className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all"
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-900 font-sans focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all"
+                        style={{ paddingLeft: '2.75rem' }}
                       />
                     </div>
                   </div>

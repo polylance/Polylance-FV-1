@@ -403,14 +403,14 @@ export const CertifiedPass: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen ${NEO.canvas} text-slate-700 py-8 px-4 sm:px-6 lg:px-8 font-sans select-none relative overflow-x-hidden`}>
+    <div className={`w-full ${NEO.canvas} text-slate-700 font-sans select-none relative overflow-x-hidden pb-16`}>
       {/* Scroll Progress Meter */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 bg-[#0047AB] z-50 origin-left"
         style={{ scaleX }}
       />
 
-      <div className="max-w-6xl mx-auto space-y-16 py-4">
+      <div className="w-full space-y-16 py-4">
 
         {/* ── 1. HERO SECTION ── */}
         <motion.section

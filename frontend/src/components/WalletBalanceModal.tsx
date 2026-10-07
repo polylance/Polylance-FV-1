@@ -104,11 +104,12 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
     (jobs || []).forEach((job) => {
       const isClient = Boolean(job.client && job.client.toLowerCase() === addrLower);
       const isFreelancer = Boolean(job.freelancer && job.freelancer.toLowerCase() === addrLower);
-      const isApplicant = (job.applications || []).some(
-        (a) => a.applicant && a.applicant.toLowerCase() === addrLower
-      );
+      const isJudge = Boolean(job.dispute && job.dispute.judge && job.dispute.judge.toLowerCase() === addrLower);
 
-      if (!isClient && !isFreelancer && !isApplicant) return;
+      // SECURITY & PRIVACY PROTECTION:
+      // Transactions must strictly be scoped to the connected wallet.
+      // Do NOT expose escrow funds, payouts, submissions, or SBT mints to third parties or unselected applicants.
+      if (!isClient && !isFreelancer && !isJudge) return;
 
       const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
       const isCrypto = sym === 'POL' || sym === 'MATIC';
@@ -119,6 +120,20 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
       // Events
       (job.events || []).forEach((evt) => {
         if (!evt.txHash || evt.status !== 'completed') return;
+
+        // Security check: only show events where the user was an authorized participant
+        if (evt.step === 'Posted' && !isClient) return;
+        if (evt.step === 'Funded' && !isClient && !isFreelancer) return;
+        if (evt.step === 'Submitted' && !isFreelancer) return;
+        if (evt.step === 'Completed' && !isClient && !isFreelancer) return;
+        if (evt.step === 'Minted' && !isFreelancer) return;
+        if (evt.step === 'Disputed' && !(job.dispute?.raisedBy?.toLowerCase() === addrLower || isClient || isFreelancer)) return;
+        if (evt.step === 'Ruled' && !(isJudge || isClient || isFreelancer)) return;
+        if (evt.step === 'Update' && !isFreelancer && !isClient) return;
+        if (evt.step === 'Extension' && !isFreelancer && !isClient) return;
+        if (evt.step === 'ExtensionResponse' && !isClient && !isFreelancer) return;
+        if (evt.step === 'Modifications' && !isClient && !isFreelancer) return;
+
         const key = `${evt.txHash.toLowerCase()}-${evt.step}`;
         if (seenTxHashes.has(key)) return;
         seenTxHashes.add(key);
@@ -148,6 +163,14 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
           type = 'sbt';
           title = 'Reputation Soulbound Token Minted';
           isIncoming = true;
+        } else if (evt.step === 'Ruled') {
+          type = 'dispute';
+          title = isJudge ? 'Arbitration Ruling Issued' : 'Dispute Resolved';
+          isIncoming = isFreelancer;
+        } else if (evt.step === 'Disputed') {
+          type = 'dispute';
+          title = 'Dispute Raised on Escrow';
+          isIncoming = false;
         }
 
         txList.push({
@@ -165,8 +188,8 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
         });
       });
 
-      // Also check sbtTxHash if not in events
-      if (job.sbtTxHash && !seenTxHashes.has(job.sbtTxHash.toLowerCase())) {
+      // Also check sbtTxHash: ONLY if the connected wallet is the recipient freelancer!
+      if (isFreelancer && job.sbtTxHash && !seenTxHashes.has(job.sbtTxHash.toLowerCase())) {
         seenTxHashes.add(job.sbtTxHash.toLowerCase());
         txList.push({
           id: `${job.id}-sbt-${job.sbtTxHash}`,
@@ -238,7 +261,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 </div>
                 <p className="text-xs text-slate-400 font-medium truncate">
                   {view === 'polygon_history'
-                    ? 'All PolyLance on-chain transactions on Polygon'
+                    ? 'Your PolyLance on-chain transactions on Polygon'
                     : 'Live on-chain assets & tokens'}
                 </p>
 
@@ -492,6 +515,17 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span>Polygon Mainnet (137)</span>
                 </div>
+              </div>
+
+              {/* Privacy Shield Guard */}
+              <div className="flex items-center justify-between px-3.5 py-2 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-[11px] font-medium text-emerald-800 shadow-3xs">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                  <span>Privacy Protected: Scoped strictly to your wallet</span>
+                </div>
+                <span className="font-mono text-[9.5px] text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200 font-bold uppercase tracking-wider">
+                  Isolated
+                </span>
               </div>
 
               {/* Transactions List */}

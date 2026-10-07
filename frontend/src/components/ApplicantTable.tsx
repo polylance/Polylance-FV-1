@@ -276,7 +276,12 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
 
           // Real-time calculation of freelancer stats from live data context
           const freelancerAddr = app.applicant.toLowerCase();
-          const repScores = calculateReputationScores(app.applicant, jobs, profile);
+          const repScores = calculateReputationScores(
+            app.applicant, 
+            jobs, 
+            profile, 
+            profile?.reputationSbtCount || 0
+          );
           const completedJobs = jobs.filter(
             (j) => j.freelancer?.toLowerCase() === freelancerAddr && j.status === 'Completed'
           );
@@ -351,7 +356,7 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                   {app.githubVerified && (
                     <div className="space-y-1 bg-emerald-50/70 border border-emerald-200/70 px-3.5 py-1.5 rounded-xl">
                       <div className="flex items-center gap-1 font-mono">
-                        <span className="font-extrabold text-emerald-700 text-xs">{app.githubScore}</span>
+                        <span className="font-extrabold text-emerald-700 text-xs">{profile?.primaryScore || app.githubScore}</span>
                         <span className="text-slate-400 font-bold text-[10px]">/ 1000</span>
                         <CheckCircle2 size={12} className="text-emerald-600 ml-0.5" />
                       </div>

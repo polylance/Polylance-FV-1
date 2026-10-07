@@ -218,9 +218,10 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               placeholder="e.g. Completed Smart Contract Suite & Test Coverage Report"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
+              style={{ paddingLeft: '2.5rem' }}
             />
-            <FileText size={15} className="absolute left-3 top-3 text-slate-400 pointer-events-none" />
+            <FileText size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
         </div>
 
@@ -237,9 +238,10 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               placeholder="https://github.com/your-org/repo/pull/1 or https://demo.yourproject.xyz"
               value={externalLink}
               onChange={(e) => setExternalLink(e.target.value)}
-              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
+              style={{ paddingLeft: '2.5rem' }}
             />
-            <Link2 size={15} className="absolute left-3 top-3 text-slate-400 pointer-events-none" />
+            <Link2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
           <p className="text-[11px] text-slate-400 font-medium mt-1">
             Provide a working repository, pull request, Figma prototype, or live deployment URL.
@@ -258,7 +260,8 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               placeholder="Describe what was built, how to run tests, and any relevant deployment details..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400 resize-none"
+              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400 resize-none"
+              style={{ paddingLeft: '2.5rem' }}
             />
             <FileText size={15} className="absolute left-3 top-3 text-slate-400 pointer-events-none" />
           </div>

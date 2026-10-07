@@ -42,8 +42,8 @@ export const UIStatesPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8 text-slate-900">
-      <div className="max-w-7xl mx-auto space-y-10">
+    <div className="w-full text-slate-900 py-4">
+      <div className="w-full space-y-10">
         {/* ── HEADER & PALETTE CONTAINER ─────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* Header Card */}

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ContourBackground } from '../components/ContourBackground';
 import { useWeb3 } from '../context/Web3Context';
-import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { usePolyLanceData, isDemoOrMockJob, getSyncEndpoints } from '../context/PolyLanceDataContext';
 import { truncateAddress } from '../utils/formatters';
 import {
   ArrowRight,
@@ -21,6 +21,7 @@ import {
   Scale,
   Sparkles,
   ExternalLink,
+  Send,
 } from 'lucide-react';
 
 export const Landing: React.FC = () => {
@@ -30,6 +31,78 @@ export const Landing: React.FC = () => {
 
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const heroCalmZoneRef = useRef<HTMLDivElement>(null);
+
+  // Telegram alert binding state
+  const [isTelegramBound, setIsTelegramBound] = useState(false);
+  const [telegramLoading, setTelegramLoading] = useState(false);
+
+  // Reduced motion preference detection
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener?.('change', handleChange);
+    return () => mediaQuery.removeEventListener?.('change', handleChange);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!address) {
+      setIsTelegramBound(false);
+      return;
+    }
+    const checkTelegram = async () => {
+      const endpoints = getSyncEndpoints();
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(`${ep}/api/telegram/status/${address}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (isMounted) {
+              setIsTelegramBound(Boolean(data.isBound || data.bound));
+            }
+            break;
+          }
+        } catch {}
+      }
+    };
+    checkTelegram();
+    const interval = setInterval(checkTelegram, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [address]);
+
+  const handleConnectTelegram = async () => {
+    if (!address) return;
+    setTelegramLoading(true);
+    const endpoints = getSyncEndpoints();
+    for (const ep of endpoints) {
+      try {
+        const res = await fetch(`${ep}/api/telegram/pair-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.deepLink) {
+            window.open(data.deepLink, '_blank');
+            break;
+          }
+        }
+      } catch {}
+    }
+    setTelegramLoading(false);
+  };
 
   const handleGetStarted = () => {
     if (!isConnected) {
@@ -89,7 +162,10 @@ export const Landing: React.FC = () => {
   const userAddressLower = address ? address.toLowerCase() : '';
   const realNotifications: RealNotificationItem[] = [];
 
-  jobs.forEach((job) => {
+  // Strictly filter only 100% verified real on-chain jobs (Zero mock / fake / demo data)
+  const validRealJobs = (jobs || []).filter((j) => !isDemoOrMockJob(j));
+
+  validRealJobs.forEach((job) => {
     const isClient = Boolean(userAddressLower && job.client?.toLowerCase() === userAddressLower);
     const isFreelancer = Boolean(userAddressLower && job.freelancer?.toLowerCase() === userAddressLower);
     const userApplied = Boolean(userAddressLower && job.applications?.some((a) => a.applicant?.toLowerCase() === userAddressLower));
@@ -106,7 +182,7 @@ export const Landing: React.FC = () => {
           badge: 'Proposal',
           badgeColor: 'bg-[#E7EEF9] text-[#0047AB]',
           type: 'proposal',
-          linkTo: `/workspace`,
+          linkTo: `/workspace?jobId=${job.id}`,
           isPersonal: true,
         });
       });
@@ -121,7 +197,7 @@ export const Landing: React.FC = () => {
           badge: 'Review Needed',
           badgeColor: 'bg-[#FDF3DC] text-[#C2610C]',
           type: 'submission',
-          linkTo: `/workspace`,
+          linkTo: `/workspace?jobId=${job.id}`,
           isPersonal: true,
         });
       }
@@ -136,7 +212,7 @@ export const Landing: React.FC = () => {
           badge: 'Extension',
           badgeColor: 'bg-[#FDF3DC] text-[#C2610C]',
           type: 'submission',
-          linkTo: `/workspace`,
+          linkTo: `/workspace?jobId=${job.id}`,
           isPersonal: true,
         });
       });
@@ -154,7 +230,7 @@ export const Landing: React.FC = () => {
           badge: 'In Escrow',
           badgeColor: 'bg-[#E7EEF9] text-[#0047AB]',
           type: 'escrow',
-          linkTo: `/workspace`,
+          linkTo: `/workspace?jobId=${job.id}`,
           isPersonal: true,
         });
       }
@@ -169,7 +245,7 @@ export const Landing: React.FC = () => {
           badge: 'Paid 100%',
           badgeColor: 'bg-[#E3F3EA] text-[#1E8449]',
           type: 'payout',
-          linkTo: `/workspace`,
+          linkTo: `/workspace?jobId=${job.id}`,
           isPersonal: true,
         });
       }
@@ -178,16 +254,45 @@ export const Landing: React.FC = () => {
     // 3. User's job milestone events
     if (isClient || isFreelancer || userApplied) {
       (job.events || []).forEach((ev, idx) => {
+        let dynamicDesc = ev.description;
+        if (!dynamicDesc) {
+          switch (ev.step) {
+            case 'Posted':
+              dynamicDesc = `Escrow initialized on Polygon with budget ${job.amountEth || job.amountUsdc || '0'} ${job.paymentTokenSymbol || 'POL'}.`;
+              break;
+            case 'Selected':
+              dynamicDesc = `Freelancer selected for “${job.title}”. Milestone terms awaiting agreement.`;
+              break;
+            case 'Terms':
+              dynamicDesc = `Contract terms mutually agreed. Escrow ready for funding.`;
+              break;
+            case 'Funded':
+              dynamicDesc = `Client locked ${job.amountEth || job.amountUsdc || ''} ${job.paymentTokenSymbol || 'POL'} in contract escrow on Polygon.`;
+              break;
+            case 'Submitted':
+              dynamicDesc = `Deliverables & proof of work submitted for “${job.title}”. Ready for inspection.`;
+              break;
+            case 'Completed':
+              dynamicDesc = `Milestone approved and 100% funds released to freelancer wallet.`;
+              break;
+            case 'Disputed':
+              dynamicDesc = `Dispute opened on “${job.title}”. Arbitrators reviewing on-chain.`;
+              break;
+            default:
+              dynamicDesc = `Milestone event on contract “${job.title}”.`;
+          }
+        }
+
         realNotifications.push({
           id: `ev-${job.id}-${idx}`,
-          title: ev.title || 'Contract Status Update',
-          description: ev.description || `Milestone event on contract “${job.title}”`,
+          title: ev.title || `Contract Milestone: ${ev.step || 'Escrow'}`,
+          description: dynamicDesc,
           timestamp: ev.timestamp || job.createdAt,
           timeAgo: formatRelativeTime(ev.timestamp || job.createdAt),
-          badge: ev.step || 'Contract Event',
-          badgeColor: 'bg-[#F4F6F9] text-[#4B5563]',
+          badge: ev.step || 'Escrow',
+          badgeColor: ev.step === 'Completed' ? 'bg-[#E3F3EA] text-[#1E8449]' : ev.step === 'Funded' ? 'bg-[#E7EEF9] text-[#0047AB]' : 'bg-[#F4F6F9] text-[#4B5563]',
           type: 'escrow',
-          linkTo: `/workspace`,
+          linkTo: `/workspace?jobId=${job.id}`,
           txHash: ev.txHash,
           isPersonal: true,
         });
@@ -204,7 +309,7 @@ export const Landing: React.FC = () => {
       badge: job.status,
       badgeColor: job.status === 'Completed' ? 'bg-[#E3F3EA] text-[#1E8449]' : 'bg-[#E7EEF9] text-[#0047AB]',
       type: 'created',
-      linkTo: `/jobs`,
+      linkTo: `/workspace?jobId=${job.id}`,
       isPersonal: false,
     });
   });
@@ -250,7 +355,7 @@ export const Landing: React.FC = () => {
   ];
 
   return (
-    <div className="relative z-1 space-y-20 py-4 max-w-[1200px] mx-auto text-[#0B0B0C] px-4 sm:px-6 lg:px-8">
+    <div className="relative z-1 space-y-20 py-4 w-full text-[#0B0B0C]">
       {/* ── Fixed Animated Flowing Contour Background ──────────────────────── */}
       <ContourBackground calmZoneRef={heroCalmZoneRef} />
 
@@ -261,15 +366,15 @@ export const Landing: React.FC = () => {
           {/* Left Column: Headline, Slogan, Subtitle, and Actions */}
           <div ref={heroCalmZoneRef} className="lg:col-span-7 space-y-6 text-left">
             {/* Flat Status Pill */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E7EEF9] text-[#0047AB] text-xs font-semibold border border-[#D0E0F7]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB]" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EBF3FF] text-[#0047AB] text-xs font-semibold border border-[#00D2FF]/30 shadow-[0_0_12px_rgba(0,102,255,0.1)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00D2FF] animate-pulse" />
               <span>Smart contract escrow on Polygon</span>
             </div>
 
-            {/* Solid Single-Ink Serif Headline with Cobalt Accent */}
+            {/* Solid Single-Ink Serif Headline with Cobalt & Electric Accent */}
             <h1 className="font-serif font-semibold text-3xl sm:text-4xl lg:text-[46px] text-[#0B0B0C] tracking-tight leading-[1.18]">
               Your Work. Your Reputation. Your Identity.{' '}
-              <span className="text-[#0047AB]">Everything on chain at PolyLance.</span>
+              <span className="text-[#0047AB] font-bold">Everything on chain at PolyLance.</span>
             </h1>
 
             {/* Subtitle with High Contrast */}
@@ -282,16 +387,16 @@ export const Landing: React.FC = () => {
               <button
                 type="button"
                 onClick={handleGetStarted}
-                className="bg-[#0047AB] hover:bg-[#003A8C] active:bg-[#002F73] text-white font-medium text-sm sm:text-base px-6 py-3.5 rounded-[8px] transition-colors duration-150 inline-flex items-center justify-center gap-2 cursor-pointer"
+                className="bg-[#0047AB] hover:bg-[#003A8C] active:bg-[#002F73] text-white font-medium text-sm sm:text-base px-6 py-3.5 rounded-[8px] transition-colors duration-150 inline-flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
-                <Wallet size={16} strokeWidth={1.5} />
+                <Wallet size={16} strokeWidth={1.5} className="text-white" />
                 <span>{isConnected ? 'Go to dashboard' : 'Connect wallet'}</span>
                 <ArrowRight size={16} strokeWidth={1.5} />
               </button>
 
               <Link
                 to="/jobs"
-                className="bg-[#FFFFFF] hover:bg-[#F4F6F9] border border-[#E2E6EC] text-[#0B0B0C] font-medium text-sm sm:text-base px-6 py-3.5 rounded-[8px] transition-colors duration-150 inline-flex items-center justify-center gap-2 cursor-pointer"
+                className="bg-[#FFFFFF] hover:bg-[#F4F6F9] border border-[#E2E6EC] hover:border-[#00D2FF]/50 text-[#0B0B0C] font-medium text-sm sm:text-base px-6 py-3.5 rounded-[8px] transition-all duration-150 inline-flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 <Search size={16} strokeWidth={1.5} className="text-[#0047AB]" />
                 <span>Browse jobs</span>
@@ -305,6 +410,29 @@ export const Landing: React.FC = () => {
               <span>Instant milestone release</span>
               <span className="text-[#8892A0]">•</span>
               <span>Non-custodial contracts</span>
+            </div>
+
+            {/* Escrow Flow Interactive Video Showcase */}
+            <div className="w-full aspect-[16/9] md:aspect-[21/9] rounded-[10px] sm:rounded-2xl border border-[#E2E6EC] shadow-xs overflow-hidden bg-white/40 relative">
+              {prefersReducedMotion ? (
+                <img
+                  src="/escrow-flow-poster.jpg"
+                  alt="PolyLance Escrow Flow"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <video
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  poster="/escrow-flow-poster.jpg"
+                  className="w-full h-full object-cover"
+                >
+                  <source src="/escrow-flow.mp4" type="video/mp4" />
+                </video>
+              )}
             </div>
           </div>
 
@@ -469,9 +597,46 @@ export const Landing: React.FC = () => {
                     )}
                   </div>
 
+                  {/* Telegram Live Alerts Status & Connection Bar */}
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 bg-sky-50/70 border border-sky-100 rounded-[8px] text-xs">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Send size={13} className="text-[#0088cc] shrink-0" />
+                      <span className="text-slate-800 font-medium truncate">Telegram Live Bot Alerts:</span>
+                    </div>
+
+                    {isTelegramBound ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        LINKED & ACTIVE
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleConnectTelegram}
+                        disabled={telegramLoading}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[11px] font-semibold text-white bg-[#0088cc] hover:bg-[#0077b5] transition-all cursor-pointer shadow-2xs shrink-0 disabled:opacity-50"
+                        title="Receive instant 1-on-1 notifications on Telegram for this wallet"
+                      >
+                        <Send size={11} />
+                        <span>{telegramLoading ? 'Generating Link...' : 'Enable Telegram Alerts'}</span>
+                      </button>
+                    )}
+                  </div>
+
                   {/* Real Notification Items List */}
                   <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-0.5">
-                    {displayedNotifications.map((notif) => (
+                    {displayedNotifications.length === 0 ? (
+                      <div className="p-6 text-center rounded-[8px] border border-dashed border-[#E2E6EC] bg-slate-50/60 space-y-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 text-[#0047AB] flex items-center justify-center mx-auto">
+                          <Bell size={14} />
+                        </div>
+                        <p className="text-xs font-semibold text-slate-800">No on-chain contract events yet</p>
+                        <p className="text-[11px] text-slate-500 max-w-xs mx-auto leading-relaxed">
+                          When you post a job, lock escrow funds, or submit milestone deliverables on Polygon, real-time alerts will appear here instantly.
+                        </p>
+                      </div>
+                    ) : (
+                      displayedNotifications.map((notif) => (
                       <div
                         key={notif.id}
                         className={`p-3 bg-[#FFFFFF] border rounded-[8px] transition-colors space-y-1.5 ${
@@ -506,7 +671,7 @@ export const Landing: React.FC = () => {
                           </Link>
                         </div>
                       </div>
-                    ))}
+                    )))}
                   </div>
 
                   {/* Quick Action Navigation */}
@@ -551,44 +716,44 @@ export const Landing: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
             {/* Step 1 */}
-            <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 space-y-3">
+            <div className="bg-[#FFFFFF] border border-[#E2E6EC] hover:border-[#0066FF]/40 rounded-[10px] p-5 space-y-3 transition-all duration-200 hover:shadow-xs group">
               <div className="w-8 h-8 rounded-full bg-[#0B0B0C] text-white font-mono font-semibold text-xs flex items-center justify-center">
                 01
               </div>
-              <h3 className="font-sans font-semibold text-base text-[#0B0B0C]">Agree on milestones</h3>
+              <h3 className="font-sans font-semibold text-base text-[#0B0B0C] group-hover:text-[#0047AB] transition-colors">Agree on milestones</h3>
               <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
                 Define deliverable requirements, budget, and deadlines together. Both sides sign off before work begins.
               </p>
             </div>
 
             {/* Step 2 */}
-            <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 space-y-3">
-              <div className="w-8 h-8 rounded-full bg-[#0047AB] text-white font-mono font-semibold text-xs flex items-center justify-center">
+            <div className="bg-[#FFFFFF] border border-[#0066FF]/30 hover:border-[#0066FF] rounded-[10px] p-5 space-y-3 transition-all duration-200 shadow-[0_2px_12px_rgba(0,102,255,0.06)] group">
+              <div className="w-8 h-8 rounded-full bg-[#0047AB] text-white font-mono font-semibold text-xs flex items-center justify-center shadow-[0_0_10px_rgba(0,71,171,0.4)]">
                 02
               </div>
-              <h3 className="font-sans font-semibold text-base text-[#0B0B0C]">Fund the escrow</h3>
+              <h3 className="font-sans font-semibold text-base text-[#0B0B0C] group-hover:text-[#0047AB] transition-colors">Fund the escrow</h3>
               <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
                 The client deposits funds into the Polygon escrow smart contract. The freelancer starts work knowing funds are secure.
               </p>
             </div>
 
             {/* Step 3 */}
-            <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 space-y-3">
-              <div className="w-8 h-8 rounded-full bg-[#0B0B0C] text-white font-mono font-semibold text-xs flex items-center justify-center">
+            <div className="bg-[#FFFFFF] border border-[#0066FF]/30 hover:border-[#00D2FF] rounded-[10px] p-5 space-y-3 transition-all duration-200 shadow-[0_2px_12px_rgba(0,102,255,0.08)] group">
+              <div className="w-8 h-8 rounded-full bg-[#0066FF] text-white font-mono font-semibold text-xs flex items-center justify-center shadow-[0_0_12px_rgba(0,102,255,0.45)]">
                 03
               </div>
-              <h3 className="font-sans font-semibold text-base text-[#0B0B0C]">Deliver &amp; verify</h3>
+              <h3 className="font-sans font-semibold text-base text-[#0B0B0C] group-hover:text-[#0066FF] transition-colors">Deliver &amp; verify</h3>
               <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
                 The freelancer submits deliverables with cryptographic GitHub attestations and preview links for review.
               </p>
             </div>
 
             {/* Step 4 */}
-            <div className="bg-[#FFFFFF] border border-[#E2E6EC] rounded-[10px] p-5 space-y-3">
-              <div className="w-8 h-8 rounded-full bg-[#0B0B0C] text-white font-mono font-semibold text-xs flex items-center justify-center">
+            <div className="bg-[#FFFFFF] border border-[#00D2FF]/40 hover:border-[#00D2FF] rounded-[10px] p-5 space-y-3 transition-all duration-200 shadow-[0_2px_16px_rgba(0,210,255,0.12)] group">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0066FF] to-[#00D2FF] text-white font-mono font-semibold text-xs flex items-center justify-center shadow-[0_0_12px_rgba(0,210,255,0.55)]">
                 04
               </div>
-              <h3 className="font-sans font-semibold text-base text-[#0B0B0C]">Release &amp; mint</h3>
+              <h3 className="font-sans font-semibold text-base text-[#0B0B0C] group-hover:text-[#0066FF] transition-colors">Release &amp; mint</h3>
               <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
                 Once approved, funds transfer instantly to the freelancer. An immutable Soulbound reputation token is minted on-chain.
               </p>
@@ -710,8 +875,18 @@ export const Landing: React.FC = () => {
 
       {/* ── 6. CLOSING CTA BAND IN SOLID --black: #0B0B0C ────────────────── */}
       <section className="relative z-10">
-        <div className="w-full bg-[#0B0B0C] text-white rounded-[10px] p-8 sm:p-14 text-center space-y-6 shadow-xs">
-          <div className="max-w-2xl mx-auto space-y-3">
+        <div className="w-full bg-[#0B0B0C] text-white rounded-[10px] p-8 sm:p-14 text-center space-y-6 shadow-xs relative overflow-hidden border border-[#0066FF]/20 hover:border-[#00D2FF]/40 transition-colors duration-300">
+          {/* Subtle electric blue & polylance cobalt ambient glow */}
+          <div 
+            className="absolute top-0 right-0 w-80 h-80 pointer-events-none rounded-full blur-3xl opacity-25"
+            style={{ background: 'radial-gradient(circle, rgba(0, 210, 255, 0.35) 0%, rgba(0, 102, 255, 0.15) 50%, transparent 70%)' }}
+          />
+          <div 
+            className="absolute bottom-0 left-0 w-80 h-80 pointer-events-none rounded-full blur-3xl opacity-25"
+            style={{ background: 'radial-gradient(circle, rgba(0, 71, 171, 0.4) 0%, transparent 70%)' }}
+          />
+
+          <div className="max-w-2xl mx-auto space-y-3 relative z-10">
             <h2 className="font-serif font-semibold text-3xl sm:text-4xl text-white tracking-tight">
               Ready to work with verified on-chain trust?
             </h2>
@@ -720,11 +895,11 @@ export const Landing: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 relative z-10">
             <button
               type="button"
               onClick={handleGetStarted}
-              className="bg-[#0047AB] hover:bg-[#003A8C] active:bg-[#002F73] text-white font-medium text-sm sm:text-base px-6 py-3.5 rounded-[8px] transition-colors duration-150 inline-flex items-center gap-2 cursor-pointer shadow-xs"
+              className="bg-[#0047AB] hover:bg-[#003A8C] active:bg-[#002F73] hover:shadow-[0_0_20px_rgba(0,102,255,0.4)] text-white font-medium text-sm sm:text-base px-6 py-3.5 rounded-[8px] transition-all duration-150 inline-flex items-center gap-2 cursor-pointer shadow-xs"
             >
               <Wallet size={16} strokeWidth={1.5} />
               <span>{isConnected ? 'Go to dashboard' : 'Connect wallet'}</span>
@@ -740,7 +915,7 @@ export const Landing: React.FC = () => {
             </Link>
           </div>
 
-          <div className="text-xs text-white/60 font-mono pt-2">
+          <div className="text-xs text-white/60 font-mono pt-2 relative z-10">
             Polygon Mainnet (137) • 2.5% platform fee • Non-custodial escrow
           </div>
         </div>

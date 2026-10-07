@@ -20,7 +20,7 @@ export const EscrowTimeline: React.FC<EscrowTimelineProps> = ({ events }) => {
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <div>
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 font-headline">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#0047AB] inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-[#0047AB] to-[#00D2FF] shadow-[0_0_8px_#00D2FF] inline-block" />
             On-Chain Escrow Timeline
           </h3>
           <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
@@ -49,7 +49,7 @@ export const EscrowTimeline: React.FC<EscrowTimelineProps> = ({ events }) => {
                   isDone
                     ? 'bg-emerald-100 border-emerald-400 text-emerald-700 shadow-xs'
                     : isCurrent
-                    ? 'bg-blue-50 border-blue-300 text-[#0047AB] font-bold'
+                    ? 'bg-gradient-to-br from-[#0047AB] via-[#0066FF] to-[#00D2FF] border-[#00D2FF] text-white shadow-[0_0_12px_rgba(0,210,255,0.5)] font-bold'
                     : 'bg-white border-slate-300 text-slate-400'
                 }`}
               >
@@ -86,7 +86,7 @@ export const EscrowTimeline: React.FC<EscrowTimelineProps> = ({ events }) => {
                       href={getPolygonScanUrl(evt.txHash)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#0047AB] font-bold hover:underline flex items-center gap-0.5"
+                      className="text-[#0066FF] font-bold hover:text-[#00D2FF] hover:underline flex items-center gap-0.5 transition-colors"
                     >
                       {truncateAddress(evt.txHash)} <ExternalLink size={10} />
                     </a>

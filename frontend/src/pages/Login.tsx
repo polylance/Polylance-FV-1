@@ -274,7 +274,7 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className={step === 'role' ? "max-w-5xl mx-auto py-12 px-4 space-y-12 page-transition relative overflow-hidden" : "w-full max-w-[1520px] mx-auto py-4 sm:py-6 px-4 sm:px-8 xl:px-12 page-transition relative overflow-visible"}>
+    <div className={step === 'role' ? "w-full py-8 sm:py-12 space-y-12 page-transition relative" : "w-full py-4 sm:py-6 space-y-8 page-transition relative"}>
       {step === 'role' ? (
         <>
           {/* Header Section */}

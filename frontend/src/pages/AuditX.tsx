@@ -66,10 +66,10 @@ export const AuditX: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen ${UI.canvas} text-[#0B0B0C] selection:bg-[#E7EEF9] selection:text-[#0047AB] font-sans pb-24`}>
+    <div className={`w-full ${UI.canvas} text-[#0B0B0C] selection:bg-[#E7EEF9] selection:text-[#0047AB] font-sans pb-24`}>
       {/* ── TOP HEADER / BREADCRUMB ── */}
       <header className="sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-slate-200/70 py-3.5 px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               to="/"
@@ -106,7 +106,7 @@ export const AuditX: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-8 pt-10 sm:pt-14 space-y-16">
+      <div className="w-full pt-8 sm:pt-12 space-y-16">
         
         {/* ── HERO INTRODUCTION ── */}
         <section className="text-center space-y-5 max-w-4xl mx-auto">
@@ -617,7 +617,7 @@ export const AuditX: React.FC = () => {
           </div>
         </section>
 
-      </main>
+      </div>
     </div>
   );
 };

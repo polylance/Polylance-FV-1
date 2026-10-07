@@ -23,7 +23,7 @@ export const Dao: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 py-6 max-w-6xl mx-auto">
+    <div className="space-y-8 py-6 w-full">
       {/* Top Banner matching dao_judge_governance/code.html */}
       <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow flex flex-wrap items-center justify-between gap-4">
         <div>

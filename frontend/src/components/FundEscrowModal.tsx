@@ -265,7 +265,7 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
                   type="button"
                   onClick={handleFundClick}
                   disabled={isFunding}
-                  className="flex-2 py-3 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 hard-shadow shadow-blue-200"
+                  className="flex-2 py-3 px-5 rounded-xl bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 shadow-xs"
                 >
                   {isFunding ? (
                     <>

@@ -409,7 +409,7 @@ export const JobDetail: React.FC = () => {
 
   if (isConfidentialRestricted) {
     return (
-      <div className="space-y-8 py-6 max-w-4xl mx-auto font-sans">
+      <div className="space-y-8 py-6 w-full font-sans">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Link to="/jobs" className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 font-mono font-bold">
             <ArrowLeft size={14} /> Back to Find Jobs
@@ -492,7 +492,7 @@ export const JobDetail: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 py-6 max-w-6xl mx-auto">
+    <div className="space-y-8 py-6 w-full">
       {/* Top Breadcrumb & Status Header */}
       <ActionStatusModal 
         {...actionModal} 
@@ -552,8 +552,8 @@ export const JobDetail: React.FC = () => {
               <button
                 onClick={() => {
                   setAlertModalOptions({
-                    title: 'Cancel & Remove Job',
-                    message: 'Are you sure you want to cancel and remove this job posting now?',
+                    title: 'Cancel & Remove Job (Free & Gasless)',
+                    message: 'Are you sure you want to cancel and remove this job posting now? Deleting an unescrowed job is 100% free with no fee charged to the client.',
                     type: 'confirm',
                     showCancel: true,
                     isDestructive: true,
@@ -604,8 +604,8 @@ export const JobDetail: React.FC = () => {
                       type="button"
                       onClick={() => {
                         setAlertModalOptions({
-                          title: 'Delete Job Posting',
-                          message: `Are you sure you want to delete / cancel the job posting "${job.title}"?`,
+                          title: 'Delete Job Posting (Free & Gasless)',
+                          message: `Are you sure you want to remove the job posting "${job.title}"? Deleting an unescrowed job is 100% free with no fee charged to the client.`,
                           type: 'confirm',
                           showCancel: true,
                           isDestructive: true,
@@ -624,8 +624,8 @@ export const JobDetail: React.FC = () => {
                     </button>
                   </div>
                 )}
-                <div className="flex items-center gap-1.5 text-[#0047AB] text-xs font-mono font-bold">
-                  <Shield size={16} /> ESCROW SECURED
+                <div className="flex items-center gap-1.5 text-[#0066FF] text-xs font-mono font-bold">
+                  <Shield size={16} className="text-[#00D2FF]" /> ESCROW SECURED
                 </div>
               </div>
             </div>
@@ -969,7 +969,7 @@ export const JobDetail: React.FC = () => {
                   <div className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E6EC] pb-3">
                       <div>
-                        <span className="text-[10px] font-mono uppercase text-[#0047AB] font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                        <span className="text-[10px] font-mono uppercase text-[#0066FF] font-bold bg-blue-50/80 px-2 py-0.5 rounded border border-[#0066FF]/30">
                           HIRING PIPELINE
                         </span>
                         <h3 className="font-serif text-lg font-bold text-[#0B0B0C] mt-1">
@@ -1208,56 +1208,85 @@ export const JobDetail: React.FC = () => {
 
               return (
                 <>
-                  <div className="space-y-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-serif text-3xl font-bold text-[#0B0B0C]">
+                  {/* Primary Budget Amount & Value Pill */}
+                  <div className="flex items-center justify-between gap-2 pb-1">
+                    <div className="flex items-baseline gap-1.5 min-w-0">
+                      <span className="font-serif text-3xl font-extrabold text-[#0B0B0C] tracking-tight">
                         {formatToken(tokenGrossNum)}
                       </span>
                       <span className="font-mono text-base font-bold text-[#0047AB]">{sym}</span>
                     </div>
                     {isCrypto && (
-                      <span className="text-xs text-slate-500 font-mono block font-semibold">
+                      <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-[#E2E6EC] text-[11px] font-mono font-bold shrink-0">
                         ≈ ${usdGrossNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
                       </span>
                     )}
                   </div>
 
                   {/* 2.5% Maintenance Fee & Escrow Details */}
-                  <div className="space-y-2 pt-2 border-t border-[#E2E6EC] text-xs font-mono">
+                  <div className="space-y-2.5 pt-2.5 border-t border-[#E2E6EC] text-xs font-mono">
                     <div className="flex justify-between items-center text-slate-600">
-                      <span>Escrow Principal Budget:</span>
-                      <span className="font-bold text-[#0B0B0C]">
-                        {isCrypto
-                          ? `${formatToken(tokenGrossNum)} ${sym} (~$${usdGrossNum.toFixed(2)} USDC)`
-                          : `$${usdGrossNum.toFixed(2)} USDC`}
-                      </span>
+                      <span className="text-[11.5px] text-slate-500 font-medium">Principal Budget:</span>
+                      <div className="text-right">
+                        <span className="font-bold text-[#0B0B0C] block text-xs">
+                          {formatToken(tokenGrossNum)} {sym}
+                        </span>
+                        {isCrypto && (
+                          <span className="text-[10px] text-slate-400 font-normal block">
+                            ≈ ${usdGrossNum.toFixed(2)} USDC
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex justify-between items-center text-slate-600">
-                      <span>Site Maintenance Fee (2.5%):</span>
-                      <span className="font-bold text-[#0B0B0C]">
-                        {isCrypto
-                          ? `+${formatToken(tokenClientFee)} ${sym} (+$${usdClientFee.toFixed(2)} USDC)`
-                          : `+$${usdClientFee.toFixed(2)} USDC`}
-                      </span>
+                      <span className="text-[11.5px] text-slate-500 font-medium">Site Fee (2.5%):</span>
+                      <div className="text-right">
+                        <span className="font-bold text-[#0B0B0C] block text-xs">
+                          +{formatToken(tokenClientFee)} {sym}
+                        </span>
+                        {isCrypto && (
+                          <span className="text-[10px] text-slate-400 font-normal block">
+                            +${usdClientFee.toFixed(2)} USDC
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex justify-between items-center text-[#0B0B0C] font-bold border-t border-[#E2E6EC] pt-1">
-                      <span>Total Escrow Deposit:</span>
-                      <span className="text-[#0B0B0C] font-bold">
-                        {isCrypto
-                          ? `${formatToken(tokenTotalClient)} ${sym} (~$${usdTotalClient.toFixed(2)} USDC)`
-                          : `$${usdTotalClient.toFixed(2)} USDC`}
-                      </span>
+                    <div className="flex justify-between items-center text-[#0B0B0C] border-t border-[#E2E6EC] pt-2">
+                      <span className="font-bold text-[11.5px]">Total Escrow Deposit:</span>
+                      <div className="text-right">
+                        <span className="text-[#0B0B0C] font-extrabold block text-xs">
+                          {formatToken(tokenTotalClient)} {sym}
+                        </span>
+                        {isCrypto && (
+                          <span className="text-[10px] text-slate-500 font-medium block">
+                            ≈ ${usdTotalClient.toFixed(2)} USDC
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] font-bold">
-                      <span>{isMeFreelancer ? 'Your Net Payout:' : 'Developer Net Payout:'}</span>
-                      <span className="text-emerald-700 text-sm font-black">
-                        {isCrypto
-                          ? `${formatToken(tokenNetPayout)} ${sym} (~$${usdNetPayout.toFixed(2)} USDC)`
-                          : `$${usdNetPayout.toFixed(2)} USDC`}
-                      </span>
+                    {/* Developer Net Payout highlight card */}
+                    <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200/90 flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-[10.5px] font-mono uppercase tracking-wider text-emerald-900 font-bold block">
+                          {isMeFreelancer ? 'Your Net Payout' : 'Developer Net Payout'}
+                        </span>
+                        <span className="text-[9.5px] font-mono text-emerald-700/80">
+                          Net after 2.5% protocol fee
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-emerald-700 text-sm sm:text-[15px] font-black block leading-tight">
+                          {formatToken(tokenNetPayout)} {sym}
+                        </span>
+                        {isCrypto && (
+                          <span className="text-[10px] font-mono text-emerald-600 block mt-0.5">
+                            ≈ ${usdNetPayout.toFixed(2)} USDC
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <p className="text-[10px] font-sans text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-lg border border-[#E2E6EC]">

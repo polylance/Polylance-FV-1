@@ -116,6 +116,8 @@ export const ContourBackground: React.FC<ContourBackgroundProps> = ({
     const computedStyle = typeof window !== 'undefined' ? getComputedStyle(document.documentElement) : null;
     const cobaltHex = colors?.primary || computedStyle?.getPropertyValue('--primary').trim() || '#0047AB';
     const grayHex = colors?.gray || computedStyle?.getPropertyValue('--ink-3').trim() || '#8892A0';
+    const electricHex = computedStyle?.getPropertyValue('--electric').trim() || '#0066FF';
+    const electricCyanHex = computedStyle?.getPropertyValue('--electric-cyan').trim() || '#00D2FF';
 
     // Parse rgb
     const parseRgb = (hex: string): [number, number, number] => {
@@ -128,6 +130,8 @@ export const ContourBackground: React.FC<ContourBackgroundProps> = ({
 
     const [cobaltR, cobaltG, cobaltB] = parseRgb(cobaltHex);
     const [grayR, grayG, grayB] = parseRgb(grayHex);
+    const [electricR, electricG, electricB] = parseRgb(electricHex);
+    const [cyanR, cyanG, cyanB] = parseRgb(electricCyanHex);
 
     let width = window.innerWidth;
     let height = window.innerHeight;
@@ -249,6 +253,8 @@ export const ContourBackground: React.FC<ContourBackgroundProps> = ({
       for (let i = 0; i < totalLines; i++) {
         const baseY = (i + 1) * lineSpacing;
         const isIndexContour = i % 5 === 0;
+        const isElectricAccent = i % 8 === 3;
+        const isCyanHighlight = i % 12 === 7;
         const isGrayAccent = grayAccentIndices.has(i);
 
         // Base styling parameters
@@ -258,13 +264,25 @@ export const ContourBackground: React.FC<ContourBackgroundProps> = ({
         let strokeG = cobaltG;
         let strokeB = cobaltB;
 
-        if (isGrayAccent) {
-          baseAlpha = 0.25;
+        if (isCyanHighlight) {
+          baseAlpha = 0.28;
+          lineWidth = 1.35;
+          strokeR = cyanR;
+          strokeG = cyanG;
+          strokeB = cyanB;
+        } else if (isElectricAccent) {
+          baseAlpha = 0.24;
+          lineWidth = 1.2;
+          strokeR = electricR;
+          strokeG = electricG;
+          strokeB = electricB;
+        } else if (isGrayAccent) {
+          baseAlpha = 0.22;
           strokeR = grayR;
           strokeG = grayG;
           strokeB = grayB;
         } else if (isIndexContour) {
-          baseAlpha = 0.28;
+          baseAlpha = 0.26;
           lineWidth = 1.25;
         }
 

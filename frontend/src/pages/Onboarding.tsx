@@ -387,7 +387,7 @@ export const Onboarding: React.FC = () => {
   const progressPercent = Math.round((step / 2) * 100);
 
   return (
-    <div className="max-w-3xl mx-auto py-8 space-y-8">
+    <div className="w-full max-w-5xl mx-auto py-8 space-y-8">
       {/* Onboarding Header & Stepper */}
       {isClient ? (
         <div className="space-y-4">

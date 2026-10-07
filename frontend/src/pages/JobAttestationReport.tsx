@@ -58,13 +58,16 @@ export const JobAttestationReport: React.FC = () => {
   useEffect(() => {
     let mounted = true;
     const endpoints = getSyncEndpoints();
+    const effectiveAddr = (userAddress || '').toLowerCase().trim();
+    const headers: Record<string, string> = effectiveAddr ? { 'x-wallet-address': effectiveAddr } : {};
+    const query = effectiveAddr ? `?address=${encodeURIComponent(effectiveAddr)}` : '';
     
     const fetchSync = async () => {
       for (const endpoint of endpoints) {
         try {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 4000);
-          const res = await fetch(`${endpoint}/api/sync`, { signal: controller.signal });
+          const res = await fetch(`${endpoint}/api/sync${query}`, { headers, signal: controller.signal });
           clearTimeout(timer);
           if (res.ok) {
             const data = await res.json();
@@ -79,7 +82,7 @@ export const JobAttestationReport: React.FC = () => {
 
     fetchSync();
     return () => { mounted = false; };
-  }, []);
+  }, [userAddress]);
 
   // Synchronize URL param with selected job
   useEffect(() => {
@@ -299,24 +302,21 @@ export const JobAttestationReport: React.FC = () => {
   };
 
   // User addresses & profiles
-  const clientAddr = job?.client || (import.meta.env.VITE_CLIENT_ADDRESS || '') as string;
-  const freelancerAddr =
-    job?.freelancer ||
-    job?.applications?.[0]?.applicant ||
-    (import.meta.env.VITE_TESTER_ADDRESS || import.meta.env.VITE_FREELANCER_ADDRESS || '') as string;
+  const clientAddr = job?.client || '';
+  const freelancerAddr = job?.freelancer || job?.applications?.[0]?.applicant || '';
 
-  const clientProfileKey = Object.keys(profiles).find(
+  const clientProfileKey = clientAddr ? Object.keys(profiles).find(
     (k) => k.toLowerCase() === clientAddr.toLowerCase()
-  );
+  ) : undefined;
   const clientProfile = clientProfileKey ? profiles[clientProfileKey] : null;
 
-  const freelancerProfileKey = Object.keys(profiles).find(
+  const freelancerProfileKey = freelancerAddr ? Object.keys(profiles).find(
     (k) => k.toLowerCase() === freelancerAddr.toLowerCase()
-  );
+  ) : undefined;
   const freelancerProfile = freelancerProfileKey ? profiles[freelancerProfileKey] : null;
 
-  const clientName = clientProfile?.displayName || 'Sunny Pasumarthi';
-  const freelancerName = freelancerProfile?.displayName || 'Akhil Muvva';
+  const clientName = clientProfile?.displayName || (clientAddr ? truncateAddress(clientAddr) : 'Authenticated Client');
+  const freelancerName = freelancerProfile?.displayName || (freelancerAddr ? truncateAddress(freelancerAddr) : 'Verified Developer');
 
   // Role perspective
   const isUserClient = useMemo(() => {
@@ -620,7 +620,7 @@ export const JobAttestationReport: React.FC = () => {
   }
 
   return (
-    <div className="attestation-sheet-wrapper min-h-screen bg-[#F6F9FC] py-6 px-3 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-[#0047AB] selection:text-white">
+    <div className="attestation-sheet-wrapper w-full font-sans text-slate-900 selection:bg-[#0047AB] selection:text-white pb-12">
       
       {/* CSS print overrides for Single-Page Certificate Guarantee */}
       <style>{`
@@ -689,7 +689,7 @@ export const JobAttestationReport: React.FC = () => {
 
       {/* ── USER'S ATTESTATION GALLERY & SEARCH HUB (Only User's Certs) ────── */}
       {userCompletedJobs.length > 0 && (
-        <div className="max-w-6xl mx-auto mb-6 space-y-4 no-print">
+        <div className="w-full mb-6 space-y-4 no-print">
           {/* Hero Banner for User's Attestation Vault */}
           <div className="bg-[#0B0B0C] rounded-3xl p-5 sm:p-7 text-white shadow-md relative overflow-hidden border border-slate-800">
             <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -831,7 +831,7 @@ export const JobAttestationReport: React.FC = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 items-stretch">
               {filteredAndSortedJobs.map((j) => {
                 const certId = getCanonicalCertificateId(j.id, j.contractAddress);
                 const isSelected = activeJob?.id.toLowerCase() === j.id.toLowerCase();
@@ -1530,35 +1530,35 @@ export const JobAttestationReport: React.FC = () => {
               </div>
 
               {/* 8. Bottom Sign-Off & Barcode */}
-              <div className="pt-2 border-t border-slate-200/90 flex items-center justify-between gap-4">
+              <div className="pt-2.5 pb-1 border-t border-slate-200/90 flex items-center justify-between gap-4 px-4 sm:px-6">
                 {/* Official Signature Seal & Oracle Authority */}
-                <div className="space-y-1">
+                <div className="space-y-1 pl-1">
                   {/* Official Verified Signature Seal Image */}
-                  <div className="h-10 sm:h-11 flex items-center">
+                  <div className="h-9 sm:h-10 flex items-center">
                     <img 
                       src={polylanceVerifiedSealImg} 
                       alt="PolyLance Oracle Network Verified Seal" 
-                      className="h-10 sm:h-11 w-auto max-w-[190px] sm:max-w-[220px] object-contain mix-blend-multiply drop-shadow-2xs" 
+                      className="h-9 sm:h-10 w-auto max-w-[170px] sm:max-w-[200px] object-contain mix-blend-multiply drop-shadow-2xs" 
                     />
                   </div>
                   <div className="font-bold text-xs sm:text-[13px] text-[#0B0B0C] leading-tight font-headline">
                     PolyLance Oracle Network
                   </div>
-                  <div className="text-[8px] font-mono tracking-[0.2em] text-slate-500 uppercase font-bold">
+                  <div className="text-[7.5px] font-mono tracking-[0.22em] text-slate-500 uppercase font-bold mt-0.5">
                     VERIFIED &amp; ATTESTED
                   </div>
                 </div>
 
                 {/* Barcode & Slogan */}
-                <div className="text-right space-y-0.5">
-                  <div className="flex items-center justify-end gap-1.5 text-[8.5px] font-mono font-bold tracking-widest text-slate-600 uppercase">
+                <div className="text-right space-y-1 pr-1">
+                  <div className="flex items-center justify-end gap-1.5 text-[8px] sm:text-[8.5px] font-mono font-bold tracking-widest text-slate-600 uppercase mb-0.5">
                     <Globe size={11} className="text-slate-500" />
                     <span>A MORE OPEN FAIRER WORKFORCE</span>
                   </div>
 
                   {/* Barcode visual */}
                   <div className="flex justify-end">
-                    <div className="bg-white/95 px-2.5 py-1 rounded border border-slate-200/90 shadow-2xs inline-flex flex-col items-center">
+                    <div className="bg-white/95 px-3 py-1 rounded border border-slate-200/90 shadow-2xs inline-flex flex-col items-center">
                       <svg
                         viewBox={`0 0 ${barcodeData.totalWidth} 32`}
                         className="w-36 sm:w-44 h-7"

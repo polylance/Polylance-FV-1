@@ -703,7 +703,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 : 'bg-amber-50 text-amber-700 border border-amber-200'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${
-                currentJob.status === 'Completed' ? 'bg-emerald-500' : currentJob.status === 'Submitted' ? 'bg-[#0047AB] animate-pulse' : 'bg-amber-500 animate-pulse'
+                currentJob.status === 'Completed' ? 'bg-emerald-500' : currentJob.status === 'Submitted' ? 'bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] animate-pulse' : 'bg-amber-500 animate-pulse'
               }`} />
               {currentJob.status === 'Completed' 
                 ? 'COMPLETED / SETTLED' 
@@ -731,7 +731,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           <button
             type="button"
             onClick={() => navigate(`/chat?jobId=${currentJob.id}`)}
-            className="px-3.5 py-2 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs hover:shadow transition-all cursor-pointer shrink-0 active:scale-95 w-full sm:w-auto"
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] hover:shadow-md hover:shadow-[#00D2FF]/20 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs hover:shadow transition-all cursor-pointer shrink-0 active:scale-95 w-full sm:w-auto"
           >
             <MessageSquare size={13} />
             <span>Open Messages Hub</span>

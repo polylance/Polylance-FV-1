@@ -15,6 +15,7 @@ import { initCertifiedPassDatabase, syncSBTToCertifiedPass, syncAllStateToCertif
 import { initTelegramBot, generateTelegramPairingToken, isWalletTelegramBound, unlinkWalletTelegram, sendTelegramNotification } from "./telegramBot.js";
 dotenv.config();
 const STATE_FILE = path.resolve(process.cwd(), "polylance_shared_state.json");
+export const serverRecentlyDeletedJobs = new Set();
 let sharedState = {
     jobs: [],
     profiles: {},
@@ -333,12 +334,6 @@ export function matchJobServer(j, targetId) {
     if (cleanTid && (cleanJid === cleanTid || jContract === cleanTid))
         return true;
     if (cleanJid && (cleanJid === tid || cleanJid === cleanTid))
-        return true;
-    if (cleanTid.length >= 8 && (jContract.startsWith(cleanTid) || cleanJid.startsWith(cleanTid)))
-        return true;
-    if (cleanJid.length >= 8 && (tid.startsWith(cleanJid) || jContract.startsWith(cleanJid)))
-        return true;
-    if (jContract.length >= 8 && (cleanTid.startsWith(jContract) || tid.startsWith(jContract)))
         return true;
     return false;
 }
@@ -794,24 +789,36 @@ export function sanitizeSharedStateForRequester(state, requesterAddress) {
     const isJudge = isAuthorizedJudge(reqAddr);
     // 1. Sanitize Jobs:
     // Strictly protect sensitive work submission proofs, private escrow chats, proposals, and application texts.
-    const sanitizedJobs = (state.jobs || []).map((job) => {
+    const activeJobs = (state.jobs || []).filter((job) => {
+        if (!job)
+            return false;
+        const jId = String(job.id || "").toLowerCase().trim();
+        const jContract = String(job.contractAddress || "").toLowerCase().trim();
+        return !serverRecentlyDeletedJobs.has(jId) && !serverRecentlyDeletedJobs.has(jContract);
+    });
+    const sanitizedJobs = activeJobs.map((job) => {
         if (!job)
             return job;
         const clientAddr = (job.client || "").toLowerCase().trim();
         const freelancerAddr = (job.freelancer || "").toLowerCase().trim();
-        const isParty = Boolean(reqAddr && (clientAddr === reqAddr || freelancerAddr === reqAddr));
-        const hasApplied = Boolean(reqAddr &&
+        const isClient = Boolean(reqAddr && clientAddr === reqAddr);
+        const isHiredFreelancer = Boolean(reqAddr && freelancerAddr === reqAddr);
+        const isParty = isClient || isHiredFreelancer;
+        const isApplicant = Boolean(reqAddr &&
             (job.applications || []).some((a) => a && a.applicant && a.applicant.toLowerCase().trim() === reqAddr));
         const isDisputeJudge = Boolean(isJudge && job.status === "Disputed");
-        // Work delivery proof & milestone modifications: strictly for client, assigned freelancer, or admin
-        const canSeeProof = isAdmin || isParty;
-        // Private chats and active negotiation thread: for parties, applicants, dispute judge, or admin
-        const canAccessPrivateJobChat = isAdmin || isParty || hasApplied || isDisputeJudge;
+        // Work delivery proof & milestone modifications: strictly for client, assigned freelancer, dispute judge, or admin
+        const canSeeProof = isAdmin || isParty || (isDisputeJudge && Boolean(job.proof));
+        // Private contract escrow chats:
+        // When a freelancer is assigned / contract funded, only client, hired freelancer, dispute judge, or admin can access.
+        // Unselected applicants MUST NOT see private chats or deliverables of other freelancers!
+        const canAccessPrivateJobChat = isAdmin || isParty || isDisputeJudge;
+        const canAccessPreAccept = canAccessPrivateJobChat || (!job.freelancer && isApplicant);
         // Applications: client or admin sees full applications including proposalText;
         // other callers see the applicants list with sensitive proposal text hidden
         let sanitizedApplications = [];
         const rawApps = job.applications || [];
-        if (isAdmin || (reqAddr && clientAddr === reqAddr)) {
+        if (isAdmin || isClient) {
             sanitizedApplications = rawApps;
         }
         else {
@@ -828,7 +835,7 @@ export function sanitizeSharedStateForRequester(state, requesterAddress) {
         }
         // Proof of work: Only visible to authorized contract parties (client / hired freelancer / admin)
         const proof = canSeeProof ? job.proof : undefined;
-        const negotiationProposals = canAccessPrivateJobChat ? (job.negotiationProposals || []) : [];
+        const negotiationProposals = canAccessPrivateJobChat ? (job.negotiationProposals || []) : (!job.freelancer && isApplicant ? (job.negotiationProposals || []).filter((p) => p && (p.sender === reqAddr || p.recipient === reqAddr)) : []);
         const modificationRequests = canSeeProof ? (job.modificationRequests || []) : [];
         const extensionRequests = canSeeProof ? (job.extensionRequests || []) : [];
         // Dispute details: strip private evidence/reasoning texts for unrelated callers
@@ -853,18 +860,18 @@ export function sanitizeSharedStateForRequester(state, requesterAddress) {
                 dispute: sanitizedDispute,
             };
         }
-        // Unauthenticated or unrelated caller: Clean public fields only
+        // Unauthenticated, unrelated, or unselected applicant caller: Clean public fields only
         const { chatMessages, preAcceptMessages, proof: _p, modificationRequests: _m, extensionRequests: _e, negotiationProposals: _np, ...publicJobFields } = job;
         return {
             ...publicJobFields,
             chatMessages: [],
-            preAcceptMessages: [],
+            preAcceptMessages: canAccessPreAccept ? (job.preAcceptMessages || []) : [],
             applications: sanitizedApplications,
             dispute: sanitizedDispute,
             proof: undefined,
             modificationRequests: [],
             extensionRequests: [],
-            negotiationProposals: [],
+            negotiationProposals,
             events: job.events || [],
         };
     });
@@ -930,6 +937,7 @@ export function sanitizeSharedStateForRequester(state, requesterAddress) {
         treasuryProposals: sanitizedTreasuryProposals,
         treasuryHistory: sanitizedTreasuryHistory,
         maintenance: state.maintenance || { enabled: false },
+        deletedJobIds: Array.from(serverRecentlyDeletedJobs).slice(-100),
     };
 }
 export function broadcastScopedRealtimeSync() {
@@ -1152,7 +1160,15 @@ io.on("connection", (socket) => {
             if (targetJob) {
                 const client = (targetJob.client || "").toLowerCase().trim();
                 if (isAdmin || client === socketAddr) {
+                    serverRecentlyDeletedJobs.add(delId);
+                    if (targetJob.id)
+                        serverRecentlyDeletedJobs.add(String(targetJob.id).toLowerCase().trim());
+                    if (targetJob.contractAddress)
+                        serverRecentlyDeletedJobs.add(String(targetJob.contractAddress).toLowerCase().trim());
                     sharedState.jobs = (sharedState.jobs || []).filter((j) => j && String(j.id).toLowerCase() !== delId && String(j.contractAddress || "").toLowerCase() !== delId);
+                    if (io) {
+                        io.emit("job-deleted", { deletedJobId: delId, deletedJobIds: Array.from(serverRecentlyDeletedJobs).slice(-100) });
+                    }
                 }
             }
         }
@@ -1427,7 +1443,15 @@ app.post("/api/sync", async (req, res) => {
                 if (targetJob) {
                     const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
                     if (isAdmin || isClient) {
+                        serverRecentlyDeletedJobs.add(delId);
+                        if (targetJob.id)
+                            serverRecentlyDeletedJobs.add(String(targetJob.id).toLowerCase().trim());
+                        if (targetJob.contractAddress)
+                            serverRecentlyDeletedJobs.add(String(targetJob.contractAddress).toLowerCase().trim());
                         sharedState.jobs = (sharedState.jobs || []).filter((j) => j && String(j.id).toLowerCase() !== delId && String(j.contractAddress || '').toLowerCase() !== delId);
+                        if (io) {
+                            io.emit("job-deleted", { deletedJobId: delId, deletedJobIds: Array.from(serverRecentlyDeletedJobs).slice(-100) });
+                        }
                     }
                 }
             }
@@ -1528,13 +1552,18 @@ app.patch("/api/jobs/:id", async (req, res) => {
                     ...updates,
                     id: j.id,
                     contractAddress: j.contractAddress || updates.contractAddress,
+                    updatedAt: Date.now(),
                 };
             }
             return j;
         });
+        const updatedJob = (sharedState.jobs || []).find((j) => matchJobServer(j, jobId));
         await persistStateToDatabases();
         broadcastScopedRealtimeSync();
-        res.json({ success: true, jobId });
+        if (io && updatedJob) {
+            io.emit("job-updated", { job: updatedJob });
+        }
+        res.json({ success: true, jobId, job: updatedJob });
     }
     catch (err) {
         console.error("[PATCH /api/jobs/:id ERROR]", err);
@@ -1558,9 +1587,17 @@ app.delete("/api/jobs/:id", async (req, res) => {
                 return res.status(403).json({ error: "Forbidden: Only the job creator or protocol admin can delete this job" });
             }
         }
+        serverRecentlyDeletedJobs.add(jobId);
+        if (targetJob?.id)
+            serverRecentlyDeletedJobs.add(String(targetJob.id).toLowerCase().trim());
+        if (targetJob?.contractAddress)
+            serverRecentlyDeletedJobs.add(String(targetJob.contractAddress).toLowerCase().trim());
         sharedState.jobs = (sharedState.jobs || []).filter((j) => !matchJobServer(j, jobId));
         await persistStateToDatabases();
         broadcastScopedRealtimeSync();
+        if (io) {
+            io.emit("job-deleted", { deletedJobId: jobId, deletedJobIds: Array.from(serverRecentlyDeletedJobs).slice(-100) });
+        }
         res.json({ success: true, deletedJobId: jobId });
     }
     catch (err) {
@@ -2069,7 +2106,7 @@ app.get("/api/auth/github/status/:address", (req, res) => {
 });
 // ─── TELEGRAM BOT PRIVATE NOTIFICATION ENDPOINTS ─────────────────────────────
 app.post("/api/telegram/pair-token", (req, res) => {
-    const { address } = req.body;
+    const address = (req.body?.address || req.body?.walletAddress || "");
     if (!address || typeof address !== 'string' || !address.startsWith('0x')) {
         return res.status(400).json({ error: "Valid wallet address required" });
     }
@@ -2077,17 +2114,22 @@ app.post("/api/telegram/pair-token", (req, res) => {
     res.json({ success: true, ...pairing });
 });
 app.get("/api/telegram/status/:address", (req, res) => {
-    const addr = String(req.params.address || "").toLowerCase().trim();
-    const isBound = isWalletTelegramBound(addr);
-    res.json({ isBound });
+    const rawAddr = req.params.address;
+    const targetAddr = (Array.isArray(rawAddr) ? rawAddr[0] : rawAddr || "").toLowerCase().trim();
+    if (!targetAddr) {
+        return res.status(400).json({ error: "Missing address" });
+    }
+    const status = isWalletTelegramBound(targetAddr);
+    const isBound = typeof status === 'object' && status !== null ? Boolean(status.bound) : Boolean(status);
+    res.json({ success: true, isBound, bound: isBound, ...(typeof status === 'object' && status !== null ? status : {}) });
 });
 app.post("/api/telegram/unlink", (req, res) => {
-    const { address } = req.body;
+    const address = (req.body?.address || req.body?.walletAddress || "");
     if (!address) {
         return res.status(400).json({ error: "Address required" });
     }
     const unlinked = unlinkWalletTelegram(address);
-    res.json({ success: unlinked });
+    res.json({ success: unlinked, unlinked });
 });
 function checkAndDispatchTelegramAlerts(prevJobs, newJobs) {
     try {
@@ -2228,51 +2270,6 @@ app.post("/api/unlock", async (req, res) => {
     });
     io.to(jobAddress).emit("deletion-unlocked", { jobAddress });
     res.json({ success: true, unlocked: true });
-});
-// ── TELEGRAM ALERT INTEGRATION ENDPOINTS ─────────────────────────────────────
-app.post("/api/telegram/pair-token", (req, res) => {
-    try {
-        const { walletAddress } = req.body || {};
-        if (!walletAddress || typeof walletAddress !== 'string') {
-            res.status(400).json({ error: "Missing or invalid walletAddress" });
-            return;
-        }
-        const pairing = generateTelegramPairingToken(walletAddress);
-        res.json({ success: true, ...pairing });
-    }
-    catch (err) {
-        res.status(500).json({ error: "Failed to generate pairing token", details: err?.message });
-    }
-});
-app.get("/api/telegram/status/:address", (req, res) => {
-    try {
-        const rawAddr = req.params.address;
-        const targetAddr = (Array.isArray(rawAddr) ? rawAddr[0] : rawAddr || '').toLowerCase().trim();
-        if (!targetAddr) {
-            res.status(400).json({ error: "Missing address" });
-            return;
-        }
-        const status = isWalletTelegramBound(targetAddr);
-        const statusObj = typeof status === 'object' && status !== null ? status : { bound: Boolean(status) };
-        res.json({ success: true, ...statusObj });
-    }
-    catch (err) {
-        res.status(500).json({ error: "Failed to get telegram status", details: err?.message });
-    }
-});
-app.post("/api/telegram/unlink", (req, res) => {
-    try {
-        const { walletAddress } = req.body || {};
-        if (!walletAddress) {
-            res.status(400).json({ error: "Missing walletAddress" });
-            return;
-        }
-        const unlinked = unlinkWalletTelegram(walletAddress);
-        res.json({ success: true, unlinked });
-    }
-    catch (err) {
-        res.status(500).json({ error: "Failed to unlink telegram", details: err?.message });
-    }
 });
 // ── CERTIFIEDPASS DEDICATED VERIFICATION API ENDPOINTS ───────────────────────
 /**

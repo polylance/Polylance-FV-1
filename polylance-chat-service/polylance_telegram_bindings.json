@@ -1,9 +1,22 @@
 [
   {
+    "walletAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+    "chatId": "5961501251",
+    "telegramUsername": "Sunny200551",
+    "linkedAt": 1791134918213,
+    "preferences": {
+      "milestones": true,
+      "submissions": true,
+      "payouts": true,
+      "disputes": true,
+      "proposals": true
+    }
+  },
+  {
     "walletAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
     "chatId": "5961501251",
     "telegramUsername": "Sunny200551",
-    "linkedAt": 1791126869191,
+    "linkedAt": 1791393301686,
     "preferences": {
       "milestones": true,
       "submissions": true,

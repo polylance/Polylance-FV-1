@@ -913,6 +913,18 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           });
         }
       }
+
+      const savedDao = localStorage.getItem('polylance_dao_proposals');
+      if (savedDao) {
+        const rawDao: any[] = JSON.parse(savedDao);
+        if (Array.isArray(rawDao)) {
+          const cleanDao = rawDao.filter((p: any) => p && !String(p.title || '').toLowerCase().includes('demo') && !String(p.description || '').toLowerCase().includes('demo'));
+          if (cleanDao.length !== rawDao.length) {
+            localStorage.setItem('polylance_dao_proposals', JSON.stringify(cleanDao));
+            setDaoProposalsRaw(cleanDao);
+          }
+        }
+      }
     } catch {}
   }, []);
 
@@ -1230,6 +1242,18 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             trackDeletedJobId(delId);
             setJobsRaw((curr) => curr.filter((j) => !matchJob(j, delId) && !isRecentlyDeletedJob(j.id, j.contractAddress)));
           }
+          if (Array.isArray(payload.deletedJobIds)) {
+            payload.deletedJobIds.forEach((id: string) => trackDeletedJobId(id));
+            setJobsRaw((curr) => {
+              const remaining = curr.filter((j) => 
+                !payload.deletedJobIds.includes(String(j.id).toLowerCase()) && 
+                !payload.deletedJobIds.includes(String(j.contractAddress || '').toLowerCase()) && 
+                !isRecentlyDeletedJob(j.id, j.contractAddress)
+              );
+              try { localStorage.setItem('polylance_jobs', JSON.stringify(remaining)); } catch {}
+              return remaining;
+            });
+          }
           if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
             setJobsRaw((curr) => {
               const merged = mergeJobsList(curr, payload.jobs);
@@ -1248,11 +1272,45 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           if (payload.maintenance && typeof payload.maintenance === 'object') {
             setMaintenanceState(payload.maintenance);
           }
-          if (Array.isArray(payload.daoProposals)) setDaoProposalsRaw([...payload.daoProposals]);
+          if (Array.isArray(payload.daoProposals)) {
+            const cleanProposals = payload.daoProposals.filter((p: any) => p && !String(p.title || '').toLowerCase().includes('demo') && !String(p.description || '').toLowerCase().includes('demo'));
+            setDaoProposalsRaw([...cleanProposals]);
+            try { localStorage.setItem('polylance_dao_proposals', JSON.stringify(cleanProposals)); } catch {}
+          }
           if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
           if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
           if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
           if (Array.isArray(payload.treasuryHistory)) setTreasuryHistoryRaw([...payload.treasuryHistory]);
+        });
+
+        syncSocket.on('job-deleted', (data: any) => {
+          if (!data) return;
+          const delId = data.deletedJobId;
+          if (delId) {
+            trackDeletedJobId(delId);
+          }
+          if (Array.isArray(data.deletedJobIds)) {
+            data.deletedJobIds.forEach((id: string) => trackDeletedJobId(id));
+          }
+          setJobsRaw((curr) => {
+            const updated = curr.filter((j) => 
+              (!delId || !matchJob(j, delId)) && 
+              (!data.deletedJobIds || (!data.deletedJobIds.includes(String(j.id).toLowerCase()) && !data.deletedJobIds.includes(String(j.contractAddress || '').toLowerCase()))) && 
+              !isRecentlyDeletedJob(j.id, j.contractAddress)
+            );
+            try { localStorage.setItem('polylance_jobs', JSON.stringify(updated)); } catch {}
+            return [...updated];
+          });
+        });
+
+        syncSocket.on('job-updated', (data: any) => {
+          if (!data || !data.job) return;
+          if (isDemoOrMockJob(data.job) || isRecentlyDeletedJob(data.job.id, data.job.contractAddress)) return;
+          setJobsRaw((curr) => {
+            const merged = mergeJobsList(curr, [data.job]);
+            try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
+            return [...merged];
+          });
         });
 
         syncSocket.on('maintenance-mode-changed', (m: any) => {
@@ -1494,8 +1552,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         const savedDao = localStorage.getItem('polylance_dao_proposals');
         if (savedDao) {
+          const rawParsed = JSON.parse(savedDao);
+          const parsed = Array.isArray(rawParsed) ? rawParsed.filter((p: any) => p && !String(p.title || '').toLowerCase().includes('demo') && !String(p.description || '').toLowerCase().includes('demo')) : [];
           setDaoProposalsRaw((curr) => {
-            const parsed = JSON.parse(savedDao);
             if (curr.length === parsed.length && JSON.stringify(curr) === JSON.stringify(parsed)) return curr;
             return parsed;
           });
@@ -1550,7 +1609,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               return { ...merged };
             });
           }
-          if (Array.isArray(payload.daoProposals)) setDaoProposalsRaw([...payload.daoProposals]);
+          if (Array.isArray(payload.daoProposals)) {
+            const cleanProposals = payload.daoProposals.filter((p: any) => p && !String(p.title || '').toLowerCase().includes('demo') && !String(p.description || '').toLowerCase().includes('demo'));
+            setDaoProposalsRaw([...cleanProposals]);
+            try { localStorage.setItem('polylance_dao_proposals', JSON.stringify(cleanProposals)); } catch {}
+          }
           if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
           if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
           if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
@@ -3161,7 +3224,6 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             };
             next[clientKey] = {
               ...existingClient,
-              reputationSbtCount: (existingClient.reputationSbtCount || 0) + 1,
               primaryScore: Math.min((existingClient.primaryScore || 700) + 35, 1000),
             };
           }

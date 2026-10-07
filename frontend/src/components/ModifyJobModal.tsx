@@ -204,7 +204,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Full-Stack Web3 Marketplace Development"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#0047AB] font-sans text-sm text-slate-800 transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0066FF]/20 focus:border-[#0066FF] font-sans text-sm text-slate-800 transition-all"
                 required
               />
             </div>
@@ -224,13 +224,13 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
                       onClick={() => setCategory(c.value)}
                       className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
                         isSelected
-                          ? 'border-[#0047AB] bg-blue-50/70 text-[#0047AB] ring-1 ring-blue-300'
+                          ? 'border-[#0066FF] bg-gradient-to-r from-blue-50/70 to-cyan-50/40 text-[#0047AB] ring-1 ring-[#0066FF]/40 shadow-xs'
                           : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold font-headline">{c.label}</span>
-                        <Tag size={13} className={isSelected ? 'text-[#0047AB]' : 'text-slate-400'} />
+                        <Tag size={13} className={isSelected ? 'text-[#0066FF]' : 'text-slate-400'} />
                       </div>
                       <p className="text-[11px] text-slate-500 font-sans mt-0.5 line-clamp-1">
                         {c.desc}
@@ -324,7 +324,7 @@ export const ModifyJobModal: React.FC<ModifyJobModalProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] active:scale-98 text-white font-mono font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                className="px-6 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] active:scale-98 text-white font-mono font-bold text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Save size={15} />
                 <span>{isSubmitting ? 'Saving Changes...' : 'Save Changes'}</span>

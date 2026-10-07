@@ -55,7 +55,7 @@ export const FindJobs: React.FC = () => {
   return (
     <motion.div
       {...scrollReveal}
-      className="space-y-8 py-6 max-w-6xl mx-auto"
+      className="space-y-8 py-6 w-full"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#E2E6EC] pb-4 sm:pb-6 text-left">
         <div>
@@ -63,7 +63,7 @@ export const FindJobs: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-[#0B0B0C]">
               Find Verifiable Escrow Jobs
             </h1>
-            <span className="text-[10px] sm:text-xs bg-[#E7EEF9] text-[#0047AB] border border-[#D0E0F7] px-2.5 py-0.5 rounded-[4px] font-mono font-bold shrink-0 whitespace-nowrap">
+            <span className="text-[10px] sm:text-xs bg-[#EBF3FF] text-[#0047AB] border border-[#00D2FF]/35 px-2.5 py-0.5 rounded-full font-mono font-bold shrink-0 whitespace-nowrap shadow-[0_0_10px_rgba(0,102,255,0.1)]">
               CREDENTIAL-FIRST MARKETPLACE
             </span>
           </div>
@@ -76,9 +76,9 @@ export const FindJobs: React.FC = () => {
         {(currentRole === 'client' || currentRole === 'judge' || currentRole === 'admin') && (
           <Link
             to="/jobs/post"
-            className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-[8px] font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors self-start md:self-auto shrink-0 shadow-xs cursor-pointer"
+            className="bg-[#0047AB] hover:bg-[#003A8C] active:bg-[#002F73] text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-[8px] font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors self-start md:self-auto shrink-0 shadow-xs cursor-pointer"
           >
-            <Briefcase size={14} />
+            <Briefcase size={14} className="text-white" />
             <span>Post a Job</span>
           </Link>
         )}
@@ -88,7 +88,7 @@ export const FindJobs: React.FC = () => {
       <div className="space-y-3 text-left">
         <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
           {/* Search */}
-          <label className="relative flex-1 flex items-center gap-2 bg-[#FFFFFF] border border-[#E2E6EC] focus-within:border-[#0047AB] rounded-[8px] px-3 py-2.5 transition-colors cursor-text">
+          <label className="relative flex-1 flex items-center gap-2 bg-[#FFFFFF] border border-[#E2E6EC] focus-within:border-[#0066FF] focus-within:ring-2 focus-within:ring-[#00D2FF]/20 rounded-[8px] px-3 py-2.5 transition-all cursor-text">
             <Search size={15} className="shrink-0 text-[#8892A0] pointer-events-none" />
             <input
               type="text"
@@ -119,9 +119,9 @@ export const FindJobs: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-2 rounded-[8px] text-xs transition-colors text-left cursor-pointer shrink-0 border ${isSelected
-                    ? 'bg-[#E7EEF9] border-[#0047AB] text-[#0047AB] font-semibold'
-                    : 'bg-[#FFFFFF] border-[#E2E6EC] text-[#4B5563] hover:text-[#0B0B0C] hover:border-[#8892A0]'
+                className={`px-3 py-2 rounded-[8px] text-xs transition-all text-left cursor-pointer shrink-0 border ${isSelected
+                    ? 'bg-[#EBF3FF] border-[#0066FF] text-[#0047AB] font-semibold shadow-[0_0_12px_rgba(0,102,255,0.12)] ring-1 ring-[#00D2FF]/30'
+                    : 'bg-[#FFFFFF] border-[#E2E6EC] text-[#4B5563] hover:text-[#0047AB] hover:border-[#00D2FF]/50'
                   }`}
               >
                 <div className="font-semibold text-[11px] sm:text-xs">{cat.label}</div>
@@ -137,10 +137,10 @@ export const FindJobs: React.FC = () => {
         variants={staggerContainer}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch"
       >
         {filteredJobs.length === 0 ? (
-          <div className="col-span-2 py-6">
+          <div className="col-span-full py-10">
             <NoSearchResultState
               title={searchQuery ? 'No matching jobs found' : 'No jobs in this category'}
               description={searchQuery ? `We couldn't find any opportunities matching "${searchQuery}". Try a different keyword or clear your filters.` : 'No active escrow jobs in this skill category right now. Check back soon or browse other categories.'}
@@ -166,7 +166,7 @@ export const FindJobs: React.FC = () => {
                 key={job.id}
                 variants={staggerItem}
                 onClick={() => navigate(`/jobs/${job.id}`)}
-                className="bg-[#FFFFFF] p-5 sm:p-6 border border-[#E2E6EC] hover:border-[#0047AB] rounded-[10px] flex flex-col justify-between space-y-3 group transition-colors shadow-[0_1px_2px_rgba(11,11,12,0.06)] cursor-pointer text-left"
+                className="bg-[#FFFFFF] p-5 sm:p-6 border border-[#E2E6EC] hover:border-[#0066FF] rounded-[10px] flex flex-col justify-between space-y-3 group transition-all duration-200 hover:shadow-[0_4px_20px_rgba(0,102,255,0.12)] cursor-pointer text-left"
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
@@ -202,8 +202,8 @@ export const FindJobs: React.FC = () => {
                         ⚠️ Inactive • Closes in {getJobInactivityStatus(job).daysRemaining}d
                       </span>
                     )}
-                    <span className="bg-[#F4F6F9] text-[#4B5563] border border-[#E2E6EC] px-2 py-0.5 rounded-[4px] font-medium flex items-center gap-1">
-                      <Award size={11} className="text-[#0047AB]" /> Req Score &gt; 700
+                    <span className="bg-[#EBF3FF] text-[#0047AB] border border-[#00D2FF]/30 px-2 py-0.5 rounded-[4px] font-medium flex items-center gap-1 shadow-3xs">
+                      <Award size={11} className="text-[#0066FF]" /> Req Score &gt; 700
                     </span>
                   </div>
                 </div>
@@ -235,9 +235,9 @@ export const FindJobs: React.FC = () => {
                     </div>
 
                     <div
-                      className="w-8 h-8 rounded-[6px] bg-[#F4F6F9] border border-[#E2E6EC] group-hover:bg-[#0047AB] group-hover:border-[#0047AB] text-[#0B0B0C] group-hover:text-white transition-colors flex items-center justify-center shrink-0"
+                      className="w-8 h-8 rounded-[6px] bg-[#F4F6F9] border border-[#E2E6EC] group-hover:bg-gradient-to-r group-hover:from-[#0047AB] group-hover:to-[#0066FF] group-hover:border-[#0066FF] text-[#0B0B0C] group-hover:text-white transition-all duration-200 flex items-center justify-center shrink-0 shadow-xs group-hover:shadow-[0_0_12px_rgba(0,102,255,0.4)]"
                     >
-                      <ArrowRight size={14} />
+                      <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                     </div>
                   </div>
                 </div>

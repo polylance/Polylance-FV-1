@@ -1,17 +1,32 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, ShieldCheck, Lock, Scale, 
-  ArrowRight, Award, Cpu, TrendingUp, Code2, CheckCircle2, Users, LineChart, ExternalLink, Shield
+  ArrowRight, Award, Cpu, TrendingUp, Code2, CheckCircle2, Users, LineChart, ExternalLink, Shield,
+  X, Maximize2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Manifesto: React.FC = () => {
+  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string; role: string } | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedImage(null);
+    };
+    if (selectedImage) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedImage]);
+
   const teamMembers = [
     {
       id: 'akhil',
       initials: 'AM',
       name: 'Akhil Muvva',
+      image: '/akhil-avatar.png',
+      fullImage: '/founder-akhil.png',
       role: 'Founder & CEO / CTO',
       specialty: 'PROTOCOL ARCHITECTURE',
       productBadge: {
@@ -94,6 +109,8 @@ export const Manifesto: React.FC = () => {
       id: 'sunny',
       initials: 'SP',
       name: 'Sunny Pasumarthi',
+      image: '/sunny-avatar.png',
+      fullImage: '/dev.sunny.png',
       role: 'CMO & Lead Frontend Developer',
       specialty: 'FRONTEND ARCHITECTURE',
       productBadge: {
@@ -158,9 +175,9 @@ export const Manifesto: React.FC = () => {
   ];
 
   return (
-    <div className="bg-[#F8FAFC] text-[#111827] min-h-screen py-10 md:py-14 font-sans select-none relative overflow-hidden">
+    <div className="bg-transparent text-[#111827] w-full font-sans select-none relative overflow-hidden py-4 pb-16">
       
-      <div className="max-w-7xl mx-auto space-y-16 sm:space-y-20 relative z-10">
+      <div className="w-full space-y-16 sm:space-y-20 relative z-10">
         
         {/* SECTION 1: MANIFESTO HERO HEADER */}
         <section className="text-center max-w-4xl mx-auto space-y-5">
@@ -168,9 +185,9 @@ export const Manifesto: React.FC = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-100 border border-slate-200 text-slate-800 rounded-full text-xs font-mono font-bold uppercase tracking-widest shadow-3xs"
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#EBF3FF] border border-[#00D2FF]/30 text-[#0047AB] rounded-full text-xs font-mono font-bold uppercase tracking-widest shadow-2xs"
           >
-            <Sparkles size={13} className="text-[#0047AB] animate-pulse" />
+            <Sparkles size={13} className="text-[#0066FF] animate-pulse" />
             <span>The PolyLance Protocol Manifesto</span>
           </motion.div>
 
@@ -181,7 +198,7 @@ export const Manifesto: React.FC = () => {
             className="font-headline text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight text-slate-900"
           >
             DECENTRALIZING THE{' '}
-            <span className="text-[#0047AB]">
+            <span className="bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#00D2FF] bg-clip-text text-transparent">
               FUTURE OF WORK
             </span>
           </motion.h1>
@@ -281,10 +298,53 @@ export const Manifesto: React.FC = () => {
                     <div className="flex items-start justify-between">
                       {/* Premium Circular Avatar */}
                       <div className={`p-1 ${m.avatarRing} rounded-full border shadow-md shadow-slate-200/50`}>
-                        <div className={`w-16 h-16 sm:w-18 sm:h-18 ${m.avatarBg} rounded-full flex items-center justify-center shadow-md ${m.avatarShadow} border-2 border-white transform group-hover:scale-105 transition-transform duration-300`}>
-                          <span className="font-headline font-black text-white text-2xl tracking-tight drop-shadow-sm">
-                            {m.initials}
-                          </span>
+                        <div
+                          onClick={() => {
+                            if (m.fullImage) {
+                              setSelectedImage({
+                                url: m.fullImage,
+                                name: m.name,
+                                role: m.role,
+                              });
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if ((e.key === 'Enter' || e.key === ' ') && m.fullImage) {
+                              e.preventDefault();
+                              setSelectedImage({
+                                url: m.fullImage,
+                                name: m.name,
+                                role: m.role,
+                              });
+                            }
+                          }}
+                          role={m.fullImage ? 'button' : undefined}
+                          tabIndex={m.fullImage ? 0 : undefined}
+                          title={m.fullImage ? `Click to view full photo of ${m.name}` : undefined}
+                          aria-label={m.fullImage ? `View full photo of ${m.name}` : undefined}
+                          className={`w-16 h-16 sm:w-18 sm:h-18 ${m.avatarBg} rounded-full flex items-center justify-center shadow-md ${m.avatarShadow} border-2 border-white transform group-hover:scale-105 transition-transform duration-300 overflow-hidden relative ${
+                            m.fullImage ? 'cursor-pointer hover:ring-2 hover:ring-[#0047AB] focus:ring-2 focus:ring-[#0047AB] focus:outline-none' : ''
+                          }`}
+                        >
+                          {m.image ? (
+                            <>
+                              <img
+                                src={m.image}
+                                alt={m.name}
+                                className="w-full h-full object-cover rounded-full"
+                                loading="eager"
+                              />
+                              {m.fullImage && (
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 hover:!opacity-100 transition-opacity flex items-center justify-center text-white pointer-events-none">
+                                  <Maximize2 size={16} strokeWidth={2.5} className="drop-shadow-md" />
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <span className="font-headline font-black text-white text-2xl tracking-tight drop-shadow-sm">
+                              {m.initials}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -359,32 +419,128 @@ export const Manifesto: React.FC = () => {
 
         </section>
 
-        {/* SECTION 4: CALL TO ACTION FOOTER BANNER */}
-        <section className="bg-[#0B0B0C] text-white rounded-3xl p-8 sm:p-10 text-center space-y-5 relative overflow-hidden shadow-xl">
-          <div className="max-w-2xl mx-auto space-y-3 relative z-10">
-            <h3 className="font-headline font-black text-2xl sm:text-3xl text-white">
-              Ready to Join the Decentralized Work Revolution?
+        {/* SECTION 4: CALL TO ACTION FOOTER BANNER (REDESIGNED WITH POLYLANCE LOGO COLOR & ELECTRIC BLUE) */}
+        <section className="bg-[#0B0B0C] text-white rounded-3xl p-8 sm:p-12 text-center space-y-6 relative overflow-hidden shadow-2xl border border-[#0066FF]/25 hover:border-[#00D2FF]/40 transition-all duration-500 group">
+          {/* Ambient PolyLance Logo & Electric Blue Radial Glows */}
+          <div 
+            className="absolute top-0 right-0 w-96 h-96 pointer-events-none rounded-full blur-3xl opacity-35 transition-opacity group-hover:opacity-50"
+            style={{
+              background: 'radial-gradient(circle, rgba(0, 210, 255, 0.4) 0%, rgba(0, 102, 255, 0.2) 40%, transparent 70%)'
+            }}
+          />
+          <div 
+            className="absolute -bottom-20 -left-20 w-96 h-96 pointer-events-none rounded-full blur-3xl opacity-30 transition-opacity group-hover:opacity-45"
+            style={{
+              background: 'radial-gradient(circle, rgba(0, 71, 171, 0.5) 0%, rgba(0, 102, 255, 0.15) 50%, transparent 75%)'
+            }}
+          />
+
+          <div className="max-w-2xl mx-auto space-y-4 relative z-10">
+            {/* Electric Protocol Pill */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0066FF]/10 border border-[#00D2FF]/30 text-[#00D2FF] text-xs font-mono font-semibold tracking-wider uppercase shadow-[0_0_15px_rgba(0,210,255,0.2)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00D2FF] animate-pulse" />
+              <span>THE SOVEREIGN LABOR PROTOCOL</span>
+            </div>
+
+            {/* Glowing Gradient Headline */}
+            <h3 className="font-headline font-black text-2xl sm:text-4xl text-white tracking-tight leading-tight">
+              Ready to Join the{' '}
+              <span className="bg-gradient-to-r from-white via-[#00D2FF] to-[#0066FF] bg-clip-text text-transparent">
+                Decentralized Work Revolution?
+              </span>
             </h3>
-            <p className="text-xs sm:text-sm text-slate-300 font-sans font-medium">
-              Start freelancing or hiring talent with on-chain escrows and permanent soulbound reputation.
+
+            <p className="text-xs sm:text-base text-slate-300 font-sans font-medium max-w-xl mx-auto leading-relaxed">
+              Start freelancing or hiring talent with on-chain escrows, instant settlement, and permanent soulbound reputation.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+
+            {/* High-Contrast Action Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
               <Link
                 to="/jobs"
-                className="px-8 py-3.5 bg-white text-slate-900 hover:bg-slate-100 rounded-2xl font-headline font-bold text-sm flex items-center gap-2 shadow-lg transition-all hover:scale-105 cursor-pointer"
+                className="px-8 py-3.5 bg-white hover:bg-slate-50 !text-[#0B0B0C] rounded-2xl font-headline font-bold text-sm sm:text-base flex items-center gap-2.5 shadow-[0_4px_20px_rgba(0,102,255,0.3)] hover:shadow-[0_6px_28px_rgba(0,210,255,0.55)] transition-all hover:scale-105 cursor-pointer group/btn border border-white"
+                style={{ color: '#0B0B0C' }}
               >
-                <span>Browse Marketplace</span>
-                <ArrowRight size={16} />
+                <span className="!text-[#0B0B0C] font-extrabold" style={{ color: '#0B0B0C' }}>
+                  Browse Marketplace
+                </span>
+                <ArrowRight size={17} className="!text-[#0047AB] group-hover/btn:translate-x-1 group-hover/btn:!text-[#0066FF] transition-all" />
               </Link>
+
               <Link
                 to="/security"
-                className="px-7 py-3.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-2xl font-headline font-bold text-sm transition-all hover:scale-105 cursor-pointer"
+                className="px-7 py-3.5 bg-white/[0.06] hover:bg-[#0066FF]/20 border border-[#0066FF]/35 hover:border-[#00D2FF]/60 !text-white rounded-2xl font-headline font-bold text-sm sm:text-base transition-all hover:scale-105 cursor-pointer flex items-center gap-2 backdrop-blur-xs shadow-xs"
               >
-                Inspect Contract Audits
+                <ShieldCheck size={17} className="text-[#00D2FF]" />
+                <span className="text-white">Inspect Contract Audits</span>
               </Link>
+            </div>
+
+            {/* Micro Feature Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-5 pt-4 text-[11px] sm:text-xs text-slate-400 font-mono">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00D2FF]" />
+                <span>Zero Custodial Risk</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />
+                <span>Polygon Mainnet Escrows</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB]" />
+                <span>ERC-5192 Soulbound Merit</span>
+              </div>
             </div>
           </div>
         </section>
+
+      {/* Full-size Photo Lightbox Modal */}
+      <AnimatePresence>
+        {selectedImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md"
+            onClick={() => setSelectedImage(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="relative max-w-xl w-full bg-[#0B0B0C] border border-white/20 rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-3 right-3 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer z-10"
+                aria-label="Close full photo view"
+              >
+                <X size={18} />
+              </button>
+
+              {/* Photo Display */}
+              <div className="w-full flex items-center justify-center overflow-hidden rounded-xl bg-white/5 border border-white/10 p-1">
+                <img
+                  src={selectedImage.url}
+                  alt={selectedImage.name}
+                  className="w-full max-h-[75vh] object-contain rounded-lg"
+                />
+              </div>
+
+              {/* Caption */}
+              <div className="pt-3 w-full text-center">
+                <h4 className="text-white font-headline font-bold text-base sm:text-lg">
+                  {selectedImage.name}
+                </h4>
+                <p className="text-xs font-mono text-slate-400">
+                  {selectedImage.role}
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       </div>
     </div>

@@ -35,6 +35,19 @@
   --color-tier-silver: #8C929B;
   --color-tier-gold: #C98A1B;
   --color-tier-diamond: #3B82C4;
+  /* PolyLance Logo Brand Palette */
+  --color-polylance: #0047AB;
+  --color-polylance-hover: #003A8C;
+  --color-polylance-pressed: #002F73;
+  --color-polylance-tint: #E7EEF9;
+
+  /* Electric Blue Futuristic Palette */
+  --color-electric: #0066FF;
+  --color-electric-hover: #0052CC;
+  --color-electric-cyan: #00D2FF;
+  --color-electric-glow: #00D2FF;
+  --color-electric-tint: #EBF3FF;
+  --color-electric-dark: #001A4D;
 }
 
 /* ==========================================================================
@@ -70,6 +83,22 @@
   --tier-gold: #C98A1B;
   --tier-diamond: #3B82C4;
 
+  /* PolyLance Logo & Electric Blue Palette Tokens */
+  --polylance: #0047AB;
+  --polylance-hover: #003A8C;
+  --polylance-pressed: #002F73;
+  --polylance-tint: #E7EEF9;
+  --electric: #0066FF;
+  --electric-hover: #0052CC;
+  --electric-cyan: #00D2FF;
+  --electric-glow: #00D2FF;
+  --electric-tint: #EBF3FF;
+  --electric-dark: #001A4D;
+
+  /* Radiant Gradients */
+  --gradient-polylance-electric: linear-gradient(135deg, #0047AB 0%, #0066FF 50%, #00D2FF 100%);
+  --gradient-electric-glow: linear-gradient(135deg, rgba(0, 102, 255, 0.15) 0%, rgba(0, 210, 255, 0.08) 100%);
+
   /* Elevation shadow on popovers only */
   --shadow-popover: 0 1px 2px rgba(11, 11, 12, 0.06);
 
@@ -78,6 +107,32 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Global Fluid Layout System Tokens (1440px - 2560px Wide Polish) */
+  --container-max: 1760px;
+  --container-padding: clamp(16px, 3vw, 56px);
+  --gutter: 24px;
+  --section-spacing-y: clamp(24px, 4vw, 48px);
+  --card-padding: clamp(20px, 2.5vw, 32px);
+  --card-radius: 16px;
+  --card-shadow: 0 1px 3px 0 rgba(11, 11, 12, 0.05), 0 1px 2px -1px rgba(11, 11, 12, 0.05);
+}
+
+/* Fluid Layout System Utilities */
+.page-container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+}
+
+@supports (padding: max(0px)) {
+  .page-container {
+    padding-left: max(var(--safe-left), var(--container-padding));
+    padding-right: max(var(--safe-right), var(--container-padding));
+  }
 }
 
 * {
@@ -141,8 +196,9 @@ footer h4 {
   color: #FFFFFF !important;
 }
 
-footer a,
-.bg-\[\#0B0B0C\] a {
+/* Only color plain links white, never override button styling or explicit text colors */
+footer a:where(:not([class*="text-"]):not([class*="btn-"]):not([class*="bg-"])),
+.bg-\[\#0B0B0C\] a:where(:not([class*="text-"]):not([class*="btn-"]):not([class*="bg-"])) {
   color: #FFFFFF;
 }
 
@@ -278,21 +334,23 @@ code, pre, .font-mono, [data-mono] {
 }
 
 /* Inputs */
-input, textarea, select {
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background-color: var(--surface);
-  color: var(--ink);
-  padding: 8px 12px;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  transition: border-color 150ms ease;
-}
+@layer base {
+  input, textarea, select {
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    color: var(--ink);
+    padding: 8px 12px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    transition: border-color 150ms ease;
+  }
 
-input:focus, textarea:focus, select:focus {
-  border-color: var(--primary) !important;
-  outline: 2px solid var(--primary-tint);
-  outline-offset: 1px;
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--primary) !important;
+    outline: 2px solid var(--primary-tint);
+    outline-offset: 1px;
+  }
 }
 
 /* ==========================================================================
@@ -389,6 +447,100 @@ input:focus, textarea:focus, select:focus {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--ink-3);
+}
+
+/* ==========================================================================
+   POLYLANCE LOGO COLOR & ELECTRIC BLUE DESIGN UTILITIES
+   ========================================================================== */
+
+.bg-polylance-electric {
+  background: linear-gradient(135deg, #0047AB 0%, #0066FF 50%, #00D2FF 100%);
+}
+
+.text-polylance-electric {
+  background: linear-gradient(135deg, #0047AB 0%, #0066FF 50%, #00D2FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-electric-glow {
+  color: #00D2FF;
+  text-shadow: 0 0 14px rgba(0, 210, 255, 0.45);
+}
+
+.shadow-electric {
+  box-shadow: 0 4px 20px -2px rgba(0, 102, 255, 0.35);
+}
+
+.shadow-electric-glow {
+  box-shadow: 0 0 25px rgba(0, 210, 255, 0.45);
+}
+
+.border-electric {
+  border-color: rgba(0, 102, 255, 0.35);
+}
+
+.border-electric-glow {
+  border-color: rgba(0, 210, 255, 0.5);
+}
+
+/* Electric Blue Button */
+.btn-electric {
+  background: linear-gradient(135deg, #0047AB 0%, #0066FF 60%, #00D2FF 100%);
+  color: #FFFFFF !important;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 102, 255, 0.35);
+  border: 1px solid rgba(0, 210, 255, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.btn-electric:hover {
+  box-shadow: 0 6px 22px rgba(0, 210, 255, 0.55);
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+/* Crisp High-Contrast White Pill Button */
+.btn-pill-white {
+  background-color: #FFFFFF !important;
+  color: #0B0B0C !important;
+  box-shadow: 0 4px 18px rgba(0, 102, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.btn-pill-white:hover {
+  background-color: #F8FAFC !important;
+  box-shadow: 0 6px 24px rgba(0, 210, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-pill-white * {
+  color: #0B0B0C !important;
+}
+
+/* Electric Badge */
+.badge-electric {
+  background-color: rgba(0, 102, 255, 0.08);
+  border: 1px solid rgba(0, 210, 255, 0.35);
+  color: #0066FF;
+}
+
+.dark .badge-electric,
+.bg-\[\#0B0B0C\] .badge-electric {
+  background-color: rgba(0, 102, 255, 0.15);
+  border: 1px solid rgba(0, 210, 255, 0.4);
+  color: #00D2FF;
 }
 
 /* Print optimization */

@@ -13,17 +13,26 @@ export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full bg-[#0B0B0C] text-[#FFFFFF] pt-14 pb-12 px-4 sm:px-6 lg:px-8 font-sans border-t border-[#1C1D20] relative z-10">
-      <div className="max-w-[1200px] mx-auto space-y-12">
+    <footer className="w-full bg-[#0B0B0C] text-[#FFFFFF] pt-14 pb-12 font-sans border-t border-[#1C1D20] relative z-10 overflow-hidden">
+      {/* Subtle Electric Blue ambient glow in Footer */}
+      <div 
+        className="absolute top-0 right-1/4 w-96 h-32 pointer-events-none rounded-full blur-3xl opacity-20"
+        style={{ background: 'radial-gradient(circle, rgba(0, 210, 255, 0.4) 0%, rgba(0, 102, 255, 0.2) 50%, transparent 80%)' }}
+      />
+      <div className="w-full max-w-[1760px] mx-auto px-[clamp(16px,3vw,56px)] pl-[max(env(safe-area-inset-left,0px),clamp(16px,3vw,56px))] pr-[max(env(safe-area-inset-right,0px),clamp(16px,3vw,56px))] space-y-12 relative z-10">
         {/* Main 3-Column Editorial Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-14 text-left">
           
           {/* Column 1: Brand & Purpose (Col 1-5) */}
           <div className="md:col-span-5 space-y-4">
-            <Link to="/" className="inline-flex items-center gap-2.5">
-              <PolyLanceLogo size={28} />
-              <span className="font-serif font-semibold text-xl tracking-tight text-[#FFFFFF]">
-                {isCertifiedPassDomain ? 'CertifiedPass' : 'PolyLance'}
+            <Link to="/" className="inline-flex items-center gap-3 group">
+              <PolyLanceLogo size={34} className="transition-transform duration-200 group-hover:scale-105 shrink-0" />
+              <span className="font-serif font-bold text-2xl tracking-tight text-[#FFFFFF]">
+                {isCertifiedPassDomain ? (
+                  'CertifiedPass'
+                ) : (
+                  <>Poly<span className="text-[#3B82F6]">Lance</span></>
+                )}
               </span>
             </Link>
 
@@ -34,8 +43,8 @@ export const Footer: React.FC = () => {
             </p>
 
             <div className="pt-1 flex items-center gap-3">
-              <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[6px] bg-[#18191B] border border-[#2B2D31] text-xs font-mono text-[#FFFFFF]">
-                <span className="w-2 h-2 rounded-full bg-[#1E8449]" />
+              <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[6px] bg-[#18191B] border border-[#0066FF]/30 text-xs font-mono text-[#FFFFFF] shadow-[0_0_10px_rgba(0,102,255,0.15)]">
+                <span className="w-2 h-2 rounded-full bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] animate-pulse" />
                 <span className="font-medium text-[#FFFFFF]">Polygon Mainnet (137)</span>
               </span>
               <span className="text-xs text-[#8892A0] font-mono">2.5% platform fee</span>
@@ -49,37 +58,37 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link to="/jobs" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/jobs" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   Find Jobs
                 </Link>
               </li>
               <li>
-                <Link to="/reputation" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/reputation" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   SBT Leaderboard
                 </Link>
               </li>
               <li>
-                <Link to="/dao" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/dao" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   DAO Governance
                 </Link>
               </li>
               <li>
-                <Link to="/analytics" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/analytics" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   Analytics
                 </Link>
               </li>
               <li>
-                <Link to="/certifiedpass" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/certifiedpass" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   CertifiedPass
                 </Link>
               </li>
               <li>
-                <Link to="/auditx" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/auditx" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   AuditX Security
                 </Link>
               </li>
               <li>
-                <Link to="/manifesto" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/manifesto" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   Manifesto &amp; Team
                 </Link>
               </li>
@@ -93,22 +102,22 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link to="/terms" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/terms" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   Terms of Service (Smart Escrow)
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/privacy" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link to="/security" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/security" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   Security &amp; Audits
                 </Link>
               </li>
               <li>
-                <Link to="/disclaimer" className="text-white/70 hover:text-white transition-colors duration-150 block font-normal">
+                <Link to="/disclaimer" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
                   Risk Notice &amp; Disclaimer
                 </Link>
               </li>

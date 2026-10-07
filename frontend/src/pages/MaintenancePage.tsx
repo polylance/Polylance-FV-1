@@ -187,7 +187,7 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({ onBypass }) =>
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-[#0047AB] selection:text-white relative overflow-x-hidden flex flex-col justify-between">
       
       {/* ── HEADER / NAVIGATION BAR (POLYLANCE BRAND STYLE) ─────────────── */}
-      <header className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-4 flex items-center justify-between z-30">
+      <header className="w-full max-w-[1760px] mx-auto px-[clamp(16px,3vw,56px)] pt-6 pb-4 flex items-center justify-between z-30">
         {/* Brand Logo & Wordmark */}
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-center">
@@ -233,7 +233,7 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({ onBypass }) =>
       </header>
 
       {/* ── MAIN CONTENT CONTAINER ────────────────────────────────────────── */}
-      <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 flex-1 flex flex-col items-center text-center space-y-8 z-10">
+      <main className="w-full max-w-[1760px] mx-auto px-[clamp(16px,3vw,56px)] py-4 flex-1 flex flex-col items-center text-center space-y-8 z-10">
 
         {/* ── PROMINENT ADMIN PROTOCOL COMMAND BANNER (ONLY FOR ADMINS) ───── */}
         {isAdmin && (
@@ -740,7 +740,7 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({ onBypass }) =>
       </main>
 
       {/* ── FOOTER SIGNATURES (POLYLANCE STYLE) ───────────────────────────── */}
-      <footer className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200/80 z-20 text-xs text-slate-500">
+      <footer className="w-full max-w-[1760px] mx-auto px-[clamp(16px,3vw,56px)] py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200/80 z-20 text-xs text-slate-500">
         <div className="flex items-center gap-2 font-mono text-[11px]">
           <span>© {new Date().getFullYear()} POLYLANCE PROTOCOL</span>
           <span>•</span>
