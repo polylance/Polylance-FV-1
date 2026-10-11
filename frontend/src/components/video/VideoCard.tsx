@@ -75,11 +75,11 @@ export const VideoCard: React.FC<VideoCardProps> = ({
             <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-[#0B0B0F]/80 text-white text-[11px] font-mono">
               {entry.durationSeconds}s
             </span>
-          ) : (
+          ) : import.meta.env.DEV ? (
             <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#E7EEF9] text-[#0047AB] text-[11px] font-medium border border-[#D0DEF2]">
               Coming soon
             </span>
-          )}
+          ) : null}
         </div>
       </div>
 

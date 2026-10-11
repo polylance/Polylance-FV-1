@@ -6,14 +6,24 @@
     "type": "ambient",
     "aspect": "16:9",
     "durationSeconds": 22,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/your-work.mp4"
+    },
     "poster": "/media/posters/hero-loop.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/hero-loop.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/hero-loop.en.vtt"
+      }
     ],
     "transcript": "",
-    "status": "coming-soon",
-    "tags": ["landing", "hero", "ambient"],
+    "status": "ready",
+    "tags": [
+      "landing",
+      "hero",
+      "ambient"
+    ],
     "isSample": true
   },
   {
@@ -23,14 +33,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 30,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/your-identity.mp4"
+    },
     "poster": "/media/posters/intro-30s.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/intro-30s.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/intro-30s.en.vtt"
+      }
     ],
     "transcript": "PolyLance is a decentralized freelance marketplace on Polygon. When a project begins, client funds are locked securely in a non-custodial smart contract escrow. Freelancers deliver milestones with guaranteed payment protection. Once reviewed and approved, funds release instantly and a tamper-proof ERC-721 Soulbound work certificate is minted directly to the freelancer's wallet. If an issue arises, peer arbitrators on JudgeDAO resolve it transparently on-chain.",
-    "status": "coming-soon",
-    "tags": ["landing", "explainer", "intro"],
+    "status": "ready",
+    "tags": [
+      "landing",
+      "explainer",
+      "intro"
+    ],
     "isSample": true
   },
   {
@@ -40,14 +60,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 75,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/client-escrow.mp4"
+    },
     "poster": "/media/posters/walkthrough.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/walkthrough.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/walkthrough.en.vtt"
+      }
     ],
     "transcript": "In this guided walkthrough, we step through posting a requirement, negotiating terms in encrypted chat, locking milestone deposits in an EIP-1167 minimal proxy contract, and verifying deliverable hashes before final release.",
-    "status": "coming-soon",
-    "tags": ["demo", "walkthrough", "product"],
+    "status": "ready",
+    "tags": [
+      "demo",
+      "walkthrough",
+      "product"
+    ],
     "isSample": true
   },
   {
@@ -60,11 +90,19 @@
     "sources": {},
     "poster": "/media/posters/pitch-demo.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/pitch-demo.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/pitch-demo.en.vtt"
+      }
     ],
     "transcript": "An executive summary of PolyLance's 2.5% protocol fee architecture, CertifiedPass oracle integrations, and JudgeDAO staking model for partners and reviewers.",
     "status": "coming-soon",
-    "tags": ["investors", "partners", "architecture"],
+    "tags": [
+      "investors",
+      "partners",
+      "architecture"
+    ],
     "isSample": true
   },
   {
@@ -77,11 +115,18 @@
     "sources": {},
     "poster": "/media/posters/welcome-15s.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/welcome-15s.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/welcome-15s.en.vtt"
+      }
     ],
     "transcript": "Welcome to PolyLance. Here you can monitor active project milestones, check escrow deposits, and view your Soulbound reputation certificates in one sovereign dashboard.",
     "status": "coming-soon",
-    "tags": ["dashboard", "onboarding"],
+    "tags": [
+      "dashboard",
+      "onboarding"
+    ],
     "isSample": true
   },
   {
@@ -91,14 +136,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 30,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/your-identity.mp4"
+    },
     "poster": "/media/posters/task-connect-wallet.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/task-connect-wallet.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-connect-wallet.en.vtt"
+      }
     ],
     "transcript": "Connecting your wallet takes seconds. Select your preferred wallet, approve the connection request on Polygon Mainnet (Chain ID 137), and your profile address is instantly authenticated without usernames or passwords.",
-    "status": "coming-soon",
-    "tags": ["help", "tutorial", "wallet"],
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "wallet"
+    ],
     "isSample": true
   },
   {
@@ -108,14 +163,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 35,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/your-work.mp4"
+    },
     "poster": "/media/posters/task-post-job.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/task-post-job.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-post-job.en.vtt"
+      }
     ],
     "transcript": "To post a project, enter your scope, select required skills, and set milestone budgets in POL or USDC. Review the transparent 2.5% platform fee breakdown before publishing.",
-    "status": "coming-soon",
-    "tags": ["help", "tutorial", "client"],
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "client"
+    ],
     "isSample": true
   },
   {
@@ -125,14 +190,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 40,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/submission.mp4"
+    },
     "poster": "/media/posters/task-apply-negotiate.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/task-apply-negotiate.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-apply-negotiate.en.vtt"
+      }
     ],
     "transcript": "Freelancers can review project specifications and submit tailored proposals accompanied by their on-chain SBT ratings. Clients and freelancers can then negotiate deliverable terms directly.",
-    "status": "coming-soon",
-    "tags": ["help", "tutorial", "freelancer"],
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "freelancer"
+    ],
     "isSample": true
   },
   {
@@ -142,14 +217,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 35,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/client-escrow.mp4"
+    },
     "poster": "/media/posters/task-fund-release.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/task-fund-release.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-fund-release.en.vtt"
+      }
     ],
     "transcript": "Clients deposit milestone payments into the contract proxy. When work is submitted and approved, a single transaction releases payment directly to the freelancer's address.",
-    "status": "coming-soon",
-    "tags": ["help", "tutorial", "escrow"],
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "escrow"
+    ],
     "isSample": true
   },
   {
@@ -159,14 +244,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 45,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/dispute.mp4"
+    },
     "poster": "/media/posters/task-disputes.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/task-disputes.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-disputes.en.vtt"
+      }
     ],
     "transcript": "In the rare event of a disagreement, either party can trigger arbitration. Selected JudgeDAO peer arbitrators inspect the milestone specs and code artifacts to cast on-chain ruling votes.",
-    "status": "coming-soon",
-    "tags": ["help", "tutorial", "judge"],
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "judge"
+    ],
     "isSample": true
   },
   {
@@ -176,14 +271,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 30,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/your-reputation.mp4"
+    },
     "poster": "/media/posters/task-reputation.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/task-reputation.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-reputation.en.vtt"
+      }
     ],
     "transcript": "Your career history cannot be deleted or manipulated. Each completed contract mints an ERC-721 Soulbound Token with milestone metadata, star ratings, and CertifiedPass verification.",
-    "status": "coming-soon",
-    "tags": ["help", "tutorial", "reputation"],
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "reputation"
+    ],
     "isSample": true
   },
   {
@@ -193,14 +298,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 30,
-    "sources": {},
+    "sources": {
+      "mp4": "/get-paid.mp4"
+    },
     "poster": "/media/posters/first-payment-proof.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/first-payment-proof.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/first-payment-proof.en.vtt"
+      }
     ],
     "transcript": "See real on-chain transaction hashes on Polygonscan verifying that funds transfer directly between wallets without centralized custodians or withheld balances.",
-    "status": "coming-soon",
-    "tags": ["trust", "proof", "polygonscan"],
+    "status": "ready",
+    "tags": [
+      "trust",
+      "proof",
+      "polygonscan"
+    ],
     "isSample": true
   },
   {
@@ -210,14 +325,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 40,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/client-escrow.mp4"
+    },
     "poster": "/media/posters/safe-by-design.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/safe-by-design.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/safe-by-design.en.vtt"
+      }
     ],
     "transcript": "Every escrow contract is an isolated proxy. PolyLance administrators never hold custody of user funds or private keys, ensuring maximum cryptographic security.",
-    "status": "coming-soon",
-    "tags": ["trust", "security", "audit"],
+    "status": "ready",
+    "tags": [
+      "trust",
+      "security",
+      "audit"
+    ],
     "isSample": true
   },
   {
@@ -227,14 +352,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 30,
-    "sources": {},
+    "sources": {
+      "mp4": "/get-paid.mp4"
+    },
     "poster": "/media/posters/get-paid-cash-out.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/get-paid-cash-out.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/get-paid-cash-out.en.vtt"
+      }
     ],
     "transcript": "Once your escrow milestone releases in POL or USDC, withdraw directly to your bank account or exchange using standard Polygon-compatible gateways.",
-    "status": "coming-soon",
-    "tags": ["trust", "payments", "fiat"],
+    "status": "ready",
+    "tags": [
+      "trust",
+      "payments",
+      "fiat"
+    ],
     "isSample": true
   },
   {
@@ -244,14 +379,24 @@
     "type": "standard",
     "aspect": "16:9",
     "durationSeconds": 45,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/your-identity.mp4"
+    },
     "poster": "/media/posters/new-to-wallets.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/new-to-wallets.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/new-to-wallets.en.vtt"
+      }
     ],
     "transcript": "Never used a crypto wallet before? Learn how to install MetaMask in two minutes, securely store your backup phrase, and interact with Web3 applications safely.",
-    "status": "coming-soon",
-    "tags": ["help", "beginner", "wallet"],
+    "status": "ready",
+    "tags": [
+      "help",
+      "beginner",
+      "wallet"
+    ],
     "isSample": true
   },
   {
@@ -264,11 +409,19 @@
     "sources": {},
     "poster": "/media/posters/founder-intro.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/founder-intro.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/founder-intro.en.vtt"
+      }
     ],
     "transcript": "Founders discuss why they created PolyLance to end unfair platform deplatforming, high 20% fees, and opaque dispute systems.",
     "status": "coming-soon",
-    "tags": ["people", "founders", "manifesto"],
+    "tags": [
+      "people",
+      "founders",
+      "manifesto"
+    ],
     "isSample": true
   },
   {
@@ -281,11 +434,19 @@
     "sources": {},
     "poster": "/media/posters/story-freelancer.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/story-freelancer.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/story-freelancer.en.vtt"
+      }
     ],
     "transcript": "A real developer perspective on delivering high-value milestones with smart contract escrow backing.",
     "status": "coming-soon",
-    "tags": ["people", "story", "freelancer"],
+    "tags": [
+      "people",
+      "story",
+      "freelancer"
+    ],
     "isSample": true
   },
   {
@@ -298,11 +459,19 @@
     "sources": {},
     "poster": "/media/posters/story-client.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/story-client.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/story-client.en.vtt"
+      }
     ],
     "transcript": "A client explains how milestone locks and verifiable Soulbound profiles streamlined remote technical hiring.",
     "status": "coming-soon",
-    "tags": ["people", "story", "client"],
+    "tags": [
+      "people",
+      "story",
+      "client"
+    ],
     "isSample": true
   },
   {
@@ -312,12 +481,18 @@
     "type": "ambient",
     "aspect": "16:9",
     "durationSeconds": 8,
-    "sources": {},
+    "sources": {
+      "mp4": "/hire-talent.mp4"
+    },
     "poster": "/media/posters/loop-hire.svg",
     "captions": [],
     "transcript": "",
-    "status": "coming-soon",
-    "tags": ["landing", "action-loop", "hire"],
+    "status": "ready",
+    "tags": [
+      "landing",
+      "action-loop",
+      "hire"
+    ],
     "isSample": true
   },
   {
@@ -327,12 +502,18 @@
     "type": "ambient",
     "aspect": "16:9",
     "durationSeconds": 8,
-    "sources": {},
+    "sources": {
+      "mp4": "/delivery-work.mp4"
+    },
     "poster": "/media/posters/loop-work.svg",
     "captions": [],
     "transcript": "",
-    "status": "coming-soon",
-    "tags": ["landing", "action-loop", "work"],
+    "status": "ready",
+    "tags": [
+      "landing",
+      "action-loop",
+      "work"
+    ],
     "isSample": true
   },
   {
@@ -342,12 +523,18 @@
     "type": "ambient",
     "aspect": "16:9",
     "durationSeconds": 8,
-    "sources": {},
+    "sources": {
+      "mp4": "/get-paid.mp4"
+    },
     "poster": "/media/posters/loop-paid.svg",
     "captions": [],
     "transcript": "",
-    "status": "coming-soon",
-    "tags": ["landing", "action-loop", "paid"],
+    "status": "ready",
+    "tags": [
+      "landing",
+      "action-loop",
+      "paid"
+    ],
     "isSample": true
   },
   {
@@ -357,12 +544,18 @@
     "type": "ambient",
     "aspect": "16:9",
     "durationSeconds": 8,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/web3.mp4"
+    },
     "poster": "/media/posters/category-web3.svg",
     "captions": [],
     "transcript": "",
-    "status": "coming-soon",
-    "tags": ["category", "ambient", "web3"],
+    "status": "ready",
+    "tags": [
+      "category",
+      "ambient",
+      "web3"
+    ],
     "isSample": true
   },
   {
@@ -372,12 +565,18 @@
     "type": "ambient",
     "aspect": "16:9",
     "durationSeconds": 8,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/frontend.mp4"
+    },
     "poster": "/media/posters/category-frontend.svg",
     "captions": [],
     "transcript": "",
-    "status": "coming-soon",
-    "tags": ["category", "ambient", "frontend"],
+    "status": "ready",
+    "tags": [
+      "category",
+      "ambient",
+      "frontend"
+    ],
     "isSample": true
   },
   {
@@ -387,12 +586,18 @@
     "type": "ambient",
     "aspect": "16:9",
     "durationSeconds": 8,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/backend.mp4"
+    },
     "poster": "/media/posters/category-backend.svg",
     "captions": [],
     "transcript": "",
-    "status": "coming-soon",
-    "tags": ["category", "ambient", "backend"],
+    "status": "ready",
+    "tags": [
+      "category",
+      "ambient",
+      "backend"
+    ],
     "isSample": true
   },
   {
@@ -402,12 +607,18 @@
     "type": "ambient",
     "aspect": "16:9",
     "durationSeconds": 8,
-    "sources": {},
+    "sources": {
+      "mp4": "/videos/mobile.mp4"
+    },
     "poster": "/media/posters/category-mobile.svg",
     "captions": [],
     "transcript": "",
-    "status": "coming-soon",
-    "tags": ["category", "ambient", "mobile"],
+    "status": "ready",
+    "tags": [
+      "category",
+      "ambient",
+      "mobile"
+    ],
     "isSample": true
   },
   {
@@ -420,11 +631,19 @@
     "sources": {},
     "poster": "/media/posters/social-intro.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/social-intro.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/social-intro.en.vtt"
+      }
     ],
     "transcript": "Stop losing 20% on traditional freelance sites. Switch to PolyLance with 2.5% fees and guaranteed smart contract escrow.",
     "status": "coming-soon",
-    "tags": ["social", "vertical", "short"],
+    "tags": [
+      "social",
+      "vertical",
+      "short"
+    ],
     "isSample": true
   },
   {
@@ -437,11 +656,19 @@
     "sources": {},
     "poster": "/media/posters/social-first-payment.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/social-first-payment.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/social-first-payment.en.vtt"
+      }
     ],
     "transcript": "Watch a 1,000 POL milestone release instantly on Polygonscan. Sovereign escrow at the speed of Polygon.",
     "status": "coming-soon",
-    "tags": ["social", "vertical", "proof"],
+    "tags": [
+      "social",
+      "vertical",
+      "proof"
+    ],
     "isSample": true
   },
   {
@@ -454,11 +681,19 @@
     "sources": {},
     "poster": "/media/posters/social-story.svg",
     "captions": [
-      { "lang": "en", "label": "English", "src": "/media/captions/social-story.en.vtt" }
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/social-story.en.vtt"
+      }
     ],
     "transcript": "Your reputation belongs to your wallet, not an algorithm. See how PolyLance credentials prove your craft anywhere in Web3.",
     "status": "coming-soon",
-    "tags": ["social", "vertical", "story"],
+    "tags": [
+      "social",
+      "vertical",
+      "story"
+    ],
     "isSample": true
   },
   {
@@ -473,7 +708,11 @@
     "captions": [],
     "transcript": "",
     "status": "coming-soon",
-    "tags": ["comparison", "component", "landing"],
+    "tags": [
+      "comparison",
+      "component",
+      "landing"
+    ],
     "isSample": true
   }
 ]
