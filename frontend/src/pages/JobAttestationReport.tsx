@@ -242,13 +242,25 @@ export const JobAttestationReport: React.FC = () => {
       if (sortBy === 'oldest') {
         return getJobTimestamp(a) - getJobTimestamp(b);
       }
-      // Latest certs first
-      return getJobTimestamp(b) - getJobTimestamp(a);
-    });
-  }, [userCompletedJobs, filterTab, searchQuery, sortBy, userAddress, profiles]);
+    // Latest certs first
+    return getJobTimestamp(b) - getJobTimestamp(a);
+  });
+}, [userCompletedJobs, filterTab, searchQuery, sortBy, userAddress, profiles]);
 
-  // Current active job for detailed certificate report
-  const activeJob = useMemo(() => {
+const talentCertsCount = useMemo(() => {
+  if (!userAddress) return 0;
+  const lower = userAddress.toLowerCase();
+  return userCompletedJobs.filter((j) => j.freelancer?.toLowerCase() === lower).length;
+}, [userCompletedJobs, userAddress]);
+
+const clientCertsCount = useMemo(() => {
+  if (!userAddress) return 0;
+  const lower = userAddress.toLowerCase();
+  return userCompletedJobs.filter((j) => j.client?.toLowerCase() === lower).length;
+}, [userCompletedJobs, userAddress]);
+
+// Current active job for detailed certificate report
+const activeJob = useMemo(() => {
     // 1. If direct link with parameter (/attestation/:id), prioritize that exact requested job!
     if (directLinkedJob) return directLinkedJob;
 
@@ -689,40 +701,39 @@ export const JobAttestationReport: React.FC = () => {
 
       {/* ── USER'S ATTESTATION GALLERY & SEARCH HUB (Only User's Certs) ────── */}
       {userCompletedJobs.length > 0 && (
-        <div className="w-full mb-6 space-y-4 no-print">
-          {/* Hero Banner for User's Attestation Vault */}
-          <div className="bg-[#0B0B0C] rounded-3xl p-5 sm:p-7 text-white shadow-md relative overflow-hidden border border-slate-800">
-            <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-2 max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-mono font-semibold">
-                  <ShieldCheck size={14} className="text-blue-400" />
-                  <span>Personal Attestation Vault • {truncateAddress(userAddress || '')}</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 space-y-5 no-print">
+          {/* Header for User's Attestation Vault */}
+          <div className="bg-white rounded-[12px] p-5 sm:p-6 border border-[#E5E7EB] shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-2xl text-left">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[6px] bg-[#EFF6FF] border border-[#BFDBFE] text-[#0047AB] text-xs font-mono font-medium">
+                  <ShieldCheck size={14} className="text-[#0047AB]" />
+                  <span>Personal attestation vault • {truncateAddress(userAddress || '')}</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white font-headline">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0B0B0F]">
                   My Soulbound Attestations
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
+                <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
                   Your decentralized proof-of-work certificates and client milestone sponsorships, permanently anchored to Polygon.
                 </p>
               </div>
 
               {/* User Stats Badges */}
-              <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-white/15 text-center min-w-[100px]">
-                  <div className="text-lg sm:text-xl font-mono font-bold text-white">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="bg-[#F6F7F9] rounded-[8px] px-4 py-2.5 border border-[#E5E7EB] text-center min-w-[100px]">
+                  <div className="text-lg font-bold text-[#0B0B0F]">
                     {userCompletedJobs.length}
                   </div>
-                  <div className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
-                    My Certificates
+                  <div className="text-[11px] text-[#4B5563] font-medium">
+                    Certificates
                   </div>
                 </div>
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-white/15 text-center min-w-[110px]">
-                  <div className="text-lg sm:text-xl font-mono font-bold text-emerald-400">
+                <div className="bg-[#F6F7F9] rounded-[8px] px-4 py-2.5 border border-[#E5E7EB] text-center min-w-[110px]">
+                  <div className="text-lg font-bold text-[#166534]">
                     ${userCompletedJobs.reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0).toLocaleString()}
                   </div>
-                  <div className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
-                    Settled Volume
+                  <div className="text-[11px] text-[#4B5563] font-medium">
+                    Settled volume
                   </div>
                 </div>
               </div>
@@ -730,23 +741,23 @@ export const JobAttestationReport: React.FC = () => {
           </div>
 
           {/* Search Bar & User Organization Controls */}
-          <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-xs space-y-3">
+          <div className="bg-white rounded-[12px] p-4 sm:p-5 border border-[#E5E7EB] shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               {/* Search Input */}
-              <label className="relative flex-1 flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all cursor-text">
-                <Search size={16} className="shrink-0 text-slate-400 pointer-events-none" />
+              <label className="relative flex-1 flex items-center gap-2.5 px-3.5 py-2 rounded-[8px] border border-[#E5E7EB] bg-white focus-within:ring-1 focus-within:ring-[#0047AB] focus-within:border-[#0047AB] transition-colors cursor-text">
+                <Search size={16} className="shrink-0 text-[#9CA3AF] pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search your certificates by ID, milestone title, counterparty, amount..."
-                  className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm font-medium outline-none placeholder:text-slate-400"
+                  className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm font-medium outline-none placeholder:text-[#9CA3AF] text-[#0B0B0F]"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="shrink-0 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                    className="shrink-0 text-[#6B7280] hover:text-[#0B0B0F] cursor-pointer p-0.5"
                   >
                     <X size={14} />
                   </button>
@@ -770,18 +781,18 @@ export const JobAttestationReport: React.FC = () => {
             </div>
 
             {/* Role Filter Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-semibold">
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#E5E7EB] text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setFilterTab('all')}
-                className={`px-3 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-[8px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
                   filterTab === 'all'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                    ? 'bg-[#0047AB] text-white shadow-xs font-semibold'
+                    : 'bg-white hover:bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB]'
                 }`}
               >
-                <span>All My Certs</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'all' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                <span>All my certs</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${filterTab === 'all' ? 'bg-white/20 text-white' : 'bg-[#E5E7EB] text-[#4B5563]'}`}>
                   {userCompletedJobs.length}
                 </span>
               </button>
@@ -789,34 +800,40 @@ export const JobAttestationReport: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setFilterTab('freelancer')}
-                className={`px-3 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-[8px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
                   filterTab === 'freelancer'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                    ? 'bg-[#0047AB] text-white shadow-xs font-semibold'
+                    : 'bg-white hover:bg-[#F0FDF4] hover:border-[#BBF7D0] text-[#4B5563] hover:text-[#166534] border border-[#E5E7EB]'
                 }`}
               >
-                <Award size={12} />
-                <span>Proof of Work (As Talent)</span>
+                <Award size={13} className={filterTab === 'freelancer' ? 'text-[#93C5FD]' : 'text-[#10B981]'} />
+                <span>Proof of work (As talent)</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${filterTab === 'freelancer' ? 'bg-white/20 text-white' : 'bg-[#DCFCE7] text-[#166534]'}`}>
+                  {talentCertsCount}
+                </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setFilterTab('client')}
-                className={`px-3 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-[8px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
                   filterTab === 'client'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                    ? 'bg-[#0047AB] text-white shadow-xs font-semibold'
+                    : 'bg-white hover:bg-[#EFF6FF] hover:border-[#BFDBFE] text-[#4B5563] hover:text-[#1E40AF] border border-[#E5E7EB]'
                 }`}
               >
-                <Building2 size={12} />
-                <span>Patronage (As Client)</span>
+                <Building2 size={13} className={filterTab === 'client' ? 'text-[#93C5FD]' : 'text-[#0047AB]'} />
+                <span>Patronage (As client)</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${filterTab === 'client' ? 'bg-white/20 text-white' : 'bg-[#DBEAFE] text-[#1E40AF]'}`}>
+                  {clientCertsCount}
+                </span>
               </button>
             </div>
           </div>
 
           {/* Certificate Cards Grid */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-600 px-1">
+            <div className="flex items-center justify-between text-xs font-medium text-[#4B5563] px-1">
               <span>
                 Showing {filteredAndSortedJobs.length} {filteredAndSortedJobs.length === 1 ? 'certificate' : 'certificates'} (sorted by latest)
               </span>
@@ -824,9 +841,9 @@ export const JobAttestationReport: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="text-blue-600 hover:underline cursor-pointer"
+                  className="text-[#0047AB] hover:underline cursor-pointer"
                 >
-                  Clear Search
+                  Clear search
                 </button>
               )}
             </div>
@@ -840,61 +857,62 @@ export const JobAttestationReport: React.FC = () => {
                   : new Date(j.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 
                 const isClient = userAddress && j.client && j.client.toLowerCase() === userAddress.toLowerCase();
+                const tokenSymbol = j.paymentTokenSymbol === 'MATIC' ? 'POL' : (j.paymentTokenSymbol || 'USDC');
 
                 return (
                   <div
                     key={j.id}
                     onClick={() => handleSelectAndScrollToCert(j.id)}
-                    className={`rounded-2xl p-3.5 transition-all border flex flex-col justify-between gap-3 cursor-pointer ${
+                    className={`rounded-[12px] p-3.5 transition-colors border flex flex-col justify-between gap-3 cursor-pointer text-left ${
                       isSelected
-                        ? 'bg-white border-blue-500 shadow-md ring-2 ring-blue-500/20'
-                        : 'bg-white hover:bg-slate-50/80 border-slate-200 shadow-xs'
+                        ? 'bg-white border-[#0047AB] ring-1 ring-[#0047AB]'
+                        : 'bg-white hover:bg-[#F6F7F9] border-[#E5E7EB] shadow-xs'
                     }`}
                   >
                     <div className="space-y-2">
                       {/* Top Row: Cert ID & Date */}
                       <div className="flex items-center justify-between gap-2">
-                        <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10.5px] font-mono font-bold truncate max-w-[170px]">
-                          <Award size={11} className="text-blue-600 shrink-0" />
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#EFF6FF] text-[#0047AB] text-[11px] font-mono font-medium truncate max-w-[170px]">
+                          <Award size={11} className="text-[#0047AB] shrink-0" />
                           <span className="truncate">{certId}</span>
                         </div>
-                        <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                        <span className="text-[11px] text-[#6B7280] font-mono shrink-0">
                           {dateStr}
                         </span>
                       </div>
 
                       {/* Job Title */}
-                      <h3 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-2 leading-snug">
+                      <h3 className="font-semibold text-xs sm:text-sm text-[#0B0B0F] line-clamp-2 leading-snug">
                         {j.title}
                       </h3>
 
                       {/* Payout & Role */}
-                      <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                        <span className="font-mono font-extrabold text-emerald-700 flex items-center gap-1.5">
-                          <TokenIcon token={j.paymentTokenSymbol || 'USDC'} size={13} />
-                          <span>${parseFloat(j.amountUsdc || '0').toLocaleString()} {j.paymentTokenSymbol || 'USDC'}</span>
+                      <div className="flex items-center justify-between text-xs pt-1.5 border-t border-[#E5E7EB]">
+                        <span className="font-semibold text-[#166534] flex items-center gap-1.5">
+                          <TokenIcon token={tokenSymbol} size={13} />
+                          <span>${parseFloat(j.amountUsdc || '0').toLocaleString()} {tokenSymbol}</span>
                         </span>
-                        <span className="text-[10px] uppercase font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-[6px] bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB]">
                           {isClient ? 'Patronage' : 'Proof of Work'}
                         </span>
                       </div>
                     </div>
 
-                    {/* Actions: View Cert (Redirect/Scrolls down) & Social Share */}
-                    <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-100">
+                    {/* Actions: View Cert (Redirect/Scrolls down) & Neutral Social Share */}
+                    <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-[#E5E7EB]">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSelectAndScrollToCert(j.id);
                         }}
-                        className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
+                        className={`flex-1 py-1.5 px-2 rounded-[8px] text-xs font-medium transition-colors text-center cursor-pointer ${
                           isSelected
-                            ? 'bg-blue-600 text-white shadow-2xs'
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            ? 'bg-[#0047AB] text-white'
+                            : 'bg-[#F6F7F9] hover:bg-[#E5E7EB] text-[#0B0B0F] border border-[#E5E7EB]'
                         }`}
                       >
-                        {isSelected ? 'Viewing Below ↓' : 'View Cert ↓'}
+                        {isSelected ? 'Viewing below ↓' : 'View cert ↓'}
                       </button>
 
                       {/* Direct 1-Click Share to X */}
@@ -905,9 +923,9 @@ export const JobAttestationReport: React.FC = () => {
                           handleShareTwitter(j);
                         }}
                         title="Share directly to X"
-                        className="p-1.5 rounded-xl bg-[#0F1419] hover:bg-black text-white transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0 shadow-2xs"
+                        className="p-1.5 rounded-[8px] border border-[#E5E7EB] bg-white hover:bg-[#F6F7F9] text-[#4B5563] hover:text-[#0B0B0F] transition-colors cursor-pointer shrink-0"
                       >
-                        <Twitter size={13} className="fill-current" />
+                        <Twitter size={13} />
                       </button>
 
                       {/* Direct 1-Click Share to LinkedIn */}
@@ -918,9 +936,9 @@ export const JobAttestationReport: React.FC = () => {
                           handleShareLinkedIn(j);
                         }}
                         title="Share directly to LinkedIn"
-                        className="p-1.5 rounded-xl bg-[#0077B5] hover:bg-[#006097] text-white transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0 shadow-2xs"
+                        className="p-1.5 rounded-[8px] border border-[#E5E7EB] bg-white hover:bg-[#F6F7F9] text-[#4B5563] hover:text-[#0B0B0F] transition-colors cursor-pointer shrink-0"
                       >
-                        <Linkedin size={13} className="fill-current" />
+                        <Linkedin size={13} />
                       </button>
                     </div>
                   </div>
@@ -953,7 +971,7 @@ export const JobAttestationReport: React.FC = () => {
 
       {/* ── DETAILED CERTIFICATE SECTION (Anchor Target for Scroll) ────────── */}
       {job && (
-        <div id="detailed-certificate-section" ref={certSectionRef} className="scroll-mt-24 pt-2">
+        <div id="detailed-certificate-section" ref={certSectionRef} className="scroll-mt-24 pt-2 px-4 sm:px-6">
           {/* Action Toolbar for Active Certificate */}
           <div className="max-w-5xl mx-auto mb-4 bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-3.5 shadow-xs space-y-2.5 no-print">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">

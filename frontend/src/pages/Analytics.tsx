@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { getUserBytecodeMatrix } from '../utils/githubOracle';
 import { GithubEkycCard } from '../components/GithubEkycCard';
+import { PageContainer } from '../components/layout/PageContainer';
 
 export const Analytics: React.FC = () => {
   const { jobs, treasury, treasuryHistory, profiles } = usePolyLanceData();
@@ -82,7 +83,7 @@ export const Analytics: React.FC = () => {
   const backendBps = totalClientSpent > 0 ? ((backendSpent / totalClientSpent) * 100).toFixed(0) : '0';
 
   return (
-    <div className="space-y-8 py-6 w-full">
+    <PageContainer className="space-y-8 py-6 w-full text-[#0B0B0F]">
       {isAdminRole ? (
         /* ==================== ADMIN REVENUE & TREASURY ANALYTICS VIEW (EMERALD / SLATE) ==================== */
         <div className="space-y-8">
@@ -434,6 +435,6 @@ export const Analytics: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };

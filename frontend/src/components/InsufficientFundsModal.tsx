@@ -4,6 +4,7 @@ import { X, AlertTriangle, Copy, Check, ExternalLink, RefreshCw, QrCode, ArrowUp
 import { useWeb3 } from '../context/Web3Context';
 import { CHAIN_ID, NETWORK_CONFIG } from '../config/contracts';
 import { modalOverlayVariants, modalContentVariants, transition } from '../lib/motion';
+import { WatchButton, VideoModal, useVideoModal } from './video';
 
 interface InsufficientFundsModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const InsufficientFundsModal: React.FC<InsufficientFundsModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const { activeVideoId, isOpen: isVideoModalOpen, triggerRef, openVideo, closeVideo } = useVideoModal();
 
   const reqNum = parseFloat(requiredAmount) || 0;
   const balNum = parseFloat(currentBalance) || 0;
@@ -80,18 +82,21 @@ export const InsufficientFundsModal: React.FC<InsufficientFundsModalProps> = ({
             </button>
 
             {/* Header */}
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0">
-                <AlertTriangle size={22} />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0">
+                  <AlertTriangle size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 font-heading">
+                    Insufficient Wallet Funds
+                  </h3>
+                  <p className="text-xs text-slate-500 font-sans">
+                    You need additional {tokenSymbol} to complete this escrow payment.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-black text-slate-900 font-heading">
-                  Insufficient Wallet Funds
-                </h3>
-                <p className="text-xs text-slate-500 font-sans">
-                  You need additional {tokenSymbol} to complete this escrow payment.
-                </p>
-              </div>
+              <WatchButton id="get-paid-cash-out" onOpen={openVideo} />
             </div>
 
             {/* Shortfall Breakdown Card */}
@@ -223,6 +228,14 @@ export const InsufficientFundsModal: React.FC<InsufficientFundsModalProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Video Modal */}
+            <VideoModal
+              id={activeVideoId}
+              isOpen={isVideoModalOpen}
+              onClose={closeVideo}
+              triggerRef={triggerRef}
+            />
           </motion.div>
         </motion.div>
       )}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { PolyLanceLogo } from './PolyLanceLogo';
+import { PolygonLogo } from './brand/PolygonLogo';
 import { ExternalLink } from 'lucide-react';
 
 export const Footer: React.FC = () => {
@@ -13,112 +14,167 @@ export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full bg-[#0B0B0C] text-[#FFFFFF] pt-14 pb-12 font-sans border-t border-[#1C1D20] relative z-10 overflow-hidden">
-      {/* Subtle Electric Blue ambient glow in Footer */}
-      <div 
-        className="absolute top-0 right-1/4 w-96 h-32 pointer-events-none rounded-full blur-3xl opacity-20"
-        style={{ background: 'radial-gradient(circle, rgba(0, 210, 255, 0.4) 0%, rgba(0, 102, 255, 0.2) 50%, transparent 80%)' }}
-      />
-      <div className="w-full max-w-[1760px] mx-auto px-[clamp(16px,3vw,56px)] pl-[max(env(safe-area-inset-left,0px),clamp(16px,3vw,56px))] pr-[max(env(safe-area-inset-right,0px),clamp(16px,3vw,56px))] space-y-12 relative z-10">
-        {/* Main 3-Column Editorial Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-14 text-left">
+    <footer className="w-full bg-[#0B0B0F] text-[#FFFFFF] pt-12 pb-10 font-sans border-t border-[#1F2937]">
+      <div className="w-full max-w-[1280px] mx-auto px-4 sm:px-6 space-y-10">
+        {/* Main Grid: Brand col + 4 link columns */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-10 text-left">
           
-          {/* Column 1: Brand & Purpose (Col 1-5) */}
-          <div className="md:col-span-5 space-y-4">
-            <Link to="/" className="inline-flex items-center gap-3 group">
-              <PolyLanceLogo size={34} className="transition-transform duration-200 group-hover:scale-105 shrink-0" />
-              <span className="font-serif font-bold text-2xl tracking-tight text-[#FFFFFF]">
-                {isCertifiedPassDomain ? (
-                  'CertifiedPass'
-                ) : (
-                  <>Poly<span className="text-[#3B82F6]">Lance</span></>
-                )}
+          {/* Brand & Mission (Col 1-4) */}
+          <div className="md:col-span-4 space-y-3.5">
+            <Link to="/" className="inline-flex items-center gap-2.5">
+              <PolyLanceLogo size={28} className="shrink-0" />
+              <span className="font-sans font-bold text-xl tracking-tight text-white">
+                {isCertifiedPassDomain ? 'CertifiedPass' : 'PolyLance'}
               </span>
             </Link>
 
-            <p className="text-sm text-[#8892A0] leading-relaxed max-w-sm font-normal">
+            <p className="text-sm text-[#9CA3AF] leading-relaxed max-w-sm">
               {isCertifiedPassDomain
                 ? 'Verification oracle and verifiable credential protocol for PolyLance deliverables and milestone proof of work.'
-                : 'Decentralized freelance marketplace on Polygon. Smart contract escrow, dispute arbitration, and Soulbound reputation.'}
+                : 'Decentralized freelance marketplace on Polygon. Smart contract escrow, decentralized arbitration, and Soulbound work certificates.'}
             </p>
 
-            <div className="pt-1 flex items-center gap-3">
-              <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[6px] bg-[#18191B] border border-[#0066FF]/30 text-xs font-mono text-[#FFFFFF] shadow-[0_0_10px_rgba(0,102,255,0.15)]">
-                <span className="w-2 h-2 rounded-full bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] animate-pulse" />
-                <span className="font-medium text-[#FFFFFF]">Polygon Mainnet (137)</span>
-              </span>
-              <span className="text-xs text-[#8892A0] font-mono">2.5% platform fee</span>
+            <div className="pt-1 flex flex-wrap items-center gap-3 text-xs text-[#9CA3AF]">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#1F2937] text-white font-mono text-[11px]">
+                <PolygonLogo size={13} />
+                <span>Polygon (137)</span>
+              </div>
+              <span className="text-[#9CA3AF]">Platform fee: 2.5%</span>
             </div>
           </div>
 
-          {/* Column 2: Platform & Ecosystem (Col 6-8) */}
-          <div className="md:col-span-3 space-y-3">
-            <h4 className="text-xs font-semibold text-white/50 tracking-wider uppercase">
-              Platform
+          {/* Column 1: Product (Col 5-6) */}
+          <div className="md:col-span-2 space-y-3">
+            <h4 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider">
+              Product
             </h4>
-            <ul className="space-y-2.5 text-sm">
+            <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/jobs" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
+                <Link to="/jobs" className="text-[#D1D5DB] hover:text-white transition-colors">
                   Find Jobs
                 </Link>
               </li>
               <li>
-                <Link to="/reputation" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
-                  SBT Leaderboard
+                <Link to="/jobs/post" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Post a Job
                 </Link>
               </li>
               <li>
-                <Link to="/dao" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
-                  DAO Governance
+                <Link to="/workspace" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Workspace
                 </Link>
               </li>
               <li>
-                <Link to="/analytics" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
-                  Analytics
+                <Link to="/chat" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Messages
                 </Link>
               </li>
               <li>
-                <Link to="/certifiedpass" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
-                  CertifiedPass
-                </Link>
-              </li>
-              <li>
-                <Link to="/auditx" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
-                  AuditX Security
-                </Link>
-              </li>
-              <li>
-                <Link to="/manifesto" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
-                  Manifesto &amp; Team
+                <Link to="/dashboard" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Dashboard
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Column 3: Trust, Legal & Smart Escrows (Col 9-12) */}
-          <div className="md:col-span-4 space-y-3">
-            <h4 className="text-xs font-semibold text-white/50 tracking-wider uppercase">
-              Legal &amp; Security
+          {/* Column 2: Protocol (Col 7-8) */}
+          <div className="md:col-span-2 space-y-3">
+            <h4 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider">
+              Protocol
             </h4>
-            <ul className="space-y-2.5 text-sm">
+            <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/terms" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
-                  Terms of Service (Smart Escrow)
+                <Link to="/reputation" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Reputation
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
+                <Link to="/dao" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  DAO Governance
+                </Link>
+              </li>
+              <li>
+                <Link to="/judge" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Judge Panel
+                </Link>
+              </li>
+              <li>
+                <Link to="/treasury" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Safe Treasury
+                </Link>
+              </li>
+              <li>
+                <Link to="/attestation" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Attestations
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 3: Resources (Col 9-10) */}
+          <div className="md:col-span-2 space-y-3">
+            <h4 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider">
+              Resources
+            </h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/help" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Help &amp; FAQ
+                </Link>
+              </li>
+              <li>
+                <Link to="/demo" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Watch demo
+                </Link>
+              </li>
+              <li>
+                <Link to="/security" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Security
+                </Link>
+              </li>
+              <li>
+                <Link to="/certifiedpass" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  CertifiedPass
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="https://polygonscan.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#D1D5DB] hover:text-white transition-colors inline-flex items-center gap-1"
+                >
+                  <span>Polygonscan</span>
+                  <ExternalLink size={12} strokeWidth={2} />
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 4: Legal (Col 11-12) */}
+          <div className="md:col-span-2 space-y-3">
+            <h4 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider">
+              Legal
+            </h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/terms" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy" className="text-[#D1D5DB] hover:text-white transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link to="/security" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
-                  Security &amp; Audits
+                <Link to="/disclaimer" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Risk Notice
                 </Link>
               </li>
               <li>
-                <Link to="/disclaimer" className="text-white/70 hover:text-[#00D2FF] transition-colors duration-150 block font-normal">
-                  Risk Notice &amp; Disclaimer
+                <Link to="/manifesto" className="text-[#D1D5DB] hover:text-white transition-colors">
+                  Manifesto
                 </Link>
               </li>
             </ul>
@@ -126,23 +182,16 @@ export const Footer: React.FC = () => {
 
         </div>
 
-        {/* Bottom Copyright & Protocol Notes Strip */}
-        <div className="pt-8 border-t border-[#1C1D20] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#8892A0]">
-          <div className="flex items-center gap-2">
-            <span>© {currentYear} PolyLance Protocol. All rights reserved.</span>
+        {/* Bottom Bar */}
+        <div className="pt-6 border-t border-[#1F2937] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#9CA3AF]">
+          <div>
+            © {currentYear} PolyLance Protocol. All rights reserved.
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <span className="font-mono text-[#8892A0]">Non-custodial • ERC-5192 SBT</span>
-            <a
-              href="https://polygonscan.com"
-              target="_blank"
-              rel="noreferrer"
-              className="text-white/70 hover:text-white inline-flex items-center gap-1 transition-colors duration-150 underline decoration-[#2B2D31] underline-offset-4"
-            >
-              <span>Polygonscan</span>
-              <ExternalLink size={11} strokeWidth={1.5} />
-            </a>
+          <div className="flex items-center gap-4">
+            <span className="font-sans text-[#9CA3AF]">Verified Work Certificates</span>
+            <span className="text-[#6B7280]">·</span>
+            <span>Smart Contract Escrow</span>
           </div>
         </div>
 

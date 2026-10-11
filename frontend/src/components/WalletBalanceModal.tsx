@@ -30,6 +30,7 @@ import { useNavigate } from 'react-router-dom';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
 import { scrollToSection } from '../utils/scroll';
 import { PolygonIcon, UsdcIcon, UsdtIcon } from './TokenIcon';
+import { WatchButton, VideoModal, useVideoModal } from './video';
 
 interface WalletBalanceModalProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
   const [copiedTxHash, setCopiedTxHash] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState<'balances' | 'polygon_history'>('balances');
+  const { activeVideoId, isOpen: isVideoModalOpen, triggerRef, openVideo, closeVideo } = useVideoModal();
 
   const handleCopyAddress = () => {
     if (!address) return;
@@ -282,6 +284,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
 
             {/* Right Header Controls */}
             <div className="flex items-center gap-1.5 shrink-0">
+              <WatchButton id="get-paid-cash-out" onOpen={openVideo} />
               <button
                 type="button"
                 onClick={handleRefresh}
@@ -345,8 +348,8 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                   title="Click to view Polygon transaction history in PolyLance"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-full bg-[#7B3FE4] border border-[#6929d5] flex items-center justify-center text-white shadow-2xs shrink-0">
-                      <PolygonIcon size={24} className="text-white" />
+                    <div className="w-11 h-11 rounded-full bg-[#F5F3FF] border border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-xs">
+                      <PolygonIcon size={24} />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -437,8 +440,8 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
               {/* Network Connection Strip */}
               <div className="p-3 rounded-2xl bg-[#f8fafc] border border-slate-200/80 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-xl bg-[#7B3FE4] flex items-center justify-center text-white shrink-0 shadow-2xs">
-                    <PolygonIcon size={16} className="text-white" />
+                  <div className="w-7 h-7 rounded-lg bg-[#F5F3FF] border border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-2xs">
+                    <PolygonIcon size={16} />
                   </div>
                   <span className="text-xs font-semibold text-slate-700 truncate">
                     {NETWORK_CONFIG.chainName || 'Polygon Mainnet'} ({NETWORK_CONFIG.chainId || '137'})
@@ -671,6 +674,14 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
               </div>
             </div>
           )}
+
+          {/* Video Modal */}
+          <VideoModal
+            id={activeVideoId}
+            isOpen={isVideoModalOpen}
+            onClose={closeVideo}
+            triggerRef={triggerRef}
+          />
         </motion.div>
       </div>
     </AnimatePresence>

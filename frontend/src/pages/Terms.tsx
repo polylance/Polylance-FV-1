@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Scale, Award, Lock, CheckCircle2, 
-  ChevronRight, Sparkles, ArrowRight, Cpu
+  ChevronRight, Sparkles, ArrowRight, Cpu, ArrowUp
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { PageContainer } from '../components/layout/PageContainer';
 
 export const Terms: React.FC = () => {
   const [activeTab, setActiveTab] = useState<number>(0);
@@ -62,61 +63,61 @@ export const Terms: React.FC = () => {
       id: 'fees',
       title: '5. Gas Fees & Protocol Operating Rules',
       icon: Cpu,
-      badge: '0% Platform Fee on Beta',
+      badge: 'Platform Fee Enforced',
       summary: 'PolyLance operates with transparent on-chain execution rules.',
       details: [
         'Users are responsible for standard Polygon network gas fees when broadcasting transactions.',
-        'Platform maintenance fees (if applicable) are enforced directly by the JobFactory contract during fee collection.',
+        'Platform maintenance fees are enforced directly by the JobFactory contract during fee collection.',
         'Users must comply with global laws regarding remote contract labor, anti-money laundering, and digital asset regulation.'
       ]
     }
   ];
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <div className="space-y-12 py-4 w-full font-sans text-slate-900 select-none">
-      
-      {/* Clean Modern Header */}
-      <section className="relative overflow-hidden rounded-3xl p-8 sm:p-12 bg-white border border-slate-200 shadow-sm text-left">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-slate-100 border border-slate-200 text-slate-800 rounded-full shadow-3xs text-[11px] font-mono font-black uppercase tracking-wider">
-            <Sparkles size={12} className="text-[#0047AB] animate-pulse" />
-            <span>Legal Framework & Smart Contracts</span>
-          </div>
-
-          <h1 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-            Terms of Service & <span className="text-[#0047AB]">Escrow Protocol Rules</span>
-          </h1>
-
-          <p className="text-xs sm:text-sm text-slate-600 font-sans leading-relaxed font-medium">
-            Please read these terms carefully. By interacting with PolyLance smart contracts on the Polygon blockchain, you agree to bound yourself to the autonomous code execution rules below.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono text-slate-500">
-            <span className="bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 font-bold">
-              Last Updated: August 2026
-            </span>
-            <span className="bg-slate-100 text-slate-800 px-3 py-1 rounded-lg border border-slate-200 font-bold">
-              Protocol Version: V1.0-Mainnet
-            </span>
-          </div>
+    <PageContainer className="py-8 space-y-10 text-[#0B0B0F]">
+      {/* Header with 720px reading column */}
+      <div className="max-w-[720px] mx-auto text-left space-y-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F6F7F9] border border-[#E5E7EB] text-[#374151] rounded-full text-xs font-medium">
+          <Sparkles size={13} className="text-[#0047AB]" />
+          <span>Legal framework & protocol rules</span>
         </div>
-      </section>
 
-      {/* Interactive Section Selector & Detail View */}
-      <section className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8">
-        
-        {/* Mobile Horizontal Options Selector (< lg) */}
-        <div className="lg:hidden space-y-2">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0B0B0F] tracking-tight leading-tight">
+          Terms of Service & <span className="text-[#0047AB]">Escrow Protocol</span>
+        </h1>
+
+        <p className="text-sm text-[#4B5563] leading-relaxed font-normal">
+          Please read these terms carefully. By interacting with PolyLance smart contracts on the Polygon blockchain, you agree to be bound by the autonomous code execution rules below.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-[#6B7280]">
+          <span className="bg-[#F6F7F9] px-3 py-1 rounded-lg border border-[#E5E7EB] font-medium">
+            Last updated: August 2026
+          </span>
+          <span className="bg-[#F6F7F9] text-[#374151] px-3 py-1 rounded-lg border border-[#E5E7EB] font-medium">
+            Protocol version: V1.0-Mainnet
+          </span>
+        </div>
+      </div>
+
+      {/* Main Layout: Sticky Index + 720px Content Card */}
+      <div className="max-w-[1080px] mx-auto space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8 items-start">
+        {/* Mobile Horizontal Selector */}
+        <div className="lg:hidden space-y-2 max-w-[720px] mx-auto w-full">
           <div className="flex items-center justify-between px-1">
-            <h3 className="font-mono text-[11px] font-black uppercase tracking-wider text-slate-400">
-              Contract Terms Index
+            <h3 className="text-xs font-semibold text-[#6B7280]">
+              Contract terms index
             </h3>
-            <span className="text-[10px] font-mono text-slate-800 font-bold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-              {activeTab + 1} of {sections.length} Selected
+            <span className="text-[11px] text-[#374151] font-medium bg-[#F6F7F9] px-2.5 py-0.5 rounded-full border border-[#E5E7EB]">
+              {activeTab + 1} of {sections.length}
             </span>
           </div>
           
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 pt-0.5 -mx-4 px-4">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5">
             {sections.map((sec, idx) => {
               const Icon = sec.icon;
               const isActive = activeTab === idx;
@@ -125,19 +126,19 @@ export const Terms: React.FC = () => {
                   key={sec.id}
                   type="button"
                   onClick={() => setActiveTab(idx)}
-                  className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-3xs ${
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                     isActive
-                      ? 'bg-[#0B0B0C] text-white shadow-sm'
-                      : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-50'
+                      ? 'bg-[#EAF1FB] text-[#0047AB] border border-[#0047AB]/30 font-semibold'
+                      : 'bg-white border border-[#E5E7EB] text-[#374151] hover:bg-[#F6F7F9]'
                   }`}
                 >
-                  <Icon size={13} className={isActive ? 'text-white' : 'text-[#0047AB]'} />
+                  <Icon size={14} className={isActive ? 'text-[#0047AB]' : 'text-[#6B7280]'} />
                   <span>
                     {sec.id === 'escrow' ? '1. Escrow' : 
-                     sec.id === 'milestones' ? '2. SLA Release' : 
+                     sec.id === 'milestones' ? '2. SLA release' : 
                      sec.id === 'disputes' ? '3. Disputes' : 
-                     sec.id === 'sbt' ? '4. SBT Tokens' : 
-                     '5. Gas & Rules'}
+                     sec.id === 'sbt' ? '4. SBT tokens' : 
+                     '5. Gas & rules'}
                   </span>
                 </button>
               );
@@ -145,83 +146,86 @@ export const Terms: React.FC = () => {
           </div>
         </div>
 
-        {/* Desktop Left Column: 3D Tab Buttons (hidden on mobile, visible lg:) */}
-        <div className="hidden lg:block lg:col-span-5 space-y-3 text-left">
-          <h3 className="font-mono text-xs font-black uppercase tracking-widest text-slate-400 px-2">
-            Contract Terms Index
+        {/* Desktop Sticky Index (left side) */}
+        <div className="hidden lg:block lg:col-span-5 sticky top-24 space-y-3 text-left">
+          <h3 className="text-xs font-semibold text-[#6B7280] px-2">
+            Contract terms index
           </h3>
           
-          {sections.map((sec, idx) => {
-            const Icon = sec.icon;
-            const isActive = activeTab === idx;
-            return (
-              <motion.div
-                key={sec.id}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => setActiveTab(idx)}
-                className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-4 shadow-3xs ${
-                  isActive
-                    ? 'bg-[#0B0B0C] text-white border-[#0B0B0C] shadow-md'
-                    : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className={`w-10 h-10 rounded-xl ${isActive ? 'bg-white/10 text-white' : 'bg-[#0B0B0C] text-white'} flex items-center justify-center shrink-0 shadow-sm`}>
-                    <Icon size={18} />
+          <div className="space-y-2">
+            {sections.map((sec, idx) => {
+              const Icon = sec.icon;
+              const isActive = activeTab === idx;
+              return (
+                <button
+                  key={sec.id}
+                  type="button"
+                  onClick={() => setActiveTab(idx)}
+                  className={`w-full text-left p-3.5 rounded-xl border transition-all duration-150 cursor-pointer flex items-center justify-between gap-3 ${
+                    isActive
+                      ? 'bg-[#EAF1FB] text-[#0047AB] border-l-4 border-l-[#0047AB] border-y-[#0047AB]/20 border-r-[#0047AB]/20 shadow-xs'
+                      : 'bg-white border-[#E5E7EB] text-[#374151] hover:bg-[#F6F7F9]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                      isActive ? 'bg-[#0047AB] text-white' : 'bg-[#F6F7F9] text-[#6B7280] border border-[#E5E7EB]'
+                    }`}>
+                      <Icon size={16} />
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <span className={`text-sm block truncate ${isActive ? 'font-bold text-[#0047AB]' : 'font-medium text-[#0B0B0F]'}`}>
+                        {sec.title}
+                      </span>
+                      <span className={`text-[11px] ${isActive ? 'text-[#0047AB]/80 font-medium' : 'text-[#6B7280]'}`}>
+                        {sec.badge}
+                      </span>
+                    </div>
                   </div>
-                  <div className="min-w-0 text-left">
-                    <span className={`font-satoshi font-bold text-sm block truncate ${isActive ? 'text-white' : 'text-slate-900'}`}>
-                      {sec.title}
-                    </span>
-                    <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isActive ? 'text-slate-300' : 'text-[#0047AB]'}`}>
-                      {sec.badge}
-                    </span>
-                  </div>
-                </div>
-                <ChevronRight size={16} className={`transition-transform ${isActive ? 'translate-x-1 text-white' : 'text-slate-400'}`} />
-              </motion.div>
-            );
-          })}
+                  <ChevronRight size={15} className={`shrink-0 transition-transform ${isActive ? 'text-[#0047AB] translate-x-0.5' : 'text-[#9CA3AF]'}`} />
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Detail View Window (Clean & Responsive on Mobile & Desktop) */}
-        <div className="lg:col-span-7">
+        {/* Detail View Window (720px max column) */}
+        <div className="lg:col-span-7 max-w-[720px] w-full mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-sm text-left space-y-4 sm:space-y-6"
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="bg-white border border-[#E5E7EB] rounded-2xl p-6 sm:p-8 shadow-xs text-left space-y-6"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-slate-100 pb-3 sm:pb-4">
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#0B0B0C] flex items-center justify-center text-white shadow-sm shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E7EB] pb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center text-[#0047AB] shrink-0">
                     {React.createElement(sections[activeTab].icon, { size: 18 })}
                   </div>
-                  <h3 className="font-headline font-black text-base sm:text-xl text-slate-900 leading-tight">
+                  <h2 className="text-lg sm:text-xl font-bold text-[#0B0B0F] leading-tight">
                     {sections[activeTab].title}
-                  </h3>
+                  </h2>
                 </div>
-                <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-800 font-mono text-[9px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider shrink-0 self-start sm:self-auto">
+                <span className="px-2.5 py-1 bg-[#F6F7F9] border border-[#E5E7EB] text-[#374151] text-xs font-medium rounded-full shrink-0 self-start sm:self-auto">
                   {sections[activeTab].badge}
                 </span>
               </div>
 
-              <div className="p-3 sm:p-4 bg-slate-50 border border-slate-100 rounded-xl sm:rounded-2xl text-xs text-slate-700 font-medium leading-relaxed">
+              <div className="p-4 bg-[#F6F7F9] border border-[#E5E7EB] rounded-xl text-xs sm:text-sm text-[#374151] font-normal leading-relaxed">
                 {sections[activeTab].summary}
               </div>
 
-              <div className="space-y-2.5 sm:space-y-3 pt-1 sm:pt-2">
-                <h4 className="font-mono text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Specific Enforced Rules & Protocol Behaviors:
+              <div className="space-y-3 pt-1">
+                <h4 className="text-xs font-semibold text-[#6B7280]">
+                  Specific enforced rules & protocol behaviors
                 </h4>
-                <ul className="space-y-2.5 sm:space-y-3">
+                <ul className="space-y-3">
                   {sections[activeTab].details.map((detail, dIdx) => (
-                    <li key={dIdx} className="flex items-start gap-2.5 sm:gap-3 text-xs text-slate-700 font-sans leading-relaxed font-medium">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-slate-100 text-[#0047AB] flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono text-[9px] sm:text-[10px]">
+                    <li key={dIdx} className="flex items-start gap-3 text-xs sm:text-sm text-[#374151] leading-relaxed">
+                      <div className="w-5 h-5 rounded-full bg-[#EAF1FB] text-[#0047AB] flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px]">
                         ✓
                       </div>
                       <span>{detail}</span>
@@ -230,18 +234,28 @@ export const Terms: React.FC = () => {
                 </ul>
               </div>
 
-              <div className="pt-4 sm:pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono text-slate-400">
-                <span className="text-[11px] sm:text-xs">Autonomous Smart Contract Logic</span>
-                <Link to="/security" className="text-[#0047AB] font-bold hover:underline inline-flex items-center gap-1 self-start sm:self-auto">
-                  View Contract Audits <ArrowRight size={12} />
-                </Link>
+              <div className="pt-6 border-t border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#6B7280]">
+                <span>Autonomous smart contract logic on Polygon</span>
+                <div className="flex items-center gap-4">
+                  <button 
+                    type="button" 
+                    onClick={scrollToTop}
+                    className="text-[#6B7280] hover:text-[#0B0B0F] inline-flex items-center gap-1 cursor-pointer font-medium"
+                  >
+                    Back to top <ArrowUp size={12} />
+                  </button>
+                  <Link to="/security" className="text-[#0047AB] font-semibold hover:underline inline-flex items-center gap-1">
+                    View security audits <ArrowRight size={12} />
+                  </Link>
+                </div>
               </div>
             </motion.div>
           </AnimatePresence>
         </div>
 
-      </section>
-
-    </div>
+      </div>
+    </PageContainer>
   );
 };
+
+export default Terms;

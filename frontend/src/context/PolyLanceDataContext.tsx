@@ -186,14 +186,20 @@ export const MOCK_NAMES_TO_PURGE = new Set([
   'devpioneer',
   'zenith global',
   'zenith global ventures',
+  'nexus dao',
+  'nexus dao labs',
   'test developer',
   'demo developer',
+  'sample developer',
   'test user',
   'demo user',
+  'sample user',
   'test client',
   'demo client',
+  'sample client',
   'test freelancer',
   'demo freelancer',
+  'sample freelancer',
 ]);
 
 export const isMockOrDemoProfile = (p?: Partial<UserProfile> | null): boolean => {
@@ -201,9 +207,20 @@ export const isMockOrDemoProfile = (p?: Partial<UserProfile> | null): boolean =>
   const addr = (p.address || '').toLowerCase().trim();
   if (!addr || MOCK_ADDRESSES_TO_PURGE.has(addr)) return true;
   if (/^0x(.)\1{39}$/i.test(addr)) return true;
+  if (!ethers.isAddress(addr) || addr === ethers.ZeroAddress) return true;
   const name = (p.displayName || '').toLowerCase().trim();
   if (MOCK_NAMES_TO_PURGE.has(name)) return true;
-  if (name.startsWith('test ') || name.startsWith('demo ') || name === 'test' || name === 'demo') return true;
+  if (
+    name.startsWith('test') ||
+    name.startsWith('demo') ||
+    name.startsWith('sample') ||
+    name.includes('mock') ||
+    name === 'nexus dao' ||
+    name === 'nexus dao labs' ||
+    name === 'alex rivera'
+  ) return true;
+  const bio = (p.bio || '').toLowerCase();
+  if (bio.includes('sample developer') || bio.includes('demo account')) return true;
   return false;
 };
 

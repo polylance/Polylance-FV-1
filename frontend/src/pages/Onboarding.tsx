@@ -721,7 +721,7 @@ export const Onboarding: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Alex Rivera"
+                    placeholder="e.g. Web3 Full-Stack Developer"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     className="w-full glass-input"

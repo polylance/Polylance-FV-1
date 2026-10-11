@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData, getBackendSyncUrl, getSyncEndpoints } from '../context/PolyLanceDataContext';
+import { useReducedMotion, setReducedMotionPreference, getMotionMode, setMotionMode, MotionMode } from '../media/useDataSaver';
 import {
   User,
   Settings as SettingsIcon,
@@ -80,6 +81,7 @@ export const Settings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isFetchingGithub, setIsFetchingGithub] = useState(false);
   const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   // Role Settings Specific State
   const [clientEscrowWindowDays, setClientEscrowWindowDays] = useState('7');
@@ -88,6 +90,26 @@ export const Settings: React.FC = () => {
   const [judgeNotificationsActive, setJudgeNotificationsActive] = useState(true);
   const [judgeAvailability, setJudgeAvailability] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
+
+  // User-level Animation & Motion Mode (Follow system / Reduced / Full)
+  const [motionMode, setMotionModeState] = useState<MotionMode>(getMotionMode);
+  const handleSelectMotionMode = (mode: MotionMode) => {
+    setMotionModeState(mode);
+    setMotionMode(mode);
+  };
+
+  // Developer Media Diagnostics State
+  const [mediaDiagnostics, setMediaDiagnostics] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('polylance_media_diagnostics') === 'true';
+  });
+  const handleToggleDiagnostics = (enabled: boolean) => {
+    setMediaDiagnostics(enabled);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('polylance_media_diagnostics', String(enabled));
+      window.dispatchEvent(new Event('polylance_diagnostics_changed'));
+    }
+  };
 
   // Telegram Bot Live Alerts State
   const [isTelegramBound, setIsTelegramBound] = useState(false);
@@ -318,21 +340,16 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="space-y-12 pt-6 pb-64 w-full">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 pt-6 pb-24 w-full">
       
       {/* Header Banner */}
-      <motion.div {...scrollReveal} className="space-y-3 text-left">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 text-slate-800 rounded-full border border-slate-200 text-xs font-mono font-bold uppercase tracking-wider">
-          <SettingsIcon size={14} className="text-[#0047AB] animate-spin" />
-          <span>System & Preferences Protocol</span>
-        </div>
-
+      <motion.div {...scrollReveal} className="space-y-2 text-left">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="font-headline text-3xl sm:text-4xl font-black text-slate-900 leading-tight">
-              Settings & <span className="text-[#0047AB]">Identity Studio</span>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0B0B0F]">
+              Settings & Identity Studio
             </h1>
-            <p className="text-sm text-slate-600 font-sans mt-1">
+            <p className="text-sm text-[#4B5563] mt-1">
               Configure your profile credentials, skill stack, and Web3 role preferences.
             </p>
           </div>
@@ -340,30 +357,30 @@ export const Settings: React.FC = () => {
           {/* Role Badge Indicator */}
           <div className="flex items-center gap-2 self-start sm:self-auto">
             {currentRole === 'client' && (
-              <div className="px-4 py-2 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 flex items-center gap-2 shadow-2xs">
-                <Briefcase size={16} className="text-blue-600" />
-                <span className="font-headline font-extrabold text-xs uppercase tracking-wider">Client Role</span>
+              <div className="px-3 py-1.5 rounded-[8px] bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E40AF] flex items-center gap-1.5 text-xs font-medium">
+                <Briefcase size={14} className="text-[#0047AB]" />
+                <span>Client role</span>
               </div>
             )}
 
             {currentRole === 'freelancer' && (
-              <div className="px-4 py-2 rounded-2xl bg-slate-100 border border-slate-200 text-slate-900 flex items-center gap-2 shadow-2xs">
-                <Zap size={16} className="text-[#0047AB]" />
-                <span className="font-headline font-extrabold text-xs uppercase tracking-wider">Freelancer Role</span>
+              <div className="px-3 py-1.5 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] flex items-center gap-1.5 text-xs font-medium">
+                <Zap size={14} className="text-[#0047AB]" />
+                <span>Freelancer role</span>
               </div>
             )}
 
             {currentRole === 'judge' && (
-              <div className="px-4 py-2 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center gap-2 shadow-2xs">
-                <Scale size={16} className="text-amber-600" />
-                <span className="font-headline font-extrabold text-xs uppercase tracking-wider">DAO Judge</span>
+              <div className="px-3 py-1.5 rounded-[8px] bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] flex items-center gap-1.5 text-xs font-medium">
+                <Scale size={14} className="text-[#B45309]" />
+                <span>DAO judge</span>
               </div>
             )}
 
             {currentRole === 'admin' && (
-              <div className="px-4 py-2 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-2 shadow-2xs">
-                <Crown size={16} className="text-emerald-600" />
-                <span className="font-headline font-extrabold text-xs uppercase tracking-wider">Protocol Admin</span>
+              <div className="px-3 py-1.5 rounded-[8px] bg-[#F0FDF4] border border-[#BBF7D0] text-[#166534] flex items-center gap-1.5 text-xs font-medium">
+                <Crown size={14} className="text-[#10B981]" />
+                <span>Protocol admin</span>
               </div>
             )}
           </div>
@@ -376,19 +393,19 @@ export const Settings: React.FC = () => {
         {/* Left Column: Profile View / Edit Mode (7 cols) */}
         <div className="lg:col-span-7 space-y-8 text-left">
           
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+          <div className="bg-white p-5 sm:p-6 rounded-[12px] border border-[#E5E7EB] shadow-xs space-y-5">
             
             {/* Header: Title + Mode Switch */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3.5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[#0B0B0C] shrink-0">
-                  <User size={20} />
+                <div className="w-9 h-9 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center text-[#0B0B0F] shrink-0">
+                  <User size={18} />
                 </div>
                 <div>
-                  <h3 className="font-headline text-lg font-extrabold text-slate-900">
+                  <h3 className="text-base font-semibold text-[#0B0B0F]">
                     {isEditing ? 'Edit Profile & Bio' : 'Saved Profile Overview'}
                   </h3>
-                  <p className="text-xs text-slate-500 font-sans">
+                  <p className="text-xs text-[#4B5563]">
                     {isEditing ? 'Update your display credentials and save changes' : 'Your active Web3 freelancer/client profile'}
                   </p>
                 </div>
@@ -398,40 +415,40 @@ export const Settings: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-[#0B0B0C] hover:bg-slate-800 text-white rounded-xl font-headline font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
+                  className="px-3.5 py-1.5 bg-[#0047AB] hover:bg-[#00388A] text-white rounded-[8px] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <Pencil size={14} />
-                  <span>Edit Profile</span>
+                  <Pencil size={13} />
+                  <span>Edit profile</span>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-sans font-bold text-xs flex items-center gap-1 transition-all cursor-pointer"
+                  className="px-3 py-1.5 bg-[#F6F7F9] hover:bg-[#E5E7EB] text-[#4B5563] border border-[#E5E7EB] rounded-[8px] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Eye size={13} />
-                  <span>View Details</span>
+                  <span>View details</span>
                 </button>
               )}
             </div>
 
             {saveSuccess && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-bold flex items-center gap-2 animate-bounce font-sans">
-                <CheckCircle2 size={16} className="text-emerald-600" />
+              <div className="p-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-[8px] text-[#166534] text-xs font-medium flex items-center gap-2">
+                <CheckCircle2 size={15} className="text-[#10B981]" />
                 <span>Profile details successfully updated and saved to PolyLance!</span>
               </div>
             )}
 
             {/* ── MODE 1: SAVED PROFILE DETAILS VIEW MODE (READ-ONLY) ── */}
             {!isEditing ? (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 
                 {/* Main Card Overview with Avatar */}
-                <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/70 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 pb-4">
-                    <div className="flex items-center gap-4">
+                <div className="p-4 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-3.5">
+                    <div className="flex items-center gap-3.5">
                       {/* Avatar Image */}
-                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 border-2 border-slate-300 shadow-sm shrink-0">
+                      <div className="relative w-14 h-14 rounded-[8px] overflow-hidden bg-white border border-[#E5E7EB] shrink-0">
                         <img
                           src={avatarUrl || fallbackDefaultAvatar}
                           alt={displayName || 'User Avatar'}
@@ -444,23 +461,23 @@ export const Settings: React.FC = () => {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <h2 className="font-headline text-xl font-extrabold text-slate-900">
+                          <h2 className="text-base font-semibold text-[#0B0B0F]">
                             {displayName || 'Anonymous PolyLancer'}
                           </h2>
                           {githubUsername && (
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-[10px] font-mono font-bold">
+                            <span className="px-2 py-0.5 bg-[#EFF6FF] text-[#0047AB] border border-[#BFDBFE] rounded-[6px] text-[10px] font-medium">
                               VERIFIED
                             </span>
                           )}
                         </div>
-                        <p className="text-xs font-sans font-semibold text-slate-600 mt-0.5">
+                        <p className="text-xs text-[#4B5563] mt-0.5">
                           {title || 'Senior Web3 Developer'}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 self-start sm:self-auto">
-                      <div className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono font-bold rounded-xl flex items-center gap-1.5 shadow-2xs">
+                      <div className="px-3 py-1 bg-white border border-[#E5E7EB] text-[#0B0B0F] text-xs font-semibold rounded-[8px] flex items-center gap-1.5 shadow-2xs">
                         <UsdcIcon size={14} />
                         <span>{hourlyRateUsdc || '75'} USDC/hr</span>
                       </div>
@@ -469,22 +486,22 @@ export const Settings: React.FC = () => {
 
                   {/* Bio Paragraph */}
                   <div className="space-y-1">
-                    <span className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider">Bio & Summary</span>
-                    <p className="text-sm font-sans text-slate-700 leading-relaxed">
-                      {bio || 'No bio summary added yet. Click "Edit Profile" above to update your professional experience.'}
+                    <span className="text-xs font-medium text-[#4B5563]">Bio & summary</span>
+                    <p className="text-xs sm:text-sm text-[#0B0B0F] leading-relaxed">
+                      {bio || 'No bio summary added yet. Click "Edit profile" above to update your professional experience.'}
                     </p>
                   </div>
 
                   {/* GitHub Handle */}
                   {githubUsername && (
-                    <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-700 pt-1">
-                      <Github size={15} className="text-slate-900" />
+                    <div className="flex items-center gap-2 text-xs text-[#4B5563] pt-1 border-t border-[#E5E7EB]">
+                      <Github size={14} className="text-[#0B0B0F]" />
                       <span>Linked GitHub:</span>
                       <a
                         href={`https://github.com/${githubUsername}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[#0047AB] hover:underline inline-flex items-center gap-1"
+                        className="text-[#0047AB] hover:underline font-medium inline-flex items-center gap-1"
                       >
                         @{githubUsername}
                       </a>
@@ -493,25 +510,25 @@ export const Settings: React.FC = () => {
                 </div>
 
                 {/* Skills Tags Badges */}
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 block">
-                      Saved Skill Stack ({skills.length})
+                    <span className="text-xs font-medium text-[#4B5563] block">
+                      Saved skill stack ({skills.length})
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {skills.length > 0 ? (
                       skills.map((skill, idx) => {
                         const matched = findSkillByIdOrName(skill);
                         return (
                           <span
                             key={idx}
-                            className="px-3 py-1.5 rounded-xl bg-white text-slate-800 border border-slate-200 text-xs font-bold font-mono shadow-2xs flex items-center gap-1.5 group hover:border-slate-400 transition-all"
+                            className="px-2.5 py-1 rounded-[8px] bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] text-xs font-normal flex items-center gap-1.5 hover:border-[#D1D5DB] transition-colors"
                           >
-                            <Tag size={12} className="text-[#0047AB] shrink-0" />
+                            <Tag size={11} className="text-[#0047AB] shrink-0" />
                             <span>{formatSkillDisplayName(skill)}</span>
                             {matched?.subcategory && (
-                              <span className="text-[9px] font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded font-normal">
+                              <span className="text-[10px] text-[#6B7280] bg-white px-1.5 py-0.2 rounded border border-[#E5E7EB]">
                                 {matched.subcategory}
                               </span>
                             )}
@@ -519,7 +536,7 @@ export const Settings: React.FC = () => {
                         );
                       })
                     ) : (
-                      <span className="text-xs font-sans text-slate-400">No skills added yet.</span>
+                      <span className="text-xs text-[#6B7280]">No skills added yet.</span>
                     )}
                   </div>
                 </div>
@@ -529,10 +546,10 @@ export const Settings: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="w-full py-3 bg-[#0B0B0C] hover:bg-slate-800 text-white rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                    className="w-full py-2.5 bg-[#0047AB] hover:bg-[#00388A] text-white rounded-[8px] text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
-                    <Pencil size={15} />
-                    <span>Edit Profile & Skills</span>
+                    <Pencil size={14} />
+                    <span>Edit profile & skills</span>
                   </button>
                 </div>
               </div>
@@ -723,16 +740,16 @@ export const Settings: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="bg-[#0047AB] hover:bg-[#003A8C] text-white shadow-sm hover:shadow px-7 py-3 rounded-xl font-headline font-extrabold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                    className="bg-[#0047AB] hover:bg-[#00388A] text-white px-5 py-2 rounded-[8px] text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
                   >
-                    {isSaving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-                    <span>Save Profile Settings</span>
+                    {isSaving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+                    <span>Save profile settings</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-headline font-bold text-xs transition-colors cursor-pointer text-center"
+                    className="px-4 py-2 bg-white hover:bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] rounded-[8px] text-xs font-medium transition-colors cursor-pointer text-center"
                   >
                     Cancel
                   </button>
@@ -743,27 +760,27 @@ export const Settings: React.FC = () => {
         </div>
 
         {/* Right Column: Role Differentiated Configuration (5 cols) */}
-        <div className="lg:col-span-5 space-y-8 text-left">
+        <div className="lg:col-span-5 space-y-6 text-left">
           
           {/* Role Differentiated Settings Panel */}
-          <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+          <div className="bg-white p-5 sm:p-6 rounded-[12px] border border-[#E5E7EB] shadow-xs space-y-5">
             
             {/* CLIENT Specific Role Settings */}
             {currentRole === 'client' && (
-              <div className="space-y-5">
-                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center shrink-0">
-                    <Briefcase size={18} />
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 border-b border-[#E5E7EB] pb-3.5">
+                  <div className="w-8 h-8 rounded-[8px] bg-[#EFF6FF] text-[#0047AB] border border-[#BFDBFE] flex items-center justify-center shrink-0">
+                    <Briefcase size={16} />
                   </div>
                   <div>
-                    <h3 className="font-headline text-base font-extrabold text-slate-900">Client Escrow Preferences</h3>
-                    <p className="text-xs text-slate-500 font-sans">Tailored defaults for hiring freelancers</p>
+                    <h3 className="text-sm font-semibold text-[#0B0B0F]">Client escrow preferences</h3>
+                    <p className="text-xs text-[#4B5563]">Tailored defaults for hiring freelancers</p>
                   </div>
                 </div>
 
-                <div className="space-y-3 text-xs font-sans">
+                <div className="space-y-3 text-xs">
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700 block">Default Review Period Window</label>
+                    <label className="font-medium text-[#0B0B0F] block">Default review period window</label>
                     <PolyLanceSelect
                       value={clientEscrowWindowDays}
                       onChange={(val) => setClientEscrowWindowDays(val)}
@@ -778,15 +795,15 @@ export const Settings: React.FC = () => {
                   </div>
 
                   <div className="space-y-1 pt-1">
-                    <label className="font-bold text-slate-700 block">Preferred Escrow Currency Token</label>
-                    <div className="flex gap-3">
+                    <label className="font-medium text-[#0B0B0F] block">Preferred escrow currency</label>
+                    <div className="flex gap-2.5">
                       <button
                         type="button"
                         onClick={() => setPreferredToken('USDC')}
-                        className={`flex-1 p-2 rounded-xl border font-bold text-center transition-all ${
+                        className={`flex-1 p-2 rounded-[8px] border text-xs font-medium text-center transition-colors cursor-pointer ${
                           preferredToken === 'USDC'
-                            ? 'border-blue-600 bg-blue-50 text-blue-800'
-                            : 'border-slate-200 bg-slate-50 text-slate-600'
+                            ? 'border-[#0047AB] bg-[#EFF6FF] text-[#0047AB]'
+                            : 'border-[#E5E7EB] bg-[#F6F7F9] text-[#4B5563]'
                         }`}
                       >
                         USDC (Stable)
@@ -795,13 +812,13 @@ export const Settings: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setPreferredToken('MATIC')}
-                        className={`flex-1 p-2 rounded-xl border font-bold text-center transition-all ${
+                        className={`flex-1 p-2 rounded-[8px] border text-xs font-medium text-center transition-colors cursor-pointer ${
                           preferredToken === 'MATIC'
-                            ? 'border-[#0B0B0C] bg-[#0B0B0C] text-white'
-                            : 'border-slate-200 bg-slate-50 text-slate-600'
+                            ? 'border-[#0047AB] bg-[#EFF6FF] text-[#0047AB]'
+                            : 'border-[#E5E7EB] bg-[#F6F7F9] text-[#4B5563]'
                         }`}
                       >
-                        POL / MATIC
+                        POL Native
                       </button>
                     </div>
                   </div>
@@ -811,22 +828,22 @@ export const Settings: React.FC = () => {
 
             {/* FREELANCER Specific Role Settings */}
             {currentRole === 'freelancer' && (
-              <div className="space-y-5">
-                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100 text-[#0B0B0C] border border-slate-200 flex items-center justify-center shrink-0">
-                    <Zap size={18} />
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 border-b border-[#E5E7EB] pb-3.5">
+                  <div className="w-8 h-8 rounded-[8px] bg-[#F6F7F9] text-[#0047AB] border border-[#E5E7EB] flex items-center justify-center shrink-0">
+                    <Zap size={16} />
                   </div>
                   <div>
-                    <h3 className="font-headline text-base font-extrabold text-slate-900">Freelancer Payout & Attestation</h3>
-                    <p className="text-xs text-slate-500 font-sans">Proof-of-work auto-claiming setup</p>
+                    <h3 className="text-sm font-semibold text-[#0B0B0F]">Freelancer payout & attestation</h3>
+                    <p className="text-xs text-[#4B5563]">Proof-of-work auto-claiming setup</p>
                   </div>
                 </div>
 
-                <div className="space-y-4 text-xs font-sans">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="space-y-3 text-xs">
+                  <div className="flex items-center justify-between p-3 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB]">
                     <div>
-                      <span className="font-bold text-slate-900 block">Auto-Claim Approved Milestones</span>
-                      <span className="text-slate-500 text-[11px]">Trigger immediate smart contract fund release upon client approval</span>
+                      <span className="font-medium text-[#0B0B0F] block">Auto-claim approved milestones</span>
+                      <span className="text-[#4B5563] text-[11px]">Trigger immediate smart contract fund release upon client approval</span>
                     </div>
                     <input
                       type="checkbox"
@@ -841,28 +858,28 @@ export const Settings: React.FC = () => {
 
             {/* JUDGE Specific Role Settings */}
             {currentRole === 'judge' && (
-              <div className="space-y-5">
-                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center shrink-0">
-                    <Scale size={18} />
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 border-b border-[#E5E7EB] pb-3.5">
+                  <div className="w-8 h-8 rounded-[8px] bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A] flex items-center justify-center shrink-0">
+                    <Scale size={16} />
                   </div>
                   <div>
-                    <h3 className="font-headline text-base font-extrabold text-slate-900">DAO Jury Duty Settings</h3>
-                    <p className="text-xs text-slate-500 font-sans">Arbitration alert & voting power preferences</p>
+                    <h3 className="text-sm font-semibold text-[#0B0B0F]">DAO jury duty settings</h3>
+                    <p className="text-xs text-[#4B5563]">Arbitration alert & voting preferences</p>
                   </div>
                 </div>
 
-                <div className="space-y-3 text-xs font-sans">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/60 border border-amber-200">
+                <div className="space-y-3 text-xs">
+                  <div className="flex items-center justify-between p-3 rounded-[8px] bg-[#FFFBEB] border border-[#FDE68A]">
                     <div>
-                      <span className="font-bold text-amber-900 block">Arbitrator Availability</span>
-                      <span className="text-slate-500 text-[11px]">Receive active dispute voting assignments</span>
+                      <span className="font-medium text-[#92400E] block">Arbitrator availability</span>
+                      <span className="text-[#B45309] text-[11px]">Receive active dispute voting assignments</span>
                     </div>
                     <input
                       type="checkbox"
                       checked={judgeAvailability}
                       onChange={(e) => setJudgeAvailability(e.target.checked)}
-                      className="w-4 h-4 accent-amber-600 rounded cursor-pointer"
+                      className="w-4 h-4 accent-[#B45309] rounded cursor-pointer"
                     />
                   </div>
                 </div>
@@ -871,24 +888,24 @@ export const Settings: React.FC = () => {
 
             {/* ADMIN Specific Role Settings */}
             {currentRole === 'admin' && (
-              <div className="space-y-5">
-                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center shrink-0">
-                    <Crown size={18} />
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 border-b border-[#E5E7EB] pb-3.5">
+                  <div className="w-8 h-8 rounded-[8px] bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0] flex items-center justify-center shrink-0">
+                    <Crown size={16} />
                   </div>
                   <div>
-                    <h3 className="font-headline text-base font-extrabold text-slate-900">Protocol Admin Controls</h3>
-                    <p className="text-xs text-slate-500 font-sans">Sovereign configuration parameters</p>
+                    <h3 className="text-sm font-semibold text-[#0B0B0F]">Protocol admin controls</h3>
+                    <p className="text-xs text-[#4B5563]">Sovereign configuration parameters</p>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs space-y-2">
-                  <div className="font-headline font-bold text-emerald-900 flex items-center justify-between">
-                    <span>Protocol Fee Rate</span>
-                    <span className="text-emerald-700 font-mono">0.0%</span>
+                <div className="p-3.5 rounded-[8px] bg-[#F0FDF4] border border-[#BBF7D0] text-xs space-y-1.5">
+                  <div className="font-semibold text-[#166534] flex items-center justify-between">
+                    <span>Protocol fee rate</span>
+                    <span className="font-mono font-medium">0.0%</span>
                   </div>
-                  <p className="text-emerald-800 text-[11px] font-sans">
-                    Peer-to-Peer 0% Sovereign Fee model is enforced across all PolyLance escrow smart contracts.
+                  <p className="text-[#166534] text-[11px]">
+                    Peer-to-peer 0% sovereign fee model is enforced across all PolyLance escrow smart contracts.
                   </p>
                 </div>
               </div>
@@ -896,92 +913,94 @@ export const Settings: React.FC = () => {
 
             {/* Audit Report Certificate Card */}
             {address && (
-              <div className="space-y-4 pt-4 border-t border-slate-100">
+              <div className="space-y-3 pt-3.5 border-t border-[#E5E7EB]">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100 text-[#0B0B0C] border border-slate-200 flex items-center justify-center shrink-0">
-                    <FileText size={18} />
+                  <div className="w-8 h-8 rounded-[8px] bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] flex items-center justify-center shrink-0">
+                    <FileText size={16} />
                   </div>
                   <div>
-                    <h3 className="font-headline text-base font-extrabold text-slate-900">Trust & Audit Certificate</h3>
-                    <p className="text-xs text-slate-500 font-sans">Official on-chain performance and reputation report</p>
+                    <h3 className="text-sm font-semibold text-[#0B0B0F]">Trust & audit certificate</h3>
+                    <p className="text-xs text-[#4B5563]">Official on-chain performance and reputation report</p>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-3">
-                  <p className="text-slate-700 leading-relaxed font-sans">
+                <div className="p-3.5 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] text-xs space-y-3">
+                  <p className="text-[#4B5563] leading-relaxed">
                     Generate an official audit document containing your verified wallet details, Soulbound Reputation Tokens (SBT), completed escrow history, and platform metrics formatted for PDF export & printing.
                   </p>
-                  <Link
-                    to={`/audit-report/${address}`}
-                    className="inline-flex items-center gap-2 bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all"
-                  >
-                    <FileText size={14} />
-                    <span>View & Download Audit Report (PDF)</span>
-                    <ArrowUpRight size={13} />
-                  </Link>
+                  <div>
+                    <Link
+                      to={`/audit-report/${address}`}
+                      className="inline-flex items-center gap-1.5 bg-[#0047AB] hover:bg-[#00388A] text-white font-medium px-3.5 py-2 rounded-[8px] text-xs transition-colors"
+                    >
+                      <FileText size={14} />
+                      <span>View & download audit report (PDF)</span>
+                      <ArrowUpRight size={13} />
+                    </Link>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Telegram Live Contract Notifications Card */}
             {address && (
-              <div className="space-y-4 pt-4 border-t border-slate-100">
+              <div className="space-y-3 pt-3.5 border-t border-[#E5E7EB]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-sky-50 text-[#0088cc] border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
-                      <Send size={18} />
+                    <div className="w-8 h-8 rounded-[8px] bg-[#EFF6FF] text-[#0047AB] border border-[#BFDBFE] flex items-center justify-center shrink-0">
+                      <Send size={16} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-headline text-base font-extrabold text-slate-900">Telegram Live Alerts</h3>
+                        <h3 className="text-sm font-semibold text-[#0B0B0F]">Telegram live alerts</h3>
                         {isTelegramBound ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] text-[10px] font-medium bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
                             LINKED
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] text-[10px] font-medium bg-[#F6F7F9] text-[#6B7280] border border-[#E5E7EB]">
                             OPTIONAL
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 font-sans">Instant 1-on-1 private escrow & milestone updates</p>
+                      <p className="text-xs text-[#4B5563]">Instant 1-on-1 private escrow & milestone updates</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-sky-50/50 border border-sky-100 text-xs space-y-3">
-                  <p className="text-slate-700 leading-relaxed font-sans">
+                <div className="p-3.5 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] text-xs space-y-3">
+                  <p className="text-[#4B5563] leading-relaxed">
                     Receive instantaneous, encrypted direct messages whenever a client funds your milestone, deliverables are submitted, or funds are released to your wallet on Polygon.
                   </p>
 
-                  <div className="bg-white/80 p-2.5 rounded-xl border border-sky-100/80 space-y-1 text-[11px] font-sans text-slate-600">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                  <div className="bg-white p-2.5 rounded-[6px] border border-[#E5E7EB] space-y-1 text-[11px] text-[#4B5563]">
+                    <div className="flex items-center gap-1.5 font-medium text-[#0B0B0F]">
                       <Shield size={12} className="text-[#0047AB]" />
-                      <span>Strict 1-to-1 Privacy Guarantee</span>
+                      <span>Strict 1-to-1 privacy guarantee</span>
                     </div>
-                    <p className="text-[10.5px] text-slate-500">
+                    <p className="text-[10.5px] text-[#6B7280]">
                       Your address and contracts are strictly isolated. The bot never shares or broadcasts your data to other users or public channels.
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2.5 pt-1">
+                  <div className="flex items-center gap-2 pt-1">
                     {!isTelegramBound ? (
                       <button
                         type="button"
                         onClick={handleConnectTelegram}
                         disabled={telegramLoading}
-                        className="bg-[#0088cc] hover:bg-[#0077b5] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                        className="bg-[#0047AB] hover:bg-[#00388A] text-white font-medium px-3.5 py-2 rounded-[8px] text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
                       >
                         <Send size={13} />
-                        <span>{telegramLoading ? 'Generating Link...' : 'Connect Telegram Alerts'}</span>
+                        <span>{telegramLoading ? 'Generating link...' : 'Connect Telegram alerts'}</span>
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={handleUnlinkTelegram}
                         disabled={telegramLoading}
-                        className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold px-3 py-1.5 rounded-xl text-xs shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                        className="bg-white hover:bg-[#FEF2F2] text-[#991B1B] hover:border-[#FCA5A5] border border-[#E5E7EB] font-medium px-3 py-1.5 rounded-[8px] text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
                       >
                         <Trash2 size={13} />
                         <span>Disconnect Telegram</span>
@@ -1074,11 +1093,56 @@ export const Settings: React.FC = () => {
                   }
 
                   return (
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-3 font-sans">
-                      <p className="text-slate-600 leading-relaxed">
-                        In full compliance with sovereign global privacy regulations (such as GDPR Article 17), you may request permanent deletion of your profile, off-chain messages, and user records. You can choose a <strong>30-day buffer period</strong> to protect against accidental deletion, or erase your account data immediately.
-                      </p>
-                      <div className="flex flex-wrap items-center gap-3">
+                    <div className="p-4 rounded-xl bg-white border border-[#FECACA] text-xs space-y-4">
+                      <div className="space-y-1">
+                        <span className="font-semibold text-[#B91C1C] block text-sm">Danger Zone</span>
+                        <p className="text-[#4B5563] leading-relaxed">
+                          Request permanent removal of your account. Profile and off-chain database records will be erased. Public blockchain transactions, smart contract escrows, and soulbound credentials cannot be modified or deleted.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2 pt-1 border-t border-[#FEE2E2]">
+                        <label className="text-xs font-medium text-[#0B0B0F] block">
+                          Type <span className="font-mono font-bold text-[#B91C1C]">DELETE</span> to confirm immediate account removal:
+                        </label>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                          <input
+                            type="text"
+                            value={deleteConfirmText}
+                            onChange={(e) => setDeleteConfirmText(e.target.value)}
+                            placeholder="Type DELETE to confirm"
+                            className="px-3 py-2 text-xs bg-[#F6F7F9] border border-[#D1D5DB] focus:bg-white focus:border-[#B91C1C] rounded-lg font-mono outline-none text-[#0B0B0F] placeholder:text-[#9CA3AF] w-full sm:w-56"
+                          />
+                          <button
+                            type="button"
+                            disabled={deleteConfirmText !== 'DELETE'}
+                            onClick={() => {
+                              setAlertModalOptions({
+                                title: 'Confirm Immediate Permanent Deletion',
+                                message: 'Are you sure you want to permanently delete your account right now? Your profile, off-chain messages, and database records will be erased immediately from the database.',
+                                type: 'error',
+                                confirmText: 'Delete Account Immediately',
+                                onConfirm: async () => {
+                                  await purgeAccountData(address);
+                                  setDeleteConfirmText('');
+                                  setAlertModalOptions({
+                                    title: 'Account Deleted',
+                                    message: 'Your profile, off-chain chat history, and database records have been permanently erased.',
+                                    type: 'info'
+                                  });
+                                }
+                              });
+                            }}
+                            className="bg-[#B91C1C] hover:bg-[#991B1B] disabled:opacity-40 disabled:pointer-events-none text-white font-semibold px-4 py-2 rounded-lg text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <Trash2 size={13} />
+                            <span>Delete account immediately</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-[#FEE2E2] flex items-center justify-between">
+                        <span className="text-[#6B7280]">Prefer a safety buffer?</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -1097,33 +1161,10 @@ export const Settings: React.FC = () => {
                               }
                             });
                           }}
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5"
+                          className="bg-white hover:bg-[#F6F7F9] text-[#374151] border border-[#D1D5DB] font-medium px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5"
                         >
-                          <Clock size={14} className="text-slate-500" />
-                          <span>Schedule with 30-Day Cooldown</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAlertModalOptions({
-                              title: 'Confirm Immediate Permanent Deletion',
-                              message: 'Are you sure you want to permanently delete your account right now? Your profile, off-chain messages, and database records will be erased immediately from the database.',
-                              type: 'error',
-                              confirmText: 'Delete Account Immediately',
-                              onConfirm: async () => {
-                                await purgeAccountData(address);
-                                setAlertModalOptions({
-                                  title: 'Account Deleted',
-                                  message: 'Your profile, off-chain chat history, and database records have been permanently erased from the network.',
-                                  type: 'info'
-                                });
-                              }
-                            });
-                          }}
-                          className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5"
-                        >
-                          <Trash2 size={14} className="text-rose-600" />
-                          <span>Delete Account Immediately (Purge DB)</span>
+                          <Clock size={13} className="text-[#6B7280]" />
+                          <span>Schedule with 30-day cooldown</span>
                         </button>
                       </div>
                     </div>
@@ -1131,6 +1172,95 @@ export const Settings: React.FC = () => {
                 })()}
               </div>
             )}
+
+            {/* Appearance & Motion Preferences */}
+            <div className="space-y-4 pt-4 border-t border-[#E5E7EB]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[8px] bg-[#F6F7F9] text-[#0047AB] border border-[#E5E7EB] flex items-center justify-center shrink-0">
+                  <Zap size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-[#0B0B0F]">Appearance & Animations</h3>
+                  <p className="text-xs text-[#4B5563]">Control scroll-linked transitions and animation intensity</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] text-xs space-y-3">
+                <div className="space-y-2">
+                  <span className="font-semibold text-[#0B0B0F] block">Animations</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectMotionMode('system')}
+                      className={`p-2 rounded-[8px] border text-xs font-semibold text-center transition-colors cursor-pointer ${
+                        motionMode === 'system'
+                          ? 'border-[#0047AB] bg-white text-[#0047AB] shadow-xs'
+                          : 'border-[#E5E7EB] bg-white/60 text-[#4B5563] hover:text-[#0B0B0F]'
+                      }`}
+                    >
+                      Follow system
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectMotionMode('reduced')}
+                      className={`p-2 rounded-[8px] border text-xs font-semibold text-center transition-colors cursor-pointer ${
+                        motionMode === 'reduced'
+                          ? 'border-[#0047AB] bg-white text-[#0047AB] shadow-xs'
+                          : 'border-[#E5E7EB] bg-white/60 text-[#4B5563] hover:text-[#0B0B0F]'
+                      }`}
+                    >
+                      Reduced
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectMotionMode('full')}
+                      className={`p-2 rounded-[8px] border text-xs font-semibold text-center transition-colors cursor-pointer ${
+                        motionMode === 'full'
+                          ? 'border-[#0047AB] bg-white text-[#0047AB] shadow-xs'
+                          : 'border-[#E5E7EB] bg-white/60 text-[#4B5563] hover:text-[#0B0B0F]'
+                      }`}
+                    >
+                      Full
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-[#4B5563] pt-1">
+                    {motionMode === 'system' && 'Following your operating system preference. Opacity fades and transitions respect OS setting.'}
+                    {motionMode === 'reduced' && 'Motion disabled. Content appears with smooth opacity-only fades without movement.'}
+                    {motionMode === 'full' && 'Full animations enabled (overrides system preference for this site only).'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Developer Diagnostics */}
+            <div className="space-y-4 pt-4 border-t border-[#E5E7EB]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[8px] bg-[#F6F7F9] text-[#0047AB] border border-[#E5E7EB] flex items-center justify-center shrink-0">
+                  <Code2 size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-[#0B0B0F]">Developer Diagnostics</h3>
+                  <p className="text-xs text-[#4B5563]">Tools and live monitoring for local testing</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold text-[#0B0B0F] block">Show media diagnostics</span>
+                    <span className="text-[#4B5563] text-[11px]">
+                      Displays VideoManager HUD in bottom corner to monitor active decoders and downloaded bytes.
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={mediaDiagnostics}
+                    onChange={(e) => handleToggleDiagnostics(e.target.checked)}
+                    className="w-4 h-4 accent-[#0047AB] rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
 
           </div>
         </div>

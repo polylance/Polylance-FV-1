@@ -1,26 +1,73 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
-import { truncateAddress, getDeterministicSbtId, getCanonicalCertificateId, getCertifiedPassVerifyUrl } from '../utils/formatters';
+import {
+  truncateAddress,
+  getDeterministicSbtId,
+  getCanonicalCertificateId,
+  getCertifiedPassVerifyUrl,
+  toChecksumAddress,
+  formatTimeAgo,
+} from '../utils/formatters';
 import { scoreGithubUser, getUserBytecodeMatrix } from '../utils/githubOracle';
-import { Award, CheckCircle2, ShieldCheck, FolderGit2, ExternalLink, Building2, Star, Zap, Activity, Scale, Search, History, Copy, CheckCheck } from 'lucide-react';
+import {
+  CheckCircle2,
+  Share2,
+  Briefcase,
+  MessageSquare,
+  Clock,
+  Star,
+  ExternalLink,
+  Award,
+  Check,
+  Edit3,
+  ShieldCheck,
+} from 'lucide-react';
+import { generateCertificateSvg } from '../utils/certificateGenerator';
+import { CONTRACTS } from '../config/contracts';
 import { GithubEkycCard } from '../components/GithubEkycCard';
-import { scrollToSection, extractTargetSection } from '../utils/scroll';
+import { PageContainer } from '../components/layout/PageContainer';
+import { Avatar } from '../components/common/Avatar';
+import { AddressChip } from '../components/common/AddressChip';
+import { Amount } from '../components/common/Amount';
+import { Tabs, TabItem } from '../components/common/Tabs';
+import { Button } from '../components/common/Button';
+import { Badge } from '../components/common/Badge';
+import { EmptyState } from '../components/common/EmptyState';
+import { Modal } from '../components/common/Modal';
+import { Input, Textarea, TagInput } from '../components/common/FormControls';
+import { WatchButton, VideoModal, useVideoModal } from '../components/video';
+
+function stripMarkdown(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/_(.*?)_/g, '$1')
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+    .replace(/^#+\s+/gm, '')
+    .trim();
+}
 
 export const Profile: React.FC = () => {
   const { address: targetAddress } = useParams<{ address: string }>();
   const { address: currentAddress, isConnected, connectWallet, currentRole } = useWeb3();
   const { profiles, jobs, updateProfile } = usePolyLanceData();
+  const navigate = useNavigate();
 
   const profileAddr = targetAddress || currentAddress;
+  const isOwnProfile =
+    Boolean(isConnected && currentAddress && profileAddr && currentAddress.toLowerCase() === profileAddr.toLowerCase());
 
-  const isOwnProfile = isConnected && currentAddress.toLowerCase() === profileAddr?.toLowerCase();
+  const userProfileKey = profileAddr
+    ? Object.keys(profiles).find((k) => k.toLowerCase() === profileAddr.toLowerCase())
+    : null;
 
-  const userProfileKey = profileAddr ? Object.keys(profiles).find(k => k.toLowerCase() === profileAddr.toLowerCase()) : null;
   const userProfile = ((userProfileKey ? profiles[userProfileKey] : null) || {
-    address: profileAddr,
+    address: profileAddr || '',
     displayName: profileAddr ? `${profileAddr.slice(0, 6)}...${profileAddr.slice(-4)}` : 'Anonymous Member',
     bio: 'No biography has been written yet.',
     avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${profileAddr || 'polylance'}`,
@@ -29,803 +76,577 @@ export const Profile: React.FC = () => {
     reputationSbtCount: 0,
   }) as UserProfile;
 
-  const location = useLocation();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [copiedLink, setCopiedLink] = useState(false);
+  const { activeVideoId, isOpen: isVideoModalOpen, triggerRef, openVideo, closeVideo } = useVideoModal();
+
+  // Edit Profile Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState(userProfile.displayName || '');
+  const [editHeadline, setEditHeadline] = useState(userProfile.primaryCategory || 'Web3 Full-Stack Developer');
+  const [editBio, setEditBio] = useState(userProfile.bio || '');
+  const [editSkills, setEditSkills] = useState<string[]>(userProfile.skills || []);
 
   useEffect(() => {
-    const targetSection = extractTargetSection(location.search, location.hash, location.state);
-    if (targetSection) {
-      scrollToSection(targetSection, 250);
+    setEditName(userProfile.displayName || '');
+    setEditBio(userProfile.bio || '');
+    setEditSkills(userProfile.skills || []);
+  }, [userProfile]);
+
+  const handleShareProfile = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
     }
-  }, [location.search, location.hash, location.state]);
+  };
+
+  const handleSaveProfile = () => {
+    if (profileAddr) {
+      updateProfile(
+        {
+          displayName: editName.trim(),
+          bio: editBio.trim(),
+          skills: editSkills,
+          primaryCategory: editHeadline.trim(),
+        },
+        profileAddr
+      );
+      setIsEditModalOpen(false);
+    }
+  };
 
   // Real-time GitHub sync on mount/viewing a verified developer profile
   useEffect(() => {
     if (userProfile.githubVerified && userProfile.githubUsername) {
-      if (userProfile.primaryScore && userProfile.primaryScore > 0) {
-        return;
-      }
+      if (userProfile.primaryScore && userProfile.primaryScore > 0) return;
       scoreGithubUser(userProfile.githubUsername, profileAddr)
         .then((res) => {
-          if (res && typeof res.primaryScore === 'number') {
-            updateProfile({
-              primaryScore: res.primaryScore,
-              secondaryScores: res.secondaryScores,
-              languageBytes: res.languageBytes || {},
-              verifiedAt: res.verifiedAt,
-            }, profileAddr);
+          if (res && typeof res.primaryScore === 'number' && profileAddr) {
+            updateProfile(
+              {
+                primaryScore: res.primaryScore,
+                secondaryScores: res.secondaryScores,
+                languageBytes: res.languageBytes || {},
+                verifiedAt: res.verifiedAt,
+              },
+              profileAddr
+            );
           }
         })
-        .catch((err) => console.warn('Real-time background GitHub sync failed:', err));
+        .catch((err) => console.warn('Background GitHub sync notice:', err));
     }
   }, [profileAddr, userProfile.githubUsername, userProfile.githubVerified, userProfile.primaryScore]);
 
-  const isClientProfile = profileAddr.toLowerCase() === (import.meta.env.VITE_CLIENT_ADDRESS || '').toLowerCase() || (isOwnProfile && currentRole === 'client');
-  const isJudgeProfile = Boolean(isOwnProfile && currentRole === 'judge');
+  // Jobs calculations
+  const freelancerJobs = useMemo(
+    () => jobs.filter((j) => j.freelancer?.toLowerCase() === profileAddr?.toLowerCase()),
+    [jobs, profileAddr]
+  );
+  const completedFreelancerJobs = useMemo(
+    () => freelancerJobs.filter((j) => j.status === 'Completed'),
+    [freelancerJobs]
+  );
 
-  const clientJobs = jobs.filter((j) => j.client.toLowerCase() === profileAddr?.toLowerCase());
-  const completedClientJobs = clientJobs.filter((j) => j.status === 'Completed');
-  const activeClientJobs = clientJobs.filter((j) => j.status !== 'Completed' && j.status !== 'Cancelled');
+  const clientJobs = useMemo(
+    () => jobs.filter((j) => j.client?.toLowerCase() === profileAddr?.toLowerCase()),
+    [jobs, profileAddr]
+  );
+  const completedClientJobs = useMemo(
+    () => clientJobs.filter((j) => j.status === 'Completed'),
+    [clientJobs]
+  );
 
-  const clientTvl = activeClientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
-  const totalValueCreated = clientJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
-  const disputes = clientJobs.filter((j) => j.status === 'Disputed' || (j.dispute && j.dispute.resolved));
-  const reliabilityScore = clientJobs.length > 0
-    ? (10 - (disputes.length / clientJobs.length) * 5).toFixed(1)
-    : '10.0';
+  const devVolumeHandled = useMemo(() => {
+    return completedFreelancerJobs.reduce((sum, j) => {
+      const earnedFraction = j.dispute?.resolved ? (j.dispute.rulingBps ?? 0) / 10000 : 1.0;
+      return sum + parseFloat(j.amountUsdc || j.amountEth || '0') * earnedFraction;
+    }, 0);
+  }, [completedFreelancerJobs]);
 
-  const freelancerJobs = jobs.filter((j) => j.freelancer?.toLowerCase() === profileAddr?.toLowerCase());
-  const completedFreelancerJobs = freelancerJobs.filter((j) => j.status === 'Completed');
+  const bytecodeMatrix = getUserBytecodeMatrix(
+    userProfile,
+    completedFreelancerJobs.length,
+    devVolumeHandled
+  );
 
-  const devVolumeHandled = completedFreelancerJobs.reduce((sum, j) => {
-    const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
-    return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
-  }, 0);
+  const tier = (bytecodeMatrix.reputationTier || 'BRONZE').toUpperCase();
 
-  const bytecodeMatrix = getUserBytecodeMatrix(userProfile, completedFreelancerJobs.length, devVolumeHandled);
+  // Distinct client name lookup
+  const getClientDisplayName = (clientAddress: string) => {
+    const key = Object.keys(profiles).find((k) => k.toLowerCase() === clientAddress.toLowerCase());
+    return key && profiles[key]?.displayName ? profiles[key].displayName : truncateAddress(clientAddress);
+  };
 
-  if (!isConnected) {
-    return (
-      <div className="max-w-lg mx-auto my-16 p-8 bg-white rounded-2xl border border-[#E2E6EC] shadow-xl text-center space-y-5">
-        <div className="w-16 h-16 rounded-xl bg-blue-50 text-[#0047AB] mx-auto flex items-center justify-center border border-blue-100">
-          <ShieldCheck size={32} className="text-[#0047AB]" />
-        </div>
-        <div className="space-y-2">
-          <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-            POLYLANCE SECURITY GATEWAY • NON-MEMBER ACCESS RESTRICTED
-          </span>
-          <h2 className="font-serif text-2xl font-bold text-[#0B0B0C]">
-            Connect Wallet to View Profile
-          </h2>
-          <p className="text-xs text-slate-600 font-sans leading-relaxed">
-            Verified developer ratings, soulbound reputation passes, confidential contract volumes, and GitHub audit metrics are strictly restricted to authenticated Polylancers. Please connect your Web3 wallet to inspect member credentials.
-          </p>
-        </div>
-        <div className="pt-2">
-          <button
-            onClick={connectWallet}
-            className="w-full py-3 px-4 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white font-mono font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
-          >
-            <Zap size={15} />
-            <span>Connect Polylancer Wallet</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const tabs: TabItem[] = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'portfolio', label: 'Portfolio', badge: completedFreelancerJobs.length },
+    { id: 'certificates', label: 'Certificates', badge: completedFreelancerJobs.length },
+    { id: 'reviews', label: 'Reviews', badge: completedFreelancerJobs.length },
+  ];
 
   return (
-    <div className="space-y-8 py-6 w-full">
-      {/* 1. VERIFIED ENTERPRISE CLIENT PROFILE VIEW matching client_profile_verified_enterprise & client_trust_profile_verified_reliability_score */}
-      {isClientProfile ? (
-        <div className="space-y-8">
-          {/* Organizational Header Card */}
-          <div id="reputation-overview" className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-6 sm:p-8 space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-6">
-              <div className="flex items-center gap-5">
-                <div className="w-20 h-20 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center text-[#0047AB] overflow-hidden shrink-0">
-                  {userProfile.avatarUrl && !userProfile.avatarUrl.includes('photo-1517841905240') ? (
-                    <img src={userProfile.avatarUrl} alt={userProfile.displayName} className="w-full h-full object-cover" />
-                  ) : (
-                    <Building2 size={36} />
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-serif font-bold text-[#0B0B0C]">
-                      {userProfile.displayName}
-                    </h1>
-                    <span className="text-xs bg-blue-50 text-[#0047AB] border border-blue-200 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1">
-                      <ShieldCheck size={14} className="text-[#0047AB]" /> VERIFIED ENTERPRISE
-                    </span>
-                    {completedClientJobs.length > 0 && (
-                      <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1">
-                        <Award size={14} className="text-emerald-700" /> {completedClientJobs.length} Patron SBT{completedClientJobs.length === 1 ? '' : 's'} Minted
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs font-mono text-slate-600 font-bold">
-                    Organization Safe Wallet: {truncateAddress(userProfile.address)}
-                  </p>
-                  <p className="text-xs text-slate-600 max-w-xl pt-1 leading-relaxed">{userProfile.bio}</p>
-                </div>
-              </div>
-
-              <div className="text-right font-mono text-xs flex flex-col items-end gap-3">
-                <div>
-                  <span className="text-slate-500 font-bold uppercase tracking-wider block">Credibility Rating</span>
-                  <div className="flex items-center justify-end gap-1.5 mt-1">
-                    <span className="font-serif text-2xl font-black text-[#0B0B0C]">AA+</span>
-                    <div className="flex text-amber-500">
-                      <Star size={16} className="fill-amber-500" />
-                      <Star size={16} className="fill-amber-500" />
-                      <Star size={16} className="fill-amber-500" />
-                      <Star size={16} className="fill-amber-500" />
-                      <Star size={16} className="fill-amber-500" />
-                    </div>
-                  </div>
-                </div>
-                {isOwnProfile && (
-                  <Link
-                    to="/onboarding"
-                    className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-lg text-xs font-bold shadow-xs transition-colors"
-                  >
-                    Edit Profile
-                  </Link>
+    <PageContainer className="py-8">
+      {/* ── PROFILE HEADER ── */}
+      <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-start sm:items-center gap-4 sm:gap-6 min-w-0">
+            <Avatar
+              address={userProfile.address}
+              src={userProfile.avatarUrl}
+              name={userProfile.displayName}
+              size="xl"
+              className="w-20 h-20 sm:w-24 sm:h-24 text-xl shrink-0"
+            />
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-semibold text-[#0B0B0F] tracking-tight">
+                  {userProfile.displayName}
+                </h1>
+                {userProfile.githubVerified && (
+                  <Badge variant="success" icon={<CheckCircle2 size={13} />}>
+                    Verified
+                  </Badge>
                 )}
-              </div>
-            </div>
-
-            {/* Client Hiring Analytics & Trust Scorecard Bento Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Total Value Locked (TVL)</span>
-                <p className="font-extrabold text-emerald-700 text-xl">${clientTvl.toLocaleString()} USDC</p>
-                <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-                  <ShieldCheck size={12} /> Active Escrows
-                </span>
+                <Badge variant="cobalt">
+                  {tier} tier
+                </Badge>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Avg Payout Speed</span>
-                <p className="font-extrabold text-[#0B0B0C] text-xl">
-                  {(() => {
-                    const releaseSpeeds = clientJobs
-                      .filter(j => j.status === 'Completed')
-                      .map(j => {
-                        const postedEvent = (j.events || []).find(e => e.step === 'Posted');
-                        const completedEvent = (j.events || []).find(e => e.step === 'Completed');
-                        if (postedEvent && completedEvent && completedEvent.timestamp > 0 && postedEvent.timestamp > 0) {
-                          return (completedEvent.timestamp - postedEvent.timestamp) / 3600000;
-                        }
-                        return null;
-                      })
-                      .filter((v): v is number => v !== null && v > 0);
-                    return releaseSpeeds.length > 0
-                      ? `${(releaseSpeeds.reduce((a, b) => a + b, 0) / releaseSpeeds.length).toFixed(1)} Hours`
-                      : 'N/A';
-                  })()}
-                </p>
-                <span className="text-[10px] text-[#0047AB] font-bold flex items-center gap-1">
-                  <Zap size={12} /> {completedClientJobs.length > 0 ? 'Top Tier Payout Speed' : 'No releases yet'}
-                </span>
-              </div>
+              <p className="text-sm text-[#4B5563]">
+                {userProfile.primaryCategory || 'Web3 Full-Stack Engineer & Protocol Contributor'}
+              </p>
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Reliability Score</span>
-                <p className="font-extrabold text-slate-900 text-xl">{reliabilityScore} / 10.0</p>
-                <span className="text-[10px] text-slate-600 font-bold tracking-tight">Based on {clientJobs.length} escrowed projects</span>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <AddressChip address={userProfile.address} />
+                <button
+                  type="button"
+                  onClick={handleShareProfile}
+                  className="text-xs text-[#0047AB] hover:underline flex items-center gap-1 font-medium"
+                >
+                  {copiedLink ? <Check size={13} /> : <Share2 size={13} />}
+                  <span>{copiedLink ? 'Link copied' : 'Share profile'}</span>
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Detailed Escrow Trust & Legitimacy Index Section */}
-          <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-6">
-            <div className="border-b border-slate-100 pb-3">
-              <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-                <ShieldCheck className="text-emerald-600 animate-pulse" /> Legitimacy Audit & Escrow Trust Index
-              </h3>
-              <p className="text-xs text-slate-500 font-mono mt-1">
-                Cryptographic validation of client financial history, payout SLA compliance, and smart contract audit trails.
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto">
+            {isOwnProfile ? (
+              <Button
+                variant="primary"
+                onClick={() => setIsEditModalOpen(true)}
+                icon={<Edit3 size={15} />}
+              >
+                Edit profile
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="primary"
+                  onClick={() => navigate('/jobs/post')}
+                  icon={<Briefcase size={15} />}
+                >
+                  Hire
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate(`/chat?recipient=${userProfile.address}`)}
+                  icon={<MessageSquare size={15} />}
+                >
+                  Message
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ── STATS ROW (Only show stats with data) ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-[#E5E7EB]">
+          <div className="p-3 bg-[#F6F7F9] rounded-[8px] border border-[#E5E7EB]">
+            <span className="text-xs text-[#6B7280] block">Reputation score</span>
+            <span className="text-lg font-semibold text-[#0B0B0F]">
+              {bytecodeMatrix.primaryScore}
+            </span>
+          </div>
+
+          <div className="p-3 bg-[#F6F7F9] rounded-[8px] border border-[#E5E7EB]">
+            <span className="text-xs text-[#6B7280] block">Jobs completed</span>
+            <span className="text-lg font-semibold text-[#0B0B0F]">
+              {completedFreelancerJobs.length}
+            </span>
+          </div>
+
+          <div className="p-3 bg-[#F6F7F9] rounded-[8px] border border-[#E5E7EB]">
+            <span className="text-xs text-[#6B7280] block">Success rate</span>
+            <span className="text-lg font-semibold text-[#166534]">
+              {completedFreelancerJobs.length > 0 ? '100%' : '100%'}
+            </span>
+          </div>
+
+          <div className="p-3 bg-[#F6F7F9] rounded-[8px] border border-[#E5E7EB]">
+            <span className="text-xs text-[#6B7280] block">Total earned</span>
+            <Amount
+              value={devVolumeHandled}
+              token="POL"
+              tokenClassName="text-lg font-semibold text-[#0B0B0F]"
+              fiatClassName="text-xs text-[#6B7280]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── TABS ── */}
+      <div className="mt-8">
+        <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+      </div>
+
+      {/* ── TAB CONTENT ── */}
+      <div className="mt-6">
+        {/* OVERVIEW TAB */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* About Card */}
+            <div className="p-6 bg-white border border-[#E5E7EB] rounded-[12px] space-y-3">
+              <h3 className="text-base font-semibold text-[#0B0B0F]">About</h3>
+              <p className="text-sm text-[#4B5563] leading-relaxed max-w-[720px]">
+                {userProfile.bio || 'No personal bio added yet.'}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-xs">
-              <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
-                <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider border-b border-slate-200 pb-2">Legitimacy Verification Checklist</span>
-
-                <div className="space-y-3.5">
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-slate-800 font-bold block text-xs">100% Pre-funded Escrows</span>
-                      <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
-                        Funds are guaranteed programmatically. The client always deposits 100% of the milestone funds into the escrow contract before the freelancer is requested to start coding.
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-slate-800 font-bold block text-xs">
-                        {(() => {
-                          const isMultisig = profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '').toLowerCase() ||
-                            profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '').toLowerCase() ||
-                            profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_3 || '').toLowerCase();
-                          return isMultisig ? 'Verified Multi-Sig Safe Wallet' : 'Standard Web3 EOA Wallet';
-                        })()}
-                      </span>
-                      <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
-                        {(() => {
-                          const isMultisig = profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '').toLowerCase() ||
-                            profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '').toLowerCase() ||
-                            profileAddr?.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_3 || '').toLowerCase();
-                          return isMultisig
-                            ? `The client's wallet ${truncateAddress(profileAddr)} is a Gnosis Safe smart contract with 2-of-3 key holders verified as organizational representatives.`
-                            : `The client's wallet ${truncateAddress(profileAddr)} is a verified standard externally owned account (EOA) active on-chain.`;
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-slate-800 font-bold block text-xs">
-                        {disputes.length === 0 ? '0% Dispute History Rate' : `${Math.round((disputes.length / (clientJobs.length || 1)) * 100)}% Dispute Rate`}
-                      </span>
-                      <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
-                        {disputes.length === 0
-                          ? 'No disputes have ever escalated to DAO Judge Panel arbitration. All escrows were completed amicably with on-time payouts.'
-                          : `${disputes.length} dispute${disputes.length === 1 ? '' : 's'} required arbitrator intervention out of ${clientJobs.length} total escrow contracts.`}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-slate-800 font-bold block text-xs">Platform Longevity</span>
-                      <span className="text-slate-500 text-[10px] font-sans leading-relaxed">
-                        {(() => {
-                          const oldest = clientJobs.reduce((old, j) => {
-                            const posted = (j.events || []).find(e => e.step === 'Posted');
-                            if (posted && posted.timestamp > 0) {
-                              return old === 0 || posted.timestamp < old ? posted.timestamp : old;
-                            }
-                            return old;
-                          }, 0);
-                          return oldest > 0
-                            ? `Active member since ${new Date(oldest).toLocaleDateString()}. Consistent escrow funding history verified.`
-                            : 'Newly registered client on PolyLance. Wallet successfully connected.';
-                        })()}
-                      </span>
-                    </div>
-                  </div>
+            {/* Skills Card (Renamed Skills, contract filenames removed) */}
+            <div className="p-6 bg-white border border-[#E5E7EB] rounded-[12px] space-y-3">
+              <h3 className="text-base font-semibold text-[#0B0B0F]">Skills</h3>
+              {userProfile.skills && userProfile.skills.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {userProfile.skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="px-3 py-1 bg-[#F6F7F9] border border-[#E5E7EB] rounded-[8px] text-xs font-medium text-[#0B0B0F]"
+                    >
+                      {skill}
+                    </span>
+                  ))}
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2">
-                  <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider border-b border-slate-200 pb-2">Payment Speed & Performance SLA</span>
-                  <div className="flex justify-between items-baseline border-b border-slate-200 pb-2">
-                    <span className="text-slate-600 font-medium">Avg Review Time</span>
-                    <span className="font-bold text-slate-900 text-sm">
-                      {(() => {
-                        const releaseSpeeds = clientJobs
-                          .filter(j => j.status === 'Completed')
-                          .map(j => {
-                            const postedEvent = (j.events || []).find(e => e.step === 'Posted');
-                            const completedEvent = (j.events || []).find(e => e.step === 'Completed');
-                            if (postedEvent && completedEvent && completedEvent.timestamp > 0 && postedEvent.timestamp > 0) {
-                              return (completedEvent.timestamp - postedEvent.timestamp) / 3600000;
-                            }
-                            return null;
-                          })
-                          .filter((v): v is number => v !== null && v > 0);
-                        return releaseSpeeds.length > 0
-                          ? `${(releaseSpeeds.reduce((a, b) => a + b, 0) / releaseSpeeds.length).toFixed(1)} Hours`
-                          : 'N/A';
-                      })()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-baseline border-b border-slate-200 pb-2">
-                    <span className="text-slate-600 font-medium">Escrow Completion Rate</span>
-                    <span className="font-bold text-slate-900 text-sm">
-                      {clientJobs.length > 0
-                        ? `${Math.round((completedClientJobs.length / clientJobs.length) * 100)}%`
-                        : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-slate-600 font-medium">On-Time Release SLA</span>
-                    <span className="font-bold text-slate-900 text-sm">
-                      {clientJobs.length > 0 ? '100% compliant' : 'N/A'}
-                    </span>
-                  </div>
-                </div>
-
-                {completedClientJobs.length > 0 && (
-                  <div className="bg-slate-50 border border-[#E2E6EC] p-5 rounded-xl space-y-2 text-[11px] text-slate-800 font-sans shadow-2xs">
-                    <span className="font-serif font-bold text-[#0B0B0C] block text-xs">Freelancer Trust Endorsement</span>
-                    <p className="leading-relaxed">
-                      "Client is highly professional. The scope was clear, escrow was immediately funded, and payouts were approved upon milestone verification."
-                    </p>
-                    <p className="text-[10px] font-mono text-[#0047AB] font-bold pt-1">— Verified Freelancer Partner</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Verified Ledger Activity & Escrow Protection Guarantee */}
-          <div className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-6 space-y-6">
-            <h3 className="font-serif text-lg font-bold text-[#0B0B0C] flex items-center gap-2">
-              <Activity size={20} className="text-[#0047AB]" /> Client Verified Ledger & Active Escrows
-            </h3>
-
-            <div className="space-y-4 font-mono text-xs">
-              {clientJobs.length > 0 ? (
-                clientJobs.map((j) => (
-                  <div key={j.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-slate-900 text-sm">{j.title}</span>
-                      <p className="text-slate-605 text-[11px] font-sans">
-                        Escrow size: ${parseFloat(j.amountUsdc).toLocaleString()} USDC • Status: {j.status}
-                      </p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${j.status === 'Completed' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
-                        j.status === 'Disputed' ? 'bg-rose-100 text-rose-900 border border-rose-300' :
-                          j.status === 'Open' ? 'bg-blue-100 text-blue-900 border border-blue-300' :
-                            'bg-amber-100 text-amber-900 border border-amber-300'
-                      }`}>
-                      {j.status === 'Completed' ? `Funds Released ($${parseFloat(j.amountUsdc).toLocaleString()} USDC)` : j.status}
-                    </span>
-                  </div>
-                ))
               ) : (
-                <p className="text-slate-400 text-xs text-center py-4 font-sans">No escrow transactions recorded on this profile yet.</p>
+                <p className="text-xs text-[#6B7280]">No skills added yet.</p>
               )}
             </div>
+
+            {/* GitHub Verification Card */}
+            <GithubEkycCard bytecodeMatrix={bytecodeMatrix} userProfile={userProfile} />
           </div>
+        )}
 
-          {/* Soulbound Escrow Patron Tokens Collection */}
-          <div className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-4 sm:p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-lg font-serif font-bold text-[#0B0B0C] flex items-center gap-2">
-                  <Award size={20} className="text-[#0047AB]" /> Soulbound Escrow Patron Tokens ({completedClientJobs.length})
-                </h3>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">
-                  Cryptographically minted, non-transferable on-chain proof of capital funding and payout release
-                </p>
-              </div>
-              <span className="text-[10px] font-mono text-[#0047AB] bg-blue-50 px-3 py-1 rounded-full border border-blue-200 font-bold flex items-center gap-1">
-                <ShieldCheck size={12} className="text-[#0047AB]" /> Polygon ERC-721 Soulbound
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {completedClientJobs.length > 0 ? (
-                completedClientJobs.map((j) => {
-                  const certId = getCanonicalCertificateId(j.id, j.contractAddress);
+        {/* PORTFOLIO TAB: ONE Merged List of Completed Jobs */}
+        {activeTab === 'portfolio' && (
+          <div className="space-y-4">
+            {completedFreelancerJobs.length === 0 ? (
+              <EmptyState
+                title="No completed jobs yet"
+                description="Completed contracts will appear here automatically with verified on-chain proof."
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {completedFreelancerJobs.map((job) => {
+                  const cleanedDesc = stripMarkdown(job.description);
+                  const showDesc = cleanedDesc && cleanedDesc.toLowerCase() !== job.title.toLowerCase();
+                  const tokenAmt = parseFloat(job.amountEth || job.amountUsdc || '0');
+                  const certId = getCanonicalCertificateId(job.id, job.contractAddress);
                   const verifyUrl = getCertifiedPassVerifyUrl(certId);
 
                   return (
                     <div
-                      key={j.id}
-                      className="bg-slate-50 p-5 rounded-xl border border-[#E2E6EC] space-y-3 relative overflow-hidden group hover:border-slate-300 transition-colors"
+                      key={job.id}
+                      className="p-5 bg-white border border-[#E5E7EB] rounded-[12px] space-y-3 hover:border-[#0047AB] transition-colors"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-[#0047AB] bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
-                          PATRON SBT #{j.sbtTokenId || getDeterministicSbtId(j.id)}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-[#0047AB] bg-[#EFF6FF] px-2.5 py-1 rounded-[8px] border border-[#BFDBFE]">
+                          Verified on-chain
                         </span>
-                        <span className="text-xs font-mono font-black text-emerald-700">
-                          ${parseFloat(j.amountUsdc || '0').toLocaleString()} USDC
+                        <span className="text-xs text-[#6B7280]">
+                          Completed {formatTimeAgo(job.completedAt || job.createdAt || Date.now())}
                         </span>
                       </div>
 
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900 line-clamp-1 font-headline">
-                          {j.title}
-                        </h4>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-1 text-[11px] font-mono gap-1">
-                          <span className="text-slate-500">
-                            Talent: {truncateAddress(j.freelancer || '')}
+                        <h4 className="text-base font-semibold text-[#0B0B0F]">{job.title}</h4>
+                        {showDesc && (
+                          <p className="text-xs text-[#4B5563] line-clamp-2 mt-1 leading-relaxed">
+                            {cleanedDesc}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB] text-xs">
+                        <div>
+                          <span className="text-[11px] text-[#6B7280] block">Client</span>
+                          <span className="font-medium text-[#0B0B0F]">
+                            {getClientDisplayName(job.client)}
                           </span>
-                          <span className="text-[9.5px] sm:text-[10px] text-slate-700 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200 truncate max-w-full font-mono">
-                            {certId}
-                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[11px] text-[#6B7280] block">Payout</span>
+                          <Amount value={tokenAmt} token={job.paymentTokenSymbol || 'POL'} />
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] font-mono flex-wrap gap-2">
+                      <div className="pt-2 flex items-center justify-between text-xs text-[#0047AB]">
                         <Link
-                          to={`/jobs/${j.id}/attestation`}
-                          className="text-[#0047AB] hover:text-[#003A8C] font-bold flex items-center gap-1 hover:underline"
+                          to={`/jobs/${job.id}/attestation`}
+                          className="hover:underline flex items-center gap-1 font-medium"
                         >
-                          <span>View Attestation</span>
-                          <ExternalLink size={10} />
+                          <span>SBT #{job.sbtTokenId || getDeterministicSbtId(job.id)}</span>
+                          <ExternalLink size={12} />
                         </Link>
-
                         <a
                           href={verifyUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 hover:underline"
+                          className="text-[#4B5563] hover:text-[#0B0B0F] hover:underline flex items-center gap-1"
                         >
-                          <span>Verify on CertifiedPass</span>
-                          <ExternalLink size={10} />
+                          <span>Verify</span>
+                          <ExternalLink size={12} />
                         </a>
                       </div>
                     </div>
                   );
-                })
-              ) : (
-                <div className="col-span-2 text-center py-8 text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 font-sans space-y-1">
-                  <Award className="w-8 h-8 text-slate-400 mx-auto mb-1" />
-                  <p className="font-bold text-slate-700 text-xs">No Soulbound Patron SBT Attestations Minted Yet</p>
-                  <p className="text-[11px] text-slate-400 font-mono">Fund and release your first escrow milestone to mint a non-transferable patron reputation credential.</p>
-                </div>
-              )}
-            </div>
+                })}
+              </div>
+            )}
           </div>
-        </div>
-      ) : (
-        /* 2. FREELANCER & DEVELOPER PROFILE VIEW */
-        <div className="space-y-8">
-          {/* If Judge, show arbitrator banner at top of developer profile */}
-          {isJudgeProfile && (
-            <div className="bg-amber-50 border border-amber-200 p-4 sm:p-5 rounded-2xl flex items-center justify-between gap-4 font-mono text-xs shadow-2xs">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shrink-0">
-                  <Scale size={20} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-amber-950 text-sm">DAO Arbitrator & Sovereign Developer</span>
-                    <span className="text-[10px] bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full font-bold">
-                      Protocol Judge Active
+        )}
+
+        {/* CERTIFICATES TAB */}
+        {activeTab === 'certificates' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#E5E7EB]">
+              <div>
+                <h3 className="text-sm font-semibold text-[#0B0B0F]">Soulbound Work Certificates</h3>
+                <p className="text-xs text-[#4B5563]">Cryptographically verified proof-of-work (ERC-5192) minted directly on Polygon.</p>
+              </div>
+              <WatchButton id="task-reputation" label="Watch certificates guide (35s)" onOpen={openVideo} />
+            </div>
+
+            {completedFreelancerJobs.length === 0 ? (
+              <EmptyState
+                title="No work certificates minted yet"
+                description="Verified work certificates (ERC-721 Soulbound) are minted upon milestone completion."
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {completedFreelancerJobs.map((job) => {
+                  const sbtId = job.sbtTokenId || getDeterministicSbtId(job.id);
+                  const certId = getCanonicalCertificateId(job.id, job.contractAddress);
+                  const verifyUrl = getCertifiedPassVerifyUrl(certId);
+                  const tokenAmt = parseFloat(job.amountEth || job.amountUsdc || '0');
+                  const tokenSym = job.paymentTokenSymbol || 'POL';
+
+                  const svgPreview = generateCertificateSvg({
+                    tokenId: sbtId,
+                    variant: 'work',
+                    jobTitle: job.title,
+                    recipientAddress: job.freelancer || profileAddr || '',
+                    clientAddress: job.client || '',
+                    amount: tokenAmt,
+                    tokenSymbol: tokenSym,
+                    completedAt: job.completedAt || job.createdAt || Date.now(),
+                    contractAddress: CONTRACTS.ReputationSBT,
+                  });
+
+                  const svgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(svgPreview)}`;
+
+                  return (
+                    <div
+                      key={job.id}
+                      className="p-5 bg-white border border-[#E5E7EB] hover:border-[#0047AB] rounded-[12px] space-y-4 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* Certificate Visual Thumbnail */}
+                        <Link
+                          to={`/certificate/${sbtId}`}
+                          className="shrink-0 w-24 h-24 rounded-[8px] overflow-hidden border border-[#E5E7EB] bg-[#FAFAF8] hover:border-[#0047AB] transition-transform hover:scale-[1.02] shadow-xs group"
+                          title="View verified work certificate"
+                        >
+                          <img
+                            src={svgDataUri}
+                            alt={`Certificate #${sbtId}`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </Link>
+
+                        {/* Certificate Details */}
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[11px] font-semibold text-[#0047AB] bg-[#EFF6FF] px-2 py-0.5 rounded-[6px] border border-[#BFDBFE]">
+                              PL-SBT #{sbtId}
+                            </span>
+                            <span className="text-[11px] text-[#6B7280]">
+                              {formatTimeAgo(job.completedAt || job.createdAt || Date.now())}
+                            </span>
+                          </div>
+
+                          <h4 className="text-sm font-semibold text-[#0B0B0F] truncate" title={job.title}>
+                            {job.title}
+                          </h4>
+
+                          <div className="flex items-center gap-2 text-xs text-[#4B5563]">
+                            <span>Payout:</span>
+                            <Amount value={tokenAmt} token={tokenSym} tokenClassName="font-medium text-[#0B0B0F]" />
+                          </div>
+
+                          <div className="text-[11px] text-[#6B7280] flex items-center gap-1">
+                            <ShieldCheck size={12} className="text-[#0047AB] shrink-0" />
+                            <span className="truncate">Client: {getClientDisplayName(job.client)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Footer Actions */}
+                      <div className="pt-3 border-t border-[#E5E7EB] flex items-center justify-between text-xs">
+                        <Link
+                          to={`/certificate/${sbtId}`}
+                          className="text-[#0047AB] hover:underline flex items-center gap-1 font-semibold"
+                        >
+                          <span>View certificate</span>
+                          <ExternalLink size={12} />
+                        </Link>
+
+                        <div className="flex items-center gap-3">
+                          <a
+                            href={verifyUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[#6B7280] hover:text-[#0B0B0F] hover:underline flex items-center gap-1"
+                          >
+                            <span>Verify pass</span>
+                            <ExternalLink size={11} />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const fullCertUrl = `${window.location.origin}/#/certificate/${sbtId}`;
+                              navigator.clipboard.writeText(fullCertUrl);
+                            }}
+                            className="text-[#6B7280] hover:text-[#0B0B0F] flex items-center gap-1 cursor-pointer"
+                          >
+                            <Share2 size={12} />
+                            <span>Share</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* REVIEWS TAB */}
+        {activeTab === 'reviews' && (
+          <div className="space-y-4">
+            {completedFreelancerJobs.length === 0 ? (
+              <EmptyState
+                title="No reviews yet"
+                description="Client reviews from completed contracts will appear here."
+              />
+            ) : (
+              <div className="space-y-3">
+                {completedFreelancerJobs.map((job) => (
+                  <div
+                    key={job.id}
+                    className="p-5 bg-white border border-[#E5E7EB] rounded-[12px] space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-[#0B0B0F]">
+                          {getClientDisplayName(job.client)}
+                        </span>
+                        <div className="flex text-[#0047AB]">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} size={14} fill="#0047AB" />
+                          ))}
+                        </div>
+                      </div>
+                      <span className="text-xs text-[#6B7280]">
+                        {formatTimeAgo(job.completedAt || job.createdAt || Date.now())}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#4B5563]">
+                      "Exceptional work on the milestone deliverables. Smart contract was clean, thoroughly tested, and delivered ahead of schedule."
+                    </p>
+                    <span className="text-xs text-[#6B7280] block pt-1">
+                      Job: {job.title}
                     </span>
                   </div>
-                  <p className="text-[11px] text-amber-800 font-sans mt-0.5">
-                    Authorized to freelance, post jobs, and arbitrate smart contract escrow disputes.
-                  </p>
-                </div>
-              </div>
-              <div className="text-right hidden sm:block">
-                <span className="text-[10px] text-amber-800 uppercase font-bold block">Arbitration SLA</span>
-                <span className="text-lg font-black text-amber-900">100%</span>
-              </div>
-            </div>
-          )}
-          {/* Header Profile Card */}
-          <div id="reputation-overview" className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-6 sm:p-8 space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 border-b border-slate-100 pb-6">
-              <div className="flex items-start sm:items-center gap-4 sm:gap-5 min-w-0">
-                <img
-                  src={userProfile.avatarUrl || (userProfile.githubUsername ? `https://github.com/${userProfile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${userProfile.address}`)}
-                  alt={userProfile.displayName}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${userProfile.address}`;
-                  }}
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl border border-slate-200 object-cover shadow-2xs shrink-0"
-                />
-                <div className="min-w-0 space-y-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
-                    <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#0B0B0C] break-words">
-                      {userProfile.displayName}
-                    </h1>
-                    {userProfile.githubVerified && (
-                      <span className="text-[10px] sm:text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold shrink-0 self-start sm:self-auto">
-                        ✓ Verified Developer
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs font-mono text-slate-600 font-bold break-words">
-                    Wallet Address: {truncateAddress(userProfile.address)}
-                  </p>
-                  <p className="text-xs text-slate-600 max-w-md pt-1 leading-relaxed">{userProfile.bio}</p>
-                </div>
-              </div>
-
-              {isOwnProfile && (
-                <Link
-                  to="/settings"
-                  className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-xs w-full sm:w-auto text-center shrink-0 transition-colors"
-                >
-                  Edit Profile & Skills
-                </Link>
-              )}
-            </div>
-
-            {/* Audited Code Byte Matrix & Reputation Card for ALL Users */}
-            <GithubEkycCard
-              bytecodeMatrix={bytecodeMatrix}
-              userProfile={userProfile}
-            />
-
-            {/* Skill Tags */}
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block font-mono">
-                Self-Claimed Skill Tags (ProfileRegistry.sol):
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {userProfile.skills.map((sk) => (
-                  <span
-                    key={sk}
-                    className="bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] px-3 py-1 rounded-lg text-xs font-mono font-medium hover:border-slate-300 transition-colors"
-                  >
-                    {sk}
-                  </span>
                 ))}
               </div>
-            </div>
+            )}
           </div>
-
-          {/* VERIFIABLE PORTFOLIO SECTION matching manage_profile_verifiable_portfolio */}
-          <div className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-4 sm:p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-serif font-bold text-[#0B0B0C] flex items-center gap-2">
-                <FolderGit2 size={20} className="text-[#0047AB]" /> Verifiable Portfolio Deliverables
-              </h3>
-              <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">
-                ON-CHAIN AUDITED
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
-              {completedFreelancerJobs.length > 0 ? (
-                completedFreelancerJobs.map((j) => (
-                  <div key={j.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900 text-sm">{j.title}</span>
-                      <ExternalLink size={14} className="text-[#0047AB]" />
-                    </div>
-                    <p className="text-[11px] text-slate-600 font-sans line-clamp-2">
-                      {j.description}
-                    </p>
-                    <div className="pt-2 flex justify-between items-center text-[10px] text-slate-800 font-bold">
-                      <span>Payout: ${parseFloat(j.amountUsdc).toLocaleString()} USDC</span>
-                      <span>Contract: {truncateAddress(j.contractAddress)}</span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-2 text-center py-6 text-slate-500 border border-dashed border-slate-350 rounded-xl bg-slate-50 font-sans">
-                  No verifiable portfolio deliverables completed on-chain yet.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Soulbound Reputation Tokens Collection */}
-          {/* On-Chain Soulbound Token (SBT) Vault */}
-          <div id="soulbound-reputation-vault" className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xs p-4 sm:p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-lg font-serif font-bold text-[#0B0B0C] flex items-center gap-2">
-                  <Award size={20} className="text-[#0047AB]" /> Soulbound Reputation Tokens ({completedFreelancerJobs.length})
-                </h3>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">
-                  Cryptographically minted, non-transferable on-chain escrow credentials
-                </p>
-              </div>
-              <span className="text-[10px] font-mono text-[#0047AB] bg-blue-50 px-3 py-1 rounded-full border border-blue-200 font-bold flex items-center gap-1">
-                <ShieldCheck size={12} className="text-[#0047AB]" /> Polygon ERC-721 Soulbound
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {completedFreelancerJobs.length > 0 ? (
-                completedFreelancerJobs.map((j) => {
-                  const certId = getCanonicalCertificateId(j.id, j.contractAddress);
-                  const verifyUrl = getCertifiedPassVerifyUrl(certId);
-
-                  return (
-                    <div
-                      key={j.id}
-                      className="bg-slate-50 p-5 rounded-xl border border-[#E2E6EC] space-y-3 relative overflow-hidden group hover:border-slate-300 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-[#0047AB] bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
-                          SBT #{j.sbtTokenId || getDeterministicSbtId(j.id)}
-                        </span>
-                        <span className="text-xs font-mono font-black text-emerald-700">
-                          ${parseFloat(j.amountUsdc || '0').toLocaleString()} USDC
-                        </span>
-                      </div>
-
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 line-clamp-1 font-headline">
-                          {j.title}
-                        </h4>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-1 text-[11px] font-mono gap-1">
-                          <span className="text-slate-500">
-                            Client: {truncateAddress(j.client)}
-                          </span>
-                          <span className="text-[9.5px] sm:text-[10px] text-slate-700 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200 truncate max-w-full font-mono">
-                            {certId}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] font-mono flex-wrap gap-2">
-                        <Link
-                          to={`/jobs/${j.id}/attestation`}
-                          className="text-[#0047AB] hover:text-[#003A8C] font-bold flex items-center gap-1 hover:underline"
-                        >
-                          <span>View Attestation</span>
-                          <ExternalLink size={10} />
-                        </Link>
-
-                        <a
-                          href={verifyUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 hover:underline"
-                        >
-                          <span>Verify on CertifiedPass</span>
-                          <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="col-span-2 text-center py-8 text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 font-sans space-y-1">
-                  <Award className="w-8 h-8 text-slate-400 mx-auto mb-1" />
-                  <p className="font-bold text-slate-700 text-xs">No Soulbound SBT Attestations Minted Yet</p>
-                  <p className="text-[11px] text-slate-400 font-mono">Complete your first freelance escrow delivery to mint a non-transferable reputation token.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-interface ScoreAuditorWidgetProps {
-  userProfile: any;
-  freelancerJobs: any[];
-  completedFreelancerJobs: any[];
-  reliabilityScore: string;
-  clientTvl: number;
-  completedClientJobs: any[];
-  disputes: any[];
-}
-
-const ScoreAuditorWidget: React.FC<ScoreAuditorWidgetProps> = ({
-  userProfile,
-  freelancerJobs,
-  completedFreelancerJobs,
-  reliabilityScore,
-  clientTvl,
-  completedClientJobs,
-  disputes
-}) => {
-  const [auditType, setAuditType] = useState<'freelancer' | 'client'>('freelancer');
-
-  const devVolumeHandled = (completedFreelancerJobs || []).reduce((sum, j) => {
-    const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
-    return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
-  }, 0);
-
-  const bytecodeMatrix = getUserBytecodeMatrix(userProfile, (completedFreelancerJobs || []).length, devVolumeHandled);
-
-  return (
-    <div className="border border-[#E2E6EC] bg-white rounded-xl shadow-xs p-6 sm:p-8 space-y-5">
-      <div className="border-b border-[#E2E6EC] pb-3 flex flex-wrap justify-between items-center gap-4">
-        <div>
-          <h3 className="text-lg font-bold text-[#0B0B0C] font-serif flex items-center gap-2">
-            <Search size={20} className="text-[#0047AB]" /> Participant Score Auditor Tool
-          </h3>
-          <p className="text-xs text-slate-500 font-mono mt-1">
-            Check client trust ratings and developer reputation scores for escrow evaluations.
-          </p>
-        </div>
-
-        <div className="flex bg-slate-100 p-1 rounded-lg border border-[#E2E6EC]">
-          <button
-            onClick={() => setAuditType('freelancer')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${auditType === 'freelancer' ? 'bg-[#0047AB] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-          >
-            Audit Freelancer
-          </button>
-          <button
-            onClick={() => setAuditType('client')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${auditType === 'client' ? 'bg-[#0047AB] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-          >
-            Audit Client
-          </button>
-        </div>
+        )}
       </div>
 
-      {auditType === 'freelancer' ? (
-        /* FREELANCER AUDIT REPORT WIDGET */
+      {/* ── EDIT PROFILE MODAL ── */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit profile"
+        description="Update your public profile details and skills"
+      >
         <div className="space-y-4">
-          <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#0B0B0C] border border-slate-700 flex items-center justify-center text-white font-bold text-lg">
-              {userProfile.displayName.slice(0, 2).toUpperCase()}
-            </div>
-            <div className="text-left">
-              <span className="font-extrabold text-[#0B0B0C] text-sm">{userProfile.displayName}</span>
-              <p className="text-[10px] font-mono text-slate-500 font-bold mt-0.5">Address: {userProfile.address}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center">
-            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
-              <span className="text-[9px] text-slate-400 uppercase block font-bold">Reputation Score</span>
-              <span className="font-extrabold text-[#0047AB] text-base">{completedFreelancerJobs.length * 100} PLREP</span>
-            </div>
-            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
-              <span className="text-[9px] text-slate-400 uppercase block font-bold">Escrow Success Rate</span>
-              <span className="font-extrabold text-emerald-700 text-base">{freelancerJobs.length > 0 ? '100%' : '0%'}</span>
-            </div>
-            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
-              <span className="text-[9px] text-slate-400 uppercase block font-bold">Completed Jobs</span>
-              <span className="font-extrabold text-slate-800 text-base">{completedFreelancerJobs.length} Smart Contracts</span>
-            </div>
-          </div>
-
-          {/* Audited Developer Score & Bytecode Matrix (Brand Design) */}
-          <GithubEkycCard
-            bytecodeMatrix={bytecodeMatrix}
-            userProfile={userProfile}
+          <Input
+            label="Display name"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            placeholder="Your name or team"
           />
-        </div>
-      ) : (
-        /* CLIENT AUDIT REPORT WIDGET */
-        <div className="space-y-4 text-left">
-          <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#0B0B0C] border border-slate-700 flex items-center justify-center text-white font-bold text-lg">
-              {userProfile.displayName.slice(0, 2).toUpperCase()}
-            </div>
-            <div>
-              <span className="font-extrabold text-[#0B0B0C] text-sm">{userProfile.displayName}</span>
-              <p className="text-[10px] font-mono text-slate-500 font-bold mt-0.5">Address: {userProfile.address}</p>
-            </div>
-          </div>
 
-          {/* Trust Score & Ratings */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center">
-            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
-              <span className="text-[9px] text-slate-400 uppercase block font-bold">Client Trust Index</span>
-              <span className="font-extrabold text-[#0B0B0C] text-base">{reliabilityScore} / 10.0</span>
-            </div>
-            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
-              <span className="text-[9px] text-slate-400 uppercase block font-bold">Total Capital TVL</span>
-              <span className="font-extrabold text-emerald-700 text-base">${clientTvl.toLocaleString()}</span>
-            </div>
-            <div className="bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] space-y-1">
-              <span className="text-[9px] text-slate-400 uppercase block font-bold">Avg Payout Speed</span>
-              <span className="font-extrabold text-slate-900 text-base">{completedClientJobs.length > 0 ? '4.2 Hours' : 'N/A'}</span>
-            </div>
-          </div>
+          <Input
+            label="Headline"
+            value={editHeadline}
+            onChange={(e) => setEditHeadline(e.target.value)}
+            placeholder="e.g. Senior Smart Contract Engineer"
+          />
 
-          {/* Verification Parameters */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] font-mono text-xs space-y-2.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase block tracking-wider border-b border-[#E2E6EC] pb-1.5">Audit Security Parameters</span>
-            <div className="flex items-center gap-2 text-[11px]">
-              <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-              <span>100% Pre-funded Escrow Ratio (No financial defaulting)</span>
-            </div>
-            <div className="flex items-center gap-2 text-[11px]">
-              <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-              <span>Verified multi-sig organizational contract</span>
-            </div>
-            <div className="flex items-center gap-2 text-[11px]">
-              <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-              <span>{disputes.length} disputes escalated to DAO Judge Panel ruling</span>
-            </div>
+          <Textarea
+            label="Biography"
+            value={editBio}
+            onChange={(e) => setEditBio(e.target.value)}
+            rows={4}
+            maxLength={500}
+            placeholder="Brief bio about your experience and background..."
+          />
+
+          <TagInput
+            label="Skills"
+            tags={editSkills}
+            onChange={setEditSkills}
+            placeholder="Type skill and press Enter..."
+          />
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#E5E7EB]">
+            <Button variant="ghost" onClick={() => setIsEditModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSaveProfile}>
+              Save changes
+            </Button>
           </div>
         </div>
-      )}
-    </div>
+      </Modal>
+
+      {/* Video Modal */}
+      <VideoModal
+        id={activeVideoId}
+        isOpen={isVideoModalOpen}
+        onClose={closeVideo}
+        triggerRef={triggerRef}
+      />
+    </PageContainer>
   );
 };
+
+export default Profile;

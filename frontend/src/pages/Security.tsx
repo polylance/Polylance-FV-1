@@ -5,6 +5,7 @@ import {
   Copy, Check
 } from 'lucide-react';
 import { CONTRACTS } from '../config/contracts';
+import { PageContainer } from '../components/layout/PageContainer';
 
 export const Security: React.FC = () => {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
@@ -17,7 +18,7 @@ export const Security: React.FC = () => {
 
   const verifiedContracts = [
     { name: 'JobFactory (Proxy Factory)', address: CONTRACTS.JobFactory, spec: 'EIP-1167 Proxy Creator' },
-    { name: 'ReputationSBT', address: CONTRACTS.ReputationSBT, spec: 'ERC-5192 Soulbound' },
+    { name: 'ReputationSBT', address: CONTRACTS.ReputationSBT, spec: 'ERC-721 Soulbound' },
     { name: 'ProfileRegistry', address: CONTRACTS.ProfileRegistry, spec: 'On-Chain Bio & Skills' },
     { name: 'GitHubRegistry', address: CONTRACTS.GithubReputationRegistry, spec: 'Ed25519 Oracle Attestation' },
     { name: 'JudgeDAO', address: CONTRACTS.JudgeDAO, spec: 'Governance Arbitration' },
@@ -25,22 +26,21 @@ export const Security: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-12 py-4 w-full font-sans text-slate-900 select-none">
-      
+    <PageContainer className="space-y-8 py-6 w-full text-[#0B0B0F]">
       {/* Clean Modern Header */}
-      <section className="relative overflow-hidden rounded-3xl p-8 sm:p-12 bg-white border border-slate-200 shadow-sm text-left">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-slate-100 border border-slate-200 text-slate-800 rounded-full shadow-3xs text-[11px] font-mono font-black uppercase tracking-wider">
-            <Sparkles size={12} className="text-[#0047AB] animate-pulse" />
-            <span>Audited Smart Contract Architecture</span>
+      <section className="relative overflow-hidden rounded-xl p-8 bg-white border border-[#E5E7EB] text-left">
+        <div className="relative z-10 max-w-3xl space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F6F7F9] border border-[#E5E7EB] text-[#4B5563] rounded-full text-[12px] font-medium">
+            <Sparkles size={13} className="text-[#0047AB]" />
+            <span>Audited smart contract architecture</span>
           </div>
 
-          <h1 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-            Security & <span className="text-[#0047AB]">Contract Audits</span>
+          <h1 className="text-3xl sm:text-4xl font-semibold text-[#0B0B0F] tracking-tight leading-tight">
+            Security and contract audits
           </h1>
 
-          <p className="text-xs sm:text-sm text-slate-600 font-sans leading-relaxed font-medium">
-            PolyLance smart contracts are built using OpenZeppelin v5.0 primitives, protected against reentrancy attacks, and deployed with zero administrative backdoor functions.
+          <p className="text-[14px] text-[#4B5563] leading-relaxed">
+            PolyLance smart contracts are built using OpenZeppelin primitives, protected against reentrancy attacks, and deployed with zero administrative backdoors.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono text-slate-500">
@@ -194,6 +194,6 @@ export const Security: React.FC = () => {
         </div>
       </section>
 
-    </div>
+    </PageContainer>
   );
 };

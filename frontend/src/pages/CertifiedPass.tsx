@@ -30,6 +30,8 @@ import {
   Eye,
   BadgeCheck,
   Globe,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -53,6 +55,7 @@ export const CertifiedPass: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { jobs, profiles } = usePolyLanceData();
   const [syncedJobs, setSyncedJobs] = useState<Job[]>([]);
+  const [isDevOpen, setIsDevOpen] = useState<boolean>(false);
 
   // Sync background jobs from backend endpoints
   useEffect(() => {
@@ -446,30 +449,6 @@ export const CertifiedPass: React.FC = () => {
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
               type="button"
-              onClick={handleLaunchPortal}
-              disabled={isLaunchingPortal}
-              className={`px-5 py-2.5 rounded-[8px] font-mono text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer active:scale-95 inline-flex items-center gap-2 ${
-                isLaunchingPortal
-                  ? 'bg-[#0B0B0C] text-white animate-pulse'
-                  : 'bg-[#0B0B0C] hover:bg-[#1A1A1E] text-white shadow-xs'
-              }`}
-            >
-              {isLaunchingPortal ? (
-                <>
-                  <Sparkles size={14} className="animate-spin text-white" />
-                  <span>Opening CertifiedPass...</span>
-                </>
-              ) : (
-                <>
-                  <Globe size={14} className="text-white/70" />
-                  <span>Explore CertifiedPass</span>
-                  <ExternalLink size={13} className="text-white/70" />
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
               onClick={() => {
                 const el = document.getElementById('verifier');
                 if (el) {
@@ -609,7 +588,7 @@ export const CertifiedPass: React.FC = () => {
                 Contract financial settlement amounts and commercial agreements remain strictly confidential. CertifiedPass proves <strong className="text-[#0B0B0C]">what was built</strong> and <strong className="text-[#0B0B0C]">client satisfaction</strong> without exposing private pricing data.
               </p>
               <div className="pt-2 text-[11px] font-mono font-semibold text-[#0047AB] flex items-center gap-1.5">
-                <span>Zero-Knowledge Privacy</span>
+                <span>Cryptographic Privacy</span>
                 <CheckCircle2 size={13} />
               </div>
             </div>
@@ -1031,42 +1010,57 @@ export const CertifiedPass: React.FC = () => {
         </motion.section>
 
 
-        {/* ── 6. DEVELOPER API INTEGRATION ── */}
+        {/* ── 6. DEVELOPER API INTEGRATION (Collapsible) ── */}
         <motion.section
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="bg-white border border-[#E2E6EC] rounded-[10px] p-6 sm:p-8 space-y-4 text-left shadow-xs"
+          transition={{ duration: 0.4 }}
+          className="bg-white border border-[#E2E6EC] rounded-[10px] p-5 sm:p-6 space-y-4 text-left shadow-xs"
         >
-          <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setIsDevOpen(!isDevOpen)}
+            className="w-full flex items-center justify-between cursor-pointer text-left"
+          >
             <div className="flex items-center gap-2.5 text-xs font-mono font-bold text-[#0B0B0C] uppercase tracking-wider">
               <Terminal size={16} className="text-[#0047AB]" />
-              <span>Programmatic Verification Endpoint</span>
+              <span>Programmatic Verification Endpoint (Developer API)</span>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-[4px] bg-[#E3F3EA] text-[#1E8449] font-bold border border-[#1E8449]/20">
-              REST v1 ACTIVE
-            </span>
-          </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-[4px] bg-[#E3F3EA] text-[#1E8449] font-bold border border-[#1E8449]/20">
+                REST v1 ACTIVE
+              </span>
+              {isDevOpen ? (
+                <ChevronUp size={16} className="text-[#6B7280]" />
+              ) : (
+                <ChevronDown size={16} className="text-[#6B7280]" />
+              )}
+            </div>
+          </button>
 
-          <p className="text-xs text-[#4B5563]">
-            Automate verification in your DAO or recruitment pipeline by querying the CertifiedPass verification endpoint:
-          </p>
+          {isDevOpen && (
+            <div className="space-y-3 pt-2 border-t border-[#E2E6EC]">
+              <p className="text-xs text-[#4B5563]">
+                Automate verification in your DAO or recruitment pipeline by querying the CertifiedPass verification endpoint:
+              </p>
 
-          <div className="p-4 bg-[#0B0B0C] text-white rounded-[8px] font-mono text-xs overflow-x-auto space-y-2">
-            <div className="text-white/40"># Verify any PolyLance certificate via curl</div>
-            <div className="text-[#0047AB]">
-              curl -X GET "https://polylance.codes/api/certified-pass/verify/:certId"
+              <div className="p-4 bg-[#0B0B0C] text-white rounded-[8px] font-mono text-xs overflow-x-auto space-y-2">
+                <div className="text-white/40"># Verify any PolyLance certificate via curl</div>
+                <div className="text-[#0047AB]">
+                  curl -X GET "https://polylance.codes/api/certified-pass/verify/:certId"
+                </div>
+                <div className="text-white/40 pt-2"># Response (200 OK):</div>
+                <div className="text-[#1E8449]">
+                  {`{ "status": "VERIFIED", "certId": ":certId", "chainId": 137, "valid": true }`}
+                </div>
+                <div className="text-white/40 pt-2"># Canonical Certificate Web Link:</div>
+                <div className="text-white/80">
+                  https://polylance.codes/#/attestation/:certId
+                </div>
+              </div>
             </div>
-            <div className="text-white/40 pt-2"># Response (200 OK):</div>
-            <div className="text-[#1E8449]">
-              {`{ "status": "VERIFIED", "certId": ":certId", "chainId": 137, "valid": true }`}
-            </div>
-            <div className="text-white/40 pt-2"># Canonical Certificate Web Link:</div>
-            <div className="text-white/80">
-              https://polylance.codes/#/attestation/:certId
-            </div>
-          </div>
+          )}
         </motion.section>
 
 

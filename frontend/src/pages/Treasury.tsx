@@ -6,6 +6,7 @@ import { TREASURY_WALLET } from '../config/contracts';
 import { ShieldCheck, Terminal, DollarSign, Users, CheckCircle2, AlertTriangle, FileCode, Zap, Wallet } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PolygonIcon, UsdcIcon } from '../components/TokenIcon';
+import { PageContainer } from '../components/layout/PageContainer';
 
 export const Treasury: React.FC = () => {
   const { address } = useWeb3();
@@ -155,7 +156,7 @@ export const Treasury: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 py-6 w-full">
+    <PageContainer className="space-y-8 py-6 w-full text-[#0B0B0F]">
       {/* Restricted Header matching treasury_admin_management/code.html */}
       <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -173,67 +174,73 @@ export const Treasury: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-xs">
+          <div className="flex items-center gap-2 text-xs">
             <button
+              type="button"
               onClick={() => setActiveTab('overview')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                activeTab === 'overview' ? 'bg-gradient-to-r from-[#0047AB] to-[#0066FF] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer border ${
+                activeTab === 'overview'
+                  ? 'bg-[#0047AB] text-white border-[#0047AB] shadow-xs'
+                  : 'bg-white hover:bg-[#F6F7F9] text-[#374151] hover:text-[#0B0B0F] border-[#E5E7EB]'
               }`}
             >
               Overview
             </button>
             <button
+              type="button"
               onClick={() => {
                 setActiveTab('terminal');
                 setTimeout(() => {
                   document.getElementById('terminal-view')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }, 80);
               }}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                activeTab === 'terminal' ? 'bg-gradient-to-r from-[#0047AB] to-[#0066FF] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer border ${
+                activeTab === 'terminal'
+                  ? 'bg-[#0047AB] text-white border-[#0047AB] shadow-xs'
+                  : 'bg-white hover:bg-[#F6F7F9] text-[#374151] hover:text-[#0B0B0F] border-[#E5E7EB]'
               }`}
             >
-              CLI Terminal Log
+              Activity log
             </button>
           </div>
         </div>
 
-        {/* Executive Summary Cards matching reference HTML */}
+        {/* Executive Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
-            <p className="font-label-mono text-xs text-slate-500 font-bold">Available Treasury Balance</p>
+          <div className="p-6 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-2">
+            <p className="text-xs text-[#6B7280] font-medium">Available treasury balance</p>
             <div className="flex items-center gap-2">
               <UsdcIcon size={30} className="shrink-0" />
-              <h4 className="font-headline text-3xl font-black text-emerald-700">
-                ${parseFloat(treasury.balanceUsdc).toLocaleString()} <span className="text-xl font-bold text-slate-500">USDC</span>
+              <h4 className="text-3xl font-semibold text-[#15803D] tabular-nums">
+                ${parseFloat(treasury.balanceUsdc).toLocaleString()} <span className="text-lg font-normal text-[#6B7280]">USDC</span>
               </h4>
             </div>
-            <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
-              Accumulated from 2.5% site maintenance fees
+            <div className="text-xs text-[#6B7280] pt-1">
+              Accumulated from 2.5% platform fees
             </div>
           </div>
 
-          <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
-            <p className="font-label-mono text-xs text-slate-500 font-bold">Native Gas Vault</p>
+          <div className="p-6 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-2">
+            <p className="text-xs text-[#6B7280] font-medium">Native gas vault</p>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#7B3FE4] flex items-center justify-center text-white shrink-0 shadow-2xs">
-                <PolygonIcon size={18} className="text-white" />
+              <div className="w-8 h-8 rounded-full bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center shrink-0">
+                <PolygonIcon size={18} />
               </div>
-              <h4 className="font-headline text-3xl font-black text-slate-900">
-                {treasury.balanceEth} <span className="text-xl font-bold text-[#7B3FE4]">POL</span>
+              <h4 className="text-3xl font-semibold text-[#0B0B0F] tabular-nums">
+                {treasury.balanceEth} <span className="text-lg font-normal text-[#6B7280]">POL</span>
               </h4>
             </div>
-            <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
+            <div className="text-xs text-[#6B7280] pt-1">
               Polygon Gas Subsidy Vault
             </div>
           </div>
 
-          <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
-            <p className="font-label-mono text-xs text-slate-500 font-bold">Security Scheme</p>
-            <h4 className="font-headline text-2xl font-black text-slate-900">
+          <div className="p-6 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-2">
+            <p className="text-xs text-[#6B7280] font-medium">Security scheme</p>
+            <h4 className="text-2xl font-semibold text-[#0B0B0F]">
               {treasury.requiredSignatures} of {treasury.signers.length} Threshold
             </h4>
-            <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
+            <div className="text-xs text-[#6B7280] pt-1">
               Gnosis Safe Standard Multisig
             </div>
           </div>
@@ -243,33 +250,33 @@ export const Treasury: React.FC = () => {
       {/* OVERVIEW TAB CONTENT */}
       {activeTab === 'overview' && (
         <>
-          {/* Propose Multisig Withdrawal Form matching reference HTML */}
-          <form onSubmit={handlePropose} className="glass-panel p-6 sm:p-8 border-slate-200 bg-white space-y-6 hard-shadow">
-            <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <DollarSign size={20} className="text-[#0047AB]" /> Propose Multisig Disbursement
+          {/* Propose Multisig Withdrawal Form */}
+          <form onSubmit={handlePropose} className="p-6 sm:p-8 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-6">
+            <h3 className="text-base font-semibold text-[#0B0B0F] flex items-center gap-2 border-b border-[#E5E7EB] pb-3">
+              <DollarSign size={18} className="text-[#0047AB]" /> Propose multisig disbursement
             </h3>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+            <div className="bg-[#F6F7F9] border border-[#E5E7EB] rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2">
                 <Wallet size={14} className="text-[#0047AB] shrink-0" />
-                <span className="text-slate-600 font-bold">Official Protocol Treasury Wallet:</span>
-                <span className="font-mono text-slate-900 font-bold break-all">{TREASURY_WALLET}</span>
+                <span className="text-[#4B5563] font-medium">Official protocol treasury wallet:</span>
+                <span className="font-mono text-[#0B0B0F] break-all">{TREASURY_WALLET}</span>
               </div>
               {recipient !== TREASURY_WALLET && (
                 <button
                   type="button"
                   onClick={() => setRecipient(TREASURY_WALLET)}
-                  className="px-2.5 py-1 bg-white border border-slate-200 text-[#0047AB] font-bold rounded-lg text-[10px] hover:bg-slate-100 transition-colors"
+                  className="px-2.5 py-1 bg-white border border-[#D1D5DB] text-[#0047AB] font-medium rounded-lg text-xs hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                 >
-                  Use Official Treasury
+                  Use official treasury
                 </button>
               )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
-                  Recipient Wallet Address *
+                <label className="block text-xs text-[#0B0B0F] mb-1 font-medium">
+                  Recipient wallet address *
                 </label>
                 <input
                   type="text"
@@ -277,12 +284,12 @@ export const Treasury: React.FC = () => {
                   placeholder="0x..."
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
-                  className="w-full glass-input text-xs"
+                  className="w-full px-3 py-2 text-xs bg-[#F6F7F9] border border-[#D1D5DB] focus:bg-white focus:border-[#0047AB] rounded-lg font-mono outline-none text-[#0B0B0F]"
                 />
               </div>
 
               <div>
-                <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
+                <label className="block text-xs text-[#0B0B0F] mb-1 font-medium">
                   Amount (USDC) *
                 </label>
                 <input
@@ -291,28 +298,31 @@ export const Treasury: React.FC = () => {
                   placeholder="1000"
                   value={amountUsdc}
                   onChange={(e) => setAmountUsdc(e.target.value)}
-                  className="w-full glass-input text-xs"
+                  className="w-full px-3 py-2 text-xs bg-[#F6F7F9] border border-[#D1D5DB] focus:bg-white focus:border-[#0047AB] rounded-lg outline-none text-[#0B0B0F]"
                 />
               </div>
 
               <div>
-                <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
-                  Disbursement Purpose *
+                <label className="block text-xs text-[#0B0B0F] mb-1 font-medium">
+                  Disbursement purpose *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Audit Pool Grant"
+                  placeholder="e.g. Audit pool grant"
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
-                  className="w-full glass-input text-xs"
+                  className="w-full px-3 py-2 text-xs bg-[#F6F7F9] border border-[#D1D5DB] focus:bg-white focus:border-[#0047AB] rounded-lg outline-none text-[#0B0B0F]"
                 />
               </div>
             </div>
 
             <div className="flex justify-end">
-              <button type="submit" className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-8 py-3 rounded-xl font-headline font-bold text-xs shadow-sm transition-all cursor-pointer">
-                Create Withdrawal Proposal
+              <button
+                type="submit"
+                className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-2.5 rounded-lg font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Create withdrawal proposal
               </button>
             </div>
           </form>
@@ -536,6 +546,6 @@ export const Treasury: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };

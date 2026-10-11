@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Application, SkillCategory, UserProfile } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { calculateReputationScores } from '../utils/reputation';
-import { PolyLanceSelect, SelectOption } from './PolyLanceSelect';
+import { AddressChip } from './common/AddressChip';
 import { 
   CheckCircle2, 
   UserCheck, 
@@ -20,23 +20,28 @@ import {
   MessageSquare,
   Smile,
   Shield,
-  ShieldCheck,
   Briefcase,
   TrendingUp,
   GitCommit,
   GitPullRequest,
   AlertCircle,
-  Filter,
-  DollarSign,
-  Send,
   Sliders,
-  Check
+  Check,
+  HelpCircle
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { useWeb3 } from '../context/Web3Context';
 import { UserProfileBioModal } from './UserProfileBioModal';
 import { UsdcIcon } from './TokenIcon';
+import { PolyLanceSelect, SelectOption } from './PolyLanceSelect';
+
+const APPLICANT_MIN_REP_OPTIONS: SelectOption<number>[] = [
+  { value: 0, label: 'Any' },
+  { value: 50, label: '50+ points' },
+  { value: 100, label: '100+ points' },
+  { value: 300, label: '300+ points' },
+];
 
 interface ApplicantTableProps {
   jobId?: string;
@@ -58,12 +63,14 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
   isClient,
 }) => {
   const navigate = useNavigate();
+  const { address } = useWeb3();
   const { jobs, profiles, updateJobTerms, sendPreAcceptMessage } = usePolyLanceData();
   const [sortField, setSortField] = useState<'score' | 'reputation' | 'appliedAt'>('score');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [filterGithubOnly, setFilterGithubOnly] = useState<boolean>(false);
   const [filterMinReputation, setFilterMinReputation] = useState<number>(0);
   const [expandedApplicant, setExpandedApplicant] = useState<string | null>(null);
+  const [expandedProposals, setExpandedProposals] = useState<Record<string, boolean>>({});
 
   // User Full Bio Popup Modal State
   const [bioModalApplicant, setBioModalApplicant] = useState<{
@@ -82,7 +89,6 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
   const [negotiatedAmount, setNegotiatedAmount] = useState<string>(jobAmount);
   const [negotiatedDays, setNegotiatedDays] = useState<number>(jobReviewPeriodDays);
   const [negotiateChatInput, setNegotiateChatInput] = useState<string>('');
-  const [isTermsUpdatedSuccess, setIsTermsUpdatedSuccess] = useState<boolean>(false);
 
   const activeJob = jobId ? jobs.find(j => j.id === jobId) : undefined;
   const currentPreAcceptMessages = (activeJob?.preAcceptMessages || []).filter((msg) => {
@@ -104,139 +110,107 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
     }
   };
 
+  const toggleProposalExpand = (addr: string) => {
+    setExpandedProposals(prev => ({ ...prev, [addr]: !prev[addr] }));
+  };
+
+  const handleSendPreAcceptMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!negotiateChatInput.trim() || !negotiatingApplicant || !jobId) return;
+    sendPreAcceptMessage(jobId, negotiateChatInput.trim(), address || '0xClient', 'Client', undefined, negotiatingApplicant.applicant);
+    setNegotiateChatInput('');
+  };
+
+  const handleSaveTermsAndSelect = async () => {
+    if (!jobId || !negotiatingApplicant) return;
+    if (updateJobTerms) {
+      updateJobTerms(jobId, negotiatedAmount, negotiatedDays);
+    }
+    await onSelect(negotiatingApplicant.applicant);
+    setNegotiatingApplicant(null);
+    navigate(`/workspace?jobId=${jobId}`);
+  };
+
+  // Filtered and Sorted Applicants
   const filteredApplicants = applications.filter((app) => {
     if (filterGithubOnly && !app.githubVerified) return false;
-    
-    if (filterMinReputation > 0) {
-      const profileKey = Object.keys(profiles).find(k => k.toLowerCase() === app.applicant.toLowerCase());
-      const profile = profileKey ? profiles[profileKey] : undefined;
-      const repScores = calculateReputationScores(app.applicant, jobs, profile);
-      if (repScores.totalPoints < filterMinReputation) return false;
-    }
-
+    const profileKey = Object.keys(profiles).find(k => k.toLowerCase() === app.applicant.toLowerCase());
+    const profile = profileKey ? profiles[profileKey] : undefined;
+    const repScores = calculateReputationScores(app.applicant, jobs, profile, profile?.reputationSbtCount || 0);
+    if (filterMinReputation > 0 && repScores.totalPoints < filterMinReputation) return false;
     return true;
   });
 
   const sortedApplicants = [...filteredApplicants].sort((a, b) => {
     const mult = sortDir === 'asc' ? 1 : -1;
     if (sortField === 'score') {
-      if (a.githubScore !== b.githubScore) {
-        return mult * (a.githubScore - b.githubScore);
-      }
-      return -1 * (a.appliedAt - b.appliedAt);
+      const scoreA = a.githubScore || 0;
+      const scoreB = b.githubScore || 0;
+      return (scoreA - scoreB) * mult;
     }
     if (sortField === 'reputation') {
       const profA = Object.keys(profiles).find(k => k.toLowerCase() === a.applicant.toLowerCase());
-      const repA = calculateReputationScores(a.applicant, jobs, profA ? profiles[profA] : undefined).totalPoints;
       const profB = Object.keys(profiles).find(k => k.toLowerCase() === b.applicant.toLowerCase());
+      const repA = calculateReputationScores(a.applicant, jobs, profA ? profiles[profA] : undefined).totalPoints;
       const repB = calculateReputationScores(b.applicant, jobs, profB ? profiles[profB] : undefined).totalPoints;
-      return mult * (repA - repB);
+      return (repA - repB) * mult;
     }
-    return mult * (a.appliedAt - b.appliedAt);
+    return ((a.appliedAt || 0) - (b.appliedAt || 0)) * mult;
   });
 
-  const handleSendPreAcceptMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!negotiateChatInput.trim() || !jobId || !negotiatingApplicant) return;
-    sendPreAcceptMessage(
-      jobId,
-      negotiateChatInput.trim(),
-      'Client',
-      'Client',
-      undefined,
-      negotiatingApplicant.applicant
-    );
-    setNegotiateChatInput('');
-  };
-
-  const handleSaveTermsAndSelect = async () => {
-    if (!negotiatingApplicant || !jobId) return;
-    // Update terms on-chain / context
-    await updateJobTerms(jobId, negotiatedAmount, negotiatedDays);
-    setIsTermsUpdatedSuccess(true);
-    await onSelect(negotiatingApplicant.applicant);
-    setNegotiatingApplicant(null);
-    setIsTermsUpdatedSuccess(false);
-    navigate(`/workspace?jobId=${jobId}`);
-  };
-
-  if (applications.length === 0) {
+  const renderStars = (rating: number) => {
     return (
-      <div className="glass-panel p-8 text-center border-slate-200 bg-white shadow-xs rounded-2xl">
-        <Code2 className="w-10 h-10 text-slate-400 mx-auto mb-3" />
-        <h4 className="text-sm font-bold text-slate-900">No Applications Submitted Yet</h4>
-        <p className="text-xs text-slate-500 mt-1 font-mono">
-          When freelancers apply, their verified GitHub skill scores and proposal submissions will appear here.
-        </p>
+      <div className="flex items-center gap-0.5 text-amber-500">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            size={12}
+            className={star <= rating ? "fill-amber-400 text-amber-400" : "text-[#E5E7EB]"}
+          />
+        ))}
       </div>
     );
-  }
-
-  const renderStars = (ratingNum: number) => {
-    const stars = [];
-    const filledStarsCount = Math.floor(ratingNum);
-    const hasHalfStar = ratingNum % 1 >= 0.4;
-    for (let i = 1; i <= 5; i++) {
-      if (i <= filledStarsCount) {
-        stars.push(<Star key={i} size={12} className="fill-amber-500 text-amber-500" />);
-      } else if (i === filledStarsCount + 1 && hasHalfStar) {
-        stars.push(<Star key={i} size={12} className="fill-amber-500 text-amber-500 opacity-80" />);
-      } else {
-        stars.push(<Star key={i} size={12} className="text-slate-300" />);
-      }
-    }
-    return <div className="flex items-center gap-0.5">{stars}</div>;
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm space-y-0 font-sans">
-      
-      {/* Header Bar with Filter & Sort Controls */}
-      <div className="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-white">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-slate-100 text-[#0047AB] rounded-2xl flex items-center justify-center border border-slate-200 shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-extrabold text-slate-900 font-headline">
-              Proposals & Applicants ({sortedApplicants.length} of {applications.length})
-            </h3>
-            <p className="text-xs text-slate-500 font-mono">
-              Filtered by reputation & GitHub verified skill attestations
-            </p>
-          </div>
+    <div className="border border-[#E5E7EB] rounded-xl bg-white overflow-hidden space-y-0">
+      {/* Top Header & Filter Bar */}
+      <div className="p-4 sm:p-5 border-b border-[#E5E7EB] flex flex-wrap items-center justify-between gap-3 bg-[#F6F7F9]">
+        <div>
+          <h3 className="text-base font-semibold text-[#0B0B0F]">
+            Proposals and applicants ({sortedApplicants.length} of {applications.length})
+          </h3>
+          <p className="text-xs text-[#4B5563]">
+            Verified skill attestations and on-chain work history
+          </p>
         </div>
 
         {/* Filter Controls Toolbar */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* GitHub Verified Only Toggle */}
           <button
             type="button"
             onClick={() => setFilterGithubOnly(!filterGithubOnly)}
-            className={`text-xs px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer font-bold ${
+            className={`text-xs px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer font-medium ${
               filterGithubOnly
-                ? 'bg-[#0047AB] text-white border-[#0047AB] shadow-xs'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                ? 'bg-[#0047AB] text-white border-[#0047AB]'
+                : 'bg-white border-[#E5E7EB] text-[#4B5563] hover:bg-slate-50'
             }`}
           >
             <Github size={13} />
-            <span>GitHub Verified</span>
+            <span>GitHub verified</span>
             {filterGithubOnly && <Check size={12} className="text-white" />}
           </button>
 
-          {/* Min Reputation Filter Dropdown */}
-          <div className="w-48 sm:w-52">
+          {/* Min Reputation Filter Select */}
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="text-[#4B5563] text-xs font-medium">Min reputation:</span>
             <PolyLanceSelect<number>
               value={filterMinReputation}
               onChange={(val) => setFilterMinReputation(val)}
-              options={[
-                { value: 0, label: 'All Reputation', sublabel: 'No min threshold' },
-                { value: 50, label: '50+ PLREP', sublabel: 'Bronze tier' },
-                { value: 100, label: '100+ PLREP', sublabel: 'Silver tier' },
-                { value: 300, label: '300+ PLREP', sublabel: 'Gold tier' },
-              ]}
-              variant="glass"
-              className="w-full"
+              options={APPLICANT_MIN_REP_OPTIONS}
+              size="sm"
+              className="w-32"
             />
           </div>
 
@@ -245,621 +219,340 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
             <button
               type="button"
               onClick={() => handleSort('score')}
-              className={`text-xs px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all cursor-pointer font-bold ${
+              className={`text-xs px-2.5 py-1.5 rounded-lg border flex items-center gap-1 transition-all cursor-pointer font-medium ${
                 sortField === 'score'
-                  ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  ? 'bg-[#0B0B0F] border-[#0B0B0F] text-white'
+                  : 'bg-white border-[#E5E7EB] text-[#4B5563] hover:bg-slate-50'
               }`}
             >
-              <span>GitHub Score</span> <ArrowUpDown size={12} />
+              <span>GitHub score</span> <ArrowUpDown size={11} />
             </button>
             <button
               type="button"
               onClick={() => handleSort('reputation')}
-              className={`text-xs px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all cursor-pointer font-bold ${
+              className={`text-xs px-2.5 py-1.5 rounded-lg border flex items-center gap-1 transition-all cursor-pointer font-medium ${
                 sortField === 'reputation'
-                  ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  ? 'bg-[#0B0B0F] border-[#0B0B0F] text-white'
+                  : 'bg-white border-[#E5E7EB] text-[#4B5563] hover:bg-slate-50'
               }`}
             >
-              <span>Reputation</span> <ArrowUpDown size={12} />
+              <span>Reputation</span> <ArrowUpDown size={11} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSort('appliedAt')}
+              className={`text-xs px-2.5 py-1.5 rounded-lg border flex items-center gap-1 transition-all cursor-pointer font-medium ${
+                sortField === 'appliedAt'
+                  ? 'bg-[#0B0B0F] border-[#0B0B0F] text-white'
+                  : 'bg-white border-[#E5E7EB] text-[#4B5563] hover:bg-slate-50'
+              }`}
+            >
+              <span>Newest</span> <ArrowUpDown size={11} />
             </button>
           </div>
         </div>
       </div>
 
       {/* Applicant Cards Container */}
-      <div className="p-4 sm:p-6 space-y-5 bg-[#F8FAFC]/50">
-        {sortedApplicants.map((app) => {
-          const profileKey = Object.keys(profiles).find(k => k.toLowerCase() === app.applicant.toLowerCase());
-          const profile: UserProfile | undefined = profileKey ? profiles[profileKey] : undefined;
+      <div className="p-4 sm:p-5 space-y-4 bg-white">
+        {sortedApplicants.length === 0 ? (
+          <div className="py-12 text-center text-[#4B5563] text-xs">
+            No applicants match the selected filters.
+          </div>
+        ) : (
+          sortedApplicants.map((app) => {
+            const profileKey = Object.keys(profiles).find(k => k.toLowerCase() === app.applicant.toLowerCase());
+            const profile: UserProfile | undefined = profileKey ? profiles[profileKey] : undefined;
 
-          // Real-time calculation of freelancer stats from live data context
-          const freelancerAddr = app.applicant.toLowerCase();
-          const repScores = calculateReputationScores(
-            app.applicant, 
-            jobs, 
-            profile, 
-            profile?.reputationSbtCount || 0
-          );
-          const completedJobs = jobs.filter(
-            (j) => j.freelancer?.toLowerCase() === freelancerAddr && j.status === 'Completed'
-          );
-          const activeJobs = jobs.filter(
-            (j) => j.freelancer?.toLowerCase() === freelancerAddr && ((j.status as string) === 'Funded' || j.status === 'Selected' || j.status === 'Submitted')
-          );
-          const completedCount = completedJobs.length;
-          const rating = completedCount > 0 ? 5.0 : 0;
-          const onTimeRate = completedCount > 0 ? '100%' : 'N/A';
-          const progressAvg = activeJobs.length > 0 ? '75%' : (completedCount > 0 ? '100%' : 'N/A');
-          const soulboundCount = completedCount;
-          const isVerified = Boolean(profile?.githubVerified);
-          const commitsCount = isVerified ? (profile?.commitsCount ?? 0) : 0;
-          const prsCount = isVerified ? (profile?.prsCount ?? 0) : 0;
-          const bio = profile?.bio || 'No bio provided.';
-          const githubUsername = isVerified ? (profile?.githubUsername || '') : '';
-          const shortAddr = `${app.applicant.slice(0, 6)}...${app.applicant.slice(-4)}`;
-          const name = profile?.displayName || `User ${shortAddr}`;
-          const isExpanded = expandedApplicant === app.applicant;
+            const freelancerAddr = app.applicant.toLowerCase();
+            const repScores = calculateReputationScores(
+              app.applicant, 
+              jobs, 
+              profile, 
+              profile?.reputationSbtCount || 0
+            );
+            const completedJobs = jobs.filter(
+              (j) => j.freelancer?.toLowerCase() === freelancerAddr && j.status === 'Completed'
+            );
+            const activeJobs = jobs.filter(
+              (j) => j.freelancer?.toLowerCase() === freelancerAddr && ((j.status as string) === 'Funded' || j.status === 'Selected' || j.status === 'Submitted')
+            );
+            const completedCount = completedJobs.length;
+            const rating = completedCount > 0 ? 5.0 : 0;
+            const onTimeRate = completedCount > 0 ? '100%' : 'N/A';
+            const progressAvg = activeJobs.length > 0 ? '75%' : (completedCount > 0 ? '100%' : 'N/A');
+            const soulboundCount = completedCount;
+            const isVerified = Boolean(profile?.githubVerified);
+            const commitsCount = isVerified ? (profile?.commitsCount ?? 0) : 0;
+            const prsCount = isVerified ? (profile?.prsCount ?? 0) : 0;
+            const bio = profile?.bio || 'No bio provided.';
+            const githubUsername = isVerified ? (profile?.githubUsername || '') : '';
+            const name = profile?.displayName || `User ${truncateAddress(app.applicant)}`;
+            const isExpanded = expandedApplicant === app.applicant;
+            const isProposalExpanded = expandedProposals[app.applicant];
+            const proposalText = app.proposalText?.trim() || '';
+            const isLongProposal = proposalText.length > 200;
 
-          return (
-            <div 
-              key={app.applicant} 
-              className="bg-white border border-slate-200/80 rounded-2xl p-5 space-y-4 hover:border-slate-400 transition-all shadow-xs"
-            >
-              {/* Top Section: Applicant Info, Verified Score, and Action Buttons */}
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                
-                {/* Applicant Info */}
-                <div className="flex items-center gap-3">
-                  <div className="relative w-12 h-12 shrink-0">
-                    <img 
-                      src={profile?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${app.applicant.toLowerCase()}`} 
-                      alt={name} 
-                      className="w-12 h-12 rounded-full object-cover border border-slate-200"
-                    />
-                    <div className="absolute bottom-0 right-0 w-4.5 h-4.5 bg-[#0047AB] text-white rounded-full flex items-center justify-center border-2 border-white shadow-xs">
-                      <span className="text-[9px] font-bold">✓</span>
-                    </div>
-                  </div>
+            return (
+              <div 
+                key={app.applicant} 
+                className="bg-white border border-[#E5E7EB] rounded-xl p-4 sm:p-5 space-y-4 hover:border-slate-300 transition-colors"
+              >
+                {/* Top Section: Applicant Info, Verified Score, and Action Buttons */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  
+                  {/* Applicant Info (Username primary, AddressChip once) */}
+                  <div className="flex items-center gap-3">
+                    <Link to={`/profile/${app.applicant}`} className="shrink-0">
+                      <img 
+                        src={profile?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${app.applicant.toLowerCase()}`} 
+                        alt={name} 
+                        className="w-10 h-10 rounded-full object-cover border border-[#E5E7EB]"
+                      />
+                    </Link>
 
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={`/profile/${app.applicant}`}
-                        className="font-mono text-[#0047AB] hover:text-[#003882] font-bold text-sm flex items-center gap-1 hover:underline"
-                      >
-                        <span>{truncateAddress(app.applicant)}</span>
-                        <ExternalLink size={12} className="text-[#0047AB]" />
-                      </Link>
-                      <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
-                        {truncateAddress(app.applicant)}
-                      </span>
-                    </div>
-                    <span className="text-xs text-slate-900 font-bold block mt-0.5">{name}</span>
-                  </div>
-                </div>
-
-                {/* Score & Reputation Metrics Badge */}
-                <div className="flex items-center gap-3">
-                  {/* Real Reputation Score */}
-                  <div className="bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-xl text-center">
-                    <div className="text-xs font-mono font-black text-slate-900">
-                      {repScores.totalPoints} <span className="text-[10px] text-[#0047AB] font-bold">PLREP</span>
-                    </div>
-                    <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-wider block">
-                      Reputation Points
-                    </span>
-                  </div>
-
-                  {/* GitHub Verified Score */}
-                  {app.githubVerified && (
-                    <div className="space-y-1 bg-emerald-50/70 border border-emerald-200/70 px-3.5 py-1.5 rounded-xl">
-                      <div className="flex items-center gap-1 font-mono">
-                        <span className="font-extrabold text-emerald-700 text-xs">{profile?.primaryScore || app.githubScore}</span>
-                        <span className="text-slate-400 font-bold text-[10px]">/ 1000</span>
-                        <CheckCircle2 size={12} className="text-emerald-600 ml-0.5" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={`/profile/${app.applicant}`}
+                          className="text-sm font-semibold text-[#0B0B0F] hover:text-[#0047AB] transition-colors"
+                        >
+                          {name}
+                        </Link>
+                        {isVerified && (
+                          <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded font-medium">
+                            Verified
+                          </span>
+                        )}
                       </div>
-                      <span className="text-[9px] font-mono font-bold text-emerald-800 uppercase tracking-wider block">
-                        GitHub Verified
+                      <div className="mt-0.5">
+                        <AddressChip address={app.applicant} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Score & Reputation Metrics Badge */}
+                  <div className="flex items-center gap-3">
+                    {/* Real Reputation Score */}
+                    <div className="bg-[#F6F7F9] border border-[#E5E7EB] px-3 py-1.5 rounded-lg text-center">
+                      <div className="text-xs font-semibold text-[#0B0B0F]">
+                        {repScores.totalPoints} <span className="text-[#0047AB]">pts</span>
+                      </div>
+                      <span className="text-[10px] text-[#4B5563] block">
+                        Reputation
                       </span>
                     </div>
-                  )}
+
+                    {/* GitHub Verified Score with Tooltip */}
+                    {app.githubVerified && (
+                      <div 
+                        className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg text-center relative group cursor-help"
+                        title="Score out of 1000 based on verified GitHub activity"
+                      >
+                        <div className="flex items-center justify-center gap-1 text-xs font-semibold text-emerald-800">
+                          <span>{profile?.primaryScore || app.githubScore}</span>
+                          <span className="text-emerald-600/70 text-[10px]">/ 1000</span>
+                          <HelpCircle size={11} className="text-emerald-600" />
+                        </div>
+                        <span className="text-[10px] text-emerald-700 block">
+                          GitHub score
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons: View details, Message, Select freelancer */}
+                  <div className="flex items-center gap-2 ml-auto sm:ml-0 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedApplicant(isExpanded ? null : app.applicant)}
+                      className="px-3 py-1.5 border border-[#E5E7EB] rounded-lg text-xs font-medium text-[#4B5563] hover:text-[#0B0B0F] hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Users size={13} />
+                      <span>View details</span>
+                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
+
+                    <Link
+                      to={`/profile/${app.applicant}`}
+                      className="px-3 py-1.5 border border-[#E5E7EB] rounded-lg text-xs font-medium text-[#4B5563] hover:text-[#0B0B0F] hover:bg-slate-50 inline-flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <span>View profile</span>
+                    </Link>
+
+                    {isClient && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/chat?jobId=${jobId}&applicant=${app.applicant}`)}
+                          className="bg-white hover:bg-slate-50 text-[#0B0B0F] border border-[#E5E7EB] px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <MessageSquare size={13} className="text-[#0047AB]" />
+                          <span>Message</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await onSelect(app.applicant);
+                            if (jobId) navigate(`/workspace?jobId=${jobId}`);
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <UserCheck size={14} />
+                          <span>Select freelancer</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                {/* Action Buttons: Discuss & Select Freelancer */}
-                <div className="flex items-center gap-2.5 ml-auto sm:ml-0">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedApplicant(isExpanded ? null : app.applicant)}
-                    className={`px-3 py-2 border rounded-xl font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer transition-all ${
-                      isExpanded 
-                        ? 'bg-slate-900 border-slate-900 text-white shadow-2xs' 
-                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900'
-                    }`}
-                  >
-                    <Users size={14} className={isExpanded ? "text-white" : "text-slate-700"} />
-                    <span>Audit Experience</span>
-                    {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                  </button>
-
-                  {isClient && (
-                    <>
-                      {/* Pre-Acceptance Discussion / Negotiation CTA */}
+                {/* Proposal Text Section */}
+                <div className="bg-[#F6F7F9] border border-[#E5E7EB] rounded-lg p-3.5 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-[#0B0B0F]">
+                      Proposal submission
+                    </span>
+                    {isLongProposal && (
                       <button
                         type="button"
-                        onClick={() => navigate(`/chat?jobId=${jobId}&applicant=${app.applicant}`)}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                        onClick={() => toggleProposalExpand(app.applicant)}
+                        className="text-xs text-[#0047AB] hover:underline cursor-pointer"
                       >
-                        <MessageSquare size={14} className="text-[#0047AB]" />
-                        Discuss Terms in Messages
+                        {isProposalExpanded ? 'Show less' : 'Read more'}
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          await onSelect(app.applicant);
-                          if (jobId) navigate(`/workspace?jobId=${jobId}`);
-                        }}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
-                      >
-                        <UserCheck size={14} />
-                        Select Freelancer
-                      </button>
-                    </>
-                  )}
+                    )}
+                  </div>
+                  <p className={`text-xs text-[#4B5563] leading-relaxed whitespace-pre-wrap ${!isProposalExpanded && isLongProposal ? 'line-clamp-2' : ''}`}>
+                    {proposalText || 'No cover note provided.'}
+                  </p>
                 </div>
-              </div>
 
-              {/* Proposal Text Section */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-1.5">
-                <div className="flex items-center gap-1.5">
-                  <MessageSquare size={13} className="text-slate-500 shrink-0" />
-                  <span className="text-[10px] font-mono uppercase font-bold text-slate-900 tracking-wider">
-                    PROPOSAL SUBMISSION
+                {/* Skills Tags & Applied Date Footer */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#E5E7EB]">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs text-[#4B5563] font-medium mr-1">Skills:</span>
+                    {app.applicantSkills.map((sk) => (
+                      <span
+                        key={sk}
+                        className="bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB] px-2 py-0.5 rounded text-xs"
+                      >
+                        {sk}
+                      </span>
+                    ))}
+                  </div>
+
+                  <span className="text-[13px] text-[#4B5563]">
+                    Applied {new Date(app.appliedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
-                <p className="text-slate-800 font-medium text-xs leading-relaxed whitespace-pre-wrap">
-                  {app.proposalText}
-                </p>
-              </div>
 
-              {/* Skills Tags Footer */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-mono text-slate-400 font-bold mr-1">Skills:</span>
-                  {app.applicantSkills.map((sk) => (
-                    <span
-                      key={sk}
-                      className="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold"
+                {/* Expandable Talent Details Drawer */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden border-t border-[#E5E7EB] pt-3"
                     >
-                      {sk}
-                    </span>
-                  ))}
-                </div>
-
-                <span className="text-[10px] font-mono text-slate-400">
-                  Applied {new Date(app.appliedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                </span>
-              </div>
-
-              {/* Expandable Talent Audit Drawer with Smooth Premium Animation */}
-              <AnimatePresence>
-                {isExpanded && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                    animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
-                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden border-t border-slate-200/80 pt-3"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 font-sans text-xs">
-                      
-                      {/* COL 1: TIMELINE & SPEED */}
-                      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3 shadow-2xs flex flex-col justify-start">
-                        {/* Header */}
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center shrink-0">
-                            <Clock size={18} />
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-sans text-xs">
+                        
+                        {/* COL 1: Performance */}
+                        <div className="bg-white p-3.5 rounded-lg border border-[#E5E7EB] space-y-2.5">
+                          <div className="flex items-center gap-2">
+                            <Clock size={15} className="text-[#0047AB]" />
+                            <h4 className="font-semibold text-xs text-[#0B0B0F]">Performance</h4>
                           </div>
-                          <div>
-                            <span className="text-[11px] font-bold text-slate-800 block leading-tight">Timeline & Speed</span>
-                            <h4 className="font-headline font-black text-slate-900 text-sm leading-tight mt-0.5">Performance at a glance</h4>
-                          </div>
-                        </div>
 
-                        {/* Top 2 Cards Grid */}
-                        <div className="grid grid-cols-2 gap-2.5">
-                          {/* Subcard 1: Jobs Completed */}
-                          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex flex-col justify-between h-28">
-                            <div className="w-8 h-8 rounded-xl bg-slate-100 text-[#0047AB] flex items-center justify-center">
-                              <Briefcase size={15} />
-                            </div>
-                            <div>
-                              <span className="font-headline font-black text-slate-900 text-2xl leading-none block">
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="bg-[#F6F7F9] p-2.5 rounded border border-[#E5E7EB]">
+                              <span className="text-lg font-semibold text-[#0B0B0F] block">
                                 {completedCount}
                               </span>
-                              <span className="text-xs text-slate-500 font-sans font-medium mt-1 block">
-                                Jobs Completed
+                              <span className="text-xs text-[#4B5563] block">
+                                Completed jobs
                               </span>
                             </div>
-                          </div>
 
-                          {/* Subcard 2: On-time Rate */}
-                          <div className="bg-[#F8FCF9] p-3 rounded-2xl border border-emerald-100/60 flex flex-col justify-between h-28">
-                            <div className="w-7 h-7 rounded-full bg-emerald-100/70 text-emerald-600 flex items-center justify-center">
-                              <Clock size={14} />
-                            </div>
-                            <div>
-                              <span className="font-headline font-black text-slate-900 text-2xl leading-none block">
-                                {onTimeRate === 'N/A' ? '—' : onTimeRate}
+                            <div className="bg-[#F6F7F9] p-2.5 rounded border border-[#E5E7EB]">
+                              <span className="text-lg font-semibold text-[#0B0B0F] block">
+                                {onTimeRate}
                               </span>
-                              <span className="text-xs text-slate-500 font-sans font-medium mt-1 block">
-                                On-time Rate
+                              <span className="text-xs text-[#4B5563] block">
+                                On-time rate
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Bottom Subcard: Milestones Progress Avg. */}
-                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-800">
-                              Milestones Progress Avg.
-                            </span>
-                            <div className="w-6 h-6 rounded-full bg-slate-100 text-[#0047AB] flex items-center justify-center">
-                              <TrendingUp size={13} />
-                            </div>
-                          </div>
-                          <div>
-                            <span className="font-headline font-black text-slate-900 text-xl leading-none block">
-                              {progressAvg.includes('N/A') ? '—' : progressAvg}
-                            </span>
-                            <div className="w-full bg-slate-200 rounded-full h-1.5 mt-2 overflow-hidden">
-                              <div 
-                                className="bg-[#0047AB] h-1.5 rounded-full transition-all duration-300" 
-                                style={{ width: progressAvg.includes('N/A') ? '0%' : (progressAvg.includes('%') ? progressAvg : '0%') }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* COL 2: RATING & CREDENTIALS */}
-                      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3 shadow-2xs flex flex-col justify-start">
-                        {/* Header */}
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-500 border border-amber-100 flex items-center justify-center shrink-0">
-                            <Star size={18} className="fill-amber-400 text-amber-400" />
-                          </div>
-                          <div>
-                            <span className="text-[11px] font-bold text-slate-800 block leading-tight">Rating & Credentials</span>
-                            <h4 className="font-headline font-black text-slate-900 text-sm leading-tight mt-0.5">Reputation that's provable</h4>
-                          </div>
-                        </div>
-
-                        {/* Credentials List */}
-                        <div className="space-y-2 pt-1">
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <div className="flex items-center gap-2">
-                              <Smile size={16} className="text-[#0047AB]" />
-                              <span className="text-xs text-slate-700 font-medium">Client Satisfaction</span>
-                            </div>
-                            {rating > 0 ? (
-                              <div className="flex items-center gap-1">
-                                {renderStars(rating)}
-                                <span className="font-mono font-extrabold text-slate-900 text-xs">{rating.toFixed(1)}</span>
-                              </div>
-                            ) : (
-                              <span className="font-mono font-extrabold text-slate-400 text-xs">N/A</span>
-                            )}
+                        {/* COL 2: Rating & Certificates */}
+                        <div className="bg-white p-3.5 rounded-lg border border-[#E5E7EB] space-y-2.5">
+                          <div className="flex items-center gap-2">
+                            <Award size={15} className="text-[#0047AB]" />
+                            <h4 className="font-semibold text-xs text-[#0B0B0F]">Certificates & Rating</h4>
                           </div>
 
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <div className="flex items-center gap-2">
-                              <Shield size={16} className="text-[#0047AB]" />
-                              <span className="text-xs text-slate-700 font-medium">Soulbound Badges</span>
-                            </div>
-                            <span className="font-mono font-extrabold text-[#0047AB] text-xs">
-                              {soulboundCount} Attested
-                            </span>
-                          </div>
-
-                          {/* Interactive Bio & Attestations Box (Click to open full bio popup) */}
-                          <div
-                            onClick={() => {
-                              setBioModalApplicant({
-                                applicant: app,
-                                profile,
-                                completedCount,
-                                onTimeRate,
-                                progressAvg,
-                                commitsCount,
-                                prsCount,
-                                soulboundCount,
-                              });
-                            }}
-                            className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-1.5 mt-2 cursor-pointer hover:border-slate-300 hover:shadow-xs transition-all group"
-                            title="Click to view full bio and complete attestations popup"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 text-slate-800 font-bold">
-                                <div className="w-5 h-5 rounded-md bg-slate-100 text-[#0047AB] flex items-center justify-center">
-                                  <Award size={12} />
+                          <div className="space-y-1.5 pt-1 text-xs">
+                            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-1.5">
+                              <span className="text-[#4B5563]">Client satisfaction</span>
+                              {rating > 0 ? (
+                                <div className="flex items-center gap-1 font-semibold text-[#0B0B0F]">
+                                  {renderStars(rating)}
+                                  <span>{rating.toFixed(1)}</span>
                                 </div>
-                                <span className="text-xs font-bold text-slate-900 group-hover:text-[#0047AB] transition-colors">
-                                  Bio & Attestations
-                                </span>
-                              </div>
-                              <span className="text-[10px] font-mono text-[#0047AB] bg-slate-200/80 hover:bg-slate-300/80 px-2 py-0.5 rounded-full font-bold transition-colors">
-                                View Full
-                              </span>
-                            </div>
-                            <p className="font-sans text-xs text-slate-600 leading-relaxed line-clamp-2">
-                              {bio || 'No bio provided.'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* COL 3: VERIFIED GITHUB ACTIVITY */}
-                      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3 shadow-2xs flex flex-col justify-start">
-                        {/* Header */}
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
-                            <Code2 size={18} />
-                          </div>
-                          <div>
-                            <span className="text-[11px] font-bold text-slate-800 block leading-tight">Verified GitHub Activity</span>
-                            <h4 className="font-headline font-black text-slate-900 text-sm leading-tight mt-0.5">On-chain code contributions</h4>
-                          </div>
-                        </div>
-
-                        {/* Top 2 Cards Grid */}
-                        <div className="grid grid-cols-2 gap-2.5">
-                          {/* Subcard 1: Total Commits */}
-                          <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-between h-28">
-                            <div className="text-blue-600">
-                              <GitCommit size={18} />
-                            </div>
-                            <div>
-                              <span className="font-headline font-black text-slate-900 text-2xl leading-none block">
-                                {commitsCount}
-                              </span>
-                              <span className="text-xs text-slate-500 font-sans font-medium mt-1 block">
-                                Total Commits
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Subcard 2: PRs Merged */}
-                          <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-between h-28">
-                            <div className="text-blue-600">
-                              <GitPullRequest size={18} />
-                            </div>
-                            <div>
-                              <span className="font-headline font-black text-slate-900 text-2xl leading-none block">
-                                {prsCount}
-                              </span>
-                              <span className="text-xs text-slate-500 font-sans font-medium mt-1 block">
-                                PRs Merged
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Bottom Subcard: Linked GitHub */}
-                        <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <Github size={20} className="text-slate-900 shrink-0" />
-                            <div className="min-w-0">
-                              <span className="text-[10px] text-slate-500 font-medium block truncate">
-                                Linked GitHub
-                              </span>
-                              {isVerified ? (
-                                <a 
-                                  href={`https://github.com/${githubUsername}`}
-                                  target="_blank" 
-                                  rel="noreferrer"
-                                  className="font-bold text-blue-600 text-xs hover:underline flex items-center gap-0.5 truncate"
-                                >
-                                  <span className="truncate">@{githubUsername}</span>
-                                  <ExternalLink size={10} className="text-blue-500 shrink-0" />
-                                </a>
                               ) : (
-                                <span className="font-bold text-slate-500 text-xs truncate">Unlinked Account</span>
+                                <span className="text-[#4B5563]">New freelancer</span>
                               )}
                             </div>
+
+                            <div className="flex items-center justify-between">
+                              <span className="text-[#4B5563]">Verified work certificates</span>
+                              <span className="font-semibold text-[#0047AB]">
+                                {soulboundCount} on-chain
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* COL 3: GitHub Activity */}
+                        <div className="bg-white p-3.5 rounded-lg border border-[#E5E7EB] space-y-2.5">
+                          <div className="flex items-center gap-2">
+                            <Code2 size={15} className="text-[#0047AB]" />
+                            <h4 className="font-semibold text-xs text-[#0B0B0F]">GitHub activity</h4>
                           </div>
 
-                          {isVerified ? (
-                            <div className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
-                              <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                              <span>Verified</span>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="bg-[#F6F7F9] p-2.5 rounded border border-[#E5E7EB]">
+                              <span className="text-lg font-semibold text-[#0B0B0F] block">
+                                {commitsCount}
+                              </span>
+                              <span className="text-xs text-[#4B5563] block">
+                                Commits
+                              </span>
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full shrink-0">
-                              <AlertCircle size={13} className="text-amber-600 shrink-0" />
-                              <span>Unverified</span>
+
+                            <div className="bg-[#F6F7F9] p-2.5 rounded border border-[#E5E7EB]">
+                              <span className="text-lg font-semibold text-[#0B0B0F] block">
+                                {prsCount}
+                              </span>
+                              <span className="text-xs text-[#4B5563] block">
+                                PRs merged
+                              </span>
                             </div>
-                          )}
+                          </div>
                         </div>
 
                       </div>
-                    </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Pre-Acceptance Discussion & Terms Negotiation Modal */}
-      <AnimatePresence>
-        {negotiatingApplicant && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setNegotiatingApplicant(null)}
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 overflow-hidden z-10 space-y-6 max-h-[90vh] flex flex-col justify-between"
-            >
-              {/* Modal Header */}
-              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#0B0B0C] text-white flex items-center justify-center font-bold shadow-md">
-                    <MessageSquare size={22} />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono uppercase text-slate-900 font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
-                      PRE-ACCEPTANCE NEGOTIATION
-                    </span>
-                    <h3 className="font-headline text-lg sm:text-xl font-black text-slate-900 mt-1">
-                      Discuss Terms with {truncateAddress(negotiatingApplicant.applicant)}
-                    </h3>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setNegotiatingApplicant(null)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                >
-                  ✕
-                </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-
-              {/* Negotiation Controls: Adjust Amount & Review Period */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-900 uppercase">
-                  <Sliders size={14} className="text-[#0047AB]" />
-                  <span>Negotiable Job Terms (Pre-Acceptance)</span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-sans">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                      Escrow Amount (USDC)
-                    </label>
-                    <label className="flex items-center gap-2 bg-white border border-slate-300 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-900 transition-all cursor-text">
-                      <UsdcIcon size={16} className="shrink-0" />
-                      <input
-                        type="number"
-                        min="1"
-                        value={negotiatedAmount}
-                        onChange={(e) => setNegotiatedAmount(e.target.value)}
-                        className="flex-1 min-w-0 bg-transparent text-slate-900 font-bold text-sm outline-none"
-                      />
-                    </label>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                      Review Window SLA (Days)
-                    </label>
-                    <label className="flex items-center gap-2 bg-white border border-slate-300 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-900 transition-all cursor-text">
-                      <Clock size={15} className="shrink-0 text-slate-400" />
-                      <input
-                        type="number"
-                        min="1"
-                        max="60"
-                        value={negotiatedDays}
-                        onChange={(e) => setNegotiatedDays(Number(e.target.value))}
-                        className="flex-1 min-w-0 bg-transparent text-slate-900 font-bold text-sm outline-none"
-                      />
-                    </label>
-                  </div>
-                </div>
-                <p className="text-[10px] text-slate-500 font-mono">
-                  Modify terms if agreed upon before formally selecting this candidate for on-chain escrow lock.
-                </p>
-              </div>
-
-              {/* Chat Stream Box */}
-              <div className="flex-1 min-h-[160px] max-h-[220px] overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
-                {currentPreAcceptMessages.length === 0 ? (
-                  <div className="text-center py-6 text-slate-400 text-xs font-medium">
-                    <p>No messages yet. Send a message to discuss project details or negotiate scope.</p>
-                  </div>
-                ) : (
-                  currentPreAcceptMessages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex flex-col ${msg.senderRole === 'Client' ? 'items-end' : 'items-start'}`}
-                    >
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[10px] font-mono font-bold text-slate-500">
-                          {msg.senderRole === 'Client' ? 'You (Client)' : 'Freelancer'}
-                        </span>
-                        <span className="text-[9px] text-slate-400">
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <div
-                        className={`p-3 rounded-2xl text-xs max-w-sm font-medium ${
-                          msg.senderRole === 'Client'
-                            ? 'bg-[#0047AB] text-white rounded-br-none shadow-xs'
-                            : 'bg-white border border-slate-200 text-slate-900 rounded-bl-none shadow-2xs'
-                        }`}
-                      >
-                        {msg.text}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Message Input */}
-              <form onSubmit={handleSendPreAcceptMessage} className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Type a message to discuss requirements or adjust budget..."
-                  value={negotiateChatInput}
-                  onChange={(e) => setNegotiateChatInput(e.target.value)}
-                  className="flex-1 bg-slate-50 border border-slate-300 text-slate-900 text-xs font-semibold rounded-xl px-4 py-2.5 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-200 outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={!negotiateChatInput.trim()}
-                  className="px-4 py-2.5 bg-[#0047AB] hover:bg-[#003882] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md disabled:opacity-50 transition-all cursor-pointer"
-                >
-                  <Send size={13} />
-                  Send
-                </button>
-              </form>
-
-              {/* Footer CTA: Finalize & Select */}
-              <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setNegotiatingApplicant(null)}
-                  className="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
-                >
-                  Close
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSaveTermsAndSelect}
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <UserCheck size={15} />
-                  Accept & Proceed with ${negotiatedAmount} USDC
-                </button>
-              </div>
-            </motion.div>
-          </div>
+            );
+          })
         )}
-      </AnimatePresence>
+      </div>
 
       {/* User Full Bio Popup Modal */}
       {bioModalApplicant && (

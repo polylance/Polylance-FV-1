@@ -28,8 +28,9 @@ import {
   Edit3,
   ShieldAlert,
   Lock,
+  Award,
 } from 'lucide-react';
-import { truncateAddress } from '../utils/formatters';
+import { truncateAddress, getDeterministicSbtId } from '../utils/formatters';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSubmissionPanel';
 import { ModifyJobModal } from '../components/ModifyJobModal';
@@ -37,6 +38,8 @@ import { EmptyState } from '../components/UIStates';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 import { Job } from '../types';
 import { TokenIcon } from '../components/TokenIcon';
+import { PageContainer } from '../components/layout/PageContainer';
+import { StatusBadge } from '../components/common/StatusBadge';
 
 export type JobCategoryFilter = 'all' | 'ongoing' | 'awaiting_release' | 'disputed' | 'negotiating' | 'completed';
 export type JobSortOption = 'latest' | 'priority' | 'oldest' | 'highest_budget' | 'lowest_budget' | 'title_az';
@@ -485,23 +488,22 @@ export const JobWorkspace: React.FC = () => {
           <ShieldAlert size={28} className="text-[#0047AB]" />
         </div>
         <div className="space-y-2">
-          <span className="text-[10px] font-mono uppercase font-semibold tracking-wider px-3 py-1 rounded-[4px] bg-[#F4F6F9] text-[#0B0B0C] border border-[#E2E6EC]">
-            POLYLANCE SECURITY GATEWAY • AUTHENTICATION REQUIRED
+          <span className="text-xs font-mono font-medium px-3 py-1 rounded-[6px] bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB]">
+            Authentication required
           </span>
-          <h2 className="font-serif text-2xl font-bold text-[#0B0B0C]">
-            Connect Wallet to Access Workspace
+          <h2 className="font-sans text-2xl font-semibold text-[#0B0B0F]">
+            Connect wallet to access workspace
           </h2>
           <p className="text-xs text-[#4B5563] font-sans leading-relaxed">
-            Decentralized escrows, private work deliverables, milestone dispute evidence, and encrypted communications are strictly protected. Connect your Web3 wallet to authenticate as an authorized participant.
+            Project escrows, private work deliverables, milestone dispute evidence, and encrypted communications are protected. Connect your Web3 wallet to authenticate as an authorized participant.
           </p>
         </div>
         <div className="pt-2">
           <button
             onClick={connectWallet}
-            className="w-full py-3 px-4 rounded-[8px] bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] hover:from-[#003A8C] hover:via-[#0052CC] hover:to-[#003A8C] text-white font-medium text-xs shadow-[0_2px_10px_rgba(0,102,255,0.25)] hover:shadow-[0_4px_16px_rgba(0,210,255,0.4)] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 rounded-[8px] bg-[#0047AB] hover:bg-[#003882] text-white font-medium text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
           >
-            <Zap size={15} className="text-[#00D2FF]" />
-            <span>Connect Polylancer Wallet</span>
+            <span>Connect wallet</span>
           </button>
         </div>
       </div>
@@ -510,16 +512,16 @@ export const JobWorkspace: React.FC = () => {
 
   if (isUnauthorizedQueryJob) {
     return (
-      <div className="max-w-lg mx-auto my-16 p-8 bg-white rounded-[10px] border border-[#E2E6EC] shadow-xs text-center space-y-5">
+      <div className="max-w-lg mx-auto my-16 p-8 bg-white rounded-[12px] border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.06)] text-center space-y-5">
         <div className="w-14 h-14 rounded-[8px] bg-[#FFF9E6] text-[#8C6B00] mx-auto flex items-center justify-center border border-[#F0D58C]">
-          <Lock size={26} className="text-[#8C6B00]" />
+          <Lock size={24} className="text-[#8C6B00]" />
         </div>
         <div className="space-y-2">
-          <span className="text-[10px] font-mono uppercase font-semibold tracking-wider px-3 py-1 rounded-[4px] bg-[#FFF9E6] text-[#8C6B00] border border-[#F0D58C]">
-            CONFIDENTIAL ESCROW • ACCESS RESTRICTED
+          <span className="text-xs font-mono font-medium px-3 py-1 rounded-[6px] bg-[#FFF9E6] text-[#8C6B00] border border-[#F0D58C]">
+            Access restricted
           </span>
-          <h2 className="font-serif text-2xl font-bold text-[#0B0B0C]">
-            Unauthorized Contract Access
+          <h2 className="font-sans text-2xl font-semibold text-[#0B0B0F]">
+            Unauthorized contract access
           </h2>
           <p className="text-xs text-[#4B5563] font-sans leading-relaxed">
             This project escrow belongs to another client and freelancer. Under PolyLance security standards, workspace deliverables, communication logs, and milestone submissions are strictly restricted to authorized contract participants.
@@ -566,22 +568,22 @@ export const JobWorkspace: React.FC = () => {
   const counterpartName = counterpartProfile?.displayName || (counterpartAddress ? truncateAddress(counterpartAddress) : 'Unassigned');
 
   return (
-    <div className="w-full py-6 space-y-6">
+    <PageContainer className="py-6 space-y-6 text-[#0B0B0F]">
 
       {/* ── TOP HEADER & INTERACTIVE MULTI-JOB SWITCHER ── */}
-      <div className="bg-white border border-[#E2E6EC] rounded-xl p-3 sm:p-5 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
+      <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
           {/* Job Switcher Trigger Area */}
           <div className="flex-1 min-w-0">
             {/* Label row */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 mb-2">
-              <span className="text-[10px] sm:text-[11px] font-mono uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1.5">
-                <Layers size={13} className="text-[#0066FF] shrink-0" />
-                <span>{isClient ? 'Client Project Workspace' : 'Freelancer Deliverable Workspace'}</span>
+              <span className="text-xs font-medium text-[#4B5563] flex items-center gap-1.5">
+                <Layers size={13} className="text-[#0047AB] shrink-0" />
+                <span>{isClient ? 'Client project workspace' : 'Freelancer deliverable workspace'}</span>
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="bg-slate-100 text-[#0B0B0C] text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border border-[#E2E6EC] whitespace-nowrap">
+                <span className="bg-[#F6F7F9] text-[#0B0B0F] text-xs font-medium px-2 py-0.5 rounded-[6px] border border-[#E5E7EB]">
                   {myJobs.length} {isClient ? 'Project' : 'Job'}{myJobs.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -592,86 +594,51 @@ export const JobWorkspace: React.FC = () => {
               ref={triggerBtnRef}
               type="button"
               onClick={toggleDropdown}
-              className={`relative overflow-hidden w-full flex items-center justify-between gap-3 p-3 sm:p-4 rounded-xl border text-left transition-all cursor-pointer group ${
+              className={`relative overflow-hidden w-full flex items-center justify-between gap-3 p-3 sm:p-4 rounded-[10px] border text-left transition-all cursor-pointer group ${
                 isJobDropdownOpen
-                  ? 'bg-slate-50 border-[#0066FF] ring-2 ring-[#00D2FF]/25 shadow-[0_0_15px_rgba(0,102,255,0.12)]'
-                  : 'bg-white hover:bg-slate-50 border-[#E2E6EC] hover:border-[#0066FF]/40'
+                  ? 'bg-[#F6F7F9] border-[#0047AB]'
+                  : 'bg-white hover:bg-[#F6F7F9] border-[#E5E7EB] hover:border-[#0047AB]'
               }`}
               title="Click to switch active project workspace"
             >
               <div className="relative z-10 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 flex-1 w-full">
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                  {/* Squircle icon badge */}
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <FileText size={18} className="text-[#0B0B0C] stroke-[2.2] sm:hidden" />
-                    <FileText size={22} className="text-[#0B0B0C] stroke-[2.2] hidden sm:block" />
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] flex items-center justify-center shrink-0">
+                    <FileText size={18} className="text-[#0B0B0F]" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs sm:text-sm text-[#0B0B0C] line-clamp-1 group-hover:text-[#0047AB] transition-colors">
+                      <span className="font-semibold text-sm text-[#0B0B0F] line-clamp-1 group-hover:text-[#0047AB] transition-colors">
                         {activeJob.title}
                       </span>
                     </div>
-                    <div className="flex items-center flex-wrap gap-2 text-[11px] sm:text-xs font-mono mt-0.5 text-slate-500">
-                      <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600">
-                        <TokenIcon token={activeJob.paymentTokenSymbol || 'USDC'} size={14} />
-                        <span>
-                          {(() => {
-                            const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
-                            const isCrypto = sym === 'POL' || sym === 'MATIC';
-                            const tokenLabel = isCrypto ? 'POL' : sym;
-                            const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
-                            return isCrypto ? `${amt} ${tokenLabel}` : `$${amt} ${tokenLabel}`;
-                          })()}
-                        </span>
+                    <div className="flex items-center flex-wrap gap-2 text-xs font-mono mt-0.5 text-[#4B5563]">
+                      <span className="font-semibold text-[#10B981]">
+                        {(() => {
+                          const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
+                          const isCrypto = sym === 'POL' || sym === 'MATIC';
+                          const tokenLabel = isCrypto ? 'POL' : sym;
+                          const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
+                          return `${amt} ${tokenLabel}`;
+                        })()}
                       </span>
-                      <span className="text-slate-300 hidden sm:inline">|</span>
-                      <span className="inline-flex items-center gap-1 text-slate-600">
-                        <User size={11} className="text-slate-400" />
-                        <span className="truncate max-w-[120px]">{counterpartName}</span>
+                      <span className="text-[#D1D5DB] hidden sm:inline">•</span>
+                      <span className="inline-flex items-center gap-1 text-[#4B5563]">
+                        <User size={11} className="text-[#9CA3AF]" />
+                        <span className="truncate max-w-[140px] font-sans">{counterpartName}</span>
                       </span>
-                      <span className="text-slate-300 hidden sm:inline">|</span>
-                      <span className="inline-flex items-center gap-1 text-slate-500">
-                        <Link2 size={11} className="text-slate-400" />
-                        <span>#{truncateAddress(activeJob.contractAddress || activeJob.id)}</span>
+                      <span className="text-[#D1D5DB] hidden sm:inline">•</span>
+                      <span className="text-[#9CA3AF]">
+                        #{truncateAddress(activeJob.contractAddress || activeJob.id)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 self-stretch sm:self-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                  {(() => {
-                    let badgeBg = 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
-                    let dotBg = 'bg-emerald-500';
-                    let badgeLabel = 'ACTIVE';
-
-                    if (activeJob.status === 'Completed') {
-                      badgeBg = 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
-                      dotBg = 'bg-emerald-500';
-                      badgeLabel = 'COMPLETED';
-                    } else if (activeJob.status === 'Disputed') {
-                      badgeBg = 'bg-rose-50 text-rose-700 border-rose-200/80';
-                      dotBg = 'bg-rose-500';
-                      badgeLabel = 'DISPUTED';
-                    } else if (activeJob.status === 'Submitted' || activeJob.proof) {
-                      badgeBg = 'bg-blue-50/80 text-[#0066FF] border-[#0066FF]/30';
-                      dotBg = 'bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] animate-pulse';
-                      badgeLabel = 'SUBMITTED • IN REVIEW';
-                    } else if (activeJob.status === 'Funded') {
-                      badgeBg = 'bg-blue-50/80 text-[#0066FF] border-[#0066FF]/30';
-                      dotBg = 'bg-[#0066FF]';
-                      badgeLabel = 'FUNDED';
-                    }
-
-                    return (
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full border font-mono font-bold text-[9.5px] sm:text-[10.5px] uppercase tracking-wider ${badgeBg}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${dotBg}`}></span>
-                        <span>{badgeLabel}</span>
-                      </span>
-                    );
-                  })()}
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-100 group-hover:bg-slate-200 text-[#0B0B0C] flex items-center justify-center transition-colors shrink-0">
-                    <ChevronDown size={13} className={`stroke-[2.5] transition-transform duration-200 ${isJobDropdownOpen ? 'rotate-180' : ''}`} />
+                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 self-stretch sm:self-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-[#E5E7EB]">
+                  <StatusBadge status={activeJob.status} />
+                  <div className="w-7 h-7 rounded-[6px] bg-[#F6F7F9] text-[#0B0B0F] flex items-center justify-center shrink-0">
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${isJobDropdownOpen ? 'rotate-180' : ''}`} />
                   </div>
                 </div>
               </div>
@@ -685,21 +652,21 @@ export const JobWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModifyModalOpen(true)}
-                  className="px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer truncate"
-                  title="Modify job title, description, budget, and review requirements"
+                  className="px-3 py-2 rounded-[8px] bg-white hover:bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  title="Modify job title, description, budget"
                 >
                   <Edit3 size={13} className="shrink-0 text-[#0047AB]" />
-                  <span className="truncate">Modify Job</span>
+                  <span>Modify job</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDeleteActiveJob}
-                  className="px-3 py-2 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer truncate"
+                  className="px-3 py-2 rounded-[8px] bg-white hover:bg-rose-50 text-[#DC2626] border border-[#FECACA] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   title="Delete this job posting"
                 >
-                  <Trash2 size={13} className="shrink-0 text-rose-600" />
-                  <span className="truncate">Delete</span>
+                  <Trash2 size={13} className="shrink-0 text-[#DC2626]" />
+                  <span>Delete</span>
                 </button>
               </>
             )}
@@ -711,22 +678,99 @@ export const JobWorkspace: React.FC = () => {
                 if (counterpartAddress) params.set('applicant', counterpartAddress);
                 navigate(`/chat?${params.toString()}`);
               }}
-              className="px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer truncate"
+              className="px-3 py-2 rounded-[8px] bg-white hover:bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               title="Open dedicated chat for this job"
             >
-              <MessageSquare size={13} className="shrink-0 text-slate-500" />
-              <span className="truncate">Messages</span>
+              <MessageSquare size={13} className="shrink-0 text-[#0047AB]" />
+              <span>Messages</span>
               <ArrowUpRight size={12} className="shrink-0" />
             </button>
 
+            {activeJob.status === 'Completed' && (
+              <Link
+                to={`/certificate/${activeJob.sbtTokenId || getDeterministicSbtId(activeJob.id)}`}
+                className="px-3 py-2 rounded-[8px] bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#0047AB] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                title="View soulbound work certificate"
+              >
+                <Award size={13} className="shrink-0 text-[#0047AB]" />
+                <span>Certificate</span>
+              </Link>
+            )}
+
             <Link
               to={`/jobs/${activeJob.id}`}
-              className="px-3 py-2 rounded-lg bg-white hover:bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs truncate"
+              className="px-3 py-2 rounded-[8px] bg-white hover:bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"
             >
-              <span className="truncate">Contract</span>
-              <ExternalLink size={12} className="shrink-0" />
+              <span>Listing</span>
             </Link>
           </div>
+        </div>
+      </div>
+
+      {/* ── 5-STEP MILESTONE TIMELINE (Funded -> In progress -> Submitted -> Approved -> Paid) ── */}
+      <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] text-left space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E7EB] pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[#0B0B0F]">Milestone timeline</span>
+            <StatusBadge status={activeJob.status} size="sm" />
+          </div>
+          <Link
+            to={`/chat?jobId=${activeJob.id}${counterpartAddress ? `&applicant=${counterpartAddress}` : ''}`}
+            className="text-xs text-[#0047AB] font-medium hover:underline inline-flex items-center gap-1"
+          >
+            <MessageSquare size={13} />
+            <span>Open message thread</span>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+          {[
+            { id: 1, label: 'Funded', desc: 'Escrow locked' },
+            { id: 2, label: 'In progress', desc: 'Work underway' },
+            { id: 3, label: 'Submitted', desc: 'In review' },
+            { id: 4, label: 'Approved', desc: 'Verified' },
+            { id: 5, label: 'Paid', desc: 'Funds released' },
+          ].map((step, idx) => {
+            let isDone = false;
+            let isCurrent = false;
+
+            if (activeJob.status === 'Completed') {
+              isDone = true;
+            } else if (activeJob.status === 'Submitted') {
+              if (idx < 2) isDone = true;
+              if (idx === 2) isCurrent = true;
+            } else if (activeJob.status === 'Funded') {
+              if (idx === 0) isDone = true;
+              if (idx === 1) isCurrent = true;
+            } else if (activeJob.status === 'Selected') {
+              if (idx === 0) isCurrent = true;
+            }
+
+            return (
+              <div
+                key={step.id}
+                className={`p-2.5 rounded-[8px] border text-xs flex flex-col justify-between gap-1 ${
+                  isDone
+                    ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]'
+                    : isCurrent
+                    ? 'bg-[#E7EEF9] border-[#0047AB] text-[#0047AB]'
+                    : 'bg-[#F6F7F9] border-[#E5E7EB] text-[#6B7280]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">{step.label}</span>
+                  {isDone ? (
+                    <CheckCircle2 size={13} className="text-[#10B981]" />
+                  ) : isCurrent ? (
+                    <span className="w-2 h-2 rounded-full bg-[#0047AB]" />
+                  ) : (
+                    <span className="w-2 h-2 rounded-full bg-[#D1D5DB]" />
+                  )}
+                </div>
+                <span className="text-[11px] opacity-80">{step.desc}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -735,39 +779,33 @@ export const JobWorkspace: React.FC = () => {
         {activeJob.status === 'Funded' || activeJob.status === 'Submitted' || activeJob.status === 'Disputed' || activeJob.status === 'Completed' || activeJob.status === 'Selected' || Boolean(activeJob.freelancer) || (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ? (
           <DeliverableWorkSubmissionPanel job={activeJob} />
         ) : (
-          <div className="bg-white border border-[#E2E6EC] rounded-xl p-6 sm:p-10 shadow-xs space-y-6">
+          <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-6 sm:p-8 shadow-[0_1px_2px_rgba(0,0,0,0.06)] space-y-6 text-left">
             {/* Header & Status */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E2E6EC]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E5E7EB]">
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] flex items-center justify-center shrink-0">
-                  <Scale size={28} className="text-[#0047AB]" />
+                <div className="w-12 h-12 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] flex items-center justify-center shrink-0">
+                  <Scale size={24} className="text-[#0047AB]" />
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                      Not Confirmed • Under Negotiation
-                    </span>
-                    <span className="text-[10px] font-mono uppercase font-bold text-slate-400">
-                      Stage: Candidate Review & Terms Discussion
+                    <StatusBadge status={activeJob.status} />
+                    <span className="text-xs text-[#4B5563]">
+                      Candidate review & terms discussion
                     </span>
                   </div>
-                  <h3 className="font-serif font-bold text-xl text-[#0B0B0C]">
-                    Terms & Milestone Negotiation in Progress
+                  <h3 className="font-sans font-semibold text-lg text-[#0B0B0F]">
+                    Terms negotiation in progress
                   </h3>
-                  <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+                  <p className="text-xs text-[#4B5563] max-w-2xl leading-relaxed">
                     {isClient
-                      ? 'This project escrow is currently in the negotiation stage. Work submission, deliverable proofs, and milestone verification will become available once you finalize agreed terms and fund the on-chain escrow vault.'
-                      : 'You have not yet been confirmed or hired on-chain for this project. The client and applicants are currently negotiating budget and delivery timelines. Use the Messages Hub to coordinate with the client.'}
+                      ? 'This project escrow is currently in the negotiation stage. Deliverable uploads and milestone verification will become available once you finalize agreed terms and fund escrow.'
+                      : 'You have not yet been confirmed on-chain for this project. The client and applicants are discussing scope and timeline. Use messages to coordinate.'}
                   </p>
                 </div>
               </div>
 
-              {/* Status Badge Pill */}
               <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-                <span className="bg-slate-100 text-[#0B0B0C] border border-[#E2E6EC] text-xs font-mono font-bold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-2xs">
-                  <Clock size={14} className="text-[#0047AB]" />
-                  <span>Awaiting Confirmation</span>
-                </span>
+                <StatusBadge status={activeJob.status} />
               </div>
             </div>
 
@@ -1248,28 +1286,24 @@ export const JobWorkspace: React.FC = () => {
 
                     {/* Right Section: Status Pill & Action Chevron */}
                     <div className="relative z-10 flex items-center gap-2 shrink-0">
-                      {/* Active status pill */}
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border font-mono font-bold text-[9.5px] sm:text-[10px] uppercase tracking-wider shadow-2xs ${badgeStyle}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${dotStyle}`}></span>
-                        <span>{statusBadgeText}</span>
-                      </span>
+                      <StatusBadge status={j.status} size="sm" />
 
-                      {/* Chevron action button in rounded circle */}
-                      <div className="w-7 h-7 rounded-full bg-slate-50 border border-[#E2E6EC] group-hover:bg-[#0047AB] group-hover:border-[#0047AB] text-slate-500 group-hover:text-white flex items-center justify-center transition-all shadow-2xs">
-                        <ChevronRight size={14} className="stroke-[2.2]" />
+                      {/* Chevron action button */}
+                      <div className="w-7 h-7 rounded-[6px] bg-[#F6F7F9] border border-[#E5E7EB] text-[#4B5563] flex items-center justify-center">
+                        <ChevronRight size={14} />
                       </div>
                     </div>
                   </button>
                 );
               })
             ) : (
-              <div className="py-8 text-center text-xs text-slate-400 font-mono space-y-1">
+              <div className="py-8 text-center text-xs text-[#4B5563] font-mono space-y-1">
                 <p>No project escrows match the selected filter.</p>
                 {selectedCategoryFilter !== 'all' && (
                   <button
                     type="button"
                     onClick={() => setSelectedCategoryFilter('all')}
-                    className="text-[#0047AB] font-bold hover:underline cursor-pointer text-[11px] block mx-auto mt-1"
+                    className="text-[#0047AB] font-semibold hover:underline cursor-pointer text-xs block mx-auto mt-1"
                   >
                     View All Projects ({categoryCounts.all})
                   </button>
@@ -1293,6 +1327,6 @@ export const JobWorkspace: React.FC = () => {
         options={alertModalOptions}
         onClose={() => setAlertModalOptions(null)}
       />
-    </div>
+    </PageContainer>
   );
 };

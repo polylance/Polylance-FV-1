@@ -21,9 +21,8 @@ const renderPostJobPage = () => {
 describe('PostJob Page', () => {
   it('renders job creation form fields correctly', () => {
     renderPostJobPage();
-    expect(screen.getByText(/Post an/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/On-Chain/i)[0]).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Full-Stack Web3 Application with Smart Contract Integration/i)).toBeInTheDocument();
-    expect(screen.getByText(/Deploy Job Escrow Contract|Complete Job Details to Post Escrow/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Post a job/i })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Build an Escrow Staking Smart Contract in Foundry/i)).toBeInTheDocument();
+    expect(screen.getByText('Review and post job')).toBeInTheDocument();
   });
 });

@@ -34,21 +34,35 @@ import { AuditX } from './pages/AuditX';
 import { DevPrimitivesPage } from './pages/DevPrimitivesPage';
 import { DevStatesPage } from './pages/DevStatesPage';
 import { MaintenancePage } from './pages/MaintenancePage';
+import { Help } from './pages/Help';
+import { Demo } from './pages/Demo';
+import { Showcase } from './pages/Showcase';
+import { MediaLab } from './pages/MediaLab';
+import { MotionLab } from './pages/MotionLab';
+import { TypeLab } from './pages/TypeLab';
+import { Certificate } from './pages/Certificate';
+import { DemoModeProvider, useDemoMode } from './context/DemoModeContext';
+import { DemoBanner } from './components/demo/DemoBanner';
+import { GuidedTour } from './components/demo/GuidedTour';
+import { VideoManagerProvider } from './media';
 import { usePolyLanceData } from './context/PolyLanceDataContext';
 import { isAdminAddress } from './utils/adminGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { pageVariants, transition } from './lib/motion';
 import { scrollToSection, extractTargetSection } from './utils/scroll';
+import { useSmoothScroll } from './hooks/useSmoothScroll';
+
 
 // ── Apple-style page transition wrapper ────────────────────────────────────
-const isCertifiedPassDomain = typeof window !== 'undefined' && 
+const isCertifiedPassDomain = typeof window !== 'undefined' &&
   (window.location.hostname === 'certifiedpass.polylance.codes' || window.location.hostname.startsWith('certifiedpass.'));
 
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isConnected, currentRole } = useWeb3();
-  const isVisitor = !isConnected || currentRole === 'visitor';
+  const { isDemoMode } = useDemoMode();
+  const isVisitor = (!isConnected || currentRole === 'visitor') && !isDemoMode;
 
   // Social media deep link synchronization from search params & subdomain handling
   React.useEffect(() => {
@@ -75,7 +89,7 @@ const AnimatedRoutes: React.FC = () => {
           navigate(`${location.pathname}?certId=${encodeURIComponent(certIdParam)}`, { replace: true });
         }
       }
-    } catch {}
+    } catch { }
   }, [location.pathname, location.search, navigate]);
 
   // Butter-smooth section redirect & scroll management:
@@ -116,6 +130,8 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/certifiedpass" element={<CertifiedPass />} />
           <Route path="/certified-pass" element={<CertifiedPass />} />
           <Route path="/c/:id" element={<JobAttestationReport />} />
+          <Route path="/certificate/:tokenId" element={<Certificate />} />
+          <Route path="/certificate" element={<Certificate />} />
           <Route path="/login" element={<Login />} />
           <Route path="/jobs" element={<FindJobs />} />
           <Route path="/jobs/:id" element={<JobDetail />} />
@@ -129,6 +145,12 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/manifesto" element={<Manifesto />} />
           <Route path="/auditx" element={<AuditX />} />
           <Route path="/audit-x" element={<AuditX />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/demo" element={<Demo />} />
+          <Route path="/showcase" element={<Showcase />} />
+          {import.meta.env.DEV && <Route path="/media-lab" element={<MediaLab />} />}
+          {import.meta.env.DEV && <Route path="/motion-lab" element={<MotionLab />} />}
+          {import.meta.env.DEV && <Route path="/type-lab" element={<TypeLab />} />}
           <Route path="/dev/primitives" element={<DevPrimitivesPage />} />
           <Route path="/dev/states" element={<DevStatesPage />} />
 
@@ -138,6 +160,7 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/dao" element={isVisitor ? <Navigate to="/login" replace /> : <Dao />} />
           <Route path="/analytics" element={isVisitor ? <Navigate to="/login" replace /> : <Analytics />} />
           <Route path="/jobs/post" element={isVisitor ? <Navigate to="/login" replace /> : <PostJob />} />
+          <Route path="/post-job" element={isVisitor ? <Navigate to="/login" replace /> : <PostJob />} />
           <Route path="/judge" element={currentRole === 'judge' || currentRole === 'admin' ? <Judge /> : <Navigate to="/dashboard" replace />} />
           <Route path="/treasury" element={currentRole === 'admin' ? <Treasury /> : <Navigate to="/dashboard" replace />} />
 
@@ -171,6 +194,7 @@ const AnimatedRoutes: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
+  useSmoothScroll();
   const location = useLocation();
   const { maintenanceState, toggleMaintenanceMode } = usePolyLanceData();
   const { address } = useWeb3();
@@ -216,7 +240,7 @@ const AppContent: React.FC = () => {
 
   const isChat = location.pathname.startsWith('/chat');
   const isAudit = location.pathname.startsWith('/audit');
-  const showFooter = !isChat && !isAudit && (location.pathname === '/' || location.pathname === '/dashboard');
+  const showFooter = !isChat && !isAudit && location.pathname === '/dashboard';
 
   return (
     <div
@@ -225,8 +249,8 @@ const AppContent: React.FC = () => {
         isChat
           ? "relative z-1 h-[100dvh] max-h-[100dvh] overflow-hidden bg-transparent text-[#0B0B0C] flex flex-col font-sans selection:bg-[#E7EEF9] selection:text-[#0047AB]"
           : isAudit
-          ? "relative z-1 min-h-[100dvh] bg-[#FFFFFF] text-[#0B0B0C] flex flex-col font-sans selection:bg-[#E7EEF9] selection:text-[#0047AB]"
-          : "relative z-1 min-h-[100dvh] bg-transparent text-[#0B0B0C] flex flex-col font-sans selection:bg-[#E7EEF9] selection:text-[#0047AB]"
+            ? "relative z-1 min-h-[100dvh] bg-[#FFFFFF] text-[#0B0B0C] flex flex-col font-sans selection:bg-[#E7EEF9] selection:text-[#0047AB]"
+            : "relative z-1 min-h-[100dvh] bg-transparent text-[#0B0B0C] flex flex-col font-sans selection:bg-[#E7EEF9] selection:text-[#0047AB]"
       }
     >
       {/* Admin Developer Bypass Notification Bar */}
@@ -258,8 +282,14 @@ const AppContent: React.FC = () => {
       {/* Production Navbar with Role-Aware Perception Navigation (Hidden on Audit Document and Chat/Messages Section) */}
       {!isAudit && !isChat && <Navbar />}
 
-      {/* Main Application Content - Unified Fluid Container */}
-      <main className={isChat ? "flex-1 w-full h-[100dvh] min-h-0 overflow-hidden flex flex-col p-0 m-0" : (isAudit ? "w-full p-0 m-0" : "flex-1 w-full max-w-[1760px] mx-auto px-[clamp(16px,3vw,56px)] pl-[max(env(safe-area-inset-left,0px),clamp(16px,3vw,56px))] pr-[max(env(safe-area-inset-right,0px),clamp(16px,3vw,56px))] py-6 pb-24 lg:pb-8")}>
+      {/* Persistent Demo Mode Banner with Role Switcher & Tour Trigger */}
+      {!isAudit && !isChat && <DemoBanner />}
+
+      {/* Guided 8-Step Spotlight Product Tour */}
+      <GuidedTour />
+
+      {/* Main Application Content */}
+      <main className={isChat ? "flex-1 w-full h-[100dvh] min-h-0 overflow-hidden flex flex-col p-0 m-0" : (isAudit ? "w-full p-0 m-0" : "flex-1 w-full flex flex-col min-h-0 pb-20 lg:pb-8")}>
         <ErrorBoundary>
           <AnimatedRoutes />
         </ErrorBoundary>
@@ -285,12 +315,16 @@ const ScrollToTop: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <Web3Provider>
-      <PolyLanceDataProvider>
-        <Router>
-          <ScrollToTop />
-          <AppContent />
-        </Router>
-      </PolyLanceDataProvider>
+      <DemoModeProvider>
+        <PolyLanceDataProvider>
+          <VideoManagerProvider>
+            <Router>
+              <ScrollToTop />
+              <AppContent />
+            </Router>
+          </VideoManagerProvider>
+        </PolyLanceDataProvider>
+      </DemoModeProvider>
     </Web3Provider>
   );
 };

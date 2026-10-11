@@ -1,16 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle2, Sparkles, ExternalLink, Award, ArrowRight, 
-  Wallet, ShieldCheck, X 
+  Wallet, ShieldCheck, X, FileCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Job } from '../types';
 import { modalOverlayVariants, modalContentVariants, transition } from '../lib/motion';
-import { getPolygonScanUrl, getPolygonScanAddressUrl } from '../utils/formatters';
+import { getPolygonScanUrl, getPolygonScanAddressUrl, getDeterministicSbtId } from '../utils/formatters';
+import { CONTRACTS } from '../config/contracts';
 import { scrollToSection } from '../utils/scroll';
 import { TokenIcon } from './TokenIcon';
+import { CertificateMintPanel } from './certificate/CertificateMintPanel';
 
 interface PaymentReleasedModalProps {
   isOpen: boolean;
@@ -28,6 +30,8 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
   onViewAttestation,
 }) => {
   const navigate = useNavigate();
+  const [showMintPanel, setShowMintPanel] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       confetti({
@@ -219,32 +223,48 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
             )}
 
             {/* Action Buttons */}
-            <div className="pt-2 flex items-center gap-3">
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
               <button
                 type="button"
                 onClick={() => {
                   onClose();
                   scrollToSection('deliverable-workspace');
                 }}
-                className="flex-1 py-3 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors cursor-pointer text-center"
+                className="w-full sm:w-auto flex-1 py-3 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors cursor-pointer text-center"
               >
                 Back to Workspace
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  onClose();
-                  onViewAttestation();
-                }}
-                className="flex-1.5 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 hard-shadow shadow-emerald-200"
+                onClick={() => setShowMintPanel(true)}
+                className="w-full sm:w-auto flex-1.5 py-3 px-4 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs"
               >
                 <Award size={15} />
-                <span>View Attestation SBT</span>
+                <span>View Certificate (SBT)</span>
                 <ArrowRight size={14} />
               </button>
             </div>
           </motion.div>
         </motion.div>
+      )}
+
+      {showMintPanel && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="max-w-xl w-full">
+            <CertificateMintPanel
+              tokenId={job.sbtTokenId || getDeterministicSbtId(job.id)}
+              jobTitle={job.title}
+              recipientAddress={job.freelancer || ''}
+              clientAddress={job.client || ''}
+              amount={netAmount}
+              tokenSymbol={tokenSymbol}
+              completedAt={job.completedAt || Date.now()}
+              variant="work"
+              contractAddress={CONTRACTS.ReputationSBT}
+              onClose={() => setShowMintPanel(false)}
+            />
+          </div>
+        </div>
       )}
     </AnimatePresence>
   );

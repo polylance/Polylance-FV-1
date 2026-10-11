@@ -12,6 +12,8 @@ import confetti from 'canvas-confetti';
 import { EmptyState, PermissionDeniedState } from '../components/UIStates';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 import { scrollToSection } from '../utils/scroll';
+import { PageContainer } from '../components/layout/PageContainer';
+import { WatchButton, VideoModal, useVideoModal } from '../components/video';
 
 export const Judge: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,6 +36,7 @@ export const Judge: React.FC = () => {
   const [newJudgeName, setNewJudgeName] = useState('');
   const [newJudgeNotes, setNewJudgeNotes] = useState('');
   const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
+  const { activeVideoId, isOpen, openVideo, closeVideo, triggerRef } = useVideoModal();
 
   // Dispute resolution state
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -92,18 +95,18 @@ export const Judge: React.FC = () => {
 
   if (currentRole === 'freelancer' || currentRole === 'client' || (!isAdmin && !isJudgeRole)) {
     return (
-      <div className="w-full py-16">
+      <PageContainer className="w-full py-16 text-[#0B0B0F]">
         <PermissionDeniedState
           title="Judge Panel Protected"
           description="The Judge Arbitration Panel is strictly restricted to appointed DAO Arbitrators and Governors. Freelancers and Clients cannot access or participate in dispute rulings."
           onBack={() => navigate('/dashboard')}
         />
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-6 py-6 w-full font-sans">
+    <PageContainer className="space-y-6 py-6 w-full text-[#0B0B0F]">
       {/* Top Restricted Header */}
       <div className="glass-panel p-6 sm:p-8 border-[#E2E6EC] bg-white shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -114,6 +117,11 @@ export const Judge: React.FC = () => {
             <span className="bg-slate-100 text-[#0B0B0C] border border-slate-200 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
               {isAdmin ? 'Admin Governance' : 'Arbitrator Access'}
             </span>
+            <WatchButton
+              id="task-disputes"
+              label="Watch disputes guide (45s)"
+              onOpen={openVideo}
+            />
           </div>
           <p className="text-xs text-slate-600 font-mono">
             CONNECTED_ROLE: <span className="text-[#0B0B0C] font-bold">{truncateAddress(address)}</span> ({isAdmin ? 'DAO Administrator' : 'Accredited Judge'})
@@ -135,20 +143,20 @@ export const Judge: React.FC = () => {
       </div>
 
       {/* Navigation Tab Bar */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-2 border-b border-[#E5E7EB] pb-2">
         <button
           type="button"
           onClick={() => setActiveTab('disputes')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold font-headline flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border ${
             activeTab === 'disputes'
-              ? 'bg-[#0B0B0C] text-white shadow-xs'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-[#0047AB] text-white border-[#0047AB] shadow-xs'
+              : 'bg-white hover:bg-[#F6F7F9] text-[#374151] hover:text-[#0B0B0F] border-[#E5E7EB]'
           }`}
         >
-          <Scale size={14} />
-          <span>Dispute Queue & Verdicts</span>
+          <Scale size={14} className={activeTab === 'disputes' ? 'text-white' : 'text-[#0047AB]'} />
+          <span className={activeTab === 'disputes' ? 'text-white' : 'text-[#374151]'}>Dispute queue and verdicts</span>
           {disputedJobs.length > 0 && (
-            <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-mono font-bold ${
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-medium ${
               activeTab === 'disputes' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-900'
             }`}>
               {disputedJobs.length}
@@ -159,16 +167,16 @@ export const Judge: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('manage')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold font-headline flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border ${
             activeTab === 'manage'
-              ? 'bg-[#0B0B0C] text-white shadow-xs'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-[#0047AB] text-white border-[#0047AB] shadow-xs'
+              : 'bg-white hover:bg-[#F6F7F9] text-[#374151] hover:text-[#0B0B0F] border-[#E5E7EB]'
           }`}
         >
-          <Users size={14} />
-          <span>Appointed Judges Roster</span>
-          <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-mono font-bold ${
-            activeTab === 'manage' ? 'bg-white/20 text-white' : 'bg-slate-100 text-[#0B0B0C]'
+          <Users size={14} className={activeTab === 'manage' ? 'text-white' : 'text-[#0047AB]'} />
+          <span className={activeTab === 'manage' ? 'text-white' : 'text-[#374151]'}>Appointed judges</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-medium ${
+            activeTab === 'manage' ? 'bg-white/20 text-white' : 'bg-[#E5E7EB] text-[#4B5563]'
           }`}>
             {judges.length}
           </span>
@@ -180,29 +188,29 @@ export const Judge: React.FC = () => {
         <div className="space-y-6">
           {/* Helpful Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 border border-slate-200/90 rounded-2xl bg-white shadow-xs space-y-2 hover:border-slate-300 transition-colors">
-              <p className="font-label-mono text-xs text-slate-500 font-bold uppercase tracking-wider">Total Resolved (30d)</p>
-              <h4 className="font-headline text-3xl font-black text-[#0B0B0C]">{totalResolved}</h4>
-              <div className="flex items-center text-xs text-slate-500 gap-1.5 font-mono pt-1 font-medium">
-                <TrendingUp size={14} className="text-slate-400" /> Active arbitrator track record
+            <div className="p-6 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-2 hover:border-[#D1D5DB] transition-colors">
+              <p className="text-xs text-[#6B7280] font-medium">Total resolved (30d)</p>
+              <h4 className="text-3xl font-semibold text-[#0B0B0F] tabular-nums">{totalResolved}</h4>
+              <div className="flex items-center text-xs text-[#6B7280] gap-1.5 pt-1">
+                <TrendingUp size={14} className="text-[#0047AB]" /> Active arbitrator track record
               </div>
             </div>
 
-            <div className="p-6 border border-slate-200/90 rounded-2xl bg-white shadow-xs space-y-2 hover:border-slate-300 transition-colors">
-              <p className="font-label-mono text-xs text-slate-500 font-bold uppercase tracking-wider">Average Resolution SLA</p>
-              <h4 className="font-headline text-3xl font-black text-[#0B0B0C]">{avgSla}</h4>
-              <div className="flex items-center text-xs text-slate-600 gap-1.5 font-mono pt-1 font-medium">
-                <Clock size={14} className="text-slate-400" /> Within SLA threshold
+            <div className="p-6 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-2 hover:border-[#D1D5DB] transition-colors">
+              <p className="text-xs text-[#6B7280] font-medium">Average resolution SLA</p>
+              <h4 className="text-3xl font-semibold text-[#0B0B0F] tabular-nums">{avgSla}</h4>
+              <div className="flex items-center text-xs text-[#6B7280] gap-1.5 pt-1">
+                <Clock size={14} className="text-[#0047AB]" /> Within SLA threshold
               </div>
             </div>
 
-            <div className="p-6 border border-slate-200/90 rounded-2xl bg-white shadow-xs space-y-2 hover:border-slate-300 transition-colors">
-              <p className="font-label-mono text-xs text-slate-500 font-bold uppercase tracking-wider">Arbitrator Fee Earned</p>
-              <h4 className="font-headline text-3xl font-black text-emerald-700">
+            <div className="p-6 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-2 hover:border-[#D1D5DB] transition-colors">
+              <p className="text-xs text-[#6B7280] font-medium">Arbitrator fee earned</p>
+              <h4 className="text-3xl font-semibold text-[#15803D] tabular-nums">
                 ${arbitratorFeeEarned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
               </h4>
-              <div className="flex items-center text-xs text-slate-600 gap-1.5 font-mono pt-1 font-medium">
-                <CreditCard size={14} className="text-emerald-600/70" /> 2.5% protocol resolution fee
+              <div className="flex items-center text-xs text-[#6B7280] gap-1.5 pt-1">
+                <CreditCard size={14} className="text-[#15803D]" /> 2.5% platform fee
               </div>
             </div>
           </div>
@@ -759,6 +767,14 @@ export const Judge: React.FC = () => {
         options={alertModalOptions}
         onClose={() => setAlertModalOptions(null)}
       />
-    </div>
+
+      {/* Global Video Modal */}
+      <VideoModal
+        id={activeVideoId}
+        isOpen={isOpen}
+        onClose={closeVideo}
+        triggerRef={triggerRef}
+      />
+    </PageContainer>
   );
 };

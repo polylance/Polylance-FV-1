@@ -154,7 +154,7 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
                 </div>
                 <div className="p-3.5 flex justify-between items-center bg-slate-50">
                   <div className="flex items-center gap-1.5 text-slate-700 font-sans">
-                    <span>Site Maintenance Fee (2.5%):</span>
+                    <span>Platform fee (2.5%):</span>
                     <span title="Credited directly to Treasury for escrow protection and security"><Info size={12} className="text-slate-400" /></span>
                   </div>
                   <span className="font-bold font-mono text-slate-900">+{clientFee.toFixed(4)} {tokenSymbol}</span>
