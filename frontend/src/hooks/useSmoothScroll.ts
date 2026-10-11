@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Lenis from 'lenis';
 import { useReducedMotion } from '../media/useDataSaver';
 
@@ -18,9 +19,11 @@ export const ENABLE_LENIS_SMOOTH_SCROLL = true;
  */
 export function useSmoothScroll(): void {
   const reducedMotion = useReducedMotion();
+  const location = useLocation();
+  const isChat = location.pathname.startsWith('/chat');
 
   useEffect(() => {
-    if (!ENABLE_LENIS_SMOOTH_SCROLL || reducedMotion) return;
+    if (!ENABLE_LENIS_SMOOTH_SCROLL || reducedMotion || isChat) return;
     if (typeof window === 'undefined') return;
 
     let lenis: Lenis | null = null;

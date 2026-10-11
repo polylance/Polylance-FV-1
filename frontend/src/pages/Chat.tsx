@@ -25,7 +25,7 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { AddressChip } from '../components/common/AddressChip';
 import { FeeBreakdown } from '../components/common/FeeBreakdown';
 import { Amount } from '../components/common/Amount';
-import { WatchButton, VideoModal, useVideoModal } from '../components/video';
+import { VideoModal, useVideoModal } from '../components/video';
 
 export interface EscrowChatChannel {
   channelId: string;
@@ -430,11 +430,22 @@ export const Chat: React.FC = () => {
   const isUserScrolledUpRef = useRef(false);
   const activeChannelIdRef = useRef<string | null>(null);
 
+  // Dedicated helper to scroll chat feed to bottom
+  const scrollToBottom = (smooth = false) => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
+    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+  };
+
   // Scroll listener to detect if user manually scrolled up
   const handleChatScroll = () => {
     if (!chatContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-    isUserScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 80;
+    isUserScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 60;
   };
 
   // Only scroll down internally in the chat feed if user is at the bottom or switching conversation channel
@@ -442,20 +453,21 @@ export const Chat: React.FC = () => {
     if (activeChannelIdRef.current !== selectedChannelId) {
       activeChannelIdRef.current = selectedChannelId;
       isUserScrolledUpRef.current = false;
-      setTimeout(() => {
-        if (chatContainerRef.current) {
-          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-        }
-      }, 50);
+      scrollToBottom(false);
+      const timer = setTimeout(() => {
+        scrollToBottom(false);
+      }, 60);
+      return () => clearTimeout(timer);
     } else if (!isUserScrolledUpRef.current) {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTo({
-          top: chatContainerRef.current.scrollHeight,
-          behavior: 'smooth',
-        });
-      }
+      scrollToBottom(true);
     }
-  }, [activeJob?.chatMessages?.length, activeJob?.preAcceptMessages?.length, selectedJudgeAddr, judgeMessages, selectedChannelId]);
+  }, [
+    activeJob?.chatMessages?.length,
+    activeJob?.preAcceptMessages?.length,
+    selectedJudgeAddr,
+    (selectedJudgeAddr && judgeMessages[selectedJudgeAddr.toLowerCase()]?.length) || 0,
+    selectedChannelId,
+  ]);
 
   const handleCopyAddress = (addrToCopy: string) => {
     navigator.clipboard.writeText(addrToCopy);
@@ -484,6 +496,7 @@ export const Chat: React.FC = () => {
       const judgeSenderRole = isAdmin ? 'Admin' : 'Judge';
       sendJudgeChatMessage(selectedJudgeAddr, inputText, judgeSenderRole, address);
       setInputText('');
+      setTimeout(() => scrollToBottom(true), 30);
     } else if (activeJob) {
       const lowerAddr = (address || '').toLowerCase();
       const isClient = activeJob.client.toLowerCase() === lowerAddr || currentRole === 'client';
@@ -522,6 +535,7 @@ export const Chat: React.FC = () => {
         address
       );
       setInputText('');
+      setTimeout(() => scrollToBottom(true), 30);
     }
   };
 
@@ -746,7 +760,7 @@ export const Chat: React.FC = () => {
             </label>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
+          <div data-lenis-prevent className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
             {chatTab === 'judges' && (isAdmin || isJudgeRole) ? (
               <>
                 {/* Active Channels Section Header */}
@@ -1183,7 +1197,7 @@ export const Chat: React.FC = () => {
                 </div>
 
                 {/* Messages List Area */}
-                <div ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50 min-h-0">
+                <div data-lenis-prevent ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50 min-h-0">
                   {(() => {
                     const currentJudgeMsgs = (selectedJudgeAddr && judgeMessages[selectedJudgeAddr.toLowerCase()]) || [];
                     if (currentJudgeMsgs.length === 0) {
@@ -1564,11 +1578,6 @@ export const Chat: React.FC = () => {
                                   Candidate: {activeChannel?.counterpartName} • Budget: ${activeJob.negotiatedAmount || activeJob.amountUsdc} USDC
                                 </span>
                               </div>
-                              <WatchButton
-                                id="task-apply-negotiate"
-                                label="Watch negotiation guide (40s)"
-                                onOpen={openVideo}
-                              />
                             </div>
                             {isClient && activeApplicantAddr && (
                               <button
@@ -1702,7 +1711,7 @@ export const Chat: React.FC = () => {
                 </div>
 
                 {/* Messages Feed with Scroll Listener */}
-                <div ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-white/40 min-h-0">
+                <div data-lenis-prevent ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-white/40 min-h-0">
                   {(() => {
                     const rawJobMessages = activeJob.chatMessages !== undefined 
                       ? activeJob.chatMessages 
@@ -2055,7 +2064,7 @@ export const Chat: React.FC = () => {
                 </button>
               </div>
 
-              <div className="w-full flex flex-col justify-start h-full p-4 sm:p-5 space-y-4 overflow-y-auto shrink-0">
+              <div data-lenis-prevent className="w-full flex flex-col justify-start h-full p-4 sm:p-5 space-y-4 overflow-y-auto shrink-0">
             {chatTab === 'jobs' && activeJob ? (
               <>
                 {/* Header & Status */}

@@ -279,8 +279,8 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      {/* Production Navbar with Role-Aware Perception Navigation (Hidden on Audit Document) */}
-      {!isAudit && <Navbar />}
+      {/* Production Navbar with Role-Aware Perception Navigation (Hidden on Audit Document and Chat/Messages Section) */}
+      {!isAudit && !isChat && <Navbar />}
 
       {/* Persistent Demo Mode Banner with Role Switcher & Tour Trigger */}
       {!isAudit && !isChat && <DemoBanner />}
@@ -289,7 +289,7 @@ const AppContent: React.FC = () => {
       <GuidedTour />
 
       {/* Main Application Content */}
-      <main className={isChat ? "flex-1 w-full min-h-0 overflow-hidden flex flex-col p-0 m-0" : (isAudit ? "w-full p-0 m-0" : "flex-1 w-full flex flex-col min-h-0 pb-20 lg:pb-8")}>
+      <main className={isChat ? "flex-1 w-full h-[100dvh] min-h-0 overflow-hidden flex flex-col p-0 m-0" : (isAudit ? "w-full p-0 m-0" : "flex-1 w-full flex flex-col min-h-0 pb-20 lg:pb-8")}>
         <ErrorBoundary>
           <AnimatedRoutes />
         </ErrorBoundary>
