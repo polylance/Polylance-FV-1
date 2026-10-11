@@ -687,7 +687,7 @@ export const Chat: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between">
-              <h3 className="font-serif text-sm font-bold text-[#0B0B0C] flex items-center gap-2">
+              <h3 className="font-sans text-sm font-bold text-[#0B0B0C] flex items-center gap-2">
                 <MessageSquare size={16} className="text-[#0047AB]" /> Channels
               </h3>
               {showMobileChannels && (activeJob || activeJudge) && (
@@ -764,7 +764,7 @@ export const Chat: React.FC = () => {
                         key={j.address}
                         onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); setShowMobileChannels(false); }}
                         className={`w-full p-3 rounded-lg text-left transition-colors border flex items-start gap-3 cursor-pointer group relative ${isSelected
-                            ? 'bg-[#F0F4FA] text-[#0B0B0F] border-l-2 border-l-[#0047AB] border-[#E5E7EB]'
+                            ? 'bg-[#EAF1FB] text-[#0B0B0F] border-l-2 border-l-[#0047AB] border-[#E5E7EB]'
                             : 'bg-white text-[#4B5563] border-[#E5E7EB] hover:bg-slate-50'
                           }`}
                       >
@@ -773,12 +773,12 @@ export const Chat: React.FC = () => {
                           {j.name.slice(0, 2)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex justify-between items-start">
-                            <span className={`font-bold text-xs truncate max-w-[110px] ${isSelected ? 'text-[#0B0B0F]' : 'text-slate-900'}`}>
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="font-semibold text-xs truncate text-[#0B0B0F]" title={j.name}>
                               {j.name}
                             </span>
                             <div className="flex items-center gap-1 shrink-0 ml-1">
-                              <span className={`text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded ${isSelected
+                              <span className={`text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded ${isSelected
                                   ? 'bg-[#E7EEF9] text-[#0047AB] font-semibold'
                                   : j.status === 'Active' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
                                 }`}>
@@ -795,22 +795,18 @@ export const Chat: React.FC = () => {
                                     onConfirm: () => handleDeleteJudgeChat(j.address)
                                   });
                                 }}
-                                className={`opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer ${
-                                  isSelected
-                                    ? 'text-slate-500 hover:text-rose-600 hover:bg-slate-200'
-                                    : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
-                                }`}
+                                className="opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                                 title="Delete this arbitrator chat from PolyLance"
                               >
                                 <Trash2 size={12} />
                               </button>
                             </div>
                           </div>
-                          <p className={`text-[10px] truncate font-mono mt-0.5 ${isSelected ? 'text-slate-600' : 'text-slate-500'}`}>
+                          <p className="text-xs truncate font-mono text-[#4B5563] mt-0.5">
                             {truncateAddress(j.address)}
                           </p>
                           <div className="flex justify-between items-center mt-1">
-                            <p className={`text-[9px] truncate font-mono ${isSelected ? 'text-slate-600 font-medium' : 'text-slate-400'}`}>
+                            <p className="text-xs truncate font-sans text-[#4B5563]">
                               {lastMsg ? `${lastMsg.senderRole}: ${lastMsg.text}` : 'Admin: hi'}
                             </p>
                             <span className="bg-[#0047AB] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shrink-0">
@@ -837,7 +833,7 @@ export const Chat: React.FC = () => {
                         key={j.address}
                         onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); setShowMobileChannels(false); }}
                         className={`w-full p-2.5 rounded-lg text-left transition-colors border flex items-center gap-3 cursor-pointer group relative ${isSelected
-                            ? 'bg-[#F0F4FA] text-[#0B0B0F] border-l-2 border-l-[#0047AB] border-[#E5E7EB]'
+                            ? 'bg-[#EAF1FB] text-[#0B0B0F] border-l-2 border-l-[#0047AB] border-[#E5E7EB]'
                             : 'bg-white text-[#4B5563] border-[#E5E7EB] hover:bg-slate-50'
                           }`}
                       >
@@ -846,9 +842,9 @@ export const Chat: React.FC = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex justify-between items-center">
-                            <span className="font-bold text-xs truncate text-[#0B0B0F]">{j.name}</span>
+                            <span className="font-semibold text-xs truncate text-[#0B0B0F]">{j.name}</span>
                             <div className="flex items-center gap-1 shrink-0 ml-1">
-                              <span className="text-[9px] font-mono text-slate-400">{dates[idx % dates.length]}</span>
+                              <span className="text-xs font-sans text-[#6B7280]">{dates[idx % dates.length]}</span>
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -860,18 +856,14 @@ export const Chat: React.FC = () => {
                                     onConfirm: () => handleDeleteJudgeChat(j.address)
                                   });
                                 }}
-                                className={`opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer ${
-                                  isSelected
-                                    ? 'text-slate-500 hover:text-rose-600 hover:bg-slate-200'
-                                    : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
-                                }`}
+                                className="opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                                 title="Delete this arbitrator chat from PolyLance"
                               >
                                 <Trash2 size={12} />
                               </button>
                             </div>
                           </div>
-                          <p className="text-[9.5px] truncate font-mono text-slate-400 mt-0.5">
+                          <p className="text-xs truncate font-mono text-[#4B5563] mt-0.5">
                             {truncateAddress(j.address)}
                           </p>
                         </div>
@@ -912,7 +904,7 @@ export const Chat: React.FC = () => {
                         }}
                         className={`w-full p-3 rounded-lg text-left transition-colors border flex items-start gap-3 cursor-pointer group relative ${
                           isSelected
-                            ? 'bg-[#F0F4FA] text-[#0B0B0F] border-l-2 border-l-[#0047AB] border-[#E5E7EB]'
+                            ? 'bg-[#EAF1FB] text-[#0B0B0F] border-l-2 border-l-[#0047AB] border-[#E5E7EB]'
                             : 'bg-white text-[#4B5563] border-[#E5E7EB] hover:bg-slate-50'
                         }`}
                       >
@@ -928,12 +920,11 @@ export const Chat: React.FC = () => {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
                               <span
-                                className={`font-semibold text-xs truncate max-w-[125px] ${
-                                  isSelected ? 'text-[#0B0B0F]' : 'text-[#0B0B0F]'
-                                }`}
+                                className="font-semibold text-xs text-[#0B0B0F] truncate"
+                                title={channel.counterpartName}
                               >
                                 {channel.counterpartName}
                               </span>
@@ -949,7 +940,7 @@ export const Chat: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-1 shrink-0 ml-1">
                               <span
-                                className="text-xs font-medium text-[#4B5563]"
+                                className="text-xs font-semibold text-[#0B0B0F]"
                               >
                                 <Amount value={channel.amountUsdc} token="USDC" />
                               </span>
@@ -964,11 +955,7 @@ export const Chat: React.FC = () => {
                                     onConfirm: () => handleDeleteJobChat(channel.jobId, channel.channelId)
                                   });
                                 }}
-                                className={`opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer ${
-                                  isSelected
-                                    ? 'text-slate-400 hover:text-rose-400 hover:bg-slate-800'
-                                    : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
-                                }`}
+                                className="opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                                 title="Delete this chat from PolyLance"
                               >
                                 <Trash2 size={12} />
@@ -976,15 +963,16 @@ export const Chat: React.FC = () => {
                             </div>
                           </div>
                           <p
-                            className={`text-[10px] truncate font-sans mt-0.5 ${
-                              isSelected ? 'text-white font-bold' : 'text-slate-700'
+                            className={`text-xs truncate font-medium mt-1 ${
+                              isSelected ? 'text-[#0B0B0F] font-semibold' : 'text-[#374151]'
                             }`}
+                            title={channel.jobTitle}
                           >
                             {channel.jobTitle}
                           </p>
                           <p
-                            className={`text-[9px] truncate font-mono mt-1 ${
-                              isSelected ? 'text-slate-400 font-medium' : 'text-slate-500'
+                            className={`text-xs truncate font-sans mt-0.5 ${
+                              isSelected ? 'text-[#4B5563]' : 'text-[#6B7280]'
                             }`}
                           >
                             {channel.lastMessage || 'No messages yet'}
@@ -1047,7 +1035,7 @@ export const Chat: React.FC = () => {
                     {/* Header Info */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-serif font-bold text-[#0B0B0C] text-sm sm:text-[15px] leading-tight truncate">
+                        <h4 className="font-sans font-bold text-[#0B0B0C] text-sm sm:text-[15px] leading-tight truncate">
                           {activeJudge.name}
                         </h4>
                         <span className="inline-flex items-center gap-1 text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-800 bg-slate-100 border border-slate-200 px-2 py-0.2 rounded-full shrink-0">
@@ -1369,7 +1357,7 @@ export const Chat: React.FC = () => {
                     {/* Header Info */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                        <h4 className="font-serif font-bold text-[#0B0B0C] text-xs sm:text-[15px] leading-tight truncate">
+                        <h4 className="font-sans font-bold text-[#0B0B0C] text-xs sm:text-[15px] leading-tight truncate">
                           {activeChannel?.counterpartName || activeJob.title}
                         </h4>
                         <span className={`inline-flex items-center gap-1 text-[8px] sm:text-[9.5px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full shrink-0 ${
@@ -2054,7 +2042,7 @@ export const Chat: React.FC = () => {
             <div className="relative z-10 w-full max-w-sm sm:w-88 h-full bg-white flex flex-col border-l border-[#E2E6EC] shadow-2xl lg:shadow-none overflow-hidden animate-in slide-in-from-right duration-200">
               {/* Mobile Drawer Header with Close Button */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-[#E2E6EC] lg:hidden shrink-0 bg-slate-50">
-                <span className="font-serif font-bold text-xs text-[#0B0B0C] flex items-center gap-1.5 uppercase tracking-wider">
+                <span className="font-sans font-bold text-xs text-[#0B0B0C] flex items-center gap-1.5 uppercase tracking-wider">
                   <PanelRightClose size={15} className="text-[#0047AB]" />
                   {chatTab === 'jobs' ? 'Job & Escrow Specs' : 'Arbitrator Profile'}
                 </span>
@@ -2140,7 +2128,7 @@ export const Chat: React.FC = () => {
                     <Gavel size={12} className="text-[#0047AB]" />
                     ARBITRATOR PROFILE
                   </span>
-                  <h3 className="font-serif font-bold text-[#0B0B0C] text-base mt-3 leading-snug">
+                  <h3 className="font-sans font-bold text-[#0B0B0C] text-base mt-3 leading-snug">
                     {activeJudge.name}
                   </h3>
                   <p className="text-xs text-slate-500 font-sans mt-1 leading-snug">
@@ -2171,7 +2159,7 @@ export const Chat: React.FC = () => {
       {isSubmitModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
           <div className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <h3 className="font-serif text-base font-bold text-[#0B0B0C]">Submit Deliverable Work</h3>
+            <h3 className="font-sans text-base font-bold text-[#0B0B0C]">Submit Deliverable Work</h3>
             <form onSubmit={handleSubmitDeliverable} className="space-y-4 text-xs">
               <div>
                 <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
@@ -2243,7 +2231,7 @@ export const Chat: React.FC = () => {
             </div>
             
             <div className="space-y-1.5">
-              <h3 className="font-serif font-bold text-[#0B0B0C] text-base">
+              <h3 className="font-sans font-bold text-[#0B0B0C] text-base">
                 {deleteConfirmModal.title}
               </h3>
               <p className="text-xs text-slate-500 font-sans leading-relaxed">
@@ -2307,7 +2295,7 @@ export const Chat: React.FC = () => {
                   <UserPlus size={20} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[#0B0B0C] font-serif">
+                  <h3 className="text-base font-bold text-[#0B0B0C] font-sans">
                     Appoint Protocol Arbitrator
                   </h3>
                   <p className="text-[11px] text-slate-500 font-medium">
@@ -2467,7 +2455,7 @@ export const Chat: React.FC = () => {
                   <RefreshCw size={17} className="text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="font-serif font-bold text-sm text-[#0B0B0C] leading-tight">Request Project Revisions</h3>
+                  <h3 className="font-sans font-bold text-sm text-[#0B0B0C] leading-tight">Request Project Revisions</h3>
                   <p className="text-[11px] text-slate-500 font-medium">Send detailed feedback to developer</p>
                 </div>
               </div>
