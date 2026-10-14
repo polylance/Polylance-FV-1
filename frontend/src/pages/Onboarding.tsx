@@ -29,15 +29,11 @@ export const Onboarding: React.FC = () => {
   const [displayName, setDisplayName] = useState(existing.displayName || '');
   const [bio, setBio] = useState(existing.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(() => {
-    if (existing.avatarUrl) return existing.avatarUrl;
-    if (currentRole === 'client') {
-      return 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80';
-    }
-    return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+    if (existing.avatarUrl && !existing.avatarUrl.includes('unsplash.com')) return existing.avatarUrl;
+    return address ? `https://api.dicebear.com/7.x/identicon/svg?seed=${address.toLowerCase()}` : '';
   });
   const [skills, setSkills] = useState<string[]>(() => {
-    if (currentRole === 'client') return [];
-    return existing.skills || ['Solidity', 'TypeScript', 'Ethers.js'];
+    return existing.skills || [];
   });
   const [tagInput, setTagInput] = useState('');
 
@@ -665,48 +661,48 @@ export const Onboarding: React.FC = () => {
                         <>
                           <button
                             type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
+                            onClick={() => setAvatarUrl('https://api.dicebear.com/7.x/identicon/svg?seed=ClientHQ')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95 bg-slate-50"
                           >
-                            <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80" alt="Preset Building 1" className="w-full h-full object-cover" />
+                            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=ClientHQ" alt="Preset Identicon 1" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
+                            onClick={() => setAvatarUrl('https://api.dicebear.com/7.x/identicon/svg?seed=PolyAlpha')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95 bg-slate-50"
                           >
-                            <img src="https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=150&auto=format&fit=crop&q=80" alt="Preset Logo 2" className="w-full h-full object-cover" />
+                            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=PolyAlpha" alt="Preset Identicon 2" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
+                            onClick={() => setAvatarUrl('https://api.dicebear.com/7.x/identicon/svg?seed=PolygonDev')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95 bg-slate-50"
                           >
-                            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80" alt="Preset Office 3" className="w-full h-full object-cover" />
+                            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=PolygonDev" alt="Preset Identicon 3" className="w-full h-full object-cover" />
                           </button>
                         </>
                       ) : (
                         <>
                           <button
                             type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
+                            onClick={() => setAvatarUrl('https://api.dicebear.com/7.x/identicon/svg?seed=Talent1')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95 bg-slate-50"
                           >
-                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 1" className="w-full h-full object-cover" />
+                            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=Talent1" alt="Preset Avatar 1" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
+                            onClick={() => setAvatarUrl('https://api.dicebear.com/7.x/identicon/svg?seed=Talent2')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95 bg-slate-50"
                           >
-                            <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 2" className="w-full h-full object-cover" />
+                            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=Talent2" alt="Preset Avatar 2" className="w-full h-full object-cover" />
                           </button>
                           <button
                             type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
+                            onClick={() => setAvatarUrl('https://api.dicebear.com/7.x/identicon/svg?seed=Talent3')}
+                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95 bg-slate-50"
                           >
-                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 3" className="w-full h-full object-cover" />
+                            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=Talent3" alt="Preset Avatar 3" className="w-full h-full object-cover" />
                           </button>
                         </>
                       )}
@@ -721,7 +717,7 @@ export const Onboarding: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Alex Rivera"
+                    placeholder="e.g. Web3 Full-Stack Developer"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     className="w-full glass-input"
@@ -818,7 +814,7 @@ export const Onboarding: React.FC = () => {
 
       {/* Success Screen Overlay Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="glass-panel p-8 sm:p-10 rounded-2xl max-w-md w-full text-center border-slate-200 bg-white hard-shadow space-y-6">
             <div className="w-20 h-20 bg-emerald-100 border-2 border-emerald-400 rounded-full flex items-center justify-center mx-auto text-emerald-700 shadow-md">
               <CheckCircle2 size={48} />

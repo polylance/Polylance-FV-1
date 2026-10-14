@@ -1504,189 +1504,6 @@
       "negotiatedDeadlineDays": 3
     },
     {
-      "id": "0x64707664854e",
-      "title": "Build PolyLance Mainnet Contracts",
-      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-      "events": [
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Posted (POL Escrow)",
-          "status": "completed",
-          "txHash": "0x7358ea3e4692ce62a98369e0da359ad4f601092f098a99bd32c5aefa3b26d033",
-          "timestamp": 1789718200121
-        },
-        {
-          "step": "Selected",
-          "title": "Select Freelancer",
-          "status": "current",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Terms",
-          "title": "Agree Terms",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Funded",
-          "title": "Fund Escrow",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Submitted",
-          "title": "Submit Work",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Completed",
-          "title": "Release Payment",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Minted",
-          "title": "Mint Reputation SBT",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        }
-      ],
-      "status": "Open",
-      "category": "web3",
-      "amountEth": "10",
-      "createdAt": 1790830373088,
-      "amountUsdc": "1.00",
-      "description": "Deploy and configure PolyLance smart contracts on Polygon Mainnet, enabling secure, transparent, and production-ready freelance payments using USDC and USDT. This includes deploying the core contracts, configuring mainnet token addresses, verifying contracts on PolygonScan, and thoroughly testing escrow and payment flows before launch.",
-      "applications": [
-        {
-          "applicant": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
-          "appliedAt": 1789718480175,
-          "githubScore": 750,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "Ethers.js",
-            "Rust",
-            "The Graph",
-            "React"
-          ],
-          "proposalIpfsHash": "bafybeifx6mjjpbiwttzlsa55dv4khhn7gurrxj"
-        },
-        {
-          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "appliedAt": 1791131958872,
-          "githubScore": 566,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "React",
-            "Rust",
-            "IPFS"
-          ],
-          "proposalIpfsHash": "bafybeirtpery35zo3cfhdyfmprncpwz3xmzadf"
-        }
-      ],
-      "chatMessages": [
-        {
-          "id": "msg-1791132757611",
-          "text": "hello",
-          "sender": "Client",
-          "timestamp": 1791132757611,
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132766558",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132766558,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132909819",
-          "text": "hey",
-          "sender": "Freelancer",
-          "timestamp": 1791132909819,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132917709",
-          "text": "hello",
-          "sender": "Client",
-          "timestamp": 1791132917709,
-          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791217859460",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791217859460,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        }
-      ],
-      "paymentToken": "0x0000000000000000000000000000000000000000",
-      "chatClearedAt": 1791132720846,
-      "contractAddress": "0x64707664854e88557c299cc87409b53b97a3d304",
-      "progressUpdates": [],
-      "reviewPeriodDays": 2,
-      "extensionRequests": [],
-      "preAcceptMessages": [
-        {
-          "text": "hello",
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "timestamp": 1791132757606,
-          "senderRole": "Client",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132766541,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hey",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132909803,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hello",
-          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-          "timestamp": 1791132917700,
-          "senderRole": "Client",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791217859450,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        }
-      ],
-      "paymentTokenSymbol": "POL",
-      "modificationRequests": [],
-      "negotiationProposals": [],
-      "paymentTokenDecimals": 18
-    },
-    {
       "id": "0xce1376c2272E",
       "proof": {
         "title": "Check New Filebase DB Working Process",
@@ -2355,155 +2172,6 @@
       "freelancerAgreedTerms": true
     },
     {
-      "id": "job-escrow-0xdacce6fd",
-      "title": "Enhance PolyLance UI with Minimalist Redesign",
-      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-      "events": [
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Posted (MATIC Escrow)",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1791122761269
-        },
-        {
-          "step": "Funded",
-          "title": "Fund Escrow",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Submitted",
-          "title": "Submit Work",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Completed",
-          "title": "Release Payment",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        }
-      ],
-      "status": "Open",
-      "category": "frontend",
-      "amountEth": "0.05",
-      "createdAt": 1791122761269,
-      "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "amountUsdc": "25.00",
-      "description": "Enhance the Entire Polylance UI and also change the design to Minimalist design",
-      "applications": [
-        {
-          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "appliedAt": 1791131958872,
-          "githubScore": 566,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "React",
-            "Rust",
-            "IPFS"
-          ],
-          "proposalIpfsHash": "bafybeirtpery35zo3cfhdyfmprncpwz3xmzadf"
-        }
-      ],
-      "chatMessages": [
-        {
-          "id": "msg-1791132013541",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132013541,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132090406",
-          "text": "hello",
-          "sender": "Freelancer",
-          "timestamp": 1791132090406,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132592500",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132592500,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132766558",
-          "text": "hi",
-          "sender": "Freelancer",
-          "timestamp": 1791132766558,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "id": "msg-1791132909819",
-          "text": "hey",
-          "sender": "Freelancer",
-          "timestamp": 1791132909819,
-          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        }
-      ],
-      "paymentToken": "0x0000000000000000000000000000000000000000",
-      "contractAddress": "0xdacce6fd6665ab8bb24cd0834eb44cf2455450fe",
-      "progressUpdates": [],
-      "reviewPeriodDays": 7,
-      "clientAgreedTerms": true,
-      "extensionRequests": [],
-      "preAcceptMessages": [
-        {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132013526,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hello",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132090386,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132592480,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hi",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132766541,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        },
-        {
-          "text": "hey",
-          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "timestamp": 1791132909803,
-          "senderRole": "Freelancer",
-          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
-        }
-      ],
-      "paymentTokenSymbol": "POL",
-      "modificationRequests": [],
-      "negotiationProposals": [],
-      "paymentTokenDecimals": 18,
-      "freelancerAgreedTerms": true
-    },
-    {
       "id": "0x37835B31461a",
       "proof": {
         "title": "asdfghjkl;",
@@ -2937,213 +2605,6 @@
         }
       ],
       "paymentTokenSymbol": "MATIC",
-      "modificationRequests": [],
-      "negotiationProposals": [
-        {
-          "id": "prop-1788236488279-b071p",
-          "note": "",
-          "jobId": "0xD02d64FF0C3A",
-          "status": "Pending",
-          "createdAt": 1788236488279,
-          "amountUsdc": "1.26",
-          "proposedBy": "Freelancer",
-          "isFinalCall": true,
-          "respondedAt": 1788277502585,
-          "deadlineDays": 2,
-          "responseNote": "",
-          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
-        },
-        {
-          "id": "prop-1788331431268-rac6p",
-          "note": "",
-          "jobId": "0xcf3665d90001",
-          "status": "Pending",
-          "createdAt": 1788331431268,
-          "amountUsdc": "1",
-          "proposedBy": "Client",
-          "isFinalCall": true,
-          "respondedAt": 1789718923967,
-          "deadlineDays": 1,
-          "responseNote": "",
-          "applicantAddress": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a"
-        }
-      ],
-      "paymentTokenDecimals": 18,
-      "freelancerAgreedTerms": true,
-      "negotiatedDeadlineDays": 1
-    },
-    {
-      "id": "0x99801f9e280B",
-      "proof": {
-        "title": "Completed SmartContracts and went with auditing and mainnet deployment",
-        "description": "i built every required smart contracts and also audited them using silther mythril and surya protocols and also deployed them in mainnet",
-        "submittedAt": 1789894426151,
-        "externalLink": "https://github.com/polylance/polylance/commit/d9aaabe6ec9ba62fe3ea2ff0905a868e05682ea4",
-        "evidenceFiles": [
-          {
-            "cid": "bafybeih2hknyreruxc3o36bmfyfilwpcpsvazm",
-            "name": "Project-Release-Metadata.json",
-            "size": 1024,
-            "type": "application/json",
-            "dataUrl": "data:application/json;charset=utf-8,%7B%22title%22%3A%22Completed%20SmartContracts%20and%20went%20with%20auditing%20and%20mainnet%20deployment%22%2C%22externalLink%22%3A%22https%3A%2F%2Fgithub.com%2Fpolylance%2Fpolylance%2Fcommit%2Fd9aaabe6ec9ba62fe3ea2ff0905a868e05682ea4%22%2C%22description%22%3A%22i%20built%20every%20required%20smart%20contracts%20and%20also%20audited%20them%20using%20silther%20mythril%20and%20surya%20protocols%20and%20also%20deployed%20them%20in%20mainnet%22%2C%22timestamp%22%3A1789894425766%7D",
-            "uploadedAt": 1789894425766
-          }
-        ],
-        "evidenceHashes": [
-          "bafybeih2hknyreruxc3o36bmfyfilwpcpsvazm"
-        ]
-      },
-      "title": "Build Mainnet Smart Contracts For PolyLance",
-      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-      "events": [
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Posted (POL Escrow)",
-          "status": "completed",
-          "txHash": "0xa0e4f0fc90909103f07417725a982346874cb109f102527d89ebcc2baa002cab",
-          "timestamp": 1789730296886
-        },
-        {
-          "step": "Selected",
-          "title": "Select Freelancer",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Terms",
-          "title": "Agree Terms",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1789753493751
-        },
-        {
-          "step": "Funded",
-          "title": "Fund Escrow",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Submitted",
-          "title": "Submit Work",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1790064917949
-        },
-        {
-          "step": "Completed",
-          "title": "Release Payment",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Minted",
-          "title": "Mint Reputation SBT",
-          "status": "pending",
-          "txHash": "",
-          "timestamp": 0
-        },
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Details Modified by Client",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1789730685497
-        },
-        {
-          "step": "Posted",
-          "actor": "Client",
-          "title": "Job Details Modified by Client",
-          "status": "completed",
-          "txHash": "",
-          "timestamp": 1789745421903
-        }
-      ],
-      "status": "Completed",
-      "category": "backend",
-      "amountEth": "10",
-      "createdAt": 1789730296886,
-      "sbtTxHash": "0xd4c47c77cb58847fe39f5835915f42f257bf963f0140bca1b180fcd1d99087ea",
-      "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "amountUsdc": "1.01",
-      "freelancer": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
-      "sbtTokenId": 1978,
-      "completedAt": 1789894663340,
-      "description": "We are looking for an experienced Solidity/Web3 developer to build, test, and deploy production-ready smart contracts for PolyLance on Polygon Mainnet.\n\nPolyLance is a decentralized freelancing platform that enables secure and transparent transactions between clients and freelancers using blockchain technology. The platform will support Polygon Mainnet with USDC and USDT payments.\n\nThe developer will review the existing PolyLance smart contract code, identify bugs or security issues, and update the contracts for production use. The contracts should support secure freelance payment and escrow flows, including job creation, client deposits, payment release, cancellation, and refunds where required.\n\nKey responsibilities:\n• Develop or update PolyLance smart contracts using Solidity.\n• Implement secure escrow and payment functionality.\n• Support USDC and USDT on Polygon Mainnet.\n• Implement proper access control and transaction validation.\n• Protect against common smart contract vulnerabilities such as reentrancy and unauthorized fund access.\n• Optimize contracts for reasonable gas usage.\n• Create deployment and testing scripts using Hardhat or Foundry.\n• Thoroughly test critical contract functions before deployment.\n• Deploy and verify contracts on Polygon Mainnet and PolygonScan.\n• Provide final contract addresses, ABI files, and integration details.\n• Ensure compatibility with the existing PolyLance frontend and backend.\n\nRequired experience includes Solidity, EVM, ERC-20 tokens, OpenZeppelin, Polygon, smart contract testing, and Web3 integrations. Experience with payment or escrow contracts is preferred.\n\nDeliverables should include tested production-ready contracts, deployment scripts, verified Polygon Mainnet contracts, ABI files, contract addresses, test results, and basic documentation.\n\nAs the contracts will handle real user funds, security, reliability, and proper testing are essential before the mainnet launch.",
-      "submittedAt": 1789894426151,
-      "applications": [
-        {
-          "applicant": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
-          "appliedAt": 1789745694373,
-          "githubScore": 980,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "Ethers.js",
-            "Rust",
-            "The Graph",
-            "React"
-          ],
-          "proposalIpfsHash": "bafybeikiajlqusktv264u57eig6hjosqirty42"
-        },
-        {
-          "applicant": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
-          "appliedAt": 1788197986462,
-          "githubScore": 740,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "Ethers.js",
-            "Decentralized Applications (dApps)",
-            "Web3 Development",
-            "Decentralized Identity (DID)",
-            "Verifiable Credentials",
-            "Polygon CDK",
-            "Arbitrum",
-            "WalletConnect",
-            "ERC-4626",
-            "ERC-20",
-            "EIP-712",
-            "Optimism",
-            "Foundry",
-            "Gas Optimization",
-            "Smart Contract Optimization",
-            "Formal Verification"
-          ],
-          "proposalIpfsHash": "bafybeip4ecmzzgomwddqywann2cakxxemkubbo"
-        },
-        {
-          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "appliedAt": 1791131958872,
-          "githubScore": 566,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "React",
-            "Rust",
-            "IPFS"
-          ],
-          "proposalIpfsHash": "bafybeirtpery35zo3cfhdyfmprncpwz3xmzadf"
-        }
-      ],
-      "chatMessages": [],
-      "paymentToken": "0x0000000000000000000000000000000000000000",
-      "chatClearedAt": 1791132721298,
-      "contractAddress": "0xa1b17f36c1927d53b0efe67881d3ded9896dd9b8",
-      "progressUpdates": [],
-      "negotiatedAmount": "1",
-      "reviewPeriodDays": 2,
-      "clientAgreedTerms": true,
-      "extensionRequests": [],
-      "preAcceptMessages": [],
-      "paymentTokenSymbol": "POL",
       "modificationRequests": [],
       "negotiationProposals": [
         {
@@ -4571,8 +4032,9 @@
         },
         {
           "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
-          "proposalIpfsHash": "bafybeikxa6shubki4r6lusg3iv64qfs7ig2p4j",
           "appliedAt": 1789363014528,
+          "githubScore": 695,
+          "githubVerified": true,
           "applicantSkills": [
             "Solidity",
             "TypeScript",
@@ -4580,8 +4042,7 @@
             "Rust",
             "IPFS"
           ],
-          "githubVerified": true,
-          "githubScore": 695
+          "proposalIpfsHash": "bafybeikxa6shubki4r6lusg3iv64qfs7ig2p4j"
         },
         {
           "applicant": "0x25F6C8ed995C811E6c0ADb1D66A60830E8115e9A",
@@ -4648,19 +4109,19 @@
         },
         {
           "id": "0x3afe0ba8",
+          "txHash": "0x3afe0ba87f04661b72067474c36883b47eb205d21649f7a60b851197684d9b48",
           "ipfsHash": "bafybeiylfmchcvpwmrm7zaw3wjdkafatnukpk5",
-          "progressPercent": 100,
-          "statusNote": "completed",
           "timestamp": 1789365243204,
-          "txHash": "0x3afe0ba87f04661b72067474c36883b47eb205d21649f7a60b851197684d9b48"
+          "statusNote": "completed",
+          "progressPercent": 100
         },
         {
           "id": "0xd595c92a",
+          "txHash": "0xd595c92a8f495270bd6debb7c3b574c14c8c7c35f4541f2962454641da40a2a1",
           "ipfsHash": "bafybeiq2alan2ekvkxeou7uboy6j6lycitivcm",
-          "progressPercent": 75,
-          "statusNote": "75% complete",
           "timestamp": 1789365020108,
-          "txHash": "0xd595c92a8f495270bd6debb7c3b574c14c8c7c35f4541f2962454641da40a2a1"
+          "statusNote": "75% complete",
+          "progressPercent": 75
         }
       ],
       "negotiatedAmount": "10.00",
@@ -4702,8 +4163,8 @@
         {
           "id": "0x2ca2d779",
           "note": "Just resubmit the job",
-          "requestedAt": 1789365354838,
-          "status": "Pending"
+          "status": "Pending",
+          "requestedAt": 1789365354838
         }
       ],
       "negotiationProposals": [],
@@ -4715,65 +4176,6 @@
       "id": "0x4f3ec253d32b",
       "title": "Judge Test",
       "client": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
-      "status": "Completed",
-      "dispute": {
-        "judge": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
-        "reason": "NON_DELIVERY",
-        "raisedAt": 1786292251732,
-        "raisedBy": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
-        "resolved": true,
-        "rulingBps": 5000,
-        "reasoningIpfsHash": "bafybeib27koylejuycvot6cm7y5imwjchswatm"
-      },
-      "category": "frontend",
-      "amountEth": "0.04",
-      "createdAt": 1786291414378,
-      "termsHash": "0x958b2bceba784c1527883ac3d6b1acd38ae311a47ef37157538f39ba00e8f13e",
-      "amountUsdc": "99.96",
-      "freelancer": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
-      "description": "Now Test the Judge Section ",
-      "submittedAt": 1786292195292,
-      "tokenAmount": "100",
-      "applications": [
-        {
-          "applicant": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
-          "appliedAt": 1786291523937,
-          "githubScore": 980,
-          "githubVerified": true,
-          "applicantSkills": [
-            "Solidity",
-            "TypeScript",
-            "Ethers.js"
-          ],
-          "proposalIpfsHash": "bafybeiluc2ujv6me6t7iwoi5jsaysht4kc4r5g"
-        }
-      ],
-      "paymentToken": "USDC",
-      "contractAddress": "0x4f3ec253d32b7924577ba38c9b2605c28ac14c0d",
-      "progressUpdates": [
-        {
-          "id": "vuyqasqwj9j",
-          "demoUrl": "",
-          "timestamp": 1786291963100,
-          "statusNote": "Time extension works good",
-          "progressPercent": 90
-        },
-        {
-          "id": "ssn1l3ouhq",
-          "demoUrl": "",
-          "timestamp": 1786291758398,
-          "statusNote": "all functions works good\n",
-          "progressPercent": 50
-        }
-      ],
-      "reviewPeriodDays": 2,
-      "clientAgreedTerms": true,
-      "freelancerAgreedTerms": true,
-      "chatMessages": [],
-      "preAcceptMessages": [],
-      "modificationRequests": [],
-      "extensionRequests": [],
-      "negotiationProposals": [],
       "events": [
         {
           "step": "Posted",
@@ -4875,7 +4277,1314 @@
           "timestamp": 1786292381199
         }
       ],
-      "paymentTokenSymbol": "POL"
+      "status": "Completed",
+      "dispute": {
+        "judge": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+        "reason": "NON_DELIVERY",
+        "raisedAt": 1786292251732,
+        "raisedBy": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+        "resolved": true,
+        "rulingBps": 5000,
+        "reasoningIpfsHash": "bafybeib27koylejuycvot6cm7y5imwjchswatm"
+      },
+      "category": "frontend",
+      "amountEth": "0.04",
+      "createdAt": 1786291414378,
+      "termsHash": "0x958b2bceba784c1527883ac3d6b1acd38ae311a47ef37157538f39ba00e8f13e",
+      "amountUsdc": "99.96",
+      "freelancer": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+      "description": "Now Test the Judge Section ",
+      "submittedAt": 1786292195292,
+      "tokenAmount": "100",
+      "applications": [
+        {
+          "applicant": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "appliedAt": 1786291523937,
+          "githubScore": 980,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "Ethers.js"
+          ],
+          "proposalIpfsHash": "bafybeiluc2ujv6me6t7iwoi5jsaysht4kc4r5g"
+        }
+      ],
+      "chatMessages": [],
+      "paymentToken": "USDC",
+      "contractAddress": "0x4f3ec253d32b7924577ba38c9b2605c28ac14c0d",
+      "progressUpdates": [
+        {
+          "id": "vuyqasqwj9j",
+          "demoUrl": "",
+          "timestamp": 1786291963100,
+          "statusNote": "Time extension works good",
+          "progressPercent": 90
+        },
+        {
+          "id": "ssn1l3ouhq",
+          "demoUrl": "",
+          "timestamp": 1786291758398,
+          "statusNote": "all functions works good\n",
+          "progressPercent": 50
+        }
+      ],
+      "reviewPeriodDays": 2,
+      "clientAgreedTerms": true,
+      "extensionRequests": [],
+      "preAcceptMessages": [],
+      "paymentTokenSymbol": "POL",
+      "modificationRequests": [],
+      "negotiationProposals": [],
+      "freelancerAgreedTerms": true
+    },
+    {
+      "id": "job-escrow-0xdacce6fd",
+      "title": "Enhance PolyLance UI with Minimalist Redesign",
+      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Posted (MATIC Escrow)",
+          "status": "completed",
+          "txHash": "",
+          "timestamp": 1791122761269
+        },
+        {
+          "step": "Funded",
+          "title": "Fund Escrow",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Submitted",
+          "title": "Submit Work",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Completed",
+          "title": "Release Payment",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        }
+      ],
+      "status": "Open",
+      "category": "frontend",
+      "amountEth": "0.05",
+      "createdAt": 1791122761269,
+      "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "amountUsdc": "25.00",
+      "description": "Enhance the Entire Polylance UI and also change the design to Minimalist design",
+      "applications": [
+        {
+          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "appliedAt": 1791131958872,
+          "githubScore": 566,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "React",
+            "Rust",
+            "IPFS"
+          ],
+          "proposalIpfsHash": "bafybeirtpery35zo3cfhdyfmprncpwz3xmzadf"
+        }
+      ],
+      "chatMessages": [
+        {
+          "id": "msg-1791132013541",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132013541,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132090406",
+          "text": "hello",
+          "sender": "Freelancer",
+          "timestamp": 1791132090406,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132592500",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132592500,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132766558",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132766558,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132909819",
+          "text": "hey",
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        }
+      ],
+      "paymentToken": "0x0000000000000000000000000000000000000000",
+      "contractAddress": "0xdacce6fd6665ab8bb24cd0834eb44cf2455450fe",
+      "progressUpdates": [],
+      "reviewPeriodDays": 7,
+      "clientAgreedTerms": true,
+      "extensionRequests": [],
+      "preAcceptMessages": [
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132013526,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132090386,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132592480,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132766541,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        }
+      ],
+      "paymentTokenSymbol": "POL",
+      "modificationRequests": [],
+      "negotiationProposals": [],
+      "paymentTokenDecimals": 18,
+      "freelancerAgreedTerms": true
+    },
+    {
+      "id": "0x0D34F6B4Fb25",
+      "title": "Enhance Polylance UI design",
+      "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Posted (POL Escrow)",
+          "status": "completed",
+          "txHash": "0xe5227955fcd491aff08757abc5393b1e386081a4c2faab7abe519eed2dbc8b21",
+          "timestamp": 1791889542634
+        },
+        {
+          "step": "Selected",
+          "actor": "Client",
+          "title": "Select Freelancer",
+          "status": "completed",
+          "txHash": "0x2b8c540bfd55e7fe96c4df72a45ce2232d2fe4746fa5cd0eb69c4092cbacdfcc",
+          "timestamp": 1791984078646
+        },
+        {
+          "step": "Terms",
+          "title": "Agree Terms",
+          "status": "completed",
+          "txHash": "",
+          "timestamp": 1791889653844
+        },
+        {
+          "step": "Funded",
+          "title": "Fund Escrow",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Submitted",
+          "title": "Submit Work",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Completed",
+          "title": "Release Payment",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Minted",
+          "title": "Mint Reputation SBT",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        }
+      ],
+      "status": "Selected",
+      "category": "frontend",
+      "amountEth": "10",
+      "createdAt": 1791889542634,
+      "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "updatedAt": 1791984078787,
+      "amountUsdc": "1.02",
+      "freelancer": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+      "description": "Enhance the polylance check the UI detailing and correct them .",
+      "applications": [
+        {
+          "id": "app-1791983922977-6ekrg",
+          "job": {
+            "id": "0x0D34F6B4Fb25",
+            "title": "Enhance Polylance UI design",
+            "client": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+            "events": [
+              {
+                "step": "Posted",
+                "actor": "Client",
+                "title": "Job Posted (POL Escrow)",
+                "status": "completed",
+                "txHash": "0xe5227955fcd491aff08757abc5393b1e386081a4c2faab7abe519eed2dbc8b21",
+                "timestamp": 1791889542634
+              },
+              {
+                "step": "Selected",
+                "title": "Select Freelancer",
+                "status": "current",
+                "txHash": "",
+                "timestamp": 0
+              },
+              {
+                "step": "Terms",
+                "title": "Agree Terms",
+                "status": "completed",
+                "txHash": "",
+                "timestamp": 1791889653844
+              },
+              {
+                "step": "Funded",
+                "title": "Fund Escrow",
+                "status": "pending",
+                "txHash": "",
+                "timestamp": 0
+              },
+              {
+                "step": "Submitted",
+                "title": "Submit Work",
+                "status": "pending",
+                "txHash": "",
+                "timestamp": 0
+              },
+              {
+                "step": "Completed",
+                "title": "Release Payment",
+                "status": "pending",
+                "txHash": "",
+                "timestamp": 0
+              },
+              {
+                "step": "Minted",
+                "title": "Mint Reputation SBT",
+                "status": "pending",
+                "txHash": "",
+                "timestamp": 0
+              }
+            ],
+            "status": "Open",
+            "category": "frontend",
+            "amountEth": "10",
+            "createdAt": 1791889542634,
+            "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "amountUsdc": "1.02",
+            "description": "Enhance the polylance check the UI detailing and correct them .",
+            "applications": [
+              {
+                "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+                "appliedAt": 1791983917260,
+                "githubScore": 566,
+                "proposalText": "accept my proposal",
+                "githubVerified": true,
+                "applicantSkills": [
+                  "Solidity",
+                  "TypeScript",
+                  "React",
+                  "Rust",
+                  "IPFS"
+                ],
+                "proposalIpfsHash": "bafybeisyfoop4cpyyzgmzccdqwdmmn2anwwxek"
+              }
+            ],
+            "chatMessages": [],
+            "paymentToken": "0x0000000000000000000000000000000000000000",
+            "contractAddress": "0x0d34f6b4fb25662ac798a4971664e591f253d00b",
+            "progressUpdates": [],
+            "reviewPeriodDays": 7,
+            "clientAgreedTerms": true,
+            "extensionRequests": [],
+            "preAcceptMessages": [],
+            "paymentTokenSymbol": "POL",
+            "modificationRequests": [],
+            "negotiationProposals": [],
+            "paymentTokenDecimals": 18,
+            "freelancerAgreedTerms": true
+          },
+          "skills": [
+            "Solidity",
+            "TypeScript",
+            "React",
+            "Rust",
+            "IPFS"
+          ],
+          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "appliedAt": 1791983922977,
+          "coverLetter": "accept my proposal",
+          "githubScore": 566,
+          "submittedAt": 1791983922977,
+          "bidAmountUsdc": "1.02",
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "React",
+            "Rust",
+            "IPFS"
+          ],
+          "applicantAddress": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "proposalIpfsHash": "bafybeisyfoop4cpyyzgmzccdqwdmmn2anwwxek"
+        }
+      ],
+      "chatMessages": [
+        {
+          "id": "msg-1791992198644",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791992198644,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791992220629",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791992220629,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        }
+      ],
+      "paymentToken": "0x0000000000000000000000000000000000000000",
+      "contractAddress": "0x0d34f6b4fb25662ac798a4971664e591f253d00b",
+      "progressUpdates": [],
+      "reviewPeriodDays": 7,
+      "clientAgreedTerms": true,
+      "extensionRequests": [],
+      "preAcceptMessages": [],
+      "paymentTokenSymbol": "POL",
+      "modificationRequests": [],
+      "negotiationProposals": [],
+      "paymentTokenDecimals": 18,
+      "freelancerAgreedTerms": true
+    },
+    {
+      "id": "job-verify-1791982369172",
+      "title": "DeFi Subgraph & Indexer Architecture",
+      "client": "0x333333330000000000000000000001a13a8c2fb1",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Created",
+          "status": "completed",
+          "txHash": "0x123",
+          "timestamp": 1791983628210
+        },
+        {
+          "step": "Selected",
+          "actor": "Client",
+          "title": "Candidate Selection",
+          "status": "current",
+          "txHash": "",
+          "timestamp": 0
+        }
+      ],
+      "status": "Open",
+      "category": "Development",
+      "amountEth": "1.2",
+      "createdAt": 1791983628210,
+      "amountUsdc": "1500",
+      "freelancer": "",
+      "description": "Build an ultra-fast event indexer for Polygon mainnet with real-time websocket subscriptions.",
+      "applications": [
+        {
+          "id": "app-1791982376561-b8fsa",
+          "skills": [
+            "Developer"
+          ],
+          "applicant": "0x4444444444444444444444444444444444444444",
+          "appliedAt": 1791982376561,
+          "coverLetter": "I have 5+ years of experience building high-throughput indexing subgraphs on Polygon. Milestone 1: Schema design. Milestone 2: Pipeline deployment.",
+          "githubScore": 750,
+          "submittedAt": 1791982376561,
+          "bidAmountUsdc": "1500",
+          "githubVerified": false,
+          "applicantSkills": [
+            "Developer"
+          ],
+          "applicantAddress": "0x4444444444444444444444444444444444444444",
+          "proposalIpfsHash": "bafybeivs6meo74iwoyjgsayctq4kcm52gumwhe"
+        },
+        {
+          "applicant": "0x444444440000000000000000000001a13a8c2fb1",
+          "appliedAt": 1791983633758,
+          "githubScore": 750,
+          "githubVerified": false,
+          "applicantSkills": [
+            "Developer"
+          ],
+          "proposalIpfsHash": "bafybeirazjwh3kdtarfun5k3p6xhufzibr6pds"
+        }
+      ],
+      "chatMessages": [],
+      "contractAddress": "0x0000000000000000000000000000000000000000",
+      "progressUpdates": [],
+      "reviewPeriodDays": 7,
+      "extensionRequests": [],
+      "preAcceptMessages": [],
+      "paymentTokenSymbol": "USDC",
+      "modificationRequests": [],
+      "negotiationProposals": []
+    },
+    {
+      "id": "0x71c8a185b376",
+      "title": "DeFi Subgraph & Indexer Architecture",
+      "client": "0x71C8A185b3769c8c4cDF357a7386043C0C973c68",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Created",
+          "status": "completed",
+          "txHash": "0x123",
+          "timestamp": 1791983727611
+        },
+        {
+          "step": "Selected",
+          "actor": "Client",
+          "title": "Candidate Selection",
+          "status": "current",
+          "txHash": "",
+          "timestamp": 0
+        }
+      ],
+      "status": "Open",
+      "category": "Development",
+      "amountEth": "1.2",
+      "createdAt": 1791983727611,
+      "amountUsdc": "1500",
+      "freelancer": "",
+      "description": "Build an ultra-fast event indexer for Polygon mainnet with real-time websocket subscriptions.",
+      "applications": [
+        {
+          "id": "app-1791983734341-h6s7b",
+          "job": {
+            "id": "0x71c8a185b376",
+            "title": "DeFi Subgraph & Indexer Architecture",
+            "client": "0x71C8A185b3769c8c4cDF357a7386043C0C973c68",
+            "events": [
+              {
+                "step": "Posted",
+                "actor": "Client",
+                "title": "Job Created",
+                "status": "completed",
+                "txHash": "0x123",
+                "timestamp": 1791983727611
+              },
+              {
+                "step": "Selected",
+                "actor": "Client",
+                "title": "Candidate Selection",
+                "status": "current",
+                "txHash": "",
+                "timestamp": 0
+              }
+            ],
+            "status": "Open",
+            "category": "Development",
+            "amountEth": "1.2",
+            "amountUsdc": "1500",
+            "freelancer": "",
+            "description": "Build an ultra-fast event indexer for Polygon mainnet with real-time websocket subscriptions.",
+            "applications": [
+              {
+                "applicant": "0x92518eE6EbA7D4045f2a13E14e3049F27E9a545F",
+                "appliedAt": 1791983733390,
+                "githubScore": 750,
+                "proposalText": "I have 5+ years of experience building high-throughput indexing subgraphs on Polygon. Milestone 1: Schema design. Milestone 2: Pipeline deployment.",
+                "githubVerified": false,
+                "applicantSkills": [
+                  "Developer"
+                ],
+                "proposalIpfsHash": "bafybeirzgau23dqk6efn2uiopxe6syzboi4cdl"
+              }
+            ],
+            "chatMessages": [],
+            "contractAddress": "0x71c8a185b3769c8c4cdf357a7386043c0c973c68",
+            "progressUpdates": [],
+            "reviewPeriodDays": 7,
+            "extensionRequests": [],
+            "preAcceptMessages": [],
+            "paymentTokenSymbol": "USDC",
+            "modificationRequests": [],
+            "negotiationProposals": []
+          },
+          "skills": [
+            "Developer"
+          ],
+          "applicant": "0x92518eE6EbA7D4045f2a13E14e3049F27E9a545F",
+          "appliedAt": 1791983734341,
+          "coverLetter": "I have 5+ years of experience building high-throughput indexing subgraphs on Polygon. Milestone 1: Schema design. Milestone 2: Pipeline deployment.",
+          "githubScore": 750,
+          "submittedAt": 1791983734341,
+          "bidAmountUsdc": "1500",
+          "githubVerified": false,
+          "applicantSkills": [
+            "Developer"
+          ],
+          "applicantAddress": "0x92518eE6EbA7D4045f2a13E14e3049F27E9a545F",
+          "proposalIpfsHash": "bafybeirzgau23dqk6efn2uiopxe6syzboi4cdl"
+        }
+      ],
+      "chatMessages": [],
+      "contractAddress": "0x71c8a185b3769c8c4cdf357a7386043c0c973c68",
+      "progressUpdates": [],
+      "reviewPeriodDays": 7,
+      "extensionRequests": [],
+      "preAcceptMessages": [],
+      "paymentTokenSymbol": "USDC",
+      "modificationRequests": [],
+      "negotiationProposals": []
+    },
+    {
+      "id": "0x91175C581877",
+      "title": "Job 2",
+      "client": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Posted (MATIC Escrow)",
+          "status": "completed",
+          "txHash": "0x92b100f48cb39d12e8f87f1bf8ccb942447a55dc10fc4481d02207cf32a62c0a",
+          "timestamp": 1788077865059
+        },
+        {
+          "step": "Selected",
+          "title": "Select Freelancer",
+          "status": "current",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Terms",
+          "title": "Agree Terms",
+          "status": "completed",
+          "txHash": "",
+          "timestamp": 1788708874047
+        },
+        {
+          "step": "Funded",
+          "title": "Fund Escrow",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Submitted",
+          "title": "Submit Work",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Completed",
+          "title": "Release Payment",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        },
+        {
+          "step": "Minted",
+          "title": "Mint Reputation SBT",
+          "status": "pending",
+          "txHash": "",
+          "timestamp": 0
+        }
+      ],
+      "status": "Funded",
+      "category": "frontend",
+      "amountEth": "0.38",
+      "createdAt": 1788077865059,
+      "termsHash": "0x12380660e01383d08daf07e4fcc876602b0c4e25807e5106d6d3e4beb9d79702",
+      "amountUsdc": "0.38",
+      "freelancer": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+      "description": "Testing Job Workspace interface",
+      "submittedAt": 1788269922921,
+      "applications": [
+        {
+          "applicant": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "appliedAt": 1791131958872,
+          "githubScore": 566,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "React",
+            "Rust",
+            "IPFS"
+          ],
+          "proposalIpfsHash": "bafybeirtpery35zo3cfhdyfmprncpwz3xmzadf"
+        },
+        {
+          "applicant": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "appliedAt": 1788109088438,
+          "githubScore": 880,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Arbitration",
+            "Smart Contracts",
+            "Security Audit",
+            "Solidity",
+            "HTML5/CSS3",
+            "Python",
+            "JavaScript",
+            "Java",
+            "Next.js",
+            "React"
+          ],
+          "proposalIpfsHash": "bafybeid3cfqrnfmp23xpwzefbzadopldknyzvn"
+        },
+        {
+          "applicant": "0x05Dd0869AaA279f69AC9fE63F53D05E7Be568706",
+          "appliedAt": 1788078998742,
+          "githubScore": 740,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "TypeScript",
+            "Ethers.js",
+            "Decentralized Applications (dApps)",
+            "Web3 Development",
+            "Decentralized Identity (DID)",
+            "Verifiable Credentials",
+            "Polygon CDK",
+            "Arbitrum",
+            "WalletConnect",
+            "ERC-4626",
+            "ERC-20",
+            "EIP-712",
+            "Optimism",
+            "Foundry",
+            "Gas Optimization",
+            "Smart Contract Optimization",
+            "Formal Verification"
+          ],
+          "proposalIpfsHash": "bafybeiz5r5updh3h6znrfridx3p3snbfzf4xlp"
+        },
+        {
+          "applicant": "0x62cDfc0692cC675c95304BaCE2C834D8F901dCba",
+          "appliedAt": 1788237786254,
+          "githubScore": 740,
+          "githubVerified": true,
+          "applicantSkills": [
+            "Solidity",
+            "React",
+            "TypeScript",
+            "Smart Contracts",
+            "Kotlin",
+            "Python",
+            "JavaScript"
+          ],
+          "proposalIpfsHash": "bafybeihngmshrxqw4r3b2ag3flekqfpvou2pz7"
+        }
+      ],
+      "chatMessages": [
+        {
+          "id": "msg-1788079016350",
+          "text": "hi",
+          "sender": "Client",
+          "timestamp": 1788079016350,
+          "senderAddress": "0x75972bcc03026544287eb7418bd8ae53583c23ce",
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "id": "msg-1788110537597",
+          "text": "📋 Freelancer proposed: $2 USDC in 2 days",
+          "sender": "Freelancer",
+          "proposal": {
+            "id": "prop-1788110537597-berm1",
+            "note": "",
+            "jobId": "0x91175C581877",
+            "status": "Pending",
+            "createdAt": 1788110537597,
+            "amountUsdc": "2",
+            "proposedBy": "Freelancer",
+            "isFinalCall": false,
+            "deadlineDays": 2,
+            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+          },
+          "timestamp": 1788110537597,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+        },
+        {
+          "id": "msg-1788268644016",
+          "text": "📋 Client proposed: $1 USDC in 1 days",
+          "sender": "Client",
+          "proposal": {
+            "id": "prop-1788268644016-n90c2",
+            "note": "",
+            "jobId": "0x91175C581877",
+            "status": "Pending",
+            "createdAt": 1788268644016,
+            "amountUsdc": "1",
+            "proposedBy": "Client",
+            "isFinalCall": false,
+            "deadlineDays": 1,
+            "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+          },
+          "timestamp": 1788268644016,
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "id": "msg-1788269408189",
+          "text": "🎉 Freelancer ACCEPTED the terms: $1 USDC in 1 days! Full contract terms are updated on-chain.",
+          "sender": "Freelancer",
+          "timestamp": 1788269408189,
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "id": "msg-1788269803392",
+          "text": "🔄 Revisions Requested by Client:\n\n\"submit again\"\n\nPlease review feedback and re-submit updated milestone deliverables.",
+          "sender": "Client",
+          "timestamp": 1788269803392
+        },
+        {
+          "id": "msg-1791131999377",
+          "text": "hey",
+          "sender": "Client",
+          "timestamp": 1791131999377,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132013541",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132013541,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132024225",
+          "text": "hey",
+          "sender": "Client",
+          "timestamp": 1791132024225,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132051410",
+          "text": "hey",
+          "sender": "Client",
+          "timestamp": 1791132051410,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132058428",
+          "text": "hello",
+          "sender": "Client",
+          "timestamp": 1791132058428,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132090406",
+          "text": "hello",
+          "sender": "Freelancer",
+          "timestamp": 1791132090406,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132095237",
+          "text": "hi",
+          "sender": "Client",
+          "timestamp": 1791132095237,
+          "senderAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132592500",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132592500,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132766558",
+          "text": "hi",
+          "sender": "Freelancer",
+          "timestamp": 1791132766558,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "id": "msg-1791132909819",
+          "text": "hey",
+          "sender": "Freelancer",
+          "timestamp": 1791132909819,
+          "senderAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        }
+      ],
+      "paymentToken": "0x0000000000000000000000000000000000000000",
+      "contractAddress": "0x91175c5818774af92f8669df56354e84980a18ff",
+      "progressUpdates": [
+        {
+          "id": "0x6f214bcf",
+          "txHash": "0x6f214bcf6976dfe86b16951c56f5d42844c870fa5ec9cec1cb910a1b3f756120",
+          "ipfsHash": "bafybeidyek7tncouj5xmy6thbwci5rlamsh3vk",
+          "timestamp": 1788269593793,
+          "statusNote": "done with  testing all landing pages were working properly",
+          "progressPercent": 100
+        }
+      ],
+      "negotiatedAmount": "1",
+      "reviewPeriodDays": 1,
+      "clientAgreedTerms": true,
+      "extensionRequests": [],
+      "preAcceptMessages": [
+        {
+          "text": "hi",
+          "sender": "0x75972Bcc03026544287Eb7418Bd8Ae53583c23Ce",
+          "timestamp": 1788079016345,
+          "senderRole": "Client",
+          "applicantAddress": "0x05dd0869aaa279f69ac9fe63f53d05e7be568706"
+        },
+        {
+          "text": "📋 Freelancer proposed: $2 USDC in 2 days",
+          "sender": "Freelancer",
+          "proposal": {
+            "id": "prop-1788110537597-berm1",
+            "note": "",
+            "jobId": "0x91175C581877",
+            "status": "Countered",
+            "createdAt": 1788110537597,
+            "amountUsdc": "2",
+            "proposedBy": "Freelancer",
+            "isFinalCall": false,
+            "deadlineDays": 2,
+            "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+          },
+          "timestamp": 1788110537597,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+        },
+        {
+          "text": "📋 Client proposed: $1 USDC in 1 days",
+          "sender": "Client",
+          "proposal": {
+            "id": "prop-1788268644016-n90c2",
+            "note": "",
+            "jobId": "0x91175C581877",
+            "status": "Accepted",
+            "createdAt": 1788268644016,
+            "amountUsdc": "1",
+            "proposedBy": "Client",
+            "isFinalCall": false,
+            "respondedAt": 1788269408189,
+            "deadlineDays": 1,
+            "responseNote": "",
+            "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+          },
+          "timestamp": 1788268644016,
+          "senderRole": "Client",
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "text": "🎉 Freelancer ACCEPTED the terms: $1 USDC in 1 days! Full contract terms are updated on-chain.",
+          "sender": "0x62cdfc0692cc675c95304bace2c834d8f901dcba",
+          "timestamp": 1788269408189,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        },
+        {
+          "text": "hey",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791131999365,
+          "senderRole": "Client",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132013526,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hey",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132024214,
+          "senderRole": "Client",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hey",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132051400,
+          "senderRole": "Client",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132058419,
+          "senderRole": "Client",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hello",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132090386,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xB8aa0398B91A150B041DA819bc954Bb356e009Dd",
+          "timestamp": 1791132095225,
+          "senderRole": "Client",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132592480,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hi",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132766541,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        },
+        {
+          "text": "hey",
+          "sender": "0xb30F2eFBCEBC529d946e05C9ccE0f1ffFB7e1aB1",
+          "timestamp": 1791132909803,
+          "senderRole": "Freelancer",
+          "applicantAddress": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1"
+        }
+      ],
+      "paymentTokenSymbol": "MATIC",
+      "modificationRequests": [],
+      "negotiationProposals": [
+        {
+          "id": "prop-1788110537597-berm1",
+          "note": "",
+          "jobId": "0x91175C581877",
+          "status": "Countered",
+          "createdAt": 1788110537597,
+          "amountUsdc": "2",
+          "proposedBy": "Freelancer",
+          "isFinalCall": false,
+          "deadlineDays": 2,
+          "applicantAddress": "0xb8aa0398b91a150b041da819bc954bb356e009dd"
+        },
+        {
+          "id": "prop-1788268644016-n90c2",
+          "note": "",
+          "jobId": "0x91175C581877",
+          "status": "Accepted",
+          "createdAt": 1788268644016,
+          "amountUsdc": "1",
+          "proposedBy": "Client",
+          "isFinalCall": false,
+          "respondedAt": 1788269408189,
+          "deadlineDays": 1,
+          "responseNote": "",
+          "applicantAddress": "0x62cdfc0692cc675c95304bace2c834d8f901dcba"
+        }
+      ],
+      "paymentTokenDecimals": 18,
+      "freelancerAgreedTerms": true,
+      "negotiatedDeadlineDays": 1
+    },
+    {
+      "id": "0x771a13afc3007",
+      "title": "Full Lifecycle Test Contract",
+      "token": "USDC",
+      "budget": "250",
+      "client": "0x71C8417937A8C822606552277d33b5c654d24177",
+      "domain": "Web3 / Smart Contracts",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Posted",
+          "status": "completed",
+          "timestamp": 1791990968327
+        }
+      ],
+      "skills": [
+        "Solidity",
+        "TypeScript"
+      ],
+      "status": "Open",
+      "category": "web3",
+      "deadline": 1792595768327,
+      "amountEth": "0",
+      "createdAt": 1791990968327,
+      "updatedAt": 1791990968630,
+      "amountUsdc": "0.00",
+      "description": "Verifying end-to-end non-custodial milestone escrow flow.",
+      "applications": [
+        {
+          "id": "app-1791990968462-vfgp5",
+          "applicant": "0x52B4417937A8C822606552277d33b5c654d24178",
+          "appliedAt": 1791990968462,
+          "bidAmount": "250",
+          "coverLetter": "Expert smart contract engineer ready to deliver.",
+          "githubScore": 750,
+          "submittedAt": 1791990968462,
+          "proposalText": "Expert smart contract engineer ready to deliver.",
+          "applicantName": "Freelancer Alpha",
+          "estimatedDays": 5,
+          "githubVerified": false,
+          "applicantSkills": [],
+          "proposalIpfsHash": ""
+        },
+        {
+          "id": "app-1791990968532-t9eav",
+          "applicant": "0x63C4417937A8C822606552277d33b5c654d24179",
+          "appliedAt": 1791990968532,
+          "bidAmount": "240",
+          "coverLetter": "Backup proposal for withdrawal testing.",
+          "githubScore": 750,
+          "submittedAt": 1791990968532,
+          "proposalText": "Backup proposal for withdrawal testing.",
+          "applicantName": "Freelancer Beta",
+          "estimatedDays": 4,
+          "githubVerified": false,
+          "applicantSkills": [],
+          "proposalIpfsHash": ""
+        }
+      ],
+      "chatMessages": [],
+      "progressUpdates": [],
+      "extensionRequests": [],
+      "preAcceptMessages": [],
+      "paymentTokenSymbol": "POL",
+      "modificationRequests": [],
+      "negotiationProposals": []
+    },
+    {
+      "id": "0x771a13afd358d",
+      "title": "Full Lifecycle Test Contract",
+      "token": "USDC",
+      "budget": "250",
+      "client": "0x71C8417937A8C822606552277d33b5c654d24177",
+      "domain": "Web3 / Smart Contracts",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Posted",
+          "status": "completed",
+          "timestamp": 1791991035277
+        }
+      ],
+      "skills": [
+        "Solidity",
+        "TypeScript"
+      ],
+      "status": "Selected",
+      "category": "web3",
+      "deadline": 1792595835277,
+      "amountEth": "0",
+      "createdAt": 1791991035277,
+      "updatedAt": 1791991035650,
+      "amountUsdc": "0.00",
+      "freelancer": "0x52B4417937A8C822606552277d33b5c654d24178",
+      "description": "Verifying end-to-end non-custodial milestone escrow flow.",
+      "applications": [
+        {
+          "id": "app-1791991035413-9ac7y",
+          "applicant": "0x52B4417937A8C822606552277d33b5c654d24178",
+          "appliedAt": 1791991035413,
+          "bidAmount": "250",
+          "coverLetter": "Expert smart contract engineer ready to deliver.",
+          "githubScore": 750,
+          "submittedAt": 1791991035413,
+          "proposalText": "Expert smart contract engineer ready to deliver.",
+          "applicantName": "Freelancer Alpha",
+          "estimatedDays": 5,
+          "githubVerified": false,
+          "applicantSkills": [],
+          "proposalIpfsHash": ""
+        },
+        {
+          "id": "app-1791991035491-xotkf",
+          "applicant": "0x63C4417937A8C822606552277d33b5c654d24179",
+          "appliedAt": 1791991035491,
+          "bidAmount": "240",
+          "coverLetter": "Backup proposal for withdrawal testing.",
+          "githubScore": 750,
+          "submittedAt": 1791991035491,
+          "proposalText": "Backup proposal for withdrawal testing.",
+          "applicantName": "Freelancer Beta",
+          "estimatedDays": 4,
+          "githubVerified": false,
+          "applicantSkills": [],
+          "proposalIpfsHash": ""
+        }
+      ],
+      "chatMessages": [],
+      "progressUpdates": [],
+      "extensionRequests": [],
+      "preAcceptMessages": [],
+      "paymentTokenSymbol": "POL",
+      "modificationRequests": [],
+      "negotiationProposals": [],
+      "freelancerAgreedTerms": false
+    },
+    {
+      "id": "0x771a13affd266",
+      "title": "Full Lifecycle Test Contract",
+      "token": "USDC",
+      "budget": "250",
+      "client": "0x71C8417937A8C822606552277d33b5c654d24177",
+      "domain": "Web3 / Smart Contracts",
+      "events": [
+        {
+          "step": "Posted",
+          "actor": "Client",
+          "title": "Job Posted",
+          "status": "completed",
+          "timestamp": 1791991206502
+        },
+        {
+          "step": "Funded",
+          "actor": "Client",
+          "title": "Escrow Funded",
+          "status": "completed",
+          "txHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          "timestamp": 1791991207101
+        }
+      ],
+      "skills": [
+        "Solidity",
+        "TypeScript"
+      ],
+      "status": "Funded",
+      "category": "web3",
+      "deadline": 1792596006502,
+      "amountEth": "0",
+      "createdAt": 1791991206502,
+      "updatedAt": 1791991207113,
+      "amountUsdc": "0.00",
+      "freelancer": "0x52B4417937A8C822606552277d33b5c654d24178",
+      "description": "Verifying end-to-end non-custodial milestone escrow flow.",
+      "applications": [
+        {
+          "id": "app-1791991206672-zo0w6",
+          "applicant": "0x52B4417937A8C822606552277d33b5c654d24178",
+          "appliedAt": 1791991206672,
+          "bidAmount": "250",
+          "coverLetter": "Expert smart contract engineer ready to deliver.",
+          "githubScore": 750,
+          "submittedAt": 1791991206672,
+          "proposalText": "Expert smart contract engineer ready to deliver.",
+          "applicantName": "Freelancer Alpha",
+          "estimatedDays": 5,
+          "githubVerified": false,
+          "applicantSkills": [],
+          "proposalIpfsHash": ""
+        },
+        {
+          "id": "app-1791991206736-e6czq",
+          "applicant": "0x63C4417937A8C822606552277d33b5c654d24179",
+          "appliedAt": 1791991206736,
+          "bidAmount": "240",
+          "coverLetter": "Backup proposal for withdrawal testing.",
+          "githubScore": 750,
+          "submittedAt": 1791991206736,
+          "proposalText": "Backup proposal for withdrawal testing.",
+          "applicantName": "Freelancer Beta",
+          "estimatedDays": 4,
+          "githubVerified": false,
+          "applicantSkills": [],
+          "proposalIpfsHash": ""
+        }
+      ],
+      "chatMessages": [],
+      "progressUpdates": [],
+      "clientAgreedTerms": true,
+      "extensionRequests": [],
+      "preAcceptMessages": [],
+      "paymentTokenSymbol": "POL",
+      "modificationRequests": [],
+      "negotiationProposals": [],
+      "freelancerAgreedTerms": true
+    },
+    {
+      "id": "0x881a13affd51d",
+      "title": "Job To Be Declined",
+      "budget": "100",
+      "client": "0x71C8417937A8C822606552277d33b5c654d24177",
+      "events": [],
+      "status": "Selected",
+      "category": "web3",
+      "amountEth": "0",
+      "createdAt": 1791991207200,
+      "updatedAt": 1791991207270,
+      "amountUsdc": "0.00",
+      "freelancer": "0x52B4417937A8C822606552277d33b5c654d24178",
+      "applications": [],
+      "chatMessages": [],
+      "progressUpdates": [],
+      "extensionRequests": [],
+      "preAcceptMessages": [],
+      "paymentTokenSymbol": "POL",
+      "modificationRequests": [],
+      "negotiationProposals": [],
+      "freelancerAgreedTerms": false
     }
   ],
   "profiles": {
@@ -5176,6 +5885,14 @@
       ],
       "reputationSbtCount": 0
     },
+    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8": {
+      "accountMode": "client",
+      "displayName": "Client Only User"
+    },
+    "0x70997970c51812dc3a010c7d01b50e0d17dc79c8": {
+      "accountMode": "client",
+      "displayName": "Client Only User"
+    },
     "0x75972bcc03026544287eb7418bd8ae53583c23ce": {
       "bio": "",
       "role": "client",
@@ -5267,6 +5984,14 @@
         "mobile",
         "web3"
       ]
+    },
+    "0x90F79bf6EB2c4f870365E785982E1f101E93b906": {
+      "accountMode": "freelancer",
+      "displayName": "Freelancer Only User"
+    },
+    "0x90f79bf6eb2c4f870365e785982e1f101e93b906": {
+      "accountMode": "freelancer",
+      "displayName": "Freelancer Only User"
     },
     "0x9999999999999999999999999999999999999999": {
       "bio": "Experienced smart contract developer, Solidity and OpenZeppelin expert.",
@@ -5413,6 +6138,7 @@
       "avatarUrl": "https://github.com/sunny200551.png",
       "reposCount": 5,
       "verifiedAt": 1789298910083,
+      "accountMode": "both",
       "displayName": "Sunny Pasumarthi",
       "commitsCount": 72,
       "primaryScore": 795,
@@ -5671,6 +6397,330 @@
       "txHash": "0x2f5d5e29e6ea4831efd8243fdeb00ed589a06ad3f51c0cc061a80e0ae0bccfa5",
       "timestamp": 1787311700084,
       "amountUsdc": 0.25
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif-1791991224940-io7sh",
+      "body": "The freelancer declined the offer for \"Job To Be Declined\". The job is re-opened for other applicants.",
+      "type": "OFFER_DECLINED",
+      "title": "Offer Declined",
+      "readAt": null,
+      "deepLink": "/jobs/0x881a13b001a1a",
+      "entityId": "0x881a13b001a1a",
+      "createdAt": 1791991224940,
+      "dedupeKey": "declined_0x881a13b001a1a_0x52B4417937A8C822606552277d33b5c654d24178_1791991224940",
+      "entityType": "job",
+      "actorWallet": "0x52b4417937a8c822606552277d33b5c654d24178",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791991224759-55e4o",
+      "body": "Client deposited escrow for \"Full Lifecycle Test Contract\". You may now submit deliverables.",
+      "type": "ESCROW_FUNDED",
+      "title": "Escrow Funded!",
+      "readAt": null,
+      "deepLink": "/workspace?jobId=0x771a13b00176b",
+      "entityId": "0x771a13b00176b",
+      "createdAt": 1791991224759,
+      "dedupeKey": "funded_0x771a13b00176b",
+      "entityType": "job",
+      "actorWallet": "0x71c8417937a8c822606552277d33b5c654d24177",
+      "recipientWallet": "0x52b4417937a8c822606552277d33b5c654d24178"
+    },
+    {
+      "id": "notif-1791991224667-zv46c",
+      "body": "The freelancer accepted your terms for \"Full Lifecycle Test Contract\". Please deposit escrow to activate the contract.",
+      "type": "OFFER_ACCEPTED",
+      "title": "Offer Accepted!",
+      "readAt": null,
+      "deepLink": "/workspace?jobId=0x771a13b00176b",
+      "entityId": "0x771a13b00176b",
+      "createdAt": 1791991224667,
+      "dedupeKey": "terms_accepted_0x771a13b00176b",
+      "entityType": "job",
+      "actorWallet": "0x52b4417937a8c822606552277d33b5c654d24178",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791991224572-qbyxn",
+      "body": "You were selected for \"Full Lifecycle Test Contract\". Review and accept the offer to start work.",
+      "type": "OFFER_SENT",
+      "title": "You've Been Selected!",
+      "readAt": null,
+      "deepLink": "/workspace?jobId=0x771a13b00176b",
+      "entityId": "0x771a13b00176b",
+      "createdAt": 1791991224572,
+      "dedupeKey": "offer_0x771a13b00176b_0x52B4417937A8C822606552277d33b5c654d24178",
+      "entityType": "job",
+      "actorWallet": "0x71c8417937a8c822606552277d33b5c654d24177",
+      "recipientWallet": "0x52b4417937a8c822606552277d33b5c654d24178"
+    },
+    {
+      "id": "notif-1791991224375-6wec3",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0x771a13b00176b",
+      "entityId": "0x771a13b00176b",
+      "createdAt": 1791991224375,
+      "dedupeKey": "prop_0x771a13b00176b_0x63c4417937a8c822606552277d33b5c654d24179",
+      "entityType": "job",
+      "actorWallet": "0x63c4417937a8c822606552277d33b5c654d24179",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791991224303-qlpqv",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0x771a13b00176b",
+      "entityId": "0x771a13b00176b",
+      "createdAt": 1791991224303,
+      "dedupeKey": "prop_0x771a13b00176b_0x52b4417937a8c822606552277d33b5c654d24178",
+      "entityType": "job",
+      "actorWallet": "0x52b4417937a8c822606552277d33b5c654d24178",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791991207270-bnhdc",
+      "body": "The freelancer declined the offer for \"Job To Be Declined\". The job is re-opened for other applicants.",
+      "type": "OFFER_DECLINED",
+      "title": "Offer Declined",
+      "readAt": null,
+      "deepLink": "/jobs/0x881a13affd51d",
+      "entityId": "0x881a13affd51d",
+      "createdAt": 1791991207270,
+      "dedupeKey": "declined_0x881a13affd51d_0x52B4417937A8C822606552277d33b5c654d24178_1791991207270",
+      "entityType": "job",
+      "actorWallet": "0x52b4417937a8c822606552277d33b5c654d24178",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791991207113-zpsyf",
+      "body": "Client deposited escrow for \"Full Lifecycle Test Contract\". You may now submit deliverables.",
+      "type": "ESCROW_FUNDED",
+      "title": "Escrow Funded!",
+      "readAt": null,
+      "deepLink": "/workspace?jobId=0x771a13affd266",
+      "entityId": "0x771a13affd266",
+      "createdAt": 1791991207113,
+      "dedupeKey": "funded_0x771a13affd266",
+      "entityType": "job",
+      "actorWallet": "0x71c8417937a8c822606552277d33b5c654d24177",
+      "recipientWallet": "0x52b4417937a8c822606552277d33b5c654d24178"
+    },
+    {
+      "id": "notif-1791991207015-ft9iz",
+      "body": "The freelancer accepted your terms for \"Full Lifecycle Test Contract\". Please deposit escrow to activate the contract.",
+      "type": "OFFER_ACCEPTED",
+      "title": "Offer Accepted!",
+      "readAt": null,
+      "deepLink": "/workspace?jobId=0x771a13affd266",
+      "entityId": "0x771a13affd266",
+      "createdAt": 1791991207015,
+      "dedupeKey": "terms_accepted_0x771a13affd266",
+      "entityType": "job",
+      "actorWallet": "0x52b4417937a8c822606552277d33b5c654d24178",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791991206926-5meqi",
+      "body": "You were selected for \"Full Lifecycle Test Contract\". Review and accept the offer to start work.",
+      "type": "OFFER_SENT",
+      "title": "You've Been Selected!",
+      "readAt": null,
+      "deepLink": "/workspace?jobId=0x771a13affd266",
+      "entityId": "0x771a13affd266",
+      "createdAt": 1791991206926,
+      "dedupeKey": "offer_0x771a13affd266_0x52B4417937A8C822606552277d33b5c654d24178",
+      "entityType": "job",
+      "actorWallet": "0x71c8417937a8c822606552277d33b5c654d24177",
+      "recipientWallet": "0x52b4417937a8c822606552277d33b5c654d24178"
+    },
+    {
+      "id": "notif-1791991206736-0zcuq",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0x771a13affd266",
+      "entityId": "0x771a13affd266",
+      "createdAt": 1791991206736,
+      "dedupeKey": "prop_0x771a13affd266_0x63c4417937a8c822606552277d33b5c654d24179",
+      "entityType": "job",
+      "actorWallet": "0x63c4417937a8c822606552277d33b5c654d24179",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791991206672-5s0jr",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0x771a13affd266",
+      "entityId": "0x771a13affd266",
+      "createdAt": 1791991206672,
+      "dedupeKey": "prop_0x771a13affd266_0x52b4417937a8c822606552277d33b5c654d24178",
+      "entityType": "job",
+      "actorWallet": "0x52b4417937a8c822606552277d33b5c654d24178",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791991035650-cfr6s",
+      "body": "You were selected for \"Full Lifecycle Test Contract\". Review and accept the offer to start work.",
+      "type": "OFFER_SENT",
+      "title": "You've Been Selected!",
+      "readAt": null,
+      "deepLink": "/workspace?jobId=0x771a13afd358d",
+      "entityId": "0x771a13afd358d",
+      "createdAt": 1791991035650,
+      "dedupeKey": "offer_0x771a13afd358d_0x52B4417937A8C822606552277d33b5c654d24178",
+      "entityType": "job",
+      "actorWallet": "0x71c8417937a8c822606552277d33b5c654d24177",
+      "recipientWallet": "0x52b4417937a8c822606552277d33b5c654d24178"
+    },
+    {
+      "id": "notif-1791991035491-rm0sb",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0x771a13afd358d",
+      "entityId": "0x771a13afd358d",
+      "createdAt": 1791991035491,
+      "dedupeKey": "prop_0x771a13afd358d_0x63c4417937a8c822606552277d33b5c654d24179",
+      "entityType": "job",
+      "actorWallet": "0x63c4417937a8c822606552277d33b5c654d24179",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791991035413-qn0x2",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0x771a13afd358d",
+      "entityId": "0x771a13afd358d",
+      "createdAt": 1791991035413,
+      "dedupeKey": "prop_0x771a13afd358d_0x52b4417937a8c822606552277d33b5c654d24178",
+      "entityType": "job",
+      "actorWallet": "0x52b4417937a8c822606552277d33b5c654d24178",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791990968532-u3rt9",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0x771a13afc3007",
+      "entityId": "0x771a13afc3007",
+      "createdAt": 1791990968532,
+      "dedupeKey": "prop_0x771a13afc3007_0x63c4417937a8c822606552277d33b5c654d24179",
+      "entityType": "job",
+      "actorWallet": "0x63c4417937a8c822606552277d33b5c654d24179",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791990968462-e29u9",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0x771a13afc3007",
+      "entityId": "0x771a13afc3007",
+      "createdAt": 1791990968462,
+      "dedupeKey": "prop_0x771a13afc3007_0x52b4417937a8c822606552277d33b5c654d24178",
+      "entityType": "job",
+      "actorWallet": "0x52b4417937a8c822606552277d33b5c654d24178",
+      "recipientWallet": "0x71c8417937a8c822606552277d33b5c654d24177"
+    },
+    {
+      "id": "notif-1791990894924-j8lvs",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0xtest_1791990894718",
+      "entityId": "0xtest_1791990894718",
+      "createdAt": 1791990894924,
+      "dedupeKey": "prop_0xtest_1791990894718_0x3333333333333333333333333333333333333333",
+      "entityType": "job",
+      "actorWallet": "0x3333333333333333333333333333333333333333",
+      "recipientWallet": "0x1111111111111111111111111111111111111111"
+    },
+    {
+      "id": "notif-1791990894857-11egp",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0xtest_1791990894718",
+      "entityId": "0xtest_1791990894718",
+      "createdAt": 1791990894857,
+      "dedupeKey": "prop_0xtest_1791990894718_0x2222222222222222222222222222222222222222",
+      "entityType": "job",
+      "actorWallet": "0x2222222222222222222222222222222222222222",
+      "recipientWallet": "0x1111111111111111111111111111111111111111"
+    },
+    {
+      "id": "notif-1791990846088-8obul",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0xtest_1791990845742",
+      "entityId": "0xtest_1791990845742",
+      "createdAt": 1791990846088,
+      "dedupeKey": "prop_0xtest_1791990845742_0x3333333333333333333333333333333333333333",
+      "entityType": "job",
+      "actorWallet": "0x3333333333333333333333333333333333333333",
+      "recipientWallet": "0x1111111111111111111111111111111111111111"
+    },
+    {
+      "id": "notif-1791990845979-gidqj",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0xtest_1791990845742",
+      "entityId": "0xtest_1791990845742",
+      "createdAt": 1791990845979,
+      "dedupeKey": "prop_0xtest_1791990845742_0x2222222222222222222222222222222222222222",
+      "entityType": "job",
+      "actorWallet": "0x2222222222222222222222222222222222222222",
+      "recipientWallet": "0x1111111111111111111111111111111111111111"
+    },
+    {
+      "id": "notif-1791990733427-bdf6z",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0xtest_1791990733245",
+      "entityId": "0xtest_1791990733245",
+      "createdAt": 1791990733427,
+      "dedupeKey": "prop_0xtest_1791990733245_0x3333333333333333333333333333333333333333",
+      "entityType": "job",
+      "actorWallet": "0x3333333333333333333333333333333333333333",
+      "recipientWallet": "0x1111111111111111111111111111111111111111"
+    },
+    {
+      "id": "notif-1791990733364-95nen",
+      "body": "A freelancer submitted a proposal for \"Full Lifecycle Test Contract\".",
+      "type": "PROPOSAL_RECEIVED",
+      "title": "New Proposal Received",
+      "readAt": null,
+      "deepLink": "/jobs/0xtest_1791990733245",
+      "entityId": "0xtest_1791990733245",
+      "createdAt": 1791990733364,
+      "dedupeKey": "prop_0xtest_1791990733245_0x2222222222222222222222222222222222222222",
+      "entityType": "job",
+      "actorWallet": "0x2222222222222222222222222222222222222222",
+      "recipientWallet": "0x1111111111111111111111111111111111111111"
     }
   ],
   "accountDeletionRequests": {},

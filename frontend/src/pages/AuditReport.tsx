@@ -16,6 +16,7 @@ import { generateIpfsCid } from '../utils/ipfs';
 import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
 import { getUserBytecodeMatrix } from '../utils/githubOracle';
+import { PageContainer } from '../components/layout/PageContainer';
 
 export const AuditReport: React.FC = () => {
   const { address: targetAddressParam } = useParams<{ address: string }>();
@@ -519,7 +520,7 @@ export const AuditReport: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/80 py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-[#0047AB] selection:text-white">
+    <PageContainer className="py-6 space-y-6 text-[#0B0B0F]">
 
       {/* CSS print overrides */}
       <style>{`
@@ -702,7 +703,7 @@ export const AuditReport: React.FC = () => {
                 }`}
             >
               <FileText size={13} />
-              <span>Printable PDF</span>
+              <span>Certificate Sheet</span>
             </button>
           </div>
         </div>
@@ -951,7 +952,7 @@ export const AuditReport: React.FC = () => {
               onClick={() => setActiveTab('certificate')}
               className="text-[#0047AB] hover:text-[#003A8C] font-bold underline shrink-0 cursor-pointer"
             >
-              View Printable PDF &rarr;
+              View Certificate Sheet &rarr;
             </button>
           </div>
 
@@ -1455,6 +1456,8 @@ export const AuditReport: React.FC = () => {
 
       </div>
 
-    </div>
+    </PageContainer>
   );
 };
+
+export default AuditReport;

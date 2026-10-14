@@ -11,7 +11,7 @@ import {
   Send, Scale, RefreshCw, Layers, TrendingUp, MessageSquare, 
   ChevronRight, Calendar, UserCheck, Eye, XCircle, Info, Copy,
   Check, Filter, ArrowUpDown, ChevronDown, DollarSign, Flag,
-  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award, CheckCheck, Loader2, Lock
+  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award, CheckCheck, Loader2, Lock, Star
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -19,6 +19,7 @@ import { ActionStatusModal, ActionModalDetail } from './ActionStatusModal';
 import { RaiseDisputeModal } from './RaiseDisputeModal';
 import { FormattedJobDescription } from './FormattedJobDescription';
 import { PaymentReleasedModal } from './PaymentReleasedModal';
+import { NegotiationCard } from './NegotiationCard';
 import { scrollToSection } from '../utils/scroll';
 import { TokenIcon } from './TokenIcon';
 
@@ -161,8 +162,16 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     requestModifications, 
     releasePayment, 
     claimAutoRelease,
-    raiseDispute 
+    raiseDispute,
+    submitClientReview,
+    acceptJobOffer,
+    declineJobOffer,
+    fundJob
   } = usePolyLanceData();
+
+  const [isAcceptingOffer, setIsAcceptingOffer] = useState(false);
+  const [isDecliningOffer, setIsDecliningOffer] = useState(false);
+  const [isFundingEscrow, setIsFundingEscrow] = useState(false);
 
   // Reactive job instance from Context
   const currentJob = useMemo(() => {
@@ -245,6 +254,36 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
   const [previewFile, setPreviewFile] = useState<CachedIpfsFile | null>(null);
   const [isPaymentReleasedModalOpen, setIsPaymentReleasedModalOpen] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
+  const [reviewRating, setReviewRating] = useState<number>(currentJob.clientReview?.rating || 5);
+  const [reviewComment, setReviewComment] = useState<string>(currentJob.clientReview?.comment || '');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isEditingReview, setIsEditingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+
+  useEffect(() => {
+    if (currentJob.clientReview) {
+      setReviewRating(currentJob.clientReview.rating || 5);
+      setReviewComment(currentJob.clientReview.comment || '');
+    }
+  }, [currentJob.clientReview]);
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewComment.trim()) return;
+    setIsSubmittingReview(true);
+    try {
+      const ok = await submitClientReview(currentJob.id, reviewRating, reviewComment);
+      if (ok) {
+        setReviewSuccess(true);
+        setIsEditingReview(false);
+        setTimeout(() => setReviewSuccess(false), 3000);
+      }
+    } catch (err) {
+      console.error('Review submit error:', err);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
@@ -504,6 +543,86 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     }
   };
 
+  const handleAcceptOffer = async () => {
+    setIsAcceptingOffer(true);
+    try {
+      await acceptJobOffer(currentJob.id);
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      setActionModal({
+        isOpen: true,
+        title: 'Offer Accepted Successfully',
+        subtitle: 'You have agreed to the project terms! The client has been notified to deposit the escrow funds on Polygon.',
+        icon: 'success',
+        badgeText: 'TERMS CONFIRMED',
+      });
+    } catch (err: any) {
+      console.error('Failed to accept offer:', err);
+      setActionModal({
+        isOpen: true,
+        title: 'Failed to Accept Offer',
+        subtitle: formatWeb3ErrorMessage(err),
+        icon: 'dispute',
+        badgeText: 'ACTION REJECTED',
+      });
+    } finally {
+      setIsAcceptingOffer(false);
+    }
+  };
+
+  const handleDeclineOffer = async () => {
+    if (!window.confirm('Are you sure you want to decline this job offer? The position will be returned to the open marketplace.')) {
+      return;
+    }
+    setIsDecliningOffer(true);
+    try {
+      await declineJobOffer(currentJob.id);
+      setActionModal({
+        isOpen: true,
+        title: 'Offer Declined',
+        subtitle: 'You have declined this project offer. The client has been notified and the job has been restored to Open status.',
+        icon: 'dispute',
+        badgeText: 'OFFER DECLINED',
+      });
+    } catch (err: any) {
+      console.error('Failed to decline offer:', err);
+      setActionModal({
+        isOpen: true,
+        title: 'Failed to Decline Offer',
+        subtitle: formatWeb3ErrorMessage(err),
+        icon: 'dispute',
+        badgeText: 'ACTION REJECTED',
+      });
+    } finally {
+      setIsDecliningOffer(false);
+    }
+  };
+
+  const handleDepositEscrow = async () => {
+    setIsFundingEscrow(true);
+    try {
+      await fundJob(currentJob.id);
+      confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+      setActionModal({
+        isOpen: true,
+        title: 'Escrow Successfully Funded!',
+        subtitle: `Project budget of ${formatAmountWithToken(rawEscrowAmount)} is now locked in non-custodial smart contract escrow on Polygon.`,
+        icon: 'success',
+        badgeText: 'ESCROW FUNDED',
+      });
+    } catch (err: any) {
+      console.error('Failed to fund escrow:', err);
+      setActionModal({
+        isOpen: true,
+        title: 'Escrow Funding Failed',
+        subtitle: formatWeb3ErrorMessage(err),
+        icon: 'dispute',
+        badgeText: 'TRANSACTION FAILED',
+      });
+    } finally {
+      setIsFundingEscrow(false);
+    }
+  };
+
   const handleEscalateToJudge = (e: React.FormEvent) => {
     e.preventDefault();
     if (!disputeEvidence.trim()) return;
@@ -641,9 +760,11 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       });
     }
 
-    // 4. Real Escrow Funded Event
-    if (currentJob.createdAt || currentJob.status === 'Funded' || currentJob.status === 'Selected' || currentJob.status === 'Completed') {
-      const fundedEvent = currentJob.events?.find(e => (e.step === 'Funded' || e.title?.toLowerCase().includes('fund')) && e.timestamp && e.timestamp > 0);
+    // 4. Real Escrow Funded Event (ONLY when escrow is genuinely funded)
+    const fundedEvent = currentJob.events?.find(e => (e.step === 'Funded' || e.title?.toLowerCase().includes('fund')) && e.status === 'completed' && e.timestamp && e.timestamp > 0);
+    const isGenuinelyFunded = Boolean(fundedEvent) || currentJob.status === 'Funded' || currentJob.status === 'Submitted' || currentJob.status === 'Completed';
+
+    if (isGenuinelyFunded) {
       const rawFundedTs = fundedEvent?.timestamp || (currentJob as any).fundedAt || currentJob.createdAt || Date.now();
       const ts = typeof rawFundedTs === 'string' ? new Date(rawFundedTs).getTime() : rawFundedTs;
       const validTs = isNaN(ts) || ts <= 0 ? Date.now() : ts;
@@ -709,7 +830,11 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 ? 'COMPLETED / SETTLED' 
                 : currentJob.status === 'Submitted' 
                 ? 'SUBMITTED • UNDER REVIEW' 
-                : (currentJob.status === 'Funded' || currentJob.status === 'Selected' ? 'FUNDED' : currentJob.status.toUpperCase())}
+                : currentJob.status === 'Funded'
+                ? 'ESCROW FUNDED'
+                : currentJob.status === 'Selected'
+                ? 'OFFER PENDING'
+                : currentJob.status.toUpperCase()}
             </span>
           </div>
 
@@ -888,6 +1013,148 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             </div>
           </div>
 
+          {/* CLIENT REVIEW & QUALITY RATING SECTION */}
+          <div className="bg-white border border-[#E5E7EB] rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E7EB] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center font-bold shrink-0">
+                  <Star size={16} className="fill-amber-500 text-amber-500" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm sm:text-base text-[#0B0B0F]">
+                    Client Review & Quality Rating
+                  </h4>
+                  <p className="text-xs text-[#4B5563]">
+                    Verified feedback recorded on the freelancer's public profile and reputation record
+                  </p>
+                </div>
+              </div>
+
+              {currentJob.clientReview && isClient && !isEditingReview && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingReview(true)}
+                  className="text-xs text-[#0047AB] hover:underline font-medium flex items-center gap-1 cursor-pointer"
+                >
+                  Edit Review
+                </button>
+              )}
+            </div>
+
+            {/* Review form for client when no review or editing */}
+            {isClient && (!currentJob.clientReview || isEditingReview) ? (
+              <form onSubmit={handleReviewSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-[#0B0B0F]">
+                    Rate Freelancer Performance (1 to 5 stars)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewRating(star)}
+                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                        title={`${star} star${star > 1 ? 's' : ''}`}
+                      >
+                        <Star
+                          size={24}
+                          className={star <= reviewRating ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}
+                        />
+                      </button>
+                    ))}
+                    <span className="text-xs font-semibold text-[#0B0B0F] ml-2">
+                      {reviewRating === 5 ? '5.0 - Exceptional Work' :
+                       reviewRating === 4 ? '4.0 - Great Delivery' :
+                       reviewRating === 3 ? '3.0 - Satisfactory' :
+                       reviewRating === 2 ? '2.0 - Needs Improvement' : '1.0 - Poor'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-[#0B0B0F]">
+                    Client Feedback & Testimonial
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Describe the freelancer's communication, speed, deliverable quality, and overall experience..."
+                    className="w-full text-xs p-3 border border-[#E5E7EB] rounded-xl bg-white focus:outline-none focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] resize-none"
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReview || !reviewComment.trim()}
+                    className="px-4 py-2 bg-[#0047AB] hover:bg-[#003882] disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    {isSubmittingReview ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={13} />
+                        <span>{isEditingReview ? 'Update Review' : 'Submit Review'}</span>
+                      </>
+                    )}
+                  </button>
+
+                  {isEditingReview && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingReview(false)}
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-xl transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  )}
+
+                  {reviewSuccess && (
+                    <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                      <CheckCircle2 size={13} /> Review recorded successfully!
+                    </span>
+                  )}
+                </div>
+              </form>
+            ) : currentJob.clientReview ? (
+              <div className="p-4 bg-[#F6F7F9] border border-[#E5E7EB] rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          size={15}
+                          className={s <= currentJob.clientReview!.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-[#0B0B0F]">
+                      {currentJob.clientReview.rating}.0 / 5.0 Rating
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-[#6B7280]">
+                    Verified Client Review
+                  </span>
+                </div>
+
+                <p className="text-xs text-[#0B0B0F] leading-relaxed italic bg-white p-3 rounded-lg border border-[#E5E7EB]">
+                  "{currentJob.clientReview.comment}"
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 bg-[#F6F7F9] border border-[#E5E7EB] rounded-xl text-center text-xs text-[#6B7280]">
+                <span>No review has been posted by the client yet. Once submitted, it will be displayed on the freelancer's public profile.</span>
+              </div>
+            )}
+          </div>
+
 
           {/* Final Submitted Deliverables & Proof of Work Card */}
           <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-sm space-y-3.5 sm:space-y-5">
@@ -1058,15 +1325,13 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
             {/* Gating for Selection Phase / Awaiting Escrow Funding */}
             {currentJob.status === 'Selected' ? (
-              <div className="p-6 rounded-2xl bg-slate-50 border-2 border-slate-200 shadow-xs text-center space-y-2.5">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 text-[#0047AB] flex items-center justify-center mx-auto shadow-2xs">
-                  <Clock size={24} />
-                </div>
-                <h4 className="font-headline font-bold text-slate-900 text-sm">Escrow Funding in Progress</h4>
-                <p className="text-xs text-slate-600 font-sans max-w-md mx-auto leading-relaxed">
-                  You are the selected talent for this project! Deliverable uploads and milestone verification will unlock immediately once the client funds the smart contract escrow on Polygon.
-                </p>
-              </div>
+              <NegotiationCard
+                job={currentJob}
+                isClient={isClient}
+                isFreelancer={isAssignedFreelancer}
+                onFundEscrow={handleDepositEscrow}
+                isFundingEscrow={isFundingEscrow}
+              />
             ) : (
               <>
                 {/* Submitted Deliverables Card (Awaiting Client Review) */}
@@ -1387,9 +1652,21 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 Escrow Status
               </span>
               <div className="truncate">
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-bold text-[10px] uppercase tracking-wide whitespace-nowrap">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
-                  {currentJob.status === 'Funded' || currentJob.status === 'Selected' ? 'FUNDED' : currentJob.status.toUpperCase()}
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-mono font-bold text-[10px] uppercase tracking-wide whitespace-nowrap ${
+                  currentJob.status === 'Funded'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : currentJob.status === 'Selected'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-slate-100 text-slate-700 border border-slate-300'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${
+                    currentJob.status === 'Funded' ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`} />
+                  {currentJob.status === 'Funded'
+                    ? 'FUNDED'
+                    : currentJob.status === 'Selected'
+                    ? (currentJob.freelancerAgreedTerms ? 'OFFER ACCEPTED' : 'OFFER PENDING')
+                    : currentJob.status.toUpperCase()}
                 </span>
               </div>
             </div>
@@ -1661,8 +1938,16 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             </div>
           )}
 
-          {/* Awaiting Freelancer Deliverables Showcase Card (CLIENT ONLY) */}
-          {!currentJob.proof ? (
+          {/* Selection Stage Gating or Awaiting Deliverables (CLIENT ONLY) */}
+          {currentJob.status === 'Selected' ? (
+            <NegotiationCard
+              job={currentJob}
+              isClient={isClient}
+              isFreelancer={isAssignedFreelancer}
+              onFundEscrow={handleDepositEscrow}
+              isFundingEscrow={isFundingEscrow}
+            />
+          ) : !currentJob.proof ? (
             <div className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs relative overflow-hidden">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4">
                 <CompactClockIllustration />
@@ -2328,7 +2613,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
       {/* Interactive IPFS Deliverable File Preview Modal */}
       {previewFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn font-sans">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-fadeIn font-sans">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 relative overflow-hidden max-h-[90vh] flex flex-col">
             
             {/* Modal Header */}

@@ -1,10 +1,30 @@
 import { ethers } from 'ethers';
 import { NETWORK_CONFIG } from '../config/contracts';
+import { normalizeTokenSymbol } from './currency';
 
+/**
+ * Converts any Ethereum/Polygon address to EIP-55 Checksum casing.
+ * Guaranteed consistent address format across nav, profile, cards, and chips.
+ */
+export function toChecksumAddress(addr: string | undefined): string {
+  if (!addr) return '';
+  const clean = addr.trim();
+  if (!clean.startsWith('0x') || clean.length !== 42) return clean;
+  try {
+    return ethers.getAddress(clean);
+  } catch {
+    return clean;
+  }
+}
+
+/**
+ * Truncates an address (first 6 + last 4 characters) in canonical checksum format.
+ */
 export function truncateAddress(addr: string | undefined): string {
   if (!addr) return '';
-  if (addr.length <= 10) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  const checksummed = toChecksumAddress(addr);
+  if (checksummed.length <= 10) return checksummed;
+  return `${checksummed.slice(0, 6)}...${checksummed.slice(-4)}`;
 }
 
 /**
@@ -16,16 +36,36 @@ export function formatPolBalance(val: string | number | undefined): string {
   return num.toFixed(3);
 }
 
-
+/**
+ * Formats timestamps to clean sentence-case relative strings:
+ * e.g. "Just now", "5m ago", "3h ago", "2d ago"
+ */
 export function formatTimeAgo(timestamp: number): string {
+  if (!timestamp) return 'Recently';
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 60) return `${Math.max(1, seconds)}s ago`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
+/**
+ * Formats a posted date with both calendar date and relative time:
+ * e.g. "Posted Oct 1, 2026 · 7 days ago"
+ */
+export function formatPostedDate(timestamp: number | undefined): string {
+  if (!timestamp) return 'Posted recently';
+  const dateStr = new Date(timestamp).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  return `Posted ${dateStr} · ${formatTimeAgo(timestamp)}`;
 }
 
 export function formatDaysRemaining(submittedAt: number, reviewPeriodDays: number): string {
@@ -145,7 +185,6 @@ export function getDeterministicSbtId(jobId: string | undefined): number {
 
 /**
  * Returns permanent canonical CertifiedPass Certificate ID: PL-SBT-JOB-<jobId>
- * Guaranteed to never mutate across re-renders, reloads, or after downloading.
  */
 export function getCanonicalCertificateId(jobId?: string | number | any, contractAddress?: string): string {
   if (!jobId) return 'PL-SBT-JOB-001';
@@ -173,10 +212,6 @@ export function getCanonicalCertificateId(jobId?: string | number | any, contrac
   return canonicalId;
 }
 
-/**
- * Formats canonical CertifiedPass Universal Verification URL
- * Guarantees seamless connection both within PolyLance and across CertifiedPass portal domains.
- */
 export function getCertifiedPassVerifyUrl(certId: string): string {
   const clean = String(certId || '').trim();
   if (typeof window !== 'undefined') {
@@ -184,4 +219,143 @@ export function getCertifiedPassVerifyUrl(certId: string): string {
     return `${origin}/?certId=${encodeURIComponent(clean)}#/verify?certId=${encodeURIComponent(clean)}`;
   }
   return `https://certifiedpass.polylance.codes/?certId=${encodeURIComponent(clean)}#/verify?certId=${encodeURIComponent(clean)}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UNIFIED CATEGORIES CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+export interface CategoryConfig {
+  id: 'web3' | 'frontend' | 'backend' | 'mobile';
+  label: string;
+  description: string;
+  skills: string[];
+}
+
+export const CATEGORIES: CategoryConfig[] = [
+  {
+    id: 'web3',
+    label: 'Web3 / Smart Contracts',
+    description: 'Solidity, Smart Contracts, DeFi, Hardhat, Polygon',
+    skills: ['Solidity', 'Smart Contracts', 'DeFi', 'Ethers.js', 'Polygon']
+  },
+  {
+    id: 'frontend',
+    label: 'Frontend',
+    description: 'TypeScript, React, Next.js, Web3 UI, Tailwind CSS',
+    skills: ['TypeScript', 'React', 'Next.js', 'Tailwind CSS', 'Vite']
+  },
+  {
+    id: 'backend',
+    label: 'Backend',
+    description: 'Node.js, Rust, Go, Python, APIs, Indexers',
+    skills: ['Node.js', 'Rust', 'Go', 'Python', 'PostgreSQL', 'GraphQL']
+  },
+  {
+    id: 'mobile',
+    label: 'Mobile',
+    description: 'React Native, Flutter, iOS Swift, Android Kotlin',
+    skills: ['React Native', 'Flutter', 'iOS', 'Android']
+  }
+];
+
+export function getCanonicalCategory(raw?: string): CategoryConfig {
+  const lower = (raw || '').toLowerCase().trim();
+  if (lower.includes('web3') || lower.includes('solidity') || lower.includes('smart contract')) {
+    return CATEGORIES[0];
+  }
+  if (lower.includes('frontend') || lower.includes('ui')) {
+    return CATEGORIES[1];
+  }
+  if (lower.includes('backend') || lower.includes('indexer') || lower.includes('systems')) {
+    return CATEGORIES[2];
+  }
+  if (lower.includes('mobile')) {
+    return CATEGORIES[3];
+  }
+  return CATEGORIES[0];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UNIFIED STATUS SET & CANONICAL STATUS HELPER
+// Allowed: Open, Negotiating, Funded, In progress, Submitted, Completed, Disputed
+// ─────────────────────────────────────────────────────────────────────────────
+export type CanonicalJobStatus =
+  | 'Open'
+  | 'Negotiating'
+  | 'Funded'
+  | 'In progress'
+  | 'Submitted'
+  | 'Completed'
+  | 'Disputed';
+
+export function getCanonicalJobStatus(job?: any | null): CanonicalJobStatus {
+  if (!job) return 'Open';
+  const raw = job.status;
+
+  if (raw === 'Completed') return 'Completed';
+  if (raw === 'Disputed' || Boolean(job.dispute && !job.dispute.resolved)) return 'Disputed';
+  if (raw === 'Submitted' || Boolean(job.proof && job.proof.submittedAt)) return 'Submitted';
+
+  if (raw === 'Funded') {
+    return 'Funded';
+  }
+
+  if (raw === 'Selected') {
+    if (job.clientAgreedTerms && job.freelancerAgreedTerms) {
+      return 'In progress';
+    }
+    return 'Negotiating';
+  }
+
+  if (raw === 'Open') {
+    if (job.applications && job.applications.length > 0) {
+      return 'Negotiating';
+    }
+    return 'Open';
+  }
+
+  return 'Open';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEE BREAKDOWN CALCULATION HELPER (Client pays +2.5% · Freelancer receives -2.5%)
+// ─────────────────────────────────────────────────────────────────────────────
+export interface FeeBreakdownData {
+  budget: number;
+  platformFee: number;
+  clientDeposit: number;
+  freelancerReceives: number;
+  tokenSymbol: 'POL' | 'USDC' | 'USDT';
+}
+
+export function calculateFeeBreakdown(
+  budgetInput: number | string,
+  tokenInput: string = 'POL'
+): FeeBreakdownData {
+  const budget = typeof budgetInput === 'number'
+    ? budgetInput
+    : parseFloat(String(budgetInput).replace(/[^0-9.-]/g, '')) || 0;
+  const tokenSymbol = normalizeTokenSymbol(tokenInput);
+
+  const platformFee = budget * 0.025;
+  const clientDeposit = budget + platformFee;
+  const freelancerReceives = Math.max(0, budget - platformFee);
+
+  return {
+    budget,
+    platformFee,
+    clientDeposit,
+    freelancerReceives,
+    tokenSymbol
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REPUTATION PERCENTILE HELPER
+// ─────────────────────────────────────────────────────────────────────────────
+export function calculateReputationPercentile(rank: number, total: number): string {
+  if (!total || total <= 0 || !rank || rank <= 0) return 'Unranked';
+  if (total === 1) return 'Top 1%';
+  const pct = Math.max(1, Math.min(100, Math.round((rank / total) * 100)));
+  return `Top ${pct}%`;
 }

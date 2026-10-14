@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 
 export interface GithubScoreResult {
+  id?: string;
   username: string;
   primaryCategory: string;
   primaryScore: number;
@@ -97,6 +98,7 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
   if (cached) {
     return {
       ...cached,
+      id: cached.id || cleanUsername,
       attestationUID: ethers.keccak256(
         ethers.toUtf8Bytes(`${userAddress.toLowerCase()}:${cleanUsername.toLowerCase()}:${Date.now()}`)
       ),
@@ -132,6 +134,10 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
       // 1. Fetch real user profile from GitHub API
       const userRes = await fetch(`https://api.github.com/users/${cleanUsername}`, { headers });
 
+      if (userRes.status === 404) {
+        throw new Error(`GitHub account @${cleanUsername} does not exist. Please verify the account exists on GitHub.`);
+      }
+
       if (userRes.status === 403 || userRes.status === 429) {
         githubRateLimitedUntil = Date.now() + 15 * 60 * 1000;
         console.warn(`[GitHub Oracle] GitHub API rate-limited (status ${userRes.status}). Using local score engine.`);
@@ -145,8 +151,8 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
         const publicRepos = userData.public_repos || 0;
 
         // ── Hard Minimum Activity Gate ──────────────────────────────────────
-        if (publicRepos < MIN_PUBLIC_REPOS) {
-          throw new Error(`GitHub account does not meet minimum requirements: ${publicRepos} public repos (need ≥ ${MIN_PUBLIC_REPOS}). Build more public code first.`);
+        if (publicRepos < 1) {
+          throw new Error(`GitHub account @${cleanUsername} has 0 public repositories. PolyLance requires an active developer account with public code.`);
         }
 
         reposCount = publicRepos;
@@ -287,6 +293,9 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     }
   } catch (err) {
     if (err instanceof Error && (
+      err.message.includes('does not exist') ||
+      err.message.includes('not found') ||
+      err.message.includes('0 public repositories') ||
       err.message.includes('minimum requirement') ||
       err.message.includes('below the minimum threshold') ||
       err.message.includes('contribution history too low')
@@ -345,6 +354,7 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
   );
 
   const finalResult: GithubScoreResult = {
+    id: cleanUsername,
     username: cleanUsername,
     primaryCategory,
     primaryScore,

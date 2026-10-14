@@ -6,6 +6,11 @@ import { TREASURY_WALLET } from '../config/contracts';
 import { ShieldCheck, Terminal, DollarSign, Users, CheckCircle2, AlertTriangle, FileCode, Zap, Wallet } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PolygonIcon, UsdcIcon } from '../components/TokenIcon';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
+import { CompactEmptyState } from '../components/common/CompactEmptyState';
+import { Button } from '../components/common/Button';
+import { Modal } from '../components/overlay';
 
 export const Treasury: React.FC = () => {
   const { address } = useWeb3();
@@ -155,87 +160,80 @@ export const Treasury: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 py-6 w-full">
-      {/* Restricted Header matching treasury_admin_management/code.html */}
-      <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="font-headline text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-                <ShieldCheck className="text-[#0047AB]" /> Safe Multisig Treasury Admin
-              </h1>
-              <span className="bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
-                Restricted Access
-              </span>
-            </div>
-            <p className="text-xs text-slate-600 font-mono">
-              TREASURY_ADMIN_ROLE: <span className="text-[#0B0B0C] font-bold">{truncateAddress(address)}</span> ({treasury.requiredSignatures}-of-{treasury.signers.length} Threshold Safe)
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 font-mono text-xs">
+    <PageContainer className="space-y-6 py-6 w-full text-[#0B0B0F]">
+      <PageHeader
+        title="Safe Multisig Treasury Admin"
+        subtitle={`Admin: ${truncateAddress(address)} · ${treasury.requiredSignatures}-of-${treasury.signers.length} Threshold Safe`}
+        actions={
+          <div className="flex items-center gap-2 text-xs">
             <button
+              type="button"
               onClick={() => setActiveTab('overview')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                activeTab === 'overview' ? 'bg-gradient-to-r from-[#0047AB] to-[#0066FF] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer border ${
+                activeTab === 'overview'
+                  ? 'bg-[#0047AB] text-white border-[#0047AB] shadow-xs'
+                  : 'bg-white hover:bg-[#F6F7F9] text-[#374151] hover:text-[#0B0B0F] border-[#E5E7EB]'
               }`}
             >
               Overview
             </button>
             <button
+              type="button"
               onClick={() => {
                 setActiveTab('terminal');
                 setTimeout(() => {
                   document.getElementById('terminal-view')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }, 80);
               }}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                activeTab === 'terminal' ? 'bg-gradient-to-r from-[#0047AB] to-[#0066FF] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer border ${
+                activeTab === 'terminal'
+                  ? 'bg-[#0047AB] text-white border-[#0047AB] shadow-xs'
+                  : 'bg-white hover:bg-[#F6F7F9] text-[#374151] hover:text-[#0B0B0F] border-[#E5E7EB]'
               }`}
             >
-              CLI Terminal Log
+              Activity log
             </button>
+          </div>
+        }
+      />
+
+      {/* Executive Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-4 sm:p-5 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-1.5">
+          <p className="text-xs text-[#6B7280] font-medium">Available treasury balance</p>
+          <div className="flex items-center gap-2">
+            <UsdcIcon size={26} className="shrink-0" />
+            <h4 className="text-2xl sm:text-3xl font-semibold text-[#15803D] tabular-nums">
+              ${parseFloat(treasury.balanceUsdc).toLocaleString()} <span className="text-base font-normal text-[#6B7280]">USDC</span>
+            </h4>
+          </div>
+          <div className="text-xs text-[#6B7280]">
+            Accumulated from 2.5% platform fees
           </div>
         </div>
 
-        {/* Executive Summary Cards matching reference HTML */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
-            <p className="font-label-mono text-xs text-slate-500 font-bold">Available Treasury Balance</p>
-            <div className="flex items-center gap-2">
-              <UsdcIcon size={30} className="shrink-0" />
-              <h4 className="font-headline text-3xl font-black text-emerald-700">
-                ${parseFloat(treasury.balanceUsdc).toLocaleString()} <span className="text-xl font-bold text-slate-500">USDC</span>
-              </h4>
+        <div className="p-4 sm:p-5 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-1.5">
+          <p className="text-xs text-[#6B7280] font-medium">Native gas vault</p>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center shrink-0">
+              <PolygonIcon size={16} />
             </div>
-            <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
-              Accumulated from 2.5% site maintenance fees
-            </div>
-          </div>
-
-          <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
-            <p className="font-label-mono text-xs text-slate-500 font-bold">Native Gas Vault</p>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#7B3FE4] flex items-center justify-center text-white shrink-0 shadow-2xs">
-                <PolygonIcon size={18} className="text-white" />
-              </div>
-              <h4 className="font-headline text-3xl font-black text-slate-900">
-                {treasury.balanceEth} <span className="text-xl font-bold text-[#7B3FE4]">POL</span>
-              </h4>
-            </div>
-            <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
-              Polygon Gas Subsidy Vault
-            </div>
-          </div>
-
-          <div className="glass-panel p-6 border-slate-200 bg-white space-y-2">
-            <p className="font-label-mono text-xs text-slate-500 font-bold">Security Scheme</p>
-            <h4 className="font-headline text-2xl font-black text-slate-900">
-              {treasury.requiredSignatures} of {treasury.signers.length} Threshold
+            <h4 className="text-2xl sm:text-3xl font-semibold text-[#0B0B0F] tabular-nums">
+              {treasury.balanceEth} <span className="text-base font-normal text-[#6B7280]">POL</span>
             </h4>
-            <div className="text-[11px] font-mono text-slate-500 font-medium pt-1">
-              Gnosis Safe Standard Multisig
-            </div>
+          </div>
+          <div className="text-xs text-[#6B7280]">
+            Polygon gas subsidy vault
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-5 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-1.5">
+          <p className="text-xs text-[#6B7280] font-medium">Security scheme</p>
+          <h4 className="text-2xl sm:text-3xl font-semibold text-[#0B0B0F]">
+            {treasury.requiredSignatures} of {treasury.signers.length} Threshold
+          </h4>
+          <div className="text-xs text-[#6B7280]">
+            Safe multisig standard
           </div>
         </div>
       </div>
@@ -243,33 +241,33 @@ export const Treasury: React.FC = () => {
       {/* OVERVIEW TAB CONTENT */}
       {activeTab === 'overview' && (
         <>
-          {/* Propose Multisig Withdrawal Form matching reference HTML */}
-          <form onSubmit={handlePropose} className="glass-panel p-6 sm:p-8 border-slate-200 bg-white space-y-6 hard-shadow">
-            <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <DollarSign size={20} className="text-[#0047AB]" /> Propose Multisig Disbursement
+          {/* Propose Multisig Withdrawal Form */}
+          <form onSubmit={handlePropose} className="p-6 sm:p-8 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-6">
+            <h3 className="text-base font-semibold text-[#0B0B0F] flex items-center gap-2 border-b border-[#E5E7EB] pb-3">
+              <DollarSign size={18} className="text-[#0047AB]" /> Propose Multisig Disbursement
             </h3>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+            <div className="bg-[#F6F7F9] border border-[#E5E7EB] rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2">
                 <Wallet size={14} className="text-[#0047AB] shrink-0" />
-                <span className="text-slate-600 font-bold">Official Protocol Treasury Wallet:</span>
-                <span className="font-mono text-slate-900 font-bold break-all">{TREASURY_WALLET}</span>
+                <span className="text-[#4B5563] font-medium">Official protocol treasury wallet:</span>
+                <span className="font-mono text-[#0B0B0F] break-all">{TREASURY_WALLET}</span>
               </div>
               {recipient !== TREASURY_WALLET && (
                 <button
                   type="button"
                   onClick={() => setRecipient(TREASURY_WALLET)}
-                  className="px-2.5 py-1 bg-white border border-slate-200 text-[#0047AB] font-bold rounded-lg text-[10px] hover:bg-slate-100 transition-colors"
+                  className="px-2.5 py-1 bg-white border border-[#D1D5DB] text-[#0047AB] font-medium rounded-lg text-xs hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                 >
-                  Use Official Treasury
+                  Use official treasury
                 </button>
               )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
-                  Recipient Wallet Address *
+                <label className="block text-xs text-[#0B0B0F] mb-1 font-medium">
+                  Recipient wallet address *
                 </label>
                 <input
                   type="text"
@@ -277,12 +275,12 @@ export const Treasury: React.FC = () => {
                   placeholder="0x..."
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
-                  className="w-full glass-input text-xs"
+                  className="w-full px-3 py-2 text-xs bg-[#F6F7F9] border border-[#D1D5DB] focus:bg-white focus:border-[#0047AB] rounded-lg font-mono outline-none text-[#0B0B0F]"
                 />
               </div>
 
               <div>
-                <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
+                <label className="block text-xs text-[#0B0B0F] mb-1 font-medium">
                   Amount (USDC) *
                 </label>
                 <input
@@ -291,100 +289,110 @@ export const Treasury: React.FC = () => {
                   placeholder="1000"
                   value={amountUsdc}
                   onChange={(e) => setAmountUsdc(e.target.value)}
-                  className="w-full glass-input text-xs"
+                  className="w-full px-3 py-2 text-xs bg-[#F6F7F9] border border-[#D1D5DB] focus:bg-white focus:border-[#0047AB] rounded-lg outline-none text-[#0B0B0F]"
                 />
               </div>
 
               <div>
-                <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold">
-                  Disbursement Purpose *
+                <label className="block text-xs text-[#0B0B0F] mb-1 font-medium">
+                  Disbursement purpose *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Audit Pool Grant"
+                  placeholder="e.g. Audit pool grant"
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
-                  className="w-full glass-input text-xs"
+                  className="w-full px-3 py-2 text-xs bg-[#F6F7F9] border border-[#D1D5DB] focus:bg-white focus:border-[#0047AB] rounded-lg outline-none text-[#0B0B0F]"
                 />
               </div>
             </div>
 
             <div className="flex justify-end">
-              <button type="submit" className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-8 py-3 rounded-xl font-headline font-bold text-xs shadow-sm transition-all cursor-pointer">
-                Create Withdrawal Proposal
+              <button
+                type="submit"
+                className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-2.5 rounded-lg font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Create withdrawal proposal
               </button>
             </div>
           </form>
 
-          {/* Pending Multisig Proposals Grid matching reference HTML */}
-          <div className="glass-panel p-6 sm:p-8 border-slate-200 bg-white hard-shadow space-y-4">
-            <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
+          {/* Pending Multisig Proposals Grid */}
+          <div className="p-5 sm:p-6 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-4">
+            <h3 className="text-base font-semibold text-[#0B0B0F] flex items-center gap-2 border-b border-[#E5E7EB] pb-3">
               <Users size={18} className="text-[#0047AB]" /> Multisig Proposals Queue
             </h3>
 
-            <div className="space-y-4">
-              {treasury.proposals.map((prop) => {
-                const hasSigned = address
-                  ? prop.signatures.some((s) => s.toLowerCase() === address.toLowerCase())
-                  : false;
-                return (
-                  <div key={prop.id} className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-sm">{prop.purpose}</span>
-                        <span className="text-emerald-700 font-bold">${parseFloat(prop.amountUsdc).toLocaleString()} USDC</span>
+            {treasury.proposals.length === 0 ? (
+              <CompactEmptyState
+                title="No proposals in queue"
+                description="Treasury withdrawal proposals requiring threshold approvals will appear here."
+              />
+            ) : (
+              <div className="space-y-3">
+                {treasury.proposals.map((prop) => {
+                  const hasSigned = address
+                    ? prop.signatures.some((s) => s.toLowerCase() === address.toLowerCase())
+                    : false;
+                  return (
+                    <div key={prop.id} className="bg-[#F6F7F9] p-4 rounded-xl border border-[#E5E7EB] flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-[#0B0B0F] text-sm">{prop.purpose}</span>
+                          <span className="text-emerald-700 font-bold">${parseFloat(prop.amountUsdc).toLocaleString()} USDC</span>
+                        </div>
+                        <p className="text-[#6B7280]">
+                          To: <span className="text-[#0B0B0F] font-bold">{truncateAddress(prop.recipient)}</span> | Signers: {prop.signatures.length}/{treasury.requiredSignatures} Approved
+                        </p>
                       </div>
-                      <p className="text-slate-600">
-                        To: <span className="text-slate-900 font-bold">{truncateAddress(prop.recipient)}</span> | Signers: {prop.signatures.length}/{treasury.requiredSignatures} Approved
-                      </p>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setSelectedProposalModal(prop.id)}
-                        className="bg-white hover:bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-lg text-slate-700 font-bold cursor-pointer"
-                      >
-                        Inspect Payload
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedProposalModal(prop.id)}
+                          className="bg-white hover:bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-lg text-slate-700 font-bold cursor-pointer"
+                        >
+                          Inspect Payload
+                        </button>
 
-                      {prop.executed ? (
-                        <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full text-[10px] font-bold">
-                          Executed On-Chain
-                        </span>
-                      ) : prop.signatures.length >= treasury.requiredSignatures ? (
-                        <button
-                          onClick={() => handleExecute(prop.id)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          Execute Disbursement
-                        </button>
-                      ) : hasSigned ? (
-                        <span className="text-slate-800 font-bold bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                          ✓ Approved by You
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => handleSign(prop.id)}
-                          className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          Sign Transaction
-                        </button>
-                      )}
+                        {prop.executed ? (
+                          <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full text-[10px] font-bold">
+                            Executed On-Chain
+                          </span>
+                        ) : prop.signatures.length >= treasury.requiredSignatures ? (
+                          <button
+                            onClick={() => handleExecute(prop.id)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            Execute Disbursement
+                          </button>
+                        ) : hasSigned ? (
+                          <span className="text-slate-800 font-bold bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                            ✓ Approved by You
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleSign(prop.id)}
+                            className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            Sign Transaction
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </>
       )}
 
-      {/* CLI TERMINAL VIEW VARIANT matching treasury_terminal_view_variant */}
+      {/* CLI TERMINAL VIEW VARIANT */}
       {activeTab === 'terminal' && (
         <div 
           id="terminal-view" 
-          className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 max-w-3xl mx-auto space-y-6 relative overflow-hidden transition-all duration-300"
+          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 max-w-3xl mx-auto space-y-6 relative overflow-hidden transition-all duration-300"
         >
           {/* Header Panel */}
           <div className="flex items-center justify-between border-b border-slate-100 pb-5">
@@ -497,45 +505,40 @@ export const Treasury: React.FC = () => {
         </div>
       )}
 
-      {/* PROPOSALS MODAL INSPECTOR matching treasury_proposed_changes_approval_modal */}
-      {selectedProposalModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="glass-panel p-6 sm:p-8 rounded-2xl max-w-lg w-full border-slate-200 bg-white hard-shadow space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-headline text-lg font-bold text-slate-900 flex items-center gap-2">
-                <FileCode size={18} className="text-[#0047AB]" /> Multisig Payload Inspector
-              </h3>
-              <button onClick={() => setSelectedProposalModal(null)} className="text-slate-400 hover:text-slate-700 font-bold cursor-pointer">
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3 font-mono text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Proposal ID:</span>
-                <span className="font-bold text-slate-900">{selectedProposalModal}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Safe Target:</span>
-                <span className="font-bold text-slate-900">TreasuryVault.sol</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Calldata Hash:</span>
-                <span className="font-bold text-[#0047AB]">0x8a9b...c1d2</span>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={() => setSelectedProposalModal(null)}
-                className="bg-[#0B0B0C] hover:bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                Close Inspector
-              </button>
-            </div>
+      {/* PROPOSALS MODAL INSPECTOR */}
+      <Modal
+        isOpen={Boolean(selectedProposalModal)}
+        onClose={() => setSelectedProposalModal(null)}
+        size="md"
+        title="Multisig Payload Inspector"
+        subtitle="On-chain calldata parameters and execution targets."
+        footer={
+          <div className="flex justify-end w-full">
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => setSelectedProposalModal(null)}
+            >
+              Close Inspector
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3 font-mono text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div className="flex justify-between">
+            <span className="text-slate-500 font-sans">Proposal ID:</span>
+            <span className="font-bold text-slate-900">{selectedProposalModal}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500 font-sans">Safe Target:</span>
+            <span className="font-bold text-slate-900">TreasuryVault.sol</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500 font-sans">Calldata Hash:</span>
+            <span className="font-bold text-[#0047AB]">0x8a9b...c1d2</span>
           </div>
         </div>
-      )}
-    </div>
+      </Modal>
+    </PageContainer>
   );
 };

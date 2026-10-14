@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .bg { fill: #F6F7F9; }
+      .border { stroke: #E5E7EB; stroke-width: 2; fill: none; }
+      .brand { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 24px; font-weight: 700; fill: #0B0B0F; letter-spacing: -0.5px; }
+      .tag { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 18px; font-weight: 600; fill: #0047AB; }
+      .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 48px; font-weight: 600; fill: #0B0B0F; }
+      .summary { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 22px; font-weight: 400; fill: #4B5563; }
+      .badge-bg { fill: #E7EEF9; }
+      .chip-bg { fill: #FFFFFF; stroke: #E5E7EB; stroke-width: 1.5; }
+      .chip-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 20px; font-weight: 600; fill: #0B0B0F; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="900" class="bg" />
+  <rect x="2" y="2" width="1596" height="896" rx="12" class="border" />
+
+  <!-- Top bar info -->
+  <g transform="translate(60, 70)">
+    <circle cx="10" cy="10" r="8" fill="#0047AB" />
+    <text x="30" y="16" class="brand">PolyLance</text>
+    <rect x="1340" y="-10" width="140" height="40" rx="8" class="badge-bg" />
+    <text x="1410" y="16" text-anchor="middle" class="tag">Coming Soon</text>
+  </g>
+
+  <!-- Center Content -->
+  <g transform="translate(800, 420)" text-anchor="middle">
+    <!-- Play Icon Placeholder -->
+    <circle cx="0" cy="-60" r="50" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2" />
+    <polygon points="-8,-75 -8,-45 16,-60" fill="#0047AB" />
+
+    <text y="40" class="title">Reputation &amp; Soulbound Certificates</text>
+    <text y="85" class="summary">How every approved milestone mints a permanent, verifiable work credential to your wallet.</text>
+
+    <!-- Chips row -->
+    <g transform="translate(0, 130)">
+      
+      <rect x="-110" y="0" width="100" height="38" rx="8" class="chip-bg" />
+      <text x="-60" y="25" text-anchor="middle" class="chip-text">30s</text>
+      
+      <rect x="10" y="0" width="100" height="38" rx="8" class="chip-bg" />
+      <text x="60" y="25" text-anchor="middle" class="chip-text">STANDARD</text>
+    </g>
+  </g>
+</svg>

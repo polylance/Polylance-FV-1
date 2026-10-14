@@ -6,6 +6,7 @@ import {
   X, Maximize2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { PageContainer } from '../components/layout/PageContainer';
 
 export const Manifesto: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string; role: string } | null>(null);
@@ -149,7 +150,7 @@ export const Manifesto: React.FC = () => {
       icon: Award,
       color: 'text-[#0047AB]',
       bgColor: 'bg-slate-100 border-slate-200',
-      description: 'Your career should not depend on centralized platform algorithms. Earned work history belongs to you permanently via ERC-5192 Soulbound Tokens.'
+      description: 'Your career should not depend on centralized platform algorithms. Earned work history belongs to you permanently via ERC-721 Soulbound work certificates.'
     },
     {
       title: '2. Non-Custodial Financial Escrow',
@@ -175,39 +176,36 @@ export const Manifesto: React.FC = () => {
   ];
 
   return (
-    <div className="bg-transparent text-[#111827] w-full font-sans select-none relative overflow-hidden py-4 pb-16">
+    <PageContainer className="text-[#0B0B0F] py-6 space-y-10">
       
-      <div className="w-full space-y-16 sm:space-y-20 relative z-10">
+      <div className="w-full space-y-10 sm:space-y-12 relative z-10">
         
         {/* SECTION 1: MANIFESTO HERO HEADER */}
-        <section className="text-center max-w-4xl mx-auto space-y-5">
+        <section className="text-center max-w-[720px] mx-auto space-y-4">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#EBF3FF] border border-[#00D2FF]/30 text-[#0047AB] rounded-full text-xs font-mono font-bold uppercase tracking-widest shadow-2xs"
+            className="inline-flex items-center gap-2 px-3 py-1 bg-[#F6F7F9] border border-[#E5E7EB] text-[#4B5563] rounded-full text-[12px] font-medium"
           >
-            <Sparkles size={13} className="text-[#0066FF] animate-pulse" />
-            <span>The PolyLance Protocol Manifesto</span>
+            <Sparkles size={13} className="text-[#0047AB]" />
+            <span>The PolyLance protocol manifesto</span>
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="font-headline text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight text-slate-900"
+            className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight leading-tight text-[#0B0B0F]"
           >
-            DECENTRALIZING THE{' '}
-            <span className="bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#00D2FF] bg-clip-text text-transparent">
-              FUTURE OF WORK
-            </span>
+            Decentralizing the future of work
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-slate-600 text-sm sm:text-base md:text-lg leading-relaxed font-sans font-medium max-w-3xl mx-auto"
+            className="text-slate-600 text-sm sm:text-base md:text-lg leading-relaxed font-sans font-medium max-w-[720px] mx-auto"
           >
             We are building a global, permissionless labor market where reputation is soulbound, payments are escrowed on-chain, and work history cannot be censored or deleted by any corporation.
           </motion.p>
@@ -224,7 +222,7 @@ export const Manifesto: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 * idx }}
                 whileHover={{ y: -5 }}
-                className="bg-white/90 backdrop-blur-md border border-slate-200/90 rounded-3xl p-6 space-y-4 shadow-xs hover:border-slate-400 hover:shadow-md transition-all duration-300 relative overflow-hidden group"
+                className="bg-white border border-[#E5E7EB] rounded-2xl p-6 space-y-4 shadow-xs hover:border-slate-400 hover:shadow-md transition-all duration-300 relative overflow-hidden group"
               >
                 <div className={`w-12 h-12 rounded-2xl ${pillar.bgColor} border flex items-center justify-center shrink-0 shadow-3xs group-hover:scale-105 transition-transform duration-300`}>
                   <Icon size={24} className={pillar.color} />
@@ -498,7 +496,7 @@ export const Manifesto: React.FC = () => {
       <AnimatePresence>
         {selectedImage && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75"
             onClick={() => setSelectedImage(null)}
           >
             <motion.div
@@ -543,6 +541,6 @@ export const Manifesto: React.FC = () => {
       </AnimatePresence>
 
       </div>
-    </div>
+    </PageContainer>
   );
 };

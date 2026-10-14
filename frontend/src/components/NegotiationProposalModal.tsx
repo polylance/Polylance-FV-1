@@ -1,27 +1,15 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, X, AlertCircle, Send, Smile, Zap, HandshakeIcon } from 'lucide-react';
-import { transition } from '../lib/motion';
+import { Clock, Send, AlertCircle } from 'lucide-react';
+import { Modal } from './overlay/Modal';
+import { Button } from './common/Button';
 
-const backdropVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-};
-
-const modalVariants = {
-  initial: { opacity: 0, scale: 0.96, y: 16 },
-  animate: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.96, y: 16 },
-};
-
-interface NegotiationProposalModalProps {
+export interface NegotiationProposalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (amountUsdc: string, deadlineDays: number, note: string, isFinalCall: boolean) => Promise<void> | void;
-  currentAmountUsdc: string;
-  currentDeadlineDays: number;
+  onSubmit: (amountUsdc: string, deadlineDays: number, note: string, isFinalCall: boolean) => Promise<void>;
   role: 'Client' | 'Freelancer';
+  currentAmountUsdc?: string;
+  currentDeadlineDays?: number;
   counterpartName?: string;
   initialIsFinalCall?: boolean;
 }
@@ -30,35 +18,39 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
   isOpen,
   onClose,
   onSubmit,
-  currentAmountUsdc,
-  currentDeadlineDays,
   role,
-  counterpartName = 'them',
+  currentAmountUsdc = '1000',
+  currentDeadlineDays = 7,
+  counterpartName = 'the other party',
   initialIsFinalCall = false,
 }) => {
-  const [amountUsdc, setAmountUsdc] = useState(currentAmountUsdc || '1000');
-  const [deadlineDays, setDeadlineDays] = useState(currentDeadlineDays ? String(currentDeadlineDays) : '7');
+  const [amountUsdc, setAmountUsdc] = useState(currentAmountUsdc);
+  const [deadlineDays, setDeadlineDays] = useState(currentDeadlineDays.toString());
   const [note, setNote] = useState('');
   const [isFinalCall, setIsFinalCall] = useState(initialIsFinalCall);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const numAmount = parseFloat(amountUsdc || '0');
-  const netPayout = numAmount * 0.975;
+  const numAmount = parseFloat(amountUsdc) || 0;
   const platformFee = numAmount * 0.025;
+  const netPayout = numAmount - platformFee;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
-    if (!amountUsdc || numAmount <= 0) {
-      setValidationError('Please enter a budget amount greater than $0 USDC.');
+
+    const val = parseFloat(amountUsdc);
+    if (isNaN(val) || val <= 0) {
+      setValidationError('Please enter a valid budget amount above 0 USDC.');
       return;
     }
+
     const days = parseInt(deadlineDays, 10);
-    if (!days || days <= 0) {
-      setValidationError('Please enter how many days you need to deliver.');
+    if (isNaN(days) || days < 1 || days > 180) {
+      setValidationError('Please enter a timeline between 1 and 180 days.');
       return;
     }
+
     setIsSubmitting(true);
     try {
       await onSubmit(amountUsdc, days, note.trim(), isFinalCall);
@@ -68,242 +60,184 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
     }
   };
 
-  // Role-specific friendly copy
   const isFreelancer = role === 'Freelancer';
 
-  const headingEmoji = isFinalCall ? '⚡' : isFreelancer ? '👋' : '🤝';
   const heading = isFinalCall
-    ? 'This is my best offer'
+    ? 'Final Terms Proposal'
     : isFreelancer
-    ? `Here's what I'm thinking…`
-    : `Let me make you an offer`;
+    ? 'Propose Price & Timeline'
+    : 'Make an Offer';
 
   const subheading = isFinalCall
-    ? `Let ${counterpartName} know this is your final number — no more back-and-forth.`
+    ? `Final proposal for ${counterpartName} without further counters.`
     : isFreelancer
-    ? `Drop your ask for ${counterpartName} — budget, timeline, and a quick note.`
-    : `Send ${counterpartName} your counter-offer. Keep it friendly!`;
+    ? `Submit your rate and timeline for ${counterpartName} to review.`
+    : `Send a counter-offer to ${counterpartName}.`;
 
-  const amountLabel = isFreelancer ? 'My asking price (USDC)' : "Budget I'm offering (USDC)";
-  const timelineLabel = isFreelancer ? 'I can deliver in (days)' : 'Timeline I need (days)';
+  const amountLabel = isFreelancer ? 'Asking price (USDC)' : 'Offered budget (USDC)';
+  const timelineLabel = isFreelancer ? 'Estimated delivery (days)' : 'Required timeline (days)';
   const noteLabel = isFreelancer
-    ? "What's included in this? (optional)"
-    : "Anything you'd like to add? (optional)";
+    ? 'Scope notes (optional)'
+    : 'Additional notes (optional)';
   const notePlaceholder = isFreelancer
-    ? 'e.g. Full frontend + 2 revisions included, tests ready on day 3 👍'
-    : 'e.g. Happy to adjust scope if needed, just let me know what works!';
-
-  const submitLabel = isFinalCall
-    ? 'Send Final Offer'
-    : isFreelancer
-    ? 'Send My Ask 🚀'
-    : 'Send Offer 🤝';
+    ? 'e.g. Includes full frontend integration, revisions, and test coverage'
+    : 'e.g. Flexible on scope adjustments as needed';
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div
-            variants={backdropVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="sm"
+      isPending={isSubmitting}
+      title={heading}
+      description={subheading}
+      footer={
+        <div className="flex items-center justify-end gap-2.5 w-full">
+          <Button
+            variant="secondary"
+            size="md"
             onClick={onClose}
-          />
-
-          <motion.div
-            variants={modalVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={transition.spring}
-            className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 z-10 space-y-5"
+            disabled={isSubmitting}
           >
-            {/* Header */}
-            <div className="flex justify-between items-start">
-              <div className="flex items-start gap-3">
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 ${
-                  isFinalCall
-                    ? 'bg-amber-50 border border-amber-200'
-                    : 'bg-blue-50 border border-blue-200'
-                }`}>
-                  {headingEmoji}
-                </div>
-                <div>
-                  <h3 className="font-headline text-lg font-extrabold text-slate-900 leading-tight">
-                    {heading}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-sans mt-0.5 leading-relaxed">
-                    {subheading}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Validation Error */}
-            {validationError && (
-              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
-                <AlertCircle size={15} className="text-rose-500 shrink-0" />
-                <span>{validationError}</span>
-              </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-
-              {/* Budget */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">
-                  {amountLabel}
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold text-sm">
-                    $
-                  </div>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="any"
-                    min="1"
-                    required
-                    value={amountUsdc}
-                    onChange={(e) => setAmountUsdc(e.target.value)}
-                    placeholder="e.g. 2500"
-                    className="w-full pl-8 pr-16 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono font-bold text-sm focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-mono font-bold text-slate-400">
-                    USDC
-                  </div>
-                </div>
-                {numAmount > 0 && (
-                  <div className="flex items-center justify-between text-[11px] font-mono px-1 text-slate-500">
-                    <span>
-                      {isFreelancer ? 'You receive' : 'Freelancer gets'}{' '}
-                      <strong className="text-emerald-700">${netPayout.toFixed(2)}</strong>
-                    </span>
-                    <span className="text-slate-400">2.5% platform maintenance: ${platformFee.toFixed(2)}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Timeline */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">
-                  {timelineLabel}
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Clock size={15} />
-                  </div>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    max="180"
-                    required
-                    value={deadlineDays}
-                    onChange={(e) => setDeadlineDays(e.target.value)}
-                    placeholder="e.g. 7"
-                    className="w-full pl-10 pr-16 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono font-bold text-sm focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-mono font-bold text-slate-400">
-                    DAYS
-                  </div>
-                </div>
-              </div>
-
-              {/* Note */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">
-                  {noteLabel}
-                </label>
-                <textarea
-                  rows={2}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder={notePlaceholder}
-                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs font-sans focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none leading-relaxed"
-                />
-              </div>
-
-              {/* Final Call Toggle */}
-              <div className={`p-3 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                isFinalCall
-                  ? 'bg-amber-50 border border-amber-200'
-                  : 'bg-slate-50 border border-slate-200'
-              }`}
-                onClick={() => setIsFinalCall(!isFinalCall)}
-              >
-                <div className="flex items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    id="isFinalCallCheck"
-                    checked={isFinalCall}
-                    onChange={(e) => setIsFinalCall(e.target.checked)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-4 h-4 rounded text-amber-500 border-slate-300 focus:ring-amber-400 cursor-pointer"
-                  />
-                  <div>
-                    <label htmlFor="isFinalCallCheck" className={`text-xs font-bold cursor-pointer select-none ${isFinalCall ? 'text-amber-800' : 'text-slate-700'}`}>
-                      ⚡ This is my final number
-                    </label>
-                    <p className={`text-[10.5px] font-sans ${isFinalCall ? 'text-amber-600' : 'text-slate-400'}`}>
-                      {isFinalCall
-                        ? 'Locked in — no more negotiating after this.'
-                        : 'Check this if you\'re done going back and forth.'}
-                    </p>
-                  </div>
-                </div>
-                {isFinalCall && (
-                  <span className="text-[10px] font-mono font-extrabold uppercase bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full shrink-0">
-                    FINAL
-                  </span>
-                )}
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-semibold text-xs transition-colors cursor-pointer"
-                >
-                  Maybe later
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer ${
-                    isFinalCall
-                      ? 'bg-amber-500 hover:bg-amber-600 shadow-xs disabled:opacity-60'
-                      : 'bg-[#0047AB] hover:bg-[#003882] shadow-xs disabled:opacity-60'
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Sending…
-                    </>
-                  ) : (
-                    <>
-                      <Send size={13} />
-                      {submitLabel}
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </motion.div>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleSubmit}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+            icon={<Send size={14} />}
+          >
+            {isSubmitting ? 'Sending offer...' : isFinalCall ? 'Send final offer' : 'Send proposal'}
+          </Button>
         </div>
-      )}
-    </AnimatePresence>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Validation Error */}
+        {validationError && (
+          <div className="p-3 rounded-[8px] bg-[#FEF2F2] border border-[#FECACA] text-[#991B1B] text-xs flex items-center gap-2">
+            <AlertCircle size={15} className="shrink-0 text-[#DC2626]" />
+            <span>{validationError}</span>
+          </div>
+        )}
+
+        {/* Budget */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-[#4B5563]">
+            {amountLabel} <span className="text-[#991B1B]">*</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs text-[#6B7280]">
+              $
+            </div>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="any"
+              min="1"
+              required
+              value={amountUsdc}
+              onChange={(e) => setAmountUsdc(e.target.value)}
+              placeholder="e.g. 2500"
+              className="w-full h-11 pl-7 pr-16 rounded-[10px] border border-[#E5E7EB] bg-white text-sm text-[#0B0B0F] tabular-nums focus:outline-none focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB]"
+              disabled={isSubmitting}
+            />
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs font-mono font-medium text-[#6B7280]">
+              USDC
+            </div>
+          </div>
+          {numAmount > 0 && (
+            <div className="flex items-center justify-between text-[11px] px-1 text-[#6B7280] pt-0.5">
+              <span>
+                {isFreelancer ? 'You receive:' : 'Freelancer receives:'}{' '}
+                <strong className="text-[#0B0B0F] tabular-nums">${netPayout.toFixed(2)}</strong>
+              </span>
+              <span className="tabular-nums">Fee (2.5%): ${platformFee.toFixed(2)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Timeline */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-[#4B5563]">
+            {timelineLabel} <span className="text-[#991B1B]">*</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#6B7280]">
+              <Clock size={15} />
+            </div>
+            <input
+              type="number"
+              inputMode="numeric"
+              min="1"
+              max="180"
+              required
+              value={deadlineDays}
+              onChange={(e) => setDeadlineDays(e.target.value)}
+              placeholder="e.g. 7"
+              className="w-full h-11 pl-8 pr-16 rounded-[10px] border border-[#E5E7EB] bg-white text-sm text-[#0B0B0F] tabular-nums focus:outline-none focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB]"
+              disabled={isSubmitting}
+            />
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs font-mono font-medium text-[#6B7280]">
+              DAYS
+            </div>
+          </div>
+        </div>
+
+        {/* Note */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-[#4B5563]">
+            {noteLabel}
+          </label>
+          <textarea
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={notePlaceholder}
+            className="w-full p-3 rounded-[10px] border border-[#E5E7EB] bg-white text-xs text-[#0B0B0F] focus:outline-none focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] resize-none leading-relaxed"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {/* Final Call Toggle */}
+        <div
+          onClick={() => !isSubmitting && setIsFinalCall(!isFinalCall)}
+          className={`p-3 rounded-[10px] border flex items-center justify-between gap-3 cursor-pointer transition-colors ${
+            isFinalCall
+              ? 'border-[#0047AB] bg-[#EAF1FB]'
+              : 'border-[#E5E7EB] bg-[#F6F7F9]'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              id="isFinalCallCheck"
+              checked={isFinalCall}
+              onChange={(e) => setIsFinalCall(e.target.checked)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-4 h-4 rounded border-[#E5E7EB] text-[#0047AB] focus:ring-[#0047AB] cursor-pointer"
+              disabled={isSubmitting}
+            />
+            <div>
+              <label htmlFor="isFinalCallCheck" className="text-xs font-semibold text-[#0B0B0F] cursor-pointer">
+                This is my final offer
+              </label>
+              <p className="text-[11px] text-[#6B7280]">
+                Mark as non-negotiable final proposal.
+              </p>
+            </div>
+          </div>
+          {isFinalCall && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white text-[#0047AB] border border-[#C9DAF2]">
+              FINAL
+            </span>
+          )}
+        </div>
+      </form>
+    </Modal>
   );
 };
+
+export default NegotiationProposalModal;

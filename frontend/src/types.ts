@@ -151,6 +151,11 @@ export interface Job {
   preAcceptMessages?: { sender: string; senderRole: 'Client' | 'Freelancer'; text: string; timestamp: number; proposal?: NegotiationProposal; applicantAddress?: string }[];
   completedAt?: number;
   chatClearedAt?: number;
+  clientReview?: {
+    rating: number; // 1-5
+    comment: string;
+    reviewedAt: number;
+  };
 }
 
 export interface UserProfile {
@@ -177,9 +182,12 @@ export interface UserProfile {
   prsCount?: number;
   reputationTier?: string;
   role?: 'freelancer' | 'client' | 'admin' | 'judge';
+  accountMode?: AccountMode;
   title?: string;
   hourlyRateUsdc?: number;
 }
+
+export type AccountMode = 'freelancer' | 'client' | 'both';
 
 export interface DaoProposal {
   id: number | string;

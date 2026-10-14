@@ -113,7 +113,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.05 : 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-900/60"
             aria-hidden="true"
           />
 

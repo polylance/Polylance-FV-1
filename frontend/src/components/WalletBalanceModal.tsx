@@ -1,57 +1,60 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X,
   Copy,
   Check,
   ExternalLink,
   RefreshCw,
   Wallet,
   User,
-  Activity,
   ChevronRight,
   ArrowLeft,
   ArrowUpRight,
   ArrowDownLeft,
   Award,
-  CheckCircle2,
   FileText,
   Clock,
   Layers,
-  Sparkles,
   ShieldCheck,
+  PlusCircle,
 } from 'lucide-react';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
-import { truncateAddress, formatTimeAgo } from '../utils/formatters';
+import { truncateAddress, formatTimeAgo, getPolygonScanAddressUrl } from '../utils/formatters';
 import { NETWORK_CONFIG } from '../config/contracts';
 import { useLiveCurrencyRates } from '../utils/currency';
 import { useNavigate } from 'react-router-dom';
-import polylanceLogoImg from '../assets/polylanceLogo.png';
 import { scrollToSection } from '../utils/scroll';
-import { PolygonIcon, UsdcIcon, UsdtIcon } from './TokenIcon';
+import { PolygonLogo } from './brand/PolygonLogo';
+import { Amount } from './common/Amount';
+import { AddressChip } from './common/AddressChip';
+import { Button } from './common/Button';
+import { Modal } from './overlay/Modal';
+import { useDemoMode } from '../context/DemoModeContext';
+import { UsdcIcon, UsdtIcon } from './TokenIcon';
 
 interface WalletBalanceModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface DemoToken {
+  symbol: string;
+  name: string;
+  balance: number;
+  decimals: number;
+  usdPrice: number;
+}
+
 export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, onClose }) => {
   const { address, balanceNative, balanceUsdc, balanceUsdt, refreshBalances } = useWeb3();
   const { jobs } = usePolyLanceData();
+  const { isDemoMode } = useDemoMode();
   const rates = useLiveCurrencyRates();
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
+
   const [copiedTxHash, setCopiedTxHash] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState<'balances' | 'polygon_history'>('balances');
-
-  const handleCopyAddress = () => {
-    if (!address) return;
-    navigator.clipboard.writeText(address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleCopyTxHash = (hash: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -64,87 +67,83 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
     setRefreshing(true);
     try {
       await refreshBalances();
+    } catch {
+      // silently handle
     } finally {
       setTimeout(() => setRefreshing(false), 500);
     }
   };
 
-  const explorerUrl = `${NETWORK_CONFIG.blockExplorerUrl || 'https://polygonscan.com'}/address/${address}`;
-
-  // Safe numeric parsing for display with NaN protection
+  // Live Rates
+  const polRateUsd = rates?.cryptoPrices?.POL || 0.42;
   const polNum = parseFloat(balanceNative || '0') || 0;
   const usdcNum = parseFloat(balanceUsdc || '0') || 0;
   const usdtNum = parseFloat(balanceUsdt || '0') || 0;
 
-  // Real-time live valuation
-  const polPrice = rates?.cryptoPrices?.POL || 0.45;
-  const polUsd = polNum * polPrice;
-  const totalUsd = (isNaN(polUsd) ? 0 : polUsd) + (isNaN(usdcNum) ? 0 : usdcNum) + (isNaN(usdtNum) ? 0 : usdtNum);
+  const polUsd = polNum * polRateUsd;
+  const usdcUsd = usdcNum * 1.0;
+  const usdtUsd = usdtNum * 1.0;
 
-  // Compute all PolyLance transactions related to this wallet on Polygon
+  // Extra demo tokens seeded in demo mode to test 8+ tokens scroll
+  const demoTokens: DemoToken[] = useMemo(() => {
+    if (!isDemoMode) return [];
+    return [
+      { symbol: 'WETH', name: 'Wrapped Ether', balance: 0.85, decimals: 18, usdPrice: 2850 },
+      { symbol: 'DAI', name: 'Dai Stablecoin', balance: 250.0, decimals: 18, usdPrice: 1.0 },
+      { symbol: 'WBTC', name: 'Wrapped Bitcoin', balance: 0.045, decimals: 8, usdPrice: 65400 },
+      { symbol: 'LINK', name: 'Chainlink', balance: 42.5, decimals: 18, usdPrice: 14.8 },
+      { symbol: 'QUICK', name: 'QuickSwap', balance: 1850.0, decimals: 18, usdPrice: 0.052 },
+    ];
+  }, [isDemoMode]);
+
+  const demoTokensUsd = demoTokens.reduce((acc, t) => acc + t.balance * t.usdPrice, 0);
+  const totalUsd = polUsd + usdcUsd + usdtUsd + demoTokensUsd;
+
+  // Polygon Transaction History calculation (strictly from real jobs & events)
   const polygonTransactions = useMemo(() => {
-    if (!address) return [];
-    const addrLower = address.toLowerCase();
+    if (!jobs || !address) return [];
+
+    const currentAddr = address.toLowerCase();
     const txList: Array<{
       id: string;
       title: string;
-      subtitle: string;
+      subtitle?: string;
       jobTitle: string;
       jobId: string;
       amountDisplay?: string;
       tokenSymbol?: string;
       txHash: string;
       timestamp: number;
-      type: 'fund' | 'release' | 'submission' | 'creation' | 'sbt' | 'dispute';
+      type: 'fund' | 'release' | 'submission' | 'dispute' | 'sbt' | 'other';
       isIncoming: boolean;
     }> = [];
 
     const seenTxHashes = new Set<string>();
 
-    (jobs || []).forEach((job) => {
-      const isClient = Boolean(job.client && job.client.toLowerCase() === addrLower);
-      const isFreelancer = Boolean(job.freelancer && job.freelancer.toLowerCase() === addrLower);
-      const isJudge = Boolean(job.dispute && job.dispute.judge && job.dispute.judge.toLowerCase() === addrLower);
+    jobs.forEach((job) => {
+      const isClient = job.client?.toLowerCase() === currentAddr;
+      const isFreelancer = job.freelancer?.toLowerCase() === currentAddr;
+      const isJudge = job.dispute?.judge?.toLowerCase() === currentAddr;
 
-      // SECURITY & PRIVACY PROTECTION:
-      // Transactions must strictly be scoped to the connected wallet.
-      // Do NOT expose escrow funds, payouts, submissions, or SBT mints to third parties or unselected applicants.
       if (!isClient && !isFreelancer && !isJudge) return;
 
-      const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
-      const isCrypto = sym === 'POL' || sym === 'MATIC';
-      const tokenSym = isCrypto ? 'POL' : sym;
-      const rawAmt = parseFloat(isCrypto ? (job.amountEth || job.amountUsdc || '0') : (job.amountUsdc || '0')) || 0;
-      const amountStr = isCrypto ? `${rawAmt} POL` : `$${rawAmt.toFixed(2)} ${tokenSym}`;
+      const events = job.events || [];
+      const budgetStr = job.amountEth ? `${job.amountEth} POL` : `${job.amountUsdc || '0'} USDC`;
+      const tokenSym = job.paymentTokenSymbol || (job.amountEth ? 'POL' : 'USDC');
 
-      // Events
-      (job.events || []).forEach((evt) => {
-        if (!evt.txHash || evt.status !== 'completed') return;
+      events.forEach((evt) => {
+        if (!evt.txHash) return;
+        const hashLower = evt.txHash.toLowerCase();
+        if (seenTxHashes.has(hashLower)) return;
+        seenTxHashes.add(hashLower);
 
-        // Security check: only show events where the user was an authorized participant
-        if (evt.step === 'Posted' && !isClient) return;
-        if (evt.step === 'Funded' && !isClient && !isFreelancer) return;
-        if (evt.step === 'Submitted' && !isFreelancer) return;
-        if (evt.step === 'Completed' && !isClient && !isFreelancer) return;
-        if (evt.step === 'Minted' && !isFreelancer) return;
-        if (evt.step === 'Disputed' && !(job.dispute?.raisedBy?.toLowerCase() === addrLower || isClient || isFreelancer)) return;
-        if (evt.step === 'Ruled' && !(isJudge || isClient || isFreelancer)) return;
-        if (evt.step === 'Update' && !isFreelancer && !isClient) return;
-        if (evt.step === 'Extension' && !isFreelancer && !isClient) return;
-        if (evt.step === 'ExtensionResponse' && !isClient && !isFreelancer) return;
-        if (evt.step === 'Modifications' && !isClient && !isFreelancer) return;
-
-        const key = `${evt.txHash.toLowerCase()}-${evt.step}`;
-        if (seenTxHashes.has(key)) return;
-        seenTxHashes.add(key);
-
-        let type: 'fund' | 'release' | 'submission' | 'creation' | 'sbt' | 'dispute' = 'creation';
+        let type: 'fund' | 'release' | 'submission' | 'dispute' | 'sbt' | 'other' = 'other';
+        let title = 'Smart Contract Action';
+        let subtitle = `Escrow #${job.id}`;
         let isIncoming = false;
-        let title = evt.title || evt.step;
-        let subtitle = job.title;
 
-        if (evt.step === 'Posted') {
-          type = 'creation';
+        if (evt.step === 'Created') {
+          type = 'fund';
           title = 'Job Escrow Created';
           isIncoming = false;
         } else if (evt.step === 'Funded') {
@@ -179,7 +178,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
           subtitle,
           jobTitle: job.title,
           jobId: job.id,
-          amountDisplay: (evt.step === 'Funded' || evt.step === 'Completed') ? amountStr : undefined,
+          amountDisplay: (evt.step === 'Funded' || evt.step === 'Completed') ? budgetStr : undefined,
           tokenSymbol: tokenSym,
           txHash: evt.txHash,
           timestamp: evt.timestamp || job.createdAt || Date.now(),
@@ -188,7 +187,6 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
         });
       });
 
-      // Also check sbtTxHash: ONLY if the connected wallet is the recipient freelancer!
       if (isFreelancer && job.sbtTxHash && !seenTxHashes.has(job.sbtTxHash.toLowerCase())) {
         seenTxHashes.add(job.sbtTxHash.toLowerCase());
         txList.push({
@@ -198,7 +196,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
           jobTitle: job.title,
           jobId: job.id,
           txHash: job.sbtTxHash,
-          timestamp: job.completedAt || Date.now(),
+          timestamp: job.completedAt || job.createdAt || Date.now(),
           type: 'sbt',
           isIncoming: true,
         });
@@ -208,471 +206,308 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
     return txList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   }, [jobs, address]);
 
-  if (!isOpen) return null;
+  const explorerUrl = getPolygonScanAddressUrl(address || '');
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm"
-        />
-
-        {/* Modal Card */}
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0, y: 15 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 15 }}
-          transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-          className="relative w-full max-w-[480px] max-h-[92vh] bg-white rounded-[32px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.18)] border border-slate-100 flex flex-col overflow-hidden z-10 font-sans text-slate-900"
-        >
-          {/* Header Section */}
-          <div className="p-4 sm:p-5 pb-3 flex items-start justify-between gap-3 shrink-0 border-b border-slate-100/60 bg-white">
-            <div className="flex items-start gap-3 min-w-0">
-              {view === 'polygon_history' ? (
-                <button
-                  type="button"
-                  onClick={() => setView('balances')}
-                  className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0"
-                  title="Back to Balances"
-                >
-                  <ArrowLeft size={18} strokeWidth={2.5} />
-                </button>
-              ) : (
-                <div className="w-11 h-11 rounded-2xl bg-[#0B0B0C] border border-slate-800 text-white shadow-2xs shrink-0 flex items-center justify-center">
-                  <Wallet size={20} strokeWidth={2} />
-                </div>
-              )}
-
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-snug truncate">
-                    {view === 'polygon_history' ? 'Polygon Transaction History' : 'Wallet & Balances'}
-                  </h3>
-                  {view === 'polygon_history' && (
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-300 shrink-0">
-                      {polygonTransactions.length} Txs
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-400 font-medium truncate">
-                  {view === 'polygon_history'
-                    ? 'Your PolyLance on-chain transactions on Polygon'
-                    : 'Live on-chain assets & tokens'}
-                </p>
-
-                {/* Connected Address Pill */}
-                <div
-                  onClick={handleCopyAddress}
-                  title="Click to copy address"
-                  className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200/60 rounded-full text-xs font-mono text-slate-700 transition-colors cursor-pointer select-none"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="font-semibold">{address ? truncateAddress(address) : 'Not Connected'}</span>
-                  <span className="text-slate-400 hover:text-slate-600">
-                    {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
-                  </span>
-                </div>
-              </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="md"
+      title={
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-[8px] bg-[#0B0B0F] text-white flex items-center justify-center shrink-0">
+            <Wallet size={16} />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold text-[#0B0B0F] tracking-tight truncate">
+              {view === 'polygon_history' ? 'Polygon Transaction History' : 'Wallet & Balances'}
+            </h3>
+          </div>
+        </div>
+      }
+      description={
+        <div className="flex items-center gap-2 pt-1">
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] bg-[#F6F7F9] border border-[#E5E7EB] text-xs font-medium text-[#4B5563]">
+            <PolygonLogo variant="mark" size={12} />
+            <span>{NETWORK_CONFIG.chainName || 'Polygon'} ({NETWORK_CONFIG.chainId || '137'})</span>
+          </div>
+          {address && <AddressChip address={address} showCopy showExplorer truncate />}
+        </div>
+      }
+      footer={
+        <div className="flex items-center justify-between w-full gap-3">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleRefresh}
+              loading={refreshing}
+              icon={<RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />}
+            >
+              Refresh
+            </Button>
+            {view === 'polygon_history' ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setView('balances')}
+                icon={<ArrowLeft size={13} />}
+              >
+                Back to balances
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setView('polygon_history')}
+                icon={<Clock size={13} />}
+              >
+                Tx history ({polygonTransactions.length})
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                navigate(`/profile/${address}?section=reputation-overview`);
+                scrollToSection('reputation-overview', 250);
+              }}
+              icon={<User size={13} />}
+            >
+              View profile
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      {view === 'balances' ? (
+        <div className="space-y-4">
+          {/* Total Value Card (Single Dark Surface) */}
+          <div className="p-4 rounded-[12px] bg-[#0B0B0F] text-white space-y-1">
+            <div className="flex items-center justify-between text-xs text-[#9CA3AF]">
+              <span>Total wallet value</span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-[#C9DAF2]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB]" />
+                Polygon on-chain
+              </span>
             </div>
-
-            {/* Right Header Controls */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={handleRefresh}
-                title="Refresh Balances"
-                className={`w-8 h-8 rounded-full bg-slate-100/90 hover:bg-slate-200/80 text-slate-600 flex items-center justify-center transition-all cursor-pointer ${
-                  refreshing ? 'animate-spin' : ''
-                }`}
-              >
-                <RefreshCw size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                title="Close"
-                className="w-8 h-8 rounded-full bg-slate-100/90 hover:bg-slate-200/80 text-slate-600 flex items-center justify-center transition-all cursor-pointer"
-              >
-                <X size={15} />
-              </button>
+            <div className="text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums pt-1">
+              ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+              <span className="text-xs font-normal text-[#9CA3AF]">USD</span>
             </div>
           </div>
 
-          {/* Modal Body */}
-          {view === 'balances' ? (
-            /* ── VIEW 1: TOKEN BALANCES ── */
-            <div className="p-4 sm:p-5 pt-3 flex-1 overflow-y-auto custom-scrollbar space-y-3">
-              {/* Total Wallet Value Card */}
-              <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#0B0B0C] p-3.5 sm:p-4 shadow-sm shrink-0 min-h-[105px] flex flex-col justify-between">
-                <div className="relative z-10 flex items-center justify-between">
-                  <span className="text-[13px] font-semibold text-slate-400 tracking-tight font-sans">
-                    Total Wallet Value
-                  </span>
-                  <div className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-emerald-400 text-[11px] font-semibold flex items-center gap-1.5 shadow-3xs">
-                    <Activity size={12} className="text-emerald-400" />
-                    <span>Live Sync</span>
-                  </div>
-                </div>
-
-                <div className="relative z-10 my-2 flex items-baseline">
-                  <span className="text-3xl font-black text-white font-sans tracking-tight leading-none">
-                    ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                  <span className="text-sm font-semibold text-slate-400 ml-1.5 font-sans">USD</span>
-                </div>
-
-                <div className="relative z-10 flex items-center gap-2 text-xs">
-                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    Live Sync
-                  </span>
-                  <span className="text-slate-600">•</span>
-                  <span className="text-slate-400 font-medium">Updated just now</span>
-                </div>
-              </div>
-
-              {/* Asset Rows List */}
-              <div className="space-y-2.5 shrink-0">
-                {/* 1. Native POL (Clickable to view Polygon Transaction History in PolyLance) */}
-                <div
-                  onClick={() => setView('polygon_history')}
-                  className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-[#0047AB] hover:shadow-xs flex items-center justify-between transition-all group shrink-0 cursor-pointer hover:bg-slate-50/50"
-                  title="Click to view Polygon transaction history in PolyLance"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-full bg-[#7B3FE4] border border-[#6929d5] flex items-center justify-center text-white shadow-2xs shrink-0">
-                      <PolygonIcon size={24} className="text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900 group-hover:text-[#0047AB] transition-colors">
-                          Polygon Native
-                        </span>
-                        <span className="text-[10px] font-bold text-[#7B3FE4] bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                          POL
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 group-hover:text-[#0047AB] font-medium mt-0.5 flex items-center gap-1">
-                        <span>Click to view Tx History</span>
-                        <ChevronRight size={12} />
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-slate-900">
-                        {polNum.toFixed(3)} <span className="font-extrabold text-slate-900">POL</span>
-                      </div>
-                      <div className="text-xs text-slate-400 font-mono">
-                        ≈ ${polUsd.toFixed(2)} USD
-                      </div>
-                    </div>
-                    <div className="w-7 h-7 rounded-full bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center text-slate-600 group-hover:text-[#0047AB] transition-colors ml-1">
-                      <ChevronRight size={16} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. USD Coin (USDC) */}
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-blue-300 hover:shadow-xs flex items-center justify-between transition-all group shrink-0">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <UsdcIcon size={44} className="w-11 h-11 shrink-0 drop-shadow-xs" />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900">USD Coin</span>
-                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/70">
-                          USDC
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-0.5">1:1 Dollar Stablecoin</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-[#0B0B0C]">
-                        ${usdcNum.toFixed(2)} <span className="font-extrabold text-[#0047AB]">USDC</span>
-                      </div>
-                      <div className="text-xs text-[#8892A0] font-mono">
-                        Exact: ${balanceUsdc}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Tether USD (USDT) */}
-                <div className="p-3.5 rounded-2xl bg-white border border-[#E2E6EC] hover:border-emerald-300 hover:shadow-xs flex items-center justify-between transition-all group shrink-0">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <UsdtIcon size={44} className="w-11 h-11 shrink-0 drop-shadow-xs" />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[#0B0B0C]">Tether USD</span>
-                        <span className="text-[10px] font-bold text-[#1E8449] bg-[#E3F3EA] px-2 py-0.5 rounded-full border border-[#1E8449]/30">
-                          USDT
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#8892A0] mt-0.5">Multi-Chain Stablecoin</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-[#0B0B0C]">
-                        ${usdtNum.toFixed(2)} <span className="font-extrabold text-[#1E8449]">USDT</span>
-                      </div>
-                      <div className="text-xs text-[#8892A0] font-mono">
-                        Exact: ${balanceUsdt}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Network Connection Strip */}
-              <div className="p-3 rounded-2xl bg-[#f8fafc] border border-slate-200/80 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-xl bg-[#7B3FE4] flex items-center justify-center text-white shrink-0 shadow-2xs">
-                    <PolygonIcon size={16} className="text-white" />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-700 truncate">
-                    {NETWORK_CONFIG.chainName || 'Polygon Mainnet'} ({NETWORK_CONFIG.chainId || '137'})
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    Connected
-                  </span>
-                  <a
-                    href={explorerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="View on Polygonscan"
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
-                  >
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    navigate(`/profile/${address}?section=reputation-overview`);
-                    scrollToSection('reputation-overview', 250);
-                  }}
-                  className="flex-1 py-3 px-4 rounded-2xl border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
-                >
-                  <User size={15} />
-                  <span>View Full Profile</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="py-3 px-8 rounded-2xl bg-[#0B0B0C] hover:bg-slate-900 text-white font-bold text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                >
-                  <X size={15} />
-                  <span>Close</span>
-                </button>
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-center justify-between text-slate-400 text-[9.5px] font-mono tracking-widest pt-1 px-1 select-none shrink-0">
-                <span>SECURE &bull; TRANSPARENT &bull; ON-CHAIN</span>
-                <div className="flex items-center gap-1.5 text-slate-500 font-sans font-semibold">
-                  <span className="text-[11px] tracking-normal font-medium">
-                    Powered by <strong className="text-slate-700 font-bold">PolyLance</strong>
-                  </span>
-                  <img src={polylanceLogoImg} alt="PolyLance" className="w-4 h-4 object-contain" />
-                </div>
-              </div>
+          {/* Scrollable Token List */}
+          <div className="space-y-2">
+            <div className="text-xs font-medium text-[#6B7280] px-0.5">
+              Available assets on Polygon
             </div>
-          ) : (
-            /* ── VIEW 2: POLYGON TRANSACTION HISTORY ── */
-            <div className="p-4 sm:p-5 pt-3 flex-1 overflow-y-auto custom-scrollbar space-y-3">
-              {/* Back to Balances Banner */}
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setView('balances')}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 hover:text-[#0047AB] transition-colors cursor-pointer"
-                >
-                  <ArrowLeft size={14} />
-                  <span>&larr; Back to Balances</span>
-                </button>
-                <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-800 bg-white px-2.5 py-0.5 rounded-full border border-slate-300 shadow-2xs">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Polygon Mainnet (137)</span>
-                </div>
-              </div>
 
-              {/* Privacy Shield Guard */}
-              <div className="flex items-center justify-between px-3.5 py-2 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-[11px] font-medium text-emerald-800 shadow-3xs">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
-                  <span>Privacy Protected: Scoped strictly to your wallet</span>
-                </div>
-                <span className="font-mono text-[9.5px] text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200 font-bold uppercase tracking-wider">
-                  Isolated
-                </span>
-              </div>
-
-              {/* Transactions List */}
-              <div className="space-y-2">
-                {polygonTransactions.length === 0 ? (
-                  <div className="text-center py-10 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center mx-auto shadow-2xs">
-                      <Clock size={24} />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-sm text-slate-800">No PolyLance Transactions Yet</h4>
-                      <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
-                        When you fund escrows, submit deliverables, or receive payouts in PolyLance, your Polygon on-chain transaction history will appear here.
-                      </p>
-                    </div>
-                    <a
-                      href={explorerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0047AB] hover:underline pt-1"
-                    >
-                      <span>Check Address on PolygonScan</span>
-                      <ExternalLink size={12} />
-                    </a>
+            <div className="space-y-1.5 max-h-[300px] overflow-y-auto overscroll-contain pr-1">
+              {/* 1. Native POL */}
+              <div
+                onClick={() => setView('polygon_history')}
+                className="p-3 rounded-[10px] bg-white border border-[#E5E7EB] hover:border-[#0047AB] hover:bg-[#F6F7F9] transition-colors flex items-center justify-between cursor-pointer group"
+                title="Click to view Polygon transaction history"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center shrink-0">
+                    <PolygonLogo variant="mark" size={20} />
                   </div>
-                ) : (
-                  polygonTransactions.map((tx) => {
-                    const polygonScanTxUrl = `${NETWORK_CONFIG.blockExplorerUrl || 'https://polygonscan.com'}/tx/${tx.txHash}`;
-                    const isCopied = copiedTxHash === tx.txHash;
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-[#0B0B0F]">Polygon Native</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#EAF1FB] text-[#0047AB] font-semibold">
+                        POL
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-[#6B7280] group-hover:text-[#0047AB] flex items-center gap-0.5 mt-0.5">
+                      <span>View transactions</span>
+                      <ChevronRight size={11} />
+                    </div>
+                  </div>
+                </div>
 
-                    return (
-                      <div
-                        key={tx.id}
-                        className="p-3.5 rounded-2xl bg-white border border-slate-200/90 hover:border-[#0047AB] shadow-3xs hover:shadow-xs transition-all space-y-2"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div
-                              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
-                                tx.type === 'release'
-                                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                                  : tx.type === 'fund'
-                                  ? 'bg-blue-50 text-[#0047AB] border border-blue-200'
-                                  : tx.type === 'sbt'
-                                  ? 'bg-slate-100 text-slate-800 border border-slate-300'
-                                  : tx.type === 'submission'
-                                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                                  : 'bg-slate-100 text-slate-700 border border-slate-200'
-                              }`}
-                            >
-                              {tx.type === 'release' ? (
-                                <ArrowDownLeft size={16} />
-                              ) : tx.type === 'fund' ? (
-                                <ArrowUpRight size={16} />
-                              ) : tx.type === 'sbt' ? (
-                                <Award size={16} />
-                              ) : tx.type === 'submission' ? (
-                                <FileText size={16} />
-                              ) : (
-                                <Layers size={16} />
-                              )}
-                            </div>
+                <div className="text-right shrink-0">
+                  <Amount value={polNum} token="POL" size="sm" />
+                </div>
+              </div>
 
-                            <div className="min-w-0">
-                              <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                                {tx.title}
-                              </h4>
-                              <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                                {tx.jobTitle}
-                              </p>
-                            </div>
-                          </div>
+              {/* 2. USD Coin (USDC) */}
+              <div className="p-3 rounded-[10px] bg-white border border-[#E5E7EB] flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center shrink-0">
+                    <UsdcIcon size={20} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-[#0B0B0F]">USD Coin</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#F6F7F9] text-[#4B5563] font-semibold">
+                        USDC
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#6B7280] mt-0.5">USD Stablecoin</p>
+                  </div>
+                </div>
 
-                          {tx.amountDisplay && (
-                            <div className="text-right shrink-0">
-                              <span
-                                className={`text-xs sm:text-sm font-bold font-mono ${
-                                  tx.isIncoming ? 'text-emerald-600' : 'text-slate-900'
-                                }`}
-                              >
-                                {tx.isIncoming ? `+${tx.amountDisplay}` : tx.amountDisplay}
-                              </span>
-                            </div>
+                <div className="text-right shrink-0">
+                  <Amount value={usdcNum} token="USDC" size="sm" />
+                </div>
+              </div>
+
+              {/* 3. Tether USD (USDT) */}
+              <div className="p-3 rounded-[10px] bg-white border border-[#E5E7EB] flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center shrink-0">
+                    <UsdtIcon size={20} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-[#0B0B0F]">Tether USD</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#F6F7F9] text-[#4B5563] font-semibold">
+                        USDT
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#6B7280] mt-0.5">USD Stablecoin</p>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <Amount value={usdtNum} token="USDT" size="sm" />
+                </div>
+              </div>
+
+              {/* Seeded Demo Tokens (only in demo mode to test 8+ scrollable items) */}
+              {demoTokens.map((tok) => (
+                <div
+                  key={tok.symbol}
+                  className="p-3 rounded-[10px] bg-white border border-[#E5E7EB] flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center text-xs font-semibold text-[#4B5563] shrink-0">
+                      {tok.symbol.slice(0, 2)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-[#0B0B0F]">{tok.name}</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#F6F7F9] text-[#4B5563] font-semibold">
+                          {tok.symbol}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#6B7280] mt-0.5">Sample Token</p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div className="text-xs font-semibold text-[#0B0B0F] tabular-nums">
+                      {tok.balance.toLocaleString()} {tok.symbol}
+                    </div>
+                    <div className="text-[11px] text-[#6B7280] tabular-nums">
+                      ${(tok.balance * tok.usdPrice).toFixed(2)} USD
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* View 2: Polygon Transaction History */
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-2.5 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB]">
+            <div className="flex items-center gap-2 text-xs text-[#4B5563]">
+              <ShieldCheck size={14} className="text-[#0047AB]" />
+              <span>Scoped to your connected wallet</span>
+            </div>
+            <a
+              href={explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-[#0047AB] hover:underline inline-flex items-center gap-1"
+            >
+              <span>View on PolygonScan</span>
+              <ExternalLink size={12} />
+            </a>
+          </div>
+
+          <div className="space-y-2 max-h-[320px] overflow-y-auto overscroll-contain pr-1">
+            {polygonTransactions.length === 0 ? (
+              <div className="py-8 text-center text-xs text-[#6B7280] border border-dashed border-[#E5E7EB] rounded-[8px]">
+                No on-chain PolyLance transactions yet for this address.
+              </div>
+            ) : (
+              polygonTransactions.map((tx) => {
+                const polygonScanTxUrl = `${NETWORK_CONFIG.blockExplorerUrl || 'https://polygonscan.com'}/tx/${tx.txHash}`;
+                const isCopied = copiedTxHash === tx.txHash;
+
+                return (
+                  <div
+                    key={tx.id}
+                    className="p-3 rounded-[8px] bg-white border border-[#E5E7EB] space-y-1.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-[6px] bg-[#F6F7F9] border border-[#E5E7EB] text-[#0047AB] flex items-center justify-center shrink-0">
+                          {tx.type === 'release' ? (
+                            <ArrowDownLeft size={14} />
+                          ) : tx.type === 'fund' ? (
+                            <ArrowUpRight size={14} />
+                          ) : tx.type === 'sbt' ? (
+                            <Award size={14} />
+                          ) : tx.type === 'submission' ? (
+                            <FileText size={14} />
+                          ) : (
+                            <Layers size={14} />
                           )}
                         </div>
-
-                        {/* Tx Hash Pill & Timestamp */}
-                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 text-[10.5px] font-mono text-slate-400">
-                          <span>{formatTimeAgo(tx.timestamp)}</span>
-
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-slate-600">
-                              {truncateAddress(tx.txHash)}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={(e) => handleCopyTxHash(tx.txHash, e)}
-                              className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                              title="Copy transaction hash"
-                            >
-                              {isCopied ? (
-                                <Check size={11} className="text-emerald-600" />
-                              ) : (
-                                <Copy size={11} />
-                              )}
-                            </button>
-                            <a
-                              href={polygonScanTxUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-[#0047AB] transition-colors"
-                              title="View on PolygonScan"
-                            >
-                              <ExternalLink size={11} />
-                            </a>
-                          </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-semibold text-[#0B0B0F] truncate">{tx.title}</h4>
+                          <p className="text-[11px] text-[#6B7280] truncate">{tx.jobTitle}</p>
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
 
-              {/* Bottom Nav Buttons */}
-              <div className="flex items-center gap-3 pt-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setView('balances')}
-                  className="flex-1 py-3 px-4 rounded-2xl border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
-                >
-                  <ArrowLeft size={15} />
-                  <span>Back to Balances</span>
-                </button>
+                      {tx.amountDisplay && (
+                        <span className="text-xs font-semibold text-[#0B0B0F] tabular-nums shrink-0">
+                          {tx.isIncoming ? `+${tx.amountDisplay}` : tx.amountDisplay}
+                        </span>
+                      )}
+                    </div>
 
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="py-3 px-8 rounded-2xl bg-[#0B0B0C] hover:bg-slate-900 text-white font-bold text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                >
-                  <X size={15} />
-                  <span>Close</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </motion.div>
-      </div>
-    </AnimatePresence>
+                    <div className="flex items-center justify-between text-[11px] text-[#6B7280] pt-1 border-t border-[#F6F7F9]">
+                      <span>{formatTimeAgo(tx.timestamp)}</span>
+                      <div className="flex items-center gap-1.5 font-mono">
+                        <span>{truncateAddress(tx.txHash)}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyTxHash(tx.txHash, e)}
+                          className="text-[#6B7280] hover:text-[#0047AB]"
+                          title="Copy hash"
+                        >
+                          {isCopied ? <Check size={11} className="text-[#0047AB]" /> : <Copy size={11} />}
+                        </button>
+                        <a
+                          href={polygonScanTxUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#6B7280] hover:text-[#0047AB]"
+                          title="View on PolygonScan"
+                        >
+                          <ExternalLink size={11} />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 };
+
+export default WalletBalanceModal;

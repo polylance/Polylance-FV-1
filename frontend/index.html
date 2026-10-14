@@ -86,10 +86,8 @@
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="theme-color" content="#0047AB" />
 
-  <!-- Google Fonts: Fraunces (Headings), DM Sans (UI/Body), JetBrains Mono (Hashes/Balances) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <!-- Preload Primary Variable Font (Plus Jakarta Sans) ONLY -->
+  <link rel="preload" href="/fonts/plus-jakarta-sans-variable.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
   <!-- Open Graph / Social Media Meta Tags -->
   <meta property="og:type" content="website" />
@@ -314,6 +312,7 @@
 
 <body class="bg-[#FFFFFF] text-[#0B0B0C] antialiased">
   <div id="root"></div>
+  <div id="overlay-root" data-lenis-prevent="true"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

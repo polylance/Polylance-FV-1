@@ -174,8 +174,10 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [currentRole, setCurrentRole] = useState<DemoRole>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('polylance_demo_role') as DemoRole;
-      if (saved && saved in DEMO_WALLETS) return saved;
+      const saved = localStorage.getItem('polylance_demo_role');
+      if (saved && ['freelancer', 'client', 'judge', 'admin'].includes(saved)) {
+        return saved as DemoRole;
+      }
     }
     return 'visitor';
   });
@@ -463,18 +465,36 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [walletAddress, loadRealOnChainState, refreshBalances]);
 
-  // Sync state between wallet connection and mock role settings
+  // Sync state between wallet connection and active role
   useEffect(() => {
-    if (walletIsConnected && walletAddress) {
-      loadRealOnChainState(walletAddress);
-      refreshBalances(walletAddress);
+    const activeMock = typeof window !== 'undefined' ? localStorage.getItem('polylance_mock_address') : null;
+    const effectiveAddr = (walletIsConnected && walletAddress) ? walletAddress : (activeMock || null);
+    if (effectiveAddr) {
+      loadRealOnChainState(effectiveAddr);
+      refreshBalances(effectiveAddr);
+    } else {
+      // Disconnected: strictly visitor role and zero balances; no demo account persistence
+      setCurrentRole('visitor');
+      setBalanceNative('0.00');
+      setBalanceUsdc('0.00');
+      setBalanceUsdt('0.00');
+      setIsArbitrator(false);
+      setIsTreasuryAdmin(false);
+      setReputationCount(0);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('polylance_demo_role');
+      }
     }
   }, [walletAddress, walletIsConnected, loadRealOnChainState, refreshBalances]);
 
   const setRole = (role: DemoRole) => {
     setCurrentRole(role);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_demo_role', role);
+      if (walletIsConnected) {
+        localStorage.setItem('polylance_demo_role', role);
+      } else {
+        localStorage.removeItem('polylance_demo_role');
+      }
     }
   };
 
@@ -577,8 +597,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   }, [walletClient, connector, walletAddress, getActiveProvider]);
 
-  const address = walletIsConnected ? walletAddress || '' : '';
-  const isConnected = Boolean(walletIsConnected);
+  const mockAddr = typeof window !== 'undefined' ? localStorage.getItem('polylance_mock_address') : null;
+  const address = (walletIsConnected ? walletAddress : (mockAddr || '')) || '';
+  const isConnected = Boolean(walletIsConnected || mockAddr);
 
   const contextValue = React.useMemo<Web3ContextType>(() => ({
     address,
