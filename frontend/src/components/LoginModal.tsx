@@ -210,9 +210,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
         {/* Wrong Network Notice */}
         {isWrongNetwork && (
-          <div className="p-3.5 bg-[#FFFBEB] border border-[#FDE68A] rounded-[10px] text-xs text-[#92400E] flex items-center justify-between gap-3">
+          <div className="p-3.5 bg-[#EAF1FB] border border-[#C9DAF2] rounded-[10px] text-xs text-[#0B0B0F] flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={16} className="shrink-0 text-[#B45309]" />
+              <AlertTriangle size={16} className="shrink-0 text-[#0047AB]" />
               <span>Connected to unsupported network. Switch to Polygon to proceed.</span>
             </div>
             <Button
@@ -313,7 +313,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {isMetaMaskInstalled ? (
-              <span className="text-[11px] font-semibold px-2 py-1 rounded-[6px] bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0]">
+              <span className="text-[11px] font-semibold px-2 py-1 rounded-[6px] bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB]">
                 Installed
               </span>
             ) : (

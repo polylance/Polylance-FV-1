@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { CONTRACTS } from '../config/contracts';
 import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 
 export const Security: React.FC = () => {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
@@ -26,36 +27,24 @@ export const Security: React.FC = () => {
   ];
 
   return (
-    <PageContainer className="space-y-8 py-6 w-full text-[#0B0B0F]">
-      {/* Clean Modern Header */}
-      <section className="relative overflow-hidden rounded-xl p-8 bg-white border border-[#E5E7EB] text-left">
-        <div className="relative z-10 max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F6F7F9] border border-[#E5E7EB] text-[#4B5563] rounded-full text-[12px] font-medium">
-            <Sparkles size={13} className="text-[#0047AB]" />
-            <span>Audited smart contract architecture</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl font-semibold text-[#0B0B0F] tracking-tight leading-tight">
-            Security and contract audits
-          </h1>
-
-          <p className="text-[14px] text-[#4B5563] leading-relaxed">
-            PolyLance smart contracts are built using OpenZeppelin primitives, protected against reentrancy attacks, and deployed with zero administrative backdoors.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono text-slate-500">
-            <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg border border-emerald-100 font-bold flex items-center gap-1">
+    <PageContainer className="space-y-6 py-6 w-full text-[#0B0B0F]">
+      <PageHeader
+        title="Security and contract audits"
+        subtitle="PolyLance smart contracts are built using OpenZeppelin primitives, protected against reentrancy attacks, and deployed with zero administrative backdoors."
+        actions={
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md border border-emerald-100 font-semibold flex items-center gap-1">
               <CheckCircle2 size={13} /> 34 Hardhat Unit Tests Passing
             </span>
-            <span className="bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 font-bold">
-              Solidity 0.8.28 (Cancun EVM)
+            <span className="bg-[#F6F7F9] text-[#4B5563] px-2.5 py-1 rounded-md border border-[#E5E7EB] font-medium font-mono">
+              Solidity 0.8.28
             </span>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {/* Security Architecture Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
         
         {/* Reentrancy Protection */}
         <motion.div

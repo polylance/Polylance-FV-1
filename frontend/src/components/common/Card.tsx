@@ -20,18 +20,18 @@ export const Card: React.FC<CardProps> = ({
   const paddingClasses = {
     none: 'p-0',
     sm: 'p-3 sm:p-4',
-    md: 'p-5 sm:p-6',
-    lg: 'p-6 sm:p-8'
+    md: 'p-4 sm:p-5',
+    lg: 'p-5 sm:p-6'
   }[padding];
 
   const hoverClasses = hoverable || onClick
-    ? 'hover:border-[#0047AB] transition-colors duration-150 cursor-pointer'
+    ? 'hover:border-[#0047AB] transition-colors duration-150 cursor-pointer active:scale-[0.99]'
     : '';
 
   return (
     <Component
       onClick={onClick}
-      className={`bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${paddingClasses} ${hoverClasses} ${className}`}
+      className={`bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${paddingClasses} ${hoverClasses} ${className}`}
     >
       {children}
     </Component>
@@ -58,12 +58,12 @@ export const StatCard: React.FC<StatCardProps> = ({
   onClick
 }) => {
   return (
-    <Card className={`flex flex-col justify-between ${className}`} onClick={onClick} hoverable={Boolean(onClick)}>
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-xs sm:text-sm font-medium text-[#6B7280]">{label}</span>
-        {icon && <div className="text-[#0047AB]">{icon}</div>}
+    <Card className={`flex flex-col justify-between p-4 sm:p-5 ${className}`} onClick={onClick} hoverable={Boolean(onClick)}>
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span className="text-xs font-medium text-[#6B7280]">{label}</span>
+        {icon && <div className="text-[#0047AB] shrink-0">{icon}</div>}
       </div>
-      <div className="text-2xl sm:text-3xl font-semibold text-[#0B0B0F] tracking-tight tabular-nums">
+      <div className="text-[28px] sm:text-[32px] leading-[34px] font-semibold text-[#0B0B0F] tracking-tight tabular-nums">
         {value}
       </div>
       {(helper || delta) && (

@@ -7,7 +7,7 @@ import { Reveal } from '../common/MotionPrimitives';
 export const CtaSection: React.FC = () => {
   return (
     <section
-      className="w-full relative overflow-hidden py-20 sm:py-24 border-b border-[#003882]"
+      className="w-full relative overflow-hidden py-[72px] border-b border-[#003882]"
       style={{
         background: 'linear-gradient(180deg, #0047AB 0%, #003A91 100%)',
       }}
@@ -27,9 +27,9 @@ export const CtaSection: React.FC = () => {
           {/* ── Headline: Pure white #FFFFFF, tracking -0.02em, 9.15:1 contrast ── */}
           <Reveal delay={0} riseDistance={16}>
             <h2
-              className="text-display font-extrabold text-[#000000]"
+              className="text-display font-extrabold text-white"
               style={{
-                color: '#000000',
+                color: '#FFFFFF',
                 letterSpacing: '-0.02em',
               }}
             >

@@ -13,6 +13,7 @@ import { truncateAddress, formatWeb3ErrorMessage } from '../utils/formatters';
 import { JudgeRecord, JudgeMessage, DisputeReason } from '../types';
 import confetti from 'canvas-confetti';
 import { EmptyState } from '../components/UIStates';
+import { CompactEmptyState } from '../components/common/CompactEmptyState';
 import { PostProgressModal } from '../components/PostProgressModal';
 import { RequestExtensionModal } from '../components/RequestExtensionModal';
 import { RaiseDisputeModal } from '../components/RaiseDisputeModal';
@@ -25,6 +26,8 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { AddressChip } from '../components/common/AddressChip';
 import { FeeBreakdown } from '../components/common/FeeBreakdown';
 import { Amount } from '../components/common/Amount';
+import { Button } from '../components/common/Button';
+import { Modal, ConfirmDialog } from '../components/overlay';
 import { VideoModal, useVideoModal } from '../components/video';
 
 export interface EscrowChatChannel {
@@ -425,6 +428,16 @@ export const Chat: React.FC = () => {
 
   const activeJob = activeChannel ? jobs.find((j) => j.id === activeChannel.jobId) : (queryJobId ? jobs.find((j) => j.id === queryJobId) : undefined);
   const activeApplicantAddr = activeChannel?.applicantAddress;
+
+  // Formal smart contract disputes can only be raised for active/funded contracts, NOT while in pre-negotiation or when job is still Open
+  const canRaiseDispute = Boolean(
+    activeJob &&
+    activeJob.status !== 'Open' &&
+    (activeJob.status === 'Funded' ||
+      activeJob.status === 'Submitted' ||
+      activeJob.status === 'Disputed' ||
+      (activeJob.status === 'Selected' && (activeJob.events || []).some((e: any) => e.step === 'Funded' && e.status === 'completed')))
+  );
   const activeJudge = judges.find((j) => j.address.toLowerCase() === (selectedJudgeAddr || '').toLowerCase() && !deletedChatChannels.includes(j.address.toLowerCase()));
 
   const isUserScrolledUpRef = useRef(false);
@@ -760,7 +773,7 @@ export const Chat: React.FC = () => {
             </label>
           </div>
 
-          <div data-lenis-prevent className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
+          <div data-lenis-prevent className="flex-1 overflow-y-auto overscroll-contain space-y-4 pr-1 min-h-0">
             {chatTab === 'judges' && (isAdmin || isJudgeRole) ? (
               <>
                 {/* Active Channels Section Header */}
@@ -833,58 +846,60 @@ export const Chat: React.FC = () => {
                   })}
                 </div>
 
-                {/* Other Judges Section Header */}
-                <div className="space-y-1.5 pt-2">
-                  <span className="text-xs font-semibold text-[#6B7280] px-1">
-                    Other judges
-                  </span>
-                  {filteredJudges.slice(1).map((j: JudgeRecord, idx) => {
-                    const isSelected = j.address.toLowerCase() === (selectedJudgeAddr || '').toLowerCase();
-                    const dates = ['Yesterday', '2d ago', '5d ago'];
+                {/* Other Judges Section Header - only shown if more than 1 judge exists */}
+                {filteredJudges.length > 1 && (
+                  <div className="space-y-1.5 pt-2">
+                    <span className="text-xs font-semibold text-[#6B7280] px-1">
+                      Other judges
+                    </span>
+                    {filteredJudges.slice(1).map((j: JudgeRecord, idx) => {
+                      const isSelected = j.address.toLowerCase() === (selectedJudgeAddr || '').toLowerCase();
+                      const dates = ['Yesterday', '2d ago', '5d ago'];
 
-                    return (
-                      <button
-                        key={j.address}
-                        onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); setShowMobileChannels(false); }}
-                        className={`w-full p-2.5 rounded-lg text-left transition-colors border flex items-center gap-3 cursor-pointer group relative ${isSelected
-                            ? 'bg-[#EAF1FB] text-[#0B0B0F] border-l-2 border-l-[#0047AB] border-[#E5E7EB]'
-                            : 'bg-white text-[#4B5563] border-[#E5E7EB] hover:bg-slate-50'
-                          }`}
-                      >
-                        <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-700 shrink-0">
-                          {j.name.slice(0, 2)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex justify-between items-center">
-                            <span className="font-semibold text-xs truncate text-[#0B0B0F]">{j.name}</span>
-                            <div className="flex items-center gap-1 shrink-0 ml-1">
-                              <span className="text-xs font-sans text-[#6B7280]">{dates[idx % dates.length]}</span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteConfirmModal({
-                                    isOpen: true,
-                                    title: `Delete Chat with ${j.name}`,
-                                    description: `Are you sure you want to permanently delete this chat from PolyLance? Messages and this conversation channel will be removed. You will have 30 seconds to undo this action.`,
-                                    onConfirm: () => handleDeleteJudgeChat(j.address)
-                                  });
-                                }}
-                                className="opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                                title="Delete this arbitrator chat from PolyLance"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
+                      return (
+                        <button
+                          key={j.address}
+                          onClick={() => { setSelectedJudgeAddr(j.address); setChatTab('judges'); setShowMobileChannels(false); }}
+                          className={`w-full min-h-[72px] p-2.5 rounded-lg text-left transition-colors border flex items-center gap-3 cursor-pointer group relative ${isSelected
+                              ? 'bg-[#EAF1FB] text-[#0B0B0F] border-l-2 border-l-[#0047AB] border-[#E5E7EB]'
+                              : 'bg-white text-[#4B5563] border-[#E5E7EB] hover:bg-slate-50'
+                            }`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-700 shrink-0">
+                            {j.name.slice(0, 2)}
                           </div>
-                          <p className="text-xs truncate font-mono text-[#4B5563] mt-0.5">
-                            {truncateAddress(j.address)}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-xs truncate text-[#0B0B0F]">{j.name}</span>
+                              <div className="flex items-center gap-1 shrink-0 ml-1">
+                                <span className="text-xs font-sans text-[#6B7280]">{dates[idx % dates.length]}</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteConfirmModal({
+                                      isOpen: true,
+                                      title: `Delete Chat with ${j.name}`,
+                                      description: `Are you sure you want to permanently delete this chat from PolyLance? Messages and this conversation channel will be removed. You will have 30 seconds to undo this action.`,
+                                      onConfirm: () => handleDeleteJudgeChat(j.address)
+                                    });
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                  title="Delete this arbitrator chat from PolyLance"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                            <p className="text-xs truncate font-mono text-[#4B5563] mt-0.5">
+                              {truncateAddress(j.address)}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </>
             ) : (
               /* Escrow Job Channels Section */
@@ -909,14 +924,24 @@ export const Chat: React.FC = () => {
                       chatTab === 'jobs';
 
                     return (
-                      <button
+                      <div
                         key={channel.channelId}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => {
                           setSelectedChannelId(channel.channelId);
                           setChatTab('jobs');
                           setShowMobileChannels(false);
                         }}
-                        className={`w-full p-3 rounded-lg text-left transition-colors border flex items-start gap-3 cursor-pointer group relative ${
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedChannelId(channel.channelId);
+                            setChatTab('jobs');
+                            setShowMobileChannels(false);
+                          }
+                        }}
+                        className={`w-full min-h-[72px] p-3 rounded-lg text-left transition-colors border flex items-start gap-3 cursor-pointer group relative focus:outline-none focus:ring-1 focus:ring-[#0047AB] ${
                           isSelected
                             ? 'bg-[#EAF1FB] text-[#0B0B0F] border-l-2 border-l-[#0047AB] border-[#E5E7EB]'
                             : 'bg-white text-[#4B5563] border-[#E5E7EB] hover:bg-slate-50'
@@ -960,6 +985,7 @@ export const Chat: React.FC = () => {
                               </span>
                               <button
                                 type="button"
+                                aria-label="Delete chat"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setDeleteConfirmModal({
@@ -969,7 +995,7 @@ export const Chat: React.FC = () => {
                                     onConfirm: () => handleDeleteJobChat(channel.jobId, channel.channelId)
                                   });
                                 }}
-                                className="opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all cursor-pointer text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 p-1 rounded-md transition-all cursor-pointer text-slate-400 hover:text-rose-600 hover:bg-rose-50 focus:opacity-100 focus:outline-none"
                                 title="Delete this chat from PolyLance"
                               >
                                 <Trash2 size={12} />
@@ -992,7 +1018,7 @@ export const Chat: React.FC = () => {
                             {channel.lastMessage || 'No messages yet'}
                           </p>
                         </div>
-                      </button>
+                      </div>
                     );
                   })
                 )}
@@ -1161,14 +1187,7 @@ export const Chat: React.FC = () => {
                     </button>
                   )}
 
-                  {Boolean(
-                    !activeJob ||
-                    (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
-                    activeJob.status === 'Funded' ||
-                    activeJob.status === 'Submitted' ||
-                    activeJob.status === 'Completed' ||
-                    activeJob.status === 'Disputed'
-                  ) && (
+                  {canRaiseDispute && (
                     <button
                       type="button"
                       onClick={() => setIsDisputeModalOpen(true)}
@@ -1197,19 +1216,16 @@ export const Chat: React.FC = () => {
                 </div>
 
                 {/* Messages List Area */}
-                <div data-lenis-prevent ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50 min-h-0">
+                <div data-lenis-prevent ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 bg-slate-50/50 min-h-0">
                   {(() => {
                     const currentJudgeMsgs = (selectedJudgeAddr && judgeMessages[selectedJudgeAddr.toLowerCase()]) || [];
                     if (currentJudgeMsgs.length === 0) {
                       return (
-                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 px-4">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 border border-slate-200 flex items-center justify-center shadow-inner">
-                            <MessageSquare size={22} />
-                          </div>
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-sm text-slate-800">Arbitrator Chat Cleared</h4>
-                            <p className="text-xs text-slate-500 max-w-xs">All messages have been cleared. Send a new message below to begin chatting.</p>
-                          </div>
+                        <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                          <CompactEmptyState
+                            title="No messages yet"
+                            description="All prior messages have been cleared. Send a new message below to begin chatting."
+                          />
                         </div>
                       );
                     }
@@ -1217,17 +1233,20 @@ export const Chat: React.FC = () => {
                     return (
                       <>
                         {/* Today Date Pill */}
-                        <div className="flex justify-center my-2">
-                          <span className="bg-white border border-[#E2E6EC] text-slate-500 text-[10px] font-mono font-bold px-3 py-0.5 rounded-full shadow-2xs">
+                        <div className="flex justify-center my-4">
+                          <span className="bg-white border border-[#E5E7EB] text-[#6B7280] text-xs font-medium px-3 py-0.5 rounded-full shadow-2xs">
                             Today
                           </span>
                         </div>
 
-                        {currentJudgeMsgs.map((msg: JudgeMessage) => {
+                        {currentJudgeMsgs.map((msg: JudgeMessage, idx: number) => {
                           const isMe = isAdmin ? msg.senderRole === 'Admin' : msg.senderRole === 'Judge';
+                          const prevMsg = idx > 0 ? currentJudgeMsgs[idx - 1] : null;
+                          const isSameSender = prevMsg && prevMsg.senderRole === msg.senderRole;
+                          const mtClass = idx === 0 ? '' : isSameSender ? 'mt-1' : 'mt-2';
 
                           return (
-                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-start gap-2.5`}>
+                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-start gap-2.5 ${mtClass}`}>
                               {!isMe && (
                                 <div className="w-8 h-8 rounded-full bg-[#0B0B0C] text-white font-bold text-xs flex items-center justify-center shrink-0 uppercase shadow-xs mt-1">
                                   {isAdmin ? activeJudge.name.slice(0, 2) : 'AD'}
@@ -1239,7 +1258,7 @@ export const Chat: React.FC = () => {
                                 </div>
                                 <div className={`p-3.5 rounded-xl border text-xs shadow-xs ${isMe
                                     ? 'bg-[#0047AB] border-[#003A8C] text-white rounded-tr-none'
-                                    : 'bg-white border-[#E2E6EC] text-[#0B0B0C] rounded-tl-none font-medium'
+                                    : 'bg-white border-[#E5E7EB] text-[#0B0B0F] rounded-tl-none font-medium'
                                   }`}>
                                   <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                                   <div className={`text-right text-[8px] font-mono mt-1 flex items-center justify-end gap-1 ${isMe ? 'text-blue-100 font-bold' : 'text-slate-400'}`}>
@@ -1266,7 +1285,7 @@ export const Chat: React.FC = () => {
                 </div>
 
                 {/* Input Panel matching Reference Image */}
-                <div className="p-4 border-t border-[#E2E6EC] bg-white shrink-0 space-y-2">
+                <div className="p-4 border-t border-[#E5E7EB] bg-white shrink-0 space-y-2 min-h-[56px]">
                   <form onSubmit={handleSend} className="flex items-center gap-2">
                     <div className="flex-1 flex items-center rounded-xl px-3 py-1.5 bg-slate-50 border border-[#E2E6EC]">
                       <button type="button" className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
@@ -1323,20 +1342,15 @@ export const Chat: React.FC = () => {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col justify-center items-center text-center p-8 text-slate-400 space-y-3">
-                <UserCheck size={48} className="text-[#0047AB] stroke-1" />
-                <div>
-                  <h4 className="font-bold text-slate-800 text-sm">Select a Judge Channel</h4>
-                  <p className="text-xs text-slate-500 mt-1 font-mono">Choose an arbitrator from the left panel to open direct communications.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="mt-2 px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-[#0047AB] border border-[#E2E6EC] text-xs font-bold font-mono transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                >
-                  <ArrowLeft size={13} className="text-slate-500" />
-                  <span>Return to Dashboard</span>
-                </button>
+              <div className="flex-1 flex flex-col justify-center items-center text-center p-6">
+                <CompactEmptyState
+                  title="Select a judge channel"
+                  description="Choose an arbitrator from the left panel to open direct communications."
+                  action={{
+                    label: 'Return to Dashboard',
+                    onClick: handleBack,
+                  }}
+                />
               </div>
             )
           ) : (
@@ -1426,13 +1440,7 @@ export const Chat: React.FC = () => {
                     </Link>
 
                     {/* Raise Issue Button (desktop only) */}
-                    {Boolean(
-                      (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
-                      activeJob.status === 'Funded' ||
-                      activeJob.status === 'Submitted' ||
-                      activeJob.status === 'Completed' ||
-                      activeJob.status === 'Disputed'
-                    ) && (
+                    {canRaiseDispute && (
                       <button
                         type="button"
                         onClick={() => setIsDisputeModalOpen(true)}
@@ -1711,7 +1719,7 @@ export const Chat: React.FC = () => {
                 </div>
 
                 {/* Messages Feed with Scroll Listener */}
-                <div data-lenis-prevent ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-white/40 min-h-0">
+                <div data-lenis-prevent ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 bg-white/40 min-h-0">
                   {(() => {
                     const rawJobMessages = activeJob.chatMessages !== undefined 
                       ? activeJob.chatMessages 
@@ -1756,14 +1764,11 @@ export const Chat: React.FC = () => {
 
                     if (jobMessages.length === 0) {
                       return (
-                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 px-4">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 border border-slate-200 flex items-center justify-center shadow-inner">
-                            <MessageSquare size={22} />
-                          </div>
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-sm text-slate-800">Chat History Cleared</h4>
-                            <p className="text-xs text-slate-500 max-w-xs">All prior messages have been cleared. Send a new message below to begin chatting.</p>
-                          </div>
+                        <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                          <CompactEmptyState
+                            title="No messages yet"
+                            description="All prior messages have been cleared. Send a new message below to begin chatting."
+                          />
                         </div>
                       );
                     }
@@ -1771,8 +1776,8 @@ export const Chat: React.FC = () => {
                     return (
                       <>
                         {/* Today Date Pill */}
-                        <div className="flex justify-center my-2">
-                          <span className="bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-mono font-bold px-3 py-0.5 rounded-full">
+                        <div className="flex justify-center my-4">
+                          <span className="bg-[#F6F7F9] border border-[#E5E7EB] text-[#6B7280] text-xs font-medium px-3 py-0.5 rounded-full">
                             Today
                           </span>
                         </div>
@@ -1796,11 +1801,14 @@ export const Chat: React.FC = () => {
                             ((isAdmin || isJudgeRole) && msg.sender === 'Judge')
                           );
 
+                          const prevMsg = index > 0 ? jobMessages[index - 1] : null;
+                          const isSameSender = prevMsg && prevMsg.sender === msg.sender;
+                          const mtClass = index === 0 ? '' : isSameSender ? 'mt-1' : 'mt-2';
 
                           if (isSystem) {
                             return (
-                              <div key={index} className="flex justify-center my-3">
-                                <div className="bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] rounded-xl px-4 py-1.5 text-[10px] font-mono font-bold flex items-center gap-1.5">
+                              <div key={index} className={`flex justify-center my-3 ${mtClass}`}>
+                                <div className="bg-slate-100 border border-[#E5E7EB] text-[#0B0B0C] rounded-xl px-4 py-1.5 text-[10px] font-mono font-bold flex items-center gap-1.5">
                                   <Lock size={12} className="text-[#0047AB]" />
                                   {msg.text}
                                 </div>
@@ -1811,7 +1819,7 @@ export const Chat: React.FC = () => {
                           return (
                             <div
                               key={index}
-                              className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-start gap-2.5`}
+                              className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-start gap-2.5 ${mtClass}`}
                             >
                               {!isUser && (
                                 <div className="w-8 h-8 rounded-full bg-[#0B0B0C] text-white font-bold text-xs flex items-center justify-center shrink-0 uppercase mt-1">
@@ -2019,22 +2027,15 @@ export const Chat: React.FC = () => {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col justify-center items-center p-8 text-center space-y-3">
-                <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-[#E2E6EC] text-[#0047AB] flex items-center justify-center shadow-2xs">
-                  <MessageSquare size={28} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-800 text-sm">Select a Conversation</h4>
-                  <p className="text-xs text-slate-500 mt-1 font-mono max-w-xs">Choose a job or freelancer from the left panel to start messaging.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="mt-2 px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-[#0047AB] border border-[#E2E6EC] text-xs font-bold font-mono transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                >
-                  <ArrowLeft size={13} className="text-slate-500" />
-                  <span>Return to Dashboard</span>
-                </button>
+              <div className="flex-1 flex flex-col justify-center items-center p-6 text-center">
+                <CompactEmptyState
+                  title="Select a conversation"
+                  description="Choose an active channel or proposal from the left panel to start messaging."
+                  action={{
+                    label: 'Return to Dashboard',
+                    onClick: handleBack,
+                  }}
+                />
               </div>
             )
           )}
@@ -2042,7 +2043,7 @@ export const Chat: React.FC = () => {
 
         {/* Right Side: Escrow / Arbitrator Summary Panel (Slide Toggleable on Desktop, Drawer Modal on Mobile) */}
         {showJobDetailsSidebar && ((chatTab === 'jobs' && activeJob) || (chatTab === 'judges' && activeJudge)) && (
-          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex justify-end lg:static lg:z-auto lg:bg-transparent lg:backdrop-blur-none lg:flex shrink-0">
+          <div className="fixed inset-0 z-50 bg-slate-900/40 flex justify-end lg:static lg:z-auto lg:bg-transparent lg:flex shrink-0">
             {/* Click-outside backdrop on mobile */}
             <div
               className="absolute inset-0 lg:hidden"
@@ -2064,7 +2065,7 @@ export const Chat: React.FC = () => {
                 </button>
               </div>
 
-              <div data-lenis-prevent className="w-full flex flex-col justify-start h-full p-4 sm:p-5 space-y-4 overflow-y-auto shrink-0">
+              <div data-lenis-prevent className="w-full flex flex-col justify-start h-full p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain shrink-0">
             {chatTab === 'jobs' && activeJob ? (
               <>
                 {/* Header & Status */}
@@ -2103,13 +2104,7 @@ export const Chat: React.FC = () => {
                 </div>
 
                 {/* Raise Dispute button when allowed */}
-                {Boolean(
-                  (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ||
-                  activeJob.status === 'Funded' ||
-                  activeJob.status === 'Submitted' ||
-                  activeJob.status === 'Completed' ||
-                  activeJob.status === 'Disputed'
-                ) && (
+                {canRaiseDispute && (
                   <button
                     type="button"
                     onClick={() => setIsDisputeModalOpen(true)}
@@ -2165,110 +2160,91 @@ export const Chat: React.FC = () => {
     )}
 
       {/* Deliverable Submission Modal */}
-      {isSubmitModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="border border-[#E2E6EC] bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <h3 className="font-sans text-base font-bold text-[#0B0B0C]">Submit Deliverable Work</h3>
-            <form onSubmit={handleSubmitDeliverable} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
-                  Deliverable Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Smart Contract V1 Audit & Frontend Integration"
-                  value={submitTitle}
-                  onChange={(e) => setSubmitTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-[#E2E6EC] rounded-lg p-2.5 text-xs text-[#0B0B0C] focus:bg-white focus:border-[#0047AB] outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
-                  Description / Notes *
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Provide summary of completed milestones..."
-                  value={submitDesc}
-                  onChange={(e) => setSubmitDesc(e.target.value)}
-                  className="w-full bg-slate-50 border border-[#E2E6EC] rounded-lg p-2.5 text-xs text-[#0B0B0C] focus:bg-white focus:border-[#0047AB] outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
-                  External Link (GitHub PR / Figma / IPFS)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://github.com/..."
-                  value={submitLink}
-                  onChange={(e) => setSubmitLink(e.target.value)}
-                  className="w-full bg-slate-50 border border-[#E2E6EC] rounded-lg p-2.5 text-xs text-[#0B0B0C] focus:bg-white focus:border-[#0047AB] outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsSubmitModalOpen(false)}
-                  className="bg-white hover:bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-5 py-2 rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer"
-                >
-                  Submit Milestone
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={isSubmitModalOpen}
+        onClose={() => setIsSubmitModalOpen(false)}
+        size="md"
+        title="Submit Deliverable Work"
+        subtitle="Submit completed milestone deliverables and notes for review."
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsSubmitModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={!submitTitle.trim() || !submitDesc.trim()}
+              onClick={(e) => handleSubmitDeliverable(e as any)}
+            >
+              Submit Milestone
+            </Button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <form onSubmit={handleSubmitDeliverable} className="space-y-4 text-xs font-sans">
+          <div>
+            <label className="block text-[11px] font-medium text-slate-700 uppercase tracking-wider mb-1">
+              Deliverable Title *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Smart Contract V1 Audit & Frontend Integration"
+              value={submitTitle}
+              onChange={(e) => setSubmitTitle(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs text-[#0B0B0C] focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-slate-700 uppercase tracking-wider mb-1">
+              Description / Notes *
+            </label>
+            <textarea
+              rows={3}
+              required
+              placeholder="Provide summary of completed milestones..."
+              value={submitDesc}
+              onChange={(e) => setSubmitDesc(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs text-[#0B0B0C] focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-slate-700 uppercase tracking-wider mb-1">
+              External Link (GitHub PR / Figma / IPFS)
+            </label>
+            <input
+              type="url"
+              placeholder="https://github.com/..."
+              value={submitLink}
+              onChange={(e) => setSubmitLink(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs text-[#0B0B0C] focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none"
+            />
+          </div>
+        </form>
+      </Modal>
 
       {/* Custom Delete Confirmation Modal */}
-      {deleteConfirmModal?.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full border border-rose-100 shadow-2xl space-y-4 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
-              <Trash2 size={26} />
-            </div>
-            
-            <div className="space-y-1.5">
-              <h3 className="font-sans font-bold text-[#0B0B0C] text-base">
-                {deleteConfirmModal.title}
-              </h3>
-              <p className="text-xs text-slate-500 font-sans leading-relaxed">
-                {deleteConfirmModal.description}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmModal(null)}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-[#E2E6EC] text-slate-700 hover:bg-slate-50 font-bold text-xs transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  deleteConfirmModal.onConfirm();
-                  setDeleteConfirmModal(null);
-                }}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
-              >
-                Delete (30s Undo)
-              </button>
-            </div>
-          </div>
-        </div>
+      {deleteConfirmModal && (
+        <ConfirmDialog
+          isOpen={deleteConfirmModal.isOpen}
+          title={deleteConfirmModal.title}
+          description={deleteConfirmModal.description}
+          confirmLabel="Delete (30s Undo)"
+          cancelLabel="Cancel"
+          isDestructive
+          onConfirm={() => {
+            deleteConfirmModal.onConfirm();
+            setDeleteConfirmModal(null);
+          }}
+          onCancel={() => setDeleteConfirmModal(null)}
+        />
       )}
 
       {/* 30-Second Floating Undo Delete Banner */}
@@ -2295,110 +2271,92 @@ export const Chat: React.FC = () => {
       )}
 
       {/* Invite / Appoint Judge Modal for Admins */}
-      {isInviteJudgeModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in font-sans">
-          <div className="bg-white rounded-2xl p-6 sm:p-7 max-w-lg w-full border border-[#E2E6EC] shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center">
-                  <UserPlus size={20} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#0B0B0C] font-sans">
-                    Appoint Protocol Arbitrator
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Authorize a new Judge address for DAO dispute arbitration
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsInviteJudgeModalOpen(false)}
-                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddJudgeSubmit} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Judge Ethereum / Polygon Address *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="0x..."
-                  value={newJudgeAddress}
-                  onChange={(e) => setNewJudgeAddress(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono text-xs focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-blue-100 outline-none transition-all"
-                />
-                {/* Quick Presets */}
-                {import.meta.env.VITE_JUDGE_ADDRESS && (
-                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                    <span className="text-[10px] text-slate-400 font-bold">Quick Presets:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewJudgeAddress(import.meta.env.VITE_JUDGE_ADDRESS);
-                        setNewJudgeName('Accredited Arbitrator');
-                        setNewJudgeNotes('Accredited DeFi & smart contract auditor.');
-                      }}
-                      className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B0B0C] border border-[#E2E6EC] font-mono text-[9.5px] cursor-pointer"
-                    >
-                      Configured Arbitrator
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Judge Display Name / Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Arbitrator Elena Vance"
-                  value={newJudgeName}
-                  onChange={(e) => setNewJudgeName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-blue-100 outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Arbitration Specialization & Governance Notes
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Smart Contract Security, DeFi protocols, Zero-Knowledge proofs..."
-                  value={newJudgeNotes}
-                  onChange={(e) => setNewJudgeNotes(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-[#0047AB] focus:ring-1 focus:ring-blue-100 outline-none transition-all resize-none"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
+      <Modal
+        isOpen={isInviteJudgeModalOpen}
+        onClose={() => setIsInviteJudgeModalOpen(false)}
+        size="md"
+        title="Appoint Protocol Arbitrator"
+        subtitle="Authorize a new Judge address for DAO dispute arbitration."
+        footer={
+          <div className="flex items-center justify-end w-full gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsInviteJudgeModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={!newJudgeAddress.trim() || !newJudgeName.trim()}
+              onClick={(e) => handleAddJudgeSubmit(e as any)}
+            >
+              Appoint & Authorize Judge
+            </Button>
+          </div>
+        }
+      >
+        <form onSubmit={handleAddJudgeSubmit} className="space-y-3.5 text-xs font-sans">
+          <div>
+            <label className="block font-medium text-slate-700 mb-1 uppercase text-[10px] tracking-wider">
+              Judge Ethereum / Polygon Address *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="0x..."
+              value={newJudgeAddress}
+              onChange={(e) => setNewJudgeAddress(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 font-mono text-xs focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none transition-all"
+            />
+            {/* Quick Presets */}
+            {import.meta.env.VITE_JUDGE_ADDRESS && (
+              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                <span className="text-[11px] text-slate-500 font-medium">Quick Presets:</span>
                 <button
                   type="button"
-                  onClick={() => setIsInviteJudgeModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 cursor-pointer"
+                  onClick={() => {
+                    setNewJudgeAddress(import.meta.env.VITE_JUDGE_ADDRESS);
+                    setNewJudgeName('Accredited Arbitrator');
+                    setNewJudgeNotes('Accredited DeFi & smart contract auditor.');
+                  }}
+                  className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B0B0C] border border-slate-200 font-mono text-[10px] cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold shadow-xs cursor-pointer transition-colors"
-                >
-                  Appoint & Authorize Judge
+                  Configured Arbitrator
                 </button>
               </div>
-            </form>
+            )}
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block font-medium text-slate-700 mb-1 uppercase text-[10px] tracking-wider">
+              Judge Display Name / Title *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Arbitrator Elena Vance"
+              value={newJudgeName}
+              onChange={(e) => setNewJudgeName(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium text-slate-700 mb-1 uppercase text-[10px] tracking-wider">
+              Arbitration Specialization & Governance Notes
+            </label>
+            <textarea
+              rows={2}
+              placeholder="e.g. Smart Contract Security, DeFi protocols, Zero-Knowledge proofs..."
+              value={newJudgeNotes}
+              onChange={(e) => setNewJudgeNotes(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none transition-all resize-none"
+            />
+          </div>
+        </form>
+      </Modal>
 
       {/* Post Progress Modal */}
       {activeJob && (
@@ -2455,77 +2413,61 @@ export const Chat: React.FC = () => {
       />
 
       {/* Client Modification / Revision Request Modal */}
-      {activeJob && isModificationModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-xs z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-amber-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-amber-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shadow-2xs">
-                  <RefreshCw size={17} className="text-amber-600" />
-                </div>
-                <div>
-                  <h3 className="font-sans font-bold text-sm text-[#0B0B0C] leading-tight">Request Project Revisions</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">Send detailed feedback to developer</p>
-                </div>
-              </div>
-              <button
+      {activeJob && (
+        <Modal
+          isOpen={isModificationModalOpen}
+          onClose={() => setIsModificationModalOpen(false)}
+          size="md"
+          title="Request Project Revisions"
+          subtitle="Send detailed feedback to developer before releasing milestone funds."
+          footer={
+            <div className="flex items-center justify-end w-full gap-2">
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => setIsModificationModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
-                <X size={16} />
-              </button>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                disabled={!modificationNote.trim()}
+                onClick={() => {
+                  if (!modificationNote.trim() || !activeJob) return;
+                  requestModifications(activeJob.id, modificationNote.trim());
+                  sendChatMessage(
+                    activeJob.id,
+                    `🔄 Revisions Requested by Client:\n\n"${modificationNote.trim()}"\n\nPlease review feedback and re-submit updated milestone deliverables.`,
+                    'Client'
+                  );
+                  setIsModificationModalOpen(false);
+                  setModificationNote('');
+                  confetti({ particleCount: 50, spread: 50 });
+                }}
+              >
+                <RefreshCw size={13} />
+                <span>Send Revisions</span>
+              </Button>
             </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!modificationNote.trim() || !activeJob) return;
-                requestModifications(activeJob.id, modificationNote.trim());
-                sendChatMessage(
-                  activeJob.id,
-                  `🔄 Revisions Requested by Client:\n\n"${modificationNote.trim()}"\n\nPlease review feedback and re-submit updated milestone deliverables.`,
-                  'Client'
-                );
-                setIsModificationModalOpen(false);
-                setModificationNote('');
-                confetti({ particleCount: 50, spread: 50 });
-              }}
-              className="space-y-4 text-xs"
-            >
-              <div>
-                <label className="block font-bold text-slate-700 mb-1.5 uppercase text-[10px] tracking-wider">
-                  Revision Feedback & Required Adjustments *
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  placeholder="Detail the changes or corrections you would like the developer to make before releasing milestone funds..."
-                  value={modificationNote}
-                  onChange={(e) => setModificationNote(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 font-medium text-xs rounded-xl p-3 focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-100 outline-none transition-all placeholder:text-slate-400 resize-none"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsModificationModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold transition-all cursor-pointer text-center"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-xs cursor-pointer transition-colors text-center flex items-center justify-center gap-1.5"
-                >
-                  <RefreshCw size={13} />
-                  <span>Send Revisions</span>
-                </button>
-              </div>
-            </form>
+          }
+        >
+          <div className="space-y-4 text-xs font-sans">
+            <div>
+              <label className="block font-medium text-slate-700 mb-1.5 uppercase text-[10px] tracking-wider">
+                Revision Feedback & Required Adjustments *
+              </label>
+              <textarea
+                required
+                rows={4}
+                placeholder="Detail the changes or corrections you would like the developer to make before releasing milestone funds..."
+                value={modificationNote}
+                onChange={(e) => setModificationNote(e.target.value)}
+                className="w-full bg-white border border-slate-200 text-slate-900 font-normal text-xs rounded-xl p-3 focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none transition-all placeholder:text-slate-400 resize-none"
+              />
+            </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* In-Message Negotiation Proposal Modal */}

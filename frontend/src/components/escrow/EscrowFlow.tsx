@@ -351,7 +351,7 @@ export const EscrowFlow: React.FC<EscrowFlowProps> = ({
           )}
         </div>
 
-        <p className="text-xs text-[#374151] leading-relaxed pl-9">
+        <p className="text-xs text-[#374151] leading-relaxed pl-9 max-w-[720px]">
           {currentStep.desc}
         </p>
 

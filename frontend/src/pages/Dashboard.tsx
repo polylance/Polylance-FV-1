@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile, Job } from '../types';
-import { truncateAddress, formatTimeAgo, getDeterministicSbtId } from '../utils/formatters';
-import { generateCertificateSvg } from '../utils/certificateGenerator';
-import { CONTRACTS } from '../config/contracts';
+import { truncateAddress, formatTimeAgo, getDeterministicSbtId, getCanonicalCertificateId } from '../utils/formatters';
 import { scoreGithubUser, getUserBytecodeMatrix } from '../utils/githubOracle';
 import { calculateReputationScores, getReputationTier } from '../utils/reputation';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
+import { GroupedList, GroupedRow } from '../components/common/GroupedList';
+import { CompactEmptyState } from '../components/common/CompactEmptyState';
+import { StatCard } from '../components/common/Card';
 import { Amount } from '../components/common/Amount';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Badge } from '../components/common/Badge';
@@ -20,7 +22,7 @@ import { Button } from '../components/common/Button';
 import { InsufficientFundsModal } from '../components/InsufficientFundsModal';
 import { GithubEkycCard } from '../components/GithubEkycCard';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
-import { PolygonIcon, UsdcIcon, UsdtIcon } from '../components/TokenIcon';
+import { PolygonIcon, UsdcIcon, UsdtIcon, TokenIcon } from '../components/TokenIcon';
 import {
   Briefcase,
   PlusCircle,
@@ -86,13 +88,19 @@ export const Dashboard: React.FC = () => {
   };
 
   const userProfileKey = activeAddress ? Object.keys(profiles).find(k => k.toLowerCase() === activeAddress.toLowerCase()) : null;
-  const userProfile = ((userProfileKey ? profiles[userProfileKey] : null) || {
+  const rawProfile = userProfileKey ? profiles[userProfileKey] : null;
+  const userProfile = (rawProfile || {
     displayName: activeAddress ? `${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}` : 'Anonymous User',
     bio: 'No biography has been written yet.',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+    avatarUrl: activeAddress ? `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress.toLowerCase()}` : '',
     skills: [],
     reputationSbtCount: 0,
   }) as UserProfile;
+
+  // Sanitize any lingering unsplash demo avatars
+  if (userProfile.avatarUrl && userProfile.avatarUrl.includes('unsplash.com')) {
+    userProfile.avatarUrl = activeAddress ? `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress.toLowerCase()}` : '';
+  }
 
   const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
   const userScores = calculateReputationScores(
@@ -155,27 +163,69 @@ export const Dashboard: React.FC = () => {
 
   const bytecodeMatrix = getUserBytecodeMatrix(userProfile, completedFreelanceJobs.length, userScores.totalVolume * 0.975);
 
-  // Dynamic ranking calculation
-  const sortedProfiles = Object.values(profiles)
+  // Dynamic ranking strictly based on verified freelance reputation points
+  const rankedProfiles = Object.values(profiles)
     .map((p) => {
-      const profileCompletedJobs = jobs.filter(
-        (j) => j.freelancer?.toLowerCase() === p.address.toLowerCase() && j.status === 'Completed'
-      );
-      const volume = profileCompletedJobs.reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
-      const repSbt = Math.max(p.reputationSbtCount || 0, profileCompletedJobs.length);
-      const pts = (repSbt * 100) + Math.floor(volume / 25) + (p.githubVerified ? 50 : 0);
-      return { address: p.address, points: pts };
+      const scores = calculateReputationScores(p.address, jobs, p);
+      return { address: p.address, points: scores.totalPoints, completedJobsCount: scores.completedJobsCount };
     })
+    .filter((p) => p.points > 0 && p.completedJobsCount > 0)
     .sort((a, b) => b.points - a.points);
 
-  const myRankIdx = sortedProfiles.findIndex((p) => p.address.toLowerCase() === activeAddress.toLowerCase());
-  const myRank = myRankIdx !== -1 ? myRankIdx + 1 : sortedProfiles.length + 1;
+  const myRankIdx = rankedProfiles.findIndex((p) => p.address.toLowerCase() === activeAddress.toLowerCase());
+  const myRank = myRankIdx !== -1 ? `#${myRankIdx + 1}` : (userScores.totalPoints > 0 ? `#${rankedProfiles.length + 1}` : 'Unranked');
+
+  // Real monthly settlement activity derivation from actual completed jobs
+  const monthlyActivityData = useMemo(() => {
+    const relevantJobs = isClientView ? completedClientJobs : completedFreelanceJobs;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const now = new Date();
+
+    const months: { label: string; year: number; monthIndex: number; volume: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        label: monthNames[d.getMonth()],
+        year: d.getFullYear(),
+        monthIndex: d.getMonth(),
+        volume: 0,
+      });
+    }
+
+    relevantJobs.forEach((job) => {
+      const ts = job.completedAt || job.submittedAt || job.createdAt;
+      if (!ts) return;
+      const jobDate = new Date(ts);
+      const target = months.find(
+        (m) => m.year === jobDate.getFullYear() && m.monthIndex === jobDate.getMonth()
+      );
+      if (target) {
+        const paidFraction = job.dispute?.resolved ? ((job.dispute.rulingBps ?? 0) / 10000) : 1.0;
+        const amt = parseFloat(job.amountUsdc || job.amountEth || '0') * paidFraction;
+        target.volume += amt;
+      }
+    });
+
+    const maxVolume = Math.max(...months.map((m) => m.volume), 0);
+
+    return {
+      months: months.map((m) => ({
+        label: m.label,
+        volume: m.volume,
+        amount: `$${m.volume.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`,
+        heightPercent: maxVolume > 0 && m.volume > 0 ? Math.max(Math.round((m.volume / maxVolume) * 100), 8) : 0,
+      })),
+      maxVolume,
+      hasActivity: maxVolume > 0,
+    };
+  }, [isClientView, completedClientJobs, completedFreelanceJobs]);
 
   // First-run checklist items calculation
   const isWalletConnected = Boolean(activeAddress);
   const isProfileComplete = Boolean(userProfile.bio && userProfile.bio !== 'No biography has been written yet.' && (userProfile.skills?.length || 0) > 0);
   const isFunded = parseFloat(balanceNative || '0') > 0 || parseFloat(balanceUsdc || '0') > 0;
   const hasActivity = myClientJobs.length > 0 || myApplications.length > 0 || myFreelancerJobs.length > 0;
+  const isChecklistComplete = isWalletConnected && isProfileComplete && isFunded && hasActivity;
 
   // Profile completeness score
   let completenessScore = 0;
@@ -223,6 +273,44 @@ export const Dashboard: React.FC = () => {
     });
   });
 
+  // Freelancer: Offers waiting for acceptance
+  myFreelancerJobs.filter(j => j.status === 'Selected' && !j.freelancerAgreedTerms).forEach(j => {
+    attentionItems.push({
+      id: `offer-${j.id}`,
+      title: j.title,
+      description: 'You have been selected! Review project terms and accept or decline the offer.',
+      actionLabel: 'Review offer',
+      actionPath: `/workspace?jobId=${j.id}`,
+      badge: 'Offer received',
+      badgeColor: 'bg-[#FDF3DC] text-[#C2610C]',
+    });
+  });
+
+  // Client: Selected candidate status
+  myClientJobs.filter(j => j.status === 'Selected').forEach(j => {
+    if (j.freelancerAgreedTerms) {
+      attentionItems.push({
+        id: `fund-${j.id}`,
+        title: j.title,
+        description: 'Candidate accepted your offer! Deposit escrow into smart contract.',
+        actionLabel: 'Deposit escrow',
+        actionPath: `/workspace?jobId=${j.id}`,
+        badge: 'Ready to fund',
+        badgeColor: 'bg-[#E7EEF9] text-[#0047AB]',
+      });
+    } else {
+      attentionItems.push({
+        id: `awaiting-acceptance-${j.id}`,
+        title: j.title,
+        description: 'Offer sent to candidate. Waiting for freelancer to accept terms.',
+        actionLabel: 'View status',
+        actionPath: `/workspace?jobId=${j.id}`,
+        badge: 'Offer pending',
+        badgeColor: 'bg-slate-100 text-slate-700',
+      });
+    }
+  });
+
   // Freelancer: Funded jobs in progress
   myFreelancerJobs.filter(j => j.status === 'Funded').forEach(j => {
     attentionItems.push({
@@ -249,30 +337,27 @@ export const Dashboard: React.FC = () => {
     });
   });
 
-  // Unlocked badges
-  const unlockedBadges = [];
-  const completedJobsCount = completedFreelanceJobs.length + completedClientJobs.length;
-  if (completedJobsCount >= 1) {
-    unlockedBadges.push({
-      name: 'Genesis Auditor SBT',
-      token: `#${1000 + completedJobsCount}`,
-      desc: 'Minted for completing smart contract escrows on PolyLance.',
+  // User's authentic completed jobs with on-chain attestations (freelancer + client)
+  const allUserCompletedJobs = useMemo(() => {
+    if (!activeAddress) return [];
+    const lowerUser = activeAddress.toLowerCase();
+    const map = new Map<string, Job>();
+
+    jobs.forEach((j) => {
+      if (
+        (j.status === 'Completed' || j.status === 'Submitted') &&
+        (j.freelancer?.toLowerCase() === lowerUser || j.client?.toLowerCase() === lowerUser)
+      ) {
+        map.set(j.id.toLowerCase(), j);
+      }
     });
-  }
-  if (completedJobsCount >= 4) {
-    unlockedBadges.push({
-      name: 'Escrow Master SBT',
-      token: `#${900 + completedJobsCount}`,
-      desc: 'Achieved a high delivery rate across multiple escrows.',
+
+    return Array.from(map.values()).sort((a, b) => {
+      const timeA = a.completedAt || a.submittedAt || a.createdAt || 0;
+      const timeB = b.completedAt || b.submittedAt || b.createdAt || 0;
+      return timeB - timeA;
     });
-  }
-  if (userProfile.githubVerified) {
-    unlockedBadges.push({
-      name: 'Identity Verified SBT',
-      token: '#0001',
-      desc: 'Successfully linked and verified your GitHub developer footprint.',
-    });
-  }
+  }, [jobs, activeAddress]);
 
   // First-login welcome video: shown once per wallet in localStorage, never auto-playing; coming-soon state hides it entirely
   const welcomeVideo = getVideo('welcome-15s');
@@ -292,483 +377,653 @@ export const Dashboard: React.FC = () => {
 
   const showWelcomeCard = isWelcomeReady && !welcomeDismissed;
 
+  type DashboardHubTab = 'active' | 'offers' | 'applications' | 'open' | 'completed';
+  const [contractsTab, setContractsTab] = useState<DashboardHubTab>('active');
+
+  const pendingOffers = useMemo(() => {
+    return myFreelancerJobs.filter(j => j.status === 'Selected');
+  }, [myFreelancerJobs]);
+
+  const openClientJobs = useMemo(() => {
+    return myClientJobs.filter(j => j.status === 'Open' || (j.status === 'Selected' && !j.freelancerAgreedTerms));
+  }, [myClientJobs]);
+
+  const filteredContracts = useMemo(() => {
+    if (contractsTab === 'completed') {
+      return (isClientView ? myClientJobs : myFreelancerJobs).filter(j => j.status === 'Completed');
+    }
+    if (contractsTab === 'offers') {
+      return pendingOffers;
+    }
+    if (contractsTab === 'open') {
+      return openClientJobs;
+    }
+    const list = isClientView ? myClientJobs : myFreelancerJobs;
+    return list.filter(j => j.status !== 'Completed' && j.status !== 'Cancelled');
+  }, [isClientView, myClientJobs, myFreelancerJobs, contractsTab, pendingOffers, openClientJobs]);
+
   return (
-    <PageContainer className="space-y-8 py-6 text-[#0B0B0F]">
-      {/* First-login welcome card (hidden in coming-soon state) */}
+    <PageContainer>
+      {/* ── 0. WELCOME TOUR (DISMISSIBLE) ───────────────────────────────── */}
       {showWelcomeCard && (
-        <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] space-y-3 text-left">
-          <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
+        <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-4 mb-6 shadow-xs text-left">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#0047AB]" />
-              <h3 className="font-sans font-semibold text-sm text-[#0B0B0F]">
+              <h3 className="font-semibold text-sm text-[#0B0B0F]">
                 Welcome to PolyLance: 15-Second Tour
               </h3>
             </div>
             <button
               type="button"
               onClick={handleDismissWelcome}
-              className="text-[#6B7280] hover:text-[#0B0B0F] text-xs font-medium"
+              className="text-[#6B7280] hover:text-[#0B0B0F] text-xs font-medium cursor-pointer"
             >
               Dismiss
             </button>
           </div>
-          <div className="max-w-xl">
+          <div className="max-w-xl pt-3">
             <VideoSlot id="welcome-15s" />
           </div>
         </div>
       )}
-      {/* ── 1. HEADER WITH HIRE / WORK SWITCH & ROLE-BASED PRIMARY ACTION ── */}
-      <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 sm:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.06)] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 text-left">
-        <div className="flex items-center gap-4 min-w-0">
-          <Link to={`/profile/${activeAddress}`} className="shrink-0">
-            <img
-              src={userProfile.avatarUrl || (userProfile.githubUsername ? `https://github.com/${userProfile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress}`)}
-              alt={rawDisplayName}
-              className="w-14 h-14 rounded-[8px] border border-[#E5E7EB] object-cover"
-            />
-          </Link>
-          <div className="min-w-0 space-y-1">
-            <div className="flex items-center gap-2">
-              <Link to={`/profile/${activeAddress}`} className="text-xl font-semibold text-[#0B0B0F] truncate hover:text-[#0047AB] transition-colors">
-                {rawDisplayName}
-              </Link>
-              <Badge variant={tierInfo.tier === 'Gold' ? 'success' : 'neutral'}>
-                {tierInfo.tier}
-              </Badge>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-[#4B5563]">
-              <AddressChip address={activeAddress} />
-              <span>•</span>
-              <span className="text-[#047857] font-semibold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#047857]" />
-                Polygon Mainnet
-              </span>
-            </div>
-          </div>
-        </div>
 
-        {/* Role Toggle & Primary Action */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-          {/* Hire / Work Segmented Switch */}
-          <div className="inline-flex p-1 bg-[#F6F7F9] border border-[#E5E7EB] rounded-[8px] text-xs font-medium">
-            <button
-              type="button"
-              onClick={() => handleRoleModeChange('work')}
-              className={`px-3 py-1.5 rounded-[6px] transition-colors cursor-pointer ${
-                roleMode === 'work'
-                  ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
-                  : 'text-[#4B5563] hover:text-[#0B0B0F]'
-              }`}
-            >
-              Work
-            </button>
-            <button
-              type="button"
-              onClick={() => handleRoleModeChange('hire')}
-              className={`px-3 py-1.5 rounded-[6px] transition-colors cursor-pointer ${
-                roleMode === 'hire'
-                  ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
-                  : 'text-[#4B5563] hover:text-[#0B0B0F]'
-              }`}
-            >
-              Hire
-            </button>
-          </div>
+      {/* ── 1. CLEAN PAGE HEADER ────────────────────────────────────────── */}
+      <PageHeader
+        title="Dashboard"
+        subtitle={`${rawDisplayName} • ${tierInfo.tier} tier • Polygon Mainnet`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Hire / Work Segmented Control */}
+            <div className="inline-flex p-0.5 bg-[#F6F7F9] border border-[#E5E7EB] rounded-[8px] text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => handleRoleModeChange('work')}
+                className={`px-3 py-1.5 rounded-[6px] transition-colors cursor-pointer ${
+                  roleMode === 'work'
+                    ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
+                    : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                }`}
+              >
+                Work
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRoleModeChange('hire')}
+                className={`px-3 py-1.5 rounded-[6px] transition-colors cursor-pointer ${
+                  roleMode === 'hire'
+                    ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
+                    : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                }`}
+              >
+                Hire
+              </button>
+            </div>
 
-          {/* Role-based primary action button */}
-          {isClientView ? (
-            <Link
-              to="/jobs/post"
-              className="bg-[#0047AB] hover:bg-[#003882] text-white px-4 py-2 rounded-[8px] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+            {/* Role-based primary action */}
+            {isClientView ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate('/jobs/post')}
+                icon={<PlusCircle size={14} />}
+              >
+                Post a job
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate('/jobs')}
+                icon={<Search size={14} />}
+              >
+                Find jobs
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/profile')}
             >
-              <PlusCircle size={14} />
-              <span>Post a job</span>
-            </Link>
-          ) : (
-            <Link
-              to="/jobs"
-              className="bg-[#0047AB] hover:bg-[#003882] text-white px-4 py-2 rounded-[8px] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <Search size={14} />
-              <span>Find jobs</span>
-            </Link>
+              Edit profile
+            </Button>
+          </div>
+        }
+      />
+
+      {/* ── 2. TWO-COLUMN MAIN + RAIL LAYOUT ───────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-left">
+        {/* MAIN COLUMN (8 cols) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Getting Started Checklist as Inset Grouped List (Hides automatically upon completion) */}
+          {!isChecklistComplete && (
+            <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+                <div>
+                  <h3 className="font-semibold text-sm text-[#0B0B0F]">Getting Started Checklist</h3>
+                  <p className="text-xs text-[#4B5563]">Four quick steps to transact safely on PolyLance.</p>
+                </div>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-[6px] bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB]">
+                  {[isWalletConnected, isProfileComplete, isFunded, hasActivity].filter(Boolean).length} of 4 complete
+                </span>
+              </div>
+
+              <GroupedList dense>
+                <GroupedRow
+                  title="1. Connect wallet"
+                  subtitle="Connected to Polygon Mainnet"
+                  leading={isWalletConnected ? <CheckCircle2 size={16} className="text-[#10B981] shrink-0" /> : <Circle size={16} className="text-[#9CA3AF] shrink-0" />}
+                  trailing={<span className="text-xs text-[#4B5563]">{isWalletConnected ? 'Ready' : 'Pending'}</span>}
+                />
+                <GroupedRow
+                  title="2. Complete profile"
+                  subtitle={isProfileComplete ? 'Bio and skills recorded' : 'Add bio, avatar and skills'}
+                  leading={isProfileComplete ? <CheckCircle2 size={16} className="text-[#10B981] shrink-0" /> : <Circle size={16} className="text-[#9CA3AF] shrink-0" />}
+                  onClick={() => navigate('/profile')}
+                />
+                <GroupedRow
+                  title="3. Add funds"
+                  subtitle={isFunded ? 'POL / USDC available' : 'Fund wallet for escrow'}
+                  leading={isFunded ? <CheckCircle2 size={16} className="text-[#10B981] shrink-0" /> : <Circle size={16} className="text-[#9CA3AF] shrink-0" />}
+                  onClick={() => setIsTopUpModalOpen(true)}
+                />
+                <GroupedRow
+                  title={isClientView ? '4. Post first job' : '4. Apply to a job'}
+                  subtitle={hasActivity ? 'First contract active' : isClientView ? 'Create an escrow job' : 'Submit your first proposal'}
+                  leading={hasActivity ? <CheckCircle2 size={16} className="text-[#10B981] shrink-0" /> : <Circle size={16} className="text-[#9CA3AF] shrink-0" />}
+                  onClick={() => navigate(isClientView ? '/jobs/post' : '/jobs')}
+                />
+              </GroupedList>
+
+              {/* Profile Completeness Compact Row (Hides at 100%) */}
+              {completenessScore < 100 && (
+                <div className="pt-2 flex items-center justify-between gap-4 text-xs">
+                  <div className="flex-1 flex items-center gap-3">
+                    <span className="text-[#4B5563] shrink-0">Profile completeness: <strong className="text-[#0B0B0F]">{completenessScore}%</strong></span>
+                    <div className="flex-1 bg-[#E5E7EB] h-1.5 rounded-full overflow-hidden max-w-[180px]">
+                      <div
+                        className="bg-[#0047AB] h-full rounded-full transition-all duration-300"
+                        style={{ width: `${completenessScore}%` }}
+                      />
+                    </div>
+                  </div>
+                  <Link to="/profile" className="text-[#0047AB] hover:underline font-medium shrink-0 flex items-center gap-1">
+                    <span>Complete profile</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
 
-          <Link
-            to="/profile"
-            className="border border-[#E5E7EB] hover:bg-[#F6F7F9] text-[#0B0B0F] px-3.5 py-2 rounded-[8px] text-xs font-medium text-center transition-colors"
-          >
-            Edit profile
-          </Link>
-        </div>
-      </div>
-
-      {/* ── 2. FIRST-RUN CHECKLIST FOR NEW USERS (AUTO-TICKING) & COMPLETENESS ── */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-        {/* Onboarding Checklist Card */}
-        <div className="md:col-span-8 bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 space-y-3.5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-          <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2.5">
-            <div>
-              <h3 className="font-semibold text-sm text-[#0B0B0F]">Getting Started Checklist</h3>
-              <p className="text-xs text-[#4B5563]">Complete these four steps to start transacting safely on PolyLance.</p>
-            </div>
-            <span className="text-xs font-semibold text-[#4B5563]">
-              {[isWalletConnected, isProfileComplete, isFunded, hasActivity].filter(Boolean).length}/4 complete
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div className={`p-2.5 rounded-[8px] border text-xs flex items-center gap-2.5 ${isWalletConnected ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]' : 'bg-[#F6F7F9] border-[#E5E7EB] text-[#4B5563]'}`}>
-              {isWalletConnected ? <CheckCircle2 size={16} className="text-[#10B981] shrink-0" /> : <Circle size={16} className="text-[#9CA3AF] shrink-0" />}
-              <div>
-                <div className="font-semibold text-[#0B0B0F]">1. Connect wallet</div>
-                <div className="text-[11px] text-[#4B5563]">Connected to Polygon Mainnet</div>
-              </div>
-            </div>
-
-            <Link to="/profile" className={`p-2.5 rounded-[8px] border text-xs flex items-center gap-2.5 transition-colors ${isProfileComplete ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]' : 'bg-[#F6F7F9] hover:bg-[#E5E7EB] border-[#E5E7EB] text-[#4B5563]'}`}>
-              {isProfileComplete ? <CheckCircle2 size={16} className="text-[#10B981] shrink-0" /> : <Circle size={16} className="text-[#9CA3AF] shrink-0" />}
-              <div>
-                <div className="font-semibold text-[#0B0B0F]">2. Complete profile</div>
-                <div className="text-[11px] text-[#4B5563]">{isProfileComplete ? 'Bio & skills recorded' : 'Add bio, avatar & skills'}</div>
-              </div>
-            </Link>
-
-            <button type="button" onClick={() => setIsTopUpModalOpen(true)} className={`p-2.5 rounded-[8px] border text-xs flex items-center gap-2.5 text-left cursor-pointer transition-colors ${isFunded ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]' : 'bg-[#F6F7F9] hover:bg-[#E5E7EB] border-[#E5E7EB] text-[#4B5563]'}`}>
-              {isFunded ? <CheckCircle2 size={16} className="text-[#10B981] shrink-0" /> : <Circle size={16} className="text-[#9CA3AF] shrink-0" />}
-              <div>
-                <div className="font-semibold text-[#0B0B0F]">3. Add funds</div>
-                <div className="text-[11px] text-[#4B5563]">{isFunded ? 'POL / USDC available' : 'Fund wallet for escrow'}</div>
-              </div>
-            </button>
-
-            <Link to={isClientView ? "/jobs/post" : "/jobs"} className={`p-2.5 rounded-[8px] border text-xs flex items-center gap-2.5 transition-colors ${hasActivity ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]' : 'bg-[#F6F7F9] hover:bg-[#E5E7EB] border-[#E5E7EB] text-[#4B5563]'}`}>
-              {hasActivity ? <CheckCircle2 size={16} className="text-[#10B981] shrink-0" /> : <Circle size={16} className="text-[#9CA3AF] shrink-0" />}
-              <div>
-                <div className="font-semibold text-[#0B0B0F]">4. {isClientView ? 'Post first job' : 'Apply to a job'}</div>
-                <div className="text-[11px] text-[#4B5563]">{hasActivity ? 'First contract active' : isClientView ? 'Create an escrow job' : 'Submit your first proposal'}</div>
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Profile Completeness Bar Card */}
-        <div className="md:col-span-4 bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 space-y-3 text-left shadow-[0_1px_2px_rgba(0,0,0,0.06)] flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-1">
-              <h3 className="font-semibold text-sm text-[#0B0B0F]">Profile completeness</h3>
-              <span className="text-xs font-semibold text-[#0047AB]">{completenessScore}%</span>
-            </div>
-            <p className="text-xs text-[#4B5563]">
-              Clients and freelancers with complete profiles get 4x more engagement.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="w-full bg-[#E5E7EB] h-2 rounded-full overflow-hidden">
-              <div
-                className="bg-[#0047AB] h-full rounded-full transition-all duration-300"
-                style={{ width: `${completenessScore}%` }}
-              />
-            </div>
-            {completenessScore < 100 && (
-              <Link
-                to="/profile"
-                className="text-xs text-[#0047AB] font-medium hover:underline inline-flex items-center gap-1"
-              >
-                <span>Complete remaining details</span>
-                <ArrowRight size={12} />
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── 3. RESUME LAST OPENED WORKSPACE (IF AVAILABLE) ──────────────── */}
-      {lastOpenedJob && (
-        <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-[#4B5563] flex items-center gap-1">
-                <Clock size={12} /> Recent workspace
-              </span>
-              <StatusBadge status={lastOpenedJob.status} />
-            </div>
-            <h4 className="font-semibold text-base text-[#0B0B0F]">{lastOpenedJob.title}</h4>
-            <div className="text-xs text-[#4B5563] flex items-center gap-2">
-              <span>Budget:</span>
-              <Amount amount={lastOpenedJob.amountEth || lastOpenedJob.amountUsdc || '0'} token={lastOpenedJob.paymentTokenSymbol || 'POL'} showFiat={true} />
-            </div>
-          </div>
-
-          <Link
-            to={`/workspace?jobId=${lastOpenedJob.id}`}
-            className="bg-[#0047AB] hover:bg-[#003882] text-white px-4 py-2 rounded-[8px] text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors shrink-0"
-          >
-            <span>Open workspace</span>
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-      )}
-
-      {/* ── 4. NEEDS YOUR ATTENTION SECTION ─────────────────────────────── */}
-      <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 sm:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.06)] space-y-4 text-left">
-        <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-base text-[#0B0B0F]">Needs your attention</h3>
-            {attentionItems.length > 0 && (
-              <span className="px-2 py-0.5 rounded-[6px] bg-[#E7EEF9] text-[#0047AB] text-xs font-semibold">
-                {attentionItems.length}
-              </span>
-            )}
-          </div>
-          <span className="text-xs text-[#4B5563]">Active action items</span>
-        </div>
-
-        {attentionItems.length === 0 ? (
-          <div className="py-6 text-center text-[#4B5563] space-y-1">
-            <CheckCircle2 size={24} className="mx-auto text-[#10B981] mb-2" />
-            <div className="font-medium text-sm text-[#0B0B0F]">All caught up</div>
-            <div className="text-xs">No pending milestones or proposals requiring immediate action.</div>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {attentionItems.map((item) => (
-              <div
-                key={item.id}
-                className="p-3.5 bg-[#F6F7F9] border border-[#E5E7EB] rounded-[8px] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left"
-              >
-                <div className="space-y-1 max-w-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-[#0B0B0F]">{item.title}</span>
-                    <span className={`px-2 py-0.5 rounded-[4px] text-[11px] font-medium ${item.badgeColor}`}>
-                      {item.badge}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#4B5563]">{item.description}</p>
+          {/* Resume Last Workspace (if available) */}
+          {lastOpenedJob && (
+            <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#4B5563] flex items-center gap-1 font-medium">
+                    <Clock size={12} /> Recent workspace
+                  </span>
+                  <StatusBadge status={lastOpenedJob.status} />
                 </div>
-
-                <Link
-                  to={item.actionPath}
-                  className="bg-[#0047AB] hover:bg-[#003882] text-white px-3.5 py-1.5 rounded-[8px] text-xs font-medium inline-flex items-center justify-center gap-1 transition-colors shrink-0"
-                >
-                  <span>{item.actionLabel}</span>
-                  <ArrowRight size={13} />
-                </Link>
+                <h4 className="font-semibold text-sm text-[#0B0B0F]">{lastOpenedJob.title}</h4>
+                <div className="text-xs text-[#4B5563] flex items-center gap-1.5">
+                  <span>Budget:</span>
+                  <Amount amount={lastOpenedJob.amountEth || lastOpenedJob.amountUsdc || '0'} token={lastOpenedJob.paymentTokenSymbol || 'POL'} showFiat={true} />
+                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── 5. FUNDING & WALLET ACTIONS CARD ────────────────────────────── */}
-      <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 sm:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.06)] flex flex-col md:flex-row md:items-center justify-between gap-5 text-left">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Wallet size={16} className="text-[#0047AB]" />
-            <h3 className="font-semibold text-sm text-[#0B0B0F]">Escrow funding account</h3>
-            <span className="text-[11px] text-[#047857] font-semibold bg-[#ECFDF5] px-2 py-0.5 rounded-[4px] border border-[#A7F3D0]">
-              Live sync
-            </span>
-          </div>
-          <p className="text-xs text-[#4B5563]">
-            Funds available on Polygon Mainnet for escrow deposits and transaction gas.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="p-2.5 bg-[#F6F7F9] border border-[#E5E7EB] rounded-[8px] flex items-center gap-3">
-            <div className="text-xs">
-              <span className="text-[#4B5563] block text-[11px]">Native Token</span>
-              <span className="font-semibold text-[#0B0B0F]">{balanceNative} POL</span>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate(`/workspace?jobId=${lastOpenedJob.id}`)}
+                icon={<ArrowRight size={14} />}
+              >
+                Open workspace
+              </Button>
             </div>
-            <div className="h-6 w-px bg-[#E5E7EB]" />
-            <div className="text-xs">
-              <span className="text-[#4B5563] block text-[11px]">Dollar Escrow</span>
-              <span className="font-semibold text-[#0047AB]">${balanceUsdc} USDC</span>
-            </div>
-          </div>
+          )}
 
-          <div className="flex items-center gap-2">
-            <WatchButton id="get-paid-cash-out" onOpen={openVideo} />
-            <button
-              type="button"
-              onClick={handleRefreshBalances}
-              disabled={isRefreshingBalances}
-              title="Refresh balances"
-              className="p-2 border border-[#E5E7EB] hover:bg-[#F6F7F9] rounded-[8px] text-[#4B5563] transition-colors cursor-pointer"
-            >
-              <RefreshCw size={14} className={isRefreshingBalances ? 'animate-spin text-[#0047AB]' : ''} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsTopUpModalOpen(true)}
-              className="bg-[#0047AB] hover:bg-[#003882] text-white px-4 py-2 rounded-[8px] text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <DollarSign size={13} />
-              <span>Top-up</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── 6. STATS & COBALT-ONLY ACTIVITY CHART ────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-        {/* Stats Row */}
-        <div className="md:col-span-8 space-y-5">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-              <div className="text-xs text-[#4B5563]">Completed jobs</div>
-              <div className="text-2xl font-semibold text-[#0B0B0F] mt-1">
-                {isClientView ? completedClientJobs.length : completedFreelanceJobs.length}
+          {/* Needs Your Attention */}
+          <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2.5">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-sm text-[#0B0B0F]">Needs your attention</h3>
+                {attentionItems.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-[6px] bg-[#E7EEF9] text-[#0047AB] text-xs font-semibold">
+                    {attentionItems.length}
+                  </span>
+                )}
               </div>
+              <span className="text-xs text-[#4B5563]">Active action items</span>
             </div>
 
-            <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-              <div className="text-xs text-[#4B5563]">
-                {isClientView ? 'Total spent' : 'Net earned'}
-              </div>
-              <div className="text-2xl font-semibold text-[#0047AB] mt-1">
-                ${isClientView ? clientTotalSpent.toFixed(2) : (userScores.totalVolume * 0.975).toFixed(2)}
-              </div>
-            </div>
+            {attentionItems.length === 0 ? (
+              <CompactEmptyState
+                icon={CheckCircle2}
+                title="All caught up"
+                description="No pending milestones or proposals requiring immediate action."
+              />
+            ) : (
+              <div className="space-y-2">
+                {attentionItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 bg-[#F6F7F9] border border-[#E5E7EB] rounded-[8px] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left"
+                  >
+                    <div className="space-y-0.5 max-w-xl">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-xs text-[#0B0B0F]">{item.title}</span>
+                        <span className={`px-2 py-0.5 rounded-[4px] text-[10px] font-medium ${item.badgeColor}`}>
+                          {item.badge}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#4B5563]">{item.description}</p>
+                    </div>
 
-            <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.06)] col-span-2 sm:col-span-1">
-              <div className="text-xs text-[#4B5563]">Reputation score</div>
-              <div className="text-2xl font-semibold text-[#0B0B0F] mt-1">
-                {userScores.totalPoints}
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => navigate(item.actionPath)}
+                      icon={<ArrowRight size={12} />}
+                    >
+                      {item.actionLabel}
+                    </Button>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Simple Cobalt-Only Activity Chart */}
-          <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] space-y-4 text-left">
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+          {/* Stats Cards Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatCard
+              label="Completed jobs"
+              value={isClientView ? completedClientJobs.length : completedFreelanceJobs.length}
+            />
+            <StatCard
+              label={isClientView ? 'Total spent' : 'Net earned'}
+              value={`$${isClientView ? clientTotalSpent.toFixed(2) : (userScores.totalVolume * 0.975).toFixed(2)}`}
+            />
+            <StatCard
+              label={isClientView ? 'Client patronage' : 'Reputation score'}
+              value={isClientView ? `${completedClientJobs.length} jobs` : userScores.totalPoints}
+            />
+          </div>
+
+          {/* Activity Chart with Dynamic Axis Labels & Real Hover Values */}
+          <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2.5">
               <h3 className="font-semibold text-sm text-[#0B0B0F]">
                 {isClientView ? 'Escrow volume distribution' : 'Monthly milestone settlement'}
               </h3>
               <span className="text-xs text-[#6B7280]">Settled volume (POL / USDC)</span>
             </div>
 
-            {/* Simple Bar Visualization in Cobalt (#0047AB) Only */}
-            <div className="h-36 flex items-end justify-between gap-3 pt-4 px-2">
-              {[
-                { label: 'May', val: 30 },
-                { label: 'Jun', val: 55 },
-                { label: 'Jul', val: 40 },
-                { label: 'Aug', val: 75 },
-                { label: 'Sep', val: 90 },
-                { label: 'Oct', val: 65 },
-              ].map((item) => (
-                <div key={item.label} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                  <div className="text-[10px] text-[#4B5563] opacity-0 group-hover:opacity-100 transition-opacity font-mono">
-                    {item.val}%
-                  </div>
-                  <div
-                    className="w-full max-w-[40px] bg-[#0047AB] rounded-t-[4px] hover:bg-[#003882] transition-all"
-                    style={{ height: `${item.val}%` }}
-                  />
-                  <span className="text-xs text-[#4B5563] font-medium">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar Column: Badges & GitHub E-KYC */}
-        <div className="md:col-span-4 space-y-5 text-left">
-          {/* Soulbound Attestations Card */}
-          <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] space-y-3.5">
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2.5">
-              <div className="flex items-center gap-2">
-                <Award size={15} className="text-[#0047AB]" />
-                <h3 className="font-semibold text-sm text-[#0B0B0F]">Verified work certificates</h3>
+            <div className="flex gap-3 pt-3">
+              {/* Y-Axis Labels */}
+              <div className="flex flex-col justify-between text-[11px] text-[#9CA3AF] py-1 text-right w-14 select-none tabular-nums font-mono">
+                <span>${monthlyActivityData.maxVolume > 0 ? Math.round(monthlyActivityData.maxVolume).toLocaleString() : '0'}</span>
+                <span>${monthlyActivityData.maxVolume > 0 ? Math.round(monthlyActivityData.maxVolume / 2).toLocaleString() : '0'}</span>
+                <span>$0</span>
               </div>
-              <Badge variant="neutral">{unlockedBadges.length + completedFreelanceJobs.length}</Badge>
-            </div>
 
-            {completedFreelanceJobs.length > 0 && (() => {
-              const latestJob = completedFreelanceJobs[0];
-              const sbtId = latestJob.sbtTokenId || getDeterministicSbtId(latestJob.id);
-              const svgThumb = generateCertificateSvg({
-                tokenId: sbtId,
-                variant: 'work',
-                jobTitle: latestJob.title,
-                recipientAddress: latestJob.freelancer || activeAddress,
-                clientAddress: latestJob.client || '',
-                amount: latestJob.amountEth || latestJob.amountUsdc || 100,
-                tokenSymbol: latestJob.paymentTokenSymbol || 'POL',
-                completedAt: latestJob.completedAt || Date.now(),
-                contractAddress: CONTRACTS.ReputationSBT,
-              });
-              const svgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(svgThumb)}`;
-
-              return (
-                <div className="p-3 bg-[#FAFAF8] rounded-[8px] border border-[#E5E7EB] space-y-2.5">
-                  <div className="flex items-center gap-3">
-                    <Link
-                      to={`/certificate/${sbtId}`}
-                      className="shrink-0 w-16 h-16 rounded-[6px] overflow-hidden border border-[#E5E7EB] bg-white hover:border-[#0047AB] transition-transform hover:scale-105 shadow-xs"
-                      title="View certificate"
-                    >
-                      <img src={svgDataUri} alt={`SBT #${sbtId}`} className="w-full h-full object-cover" />
-                    </Link>
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-semibold text-[#0047AB] bg-[#EFF6FF] px-1.5 py-0.2 rounded border border-[#BFDBFE]">
-                          PL-SBT #{sbtId}
-                        </span>
-                        <span className="text-[10px] text-[#166534] font-medium bg-[#DCFCE7] px-1.5 py-0.2 rounded">
-                          ERC-5192
-                        </span>
-                      </div>
-                      <h4 className="text-xs font-semibold text-[#0B0B0F] truncate" title={latestJob.title}>
-                        {latestJob.title}
-                      </h4>
-                      <Link
-                        to={`/certificate/${sbtId}`}
-                        className="text-[11px] text-[#0047AB] hover:underline font-medium inline-flex items-center gap-1"
-                      >
-                        <span>View certificate</span>
-                        <ArrowUpRight size={11} />
-                      </Link>
-                    </div>
+              {/* Bar Visualization */}
+              <div className="flex-1 h-36 flex items-end justify-between gap-3 border-l border-b border-[#E5E7EB] px-2 pb-1 relative">
+                {!monthlyActivityData.hasActivity && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="text-xs text-[#9CA3AF] font-medium bg-white/90 px-2.5 py-1 rounded-[6px] border border-[#E5E7EB]/60">
+                      No settled escrow activity in the past 6 months
+                    </span>
                   </div>
-                </div>
-              );
-            })()}
-
-            {unlockedBadges.length === 0 && completedFreelanceJobs.length === 0 ? (
-              <div className="p-4 bg-[#F6F7F9] rounded-[8px] text-center text-xs text-[#4B5563]">
-                No certificates minted yet. Complete your first contract to earn an ERC-721 Soulbound token.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {unlockedBadges.map((badge, index) => (
-                  <div key={index} className="p-2.5 bg-[#F6F7F9] rounded-[8px] border border-[#E5E7EB] space-y-0.5">
-                    <div className="flex items-center justify-between text-xs font-semibold text-[#0B0B0F]">
-                      <span>{badge.name}</span>
-                      <span className="font-mono text-[10px] text-[#0047AB]">{badge.token}</span>
+                )}
+                {monthlyActivityData.months.map((item) => (
+                  <div key={item.label} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
+                    <div className="text-[10px] text-[#4B5563] opacity-0 group-hover:opacity-100 transition-opacity font-mono tabular-nums whitespace-nowrap">
+                      {item.amount}
                     </div>
-                    <p className="text-[11px] text-[#4B5563]">{badge.desc}</p>
+                    <div
+                      className={`w-full max-w-[36px] rounded-t-[4px] transition-all cursor-pointer ${
+                        item.heightPercent > 0
+                          ? 'bg-[#0047AB] hover:bg-[#003882]'
+                          : 'bg-[#E5E7EB]/80 hover:bg-[#D1D5DB]'
+                      }`}
+                      style={{ height: `${Math.max(item.heightPercent, 2)}%` }}
+                    />
+                    <span className="text-xs text-[#4B5563] font-medium">{item.label}</span>
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* Contracts Grouped List with Active | Completed Tabs */}
+          <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E7EB] pb-3">
+              <div className="flex items-center gap-3">
+                <h3 className="font-semibold text-sm text-[#0B0B0F]">
+                  {isClientView ? 'Client Project Hub' : 'Freelancer Contract Hub'}
+                </h3>
+                {/* Role-Specific Hub Tabs */}
+                {!isClientView ? (
+                  <div className="inline-flex p-0.5 bg-[#F6F7F9] border border-[#E5E7EB] rounded-[6px] text-xs flex-wrap gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setContractsTab('active')}
+                      className={`px-2.5 py-1 rounded-[4px] transition-colors cursor-pointer ${
+                        contractsTab === 'active'
+                          ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
+                          : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                      }`}
+                    >
+                      Active
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setContractsTab('offers')}
+                      className={`px-2.5 py-1 rounded-[4px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                        contractsTab === 'offers'
+                          ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
+                          : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                      }`}
+                    >
+                      <span>Offers</span>
+                      {pendingOffers.length > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#FDF3DC] text-[#C2610C] border border-[#F0D58C]">
+                          {pendingOffers.length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setContractsTab('applications')}
+                      className={`px-2.5 py-1 rounded-[4px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                        contractsTab === 'applications'
+                          ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
+                          : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                      }`}
+                    >
+                      <span>My Proposals</span>
+                      {myApplications.length > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB]">
+                          {myApplications.length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setContractsTab('completed')}
+                      className={`px-2.5 py-1 rounded-[4px] transition-colors cursor-pointer ${
+                        contractsTab === 'completed'
+                          ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
+                          : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                      }`}
+                    >
+                      Completed
+                    </button>
+                  </div>
+                ) : (
+                  <div className="inline-flex p-0.5 bg-[#F6F7F9] border border-[#E5E7EB] rounded-[6px] text-xs flex-wrap gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setContractsTab('active')}
+                      className={`px-2.5 py-1 rounded-[4px] transition-colors cursor-pointer ${
+                        contractsTab === 'active'
+                          ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
+                          : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                      }`}
+                    >
+                      Active Escrows
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setContractsTab('open')}
+                      className={`px-2.5 py-1 rounded-[4px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                        contractsTab === 'open'
+                          ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
+                          : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                      }`}
+                    >
+                      <span>Posted Jobs</span>
+                      {openClientJobs.length > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#E7EEF9] text-[#0047AB] border border-[#D0E1F9]">
+                          {openClientJobs.length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setContractsTab('completed')}
+                      className={`px-2.5 py-1 rounded-[4px] transition-colors cursor-pointer ${
+                        contractsTab === 'completed'
+                          ? 'bg-white text-[#0047AB] shadow-xs font-semibold'
+                          : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                      }`}
+                    >
+                      Completed
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {isClientView && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/jobs/post')}
+                  icon={<PlusCircle size={13} />}
+                >
+                  Post new job
+                </Button>
+              )}
+            </div>
+
+            {contractsTab === 'applications' ? (
+              myApplications.length === 0 ? (
+                <CompactEmptyState
+                  title="No active applications"
+                  description="Find open contracts on the marketplace and submit milestone proposals."
+                  action={{
+                    label: 'Browse marketplace',
+                    onClick: () => navigate('/jobs'),
+                  }}
+                />
+              ) : (
+                <GroupedList>
+                  {myApplications.map(({ job, ...app }, idx) => (
+                    <GroupedRow
+                      key={`${job.id}-${app.id || idx}`}
+                      title={job.title}
+                      subtitle={
+                        <div className="flex items-center gap-2 text-xs text-[#4B5563] mt-0.5">
+                          <Amount
+                            amount={app.proposedAmountUsdc || job.amountEth || job.amountUsdc || '0'}
+                            token={job.paymentTokenSymbol || 'POL'}
+                            showFiat={true}
+                          />
+                          <span>•</span>
+                          <span>Est: {app.estimatedDays || 7} days</span>
+                          <span>•</span>
+                          <span>{job.category}</span>
+                        </div>
+                      }
+                      trailing={
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-[4px] text-[10px] font-semibold ${
+                            job.status === 'Selected' && job.freelancer?.toLowerCase() === activeAddress.toLowerCase()
+                              ? 'bg-[#FDF3DC] text-[#C2610C] border border-[#F0D58C]'
+                              : 'bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB]'
+                          }`}>
+                            {job.status === 'Selected' && job.freelancer?.toLowerCase() === activeAddress.toLowerCase()
+                              ? 'Offer received'
+                              : 'Submitted proposal'}
+                          </span>
+                        </div>
+                      }
+                      onClick={() => navigate(
+                        job.status === 'Selected' && job.freelancer?.toLowerCase() === activeAddress.toLowerCase()
+                          ? `/workspace?jobId=${job.id}`
+                          : `/jobs/${job.id}`
+                      )}
+                    />
+                  ))}
+                </GroupedList>
+              )
+            ) : filteredContracts.length === 0 ? (
+              <CompactEmptyState
+                title={
+                  contractsTab === 'offers'
+                    ? 'No pending job offers'
+                    : contractsTab === 'open'
+                    ? 'No open job listings'
+                    : contractsTab === 'active'
+                    ? 'No active contracts'
+                    : 'No completed contracts'
+                }
+                description={
+                  contractsTab === 'offers'
+                    ? 'When clients review and select your proposals, offers will appear here for review.'
+                    : isClientView
+                    ? 'Post an escrow job to hire top verified talent.'
+                    : 'Find contracts and submit milestone proposals.'
+                }
+                action={{
+                  label: isClientView ? 'Post an escrow job' : 'Find contracts',
+                  onClick: () => navigate(isClientView ? '/jobs/post' : '/jobs'),
+                }}
+              />
+            ) : (
+              <GroupedList>
+                {filteredContracts.map((job) => (
+                  <GroupedRow
+                    key={job.id}
+                    title={job.title}
+                    subtitle={
+                      <div className="flex items-center gap-2 text-xs text-[#4B5563] mt-0.5">
+                        <Amount
+                          amount={job.amountEth || job.amountUsdc || '0'}
+                          token={job.paymentTokenSymbol || 'POL'}
+                          showFiat={true}
+                        />
+                        <span>•</span>
+                        <span>{job.category}</span>
+                        <span>•</span>
+                        <span>{job.applications?.length || 0} proposals</span>
+                      </div>
+                    }
+                    trailing={<StatusBadge status={job.status} />}
+                    onClick={() => {
+                      if (job.status === 'Funded' || job.status === 'Selected' || job.status === 'Submitted' || job.status === 'Completed' || job.status === 'Disputed') {
+                        navigate(`/workspace?jobId=${job.id}`);
+                      } else {
+                        navigate(`/jobs/${job.id}`);
+                      }
+                    }}
+                  />
+                ))}
+              </GroupedList>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT RAIL (4 cols, sticky) */}
+        <div className="lg:col-span-4 sticky top-[88px] space-y-6">
+          {/* Escrow Funding Account Card */}
+          <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2.5">
+              <div className="flex items-center gap-2">
+                <Wallet size={15} className="text-[#0047AB]" />
+                <h3 className="font-semibold text-sm text-[#0B0B0F]">Escrow funding account</h3>
+              </div>
+              <span className="text-[10px] text-[#047857] font-semibold bg-[#ECFDF5] px-2 py-0.5 rounded-[4px] border border-[#A7F3D0]">
+                Live sync
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 bg-[#F6F7F9] p-3 rounded-[8px] border border-[#E5E7EB]">
+              <div className="text-xs">
+                <span className="text-[#4B5563] block text-[11px]">Native POL</span>
+                <span className="font-semibold text-sm text-[#0B0B0F] tabular-nums">{balanceNative}</span>
+              </div>
+              <div className="text-xs">
+                <span className="text-[#4B5563] block text-[11px]">Dollar Escrow</span>
+                <span className="font-semibold text-sm text-[#0047AB] tabular-nums">${balanceUsdc}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshBalances}
+                disabled={isRefreshingBalances}
+                icon={<RefreshCw size={13} className={isRefreshingBalances ? 'animate-spin text-[#0047AB]' : ''} />}
+                className="w-full justify-center"
+              >
+                Sync
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full justify-center bg-[#0047AB] hover:bg-[#003882] text-white font-semibold shadow-xs"
+                onClick={() => setIsTopUpModalOpen(true)}
+                icon={<DollarSign size={13} />}
+              >
+                Top-up
+              </Button>
+            </div>
+          </div>
+
+          {/* Verified Work Certificates */}
+          <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2.5">
+              <div className="flex items-center gap-2">
+                <Award size={15} className="text-[#0047AB]" />
+                <h3 className="font-semibold text-sm text-[#0B0B0F]">Work certificates</h3>
+              </div>
+              <Badge variant="neutral">{allUserCompletedJobs.length}</Badge>
+            </div>
+
+            {allUserCompletedJobs.length === 0 ? (
+              <p className="text-xs text-[#4B5563] py-2">
+                No certificates issued yet. Complete a contract to generate verified on-chain attestations.
+              </p>
+            ) : (
+              <GroupedList dense>
+                {allUserCompletedJobs.slice(0, 4).map((j) => {
+                  const isFreelancer = Boolean(activeAddress && j.freelancer?.toLowerCase() === activeAddress.toLowerCase());
+                  const canonicalCertId = getCanonicalCertificateId(j.id, j.contractAddress);
+                  const tokenAmt = parseFloat(j.amountUsdc || j.amountEth || '0');
+                  const tokenSym = j.paymentTokenSymbol === 'MATIC' ? 'POL' : (j.paymentTokenSymbol || 'USDC');
+
+                  return (
+                    <GroupedRow
+                      key={j.id}
+                      title={j.title}
+                      subtitle={`${tokenAmt.toLocaleString()} ${tokenSym} • ${isFreelancer ? 'Proof of Work' : 'Patronage'}`}
+                      trailing={<ArrowUpRight size={13} className="text-[#6B7280]" />}
+                      onClick={() => navigate(`/attestation/${j.id}`)}
+                    />
+                  );
+                })}
+              </GroupedList>
             )}
 
             <div className="grid grid-cols-2 gap-2 pt-1">
-              <Link
-                to="/profile"
-                className="py-2 text-xs font-medium text-center text-[#0047AB] border border-[#E5E7EB] hover:bg-[#F6F7F9] rounded-[8px] block transition-colors"
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/attestation')}
               >
                 All certificates
-              </Link>
-              <Link
-                to="/reputation"
-                className="py-2 text-xs font-medium text-center text-[#4B5563] hover:text-[#0B0B0F] border border-[#E5E7EB] hover:bg-[#F6F7F9] rounded-[8px] block transition-colors"
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/reputation')}
               >
-                Rank (#{myRank})
-              </Link>
+                Rank ({myRank})
+              </Button>
             </div>
           </div>
 
@@ -779,61 +1034,6 @@ export const Dashboard: React.FC = () => {
             onboardingLink
           />
         </div>
-      </div>
-
-      {/* ── 7. REPOSITORY CONTRACTS LIST (POSTED / ONGOING) ─────────────── */}
-      <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-5 sm:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.06)] space-y-4 text-left">
-        <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
-          <h3 className="font-semibold text-base text-[#0B0B0F]">
-            {isClientView ? `Posted Escrow Jobs (${myClientJobs.length})` : `Active Contracts (${myFreelancerJobs.length})`}
-          </h3>
-          {isClientView && (
-            <Link to="/jobs/post" className="text-xs font-medium text-[#0047AB] hover:underline flex items-center gap-1">
-              <PlusCircle size={13} />
-              <span>Post new job</span>
-            </Link>
-          )}
-        </div>
-
-        {(isClientView ? myClientJobs : myFreelancerJobs).length === 0 ? (
-          <div className="py-8 text-center text-[#4B5563] space-y-2">
-            <p className="text-xs">No contracts in this view.</p>
-            <Link
-              to={isClientView ? "/jobs/post" : "/jobs"}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#0047AB] hover:bg-[#003882] text-white text-xs font-medium transition-colors"
-            >
-              {isClientView ? 'Post an escrow job' : 'Find contracts'}
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {(isClientView ? myClientJobs : myFreelancerJobs).map((job) => (
-              <div
-                key={job.id}
-                onClick={() => navigate(`/jobs/${job.id}`)}
-                className="p-4 bg-[#F6F7F9] hover:bg-[#E5E7EB]/50 border border-[#E5E7EB] rounded-[8px] flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition-colors"
-              >
-                <div className="space-y-1">
-                  <div className="font-semibold text-sm text-[#0B0B0F] hover:text-[#0047AB] transition-colors">
-                    {job.title}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#4B5563]">
-                    <Amount amount={job.amountEth || job.amountUsdc || '0'} token={job.paymentTokenSymbol || 'POL'} showFiat={true} />
-                    <span>•</span>
-                    <span>{job.category}</span>
-                    <span>•</span>
-                    <span>{job.applications?.length || 0} proposals</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <StatusBadge status={job.status} />
-                  <ArrowUpRight size={16} className="text-[#4B5563]" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Insufficient Funds Modal */}

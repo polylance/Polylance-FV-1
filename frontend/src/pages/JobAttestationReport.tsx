@@ -15,9 +15,10 @@ import {
 } from 'lucide-react';
 import { PolyLanceLogo } from '../components/PolyLanceLogo';
 import { LoginModal } from '../components/LoginModal';
+import { PageHeader } from '../components/layout/PageHeader';
 import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { TokenIcon, PolygonIcon } from '../components/TokenIcon';
-import { truncateAddress, generateDeterministicHash, getCanonicalCertificateId, getCertifiedPassVerifyUrl, getPolygonScanUrl, formatWeb3ErrorMessage } from '../utils/formatters';
+import { truncateAddress, generateDeterministicHash, getCanonicalCertificateId, getCertifiedPassVerifyUrl, getPolygonScanUrl, formatWeb3ErrorMessage, getDeterministicSbtId } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { generateCode128Bars } from '../utils/barcode';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
@@ -84,10 +85,17 @@ export const JobAttestationReport: React.FC = () => {
     return () => { mounted = false; };
   }, [userAddress]);
 
-  // Synchronize URL param with selected job
+  // Synchronize URL param with selected job & auto-scroll to certificate section
   useEffect(() => {
     if (jobIdParam) {
       setSelectedJobId(jobIdParam);
+      const timer = setTimeout(() => {
+        const certEl = document.getElementById('detailed-certificate-section') || certSectionRef.current || cardRef.current;
+        if (certEl) {
+          certEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
     }
   }, [jobIdParam]);
 
@@ -128,9 +136,12 @@ export const JobAttestationReport: React.FC = () => {
     const lower = raw.toLowerCase();
     const cleanParam = lower
       .replace(/^pl-sbt-job-/i, '')
+      .replace(/^pl-sbt-/i, '')
       .replace(/^sbt-/i, '')
       .replace(/^job-/i, '')
+      .replace(/^#/i, '')
       .trim();
+    const cleanDigits = cleanParam.replace(/\D/g, '');
 
     const findMatch = (list: any[]) => {
       if (!Array.isArray(list)) return null;
@@ -144,6 +155,9 @@ export const JobAttestationReport: React.FC = () => {
         const jContractNoHex = jContract.replace(/^0x/i, '');
         const jIdNoHex = jId.replace(/^0x/i, '');
 
+        const jSbtId = String(j.sbtTokenId || '').toLowerCase().trim();
+        const jDetSbtId = String(getDeterministicSbtId(j.id)).toLowerCase().trim();
+
         return (
           jId === lower ||
           jContract === lower ||
@@ -151,6 +165,8 @@ export const JobAttestationReport: React.FC = () => {
           jId === cleanParam ||
           jCleanId === cleanParam ||
           jContract === cleanParam ||
+          (jSbtId && (jSbtId === lower || jSbtId === cleanParam || (cleanDigits && jSbtId === cleanDigits))) ||
+          (jDetSbtId && (jDetSbtId === lower || jDetSbtId === cleanParam || (cleanDigits && jDetSbtId === cleanDigits))) ||
           (cleanParamNoHex.length >= 4 && (
             jContractNoHex.includes(cleanParamNoHex) ||
             cleanParamNoHex.includes(jContractNoHex) ||
@@ -267,12 +283,16 @@ const activeJob = useMemo(() => {
     // 2. If user selected a specific job from their gallery
     if (selectedJobId) {
       const lower = selectedJobId.toLowerCase();
-      const cleanSel = lower.replace(/^pl-sbt-job-/i, '').replace(/^job-/i, '');
+      const cleanSel = lower.replace(/^pl-sbt-job-/i, '').replace(/^pl-sbt-/i, '').replace(/^sbt-/i, '').replace(/^job-/i, '').replace(/^#/i, '');
       const foundInUser = userCompletedJobs.find(
         (j) => j.id.toLowerCase() === lower ||
                j.contractAddress?.toLowerCase() === lower ||
                j.id.toLowerCase() === cleanSel ||
-               getCanonicalCertificateId(j.id, j.contractAddress).toLowerCase() === lower
+               getCanonicalCertificateId(j.id, j.contractAddress).toLowerCase() === lower ||
+               String(j.sbtTokenId) === selectedJobId ||
+               String(j.sbtTokenId) === cleanSel ||
+               String(getDeterministicSbtId(j.id)) === selectedJobId ||
+               String(getDeterministicSbtId(j.id)) === cleanSel
       );
       if (foundInUser) return foundInUser;
     }
@@ -702,136 +722,108 @@ const activeJob = useMemo(() => {
       {/* ── USER'S ATTESTATION GALLERY & SEARCH HUB (Only User's Certs) ────── */}
       {userCompletedJobs.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 space-y-5 no-print">
-          {/* Header for User's Attestation Vault */}
-          <div className="bg-white rounded-[12px] p-5 sm:p-6 border border-[#E5E7EB] shadow-xs">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1.5 max-w-2xl text-left">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[6px] bg-[#EFF6FF] border border-[#BFDBFE] text-[#0047AB] text-xs font-mono font-medium">
-                  <ShieldCheck size={14} className="text-[#0047AB]" />
-                  <span>Personal attestation vault • {truncateAddress(userAddress || '')}</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0B0B0F]">
-                  My Soulbound Attestations
-                </h1>
-                <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
-                  Your decentralized proof-of-work certificates and client milestone sponsorships, permanently anchored to Polygon.
-                </p>
-              </div>
-
-              {/* User Stats Badges */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="bg-[#F6F7F9] rounded-[8px] px-4 py-2.5 border border-[#E5E7EB] text-center min-w-[100px]">
-                  <div className="text-lg font-bold text-[#0B0B0F]">
+          {/* Header for User's Attestation Vault: Plain PageHeader with 2 inline stats */}
+          <PageHeader
+            title="My Soulbound Attestations"
+            subtitle="Decentralized proof-of-work certificates and client milestone sponsorships, permanently anchored to Polygon."
+            actions={
+              <div className="flex items-center gap-3">
+                <div className="bg-white rounded-[8px] px-3.5 py-1.5 border border-[#E5E7EB] text-center shadow-xs">
+                  <span className="text-sm font-semibold text-[#0B0B0F] font-mono mr-1.5">
                     {userCompletedJobs.length}
-                  </div>
-                  <div className="text-[11px] text-[#4B5563] font-medium">
+                  </span>
+                  <span className="text-xs text-[#4B5563]">
                     Certificates
-                  </div>
+                  </span>
                 </div>
-                <div className="bg-[#F6F7F9] rounded-[8px] px-4 py-2.5 border border-[#E5E7EB] text-center min-w-[110px]">
-                  <div className="text-lg font-bold text-[#166534]">
+                <div className="bg-white rounded-[8px] px-3.5 py-1.5 border border-[#E5E7EB] text-center shadow-xs">
+                  <span className="text-sm font-semibold text-[#166534] font-mono mr-1.5">
                     ${userCompletedJobs.reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0).toLocaleString()}
-                  </div>
-                  <div className="text-[11px] text-[#4B5563] font-medium">
-                    Settled volume
-                  </div>
+                  </span>
+                  <span className="text-xs text-[#4B5563]">
+                    Settled
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
+            }
+          />
 
-          {/* Search Bar & User Organization Controls */}
-          <div className="bg-white rounded-[12px] p-4 sm:p-5 border border-[#E5E7EB] shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              {/* Search Input */}
-              <label className="relative flex-1 flex items-center gap-2.5 px-3.5 py-2 rounded-[8px] border border-[#E5E7EB] bg-white focus-within:ring-1 focus-within:ring-[#0047AB] focus-within:border-[#0047AB] transition-colors cursor-text">
-                <Search size={16} className="shrink-0 text-[#9CA3AF] pointer-events-none" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search your certificates by ID, milestone title, counterparty, amount..."
-                  className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm font-medium outline-none placeholder:text-[#9CA3AF] text-[#0B0B0F]"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="shrink-0 text-[#6B7280] hover:text-[#0B0B0F] cursor-pointer p-0.5"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </label>
-
-              {/* Sort Order Selector */}
-              <div className="flex items-center gap-2 shrink-0 min-w-[190px]">
-                <PolyLanceSelect
-                  value={sortBy}
-                  onChange={(val) => setSortBy(val as any)}
-                  options={[
-                    { value: 'latest', label: 'Latest Issued', sublabel: 'Newest First' },
-                    { value: 'highest', label: 'Highest Settled', sublabel: 'Highest $' },
-                    { value: 'oldest', label: 'Oldest Milestone', sublabel: 'Earliest First' },
-                  ]}
-                  variant="standard"
-                  className="w-full"
-                />
-              </div>
-            </div>
+          {/* Search Bar & Filter Controls in One Row */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            {/* Search Input */}
+            <label className="relative flex-1 flex items-center gap-2 px-3 py-2 rounded-[8px] border border-[#E5E7EB] bg-white focus-within:border-[#0047AB] transition-colors cursor-text">
+              <Search size={15} className="shrink-0 text-[#9CA3AF] pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search certificates by ID, milestone title, counterparty, amount..."
+                className="flex-1 min-w-0 bg-transparent text-xs font-medium outline-none placeholder:text-[#9CA3AF] text-[#0B0B0F]"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="shrink-0 text-[#6B7280] hover:text-[#0B0B0F] cursor-pointer p-0.5"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </label>
 
             {/* Role Filter Tabs */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#E5E7EB] text-xs font-medium">
+            <div className="flex items-center gap-1.5 bg-[#F6F7F9] p-1 rounded-[8px] border border-[#E5E7EB] shrink-0 text-xs">
               <button
                 type="button"
                 onClick={() => setFilterTab('all')}
-                className={`px-3.5 py-1.5 rounded-[8px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+                className={`px-3 py-1.5 rounded-[6px] font-medium transition-colors cursor-pointer ${
                   filterTab === 'all'
-                    ? 'bg-[#0047AB] text-white shadow-xs font-semibold'
-                    : 'bg-white hover:bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB]'
+                    ? 'bg-white text-[#0B0B0F] shadow-xs'
+                    : 'text-[#4B5563] hover:text-[#0B0B0F]'
                 }`}
               >
-                <span>All my certs</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${filterTab === 'all' ? 'bg-white/20 text-white' : 'bg-[#E5E7EB] text-[#4B5563]'}`}>
-                  {userCompletedJobs.length}
-                </span>
+                All ({userCompletedJobs.length})
               </button>
-
               <button
                 type="button"
                 onClick={() => setFilterTab('freelancer')}
-                className={`px-3.5 py-1.5 rounded-[8px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+                className={`px-3 py-1.5 rounded-[6px] font-medium transition-colors cursor-pointer ${
                   filterTab === 'freelancer'
-                    ? 'bg-[#0047AB] text-white shadow-xs font-semibold'
-                    : 'bg-white hover:bg-[#F0FDF4] hover:border-[#BBF7D0] text-[#4B5563] hover:text-[#166534] border border-[#E5E7EB]'
+                    ? 'bg-white text-[#0B0B0F] shadow-xs'
+                    : 'text-[#4B5563] hover:text-[#0B0B0F]'
                 }`}
               >
-                <Award size={13} className={filterTab === 'freelancer' ? 'text-[#93C5FD]' : 'text-[#10B981]'} />
-                <span>Proof of work (As talent)</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${filterTab === 'freelancer' ? 'bg-white/20 text-white' : 'bg-[#DCFCE7] text-[#166534]'}`}>
-                  {talentCertsCount}
-                </span>
+                Talent ({talentCertsCount})
               </button>
-
               <button
                 type="button"
                 onClick={() => setFilterTab('client')}
-                className={`px-3.5 py-1.5 rounded-[8px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+                className={`px-3 py-1.5 rounded-[6px] font-medium transition-colors cursor-pointer ${
                   filterTab === 'client'
-                    ? 'bg-[#0047AB] text-white shadow-xs font-semibold'
-                    : 'bg-white hover:bg-[#EFF6FF] hover:border-[#BFDBFE] text-[#4B5563] hover:text-[#1E40AF] border border-[#E5E7EB]'
+                    ? 'bg-white text-[#0B0B0F] shadow-xs'
+                    : 'text-[#4B5563] hover:text-[#0B0B0F]'
                 }`}
               >
-                <Building2 size={13} className={filterTab === 'client' ? 'text-[#93C5FD]' : 'text-[#0047AB]'} />
-                <span>Patronage (As client)</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${filterTab === 'client' ? 'bg-white/20 text-white' : 'bg-[#DBEAFE] text-[#1E40AF]'}`}>
-                  {clientCertsCount}
-                </span>
+                Client ({clientCertsCount})
               </button>
+            </div>
+
+            {/* Sort Order Selector */}
+            <div className="w-44 shrink-0">
+              <PolyLanceSelect
+                value={sortBy}
+                onChange={(val) => setSortBy(val as any)}
+                options={[
+                  { value: 'latest', label: 'Latest Issued' },
+                  { value: 'highest', label: 'Highest Settled' },
+                  { value: 'oldest', label: 'Oldest Milestone' },
+                ]}
+                size="sm"
+              />
             </div>
           </div>
 
-          {/* Certificate Cards Grid */}
+          {/* Certificate Cards Grid - 3 Per Row Compact */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-medium text-[#4B5563] px-1">
               <span>
@@ -848,7 +840,7 @@ const activeJob = useMemo(() => {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
               {filteredAndSortedJobs.map((j) => {
                 const certId = getCanonicalCertificateId(j.id, j.contractAddress);
                 const isSelected = activeJob?.id.toLowerCase() === j.id.toLowerCase();

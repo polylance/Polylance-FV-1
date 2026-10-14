@@ -46,7 +46,7 @@ export const AddressChip: React.FC<AddressChipProps> = ({
           title="Copy address"
           aria-label="Copy address"
         >
-          {copied ? <Check size={11} className="text-[#1E8449]" /> : <Copy size={11} />}
+          {copied ? <Check size={11} className="text-[#0047AB]" /> : <Copy size={11} />}
         </button>
       )}
       {showExplorer && (

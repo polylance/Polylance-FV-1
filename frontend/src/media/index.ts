@@ -1,4 +1,4 @@
-import manifestData from '../../public/media/manifest.json';
+import manifestData from './manifest.json';
 
 export type VideoType = 'ambient' | 'standard' | 'component';
 export type VideoAspect = '16:9' | '9:16';

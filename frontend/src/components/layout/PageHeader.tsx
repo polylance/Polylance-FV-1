@@ -22,34 +22,34 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`space-y-3 mb-6 sm:mb-8 ${className}`}>
+    <div className={`mb-6 ${className}`}>
       {backTo && (
         <Link
           to={backTo}
-          className="inline-flex items-center gap-1 text-xs font-medium text-[#4B5563] hover:text-[#0047AB] transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-medium text-[#4B5563] hover:text-[#0047AB] transition-colors mb-2"
         >
           <ChevronLeft size={14} />
           <span>{backLabel}</span>
         </Link>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
+      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3">
+        <div className="min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-[28px] leading-[32px] font-semibold text-[#0B0B0F] tracking-tight">
+            <h1 className="text-[28px] leading-[34px] font-semibold text-[#0B0B0F] tracking-tight">
               {title}
             </h1>
-            {badge && <div>{badge}</div>}
+            {badge && <div className="shrink-0">{badge}</div>}
           </div>
           {subtitle && (
-            <div className="text-sm leading-[22px] text-[#4B5563] max-w-[720px]">
+            <div className="text-sm leading-[20px] text-[#4B5563] mt-1 max-w-[720px]">
               {subtitle}
             </div>
           )}
         </div>
 
         {actions && (
-          <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
+          <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
             {actions}
           </div>
         )}

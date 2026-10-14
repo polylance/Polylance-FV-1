@@ -268,7 +268,7 @@ export const MediaLab: React.FC = () => {
                 Download Work PNG
               </button>
               <Link
-                to="/certificate/7108"
+                to="/attestation/7108"
                 className="text-[#0047AB] hover:underline font-semibold"
               >
                 View Public Page &rarr;
@@ -335,7 +335,7 @@ export const MediaLab: React.FC = () => {
                 Download Patronage PNG
               </button>
               <Link
-                to="/certificate/7109"
+                to="/attestation/7109"
                 className="text-[#0B0B0F] hover:underline font-semibold"
               >
                 View Public Page &rarr;

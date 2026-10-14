@@ -21,6 +21,7 @@ import {
   resolveDomainId,
   DOMAIN_BY_ID,
 } from '../utils/domainMapping';
+import { normalizeTimestampMs } from '../types/lifecycle';
 import { useGlobalFiat, SUPPORTED_FIAT } from '../utils/currency';
 import {
   Search,
@@ -71,7 +72,7 @@ const FIAT_OPTIONS: SelectOption[] = SUPPORTED_FIAT.map((f) => ({
 
 export const FindJobs: React.FC = () => {
   const { jobs } = usePolyLanceData();
-  const { isDemoMode, sampleJobs } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedFiat, setSelectedFiat] = useGlobalFiat();
@@ -180,10 +181,10 @@ export const FindJobs: React.FC = () => {
 
   // Filter jobs
   const filteredJobs = useMemo(() => {
-    const sourceJobs = isDemoMode ? [...sampleJobs, ...jobs] : jobs;
+    const sourceJobs = jobs;
     return sourceJobs.filter((job) => {
-      // Must not be expired or demo unless in demo mode
-      if (!isDemoMode && isDemoOrMockJob(job)) return false;
+      // Must not be expired, demo or mock job
+      if (isDemoOrMockJob(job)) return false;
 
       // Status must be open
       if (!isJobOpen(job)) return false;
@@ -220,7 +221,7 @@ export const FindJobs: React.FC = () => {
       // Posted date
       if (posted !== 'any') {
         const now = Date.now();
-        const jobTime = (job.createdAt || 0) * 1000;
+        const jobTime = normalizeTimestampMs(job.createdAt || job.events?.[0]?.timestamp);
         const diffHours = (now - jobTime) / (1000 * 60 * 60);
         if (posted === '24h' && diffHours > 24) return false;
         if (posted === '7d' && diffHours > 24 * 7) return false;
@@ -238,7 +239,7 @@ export const FindJobs: React.FC = () => {
 
       return true;
     });
-  }, [jobs, viewSaved, savedJobIds, search, activeDomain, skillsParam, minBudget, maxBudget, posted, minRep, applicants, isDemoMode, sampleJobs]);
+  }, [jobs, viewSaved, savedJobIds, search, activeDomain, skillsParam, minBudget, maxBudget, posted, minRep, applicants, isDemoMode]);
 
   // Sort jobs
   const sortedJobs = useMemo(() => {
@@ -277,17 +278,17 @@ export const FindJobs: React.FC = () => {
 
   // Render Sidebar Filters Content
   const renderFilterPanel = () => (
-    <div className="space-y-6">
+    <div className="space-y-4 text-left">
       {/* Domain */}
       <div>
-        <label className="block text-xs font-semibold text-[#4B5563] uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-semibold text-[#4B5563] uppercase tracking-wider mb-1.5">
           Domain
         </label>
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           <button
             type="button"
             onClick={() => handleDomainSelect('All')}
-            className={`w-full text-left px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors ${
+            className={`w-full text-left px-2.5 py-1.5 rounded-[6px] text-xs font-medium transition-colors cursor-pointer ${
               !activeDomain
                 ? 'bg-[#EFF6FF] text-[#0047AB] font-semibold'
                 : 'text-[#4B5563] hover:bg-[#F6F7F9] hover:text-[#0B0B0F]'
@@ -300,7 +301,7 @@ export const FindJobs: React.FC = () => {
               key={dom.id}
               type="button"
               onClick={() => handleDomainSelect(dom.id)}
-              className={`w-full text-left px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors ${
+              className={`w-full text-left px-2.5 py-1.5 rounded-[6px] text-xs font-medium transition-colors cursor-pointer ${
                 activeDomain === dom.id
                   ? 'bg-[#EFF6FF] text-[#0047AB] font-semibold'
                   : 'text-[#4B5563] hover:bg-[#F6F7F9] hover:text-[#0B0B0F]'
@@ -314,13 +315,13 @@ export const FindJobs: React.FC = () => {
 
       {/* Skills Tag Input */}
       <div>
-        <label className="block text-xs font-semibold text-[#4B5563] uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-semibold text-[#4B5563] uppercase tracking-wider mb-1.5">
           Skills
         </label>
-        <div className="flex gap-1.5 mb-2">
+        <div className="flex gap-1.5 mb-1.5">
           <input
             type="text"
-            placeholder="Add skill (e.g. Solidity)..."
+            placeholder="Add skill..."
             value={skillInput}
             onChange={(e) => setSkillInput(e.target.value)}
             onKeyDown={(e) => {
@@ -329,31 +330,32 @@ export const FindJobs: React.FC = () => {
                 addSkillFilter(skillInput);
               }
             }}
-            className="flex-1 bg-white border border-[#E5E7EB] rounded-[8px] px-2.5 py-1.5 text-xs text-[#0B0B0F] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#0047AB]"
+            className="flex-1 bg-white border border-[#E5E7EB] rounded-[6px] px-2.5 py-1 text-xs text-[#0B0B0F] placeholder-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-[#0047AB]"
           />
           <Button
             size="sm"
             variant="secondary"
             onClick={() => addSkillFilter(skillInput)}
+            className="py-1 min-h-[32px] text-xs"
           >
             Add
           </Button>
         </div>
         {skillsParam.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1">
             {skillsParam.map((skill) => (
               <span
                 key={skill}
-                className="inline-flex items-center gap-1 bg-[#F6F7F9] text-[#0B0B0F] text-xs px-2 py-0.5 rounded-[8px] border border-[#E5E7EB]"
+                className="inline-flex items-center gap-1 bg-[#F6F7F9] text-[#0B0B0F] text-[11px] px-2 py-0.5 rounded-[6px] border border-[#E5E7EB]"
               >
                 <span>{skill}</span>
                 <button
                   type="button"
                   onClick={() => removeSkillFilter(skill)}
-                  className="text-[#6B7280] hover:text-[#0B0B0F]"
+                  className="text-[#6B7280] hover:text-[#0B0B0F] cursor-pointer"
                   aria-label={`Remove ${skill}`}
                 >
-                  <X size={12} />
+                  <X size={11} />
                 </button>
               </span>
             ))}
@@ -363,33 +365,30 @@ export const FindJobs: React.FC = () => {
 
       {/* Budget Range (in POL) */}
       <div>
-        <label className="block text-xs font-semibold text-[#4B5563] uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-semibold text-[#4B5563] uppercase tracking-wider mb-1.5">
           Budget (POL)
         </label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           <input
             type="number"
             placeholder="Min"
             value={minBudget}
             onChange={(e) => updateParam('minBudget', e.target.value)}
-            className="bg-white border border-[#E5E7EB] rounded-[8px] px-2.5 py-1.5 text-xs text-[#0B0B0F] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#0047AB]"
+            className="bg-white border border-[#E5E7EB] rounded-[6px] px-2.5 py-1 text-xs text-[#0B0B0F] placeholder-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-[#0047AB]"
           />
           <input
             type="number"
             placeholder="Max"
             value={maxBudget}
             onChange={(e) => updateParam('maxBudget', e.target.value)}
-            className="bg-white border border-[#E5E7EB] rounded-[8px] px-2.5 py-1.5 text-xs text-[#0B0B0F] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#0047AB]"
+            className="bg-white border border-[#E5E7EB] rounded-[6px] px-2.5 py-1 text-xs text-[#0B0B0F] placeholder-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-[#0047AB]"
           />
         </div>
-        <p className="mt-1 text-[11px] text-[#6B7280]">
-          Secondary fiat automatically converts to {selectedFiat}
-        </p>
       </div>
 
       {/* Posted Date */}
       <div>
-        <label className="block text-xs font-semibold text-[#4B5563] uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-semibold text-[#4B5563] uppercase tracking-wider mb-1.5">
           Posted Date
         </label>
         <PolyLanceSelect
@@ -402,7 +401,7 @@ export const FindJobs: React.FC = () => {
 
       {/* Minimum client reputation */}
       <div>
-        <label className="block text-xs font-semibold text-[#4B5563] uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-semibold text-[#4B5563] uppercase tracking-wider mb-1.5">
           Minimum reputation score
         </label>
         <PolyLanceSelect
@@ -415,7 +414,7 @@ export const FindJobs: React.FC = () => {
 
       {/* Applicants Count */}
       <div>
-        <label className="block text-xs font-semibold text-[#4B5563] uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-semibold text-[#4B5563] uppercase tracking-wider mb-1.5">
           Applicants
         </label>
         <PolyLanceSelect
@@ -444,9 +443,9 @@ export const FindJobs: React.FC = () => {
         <button
           type="button"
           onClick={handleClearAll}
-          className="w-full text-xs text-[#991B1B] hover:underline flex items-center justify-center gap-1.5 pt-2"
+          className="w-full text-xs text-[#991B1B] hover:underline flex items-center justify-center gap-1.5 pt-1 cursor-pointer"
         >
-          <RotateCcw size={13} />
+          <RotateCcw size={12} />
           <span>Clear all filters</span>
         </button>
       )}
@@ -454,13 +453,13 @@ export const FindJobs: React.FC = () => {
   );
 
   return (
-    <PageContainer className="py-8">
+    <PageContainer>
       {/* Page Header */}
       <PageHeader
         title="Find jobs"
         subtitle="Explore active on-chain freelance contracts with non-custodial milestone escrow."
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {/* Currency selector controlling global fiat */}
             <div className="flex items-center gap-1.5 text-xs">
               <span className="text-[#6B7280]">Fiat:</span>
@@ -486,12 +485,12 @@ export const FindJobs: React.FC = () => {
         }
       />
 
-      {/* Search & Top Controls */}
-      <div className="mt-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+      {/* Search & Top Controls - 24px rhythm */}
+      <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between mb-4">
         {/* Search input */}
         <div className="relative flex-1">
           <Search
-            size={16}
+            size={15}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none"
           />
           <input
@@ -499,18 +498,18 @@ export const FindJobs: React.FC = () => {
             placeholder="Search by keywords or required skills..."
             value={search}
             onChange={(e) => updateParam('search', e.target.value || null)}
-            className="w-full bg-white border border-[#E5E7EB] rounded-[8px] pl-9 pr-3 py-2 text-sm text-[#0B0B0F] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#0047AB]"
+            className="w-full bg-white border border-[#E5E7EB] rounded-[8px] pl-9 pr-3 py-2 text-xs sm:text-sm text-[#0B0B0F] placeholder-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-[#0047AB]"
           />
         </div>
 
-        {/* Mobile filter button */}
+        {/* Mobile filter button & Sort */}
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setIsMobileFilterOpen(true)}
-            className="lg:hidden flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E5E7EB] rounded-[8px] text-xs font-medium text-[#0B0B0F]"
+            className="lg:hidden flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E5E7EB] rounded-[8px] text-xs font-medium text-[#0B0B0F] cursor-pointer"
           >
-            <SlidersHorizontal size={14} />
+            <SlidersHorizontal size={13} />
             <span>Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}</span>
           </button>
 
@@ -522,7 +521,7 @@ export const FindJobs: React.FC = () => {
               onChange={(val) => updateParam('sort', val)}
               options={SORT_OPTIONS}
               size="sm"
-              className="w-44 sm:w-48"
+              className="w-40 sm:w-44"
             />
           </div>
         </div>
@@ -530,77 +529,77 @@ export const FindJobs: React.FC = () => {
 
       {/* Active Filter Chips */}
       {activeFilterCount > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-[#6B7280]">Active filters:</span>
+        <div className="mb-4 flex flex-wrap items-center gap-1.5 text-left">
+          <span className="text-xs text-[#6B7280]">Active:</span>
           {activeDomainConfig && (
-            <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2.5 py-1 rounded-[8px] border border-[#BFDBFE]">
+            <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2 py-0.5 rounded-[6px] border border-[#BFDBFE]">
               <span>Domain: {activeDomainConfig.label}</span>
-              <button onClick={() => handleDomainSelect('All')}>
-                <X size={12} />
+              <button onClick={() => handleDomainSelect('All')} className="cursor-pointer">
+                <X size={11} />
               </button>
             </span>
           )}
           {skillsParam.map((s) => (
             <span
               key={s}
-              className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2.5 py-1 rounded-[8px] border border-[#BFDBFE]"
+              className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2 py-0.5 rounded-[6px] border border-[#BFDBFE]"
             >
               <span>Skill: {s}</span>
-              <button onClick={() => removeSkillFilter(s)}>
-                <X size={12} />
+              <button onClick={() => removeSkillFilter(s)} className="cursor-pointer">
+                <X size={11} />
               </button>
             </span>
           ))}
           {minBudget && (
-            <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2.5 py-1 rounded-[8px] border border-[#BFDBFE]">
+            <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2 py-0.5 rounded-[6px] border border-[#BFDBFE]">
               <span>Min {minBudget} POL</span>
-              <button onClick={() => updateParam('minBudget', null)}>
-                <X size={12} />
+              <button onClick={() => updateParam('minBudget', null)} className="cursor-pointer">
+                <X size={11} />
               </button>
             </span>
           )}
           {maxBudget && (
-            <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2.5 py-1 rounded-[8px] border border-[#BFDBFE]">
+            <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2 py-0.5 rounded-[6px] border border-[#BFDBFE]">
               <span>Max {maxBudget} POL</span>
-              <button onClick={() => updateParam('maxBudget', null)}>
-                <X size={12} />
+              <button onClick={() => updateParam('maxBudget', null)} className="cursor-pointer">
+                <X size={11} />
               </button>
             </span>
           )}
           {posted !== 'any' && (
-            <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2.5 py-1 rounded-[8px] border border-[#BFDBFE]">
+            <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2 py-0.5 rounded-[6px] border border-[#BFDBFE]">
               <span>Posted: {posted}</span>
-              <button onClick={() => updateParam('posted', null)}>
-                <X size={12} />
+              <button onClick={() => updateParam('posted', null)} className="cursor-pointer">
+                <X size={11} />
               </button>
             </span>
           )}
           {minRep && (
-            <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2.5 py-1 rounded-[8px] border border-[#BFDBFE]">
+            <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#0047AB] text-xs px-2 py-0.5 rounded-[6px] border border-[#BFDBFE]">
               <span>Rep: {minRep}+</span>
-              <button onClick={() => updateParam('minRep', null)}>
-                <X size={12} />
+              <button onClick={() => updateParam('minRep', null)} className="cursor-pointer">
+                <X size={11} />
               </button>
             </span>
           )}
           <button
             type="button"
             onClick={handleClearAll}
-            className="text-xs text-[#991B1B] hover:underline ml-1"
+            className="text-xs text-[#991B1B] hover:underline ml-1 cursor-pointer"
           >
             Clear all
           </button>
         </div>
       )}
 
-      {/* Main Layout: 280px Filter Sidebar on Left + Job Rows on Right */}
-      <div className="mt-6 flex flex-col lg:flex-row gap-8 items-start">
-        {/* Desktop Sidebar (280px) */}
-        <aside className="hidden lg:block w-[280px] shrink-0 bg-white border border-[#E5E7EB] rounded-[12px] p-5">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB] mb-4">
-            <span className="text-sm font-semibold text-[#0B0B0F]">Filters</span>
+      {/* Main Layout: 260px Filter Sidebar on Left + Job Rows on Right */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start text-left">
+        {/* Desktop Sidebar (260px, compact grouped card) */}
+        <aside className="hidden lg:block w-[260px] shrink-0 bg-white border border-[#E5E7EB] rounded-[12px] p-4 shadow-xs sticky top-[88px]">
+          <div className="flex items-center justify-between pb-2.5 border-b border-[#E5E7EB] mb-3">
+            <span className="text-xs font-semibold text-[#0B0B0F]">Filters</span>
             {activeFilterCount > 0 && (
-              <span className="text-xs text-[#0047AB] font-medium">
+              <span className="text-[11px] text-[#0047AB] font-semibold bg-[#EFF6FF] px-2 py-0.5 rounded-[4px] border border-[#BFDBFE]">
                 {activeFilterCount} active
               </span>
             )}
@@ -611,7 +610,7 @@ export const FindJobs: React.FC = () => {
         {/* Job Rows List */}
         <main className="flex-1 min-w-0 w-full">
           {/* Result count */}
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-4 text-xs text-[#6B7280]">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3 text-xs text-[#6B7280]">
             <div className="flex items-center gap-2">
               <span className="font-medium text-[#0B0B0F]">
                 {activeDomainConfig
@@ -622,7 +621,7 @@ export const FindJobs: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleDomainSelect('All')}
-                  className="text-xs text-[#0047AB] hover:underline flex items-center gap-0.5 ml-1"
+                  className="text-xs text-[#0047AB] hover:underline flex items-center gap-0.5 ml-1 cursor-pointer"
                 >
                   (Clear filter)
                 </button>
@@ -633,35 +632,33 @@ export const FindJobs: React.FC = () => {
             )}
           </div>
 
-          {/* List or Empty State */}
+          {/* List or Compact Empty State */}
           {sortedJobs.length === 0 ? (
-            <div className="bg-white rounded-[16px] border border-[#E5E7EB] p-8 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-[#EFF6FF] text-[#0047AB] mx-auto flex items-center justify-center">
-                <Search size={22} />
+            <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-6 text-center space-y-3">
+              <div className="w-10 h-10 rounded-full bg-[#EFF6FF] text-[#0047AB] mx-auto flex items-center justify-center">
+                <Search size={18} />
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-semibold text-[#0B0B0F]">
+                <h3 className="text-sm font-semibold text-[#0B0B0F]">
                   {viewSaved
                     ? 'No saved jobs'
                     : activeDomainConfig
                     ? `No open ${activeDomainConfig.label} jobs found`
                     : 'No jobs found matching your filters'}
                 </h3>
-                <p className="text-sm text-[#4B5563] max-w-md mx-auto">
+                <p className="text-xs text-[#4B5563] max-w-sm mx-auto">
                   {viewSaved
                     ? 'Click the bookmark icon on any job to save it for later review.'
-                    : activeDomainConfig
-                    ? `There are currently no open jobs in ${activeDomainConfig.label}. Post the first job to get started!`
                     : 'Try loosening your filter criteria or searching for different keywords.'}
                 </p>
               </div>
-              <div className="flex items-center justify-center gap-3 pt-2">
+              <div className="flex items-center justify-center gap-2 pt-1">
                 <Button
                   as="Link"
                   to={activeDomain ? `/jobs/post?domain=${activeDomain}` : '/jobs/post'}
                   variant="primary"
                   size="sm"
-                  leadingIcon={<PlusCircle size={14} />}
+                  leadingIcon={<PlusCircle size={13} />}
                 >
                   Post a job
                 </Button>
@@ -670,12 +667,12 @@ export const FindJobs: React.FC = () => {
                   size="sm"
                   onClick={handleClearAll}
                 >
-                  Clear all filters
+                  Clear all
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {sortedJobs.slice(0, visibleCount).map((job) => {
                 const isSaved = savedJobIds.includes(job.id);
                 const tokenAmount = parseFloat(job.amountEth || job.amountUsdc || '0');
@@ -685,99 +682,78 @@ export const FindJobs: React.FC = () => {
                   <div
                     key={job.id}
                     onClick={() => navigate(`/jobs/${job.id}`)}
-                    className="p-5 bg-white border border-[#E5E7EB] hover:border-[#0047AB] rounded-[12px] transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                    className="p-4 bg-white border border-[#E5E7EB] hover:border-[#0047AB] rounded-[10px] transition-all cursor-pointer shadow-xs group flex flex-col justify-between gap-2 min-h-[120px] max-h-[140px]"
                   >
-                    {/* Left: Title, Description, Skills, Meta */}
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <div className="flex items-center gap-2.5">
-                        <StatusBadge status={job.status} />
-                        <span className="text-xs text-[#6B7280]">
-                          {getCanonicalCategory(job.category).label}
-                        </span>
+                    {/* Line 1: Title + Budget + Bookmark */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-semibold text-[#0B0B0F] group-hover:text-[#0047AB] transition-colors truncate">
+                          {job.title}
+                        </h3>
                       </div>
 
-                      <h3 className="text-base font-semibold text-[#0B0B0F] group-hover:text-[#0047AB] transition-colors">
-                        {job.title}
-                      </h3>
-
-                      <p className="text-sm text-[#4B5563] line-clamp-2 leading-relaxed max-w-[720px]">
-                        {job.description}
-                      </p>
-
-                      {/* Skill tags */}
-                      {job.skillsRequired && job.skillsRequired.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {job.skillsRequired.slice(0, 5).map((skill) => (
-                            <span
-                              key={skill}
-                              className="text-xs px-2 py-0.5 rounded-[8px] bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB]"
-                            >
-                              {skill}
-                            </span>
-                          ))}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right">
+                          <Amount
+                            amount={tokenAmount}
+                            token={tokenSymbol}
+                            showFiat={true}
+                          />
                         </div>
-                      )}
-
-                      {/* Meta line */}
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-[#6B7280] pt-1">
-                        <span className="flex items-center gap-1">
-                          <Clock size={13} />
-                          <span>Posted {formatTimeAgo(job.createdAt || Date.now())}</span>
-                        </span>
-
-                        <span className="flex items-center gap-1 text-[#166534]">
-                          <CheckCircle2 size={13} />
-                          <span>Verified client</span>
-                        </span>
-
-                        <span>{job.applications?.length || 0} applicants</span>
-
-                        <span>Requires 700+ reputation</span>
+                        <button
+                          type="button"
+                          onClick={(e) => toggleSaveJob(job.id, e)}
+                          className={`p-1.5 rounded-[6px] border transition-colors cursor-pointer ${
+                            isSaved
+                              ? 'bg-[#EFF6FF] border-[#BFDBFE] text-[#0047AB]'
+                              : 'bg-[#F6F7F9] border-[#E5E7EB] text-[#6B7280] hover:text-[#0B0B0F]'
+                          }`}
+                          aria-label={isSaved ? 'Remove from saved' : 'Save job'}
+                        >
+                          <Bookmark size={13} className={isSaved ? 'fill-current' : ''} />
+                        </button>
                       </div>
                     </div>
 
-                    {/* Right: Budget & Bookmark Icon */}
-                    <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-[#E5E7EB]">
-                      <div className="text-left md:text-right">
-                        <span className="text-[11px] text-[#6B7280] uppercase tracking-wider block font-medium">
-                          Escrow budget
-                        </span>
-                        <Amount
-                          value={tokenAmount}
-                          token={tokenSymbol}
-                          tokenClassName="text-base font-semibold text-[#0B0B0F]"
-                          fiatClassName="text-xs text-[#6B7280]"
-                        />
-                      </div>
+                    {/* Line 2: 1-2 lines description */}
+                    <p className="text-xs text-[#4B5563] line-clamp-1 leading-normal max-w-[720px]">
+                      {job.description}
+                    </p>
 
-                      <button
-                        type="button"
-                        onClick={(e) => toggleSaveJob(job.id, e)}
-                        className={`p-2 rounded-[8px] border transition-colors ${
-                          isSaved
-                            ? 'bg-[#EFF6FF] border-[#BFDBFE] text-[#0047AB]'
-                            : 'bg-[#F6F7F9] border-[#E5E7EB] text-[#6B7280] hover:text-[#0B0B0F]'
-                        }`}
-                        aria-label={isSaved ? 'Remove from saved' : 'Save job'}
-                      >
-                        <Bookmark size={16} fill={isSaved ? '#0047AB' : 'none'} />
-                      </button>
+                    {/* Line 3: Meta line */}
+                    <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-[#6B7280] pt-1 border-t border-[#F3F4F6]">
+                      <StatusBadge status={job.status} />
+                      {job.status === 'Selected' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          Offer in negotiation
+                        </span>
+                      )}
+                      <span>•</span>
+                      <span>{getCanonicalCategory(job.category).label}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={11} />
+                        <span>{formatTimeAgo(job.createdAt || Date.now())}</span>
+                      </span>
+                      <span>•</span>
+                      <span>{job.applications?.length || 0} proposals</span>
                     </div>
                   </div>
                 );
               })}
-            </div>
-          )}
 
-          {/* Load More Button */}
-          {visibleCount < sortedJobs.length && (
-            <div className="mt-8 text-center">
-              <Button
-                variant="secondary"
-                onClick={() => setVisibleCount((prev) => prev + 12)}
-              >
-                Load more jobs
-              </Button>
+              {visibleCount < sortedJobs.length && (
+                <div className="pt-3 text-center">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setVisibleCount((prev) => prev + 12)}
+                  >
+                    Load more jobs ({sortedJobs.length - visibleCount} remaining)
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </main>

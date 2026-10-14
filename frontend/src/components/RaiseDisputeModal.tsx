@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Job, DisputeReason, JudgeRecord } from '../types';
 import { 
-  Scale, UploadCloud, X, ShieldAlert, 
+  Scale, UploadCloud, ShieldAlert, 
   ExternalLink, ArrowUpRight, ShieldCheck, CheckCircle2, Gavel
 } from 'lucide-react';
 import { generateIpfsCid } from '../utils/ipfs';
@@ -10,6 +10,8 @@ import { truncateAddress } from '../utils/formatters';
 import { scrollToSection } from '../utils/scroll';
 import { PolyLanceSelect, SelectOption } from './PolyLanceSelect';
 import { useWeb3 } from '../context/Web3Context';
+import { Modal } from './overlay';
+import { Button } from './common/Button';
 
 export interface RaiseDisputeModalProps {
   isOpen: boolean;
@@ -56,7 +58,7 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
     const list: SelectOption<string>[] = [
       {
         value: 'general',
-        label: '🌐 General Platform / Protocol Escalation',
+        label: 'General Platform / Protocol Escalation',
         sublabel: 'Non-Job Specific',
       },
     ];
@@ -72,11 +74,11 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
   }, [jobs]);
 
   const reasonOptions: SelectOption<DisputeReason>[] = [
-    { value: 'QUALITY', label: '🎯 Quality Defect / Specification Mismatch', sublabel: 'Deliverable fails specs' },
-    { value: 'NON_DELIVERY', label: '📦 Non-Delivery / Missing Milestone Code', sublabel: 'Work not delivered on time' },
-    { value: 'SCOPE_DISAGREEMENT', label: '📑 Scope or Requirement Disagreement', sublabel: 'Milestone ambiguity' },
-    { value: 'PAYMENT_DISPUTE', label: '💰 Payment Terms or Milestone Pricing Conflict', sublabel: 'Payment calculation dispute' },
-    { value: 'OTHER', label: '⚖️ Other Contractual Breach / Arbitrator Advice', sublabel: 'Binding ruling required' },
+    { value: 'QUALITY', label: 'Quality Defect / Specification Mismatch', sublabel: 'Deliverable fails specs' },
+    { value: 'NON_DELIVERY', label: 'Non-Delivery / Missing Milestone Code', sublabel: 'Work not delivered on time' },
+    { value: 'SCOPE_DISAGREEMENT', label: 'Scope or Requirement Disagreement', sublabel: 'Milestone ambiguity' },
+    { value: 'PAYMENT_DISPUTE', label: 'Payment Terms or Milestone Pricing Conflict', sublabel: 'Payment calculation dispute' },
+    { value: 'OTHER', label: 'Other Contractual Breach / Arbitrator Advice', sublabel: 'Binding ruling required' },
   ];
 
   const resolutionOptions: SelectOption<string>[] = [
@@ -86,12 +88,10 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
     { value: 'Arbitrator Mediation & Binding Ruling', label: 'Arbitrator Mediation & Binding Ruling', sublabel: 'DAO Judge discretion' },
   ];
 
-  if (!isOpen) return null;
-
   const currentSelectedJob = job || (selectedJobId !== 'general' ? jobs.find((j) => j.id === selectedJobId) : null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!evidenceText.trim()) return;
 
     setIsSubmitting(true);
@@ -119,336 +119,239 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-      <div className="w-full max-w-2xl bg-white border border-rose-200 rounded-3xl shadow-2xl overflow-hidden font-sans space-y-0 my-auto animate-in zoom-in-95 duration-150">
-        
-        {/* Header */}
-        <div className="bg-rose-50 p-5 sm:p-6 border-b border-rose-100 flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow-xs shrink-0">
-              <Scale size={24} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-mono font-bold uppercase text-rose-800 bg-rose-200/70 border border-rose-300 px-2 py-0.5 rounded-full">
-                  DAO Court Escalation
-                </span>
-                {judge && (
-                  <span className="text-[10px] font-mono font-bold text-slate-800 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <ShieldCheck size={11} className="text-[#0047AB]" />
-                    Arbitrator: {judge.name}
-                  </span>
-                )}
-                {currentSelectedJob && (
-                  <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
-                    Escrow: ${parseFloat(currentSelectedJob.amountUsdc || '0').toLocaleString()} USDC
-                  </span>
-                )}
-              </div>
-              <h3 className="font-headline font-black text-lg sm:text-xl text-slate-900 mt-1">
-                Raise Issue & Dispute Escalation
-              </h3>
-              <p className="text-xs text-slate-500 font-medium">
-                Submit formal evidence to decentralized PolyLance Arbitrators for binding ruling.
-              </p>
-            </div>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      title="Raise Issue & Dispute Escalation"
+      subtitle="Submit formal evidence to decentralized PolyLance Arbitrators for binding ruling."
+      footer={
+        <div className="flex items-center justify-between w-full gap-3">
+          {isJudgeOrAdmin ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                navigate('/judge?tab=disputes');
+              }}
+            >
+              <Gavel size={14} />
+              <span>Judge Panel</span>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                navigate('/dao');
+              }}
+            >
+              <Scale size={14} />
+              <span>DAO Overview</span>
+            </Button>
+          )}
 
           <div className="flex items-center gap-2">
-            {isJudgeOrAdmin && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  navigate('/judge?tab=disputes');
-                }}
-                className="hidden sm:flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-white/80 hover:bg-white border border-rose-200 px-2.5 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer"
-                title="Navigate to DAO Disputes Judge Panel"
-              >
-                <span>Judge Console</span>
-                <ArrowUpRight size={12} className="text-rose-600" />
-              </button>
-            )}
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={isSubmitting || !evidenceText.trim()}
+              onClick={() => handleSubmit()}
+            >
+              <Scale size={15} />
+              <span>{isSubmitting ? 'Submitting Case...' : 'Submit Case to DAO Court'}</span>
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div className="space-y-4 text-xs font-sans">
+        {/* Warning Notice */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-start gap-3">
+          <ShieldAlert size={18} className="text-[#0047AB] shrink-0 mt-0.5" />
+          <div className="text-xs text-slate-800 leading-relaxed">
+            <strong className="text-[#0B0B0F]">Smart Contract Escrow Protection:</strong> Submitting this formal dispute freezes contested funds in the escrow vault and opens an active arbitration docket on the PolyLance Judge DAO Court.
+          </div>
+        </div>
+
+        {/* Context: Job Selection or Details */}
+        {job ? (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <span className="text-[11px] uppercase font-semibold text-slate-500 tracking-wider block">Target Job Escrow</span>
+              <p className="font-semibold text-slate-900 truncate text-xs">{job.title}</p>
+              <p className="text-[11px] text-slate-500 font-mono">
+                ID: #{job.id.slice(0, 8)} • Contract: {truncateAddress(job.contractAddress)}
+              </p>
+            </div>
             <button
               type="button"
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-400 hover:text-slate-700 flex items-center justify-center border border-rose-100 transition-colors cursor-pointer"
+              onClick={() => {
+                onClose();
+                navigate(`/jobs/${job.id}?section=job-specs`);
+                scrollToSection('job-specs');
+              }}
+              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-slate-400 text-slate-900 font-medium text-[11px] flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
             >
-              <X size={16} />
+              View Job <ArrowUpRight size={11} />
             </button>
           </div>
-        </div>
+        ) : jobs.length > 0 ? (
+          <div>
+            <label className="block font-medium text-slate-700 text-xs mb-1.5">
+              Select Associated Job / Project Escrow *
+            </label>
+            <PolyLanceSelect
+              value={selectedJobId}
+              onChange={(val) => setSelectedJobId(val)}
+              options={jobOptions}
+              variant="standard"
+              className="w-full"
+            />
 
-        {/* Modal Body */}
-        <div className="p-5 sm:p-6 space-y-4 max-h-[78vh] overflow-y-auto">
-          
-          {/* Warning Notice */}
-          <div className="bg-rose-50/90 border border-rose-200 rounded-2xl p-3.5 flex items-start gap-3">
-            <ShieldAlert size={18} className="text-rose-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-rose-950 leading-relaxed">
-              <strong>Smart Contract Escrow Protection:</strong> Submitting this formal dispute freezes contested funds in the escrow vault and opens an active arbitration docket on the PolyLance Judge DAO Court.
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-            
-            {/* Context: Job Selection or Details */}
-            {job ? (
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Target Job Escrow</span>
-                  <p className="font-bold text-slate-900 truncate text-xs">{job.title}</p>
-                  <p className="text-[11px] text-slate-500 font-mono">
-                    ID: #{job.id.slice(0, 8)} • Contract: {truncateAddress(job.contractAddress)}
-                  </p>
+            {currentSelectedJob && (
+              <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                <div className="text-[11px] text-slate-900 font-medium">
+                  <strong>Escrow Locked:</strong> ${parseFloat(currentSelectedJob.amountUsdc || '0').toLocaleString()} USDC • Status: <strong>{currentSelectedJob.status}</strong>
                 </div>
                 <button
                   type="button"
                   onClick={() => {
                     onClose();
-                    navigate(`/jobs/${job.id}?section=job-specs`);
+                    navigate(`/jobs/${currentSelectedJob.id}?section=job-specs`);
                     scrollToSection('job-specs');
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-slate-400 text-slate-900 font-bold text-[11px] flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+                  className="text-[11px] font-semibold text-[#0047AB] hover:underline flex items-center gap-0.5 cursor-pointer"
                 >
-                  View Job <ArrowUpRight size={11} />
+                  Inspect Specs <ExternalLink size={11} />
                 </button>
               </div>
-            ) : jobs.length > 0 ? (
-              <div>
-                <label className="block font-bold text-slate-800 uppercase text-[10px] tracking-wider mb-1.5">
-                  Select Associated Job / Project Escrow *
-                </label>
-                <PolyLanceSelect
-                  value={selectedJobId}
-                  onChange={(val) => setSelectedJobId(val)}
-                  options={jobOptions}
-                  variant="standard"
-                  className="w-full"
-                />
+            )}
+          </div>
+        ) : null}
 
-                {currentSelectedJob && (
-                  <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
-                    <div className="text-[11px] text-slate-900 font-medium">
-                      <strong>Escrow Locked:</strong> ${parseFloat(currentSelectedJob.amountUsdc || '0').toLocaleString()} USDC • Status: <strong>{currentSelectedJob.status}</strong>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        navigate(`/jobs/${currentSelectedJob.id}?section=job-specs`);
-                        scrollToSection('job-specs');
-                      }}
-                      className="text-[11px] font-bold text-[#0047AB] hover:underline flex items-center gap-0.5 cursor-pointer"
-                    >
-                      Inspect Specs <ExternalLink size={11} />
-                    </button>
-                  </div>
+        {/* Arbitrator Info Banner */}
+        {judge && (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#0B0B0F] border border-slate-800 text-white font-semibold flex items-center justify-center text-xs shrink-0">
+                {judge.name ? judge.name.slice(0, 2).toUpperCase() : 'JD'}
+              </div>
+              <div>
+                <h4 className="font-semibold text-slate-900 text-xs leading-tight flex items-center gap-1.5">
+                  {judge.name}
+                  <span className="text-[10px] bg-slate-200 text-slate-800 border border-slate-300 px-1.5 py-0.5 rounded font-mono">
+                    Active Arbitrator
+                  </span>
+                </h4>
+                <p className="text-[11px] text-slate-500 font-mono">
+                  {truncateAddress(judge.address)} • {judge.specialty || 'DAO Court Judge'} • {judge.casesResolved ?? 0} Cases Resolved
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono text-slate-800 bg-white border border-slate-200 px-2 py-1 rounded-md font-medium shrink-0">
+              Assigned Judge
+            </span>
+          </div>
+        )}
+
+        {/* Reason & Desired Resolution */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label className="block font-medium text-slate-700 text-xs mb-1.5">
+              Primary Issue Category *
+            </label>
+            <PolyLanceSelect
+              value={reason}
+              onChange={(val) => setReason(val as DisputeReason)}
+              options={reasonOptions}
+              variant="standard"
+              className="w-full"
+              menuClassName="min-w-full sm:min-w-[360px]"
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium text-slate-700 text-xs mb-1.5">
+              Desired Settlement Outcome *
+            </label>
+            <PolyLanceSelect
+              value={desiredResolution}
+              onChange={(val) => setDesiredResolution(val)}
+              options={resolutionOptions}
+              variant="standard"
+              className="w-full"
+              menuClassName="min-w-full sm:min-w-[360px]"
+            />
+          </div>
+        </div>
+
+        {/* Case Statement */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="font-medium text-slate-700 text-xs">
+              Detailed Case Statement & Explanation *
+            </label>
+            <span className="text-[11px] text-slate-400 font-mono">
+              {evidenceText.length} characters
+            </span>
+          </div>
+          <textarea
+            required
+            rows={4}
+            value={evidenceText}
+            onChange={(e) => setEvidenceText(e.target.value)}
+            placeholder="Explain in detail the exact issue, contractual obligations, deliverables provided or missing, and justification for your desired resolution..."
+            className="w-full bg-white border border-slate-200 text-slate-900 rounded-xl p-3 outline-none focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] transition-all placeholder:text-slate-400 resize-none text-xs leading-relaxed"
+          />
+        </div>
+
+        {/* Evidence Attachment */}
+        <div>
+          <label className="block font-medium text-slate-700 text-xs mb-1.5">
+            Supporting Evidence Attachment (Logs / Screenshots / Diff)
+          </label>
+          <div className="border border-dashed border-slate-300 rounded-xl p-4 text-center bg-slate-50 hover:bg-slate-100 transition-all">
+            <input
+              type="file"
+              id="dispute-file-upload"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  const file = e.target.files[0];
+                  setFileName(file.name);
+                  setFileSize(file.size);
+                }
+              }}
+            />
+            <label
+              htmlFor="dispute-file-upload"
+              className="cursor-pointer flex flex-col items-center justify-center gap-1.5 text-slate-600"
+            >
+              <UploadCloud size={20} className="text-[#0047AB]" />
+              <span className="font-medium text-xs text-slate-800">
+                {fileName ? (
+                  <span className="text-[#0047AB] flex items-center gap-1">
+                    <CheckCircle2 size={13} /> {fileName} {fileSize ? `(${(fileSize / 1024).toFixed(1)} KB)` : ''}
+                  </span>
+                ) : (
+                  'Click to upload supporting logs, images, or archive'
                 )}
-              </div>
-            ) : null}
-
-            {/* Arbitrator Info Banner if chatting with a Judge */}
-            {judge && (
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#0B0B0C] border border-slate-800 text-white font-bold flex items-center justify-center text-xs shadow-xs">
-                    {judge.name ? judge.name.slice(0, 2).toUpperCase() : 'JD'}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 text-xs leading-tight flex items-center gap-1.5">
-                      {judge.name}
-                      <span className="text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-200 px-1.5 py-0.2 rounded-full font-mono">
-                        Active Arbitrator
-                      </span>
-                    </h4>
-                    <p className="text-[10px] text-slate-500 font-mono">
-                      {truncateAddress(judge.address)} • {judge.specialty || 'DAO Court Judge'} • {judge.casesResolved ?? 0} Cases Resolved
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono text-slate-800 bg-white border border-slate-300 px-2 py-1 rounded-lg font-bold shrink-0">
-                  Assigned Judge
-                </span>
-              </div>
-            )}
-
-            {/* Grid: Reason & Desired Resolution */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {/* Primary Issue Category */}
-              <div>
-                <label className="block font-bold text-slate-800 uppercase text-[10px] tracking-wider mb-1.5">
-                  Primary Issue Category *
-                </label>
-                <PolyLanceSelect
-                  value={reason}
-                  onChange={(val) => setReason(val as DisputeReason)}
-                  options={reasonOptions}
-                  variant="standard"
-                  className="w-full"
-                />
-              </div>
-
-              {/* Desired Resolution */}
-              <div>
-                <label className="block font-bold text-slate-800 uppercase text-[10px] tracking-wider mb-1.5">
-                  Desired Settlement Outcome *
-                </label>
-                <PolyLanceSelect
-                  value={desiredResolution}
-                  onChange={(val) => setDesiredResolution(val)}
-                  options={resolutionOptions}
-                  variant="standard"
-                  className="w-full"
-                />
-              </div>
-            </div>
-
-            {/* Case Statement */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="font-bold text-slate-800 uppercase text-[10px] tracking-wider">
-                  Detailed Case Statement & Explanation *
-                </label>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {evidenceText.length} characters
-                </span>
-              </div>
-              <textarea
-                required
-                rows={4}
-                value={evidenceText}
-                onChange={(e) => setEvidenceText(e.target.value)}
-                placeholder="Explain in detail the exact issue, contractual obligations, deliverables provided or missing, and justification for your desired resolution..."
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 outline-none focus:bg-white focus:border-rose-500 focus:ring-2 focus:ring-rose-100 transition-all placeholder:text-slate-400 resize-none text-xs leading-relaxed"
-              />
-            </div>
-
-            {/* Evidence Attachment */}
-            <div>
-              <label className="block font-bold text-slate-800 uppercase text-[10px] tracking-wider mb-1.5">
-                Supporting Evidence Attachment (Logs / Screenshots / Diff)
-              </label>
-              <div className="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center bg-slate-50 hover:bg-slate-100/60 transition-all">
-                <input
-                  type="file"
-                  id="dispute-file-upload"
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      const file = e.target.files[0];
-                      setFileName(file.name);
-                      setFileSize(file.size);
-                    }
-                  }}
-                />
-                <label
-                  htmlFor="dispute-file-upload"
-                  className="cursor-pointer flex flex-col items-center justify-center gap-1.5 text-slate-600"
-                >
-                  <UploadCloud size={22} className="text-[#0047AB]" />
-                  <span className="font-bold text-xs text-slate-800">
-                    {fileName ? (
-                      <span className="text-emerald-700 flex items-center gap-1">
-                        <CheckCircle2 size={13} /> {fileName} {fileSize ? `(${(fileSize / 1024).toFixed(1)} KB)` : ''}
-                      </span>
-                    ) : (
-                      'Click to upload supporting logs, images, or archive'
-                    )}
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    Supports PNG, JPG, PDF, ZIP, TXT, LOG (automatically anchored to IPFS)
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {/* Quick Link to DAO / Court */}
-            {isJudgeOrAdmin ? (
-              <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 flex items-center justify-between text-[11px] text-amber-900">
-                <span className="flex items-center gap-1.5">
-                  <Gavel size={13} className="text-amber-700 shrink-0" />
-                  Review open disputes or arbitrator rulings:
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    navigate('/judge?tab=disputes');
-                  }}
-                  className="font-bold text-amber-800 hover:text-amber-950 underline flex items-center gap-0.5 cursor-pointer"
-                >
-                  Go to Judge Panel <ArrowUpRight size={11} />
-                </button>
-              </div>
-            ) : (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center justify-between text-[11px] text-slate-700">
-                <span className="flex items-center gap-1.5">
-                  <Scale size={13} className="text-slate-500 shrink-0" />
-                  Disputes are arbitrated on-chain by the decentralized DAO jury.
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    navigate('/dao');
-                  }}
-                  className="font-bold text-[#0047AB] hover:underline flex items-center gap-0.5 cursor-pointer"
-                >
-                  DAO Governance <ArrowUpRight size={11} />
-                </button>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2.5">
-              {isJudgeOrAdmin ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    navigate('/judge?tab=disputes');
-                  }}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all cursor-pointer text-xs flex items-center gap-1"
-                >
-                  <Gavel size={12} className="text-slate-500" />
-                  <span>Judge Panel</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    navigate('/dao');
-                  }}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all cursor-pointer text-xs flex items-center gap-1"
-                >
-                  <Scale size={12} className="text-slate-500" />
-                  <span>DAO Overview</span>
-                </button>
-              )}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-100 transition-all cursor-pointer text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !evidenceText.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer text-xs disabled:opacity-50"
-                >
-                  <Scale size={14} />
-                  <span>{isSubmitting ? 'Submitting Case...' : 'Submit Case to DAO Court'}</span>
-                </button>
-              </div>
-            </div>
-          </form>
+              </span>
+              <span className="text-[11px] text-slate-400">
+                Supports PNG, JPG, PDF, ZIP, TXT, LOG (automatically anchored to IPFS)
+              </span>
+            </label>
+          </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

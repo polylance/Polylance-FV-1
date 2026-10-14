@@ -60,7 +60,7 @@ export const HeroVideoFrame: React.FC = () => {
             : 'opacity-0 translate-y-6 scale-[0.98]'
         }`}
         style={{
-          aspectRatio: '16 / 10',
+          aspectRatio: '16 / 9',
           boxShadow:
             '0 0 0 6px rgba(0, 71, 171, 0.06), 0 1px 2px rgba(11, 11, 15, 0.06), 0 24px 60px rgba(0, 71, 171, 0.14)',
           transform: prefersReducedMotion
@@ -83,11 +83,6 @@ export const HeroVideoFrame: React.FC = () => {
                   transition: `opacity 400ms ${MOTION.ease.brand}`,
                 }}
               >
-                {/* 
-                  Video element is taller than the frame and shifted up by cropTopPct so the 
-                  frosted-glass title panel and words are never visible, while maintaining 
-                  platform, ring, wallet, badges, stars, and ID card fully in view.
-                */}
                 <video
                   ref={(el) => {
                     videoRefs.current[idx] = el;
@@ -97,10 +92,10 @@ export const HeroVideoFrame: React.FC = () => {
                   preload={idx === 0 ? 'metadata' : 'none'}
                   onEnded={handleVideoEnded}
                   onLoadedMetadata={handleLoadedMetadata}
-                  className="absolute left-0 w-full object-cover object-bottom"
+                  className="absolute inset-0 w-full h-full object-cover"
                   style={{
-                    top: `-${item.cropTopPct}%`,
-                    height: `${100 + item.cropTopPct}%`,
+                    top: 0,
+                    height: '100%',
                   }}
                 >
                   <source src={item.webm} type="video/webm" />

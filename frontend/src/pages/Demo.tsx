@@ -1,5 +1,6 @@
 import React from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import { VideoSlot } from '../components/video/VideoSlot';
 import { EscrowFlow } from '../components/escrow/EscrowFlow';
 import { useDemoMode } from '../context/DemoModeContext';
@@ -27,43 +28,32 @@ export const Demo: React.FC = () => {
   };
 
   return (
-    <PageContainer className="space-y-16 py-8 text-[#0B0B0F]">
-      {/* ── HEADER / HERO ────────────────────────────────────────────────── */}
-      <section className="text-left space-y-5 max-w-3xl">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[8px] bg-[#E7EEF9] text-[#0047AB] text-xs font-medium border border-[#E5E7EB]">
-          <Sparkles size={13} />
-          <span>Interactive Product Showcase</span>
-        </div>
-
-        <h1 className="font-sans font-semibold text-3xl sm:text-5xl text-[#0B0B0F] tracking-tight leading-tight">
-          Experience PolyLance in two minutes
-        </h1>
-        <p className="text-sm sm:text-base text-[#4B5563] leading-relaxed max-w-2xl">
-          Explore the decentralized freelance marketplace without installing browser extensions, holding crypto funds, or paying gas fees. Try real contract workflows with realistic sample data.
-        </p>
-
-        {/* CTA Buttons */}
-        <div className="pt-2 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleStartInteractiveDemo}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-[8px] bg-[#0047AB] hover:bg-[#003884] text-white text-sm font-semibold transition-colors cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-          >
-            <Play size={15} className="fill-white" />
-            <span>{isDemoMode ? 'Continue guided tour' : 'Start interactive demo'}</span>
-            <ArrowRight size={15} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="inline-flex items-center gap-2 px-4 py-3 rounded-[8px] bg-white hover:bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] text-sm font-medium transition-colors cursor-pointer"
-          >
-            <Wallet size={15} />
-            <span>Connect wallet</span>
-          </button>
-        </div>
-      </section>
+    <PageContainer className="space-y-6 py-6 text-[#0B0B0F]">
+      <PageHeader
+        title="Experience PolyLance in two minutes"
+        subtitle="Explore the decentralized freelance marketplace without installing browser extensions, holding crypto funds, or paying gas fees."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleStartInteractiveDemo}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0047AB] hover:bg-[#003884] text-white text-xs font-semibold transition-colors cursor-pointer"
+            >
+              <Play size={13} className="fill-white" />
+              <span>{isDemoMode ? 'Continue guided tour' : 'Start interactive demo'}</span>
+              <ArrowRight size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] text-xs font-medium transition-colors cursor-pointer"
+            >
+              <Wallet size={13} />
+              <span>Connect wallet</span>
+            </button>
+          </div>
+        }
+      />
 
       {/* ── TWO-MINUTE VIDEO OVERVIEW ────────────────────────────────────── */}
       <section className="space-y-6 text-left">

@@ -112,7 +112,7 @@ export const LandingVisitor: React.FC<LandingVisitorProps> = ({ jobs, profiles }
       {/* ────────────────────────────────────────────────────────── */}
       {/* 1. HERO (White Band) */}
       {/* ────────────────────────────────────────────────────────── */}
-      <section ref={heroRef} className="w-full bg-white py-16 sm:py-20 lg:py-24 border-b border-[#E5E7EB]">
+      <section ref={heroRef} className="w-full bg-white py-[clamp(56px,7vw,96px)] border-b border-[#E5E7EB]">
         <PageContainer>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
 
@@ -195,7 +195,7 @@ export const LandingVisitor: React.FC<LandingVisitorProps> = ({ jobs, profiles }
       {/* ────────────────────────────────────────────────────────── */}
       {/* 2. PROOF STRIP (Light Gray Band #F6F7F9) */}
       {/* ────────────────────────────────────────────────────────── */}
-      <section className="w-full bg-[#F6F7F9] py-14 border-b border-[#E5E7EB]">
+      <section className="w-full bg-[#F6F7F9] py-[clamp(56px,7vw,96px)] border-b border-[#E5E7EB]">
         <PageContainer>
           <Reveal>
             <div className="space-y-6">
@@ -253,7 +253,7 @@ export const LandingVisitor: React.FC<LandingVisitorProps> = ({ jobs, profiles }
       {/* ────────────────────────────────────────────────────────── */}
       {/* 4. FEATURES, BENTO GRID (Light Gray Band #F6F7F9) */}
       {/* ────────────────────────────────────────────────────────── */}
-      <section className="w-full bg-[#F6F7F9] py-20 sm:py-24 border-b border-[#E5E7EB]">
+      <section className="w-full bg-[#F6F7F9] py-[clamp(56px,7vw,96px)] border-b border-[#E5E7EB]">
         <PageContainer>
           <div className="space-y-12">
 
@@ -438,7 +438,7 @@ export const LandingVisitor: React.FC<LandingVisitorProps> = ({ jobs, profiles }
       {/* ────────────────────────────────────────────────────────── */}
       {/* 5. TWO AUDIENCES (White Band) */}
       {/* ────────────────────────────────────────────────────────── */}
-      <section className="w-full bg-white py-20 sm:py-24 border-b border-[#E5E7EB]">
+      <section className="w-full bg-white py-[clamp(56px,7vw,96px)] border-b border-[#E5E7EB]">
         <PageContainer>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 text-left">
 
@@ -544,7 +544,7 @@ export const LandingVisitor: React.FC<LandingVisitorProps> = ({ jobs, profiles }
       {/* ────────────────────────────────────────────────────────── */}
       {/* 7. SAFE BY DESIGN (The ONE Near-Black Band #0B0B0F) */}
       {/* ────────────────────────────────────────────────────────── */}
-      <section className="w-full bg-[#0B0B0F] text-white py-20 sm:py-24 border-b border-black">
+      <section className="w-full bg-[#0B0B0F] text-white py-[clamp(56px,7vw,96px)] border-b border-black">
         <PageContainer>
           <SecurityShowcase />
         </PageContainer>
@@ -554,7 +554,7 @@ export const LandingVisitor: React.FC<LandingVisitorProps> = ({ jobs, profiles }
       {/* 8. PEOPLE (White Band - Rendered ONLY if ready) */}
       {/* ────────────────────────────────────────────────────────── */}
       {hasReadyPeople && (
-        <section className="w-full bg-white py-16 border-b border-[#E5E7EB]">
+        <section className="w-full bg-white py-[clamp(56px,7vw,96px)] border-b border-[#E5E7EB]">
           <PageContainer>
             <div className="max-w-2xl text-left space-y-3">
               <div className="text-eyebrow">Community & Stories</div>
@@ -576,7 +576,7 @@ export const LandingVisitor: React.FC<LandingVisitorProps> = ({ jobs, profiles }
       {/* ────────────────────────────────────────────────────────── */}
       {/* 9. FAQ (Light Gray Band #F6F7F9, 720px wide accordion) */}
       {/* ────────────────────────────────────────────────────────── */}
-      <section className="w-full bg-[#F6F7F9] py-20 sm:py-24 border-b border-[#E5E7EB]">
+      <section className="w-full bg-[#F6F7F9] py-[clamp(56px,7vw,96px)] border-b border-[#E5E7EB]">
         <PageContainer>
           <div className="max-w-[720px] mx-auto text-left space-y-10">
 

@@ -47,7 +47,7 @@ export const CertificateMintPanel: React.FC<CertificateMintPanelProps> = ({
   const [watchAssetStatus, setWatchAssetStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [downloadingPng, setDownloadingPng] = useState(false);
 
-  const certUrl = `${window.location.origin}/#/certificate/${tokenId}`;
+  const certUrl = `${window.location.origin}/#/attestation/${tokenId}`;
 
   // SVG representation for the card
   const svgMarkup = generateCertificateSvg({
@@ -206,7 +206,7 @@ export const CertificateMintPanel: React.FC<CertificateMintPanelProps> = ({
 
         <Button
           as="Link"
-          to={`/certificate/${tokenId}`}
+          to={`/attestation/${tokenId}`}
           variant="secondary"
           size="md"
           trailingIcon={<ExternalLink size={14} />}

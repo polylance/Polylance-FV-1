@@ -1,17 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, User, ShieldCheck, Award, Briefcase, Star, Clock, CheckCircle2,
-  TrendingUp, Github, ExternalLink, Sparkles, Code2, GitCommit, GitPullRequest,
-  Check, FileText, Layers, Trophy, ArrowRight
+  Award, CheckCircle2,
+  Github, ExternalLink, ArrowRight
 } from 'lucide-react';
 import { UserProfile, Application } from '../types';
 import { truncateAddress } from '../utils/formatters';
-import { transition } from '../lib/motion';
 import { getUserBytecodeMatrix } from '../utils/githubOracle';
 import { GithubEkycCard } from './GithubEkycCard';
 import { scrollToSection } from '../utils/scroll';
+import { Modal } from './overlay';
+import { Button } from './common/Button';
 
 interface UserProfileBioModalProps {
   isOpen: boolean;
@@ -35,23 +34,11 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
   applicantData,
   completedCount = 0,
   onTimeRate = '100%',
-  progressAvg = '98%',
   commitsCount = 0,
   prsCount = 0,
   soulboundCount = 0,
 }) => {
   const navigate = useNavigate();
-  const modalContentRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    if (isOpen) {
-      if (modalContentRef.current) {
-        modalContentRef.current.scrollTop = 0;
-      }
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
 
   const displayName = profile?.displayName || truncateAddress(applicantAddress);
   const bio = profile?.bio || applicantData?.proposalText || 'No biography provided for this candidate.';
@@ -65,180 +52,149 @@ export const UserProfileBioModal: React.FC<UserProfileBioModalProps> = ({
   );
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
-          onClick={onClose}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      title={
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#0B0B0F] border border-slate-800 text-white font-bold text-sm flex items-center justify-center uppercase shrink-0">
+            {displayName.slice(0, 2)}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-slate-900 text-base truncate">{displayName}</span>
+              {isVerified && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#EAF1FB] text-[#0047AB] border border-[#C9DAF2]">
+                  <CheckCircle2 size={11} /> Verified
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] font-mono text-slate-500 truncate">{applicantAddress}</p>
+          </div>
+        </div>
+      }
+      footer={
+        <div className="flex items-center justify-between w-full gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => {
+              onClose();
+              navigate(`/profile/${applicantAddress}?section=reputation-overview`);
+              scrollToSection('reputation-overview');
+            }}
+          >
+            <span>View Full Profile</span>
+            <ArrowRight size={14} />
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-5 text-xs font-sans">
+        {/* Tier and Score Tags */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] font-medium font-sans text-slate-800 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">
+            {bytecodeMatrix.primaryScore}/1,000 Score
+          </span>
+          <span className="text-[11px] font-medium font-sans text-slate-800 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">
+            {bytecodeMatrix.reputationTier}
+          </span>
+          <span className="text-[11px] font-medium font-sans text-[#0047AB] bg-[#EAF1FB] border border-[#C9DAF2] px-2.5 py-0.5 rounded-md">
+            {soulboundCount} Badges
+          </span>
+        </div>
+
+        {/* Full Bio Section */}
+        <div className="space-y-1.5 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2 text-slate-900 font-semibold text-xs tracking-wide">
+            <Award size={14} className="text-[#0047AB]" />
+            <span>Biography & Attestations</span>
+          </div>
+          <p className="font-sans text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">
+            {bio}
+          </p>
+        </div>
+
+        {/* Skills & Tech Stack */}
+        {skills.length > 0 && (
+          <div className="space-y-1.5">
+            <h4 className="font-semibold text-xs text-slate-700">
+              Skills & Technical Expertise
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {skills.map((skill: string, idx: number) => (
+                <span
+                  key={idx}
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 text-xs font-mono font-medium"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Metrics Grid */}
+        <div className="space-y-1.5">
+          <h4 className="font-semibold text-xs text-slate-700">
+            Track Record
+          </h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <span className="text-[11px] text-slate-500 font-medium block">Jobs Completed</span>
+              <span className="font-semibold text-slate-900 text-base block mt-0.5 font-sans tabular-nums">{completedCount}</span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <span className="text-[11px] text-slate-500 font-medium block">On-Time Rate</span>
+              <span className="font-semibold text-slate-900 text-base block mt-0.5 font-sans tabular-nums">{onTimeRate}</span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <span className="text-[11px] text-slate-500 font-medium block">GitHub Commits</span>
+              <span className="font-semibold text-slate-900 text-base block mt-0.5 font-sans tabular-nums">{commitsCount}</span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <span className="text-[11px] text-slate-500 font-medium block">PRs Merged</span>
+              <span className="font-semibold text-slate-900 text-base block mt-0.5 font-sans tabular-nums">{prsCount}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Audited Code Byte Matrix */}
+        <GithubEkycCard
+          bytecodeMatrix={bytecodeMatrix}
+          userProfile={profile}
+          onboardingLink={false}
         />
 
-        <motion.div
-          ref={modalContentRef}
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={transition.spring}
-          className="relative w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 z-10 space-y-6 max-h-[90vh] overflow-y-auto"
-        >
-          {/* Top Header with Avatar and Cancel (X) */}
-          <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-14 h-14 rounded-2xl bg-[#0B0B0C] border border-slate-800 text-white font-extrabold text-xl flex items-center justify-center shadow-xs shrink-0 uppercase">
-                {displayName.slice(0, 2)}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-headline text-lg sm:text-xl font-black text-slate-900 truncate">
-                    {displayName}
-                  </h3>
-                  {isVerified && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                      <CheckCircle2 size={11} className="text-emerald-600" /> Verified
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs font-mono text-slate-500 mt-0.5 truncate">
-                  {applicantAddress}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[11px] font-bold font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md">
-                    ⭐ {bytecodeMatrix.primaryScore}/1000 Score
-                  </span>
-                  <span className="text-[11px] font-bold font-mono text-slate-800 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                    {bytecodeMatrix.reputationTier}
-                  </span>
-                  <span className="text-[11px] font-bold font-mono text-[#0047AB] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
-                    🛡️ {soulboundCount} SBT Badges
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Top Cancel Button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-              title="Close popup"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Full Bio Section */}
-          <div className="space-y-2 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200">
-            <div className="flex items-center gap-2 text-slate-900 font-headline font-bold text-xs uppercase tracking-wider">
-              <Award size={14} className="text-[#0047AB]" />
-              <span>Full Biography & Attestations</span>
-            </div>
-            <p className="font-sans text-xs sm:text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap">
-              {bio}
-            </p>
-          </div>
-
-          {/* Skills & Tech Stack */}
-          {skills.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-headline font-bold text-xs text-slate-700 uppercase tracking-wider">
-                Skills & Technical Expertise
-              </h4>
-              <div className="flex flex-wrap gap-1.5">
-                {skills.map((skill: string, idx: number) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 text-xs font-mono font-bold"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* On-Chain Metrics Grid */}
-          <div className="space-y-2">
-            <h4 className="font-headline font-bold text-xs text-slate-700 uppercase tracking-wider">
-              Verified On-Chain Track Record
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1">
-                <span className="text-[10px] text-slate-500 font-mono font-bold uppercase block">Jobs Completed</span>
-                <span className="font-headline font-black text-slate-900 text-lg block">{completedCount}</span>
-              </div>
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1">
-                <span className="text-[10px] text-slate-500 font-mono font-bold uppercase block">On-Time Rate</span>
-                <span className="font-headline font-black text-emerald-700 text-lg block">{onTimeRate}</span>
-              </div>
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1">
-                <span className="text-[10px] text-slate-500 font-mono font-bold uppercase block">GitHub Commits</span>
-                <span className="font-headline font-black text-slate-900 text-lg block">{commitsCount}</span>
-              </div>
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1">
-                <span className="text-[10px] text-slate-500 font-mono font-bold uppercase block">PRs Merged</span>
-                <span className="font-headline font-black text-slate-900 text-lg block">{prsCount}</span>
-              </div>
+        {/* Linked GitHub & Social Attestation */}
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Github size={18} className="text-slate-900 shrink-0" />
+            <div>
+              <span className="text-[11px] text-slate-500 font-medium block">
+                Verified GitHub Identity
+              </span>
+              <a
+                href={`https://github.com/${githubUsername}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-semibold text-[#0047AB] hover:underline flex items-center gap-1"
+              >
+                <span>@{githubUsername}</span>
+                <ExternalLink size={11} />
+              </a>
             </div>
           </div>
 
-          {/* Audited Code Byte Matrix (New Apple Neumorphic / Glass Design) */}
-          <GithubEkycCard
-            bytecodeMatrix={bytecodeMatrix}
-            userProfile={profile}
-            onboardingLink={false}
-          />
-
-          {/* Linked GitHub & Social Attestation */}
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Github size={20} className="text-slate-900 shrink-0" />
-              <div>
-                <span className="text-[10.5px] font-mono text-slate-500 font-bold uppercase block">
-                  Verified GitHub Identity
-                </span>
-                <a
-                  href={`https://github.com/${githubUsername}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
-                >
-                  <span>@{githubUsername}</span>
-                  <ExternalLink size={11} />
-                </a>
-              </div>
-            </div>
-
-            <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Identity Verified
-            </span>
-          </div>
-
-          {/* Bottom Action Footer with Close and View Full Profile CTA */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono font-bold text-xs transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                navigate(`/profile/${applicantAddress}?section=reputation-overview`);
-                scrollToSection('reputation-overview');
-              }}
-              className="bg-[#0047AB] hover:bg-[#003882] px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
-            >
-              <span>View Full Reputation & Profile</span>
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        </motion.div>
+          <span className="px-2.5 py-1 rounded text-xs font-medium bg-[#EAF1FB] text-[#0047AB] border border-[#C9DAF2]">
+            Identity Verified
+          </span>
+        </div>
       </div>
-    </AnimatePresence>
+    </Modal>
   );
 };

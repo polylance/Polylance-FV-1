@@ -40,29 +40,75 @@ import { Showcase } from './pages/Showcase';
 import { MediaLab } from './pages/MediaLab';
 import { MotionLab } from './pages/MotionLab';
 import { TypeLab } from './pages/TypeLab';
-import { Certificate } from './pages/Certificate';
+import { EmblemLab } from './pages/EmblemLab';
 import { DemoModeProvider, useDemoMode } from './context/DemoModeContext';
 import { DemoBanner } from './components/demo/DemoBanner';
 import { GuidedTour } from './components/demo/GuidedTour';
 import { VideoManagerProvider } from './media';
 import { usePolyLanceData } from './context/PolyLanceDataContext';
-import { isAdminAddress } from './utils/adminGuard';
+import { isAdminAddress, isJudgeAddress } from './utils/adminGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { pageVariants, transition } from './lib/motion';
 import { scrollToSection, extractTargetSection } from './utils/scroll';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
 
 
-// ── Apple-style page transition wrapper ────────────────────────────────────
+import { useAccountMode } from './hooks/useAccountMode';
+import { ToastContainer, ToastMessage } from './components/mobile/Toast';
+import { subscribeToasts, toast } from './utils/toast';
+
+// ── Human Interface page transition wrapper ───────────────────────────────
 const isCertifiedPassDomain = typeof window !== 'undefined' &&
   (window.location.hostname === 'certifiedpass.polylance.codes' || window.location.hostname.startsWith('certifiedpass.'));
+
+const PostJobRouteGuard: React.FC = () => {
+  const { accountMode } = useAccountMode();
+  React.useEffect(() => {
+    if (accountMode === 'freelancer') {
+      toast.error(
+        'Posting jobs is turned off',
+        'Your account is in Freelancer only mode. Switch to Client or Both in Settings to post jobs.'
+      );
+    }
+  }, [accountMode]);
+
+  if (accountMode === 'freelancer') {
+    return <Navigate to="/settings" replace />;
+  }
+  return <PostJob />;
+};
+
+const GlobalToasts: React.FC = () => {
+  const [toasts, setToasts] = React.useState<ToastMessage[]>([]);
+  React.useEffect(() => {
+    return subscribeToasts((newToast) => {
+      setToasts((prev) => [...prev, newToast]);
+    });
+  }, []);
+  const handleDismiss = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+  return <ToastContainer toasts={toasts} onDismiss={handleDismiss} />;
+};
 
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isConnected, currentRole } = useWeb3();
+  const { isConnected, currentRole, address, isArbitrator } = useWeb3();
   const { isDemoMode } = useDemoMode();
   const isVisitor = (!isConnected || currentRole === 'visitor') && !isDemoMode;
+
+  const isJudgeAllowed =
+    isDemoMode ||
+    currentRole === 'judge' ||
+    currentRole === 'admin' ||
+    Boolean(isArbitrator) ||
+    Boolean(address && (isJudgeAddress(address) || isAdminAddress(address)));
+
+  const isTreasuryAllowed =
+    isDemoMode ||
+    currentRole === 'admin' ||
+    Boolean(address && isAdminAddress(address));
 
   // Social media deep link synchronization from search params & subdomain handling
   React.useEffect(() => {
@@ -130,8 +176,8 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/certifiedpass" element={<CertifiedPass />} />
           <Route path="/certified-pass" element={<CertifiedPass />} />
           <Route path="/c/:id" element={<JobAttestationReport />} />
-          <Route path="/certificate/:tokenId" element={<Certificate />} />
-          <Route path="/certificate" element={<Certificate />} />
+          <Route path="/certificate/:id" element={<JobAttestationReport />} />
+          <Route path="/certificate" element={<JobAttestationReport />} />
           <Route path="/login" element={<Login />} />
           <Route path="/jobs" element={<FindJobs />} />
           <Route path="/jobs/:id" element={<JobDetail />} />
@@ -151,6 +197,7 @@ const AnimatedRoutes: React.FC = () => {
           {import.meta.env.DEV && <Route path="/media-lab" element={<MediaLab />} />}
           {import.meta.env.DEV && <Route path="/motion-lab" element={<MotionLab />} />}
           {import.meta.env.DEV && <Route path="/type-lab" element={<TypeLab />} />}
+          <Route path="/emblem-lab" element={<EmblemLab />} />
           <Route path="/dev/primitives" element={<DevPrimitivesPage />} />
           <Route path="/dev/states" element={<DevStatesPage />} />
 
@@ -159,10 +206,10 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/dashboard" element={isVisitor ? <Navigate to="/login" replace /> : <Dashboard />} />
           <Route path="/dao" element={isVisitor ? <Navigate to="/login" replace /> : <Dao />} />
           <Route path="/analytics" element={isVisitor ? <Navigate to="/login" replace /> : <Analytics />} />
-          <Route path="/jobs/post" element={isVisitor ? <Navigate to="/login" replace /> : <PostJob />} />
-          <Route path="/post-job" element={isVisitor ? <Navigate to="/login" replace /> : <PostJob />} />
-          <Route path="/judge" element={currentRole === 'judge' || currentRole === 'admin' ? <Judge /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/treasury" element={currentRole === 'admin' ? <Treasury /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/jobs/post" element={isVisitor ? <Navigate to="/login" replace /> : <PostJobRouteGuard />} />
+          <Route path="/post-job" element={isVisitor ? <Navigate to="/login" replace /> : <PostJobRouteGuard />} />
+          <Route path="/judge" element={isJudgeAllowed ? <Judge /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/treasury" element={isTreasuryAllowed ? <Treasury /> : <Navigate to="/dashboard" replace />} />
 
           {/* Certified trust & reputation audits */}
           <Route path="/audit" element={<AuditReport />} />
@@ -174,6 +221,8 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/jobs/:id/attestation" element={<JobAttestationReport />} />
           <Route path="/attestation/:id" element={<JobAttestationReport />} />
           <Route path="/attestation" element={<JobAttestationReport />} />
+          <Route path="/job-attestation-report/:id" element={<JobAttestationReport />} />
+          <Route path="/job-attestation-report" element={<JobAttestationReport />} />
 
           {/* Settings & Profile Customization */}
           <Route path="/settings" element={isVisitor ? <Navigate to="/login" replace /> : <Settings />} />
@@ -300,6 +349,9 @@ const AppContent: React.FC = () => {
 
       {/* Mobile-only Authenticated dApp Bottom Tab Bar (Hidden on Audit Document and Chat/Messages Section) */}
       {!isAudit && !isChat && <BottomTabBar />}
+
+      {/* Global Application Stacking Toasts */}
+      <GlobalToasts />
     </div>
   );
 };

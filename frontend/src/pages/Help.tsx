@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import { VideoGrid } from '../components/video/VideoGrid';
 import { Search, ChevronDown, HelpCircle, Shield, BookOpen, Layers } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -45,39 +46,28 @@ export const Help: React.FC = () => {
   ];
 
   return (
-    <PageContainer className="space-y-12 py-8 text-[#0B0B0F]">
-      
-      {/* ── HEADER & SEARCH ────────────────────────────────────────────── */}
-      <section className="text-left space-y-4 max-w-3xl">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[8px] bg-[#E7EEF9] text-[#0047AB] text-xs font-medium border border-[#E5E7EB]">
-          <BookOpen size={13} />
-          <span>Documentation & Tutorials</span>
-        </div>
+    <PageContainer className="space-y-6 py-6 text-[#0B0B0F]">
+      <PageHeader
+        title="Help and tutorials"
+        subtitle="Learn how to set up non-custodial escrows, submit verified proposals, and build your sovereign reputation on Polygon."
+      />
 
-        <h1 className="font-sans font-semibold text-3xl sm:text-4xl text-[#0B0B0F] tracking-tight">
-          Help and tutorials
-        </h1>
-        <p className="text-sm sm:text-base text-[#4B5563] leading-relaxed">
-          Learn how to set up non-custodial escrows, submit verified proposals, and build your sovereign reputation on Polygon.
-        </p>
-
-        {/* Search input (filters title, summary and transcript) */}
-        <div className="pt-2 max-w-md">
-          <div className="relative">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none"
-            />
-            <input
-              type="text"
-              placeholder="Search tutorials, tasks, or keywords..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#FFFFFF] border border-[#E5E7EB] rounded-[8px] pl-9 pr-4 py-2.5 text-xs sm:text-sm text-[#0B0B0F] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#0047AB] shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-            />
-          </div>
+      {/* Search input (filters title, summary and transcript) */}
+      <div className="max-w-md">
+        <div className="relative">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none"
+          />
+          <input
+            type="text"
+            placeholder="Search tutorials, tasks, or keywords..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#FFFFFF] border border-[#E5E7EB] rounded-[8px] pl-9 pr-4 py-2 text-xs sm:text-sm text-[#0B0B0F] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#0047AB] shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+          />
         </div>
-      </section>
+      </div>
 
       {/* ── VIDEO TUTORIALS GRID ────────────────────────────────────────── */}
       <section className="space-y-4 text-left">

@@ -24,10 +24,10 @@ import {
   Check,
   Edit3,
   ShieldCheck,
+  Github,
 } from 'lucide-react';
-import { generateCertificateSvg } from '../utils/certificateGenerator';
-import { CONTRACTS } from '../config/contracts';
 import { GithubEkycCard } from '../components/GithubEkycCard';
+import { GithubVerifyModal } from '../components/GithubVerifyModal';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Avatar } from '../components/common/Avatar';
 import { AddressChip } from '../components/common/AddressChip';
@@ -38,7 +38,9 @@ import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
 import { Modal } from '../components/common/Modal';
 import { Input, Textarea, TagInput } from '../components/common/FormControls';
-import { WatchButton, VideoModal, useVideoModal } from '../components/video';
+import { calculateReputationScores, getReputationTier } from '../utils/reputation';
+import { CompactTierChip } from '../components/common/TierEmblem';
+import { generateCertificateSvg, svgToDataUri } from '../utils/certificateGenerator';
 
 function stripMarkdown(text: string): string {
   if (!text) return '';
@@ -78,7 +80,6 @@ export const Profile: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState('overview');
   const [copiedLink, setCopiedLink] = useState(false);
-  const { activeVideoId, isOpen: isVideoModalOpen, triggerRef, openVideo, closeVideo } = useVideoModal();
 
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -113,6 +114,30 @@ export const Profile: React.FC = () => {
         profileAddr
       );
       setIsEditModalOpen(false);
+    }
+  };
+
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+
+  const handleGithubVerified = (res: any) => {
+    if (profileAddr) {
+      updateProfile(
+        {
+          githubVerified: true,
+          githubUsername: res.username,
+          githubId: res.id || res.username,
+          primaryScore: res.primaryScore,
+          secondaryScores: res.secondaryScores,
+          primaryCategory: res.primaryCategory,
+          languageBytes: res.languageBytes,
+          verifiedAt: res.verifiedAt,
+          attestationUID: res.attestationUID,
+          reputationTier: res.reputationTier,
+          avatarUrl: res.fetchedAvatarUrl || userProfile.avatarUrl,
+          displayName: res.fetchedDisplayName || userProfile.displayName,
+        },
+        profileAddr
+      );
     }
   };
 
@@ -170,7 +195,17 @@ export const Profile: React.FC = () => {
     devVolumeHandled
   );
 
-  const tier = (bytecodeMatrix.reputationTier || 'BRONZE').toUpperCase();
+  const repScores = useMemo(() => {
+    return calculateReputationScores(
+      userProfile.address || profileAddr,
+      jobs,
+      userProfile,
+      userProfile.reputationSbtCount || 0
+    );
+  }, [userProfile, profileAddr, jobs]);
+
+  const tierInfo = getReputationTier(repScores.totalPoints);
+  const tier = tierInfo.tier.toUpperCase();
 
   // Distinct client name lookup
   const getClientDisplayName = (clientAddress: string) => {
@@ -204,13 +239,11 @@ export const Profile: React.FC = () => {
                   {userProfile.displayName}
                 </h1>
                 {userProfile.githubVerified && (
-                  <Badge variant="success" icon={<CheckCircle2 size={13} />}>
+                  <Badge variant="cobalt" icon={<CheckCircle2 size={13} />}>
                     Verified
                   </Badge>
                 )}
-                <Badge variant="cobalt">
-                  {tier} tier
-                </Badge>
+                <CompactTierChip tier={tierInfo.tier} />
               </div>
 
               <p className="text-sm text-[#4B5563]">
@@ -232,15 +265,26 @@ export const Profile: React.FC = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto">
+          <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-auto">
             {isOwnProfile ? (
-              <Button
-                variant="primary"
-                onClick={() => setIsEditModalOpen(true)}
-                icon={<Edit3 size={15} />}
-              >
-                Edit profile
-              </Button>
+              <div className="flex items-center gap-2">
+                {!userProfile.githubVerified && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setIsVerifyModalOpen(true)}
+                    icon={<Github size={15} />}
+                  >
+                    Connect GitHub
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  onClick={() => setIsEditModalOpen(true)}
+                  icon={<Edit3 size={15} />}
+                >
+                  Edit profile
+                </Button>
+              </div>
             ) : (
               <>
                 <Button
@@ -267,7 +311,7 @@ export const Profile: React.FC = () => {
           <div className="p-3 bg-[#F6F7F9] rounded-[8px] border border-[#E5E7EB]">
             <span className="text-xs text-[#6B7280] block">Reputation score</span>
             <span className="text-lg font-semibold text-[#0B0B0F]">
-              {bytecodeMatrix.primaryScore}
+              {repScores.totalPoints}
             </span>
           </div>
 
@@ -280,7 +324,7 @@ export const Profile: React.FC = () => {
 
           <div className="p-3 bg-[#F6F7F9] rounded-[8px] border border-[#E5E7EB]">
             <span className="text-xs text-[#6B7280] block">Success rate</span>
-            <span className="text-lg font-semibold text-[#166534]">
+            <span className="text-lg font-semibold text-[#0047AB]">
               {completedFreelancerJobs.length > 0 ? '100%' : '100%'}
             </span>
           </div>
@@ -298,7 +342,7 @@ export const Profile: React.FC = () => {
       </div>
 
       {/* ── TABS ── */}
-      <div className="mt-8">
+      <div className="mt-6">
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
@@ -307,31 +351,32 @@ export const Profile: React.FC = () => {
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* About Card */}
-            <div className="p-6 bg-white border border-[#E5E7EB] rounded-[12px] space-y-3">
-              <h3 className="text-base font-semibold text-[#0B0B0F]">About</h3>
-              <p className="text-sm text-[#4B5563] leading-relaxed max-w-[720px]">
-                {userProfile.bio || 'No personal bio added yet.'}
-              </p>
-            </div>
+            {/* Merged About & Skills Grouped Card */}
+            <div className="bg-white border border-[#E5E7EB] rounded-[12px] overflow-hidden divide-y divide-[#E5E7EB]">
+              <div className="p-5 sm:p-6 space-y-2">
+                <h3 className="text-base font-semibold text-[#0B0B0F]">About</h3>
+                <p className="text-sm text-[#4B5563] leading-relaxed max-w-[720px]">
+                  {userProfile.bio || 'No personal bio added yet.'}
+                </p>
+              </div>
 
-            {/* Skills Card (Renamed Skills, contract filenames removed) */}
-            <div className="p-6 bg-white border border-[#E5E7EB] rounded-[12px] space-y-3">
-              <h3 className="text-base font-semibold text-[#0B0B0F]">Skills</h3>
-              {userProfile.skills && userProfile.skills.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {userProfile.skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="px-3 py-1 bg-[#F6F7F9] border border-[#E5E7EB] rounded-[8px] text-xs font-medium text-[#0B0B0F]"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-[#6B7280]">No skills added yet.</p>
-              )}
+              <div className="p-5 sm:p-6 space-y-3">
+                <h3 className="text-base font-semibold text-[#0B0B0F]">Skills</h3>
+                {userProfile.skills && userProfile.skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {userProfile.skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-2.5 py-1 bg-[#F6F7F9] border border-[#E5E7EB] rounded-[8px] text-xs font-medium text-[#0B0B0F]"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#6B7280]">No skills added yet.</p>
+                )}
+              </div>
             </div>
 
             {/* GitHub Verification Card */}
@@ -421,12 +466,9 @@ export const Profile: React.FC = () => {
         {/* CERTIFICATES TAB */}
         {activeTab === 'certificates' && (
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#E5E7EB]">
-              <div>
-                <h3 className="text-sm font-semibold text-[#0B0B0F]">Soulbound Work Certificates</h3>
-                <p className="text-xs text-[#4B5563]">Cryptographically verified proof-of-work (ERC-5192) minted directly on Polygon.</p>
-              </div>
-              <WatchButton id="task-reputation" label="Watch certificates guide (35s)" onOpen={openVideo} />
+            <div className="pb-2 border-b border-[#E5E7EB]">
+              <h3 className="text-sm font-semibold text-[#0B0B0F]">Soulbound Work Certificates</h3>
+              <p className="text-xs text-[#4B5563]">Cryptographically verified proof-of-work (ERC-5192) minted directly on Polygon.</p>
             </div>
 
             {completedFreelancerJobs.length === 0 ? (
@@ -443,43 +485,55 @@ export const Profile: React.FC = () => {
                   const tokenAmt = parseFloat(job.amountEth || job.amountUsdc || '0');
                   const tokenSym = job.paymentTokenSymbol || 'POL';
 
-                  const svgPreview = generateCertificateSvg({
-                    tokenId: sbtId,
-                    variant: 'work',
-                    jobTitle: job.title,
-                    recipientAddress: job.freelancer || profileAddr || '',
-                    clientAddress: job.client || '',
-                    amount: tokenAmt,
-                    tokenSymbol: tokenSym,
-                    completedAt: job.completedAt || job.createdAt || Date.now(),
-                    contractAddress: CONTRACTS.ReputationSBT,
-                  });
-
-                  const svgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(svgPreview)}`;
+                  let certDataUri = '';
+                  try {
+                    const svg = generateCertificateSvg({
+                      tokenId: sbtId,
+                      variant: 'work',
+                      jobId: job.id,
+                      jobTitle: job.title,
+                      recipientAddress: job.freelancer || userProfile.address,
+                      recipientName: userProfile.displayName,
+                      clientAddress: job.client,
+                      clientName: getClientDisplayName(job.client),
+                      amount: tokenAmt,
+                      tokenSymbol: tokenSym,
+                      completedAt: job.completedAt || job.createdAt || Date.now(),
+                    });
+                    certDataUri = svgToDataUri(svg);
+                  } catch {
+                    certDataUri = '';
+                  }
 
                   return (
                     <div
                       key={job.id}
-                      className="p-5 bg-white border border-[#E5E7EB] hover:border-[#0047AB] rounded-[12px] space-y-4 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                      className="p-4 sm:p-5 bg-white border border-[#E5E7EB] hover:border-[#0047AB] rounded-[12px] space-y-4 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
                     >
-                      <div className="flex items-start gap-4">
-                        {/* Certificate Visual Thumbnail */}
+                      <div className="flex flex-col sm:flex-row items-start gap-4">
+                        {/* Certificate Visual Preview Image */}
                         <Link
-                          to={`/certificate/${sbtId}`}
-                          className="shrink-0 w-24 h-24 rounded-[8px] overflow-hidden border border-[#E5E7EB] bg-[#FAFAF8] hover:border-[#0047AB] transition-transform hover:scale-[1.02] shadow-xs group"
-                          title="View verified work certificate"
+                          to={`/attestation/${job.id}`}
+                          className="shrink-0 w-28 h-28 sm:w-32 sm:h-32 rounded-[8px] overflow-hidden border border-[#E5E7EB] hover:border-[#0047AB] bg-[#FAFAF8] shadow-xs group transition-all"
+                          title="Click to view verified work certificate"
                         >
-                          <img
-                            src={svgDataUri}
-                            alt={`Certificate #${sbtId}`}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
+                          {certDataUri ? (
+                            <img
+                              src={certDataUri}
+                              alt={`Soulbound Certificate #${sbtId}`}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-gradient-to-br from-[#EFF6FF] to-[#DBEAFE]">
+                              <Award size={26} className="text-[#0047AB] mb-1" />
+                              <span className="text-[9px] font-mono font-bold text-[#0047AB]">PL-SBT #{sbtId}</span>
+                            </div>
+                          )}
                         </Link>
 
                         {/* Certificate Details */}
-                        <div className="flex-1 min-w-0 space-y-1.5">
-                          <div className="flex items-center justify-between gap-1">
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="flex items-center justify-between gap-1 flex-wrap">
                             <span className="text-[11px] font-semibold text-[#0047AB] bg-[#EFF6FF] px-2 py-0.5 rounded-[6px] border border-[#BFDBFE]">
                               PL-SBT #{sbtId}
                             </span>
@@ -488,7 +542,7 @@ export const Profile: React.FC = () => {
                             </span>
                           </div>
 
-                          <h4 className="text-sm font-semibold text-[#0B0B0F] truncate" title={job.title}>
+                          <h4 className="text-sm font-semibold text-[#0B0B0F] line-clamp-2" title={job.title}>
                             {job.title}
                           </h4>
 
@@ -507,10 +561,10 @@ export const Profile: React.FC = () => {
                       {/* Card Footer Actions */}
                       <div className="pt-3 border-t border-[#E5E7EB] flex items-center justify-between text-xs">
                         <Link
-                          to={`/certificate/${sbtId}`}
+                          to={`/attestation/${job.id}`}
                           className="text-[#0047AB] hover:underline flex items-center gap-1 font-semibold"
                         >
-                          <span>View certificate</span>
+                          <span>View full certificate</span>
                           <ExternalLink size={12} />
                         </Link>
 
@@ -527,7 +581,7 @@ export const Profile: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              const fullCertUrl = `${window.location.origin}/#/certificate/${sbtId}`;
+                              const fullCertUrl = `${window.location.origin}/#/attestation/${job.id}`;
                               navigator.clipboard.writeText(fullCertUrl);
                             }}
                             className="text-[#6B7280] hover:text-[#0B0B0F] flex items-center gap-1 cursor-pointer"
@@ -555,34 +609,45 @@ export const Profile: React.FC = () => {
               />
             ) : (
               <div className="space-y-3">
-                {completedFreelancerJobs.map((job) => (
-                  <div
-                    key={job.id}
-                    className="p-5 bg-white border border-[#E5E7EB] rounded-[12px] space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-[#0B0B0F]">
-                          {getClientDisplayName(job.client)}
-                        </span>
-                        <div className="flex text-[#0047AB]">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={14} fill="#0047AB" />
-                          ))}
+                {completedFreelancerJobs.map((job) => {
+                  const review = job.clientReview;
+                  const stars = review ? review.rating : 0;
+                  return (
+                    <div
+                      key={job.id}
+                      className="p-5 bg-white border border-[#E5E7EB] rounded-[12px] space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-[#0B0B0F]">
+                            {getClientDisplayName(job.client)}
+                          </span>
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={14}
+                                className={i < stars ? 'text-[#0047AB]' : 'text-[#D1D5DB]'}
+                                fill={i < stars ? '#0047AB' : 'none'}
+                              />
+                            ))}
+                          </div>
                         </div>
+                        <span className="text-xs text-[#6B7280]">
+                          {formatTimeAgo(review?.reviewedAt || job.completedAt || job.createdAt || Date.now())}
+                        </span>
                       </div>
-                      <span className="text-xs text-[#6B7280]">
-                        {formatTimeAgo(job.completedAt || job.createdAt || Date.now())}
+                      <p className="text-sm text-[#4B5563]">
+                        {review?.comment
+                          ? `"${review.comment}"`
+                          : <span className="italic text-[#9CA3AF]">Client has not left a review yet.</span>}
+                      </p>
+                      <span className="text-xs text-[#6B7280] block pt-1">
+                        Job: {job.title}
                       </span>
                     </div>
-                    <p className="text-sm text-[#4B5563]">
-                      "Exceptional work on the milestone deliverables. Smart contract was clean, thoroughly tested, and delivered ahead of schedule."
-                    </p>
-                    <span className="text-xs text-[#6B7280] block pt-1">
-                      Job: {job.title}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -638,12 +703,11 @@ export const Profile: React.FC = () => {
         </div>
       </Modal>
 
-      {/* Video Modal */}
-      <VideoModal
-        id={activeVideoId}
-        isOpen={isVideoModalOpen}
-        onClose={closeVideo}
-        triggerRef={triggerRef}
+      <GithubVerifyModal
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
+        userAddress={profileAddr || ''}
+        onVerified={handleGithubVerified}
       />
     </PageContainer>
   );

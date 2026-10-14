@@ -11,11 +11,13 @@ import { Amount } from '../components/common/Amount';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
-import { TagInput } from '../components/common/FormControls';
+import { TagInput, SkillAutocomplete } from '../components/common/FormControls';
 import { WatchButton, VideoModal, useVideoModal } from '../components/video';
 import { CATEGORIES } from '../utils/formatters';
 import { resolveDomainId, DOMAIN_BY_ID } from '../utils/domainMapping';
 import { useLiveCurrencyRates, convertCryptoToFiat, useGlobalFiat } from '../utils/currency';
+import { useAccountMode } from '../hooks/useAccountMode';
+import { toast } from '../utils/toast';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -59,8 +61,19 @@ export const PostJob: React.FC = () => {
     switchToTargetNetwork,
   } = useWeb3();
   const { postJob } = usePolyLanceData();
+  const { accountMode } = useAccountMode();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (accountMode === 'freelancer') {
+      toast.error(
+        'Posting jobs is turned off',
+        'Your account is in Freelancer only mode. Switch to Client or Both in Settings to post jobs.'
+      );
+      navigate('/settings', { replace: true });
+    }
+  }, [accountMode, navigate]);
 
   // Form State
   const initialDomain = resolveDomainId(searchParams.get('domain') || searchParams.get('category'));
@@ -220,12 +233,12 @@ export const PostJob: React.FC = () => {
   };
 
   return (
-    <PageContainer className="py-8">
+    <PageContainer>
       {/* Page Title & Subtitle */}
       <PageHeader
         title="Post a job"
         subtitle="Create a verified milestone escrow contract. Funds remain safely locked until deliverables are approved."
-        badge={
+        actions={
           <WatchButton
             id="task-post-job"
             label="Watch how to post (35s)"
@@ -234,11 +247,11 @@ export const PostJob: React.FC = () => {
         }
       />
 
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-left">
         {/* LEFT COLUMN: Numbered Sections (1 to 6) */}
-        <div className="lg:col-span-8 space-y-8">
+        <div className="lg:col-span-8 space-y-6">
           {/* SECTION 1: Basics */}
-          <Card className="p-6 space-y-5">
+          <Card className="p-5 space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-[#E5E7EB]">
               <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
                 1
@@ -285,16 +298,17 @@ export const PostJob: React.FC = () => {
             </div>
 
             {/* Skills */}
-            <TagInput
+            <SkillAutocomplete
               label="Required skills"
-              tags={skills}
+              skills={skills}
               onChange={setSkills}
+              selectedCategory={category}
               placeholder="e.g. Solidity, React, Hardhat..."
             />
           </Card>
 
           {/* SECTION 2: Description */}
-          <Card className="p-6 space-y-5">
+          <Card className="p-5 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
@@ -375,7 +389,7 @@ export const PostJob: React.FC = () => {
           </Card>
 
           {/* SECTION 3: Budget and payment */}
-          <Card className="p-6 space-y-5">
+          <Card className="p-5 space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-[#E5E7EB]">
               <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
                 3
@@ -458,7 +472,7 @@ export const PostJob: React.FC = () => {
           </Card>
 
           {/* SECTION 4: Timeline and review */}
-          <Card className="p-6 space-y-4">
+          <Card className="p-5 space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-[#E5E7EB]">
               <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
                 4
@@ -476,14 +490,14 @@ export const PostJob: React.FC = () => {
                 options={REVIEW_PERIOD_OPTIONS}
                 size="md"
               />
-              <p className="mt-1.5 text-xs text-[#4B5563]">
+              <p className="mt-1.5 text-xs text-[#4B5563] max-w-[640px]">
                 After work is submitted, the client has {reviewPeriodDays} days to approve or dispute before funds auto-release.
               </p>
             </div>
           </Card>
 
           {/* SECTION 5: Attachments */}
-          <Card className="p-6 space-y-4">
+          <Card className="p-5 space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-[#E5E7EB]">
               <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
                 5
@@ -535,7 +549,7 @@ export const PostJob: React.FC = () => {
           </Card>
 
           {/* SECTION 6: Review and post */}
-          <Card className="p-6 space-y-4">
+          <Card className="p-5 space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-[#E5E7EB]">
               <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
                 6
@@ -576,8 +590,8 @@ export const PostJob: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: ONE Sticky Summary */}
-        <div className="lg:col-span-4 sticky top-24 space-y-6">
-          <Card className="p-6 space-y-5">
+        <div className="lg:col-span-4 sticky top-[88px] space-y-6">
+          <Card className="p-5 space-y-4">
             <h3 className="text-sm font-semibold text-[#0B0B0F]">Escrow breakdown</h3>
 
             {/* Reused Single FeeBreakdown */}

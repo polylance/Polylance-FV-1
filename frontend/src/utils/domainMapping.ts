@@ -157,23 +157,37 @@ export const DOMAIN_BY_ID: Record<DomainId, DomainConfig> = {
 };
 
 /**
- * Returns true if the job has an OPEN status and is not draft, filled, cancelled, or disputed
+ * Global single source of truth deciding whether a job appears in Find Jobs.
+ * RULE: The job leaves Find Jobs ONLY when escrow funding is confirmed on-chain
+ * (status === 'Funded'). Selection, counter-offers, or failed/pending tx MUST NOT hide it.
  */
-export function isJobOpen(job: any): boolean {
+export function isJobListed(job: any): boolean {
   if (!job) return false;
-  // Exclude demo/mock jobs if marked
   if (job.isDemo || job.isMock) return false;
 
   const rawStatus = (job.status || '').toLowerCase().trim();
-  const isOpen = rawStatus === 'open';
 
-  // Exclude disputed, completed, or cancelled
+  // Exclude completed, cancelled, or draft
+  if (rawStatus === 'completed' || rawStatus === 'cancelled' || rawStatus === 'draft') {
+    return false;
+  }
   if (job.dispute && !job.dispute.resolved) return false;
-  if (rawStatus === 'completed' || rawStatus === 'disputed' || rawStatus === 'cancelled' || rawStatus === 'draft') {
+
+  // The job leaves Find Jobs ONLY when confirmed funded
+  if (rawStatus === 'funded' || rawStatus === 'submitted') {
     return false;
   }
 
-  return isOpen;
+  // Jobs in 'open' or 'selected' (with active negotiation or pending funding) MUST stay listed!
+  return rawStatus === 'open' || rawStatus === 'selected';
+}
+
+/**
+ * Returns true if the job is listed and available on the marketplace.
+ * Kept for backwards compatibility, delegating directly to isJobListed.
+ */
+export function isJobOpen(job: any): boolean {
+  return isJobListed(job);
 }
 
 /**

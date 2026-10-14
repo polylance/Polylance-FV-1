@@ -400,7 +400,7 @@ export const Analytics: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* GitHub & Sovereign Code Audited Matrix (New Apple Neumorphic / Glass Design) */}
+            {/* GitHub & Sovereign Code Audited Matrix */}
             <div className="lg:col-span-7">
               <GithubEkycCard
                 bytecodeMatrix={bytecodeMatrix}

@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Info, X, AlertTriangle, HelpCircle } from 'lucide-react';
+import React from 'react';
+import { AlertCircle, CheckCircle2, Info, AlertTriangle, HelpCircle } from 'lucide-react';
 import { scrollToSection } from '../utils/scroll';
+import { Modal } from './overlay/Modal';
+import { Button } from './common/Button';
 
 export interface AlertModalOptions {
   title?: string;
@@ -27,146 +28,88 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
   options,
   onClose,
 }) => {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-      if (e.key === 'Escape') {
-        if (options?.onCancel) options.onCancel();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, options, onClose]);
-
   if (!isOpen || !options) return null;
 
   const type = options.type || 'info';
 
   const typeConfig = {
     error: {
-      bgIcon: 'bg-rose-50 text-rose-600 border-rose-100',
-      btn: 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20',
-      icon: <AlertCircle size={22} />,
+      icon: <AlertCircle size={18} className="text-[#991B1B]" />,
       title: options.title || 'Attention Required',
+      btnVariant: 'danger' as const,
     },
     warning: {
-      bgIcon: 'bg-amber-50 text-amber-600 border-amber-100',
-      btn: options.isDestructive
-        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
-        : 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-600/20',
-      icon: <AlertTriangle size={22} />,
+      icon: <AlertTriangle size={18} className="text-[#0047AB]" />,
       title: options.title || 'Confirm Action',
+      btnVariant: options.isDestructive ? ('danger' as const) : ('primary' as const),
     },
     confirm: {
-      bgIcon: options.isDestructive
-        ? 'bg-rose-50 text-rose-600 border-rose-100'
-        : 'bg-blue-50 text-[#0047AB] border-blue-100',
-      btn: options.isDestructive
-        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs'
-        : 'bg-[#0047AB] hover:bg-[#003882] text-white shadow-xs',
-      icon: options.isDestructive ? <AlertTriangle size={22} /> : <HelpCircle size={22} />,
+      icon: options.isDestructive ? (
+        <AlertTriangle size={18} className="text-[#991B1B]" />
+      ) : (
+        <HelpCircle size={18} className="text-[#0047AB]" />
+      ),
       title: options.title || 'Please Confirm',
+      btnVariant: options.isDestructive ? ('danger' as const) : ('primary' as const),
     },
     success: {
-      bgIcon: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-      btn: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs',
-      icon: <CheckCircle2 size={22} />,
+      icon: <CheckCircle2 size={18} className="text-[#0047AB]" />,
       title: options.title || 'Success',
+      btnVariant: 'primary' as const,
     },
     info: {
-      bgIcon: 'bg-blue-50 text-[#0047AB] border-blue-100',
-      btn: 'bg-[#0047AB] hover:bg-[#003882] text-white shadow-xs',
-      icon: <Info size={22} />,
+      icon: <Info size={18} className="text-[#0047AB]" />,
       title: options.title || 'Information',
+      btnVariant: 'primary' as const,
     },
   };
 
   const cfg = typeConfig[type];
   const isConfirmDialog = options.showCancel || type === 'confirm';
 
+  const handleCancel = () => {
+    if (options.onCancel) options.onCancel();
+    onClose();
+  };
+
+  const handleConfirm = () => {
+    const targetId = options.targetSectionId;
+    if (options.onConfirm) options.onConfirm();
+    onClose();
+    if (targetId) {
+      scrollToSection(targetId, 160);
+    }
+  };
+
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
-          onClick={() => {
-            if (options.onCancel) options.onCancel();
-            onClose();
-          }}
-        />
-
-        {/* Modal Container */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 z-10 space-y-4"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${cfg.bgIcon}`}>
-                {cfg.icon}
-              </div>
-              <div>
-                <h3 className="font-headline font-bold text-base text-slate-900 leading-tight">
-                  {cfg.title}
-                </h3>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (options.onCancel) options.onCancel();
-                onClose();
-              }}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          <p className="font-sans text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-wrap pt-1">
-            {options.message}
-          </p>
-
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
-            {isConfirmDialog && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (options.onCancel) options.onCancel();
-                  onClose();
-                }}
-                className="px-4 py-2.5 rounded-xl font-bold font-sans text-xs text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer"
-              >
-                {options.cancelText || 'Cancel'}
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => {
-                const targetId = options.targetSectionId;
-                if (options.onConfirm) options.onConfirm();
-                onClose();
-                if (targetId) {
-                  scrollToSection(targetId, 160);
-                }
-              }}
-              className={`px-5 py-2.5 rounded-xl font-bold font-sans text-xs transition-all shadow-md cursor-pointer ${cfg.btn}`}
-            >
-              {options.confirmText || (isConfirmDialog ? 'Confirm' : 'Got it')}
-            </button>
-          </div>
-        </motion.div>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleCancel}
+      maxWidth="sm"
+      title={
+        <div className="flex items-center gap-2">
+          {cfg.icon}
+          <span>{cfg.title}</span>
+        </div>
+      }
+      footer={
+        <div className="flex items-center justify-end gap-2.5 w-full">
+          {isConfirmDialog && (
+            <Button variant="secondary" size="md" onClick={handleCancel}>
+              {options.cancelText || 'Cancel'}
+            </Button>
+          )}
+          <Button variant={cfg.btnVariant} size="md" onClick={handleConfirm}>
+            {options.confirmText || (isConfirmDialog ? 'Confirm' : 'Got it')}
+          </Button>
+        </div>
+      }
+    >
+      <div className="text-sm text-[#4B5563] leading-relaxed whitespace-pre-wrap">
+        {options.message}
       </div>
-    </AnimatePresence>
+    </Modal>
   );
 };
+
+export default PolyLanceAlertModal;

@@ -175,8 +175,8 @@ export const VideoManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     >
       {children}
 
-      {/* Media Diagnostics HUD: Render ONLY when explicitly enabled in Settings > Developer */}
-      {isDiagnosticsEnabled && (
+      {/* Media Diagnostics HUD: Render ONLY in DEV mode when explicitly enabled in Settings > Developer */}
+      {isDiagnosticsEnabled && import.meta.env.DEV && (
         <aside
           role="complementary"
           aria-label="Video Manager HUD"

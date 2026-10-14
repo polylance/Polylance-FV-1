@@ -22,6 +22,7 @@ import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { useWeb3 } from '../context/Web3Context';
 import { generateCertificateSvg, renderCertificateToPng } from '../utils/certificateGenerator';
 import { truncateAddress } from '../utils/formatters';
+import { GroupedList, GroupedListItem } from '../components/common/GroupedList';
 import { PolygonLogo } from '../components/brand/PolygonLogo';
 
 export const Certificate: React.FC = () => {
@@ -148,8 +149,8 @@ export const Certificate: React.FC = () => {
   };
 
   return (
-    <div className="w-full bg-[#FAFAF8] min-h-screen text-[#0B0B0F] font-sans py-10 sm:py-14 border-b border-[#E5E7EB]">
-      <PageContainer className="space-y-8">
+    <div className="w-full bg-[#FAFAF8] min-h-screen text-[#0B0B0F] font-sans py-6 sm:py-8 border-b border-[#E5E7EB]">
+      <PageContainer className="space-y-6">
         
         {/* Top Navigation Row */}
         <div className="flex items-center justify-between">
@@ -185,13 +186,13 @@ export const Certificate: React.FC = () => {
         </div>
 
         {/* Main Certificate Showcase Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
           {/* Left Column: 1000x1000 Artwork Canvas */}
           <div className="lg:col-span-7 flex flex-col items-center">
-            <div className="w-full max-w-[560px] aspect-square rounded-[16px] border border-[#E5E7EB] shadow-[0_8px_32px_rgba(0,0,0,0.06)] overflow-hidden bg-[#FAFAF8]">
+            <div className="w-full max-w-[560px] aspect-square rounded-[16px] border border-[#E5E7EB] shadow-[0_8px_32px_rgba(0,0,0,0.06)] overflow-hidden bg-[#FAFAF8] flex items-center justify-center">
               <div 
-                className="w-full h-full"
+                className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full"
                 dangerouslySetInnerHTML={{ __html: svgMarkup }} 
               />
             </div>
@@ -205,7 +206,7 @@ export const Certificate: React.FC = () => {
                 onClick={handleDownloadPng}
                 disabled={downloadingPng}
               >
-                {downloadingPng ? 'Rendering PNG...' : 'Download PNG (1000x1000)'}
+                {downloadingPng ? 'Rendering PNG...' : 'Download PNG'}
               </Button>
 
               <Button
@@ -258,74 +259,74 @@ export const Certificate: React.FC = () => {
               </div>
             </div>
 
-            {/* Parties & Escrow Details */}
-            <div className="p-5 rounded-[12px] bg-white border border-[#E5E7EB] space-y-4 shadow-xs">
-              <div className="text-xs font-bold text-[#6B7280] uppercase tracking-wider pb-2 border-b border-[#E5E7EB]">
-                Contract Specifications
-              </div>
-
-              {/* Freelancer */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[#4B5563]">Awarded to</span>
-                <Link
-                  to={`/profile/${recipientAddr}`}
-                  className="font-mono text-[#0047AB] font-semibold hover:underline flex items-center gap-1"
-                >
-                  <span>{recipientProfile?.displayName || truncateAddress(recipientAddr)}</span>
-                  <ExternalLink size={12} />
-                </Link>
-              </div>
-
-              {/* Client */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[#4B5563]">Client / Issuer</span>
-                <Link
-                  to={`/profile/${clientAddr}`}
-                  className="font-mono text-[#0B0B0F] font-semibold hover:underline flex items-center gap-1"
-                >
-                  <span>{clientProfile?.displayName || truncateAddress(clientAddr)}</span>
-                  <ExternalLink size={12} />
-                </Link>
-              </div>
-
-              {/* Payout */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[#4B5563]">Escrow Settlement</span>
-                <span className="font-bold text-[#0B0B0F] tabular-nums">
-                  {amount} {tokenSymbol}
-                </span>
-              </div>
-
-              {/* Network */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[#4B5563]">Blockchain Network</span>
-                <span className="inline-flex items-center gap-1 font-semibold text-[#0B0B0F]">
-                  <PolygonLogo variant="mark" size={13} />
-                  <span>Polygon PoS</span>
-                </span>
-              </div>
-
-              {/* Contract address */}
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-[#E5E7EB]">
-                <span className="text-[#4B5563]">Contract Address</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[11px] text-[#6B7280]">
-                    {truncateAddress(contractAddress)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(contractAddress);
-                      setCopiedContract(true);
-                      setTimeout(() => setCopiedContract(false), 2000);
-                    }}
-                    className="text-[#0047AB] hover:underline"
-                    title="Copy contract address"
-                  >
-                    {copiedContract ? <Check size={12} /> : <Copy size={12} />}
-                  </button>
-                </div>
-              </div>
+            {/* Parties & Escrow Details as GroupedList */}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-[#4B5563] px-1 block">Contract specifications</span>
+              <GroupedList>
+                <GroupedListItem
+                  label="Awarded to"
+                  value={
+                    <Link
+                      to={`/profile/${recipientAddr}`}
+                      className="font-mono text-[#0047AB] font-medium hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>{recipientProfile?.displayName || truncateAddress(recipientAddr)}</span>
+                      <ExternalLink size={12} />
+                    </Link>
+                  }
+                />
+                <GroupedListItem
+                  label="Client / Issuer"
+                  value={
+                    <Link
+                      to={`/profile/${clientAddr}`}
+                      className="font-mono text-[#0B0B0F] font-medium hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>{clientProfile?.displayName || truncateAddress(clientAddr)}</span>
+                      <ExternalLink size={12} />
+                    </Link>
+                  }
+                />
+                <GroupedListItem
+                  label="Escrow settlement"
+                  value={
+                    <span className="font-semibold text-[#0B0B0F] font-mono">
+                      {amount} {tokenSymbol}
+                    </span>
+                  }
+                />
+                <GroupedListItem
+                  label="Blockchain network"
+                  value={
+                    <span className="inline-flex items-center gap-1 font-medium text-[#0B0B0F]">
+                      <PolygonLogo variant="mark" size={13} />
+                      <span>Polygon PoS</span>
+                    </span>
+                  }
+                />
+                <GroupedListItem
+                  label="Contract address"
+                  value={
+                    <div className="inline-flex items-center gap-2">
+                      <span className="font-mono text-[11px] text-[#6B7280]">
+                        {truncateAddress(contractAddress)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(contractAddress);
+                          setCopiedContract(true);
+                          setTimeout(() => setCopiedContract(false), 2000);
+                        }}
+                        className="text-[#0047AB] hover:underline cursor-pointer"
+                        title="Copy contract address"
+                      >
+                        {copiedContract ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  }
+                />
+              </GroupedList>
             </div>
 
             {/* Polygonscan Link Button */}

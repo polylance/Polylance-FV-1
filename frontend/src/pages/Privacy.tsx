@@ -6,47 +6,39 @@ import {
 import { Link } from 'react-router-dom';
 import { PageContainer } from '../components/layout/PageContainer';
 
+import { PageHeader } from '../components/layout/PageHeader';
+
 export const Privacy: React.FC = () => {
   return (
-    <PageContainer className="py-8 space-y-10 text-[#0B0B0F]">
+    <PageContainer className="py-6 space-y-6 text-[#0B0B0F]">
       {/* Clean Modern Header with 720px column */}
-      <div className="max-w-[720px] mx-auto text-left space-y-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F6F7F9] border border-[#E5E7EB] text-[#374151] rounded-full text-xs font-medium">
-          <Sparkles size={13} className="text-[#0047AB]" />
-          <span>Decentralized data sovereignty</span>
-        </div>
-
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0B0B0F] tracking-tight leading-tight">
-          Privacy Policy & <span className="text-[#0047AB]">Data Control</span>
-        </h1>
-
-        <p className="text-sm text-[#4B5563] leading-relaxed font-normal">
-          PolyLance is designed ground-up for zero personal data collection. Your identity is defined strictly by your public wallet address and on-chain soulbound achievements.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-[#6B7280]">
-          <span className="bg-[#EAF1FB] text-[#0047AB] px-3 py-1 rounded-lg border border-[#0047AB]/20 font-medium">
+      <div className="max-w-[720px] mx-auto text-left">
+        <PageHeader
+          title="Privacy Policy & Data Control"
+          subtitle="PolyLance is designed ground-up for zero personal data collection. Your identity is defined strictly by your public wallet address and on-chain soulbound achievements."
+        />
+        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[#6B7280]">
+          <span className="bg-[#EAF1FB] text-[#0047AB] px-2.5 py-1 rounded-md border border-[#0047AB]/20 font-medium">
             Personal data collected: 0 bytes
           </span>
-          <span className="bg-[#F6F7F9] text-[#374151] px-3 py-1 rounded-lg border border-[#E5E7EB] font-medium">
+          <span className="bg-[#F6F7F9] text-[#374151] px-2.5 py-1 rounded-md border border-[#E5E7EB] font-medium">
             Chat transport: XMTP encrypted
           </span>
         </div>
       </div>
 
-      {/* 4 Pillars Grid (720px reading column) */}
-      <div className="max-w-[720px] mx-auto space-y-4 text-left">
+      {/* 4 Pillars Inset Grouped Card (720px reading column) */}
+      <div className="max-w-[720px] mx-auto bg-white border border-[#E5E7EB] rounded-2xl shadow-2xs divide-y divide-[#E5E7EB] text-left overflow-hidden">
         {/* Pillar 1: Zero PII */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs space-y-3 transition-shadow"
-        >
-          <div className="w-10 h-10 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] text-[#0047AB] flex items-center justify-center shrink-0">
-            <EyeOff size={20} />
+        <div className="p-5 sm:p-6 space-y-2.5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#F6F7F9] border border-[#E5E7EB] text-[#0047AB] flex items-center justify-center shrink-0">
+              <EyeOff size={16} />
+            </div>
+            <h3 className="text-base font-semibold text-[#0B0B0F]">
+              1. Zero personal data collection
+            </h3>
           </div>
-          <h3 className="text-lg font-bold text-[#0B0B0F]">
-            1. Zero personal data collection
-          </h3>
           <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed font-normal">
             We do not request, process, or store real names, email addresses, phone numbers, passport documents, or credit card details.
           </p>
@@ -58,19 +50,18 @@ export const Privacy: React.FC = () => {
               <CheckCircle2 size={14} className="text-[#0047AB]" /> No tracking cookies or invasive ad pixels
             </li>
           </ul>
-        </motion.div>
+        </div>
 
         {/* Pillar 2: On-Chain Public Keys */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs space-y-3 transition-shadow"
-        >
-          <div className="w-10 h-10 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] text-[#0047AB] flex items-center justify-center shrink-0">
-            <Key size={20} />
+        <div className="p-5 sm:p-6 space-y-2.5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#F6F7F9] border border-[#E5E7EB] text-[#0047AB] flex items-center justify-center shrink-0">
+              <Key size={16} />
+            </div>
+            <h3 className="text-base font-semibold text-[#0B0B0F]">
+              2. Public key anonymity & ledger transparency
+            </h3>
           </div>
-          <h3 className="text-lg font-bold text-[#0B0B0F]">
-            2. Public key anonymity & ledger transparency
-          </h3>
           <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed font-normal">
             Your transactions, job postings, and Soulbound Tokens are publicly visible on the Polygon ledger under your wallet address.
           </p>
@@ -82,19 +73,18 @@ export const Privacy: React.FC = () => {
               <CheckCircle2 size={14} className="text-[#0047AB]" /> Verifiable on Polygonscan
             </li>
           </ul>
-        </motion.div>
+        </div>
 
         {/* Pillar 3: XMTP Messaging */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs space-y-3 transition-shadow"
-        >
-          <div className="w-10 h-10 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] text-[#0047AB] flex items-center justify-center shrink-0">
-            <MessageSquare size={20} />
+        <div className="p-5 sm:p-6 space-y-2.5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#F6F7F9] border border-[#E5E7EB] text-[#0047AB] flex items-center justify-center shrink-0">
+              <MessageSquare size={16} />
+            </div>
+            <h3 className="text-base font-semibold text-[#0B0B0F]">
+              3. End-to-end encrypted communication
+            </h3>
           </div>
-          <h3 className="text-lg font-bold text-[#0B0B0F]">
-            3. End-to-end encrypted communication
-          </h3>
           <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed font-normal">
             Negotiations and project chats are encrypted end-to-end via XMTP. Only the wallet private keys of the project Client and Developer can decrypt message history.
           </p>
@@ -106,19 +96,18 @@ export const Privacy: React.FC = () => {
               <CheckCircle2 size={14} className="text-[#0047AB]" /> Cannot be read by protocol relayers
             </li>
           </ul>
-        </motion.div>
+        </div>
 
         {/* Pillar 4: IPFS Hashes */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs space-y-3 transition-shadow"
-        >
-          <div className="w-10 h-10 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] text-[#0047AB] flex items-center justify-center shrink-0">
-            <Database size={20} />
+        <div className="p-5 sm:p-6 space-y-2.5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#F6F7F9] border border-[#E5E7EB] text-[#0047AB] flex items-center justify-center shrink-0">
+              <Database size={16} />
+            </div>
+            <h3 className="text-base font-semibold text-[#0B0B0F]">
+              4. Content storage via decentralized IPFS
+            </h3>
           </div>
-          <h3 className="text-lg font-bold text-[#0B0B0F]">
-            4. Content storage via decentralized IPFS
-          </h3>
           <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed font-normal">
             Job descriptions, milestone deliverables, and dispute claims are stored as content-addressed hashes (CIDs) pinned to IPFS networks.
           </p>
@@ -130,7 +119,7 @@ export const Privacy: React.FC = () => {
               <CheckCircle2 size={14} className="text-[#0047AB]" /> Decentralized IPFS storage
             </li>
           </ul>
-        </motion.div>
+        </div>
       </div>
 
       {/* Dark Band (Single, Readable, High Contrast) */}

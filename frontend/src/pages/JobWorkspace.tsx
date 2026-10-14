@@ -40,6 +40,8 @@ import { Job } from '../types';
 import { TokenIcon } from '../components/TokenIcon';
 import { PageContainer } from '../components/layout/PageContainer';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { Stepper, StepItem } from '../components/common/Stepper';
+import { areAddressesEqual } from '../utils/accountMode';
 
 export type JobCategoryFilter = 'all' | 'ongoing' | 'awaiting_release' | 'disputed' | 'negotiating' | 'completed';
 export type JobSortOption = 'latest' | 'priority' | 'oldest' | 'highest_budget' | 'lowest_budget' | 'title_az';
@@ -107,48 +109,62 @@ const getJobPriorityScore = (status: string, isNegotiating: boolean): number => 
 export const JobWorkspace: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { address, currentRole, isConnected, connectWallet } = useWeb3();
+  const { address, currentRole, isConnected, connectWallet, isArbitrator } = useWeb3();
   const { jobs, profiles, deleteJob } = usePolyLanceData();
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
 
   const userAddr = (address || '').toLowerCase();
   const isClientRole = currentRole === 'client';
 
-  // Filter jobs strictly relevant to connected user and active role:
-  // - Client mode: ONLY shows jobs posted by the connected client.
-  // - Freelancer mode: ONLY shows contracts awarded to the connected freelancer, or open proposals where no candidate has been hired yet.
-  // STRICT DATA PROTECTION: Completed, funded, or ongoing contracts of other developers are NEVER shown.
+  // Filter jobs strictly relevant to connected user:
+  // - Client who posted the job: ALWAYS has full access to their posted job in workspace.
+  // - Hired freelancer: has full access to their active/completed contracts.
+  // - Applicants/negotiators: can access jobs where they have an active proposal/negotiation.
+  // STRICT DATA PROTECTION: Contracts of other unrelated parties are NEVER shown.
   const myJobs = useMemo(() => {
     if (!userAddr) return [];
 
     return jobs.filter((job) => {
       if (isDemoOrMockJob(job)) return false;
 
-      const isClientOfJob = Boolean(job.client && job.client.toLowerCase() === userAddr);
-      const isFreelancerOfJob = Boolean(job.freelancer && job.freelancer.toLowerCase() === userAddr);
+      const isClientOfJob = Boolean(job.client && areAddressesEqual(job.client, userAddr));
+      const isFreelancerOfJob = Boolean(job.freelancer && areAddressesEqual(job.freelancer, userAddr));
 
-      // In Client Role: Strictly isolate to jobs posted by this client
-      if (isClientRole) {
-        return isClientOfJob;
-      }
-
-      // In Freelancer Role:
-      // 1. If user is the hired freelancer on the contract, they have full access to their working contract.
-      if (isFreelancerOfJob) {
+      // 1. If user posted this job as client OR is the assigned/selected freelancer, ALWAYS permit full access
+      if (isClientOfJob || isFreelancerOfJob) {
         return true;
       }
 
-      // 2. If the contract has already been awarded to another freelancer, unselected applicants must NEVER see it
-      if (job.freelancer && job.freelancer.toLowerCase() !== userAddr) {
+      // 2. If user is explicitly in Client Role (and did not post this job), do not show other freelance applications
+      if (isClientRole) {
         return false;
       }
 
-      // 3. For jobs that are still Open or in candidate review (no freelancer selected yet):
+      // 3. If the contract has already been awarded to another freelancer, unselected applicants must NEVER see it
+      if (job.freelancer && !areAddressesEqual(job.freelancer, userAddr)) {
+        return false;
+      }
+
+      // 5. For jobs that are still Open or in candidate review (no freelancer selected yet):
       // Show only if the user has an active application or negotiation
-      const hasApplied = Boolean(job.applications && job.applications.some((a) => a.applicant && a.applicant.toLowerCase() === userAddr));
+      const hasApplied = Boolean(
+        job.applications &&
+        job.applications.some((a) => areAddressesEqual(a.applicant, userAddr))
+      );
       const hasNegotiated = Boolean(
-        (job.negotiationProposals && job.negotiationProposals.some((p: any) => p.sender?.toLowerCase() === userAddr || p.applicantAddress?.toLowerCase() === userAddr)) ||
-        (job.preAcceptMessages && job.preAcceptMessages.some((m: any) => m.sender?.toLowerCase() === userAddr || m.senderAddress?.toLowerCase() === userAddr || m.applicantAddress?.toLowerCase() === userAddr))
+        (job.negotiationProposals &&
+          job.negotiationProposals.some(
+            (p: any) =>
+              areAddressesEqual(p.sender, userAddr) ||
+              areAddressesEqual(p.applicantAddress, userAddr)
+          )) ||
+        (job.preAcceptMessages &&
+          job.preAcceptMessages.some(
+            (m: any) =>
+              areAddressesEqual(m.sender, userAddr) ||
+              areAddressesEqual(m.senderAddress, userAddr) ||
+              areAddressesEqual(m.applicantAddress, userAddr)
+          ))
       );
 
       return (job.status === 'Open' || job.status === 'Selected') && (hasApplied || hasNegotiated);
@@ -404,13 +420,13 @@ export const JobWorkspace: React.FC = () => {
 
     // 1. Category Filter
     if (selectedCategoryFilter === 'ongoing') {
-      list = list.filter((j) => !isJobUnderNegotiation(j) && (j.status === 'Funded' || j.status === 'Selected'));
+      list = list.filter((j) => j.status === 'Funded' || (j.status === 'Selected' && Boolean(j.clientAgreedTerms && j.freelancerAgreedTerms)));
     } else if (selectedCategoryFilter === 'awaiting_release') {
       list = list.filter((j) => j.status === 'Submitted');
     } else if (selectedCategoryFilter === 'disputed') {
       list = list.filter((j) => j.status === 'Disputed');
     } else if (selectedCategoryFilter === 'negotiating') {
-      list = list.filter((j) => isJobUnderNegotiation(j));
+      list = list.filter((j) => isJobUnderNegotiation(j) || (j.status === 'Selected' && !j.freelancerAgreedTerms));
     } else if (selectedCategoryFilter === 'completed') {
       list = list.filter((j) => j.status === 'Completed');
     }
@@ -475,11 +491,47 @@ export const JobWorkspace: React.FC = () => {
   }, [displayedBaseJobs, selectedCategoryFilter, jobSearchQuery, sortOption]);
 
   // Security Guard: Check if user attempted direct URL access to another user's private contract escrow
-  const isUnauthorizedQueryJob = Boolean(
-    queryJobId &&
-    jobs.some((j) => (j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase()) && !isDemoOrMockJob(j)) &&
-    !myJobs.some((j) => j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase())
-  );
+  const isUnauthorizedQueryJob = useMemo(() => {
+    if (!queryJobId || !userAddr) return false;
+    const targetJob = jobs.find(
+      (j) =>
+        (j.id === queryJobId ||
+          j.contractAddress?.toLowerCase() === queryJobId.toLowerCase()) &&
+        !isDemoOrMockJob(j)
+    );
+    if (!targetJob) return false;
+
+    // Authorized parties: client who posted it, hired freelancer, applicant/negotiator, or arbitrator
+    const isClient = Boolean(targetJob.client && areAddressesEqual(targetJob.client, userAddr));
+    const isFreelancer = Boolean(targetJob.freelancer && areAddressesEqual(targetJob.freelancer, userAddr));
+    const isApplicant = Boolean(
+      targetJob.applications &&
+      targetJob.applications.some((a) => areAddressesEqual(a.applicant, userAddr))
+    );
+    const isNegotiator = Boolean(
+      (targetJob.negotiationProposals &&
+        targetJob.negotiationProposals.some(
+          (p: any) =>
+            areAddressesEqual(p.sender, userAddr) ||
+            areAddressesEqual(p.applicantAddress, userAddr)
+        )) ||
+      (targetJob.preAcceptMessages &&
+        targetJob.preAcceptMessages.some(
+          (m: any) =>
+            areAddressesEqual(m.sender, userAddr) ||
+            areAddressesEqual(m.senderAddress, userAddr) ||
+            areAddressesEqual(m.applicantAddress, userAddr)
+        ))
+    );
+
+    if (isClient || isFreelancer || isApplicant || isNegotiator || isArbitrator) {
+      return false;
+    }
+
+    return !myJobs.some(
+      (j) => j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase()
+    );
+  }, [queryJobId, userAddr, jobs, myJobs, isArbitrator]);
 
   if (!isConnected) {
     return (
@@ -688,7 +740,7 @@ export const JobWorkspace: React.FC = () => {
 
             {activeJob.status === 'Completed' && (
               <Link
-                to={`/certificate/${activeJob.sbtTokenId || getDeterministicSbtId(activeJob.id)}`}
+                to={`/attestation/${activeJob.id}`}
                 className="px-3 py-2 rounded-[8px] bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#0047AB] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
                 title="View soulbound work certificate"
               >
@@ -723,55 +775,59 @@ export const JobWorkspace: React.FC = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
-          {[
-            { id: 1, label: 'Funded', desc: 'Escrow locked' },
-            { id: 2, label: 'In progress', desc: 'Work underway' },
-            { id: 3, label: 'Submitted', desc: 'In review' },
-            { id: 4, label: 'Approved', desc: 'Verified' },
-            { id: 5, label: 'Paid', desc: 'Funds released' },
-          ].map((step, idx) => {
-            let isDone = false;
-            let isCurrent = false;
+        {(() => {
+          const isFunded = activeJob.status === 'Funded' || activeJob.status === 'Submitted' || activeJob.status === 'Completed';
 
-            if (activeJob.status === 'Completed') {
-              isDone = true;
-            } else if (activeJob.status === 'Submitted') {
-              if (idx < 2) isDone = true;
-              if (idx === 2) isCurrent = true;
-            } else if (activeJob.status === 'Funded') {
-              if (idx === 0) isDone = true;
-              if (idx === 1) isCurrent = true;
-            } else if (activeJob.status === 'Selected') {
-              if (idx === 0) isCurrent = true;
+          const getStepStatus = (idx: number): 'complete' | 'current' | 'upcoming' => {
+            if (activeJob.status === 'Completed') return 'complete';
+            if (activeJob.status === 'Submitted') {
+              if (idx < 3) return 'complete';
+              if (idx === 3) return 'current';
+              return 'upcoming';
             }
+            if (activeJob.status === 'Funded') {
+              if (idx < 2) return 'complete';
+              if (idx === 2) return 'current';
+              return 'upcoming';
+            }
+            if (activeJob.status === 'Selected') {
+              if (!activeJob.freelancerAgreedTerms) {
+                if (idx === 0) return 'current';
+                return 'upcoming';
+              } else {
+                if (idx === 0) return 'complete';
+                if (idx === 1) return 'current';
+                return 'upcoming';
+              }
+            }
+            if (idx === 0) return 'current';
+            return 'upcoming';
+          };
 
-            return (
-              <div
-                key={step.id}
-                className={`p-2.5 rounded-[8px] border text-xs flex flex-col justify-between gap-1 ${
-                  isDone
-                    ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]'
-                    : isCurrent
-                    ? 'bg-[#E7EEF9] border-[#0047AB] text-[#0047AB]'
-                    : 'bg-[#F6F7F9] border-[#E5E7EB] text-[#6B7280]'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold">{step.label}</span>
-                  {isDone ? (
-                    <CheckCircle2 size={13} className="text-[#10B981]" />
-                  ) : isCurrent ? (
-                    <span className="w-2 h-2 rounded-full bg-[#0047AB]" />
-                  ) : (
-                    <span className="w-2 h-2 rounded-full bg-[#D1D5DB]" />
-                  )}
-                </div>
-                <span className="text-[11px] opacity-80">{step.desc}</span>
-              </div>
-            );
-          })}
-        </div>
+          const steps: StepItem[] = [
+            { 
+              id: 1, 
+              label: 'Terms & Offer', 
+              caption: activeJob.status === 'Selected' 
+                ? (activeJob.freelancerAgreedTerms ? 'Offer accepted' : 'Awaiting acceptance') 
+                : (isFunded ? 'Terms agreed' : 'Negotiating'), 
+              status: getStepStatus(0) 
+            },
+            { 
+              id: 2, 
+              label: 'Escrow Deposit', 
+              caption: isFunded 
+                ? 'Escrow funded' 
+                : (activeJob.freelancerAgreedTerms ? 'Ready to fund' : 'Pending agreement'), 
+              status: getStepStatus(1) 
+            },
+            { id: 3, label: 'In progress', caption: 'Work underway', status: getStepStatus(2) },
+            { id: 4, label: 'Submitted', caption: 'In review', status: getStepStatus(3) },
+            { id: 5, label: 'Completed', caption: 'Funds released', status: getStepStatus(4) },
+          ];
+
+          return <Stepper steps={steps} className="pt-1" />;
+        })()}
       </div>
 
       {/* ── MAIN WORKSPACE CONTENT ── */}
@@ -811,11 +867,11 @@ export const JobWorkspace: React.FC = () => {
 
             {/* Negotiation Overview Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] space-y-1">
-                <span className="text-[10px] font-mono font-bold uppercase text-slate-400">
-                  Current Listed Budget
+              <div className="p-3 sm:p-4 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] space-y-1">
+                <span className="text-xs font-medium text-[#6B7280]">
+                  Current listed budget
                 </span>
-                <div className="text-lg font-bold text-[#0B0B0C] font-mono">
+                <div className="text-xl font-semibold text-[#0B0B0F] tabular-nums">
                   {(() => {
                     const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
                     const isCrypto = sym === 'POL' || sym === 'MATIC';
@@ -823,42 +879,42 @@ export const JobWorkspace: React.FC = () => {
                     const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
                     return isCrypto ? (
                       <>
-                        <span>{amt}</span> <span className="text-xs font-bold text-slate-500 font-sans">{tokenLabel}</span>
-                        <span className="text-[11px] font-normal text-slate-400 block font-mono">≈ ${activeJob.amountUsdc} USDC</span>
+                        <span>{amt}</span> <span className="text-xs font-semibold text-[#4B5563]">{tokenLabel}</span>
+                        <span className="text-xs font-normal text-[#6B7280] block">≈ ${activeJob.amountUsdc} USDC</span>
                       </>
                     ) : (
                       <>
-                        ${amt} <span className="text-xs font-bold text-slate-500 font-sans">{tokenLabel}</span>
+                        ${amt} <span className="text-xs font-semibold text-[#4B5563]">{tokenLabel}</span>
                       </>
                     );
                   })()}
                 </div>
-                <span className="text-[10px] font-mono text-[#0047AB] block">
+                <span className="text-xs text-[#0047AB] block">
                   {activeJob.negotiatedAmount ? `Negotiated: ${activeJob.negotiatedAmount} ${activeJob.paymentTokenSymbol || 'USDC'}` : 'Standard listing price'}
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] space-y-1">
-                <span className="text-[10px] font-mono font-bold uppercase text-slate-400">
-                  Target Review Period
+              <div className="p-3 sm:p-4 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] space-y-1">
+                <span className="text-xs font-medium text-[#6B7280]">
+                  Target review period
                 </span>
-                <p className="text-lg font-bold text-[#0B0B0C] font-mono">
-                  {activeJob.reviewPeriodDays || 7} <span className="text-xs font-bold text-slate-500 font-sans">Days</span>
+                <p className="text-xl font-semibold text-[#0B0B0F] tabular-nums">
+                  {activeJob.reviewPeriodDays || 7} <span className="text-xs font-semibold text-[#4B5563]">days</span>
                 </p>
-                <span className="text-[10px] font-mono text-slate-500 block">
+                <span className="text-xs text-[#6B7280] block">
                   Client review SLA window
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] space-y-1">
-                <span className="text-[10px] font-mono font-bold uppercase text-slate-400">
-                  Candidates & Proposals
+              <div className="p-3 sm:p-4 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] space-y-1">
+                <span className="text-xs font-medium text-[#6B7280]">
+                  Candidates & proposals
                 </span>
-                <p className="text-lg font-bold text-[#0B0B0C] font-mono">
-                  {activeJob.applications?.length || 0} <span className="text-xs font-bold text-slate-500 font-sans">Applicant(s)</span>
+                <p className="text-xl font-semibold text-[#0B0B0F] tabular-nums">
+                  {activeJob.applications?.length || 0} <span className="text-xs font-semibold text-[#4B5563]">applicants</span>
                 </p>
-                <span className="text-[10px] font-mono text-[#0047AB] block">
-                  {activeJob.negotiationProposals?.length || 0} proposal term sheet(s)
+                <span className="text-xs text-[#0047AB] block">
+                  {activeJob.negotiationProposals?.length || 0} proposal term sheet{activeJob.negotiationProposals?.length === 1 ? '' : 's'}
                 </span>
               </div>
             </div>
@@ -922,17 +978,22 @@ export const JobWorkspace: React.FC = () => {
 
       {/* ── FIXED-POSITION JOB SWITCHER DROPDOWN (escapes stacking context) ── */}
       {isJobDropdownOpen && dropdownPos && (
-        <div
-          ref={dropdownRef}
-          style={{
-            position: 'fixed',
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            width: dropdownPos.width,
-            zIndex: 9999,
-          }}
-          className="bg-white rounded-xl border border-[#E2E6EC] shadow-2xl overflow-hidden animate-fadeIn"
-        >
+        <>
+          <div
+            className="fixed inset-0 bg-black/20 z-[9998] transition-opacity"
+            onClick={closeDropdown}
+          />
+          <div
+            ref={dropdownRef}
+            style={{
+              position: 'fixed',
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              width: dropdownPos.width,
+              zIndex: 9999,
+            }}
+            className="bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden animate-fadeIn"
+          >
           {/* Top Search Bar with ⌘ K */}
           <div className="p-4 pb-3 border-b border-[#E2E6EC] bg-white">
             <label className="relative flex items-center gap-3 bg-white border border-[#E2E6EC] rounded-xl px-4 py-3 focus-within:border-[#0047AB] focus-within:ring-1 focus-within:ring-[#0047AB] transition-all shadow-2xs cursor-text">
@@ -1312,6 +1373,7 @@ export const JobWorkspace: React.FC = () => {
             )}
           </div>
         </div>
+        </>
       )}
 
       {/* Client Modify Job Details Modal */}

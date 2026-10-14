@@ -6,6 +6,7 @@ import { MOTION } from '../../styles/motion';
 export type ButtonVariant = 
   | 'primary' 
   | 'secondary' 
+  | 'outline'
   | 'ghost' 
   | 'inverse' 
   | 'outline-inverse' 
@@ -107,6 +108,7 @@ export const Button = React.forwardRef<HTMLButtonElement | HTMLAnchorElement, Bu
             'bg-[#0047AB] hover:bg-[#003A8C] active:bg-[#002F73] text-white border border-transparent';
           break;
         case 'secondary':
+        case 'outline':
           variantStyles =
             'bg-white hover:bg-[#F9FAFB] active:bg-[#F3F4F6] text-[#0B0B0F] border border-[#D1D5DB] hover:border-[#0B0B0F]';
           break;
@@ -155,7 +157,9 @@ export const Button = React.forwardRef<HTMLButtonElement | HTMLAnchorElement, Bu
           </span>
         ) : null}
 
-        <span className="relative z-10">{children}</span>
+        <span className="relative z-10 inline-flex items-center justify-center gap-1.5 whitespace-nowrap leading-none">
+          {children}
+        </span>
 
         {!loading && trailingIcon && (
           <span className="shrink-0 flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px] transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-1 relative z-10">

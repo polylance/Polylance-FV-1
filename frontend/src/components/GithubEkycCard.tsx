@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, Info } from 'lucide-react';
-import { UserBytecodeMatrix } from '../utils/githubOracle';
+import { CheckCircle2, Info, Github, ExternalLink, ShieldCheck } from 'lucide-react';
+import { UserBytecodeMatrix, GithubScoreResult } from '../utils/githubOracle';
 import { AddressChip } from './common/AddressChip';
+import { GithubVerifyModal } from './GithubVerifyModal';
+import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { useWeb3 } from '../context/Web3Context';
 
 export interface GithubEkycCardProps {
   bytecodeMatrix: UserBytecodeMatrix;
   userProfile?: {
+    address?: string;
     githubVerified?: boolean;
     githubUsername?: string;
+    avatarUrl?: string;
+    displayName?: string;
   } | null;
   onboardingLink?: boolean;
   className?: string;
@@ -20,8 +26,35 @@ export const GithubEkycCard: React.FC<GithubEkycCardProps> = ({
   onboardingLink = true,
   className = '',
 }) => {
+  const { updateProfile } = usePolyLanceData();
+  const { address: currentAddress } = useWeb3();
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+
+  const effectiveAddress = (userProfile?.address || currentAddress || '').toLowerCase();
   const isVerified = Boolean(userProfile?.githubVerified);
   const tier = (bytecodeMatrix.reputationTier || 'BRONZE').toUpperCase();
+
+  const handleVerified = (res: GithubScoreResult) => {
+    if (effectiveAddress) {
+      updateProfile(
+        {
+          githubVerified: true,
+          githubUsername: res.username,
+          githubId: res.id || res.username,
+          primaryScore: res.primaryScore,
+          secondaryScores: res.secondaryScores,
+          primaryCategory: res.primaryCategory,
+          languageBytes: res.languageBytes,
+          verifiedAt: res.verifiedAt,
+          attestationUID: res.attestationUID,
+          reputationTier: res.reputationTier,
+          avatarUrl: res.fetchedAvatarUrl || userProfile?.avatarUrl,
+          displayName: res.fetchedDisplayName || userProfile?.displayName,
+        },
+        effectiveAddress
+      );
+    }
+  };
 
   // Curated high-contrast recognizable palette for programming languages
   const LANGUAGE_COLOR_MAP: Record<string, string> = {
@@ -80,12 +113,26 @@ export const GithubEkycCard: React.FC<GithubEkycCardProps> = ({
             <div className="flex items-center gap-1.5">
               <h3 className="text-sm font-semibold text-[#0B0B0F]">GitHub verification</h3>
               {isVerified && (
-                <span title="Verified on-chain">
-                  <CheckCircle2 size={14} className="text-[#166534]" />
+                <span title="Verified on-chain" className="inline-flex items-center text-[#166534]">
+                  <CheckCircle2 size={14} className="text-[#16A34A]" />
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#4B5563] truncate">On-chain code activity and developer score</p>
+            <p className="text-xs text-[#4B5563] truncate">
+              {isVerified && userProfile?.githubUsername ? (
+                <a
+                  href={`https://github.com/${userProfile.githubUsername}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:underline text-[#0047AB] font-medium inline-flex items-center gap-1"
+                >
+                  <span>@{userProfile.githubUsername}</span>
+                  <ExternalLink size={11} />
+                </a>
+              ) : (
+                'On-chain code activity and developer score'
+              )}
+            </p>
           </div>
         </div>
 
@@ -165,17 +212,38 @@ export const GithubEkycCard: React.FC<GithubEkycCardProps> = ({
         </div>
       )}
 
+      {/* Connect Button: Opens GithubVerifyModal Directly */}
       {!isVerified && onboardingLink && (
-        <div className="pt-2 border-t border-[#E5E7EB] text-center">
-          <Link
-            to="/settings"
-            className="text-xs text-[#0047AB] font-medium hover:underline inline-flex items-center gap-1"
+        <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => setIsVerifyModalOpen(true)}
+            className="text-xs text-[#0047AB] font-semibold hover:underline inline-flex items-center gap-1.5 py-1 cursor-pointer transition-colors"
           >
+            <Github size={13} />
             <span>Connect GitHub to verify credentials</span>
             <span>&rarr;</span>
-          </Link>
+          </button>
         </div>
       )}
+
+      {/* Permanent binding badge for verified accounts (No 2nd chance to modify/re-link) */}
+      {isVerified && onboardingLink && (
+        <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between text-xs text-[#6B7280]">
+          <span className="flex items-center gap-1.5 font-medium text-[#10B981]">
+            <ShieldCheck size={14} className="text-[#10B981]" />
+            <span>Permanently bound to wallet</span>
+          </span>
+          <span className="text-[11px] text-[#9CA3AF] font-medium">OAuth 2.0 verified</span>
+        </div>
+      )}
+
+      <GithubVerifyModal
+        userAddress={effectiveAddress}
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
+        onVerified={handleVerified}
+      />
     </div>
   );
 };

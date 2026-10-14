@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 
 export const Terms: React.FC = () => {
   const [activeTab, setActiveTab] = useState<number>(0);
@@ -78,27 +79,18 @@ export const Terms: React.FC = () => {
   };
 
   return (
-    <PageContainer className="py-8 space-y-10 text-[#0B0B0F]">
+    <PageContainer className="py-6 space-y-6 text-[#0B0B0F]">
       {/* Header with 720px reading column */}
-      <div className="max-w-[720px] mx-auto text-left space-y-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F6F7F9] border border-[#E5E7EB] text-[#374151] rounded-full text-xs font-medium">
-          <Sparkles size={13} className="text-[#0047AB]" />
-          <span>Legal framework & protocol rules</span>
-        </div>
-
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0B0B0F] tracking-tight leading-tight">
-          Terms of Service & <span className="text-[#0047AB]">Escrow Protocol</span>
-        </h1>
-
-        <p className="text-sm text-[#4B5563] leading-relaxed font-normal">
-          Please read these terms carefully. By interacting with PolyLance smart contracts on the Polygon blockchain, you agree to be bound by the autonomous code execution rules below.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-[#6B7280]">
-          <span className="bg-[#F6F7F9] px-3 py-1 rounded-lg border border-[#E5E7EB] font-medium">
+      <div className="max-w-[720px] mx-auto text-left">
+        <PageHeader
+          title="Terms of Service & Escrow Protocol"
+          subtitle="Please read these terms carefully. Interacting with PolyLance smart contracts binds your address to these autonomous rules."
+        />
+        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[#6B7280]">
+          <span className="bg-[#F6F7F9] px-2.5 py-1 rounded-md border border-[#E5E7EB] font-medium">
             Last updated: August 2026
           </span>
-          <span className="bg-[#F6F7F9] text-[#374151] px-3 py-1 rounded-lg border border-[#E5E7EB] font-medium">
+          <span className="bg-[#F6F7F9] text-[#374151] px-2.5 py-1 rounded-md border border-[#E5E7EB] font-medium">
             Protocol version: V1.0-Mainnet
           </span>
         </div>

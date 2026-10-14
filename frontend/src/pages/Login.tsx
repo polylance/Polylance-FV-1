@@ -201,10 +201,10 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <PageContainer className="py-12 max-w-4xl">
+    <PageContainer className="py-6 max-w-4xl space-y-6">
       {/* Wrong Network Warning */}
       {isWrongNetwork && (
-        <div className="mb-6 p-4 bg-[#FFFBEB] border border-[#FDE68A] rounded-[12px] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#92400E]">
+        <div className="p-4 bg-[#FFFBEB] border border-[#FDE68A] rounded-[12px] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#92400E]">
           <div className="flex items-center gap-2">
             <AlertTriangle size={16} className="shrink-0 text-[#B45309]" />
             <span>
@@ -219,7 +219,7 @@ export const Login: React.FC = () => {
 
       {/* Success Banner */}
       {isSuccess && (
-        <div className="mb-6 p-4 bg-[#F0FDF4] border border-[#BBF7D0] rounded-[12px] flex items-center gap-3 text-xs text-[#166534]">
+        <div className="p-4 bg-[#F0FDF4] border border-[#BBF7D0] rounded-[12px] flex items-center gap-3 text-xs text-[#166534]">
           <CheckCircle2 size={18} className="text-[#16A34A] shrink-0" />
           <span>Wallet authorized. Setting up session...</span>
         </div>
@@ -227,7 +227,7 @@ export const Login: React.FC = () => {
 
       {/* Connecting Prompt Banner */}
       {connectingProvider && (
-        <div className="mb-6 p-4 bg-[#EFF6FF] border border-[#BFDBFE] rounded-[12px] flex items-center justify-between text-xs text-[#0047AB]">
+        <div className="p-4 bg-[#EFF6FF] border border-[#BFDBFE] rounded-[12px] flex items-center justify-between text-xs text-[#0047AB]">
           <div className="flex items-center gap-2.5">
             <Loader2 size={16} className="animate-spin shrink-0" />
             <span>
@@ -246,7 +246,7 @@ export const Login: React.FC = () => {
 
       {/* Error Message */}
       {errorMessage && (
-        <div className="mb-6 p-4 bg-[#FEF2F2] border border-[#FECACA] rounded-[12px] text-xs text-[#991B1B] space-y-2">
+        <div className="p-4 bg-[#FEF2F2] border border-[#FECACA] rounded-[12px] text-xs text-[#991B1B] space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle size={16} className="shrink-0" />
@@ -307,9 +307,9 @@ export const Login: React.FC = () => {
       )}
 
       {/* Header */}
-      <div className="text-center space-y-2 mb-10">
+      <div className="text-center space-y-2">
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <h1 className="text-3xl font-semibold text-[#0B0B0F] tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-[#0B0B0F] tracking-tight">
             Connect your wallet
           </h1>
           <WatchButton
@@ -323,8 +323,8 @@ export const Login: React.FC = () => {
         </p>
       </div>
 
-      {/* 3 Equal Wallet Cards (Whole card clickable, official logos, installed badges) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* 3 Equal Wallet Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: MetaMask (Recommended) */}
         <div
           onClick={() => handleWalletConnect('MetaMask')}

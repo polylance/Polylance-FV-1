@@ -172,7 +172,15 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [switchChain]);
 
-  const [currentRole, setCurrentRole] = useState<DemoRole>('visitor');
+  const [currentRole, setCurrentRole] = useState<DemoRole>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('polylance_demo_role');
+      if (saved && ['freelancer', 'client', 'judge', 'admin'].includes(saved)) {
+        return saved as DemoRole;
+      }
+    }
+    return 'visitor';
+  });
 
   const [isArbitrator, setIsArbitrator] = useState(false);
   const [isTreasuryAdmin, setIsTreasuryAdmin] = useState(false);
@@ -459,9 +467,11 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sync state between wallet connection and active role
   useEffect(() => {
-    if (walletIsConnected && walletAddress) {
-      loadRealOnChainState(walletAddress);
-      refreshBalances(walletAddress);
+    const activeMock = typeof window !== 'undefined' ? localStorage.getItem('polylance_mock_address') : null;
+    const effectiveAddr = (walletIsConnected && walletAddress) ? walletAddress : (activeMock || null);
+    if (effectiveAddr) {
+      loadRealOnChainState(effectiveAddr);
+      refreshBalances(effectiveAddr);
     } else {
       // Disconnected: strictly visitor role and zero balances; no demo account persistence
       setCurrentRole('visitor');
@@ -587,8 +597,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   }, [walletClient, connector, walletAddress, getActiveProvider]);
 
-  const address = walletIsConnected ? walletAddress || '' : '';
-  const isConnected = Boolean(walletIsConnected);
+  const mockAddr = typeof window !== 'undefined' ? localStorage.getItem('polylance_mock_address') : null;
+  const address = (walletIsConnected ? walletAddress : (mockAddr || '')) || '';
+  const isConnected = Boolean(walletIsConnected || mockAddr);
 
   const contextValue = React.useMemo<Web3ContextType>(() => ({
     address,

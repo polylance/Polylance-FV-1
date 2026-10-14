@@ -244,7 +244,8 @@ export const TagInput: React.FC<TagInputProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={tags.length === 0 ? placeholder : ''}
             aria-label={label || placeholder || "Add skill tag"}
-            className="flex-1 min-w-[120px] bg-transparent text-sm text-[#0B0B0F] placeholder-[#9CA3AF] focus:outline-none py-1 px-1"
+            className="flex-1 min-w-[120px] bg-transparent text-sm text-[#0B0B0F] placeholder-[#9CA3AF] border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-transparent py-1 px-1"
+            style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
           />
         )}
       </div>
@@ -258,3 +259,6 @@ export const TagInput: React.FC<TagInputProps> = ({
     </div>
   );
 };
+
+export { SkillAutocomplete } from './SkillAutocomplete';
+export type { SkillAutocompleteProps } from './SkillAutocomplete';

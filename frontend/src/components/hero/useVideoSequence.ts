@@ -15,21 +15,21 @@ export const SLOGAN_VIDEOS: SloganVideoItem[] = [
     title: 'Your Work',
     webm: encodeURI('/videos/your-work.webm'),
     mp4: encodeURI('/videos/your-work.mp4'),
-    cropTopPct: 20, // Measured title bottom at ~17% + 3% safety margin = 20%
+    cropTopPct: 0,
   },
   {
     id: 'your-reputation',
     title: 'Your Reputation',
     webm: encodeURI('/videos/your-reputation.webm'),
     mp4: encodeURI('/videos/your-reputation.mp4'),
-    cropTopPct: 22, // Measured title bottom at ~19% + 3% safety margin = 22%
+    cropTopPct: 0,
   },
   {
     id: 'your-identity',
     title: 'Your Identity',
     webm: encodeURI('/videos/your-identity.webm'),
     mp4: encodeURI('/videos/your-identity.mp4'),
-    cropTopPct: 22, // Measured title bottom at ~19% + 3% safety margin = 22%
+    cropTopPct: 0,
   },
 ];
 

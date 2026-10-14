@@ -34,6 +34,8 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 
 // Clean design tokens (Black, White, Cobalt Blue)
 const NEO = {
@@ -413,115 +415,36 @@ export const CertifiedPass: React.FC = () => {
         style={{ scaleX }}
       />
 
-      <div className="w-full space-y-16 py-4">
-
-        {/* ── 1. HERO SECTION ── */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center space-y-6 pt-4"
-        >
-          {/* Emblem */}
-          <div className="relative inline-flex items-center justify-center p-6 rounded-[16px] bg-white border border-[#E2E6EC] shadow-xs">
-            <div className="w-16 h-16 rounded-[12px] bg-[#F4F6F9] border border-[#E2E6EC] flex items-center justify-center relative">
-              <ShieldCheck className="w-10 h-10 text-[#0047AB]" />
-              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
+      <PageContainer className="py-6 space-y-8 max-w-5xl mx-auto text-slate-700 font-sans select-none">
+        <PageHeader
+          title="CertifiedPass Attestation Engine"
+          subtitle="The sovereign decentralized verification oracle for PolyLance credentials, soulbound work histories, and autonomous milestone deliveries."
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('verifier');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="px-3.5 py-1.5 bg-[#0047AB] hover:bg-[#003A8C] text-white rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Search size={13} />
+                <span>Verify certificate</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleLaunchPortal}
+                disabled={isLaunchingPortal}
+                className="px-3.5 py-1.5 bg-white border border-[#E5E7EB] hover:bg-[#F6F7F9] text-[#0B0B0F] rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Globe size={13} />
+                <span>Explore portal</span>
+                <ExternalLink size={11} className="text-[#6B7280]" />
+              </button>
             </div>
-          </div>
-
-          <div className="space-y-3 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F4F6F9] border border-[#E2E6EC] text-[#0047AB] text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles size={12} className="text-[#0047AB]" />
-              <span>Cross-Protocol Attestation Engine</span>
-            </div>
-
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#0B0B0C] tracking-tight leading-tight">
-              Certified<span className="text-[#0047AB]">Pass</span>
-            </h1>
-
-            <p className="text-sm sm:text-base text-[#4B5563] font-medium max-w-2xl mx-auto leading-relaxed">
-              The sovereign decentralized verification oracle for PolyLance credentials, soulbound work histories, and autonomous milestone deliveries.
-            </p>
-          </div>
-
-          {/* Quick Action Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                const el = document.getElementById('verifier');
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }}
-              className="px-6 py-2.5 bg-[#0047AB] hover:bg-[#003A8C] text-white rounded-[8px] text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer transition-colors"
-            >
-              <Search size={14} />
-              <span>Verify a Certificate</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const el = document.getElementById('how-it-works');
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }}
-              className="px-6 py-2.5 bg-white border border-[#E2E6EC] text-[#0B0B0C] hover:bg-[#F4F6F9] rounded-[8px] text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer transition-colors"
-            >
-              <BookOpen size={14} />
-              <span>How It Works</span>
-            </button>
-            <Link
-              to="/reputation"
-              className="px-6 py-2.5 bg-white border border-[#E2E6EC] text-[#0B0B0C] hover:bg-[#F4F6F9] rounded-[8px] text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer transition-colors"
-            >
-              <Award size={14} className="text-[#0047AB]" />
-              <span>SBT Leaderboard</span>
-            </Link>
-          </div>
-
-          {/* Official CertifiedPass Standalone Web App Showcase Banner */}
-          <div className="max-w-3xl mx-auto p-5 sm:p-6 rounded-[10px] bg-white border border-[#E2E6EC] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5 text-left transition-colors mt-6">
-            <div className="space-y-1.5 flex-1">
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-[4px] bg-[#E3F3EA] border border-[#1E8449]/20 text-[#1E8449] font-mono text-[10px] font-bold uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1E8449]" />
-                <span>Official Web Application • Live Protocol</span>
-              </div>
-              <h3 className="text-base sm:text-lg font-serif font-semibold text-[#0B0B0C]">
-                Explore CertifiedPass
-              </h3>
-              <p className="text-xs text-[#4B5563] font-normal leading-relaxed">
-                Experience the official decentralized CertifiedPass web portal with 3D interactive credentials, live verification oracle, and cross-protocol proof of work.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleLaunchPortal}
-              disabled={isLaunchingPortal}
-              className={`shrink-0 w-full sm:w-auto px-5 py-2.5 rounded-[8px] font-mono text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer active:scale-95 inline-flex items-center justify-center gap-2 ${
-                isLaunchingPortal
-                  ? 'bg-[#0B0B0C] text-white animate-pulse'
-                  : 'bg-[#0B0B0C] hover:bg-[#1A1A1E] text-white shadow-xs'
-              }`}
-            >
-              {isLaunchingPortal ? (
-                <>
-                  <Sparkles size={14} className="animate-spin text-white" />
-                  <span>Launching App...</span>
-                </>
-              ) : (
-                <>
-                  <Globe size={15} className="text-white/70" />
-                  <span>Explore CertifiedPass</span>
-                  <ExternalLink size={13} className="text-white/70" />
-                </>
-              )}
-            </button>
-          </div>
-        </motion.section>
+          }
+        />
 
 
         {/* ── 2. WHAT IS CERTIFIEDPASS? ── */}
@@ -1079,7 +1002,7 @@ export const CertifiedPass: React.FC = () => {
           </div>
         </motion.section>
 
-      </div>
+      </PageContainer>
     </div>
   );
 };

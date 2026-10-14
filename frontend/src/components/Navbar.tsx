@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
+import { useAccountMode } from '../hooks/useAccountMode';
 import { PolyLanceLogo } from './PolyLanceLogo';
 import { LoginModal } from './LoginModal';
 import { WalletBalanceModal } from './WalletBalanceModal';
@@ -42,7 +43,9 @@ import { Drawer } from './mobile/Drawer';
 import { isJudgeAddress, isAdminAddress } from '../utils/adminGuard';
 import { PolygonLogo } from './brand/PolygonLogo';
 import { Button } from './common/Button';
+import { NotificationErrorBoundary } from './NotificationErrorBoundary';
 import { useNotifications } from '../utils/notifications';
+import { Popover } from './overlay/Popover';
 
 interface NavItemProps {
   to: string;
@@ -98,6 +101,7 @@ export const Navbar: React.FC = () => {
     );
 
   const { profiles, maintenanceState, toggleMaintenanceMode } = usePolyLanceData();
+  const { accountMode, isClientAllowed } = useAccountMode();
   const isAdmin = address ? isAdminAddress(address) : false;
   const location = useLocation();
   const navigate = useNavigate();
@@ -165,18 +169,15 @@ export const Navbar: React.FC = () => {
     ? address.slice(2, 3).toUpperCase()
     : 'P';
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (moreRef.current && !moreRef.current.contains(target)) setIsMoreOpen(false);
-      if (notificationsRef.current && !notificationsRef.current.contains(target))
-        setIsNotificationsOpen(false);
-      if (avatarMenuRef.current && !avatarMenuRef.current.contains(target))
-        setIsAvatarMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const handleMoreNavigate = (path: string) => {
+    setIsMoreOpen(false);
+    navigate(path);
+  };
+
+  const handleAvatarNavigate = (path: string) => {
+    setIsAvatarMenuOpen(false);
+    navigate(path);
+  };
 
   useEffect(() => {
     setIsMobileOpen(false);
@@ -285,13 +286,9 @@ export const Navbar: React.FC = () => {
         </div>
       )}
 
-      {/* Main Top Bar */}
+      {/* Main Top Bar: 64px tall solid white with 1px bottom border */}
       <header
-        className={`sticky top-0 z-50 w-full no-print relative transition-all duration-350 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          isScrolled
-            ? 'h-[68px] bg-white shadow-[0_4px_16px_-4px_rgba(11,11,15,0.06),0_1px_3px_rgba(11,11,15,0.04)] border-b border-[#E5E7EB]'
-            : 'h-20 bg-white border-b border-[#E5E7EB]'
-        }`}
+        className="sticky top-0 z-50 w-full no-print relative h-16 bg-white border-b border-[#E5E7EB]"
       >
         {/* 2px Cobalt Scroll Progress Bar */}
         <div 
@@ -327,7 +324,7 @@ export const Navbar: React.FC = () => {
                 <NavItem to="/jobs" active={isActive('/jobs') && !isActive('/jobs/post') && !isActive('/workspace')} label="Find Jobs" />
                 <NavItem to="/workspace" active={isActive('/workspace')} label="Workspace" />
                 <NavItem to="/chat" active={isActive('/chat')} label="Messages" />
-                {(currentRole === 'client' || userMode === 'hire') && (
+                {isClientAllowed && (
                   <Link
                     to="/jobs/post"
                     className="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#0047AB] hover:bg-[#00388A] text-white text-xs font-medium transition-colors"
@@ -371,29 +368,35 @@ export const Navbar: React.FC = () => {
               </button>
 
               {/* Grouped More Dropdown */}
-              {isMoreOpen && (
-                <div className="absolute top-full left-0 mt-1 w-56 rounded-[12px] p-2 z-[100] bg-white border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.06)] divide-y divide-[#E5E7EB]">
+              <Popover
+                isOpen={isMoreOpen}
+                onClose={() => setIsMoreOpen(false)}
+                triggerRef={moreRef}
+                width={240}
+                align="start"
+              >
+                <div className="p-2 divide-y divide-[#E5E7EB] overflow-y-auto overscroll-contain max-h-[380px]">
                   {/* Group: Reputation */}
                   <div className="py-1">
                     <div className="px-3 py-1 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">
                       Reputation
                     </div>
-                    <Link
-                      to="/reputation"
-                      onClick={() => setIsMoreOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                    <button
+                      type="button"
+                      onClick={() => handleMoreNavigate('/reputation')}
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                     >
                       <Trophy size={14} className="text-[#6B7280]" />
                       <span>Leaderboard & Reputation</span>
-                    </Link>
-                    <Link
-                      to="/attestation"
-                      onClick={() => setIsMoreOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoreNavigate('/attestation')}
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                     >
                       <ShieldCheck size={14} className="text-[#6B7280]" />
                       <span>Attestation Reports</span>
-                    </Link>
+                    </button>
                   </div>
 
                   {/* Group: Governance */}
@@ -401,33 +404,33 @@ export const Navbar: React.FC = () => {
                     <div className="px-3 py-1 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">
                       Governance
                     </div>
-                    <Link
-                      to="/dao"
-                      onClick={() => setIsMoreOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                    <button
+                      type="button"
+                      onClick={() => handleMoreNavigate('/dao')}
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                     >
                       <Share2 size={14} className="text-[#6B7280]" />
                       <span>DAO Governance</span>
-                    </Link>
+                    </button>
                     {isJudgeUser && (
-                      <Link
-                        to="/judge"
-                        onClick={() => setIsMoreOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                      <button
+                        type="button"
+                        onClick={() => handleMoreNavigate('/judge')}
+                        className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                       >
                         <Scale size={14} className="text-[#6B7280]" />
                         <span>Judge Panel</span>
-                      </Link>
+                      </button>
                     )}
                     {isAdmin && (
-                      <Link
-                        to="/treasury"
-                        onClick={() => setIsMoreOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                      <button
+                        type="button"
+                        onClick={() => handleMoreNavigate('/treasury')}
+                        className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                       >
                         <Landmark size={14} className="text-[#6B7280]" />
                         <span>Protocol Treasury</span>
-                      </Link>
+                      </button>
                     )}
                   </div>
 
@@ -436,33 +439,33 @@ export const Navbar: React.FC = () => {
                     <div className="px-3 py-1 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">
                       Resources
                     </div>
-                    <Link
-                      to={`/audit/${address || ''}`}
-                      onClick={() => setIsMoreOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                    <button
+                      type="button"
+                      onClick={() => handleMoreNavigate(`/audit/${address || ''}`)}
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                     >
                       <BarChart3 size={14} className="text-[#6B7280]" />
                       <span>Security & Audit</span>
-                    </Link>
-                    <Link
-                      to="/help"
-                      onClick={() => setIsMoreOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoreNavigate('/help')}
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                     >
                       <HelpCircle size={14} className="text-[#6B7280]" />
                       <span>Help & FAQ</span>
-                    </Link>
-                    <Link
-                      to="/demo"
-                      onClick={() => setIsMoreOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoreNavigate('/demo')}
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                     >
                       <Play size={14} className="text-[#6B7280]" />
                       <span>Watch demo</span>
-                    </Link>
+                    </button>
                   </div>
                 </div>
-              )}
+              </Popover>
             </div>
           </nav>
 
@@ -497,92 +500,127 @@ export const Navbar: React.FC = () => {
                   <MessageSquare size={16} />
                 </Link>
 
-                {/* Notifications bell with dropdown */}
-                <div className="relative" ref={notificationsRef}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsNotificationsOpen(!isNotificationsOpen);
-                      setIsMoreOpen(false);
-                      setIsAvatarMenuOpen(false);
-                    }}
-                    aria-label="Notifications"
-                    className="w-9 h-9 rounded-[8px] flex items-center justify-center text-[#4B5563] hover:text-[#0B0B0F] hover:bg-[#F6F7F9] border border-[#E5E7EB] transition-colors relative"
-                    title="Notifications"
-                  >
-                    <Bell size={16} />
-                    {unreadCount > 0 && (
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#0047AB]" />
-                    )}
-                  </button>
+                {/* Notifications bell with dropdown wrapped in ErrorBoundary */}
+                <NotificationErrorBoundary>
+                  <div className="relative" ref={notificationsRef}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsNotificationsOpen(!isNotificationsOpen);
+                        setIsMoreOpen(false);
+                        setIsAvatarMenuOpen(false);
+                      }}
+                      aria-label="Notifications"
+                      className="w-9 h-9 rounded-[8px] flex items-center justify-center text-[#4B5563] hover:text-[#0B0B0F] hover:bg-[#F6F7F9] border border-[#E5E7EB] transition-colors relative"
+                      title="Notifications"
+                    >
+                      <Bell size={16} />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#0047AB]" />
+                      )}
+                    </button>
 
-                  {/* Notifications Dropdown */}
-                  {isNotificationsOpen && (
-                    <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 rounded-[12px] p-3 z-[100] bg-white border border-[#E5E7EB] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                      <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB] mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-[#0B0B0F]">Notifications</span>
+                    {/* Notifications Popover */}
+                    <Popover
+                      isOpen={isNotificationsOpen}
+                      onClose={() => setIsNotificationsOpen(false)}
+                      triggerRef={notificationsRef}
+                      width={380}
+                      align="end"
+                    >
+                      <div className="flex flex-col max-h-[460px]">
+                        {/* Sticky Header */}
+                        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB] bg-white shrink-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-[#0B0B0F]">Notifications</span>
+                            {unreadCount > 0 && (
+                              <span className="text-xs px-1.5 py-0.5 rounded-[6px] bg-[#EAF1FB] text-[#0047AB] font-semibold">
+                                {unreadCount} new
+                              </span>
+                            )}
+                          </div>
                           {unreadCount > 0 && (
-                            <span className="text-xs px-1.5 py-0.5 rounded-[8px] bg-[#EFF6FF] text-[#0047AB] font-medium">
-                              {unreadCount} new
-                            </span>
+                            <button
+                              type="button"
+                              onClick={markAllAsRead}
+                              className="text-xs text-[#0047AB] hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                            >
+                              <CheckCheck size={13} />
+                              <span>Mark all as read</span>
+                            </button>
                           )}
                         </div>
-                        {unreadCount > 0 && (
+
+                        {/* Scrollable list with keyboard and wheel containment */}
+                        <div
+                          tabIndex={0}
+                          role="region"
+                          aria-label="Notifications list"
+                          className="overflow-y-auto overscroll-contain divide-y divide-[#E5E7EB] max-h-[360px] focus:outline-none"
+                        >
+                          {notifications.length === 0 ? (
+                            <div className="py-8 text-center text-xs text-[#6B7280]">
+                              No notifications yet
+                            </div>
+                          ) : (
+                            notifications.map((notif) => (
+                              <Link
+                                key={notif.id}
+                                to={notif.link}
+                                onClick={() => {
+                                  markAsRead(notif.id);
+                                  setIsNotificationsOpen(false);
+                                }}
+                                className={`block p-3.5 hover:bg-[#F6F7F9] transition-colors ${
+                                  !notif.isRead ? 'bg-[#EAF1FB]/30' : ''
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    {!notif.isRead && (
+                                      <span className="w-2 h-2 rounded-full bg-[#0047AB] shrink-0" />
+                                    )}
+                                    <span className="text-xs font-semibold text-[#0B0B0F] truncate">
+                                      {notif.title}
+                                    </span>
+                                  </div>
+                                  <span className="text-[11px] text-[#6B7280] shrink-0 font-mono">
+                                    {notif.timeAgo}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-[#4B5563] mt-1 line-clamp-2 leading-relaxed">
+                                  {notif.description}
+                                </p>
+                              </Link>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Sticky Footer */}
+                        <div className="sticky bottom-0 z-10 px-4 py-2.5 border-t border-[#E5E7EB] bg-[#F6F7F9] flex items-center justify-between text-xs text-[#6B7280] shrink-0">
+                          <span className="font-mono">{notifications.length} updates</span>
                           <button
                             type="button"
-                            onClick={markAllAsRead}
-                            className="text-xs text-[#0047AB] hover:underline flex items-center gap-1"
+                            onClick={() => {
+                              setIsNotificationsOpen(false);
+                              navigate('/jobs');
+                            }}
+                            className="text-xs text-[#0047AB] font-medium hover:underline cursor-pointer"
                           >
-                            <CheckCheck size={13} />
-                            <span>Mark all as read</span>
+                            Browse marketplace
                           </button>
-                        )}
+                        </div>
                       </div>
-
-                      <div className="max-h-72 overflow-y-auto divide-y divide-[#E5E7EB]">
-                        {notifications.length === 0 ? (
-                          <div className="py-6 text-center text-xs text-[#6B7280]">
-                            No notifications yet
-                          </div>
-                        ) : (
-                          notifications.slice(0, 6).map((notif) => (
-                            <Link
-                              key={notif.id}
-                              to={notif.link}
-                              onClick={() => {
-                                markAsRead(notif.id);
-                                setIsNotificationsOpen(false);
-                              }}
-                              className={`block p-2.5 rounded-[8px] hover:bg-[#F6F7F9] transition-colors ${
-                                !notif.isRead ? 'bg-[#EFF6FF]/40' : ''
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-[#0B0B0F]">
-                                  {notif.title}
-                                </span>
-                                <span className="text-[11px] text-[#6B7280]">
-                                  {notif.timeAgo}
-                                </span>
-                              </div>
-                              <p className="text-xs text-[#4B5563] mt-0.5 line-clamp-2">
-                                {notif.description}
-                              </p>
-                            </Link>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    </Popover>
+                  </div>
+                </NotificationErrorBoundary>
 
                 {/* Wallet Balance Chip with Official Polygon Logo */}
                 <button
                   type="button"
                   onClick={() => setIsBalanceModalOpen(true)}
                   title="View token balances"
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] font-mono text-xs font-semibold hover:bg-white transition-colors min-h-[44px]"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] font-mono text-xs font-semibold hover:bg-white transition-colors min-h-[44px] cursor-pointer"
                 >
                   <PolygonLogo variant="mark" size={14} />
                   <span>{formatPolBalance(balanceNative)} POL</span>
@@ -592,14 +630,15 @@ export const Navbar: React.FC = () => {
 
             {/* Account Menu / Connect Button States */}
             {isWrongNetwork ? (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="md"
                 onClick={switchToTargetNetwork}
-                className="px-3.5 py-2 rounded-[10px] border border-amber-500 text-amber-800 bg-amber-50 hover:bg-amber-100 font-semibold text-xs transition-colors flex items-center gap-1.5 min-h-[44px]"
+                className="border-[#0047AB] text-[#0047AB] bg-[#EAF1FB] hover:bg-[#C9DAF2]"
+                icon={<AlertTriangle size={15} className="text-[#0047AB]" />}
               >
-                <AlertTriangle size={15} className="text-amber-600 shrink-0" />
-                <span>Switch to Polygon</span>
-              </button>
+                Switch to Polygon
+              </Button>
             ) : isConnecting ? (
               <Button variant="primary" size="md" loading disabled>
                 Connecting...
@@ -613,7 +652,7 @@ export const Navbar: React.FC = () => {
                     setIsMoreOpen(false);
                     setIsNotificationsOpen(false);
                   }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-white hover:bg-[#F9FAFB] border border-[#E5E7EB] transition-colors min-h-[44px]"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-white hover:bg-[#F9FAFB] border border-[#E5E7EB] transition-colors min-h-[44px] cursor-pointer"
                 >
                   <div className="w-7 h-7 rounded-full bg-[#0B0B0F] text-white flex items-center justify-center overflow-hidden text-xs font-semibold shrink-0">
                     {rawAvatarUrl && !avatarImgError ? (
@@ -636,11 +675,17 @@ export const Navbar: React.FC = () => {
                   />
                 </button>
 
-                {/* Account Menu Dropdown */}
-                {isAvatarMenuOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-64 rounded-[12px] p-2.5 z-[100] bg-white border border-[#E5E7EB] shadow-[0_4px_16px_rgba(0,0,0,0.08)] space-y-2">
+                {/* Account Menu Popover */}
+                <Popover
+                  isOpen={isAvatarMenuOpen}
+                  onClose={() => setIsAvatarMenuOpen(false)}
+                  triggerRef={avatarMenuRef}
+                  width={280}
+                  align="end"
+                >
+                  <div className="p-3 space-y-2.5 overflow-y-auto overscroll-contain max-h-[380px]">
                     {/* User Info Header */}
-                    <div className="p-2.5 bg-[#F6F7F9] rounded-[8px]">
+                    <div className="p-2.5 bg-[#F6F7F9] rounded-[8px] border border-[#E5E7EB]">
                       <div className="text-xs font-semibold text-[#0B0B0F] truncate">
                         {displayName || truncateAddress(address)}
                       </div>
@@ -651,7 +696,7 @@ export const Navbar: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleCopyAddress}
-                          className="text-xs text-[#0047AB] hover:underline flex items-center gap-1"
+                          className="text-xs text-[#0047AB] hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           {copied ? <Check size={12} /> : <Copy size={12} />}
                           <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -660,11 +705,11 @@ export const Navbar: React.FC = () => {
                     </div>
 
                     {/* Hire / Work Segmented Switch */}
-                    <div className="p-1 bg-[#F6F7F9] rounded-[8px] flex items-center">
+                    <div className="p-1 bg-[#F6F7F9] rounded-[8px] flex items-center border border-[#E5E7EB]">
                       <button
                         type="button"
                         onClick={() => handleToggleMode('work')}
-                        className={`flex-1 py-1 text-xs font-medium rounded-[6px] transition-colors ${
+                        className={`flex-1 py-1 text-xs font-medium rounded-[6px] transition-colors cursor-pointer ${
                           userMode === 'work'
                             ? 'bg-white text-[#0047AB] shadow-xs'
                             : 'text-[#6B7280] hover:text-[#0B0B0F]'
@@ -675,7 +720,7 @@ export const Navbar: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleToggleMode('hire')}
-                        className={`flex-1 py-1 text-xs font-medium rounded-[6px] transition-colors ${
+                        className={`flex-1 py-1 text-xs font-medium rounded-[6px] transition-colors cursor-pointer ${
                           userMode === 'hire'
                             ? 'bg-white text-[#0047AB] shadow-xs'
                             : 'text-[#6B7280] hover:text-[#0B0B0F]'
@@ -687,32 +732,32 @@ export const Navbar: React.FC = () => {
 
                     <div className="border-t border-[#E5E7EB] my-1" />
 
-                    <Link
-                      to={`/profile/${address}`}
-                      onClick={() => setIsAvatarMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                    <button
+                      type="button"
+                      onClick={() => handleAvatarNavigate(`/profile/${address}`)}
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                     >
                       <User size={14} className="text-[#6B7280]" />
                       <span>View Profile</span>
-                    </Link>
+                    </button>
 
-                    <Link
-                      to="/settings"
-                      onClick={() => setIsAvatarMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                    <button
+                      type="button"
+                      onClick={() => handleAvatarNavigate('/settings')}
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                     >
                       <Settings size={14} className="text-[#6B7280]" />
                       <span>Edit Profile & Settings</span>
-                    </Link>
+                    </button>
 
-                    <Link
-                      to="/help"
-                      onClick={() => setIsAvatarMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9]"
+                    <button
+                      type="button"
+                      onClick={() => handleAvatarNavigate('/help')}
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium text-[#0B0B0F] hover:bg-[#F6F7F9] transition-colors cursor-pointer"
                     >
                       <HelpCircle size={14} className="text-[#6B7280]" />
                       <span>Help & Support</span>
-                    </Link>
+                    </button>
 
                     <div className="border-t border-[#E5E7EB] my-1" />
 
@@ -728,20 +773,17 @@ export const Navbar: React.FC = () => {
                       <span>Disconnect Wallet</span>
                     </button>
                   </div>
-                )}
+                </Popover>
               </div>
             ) : (
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="md"
                 onClick={() => setIsLoginModalOpen(true)}
-                className="group relative overflow-hidden px-4 py-2 rounded-[10px] bg-gradient-to-r from-[#0047AB] to-[#00388A] hover:from-[#00388A] hover:to-[#002C6C] active:scale-[0.98] text-white text-xs font-semibold shadow-xs hover:shadow-md transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] flex items-center gap-2 cursor-pointer min-h-[40px]"
+                icon={<Wallet size={15} />}
               >
-                <span className="absolute inset-0 pointer-events-none overflow-hidden rounded-[inherit]" aria-hidden="true">
-                  <span className="absolute -inset-full w-[200%] h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
-                </span>
-                <Wallet size={15} className="relative z-10" />
-                <span className="relative z-10">Connect wallet</span>
-              </button>
+                Connect wallet
+              </Button>
             )}
 
             {/* Mobile menu toggle button */}
@@ -816,13 +858,15 @@ export const Navbar: React.FC = () => {
                   >
                     Messages
                   </Link>
-                  <Link
-                    to="/jobs/post"
-                    onClick={() => setIsMobileOpen(false)}
-                    className="px-3 py-2 rounded-[8px] text-sm font-medium text-[#0047AB] bg-[#EFF6FF] hover:bg-[#DBEAFE]"
-                  >
-                    Post a Job
-                  </Link>
+                  {isClientAllowed && (
+                    <Link
+                      to="/jobs/post"
+                      onClick={() => setIsMobileOpen(false)}
+                      className="px-3 py-2 rounded-[8px] text-sm font-medium text-[#0047AB] bg-[#EFF6FF] hover:bg-[#DBEAFE]"
+                    >
+                      Post a Job
+                    </Link>
+                  )}
                 </>
               )}
               <Link

@@ -175,7 +175,7 @@ export function PolyLanceSelect<T = string>({
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
             role="listbox"
-            className={`absolute left-0 right-0 z-50 rounded-[10px] overflow-hidden p-1.5 max-h-72 flex flex-col ${
+            className={`absolute left-0 min-w-full sm:min-w-[320px] max-w-[calc(100vw-32px)] z-50 rounded-[10px] overflow-hidden p-1.5 max-h-80 flex flex-col shadow-lg border border-[#E5E7EB] ${
               menuVariantClasses[variant]
             } ${menuClassName}`}
           >
@@ -197,7 +197,7 @@ export function PolyLanceSelect<T = string>({
             )}
 
             {/* Options List */}
-            <div className="overflow-y-auto space-y-1 pr-1 custom-scrollbar max-h-60">
+            <div className="overflow-y-auto space-y-1 pr-1 custom-scrollbar max-h-72">
               {filteredOptions.length === 0 ? (
                 <div className="px-3 py-4 text-center text-xs text-[#6B7280] font-medium">
                   No matching options
@@ -215,39 +215,41 @@ export function PolyLanceSelect<T = string>({
                         onChange(opt.value);
                         setIsOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[6px] text-xs text-left transition-all duration-150 cursor-pointer ${
+                      className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-[6px] text-xs text-left transition-all duration-150 cursor-pointer ${
                         isSelected
                           ? 'bg-[#EFF6FF] text-[#0047AB] font-semibold border border-[#BFDBFE]'
                           : 'text-[#0B0B0F] hover:bg-[#F6F7F9] font-medium border border-transparent'
                       }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {opt.flag && (
-                          <span className="text-base leading-none select-none shrink-0" role="img" aria-label="flag">
-                            {opt.flag}
+                      <div className="flex flex-col min-w-0 flex-1 py-0.5">
+                        <div className="flex items-center gap-1.5">
+                          {opt.flag && (
+                            <span className="text-base leading-none select-none shrink-0" role="img" aria-label="flag">
+                              {opt.flag}
+                            </span>
+                          )}
+                          {opt.icon && (
+                            <span className="shrink-0 text-[#0047AB]">{opt.icon}</span>
+                          )}
+                          <span className={`whitespace-normal break-words leading-snug ${isSelected ? 'text-[#0047AB] font-bold' : 'text-[#0B0B0F] font-medium'}`}>
+                            {opt.label}
                           </span>
-                        )}
-                        {opt.icon && (
-                          <span className="shrink-0 text-[#0047AB]">{opt.icon}</span>
-                        )}
-                        <span className={`truncate ${isSelected ? 'text-[#0047AB] font-bold' : 'text-slate-800 font-medium'}`}>
-                          {opt.label}
-                        </span>
+                        </div>
                         {opt.sublabel && (
-                          <span className={`text-[10.5px] font-mono truncate ${isSelected ? 'text-[#0047AB] font-medium' : 'text-slate-400'}`}>
+                          <span className={`text-[11px] font-mono leading-tight mt-0.5 whitespace-normal ${isSelected ? 'text-[#0047AB]/80 font-medium' : 'text-[#6B7280]'}`}>
                             {opt.sublabel}
                           </span>
                         )}
                       </div>
 
                       {opt.badge && (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-blue-100 text-[#0047AB] border border-blue-200">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-blue-100 text-[#0047AB] border border-blue-200 shrink-0 self-center">
                           {opt.badge}
                         </span>
                       )}
 
                       {isSelected && (
-                        <Check size={14} className="text-[#0047AB] shrink-0 stroke-[2.5]" />
+                        <Check size={14} className="text-[#0047AB] shrink-0 stroke-[2.5] self-center ml-1" />
                       )}
                     </button>
                   );

@@ -9,7 +9,7 @@ export const CategoriesSection: React.FC = () => {
   const { counts, totalOpenJobs, isLoading, isError, refetch } = useDomainJobCounts();
 
   return (
-    <section className="w-full bg-white py-20 sm:py-24 border-b border-[#E5E7EB]">
+    <section className="w-full bg-white py-[clamp(56px,7vw,96px)] border-b border-[#E5E7EB]">
       <PageContainer>
         <div className="space-y-12">
           {/* Section Header with 80ms sequential reveal */}
