@@ -67,4 +67,41 @@ describe('Check B.7: Cryptographic Wallet Authentication & SIWE Session', () => 
     const tampered = token.slice(0, -4) + 'abcd';
     expect(verifySessionToken(tampered)).toBeNull();
   });
+
+  it('builds message with polylance.codes domain and uri in production config', () => {
+    const origEnv = process.env.NODE_ENV;
+    const origDomain = process.env.SIWE_DOMAIN;
+    const origUri = process.env.SIWE_URI;
+    try {
+      process.env.NODE_ENV = 'production';
+      process.env.SIWE_DOMAIN = 'polylance.codes';
+      process.env.SIWE_URI = 'https://polylance.codes';
+
+      const nonceObj = generateAuthNonce(address, 137);
+      expect(nonceObj.message).toContain('polylance.codes wants you to sign in with your Polygon account:');
+      expect(nonceObj.message).toContain('URI: https://polylance.codes');
+      expect(nonceObj.message).toContain('Sign in to PolyLance. This request will not trigger a blockchain transaction or cost any gas.');
+    } finally {
+      process.env.NODE_ENV = origEnv;
+      process.env.SIWE_DOMAIN = origDomain;
+      process.env.SIWE_URI = origUri;
+    }
+  });
+
+  it('rejects SIWE verification when message uses unauthorized domain like polylance.com', async () => {
+    // Generate valid nonce
+    const nonceObj = generateAuthNonce(address, 137);
+    
+    // Manually construct or alter message with unauthorized domain polylance.com
+    const spoofedMessage = nonceObj.message.replace(
+      /^[^\s]+ wants you to sign in with your Polygon account:/m,
+      'polylance.com wants you to sign in with your Polygon account:'
+    );
+    const signature = await testWallet.signMessage(spoofedMessage);
+
+    const result = await verifySiweSignature(address, signature, spoofedMessage);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toContain('is not an authorized PolyLance domain');
+  });
 });
+

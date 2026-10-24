@@ -44,24 +44,71 @@ export function clearExpiredNonces(): void {
 const DEFAULT_CHAIN_ID = process.env.NODE_ENV === "production" ? 137 : 80002;
 
 /**
+ * Single source of truth for SIWE Domain and URI configuration.
+ * Development: localhost:5173 / http://localhost:5173
+ * Production: polylance.codes / https://polylance.codes
+ */
+export function getSiweConfig(): { domain: string; uri: string } {
+  const isProd = process.env.NODE_ENV === "production";
+  
+  if (isProd && !process.env.SIWE_DOMAIN && !process.env.SIWE_URI && !process.env.APP_URL) {
+    throw new Error(
+      "[SIWE CONFIG ERROR] Missing required environment variable SIWE_DOMAIN / SIWE_URI in production. Expected 'polylance.codes' and 'https://polylance.codes'."
+    );
+  }
+
+  const domain = process.env.SIWE_DOMAIN || (isProd ? "polylance.codes" : "localhost:5173");
+  const uri = process.env.SIWE_URI || process.env.APP_URL || (isProd ? "https://polylance.codes" : "http://localhost:5173");
+
+  return { domain, uri };
+}
+
+/**
+ * Strict allowlist of authorized SIWE domains.
+ * Client-supplied domains outside this allowlist are strictly rejected.
+ */
+export const ALLOWED_SIWE_DOMAINS: string[] = [
+  "polylance.codes",
+  "www.polylance.codes",
+  ...(process.env.NODE_ENV !== "production" ? ["localhost:5173", "localhost", "127.0.0.1:5173", "127.0.0.1"] : []),
+];
+
+/**
  * Generate a cryptographically secure, single-use, 5-minute expiring nonce for SIWE.
  */
-export function generateAuthNonce(wallet: string, chainId: number = DEFAULT_CHAIN_ID): AuthNonceRecord {
+export function generateAuthNonce(
+  wallet: string,
+  chainId: number = DEFAULT_CHAIN_ID,
+  requestedDomain?: string,
+  requestedUri?: string
+): AuthNonceRecord {
   clearExpiredNonces();
   const normalizedWallet = wallet.toLowerCase().trim();
   const nonce = crypto.randomBytes(16).toString("hex");
   const now = Date.now();
   const expiresAt = now + NONCE_TTL_MS;
 
-  const domain = process.env.APP_DOMAIN || "polylance.com";
+  const config = getSiweConfig();
+  let domain = config.domain;
+  let uri = config.uri;
+
+  // If a domain was requested by the client, only use it if it exists in the allowlist
+  if (requestedDomain) {
+    const cleanReq = requestedDomain.trim().toLowerCase();
+    if (ALLOWED_SIWE_DOMAINS.includes(cleanReq)) {
+      domain = cleanReq;
+      uri = requestedUri?.trim() || (cleanReq.startsWith("localhost") || cleanReq.startsWith("127.0.0.1") ? `http://${cleanReq}` : `https://${cleanReq}`);
+    }
+  }
+
   const checksumAddress = ethers.getAddress(normalizedWallet);
   const message = [
     `${domain} wants you to sign in with your Polygon account:`,
     checksumAddress,
     "",
-    "Sign in to PolyLance using your cryptographic Polygon wallet.",
+    "Sign in to PolyLance. This request will not trigger a blockchain transaction or cost any gas.",
     "",
-    `URI: https://${domain}`,
+    `URI: ${uri}`,
     "Version: 1",
     `Chain ID: ${chainId}`,
     `Nonce: ${nonce}`,
@@ -117,10 +164,32 @@ export async function verifySiweSignature(
     return { valid: false, reason: "Invalid or expired nonce. Request a fresh nonce." };
   }
 
-  // Ensure message supplied matches the issued message
+  // 1. Extract and verify domain is in the strict allowlist
+  const domainMatch = message.match(/^([^\s]+) wants you to sign in with your Polygon account:/);
+  const messageDomain = domainMatch ? domainMatch[1].trim().toLowerCase() : null;
+
+  if (!messageDomain) {
+    return { valid: false, reason: "Invalid sign-in challenge: missing domain header." };
+  }
+
+  if (!ALLOWED_SIWE_DOMAINS.includes(messageDomain)) {
+    return { valid: false, reason: `Domain '${messageDomain}' is not an authorized PolyLance domain.` };
+  }
+
+  // 2. Verify Chain ID is Polygon
+  const chainIdMatch = message.match(/Chain ID:\s*(\d+)/);
+  const messageChainId = chainIdMatch ? parseInt(chainIdMatch[1], 10) : null;
+  if (!messageChainId || (messageChainId !== 137 && messageChainId !== 80002)) {
+    return { valid: false, reason: `Chain ID ${messageChainId} is not an authorized Polygon network (137 or 80002).` };
+  }
+
+  // 3. Ensure message supplied matches the issued message
   if (message.trim() !== pendingNonce.message.trim()) {
     return { valid: false, reason: "Message text does not match the server-issued challenge." };
   }
+
+  // 4. Burn nonce immediately to prevent replay attacks (single-use)
+  nonceStore.delete(normalizedWallet);
 
   try {
     const recovered = ethers.verifyMessage(message, signature);
@@ -128,8 +197,6 @@ export async function verifySiweSignature(
       return { valid: false, reason: "Signature mismatch: recovered address does not match claimed wallet." };
     }
 
-    // Success: Burn nonce immediately to prevent replay attacks
-    nonceStore.delete(normalizedWallet);
     return { valid: true, wallet: normalizedWallet };
   } catch (err: any) {
     return { valid: false, reason: `Cryptographic recovery error: ${err?.message || "Invalid signature format"}` };

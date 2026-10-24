@@ -224,8 +224,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const checksumAddr = ethers.getAddress(address);
       const normAddr = checksumAddr.toLowerCase();
       const effectiveChainId = targetChainId || CHAIN_ID;
+      const clientDomain = typeof window !== 'undefined' ? window.location.host : 'polylance.codes';
+      const clientUri = typeof window !== 'undefined' ? window.location.origin : 'https://polylance.codes';
       const nonceRes = await apiClient.get(
-        `/api/auth/nonce?wallet=${encodeURIComponent(normAddr)}&chainId=${effectiveChainId}`
+        `/api/auth/nonce?wallet=${encodeURIComponent(normAddr)}&chainId=${effectiveChainId}&domain=${encodeURIComponent(clientDomain)}&uri=${encodeURIComponent(clientUri)}`
       );
 
       if (!nonceRes || !nonceRes.message) {

@@ -4609,7 +4609,9 @@ app.get("/api/auth/nonce", async (req: Request, res: Response) => {
 
   const rawChainId = Number(req.query.chainId || 137);
   const chainId = isNaN(rawChainId) ? 137 : rawChainId;
-  const nonceRecord = generateAuthNonce(wallet, chainId);
+  const requestedDomain = req.query.domain ? String(req.query.domain).trim() : undefined;
+  const requestedUri = req.query.uri ? String(req.query.uri).trim() : undefined;
+  const nonceRecord = generateAuthNonce(wallet, chainId, requestedDomain, requestedUri);
   res.json({
     success: true,
     nonce: nonceRecord.nonce,

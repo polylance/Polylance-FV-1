@@ -114,12 +114,38 @@ export function useGlobalFiat(): [string, (fiat: string) => void] {
   return [fiat, setGlobalFiat];
 }
 
-// Async fetch utility to fetch latest rates dynamically
-export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
+// In-flight request deduplication guard
+let isFetchingRates = false;
+const RATE_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
+
+// Try restoring cached rates from localStorage on startup
+if (typeof window !== 'undefined') {
   try {
-    // 1. Fetch Fiat rates vs USD
+    const rawCache = localStorage.getItem('polylance_currency_rates_cache');
+    if (rawCache) {
+      const parsed = JSON.parse(rawCache);
+      if (parsed && parsed.lastUpdated && Date.now() - parsed.lastUpdated < RATE_CACHE_TTL_MS) {
+        activeRates = parsed;
+      }
+    }
+  } catch {}
+}
+
+// Async fetch utility to fetch latest rates dynamically with 3s timeout and deduplication
+export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
+  // If recently updated or already in-flight, return current cache
+  if (isFetchingRates || Date.now() - activeRates.lastUpdated < RATE_CACHE_TTL_MS) {
+    return activeRates;
+  }
+  isFetchingRates = true;
+
+  try {
+    // 1. Fetch Fiat rates vs USD with 3s timeout
     try {
-      const fiatRes = await fetch('https://open.er-api.com/v6/latest/USD');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const fiatRes = await fetch('https://open.er-api.com/v6/latest/USD', { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (fiatRes.ok) {
         const fiatData = await fiatRes.json();
         if (fiatData && fiatData.rates) {
@@ -131,16 +157,18 @@ export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
           });
         }
       }
-    } catch (fiatErr) {
-      console.warn('Fiat rate fetch notice:', fiatErr);
-    }
+    } catch {}
 
-    // 2. Fetch Crypto prices in USD (Primary: Binance real-time public ticker)
+    // 2. Fetch Crypto prices in USD (Primary: Binance public ticker with 3s timeout)
     let cryptoSuccess = false;
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       const binanceRes = await fetch(
-        'https://api.binance.com/api/v3/ticker/price?symbols=%5B%22USDCUSDT%22,%22POLUSDT%22%5D'
+        'https://api.binance.com/api/v3/ticker/price?symbols=%5B%22USDCUSDT%22,%22POLUSDT%22%5D',
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
       if (binanceRes.ok) {
         const binanceData: Array<{ symbol: string; price: string }> = await binanceRes.json();
         activeRates.cryptoPrices.USDT = 1.0;
@@ -164,42 +192,23 @@ export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
       }
     } catch {}
 
-    // Fallback: CoinGecko
-    if (!cryptoSuccess) {
-      try {
-        const cryptoRes = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=usd-coin,tether,matic-network&vs_currencies=usd'
-        );
-        if (cryptoRes.ok) {
-          const cryptoData = await cryptoRes.json();
-          const mappings: Record<string, string> = {
-            'usd-coin': 'USDC',
-            'tether': 'USDT',
-            'matic-network': 'POL'
-          };
-          Object.entries(mappings).forEach(([cgId, tokenCode]) => {
-            if (cryptoData[cgId] && cryptoData[cgId].usd) {
-              activeRates.cryptoPrices[tokenCode] = cryptoData[cgId].usd;
-              const token = SUPPORTED_CRYPTO.find(c => c.id === tokenCode);
-              if (token) token.priceUsd = cryptoData[cgId].usd;
-            }
-          });
-        }
-      } catch (cgErr) {
-        console.warn('CoinGecko fallback notice:', cgErr);
-      }
-    }
-    
     activeRates.lastUpdated = Date.now();
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('polylance_currency_rates_cache', JSON.stringify(activeRates));
+      } catch {}
+    }
     notifyRateListeners();
-  } catch (err) {
-    console.warn('Failed to fetch live exchange rates, using active cache:', err);
+  } catch {
+    // Fail silently, preserving active default rates
+  } finally {
+    isFetchingRates = false;
   }
   return activeRates;
 }
 
 let pollingTimer: any = null;
-export function startRatePolling(intervalMs = 15000) {
+export function startRatePolling(intervalMs = 300000) { // 5 minutes default
   if (pollingTimer) return;
   fetchLiveExchangeRates();
   pollingTimer = setInterval(() => {
@@ -218,7 +227,7 @@ export function useLiveCurrencyRates(): ConversionRates {
     const unsub = subscribeToRates((newRates) => {
       setRates({ ...newRates });
     });
-    if (Date.now() - activeRates.lastUpdated > 15000) {
+    if (Date.now() - activeRates.lastUpdated > RATE_CACHE_TTL_MS) {
       fetchLiveExchangeRates();
     }
     return unsub;

@@ -90,10 +90,10 @@ if (typeof window !== 'undefined') {
   bumpMaxListeners();
   window.addEventListener('ethereum#initialized', bumpMaxListeners, { once: true });
 
-  console.info(
-    "%c🛡️ PolyLance Sovereign Security Guard Active\n%cNotice: Autonomous multisig authorization and rate-limiting shields protect all platform state. Entering unauthorized scripts in this console will be rejected by decentralized contract guards.",
-    "color: #7C3AED; font-size: 14px; font-weight: bold;",
-    "color: #4B5563; font-size: 11px;"
+  console.log(
+    "%cSTOP!\n%cThis is a browser feature intended for developers. If someone told you to copy and paste code here to access a feature or account, it is a scam and gives attackers access to your wallet and account.",
+    "color: #EF4444; font-size: 28px; font-weight: bold; -webkit-text-stroke: 1px black;",
+    "color: #9CA3AF; font-size: 13px;"
   );
 }
 
@@ -101,7 +101,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { RainbowKitProvider, connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { metaMaskWallet, coinbaseWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
 import { WagmiProvider, createConfig, http, fallback } from 'wagmi';
-import { polygon, mainnet } from 'wagmi/chains';
+import { polygon, polygonAmoy } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const rawProjectId = (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '').trim();
@@ -123,13 +123,15 @@ const connectors = connectorsForWallets(
   ],
   {
     appName: 'PolyLance',
+    appUrl: 'https://polylance.codes',
+    appIcon: 'https://polylance.codes/polylance_logo.png',
     projectId,
   }
 );
 
 const config = createConfig({
   connectors,
-  chains: [polygon, mainnet],
+  chains: [polygon, polygonAmoy],
   transports: {
     [polygon.id]: fallback([
       http('https://polygon.drpc.org'),
@@ -137,9 +139,9 @@ const config = createConfig({
       http('https://polygon.gateway.tenderly.co'),
       http('https://polygon-bor-rpc.publicnode.com'),
     ]),
-    [mainnet.id]: fallback([
-      http('https://ethereum-rpc.publicnode.com'),
-      http('https://eth.llamarpc.com'),
+    [polygonAmoy.id]: fallback([
+      http('https://rpc-amoy.polygon.technology'),
+      http('https://polygon-amoy-bor-rpc.publicnode.com'),
     ]),
   },
 });
