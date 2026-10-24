@@ -59,8 +59,33 @@ class SharedPollerService {
       throw new Error(`Rate limit cooldown active. Try again in ${Math.ceil((until - now) / 1000)}s`);
     }
 
+    // Sanitize identity query params from URL (except public query endpoints like /api/account/balances and /api/auth/nonce)
+    let cleanUrl = url;
+    try {
+      const parsed = new URL(url, 'http://dummy.local');
+      if (!parsed.pathname.includes('/api/account/balances') && !parsed.pathname.includes('/api/auth/nonce')) {
+        parsed.searchParams.delete('address');
+        parsed.searchParams.delete('wallet');
+      }
+      cleanUrl = url.startsWith('http') ? parsed.toString() : parsed.pathname + parsed.search;
+    } catch {}
+
+    const headers = new Headers(options.headers || {});
+    headers.set('X-Requested-With', 'XMLHttpRequest');
+    headers.set('X-PolyLance-Client', 'web-client');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('polylance_auth_token') : null;
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const fetchOptions: RequestInit = {
+      ...options,
+      headers,
+      credentials: 'include',
+    };
+
     // 3. Request Deduplication: If this exact request is currently running, reuse the promise
-    const dedupeKey = `${options.method || 'GET'}:${url}:${options.headers ? JSON.stringify(options.headers) : ''}`;
+    const dedupeKey = `${options.method || 'GET'}:${cleanUrl}:${JSON.stringify(Array.from(headers.entries()))}`;
     const inFlight = this.inFlightRequests.get(dedupeKey);
     if (inFlight) {
       return inFlight as Promise<T>;
@@ -68,7 +93,7 @@ class SharedPollerService {
 
     const requestPromise = (async () => {
       try {
-        const res = await fetch(url, options);
+        const res = await fetch(cleanUrl, fetchOptions);
 
         if (res.status === 429) {
           // Handle 429 Too Many Requests gracefully
@@ -80,17 +105,38 @@ class SharedPollerService {
               delayMs = parsedSeconds * 1000;
             }
           } else {
-            const prevDelay = this.backoffDelays.get(url) || 2000;
+            const prevDelay = this.backoffDelays.get(cleanUrl) || 2000;
             delayMs = Math.min(prevDelay * 2, 60000); // 2s -> 4s -> 8s -> ... max 60s
           }
-          this.backoffDelays.set(url, delayMs);
-          this.backoffUntil.set(url, Date.now() + delayMs);
-          console.warn(`[SharedPoller] 429 Rate limit on ${url}. Backing off for ${delayMs}ms`);
+          this.backoffDelays.set(cleanUrl, delayMs);
+          this.backoffUntil.set(cleanUrl, Date.now() + delayMs);
+          console.warn(`[SharedPoller] 429 Rate limit on ${cleanUrl}. Backing off for ${delayMs}ms`);
 
           // If we have cached data, return it without throwing a loud error
-          const cached = this.cache.get(url);
+          const cached = this.cache.get(cleanUrl);
           if (cached) return cached.data;
-          return null;
+          return null as any;
+        }
+
+        if (res.status === 401) {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('polylance:auth-event', { detail: { status: 401 } }));
+          }
+          const cached = this.cache.get(cleanUrl);
+          if (cached) return cached.data;
+          return null as any;
+        }
+
+        // 4xx backoff (e.g. 400, 403, 404): prevent tight polling loops on bad client requests
+        if (res.status >= 400 && res.status < 500) {
+          const prevDelay = this.backoffDelays.get(cleanUrl) || 5000;
+          const delayMs = Math.min(prevDelay * 2, 60000); // 5s -> 10s -> 20s -> ... max 60s
+          this.backoffDelays.set(cleanUrl, delayMs);
+          this.backoffUntil.set(cleanUrl, Date.now() + delayMs);
+          console.warn(`[SharedPoller] HTTP ${res.status} on ${cleanUrl}. Backing off for ${delayMs}ms`);
+          const cached = this.cache.get(cleanUrl);
+          if (cached) return cached.data;
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
 
         if (!res.ok) {
@@ -99,9 +145,9 @@ class SharedPollerService {
 
         const data = await res.json();
         // Reset backoff on success
-        this.backoffDelays.delete(url);
-        this.backoffUntil.delete(url);
-        this.cache.set(url, { data, timestamp: Date.now() });
+        this.backoffDelays.delete(cleanUrl);
+        this.backoffUntil.delete(cleanUrl);
+        this.cache.set(cleanUrl, { data, timestamp: Date.now() });
         return data;
       } finally {
         this.inFlightRequests.delete(dedupeKey);

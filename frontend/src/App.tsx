@@ -16,10 +16,9 @@ import { JobDetail } from './pages/JobDetail';
 import { Profile } from './pages/Profile';
 import { Reputation } from './pages/Reputation';
 import { Dao } from './pages/Dao';
-import { Judge } from './pages/Judge';
-import { Treasury } from './pages/Treasury';
 import { Analytics } from './pages/Analytics';
 import { AuditReport } from './pages/AuditReport';
+import { Certificate } from './pages/Certificate';
 import { JobAttestationReport } from './pages/JobAttestationReport';
 import { Chat } from './pages/Chat';
 import { JobWorkspace } from './pages/JobWorkspace';
@@ -31,16 +30,29 @@ import { Disclaimer } from './pages/Disclaimer';
 import { Manifesto } from './pages/Manifesto';
 import { CertifiedPass } from './pages/CertifiedPass';
 import { AuditX } from './pages/AuditX';
-import { DevPrimitivesPage } from './pages/DevPrimitivesPage';
-import { DevStatesPage } from './pages/DevStatesPage';
-import { MaintenancePage } from './pages/MaintenancePage';
 import { Help } from './pages/Help';
-import { Demo } from './pages/Demo';
-import { Showcase } from './pages/Showcase';
-import { MediaLab } from './pages/MediaLab';
-import { MotionLab } from './pages/MotionLab';
-import { TypeLab } from './pages/TypeLab';
-import { EmblemLab } from './pages/EmblemLab';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthBanner } from './components/common/AuthBanner';
+
+// Lazy-loaded privileged and lab routes to protect code bundles from untrusted callers
+const Judge = React.lazy(() => import('./pages/Judge').then((m) => ({ default: m.Judge })));
+const Treasury = React.lazy(() => import('./pages/Treasury').then((m) => ({ default: m.Treasury })));
+const MaintenancePage = React.lazy(() => import('./pages/MaintenancePage').then((m) => ({ default: m.MaintenancePage })));
+const Demo = React.lazy(() => import('./pages/Demo').then((m) => ({ default: m.Demo })));
+const Showcase = React.lazy(() => import('./pages/Showcase').then((m) => ({ default: m.Showcase })));
+const MediaLab = React.lazy(() => import('./pages/MediaLab').then((m) => ({ default: m.MediaLab })));
+const MotionLab = React.lazy(() => import('./pages/MotionLab').then((m) => ({ default: m.MotionLab })));
+const TypeLab = React.lazy(() => import('./pages/TypeLab').then((m) => ({ default: m.TypeLab })));
+const EmblemLab = React.lazy(() => import('./pages/EmblemLab').then((m) => ({ default: m.EmblemLab })));
+const DevPrimitivesPage = React.lazy(() => import('./pages/DevPrimitivesPage').then((m) => ({ default: m.DevPrimitivesPage })));
+const DevStatesPage = React.lazy(() => import('./pages/DevStatesPage').then((m) => ({ default: m.DevStatesPage })));
+const NotFound = React.lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
+
+const RouteLoadingSpinner: React.FC = () => (
+  <div className="min-h-[50vh] flex items-center justify-center">
+    <div className="w-8 h-8 rounded-full border-2 border-purple-500/20 border-t-purple-500 animate-spin" />
+  </div>
+);
 import { DemoModeProvider, useDemoMode } from './context/DemoModeContext';
 import { DemoBanner } from './components/demo/DemoBanner';
 import { GuidedTour } from './components/demo/GuidedTour';
@@ -56,6 +68,7 @@ import { useSmoothScroll } from './hooks/useSmoothScroll';
 import { useAccountMode } from './hooks/useAccountMode';
 import { ToastContainer, ToastMessage } from './components/mobile/Toast';
 import { subscribeToasts, toast } from './utils/toast';
+import { NetworkStatusBanner } from './components/common/NetworkStatusBanner';
 
 // ── Human Interface page transition wrapper ───────────────────────────────
 const isCertifiedPassDomain = typeof window !== 'undefined' &&
@@ -96,10 +109,13 @@ const AnimatedRoutes: React.FC = () => {
   const navigate = useNavigate();
   const { isConnected, currentRole, address, isArbitrator } = useWeb3();
   const { isDemoMode } = useDemoMode();
+  const { isAdmin: isServerAdmin, isJudge: isServerJudge } = useAuth();
   const isVisitor = (!isConnected || currentRole === 'visitor') && !isDemoMode;
 
   const isJudgeAllowed =
     isDemoMode ||
+    isServerJudge ||
+    isServerAdmin ||
     currentRole === 'judge' ||
     currentRole === 'admin' ||
     Boolean(isArbitrator) ||
@@ -107,6 +123,7 @@ const AnimatedRoutes: React.FC = () => {
 
   const isTreasuryAllowed =
     isDemoMode ||
+    isServerAdmin ||
     currentRole === 'admin' ||
     Boolean(address && isAdminAddress(address));
 
@@ -175,9 +192,9 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/verify/:certId" element={<CertifiedPass />} />
           <Route path="/certifiedpass" element={<CertifiedPass />} />
           <Route path="/certified-pass" element={<CertifiedPass />} />
-          <Route path="/c/:id" element={<JobAttestationReport />} />
-          <Route path="/certificate/:id" element={<JobAttestationReport />} />
-          <Route path="/certificate" element={<JobAttestationReport />} />
+          <Route path="/c/:id" element={<Certificate />} />
+          <Route path="/certificate/:id" element={<Certificate />} />
+          <Route path="/certificate" element={<Certificate />} />
           <Route path="/login" element={<Login />} />
           <Route path="/jobs" element={<FindJobs />} />
           <Route path="/jobs/:id" element={<JobDetail />} />
@@ -192,14 +209,18 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/auditx" element={<AuditX />} />
           <Route path="/audit-x" element={<AuditX />} />
           <Route path="/help" element={<Help />} />
-          <Route path="/demo" element={<Demo />} />
-          <Route path="/showcase" element={<Showcase />} />
-          {import.meta.env.DEV && <Route path="/media-lab" element={<MediaLab />} />}
-          {import.meta.env.DEV && <Route path="/motion-lab" element={<MotionLab />} />}
-          {import.meta.env.DEV && <Route path="/type-lab" element={<TypeLab />} />}
-          <Route path="/emblem-lab" element={<EmblemLab />} />
-          <Route path="/dev/primitives" element={<DevPrimitivesPage />} />
-          <Route path="/dev/states" element={<DevStatesPage />} />
+          {import.meta.env.DEV && (
+            <>
+              <Route path="/demo" element={<React.Suspense fallback={<RouteLoadingSpinner />}><Demo /></React.Suspense>} />
+              <Route path="/showcase" element={<React.Suspense fallback={<RouteLoadingSpinner />}><Showcase /></React.Suspense>} />
+              <Route path="/media-lab" element={<React.Suspense fallback={<RouteLoadingSpinner />}><MediaLab /></React.Suspense>} />
+              <Route path="/motion-lab" element={<React.Suspense fallback={<RouteLoadingSpinner />}><MotionLab /></React.Suspense>} />
+              <Route path="/type-lab" element={<React.Suspense fallback={<RouteLoadingSpinner />}><TypeLab /></React.Suspense>} />
+              <Route path="/emblem-lab" element={<React.Suspense fallback={<RouteLoadingSpinner />}><EmblemLab /></React.Suspense>} />
+              <Route path="/dev/primitives" element={<React.Suspense fallback={<RouteLoadingSpinner />}><DevPrimitivesPage /></React.Suspense>} />
+              <Route path="/dev/states" element={<React.Suspense fallback={<RouteLoadingSpinner />}><DevStatesPage /></React.Suspense>} />
+            </>
+          )}
 
           {/* ROLE PROTECTED OR PERCEPTION-GUIDED ROUTES */}
           <Route path="/onboarding" element={isVisitor ? <Navigate to="/login" replace /> : <Onboarding />} />
@@ -208,8 +229,34 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/analytics" element={isVisitor ? <Navigate to="/login" replace /> : <Analytics />} />
           <Route path="/jobs/post" element={isVisitor ? <Navigate to="/login" replace /> : <PostJobRouteGuard />} />
           <Route path="/post-job" element={isVisitor ? <Navigate to="/login" replace /> : <PostJobRouteGuard />} />
-          <Route path="/judge" element={isJudgeAllowed ? <Judge /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/treasury" element={isTreasuryAllowed ? <Treasury /> : <Navigate to="/dashboard" replace />} />
+          <Route
+            path="/judge"
+            element={
+              isJudgeAllowed ? (
+                <React.Suspense fallback={<RouteLoadingSpinner />}>
+                  <Judge />
+                </React.Suspense>
+              ) : (
+                <React.Suspense fallback={<RouteLoadingSpinner />}>
+                  <NotFound />
+                </React.Suspense>
+              )
+            }
+          />
+          <Route
+            path="/treasury"
+            element={
+              isTreasuryAllowed ? (
+                <React.Suspense fallback={<RouteLoadingSpinner />}>
+                  <Treasury />
+                </React.Suspense>
+              ) : (
+                <React.Suspense fallback={<RouteLoadingSpinner />}>
+                  <NotFound />
+                </React.Suspense>
+              )
+            }
+          />
 
           {/* Certified trust & reputation audits */}
           <Route path="/audit" element={<AuditReport />} />
@@ -218,10 +265,10 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/audit-report/:address" element={<AuditReport />} />
 
           {/* Per-Job Soulbound Token (SBT) Attestation & Social Proof Reports */}
-          <Route path="/jobs/:id/attestation" element={<JobAttestationReport />} />
-          <Route path="/attestation/:id" element={<JobAttestationReport />} />
+          <Route path="/jobs/:id/attestation" element={<Certificate />} />
+          <Route path="/attestation/:id" element={<Certificate />} />
           <Route path="/attestation" element={<JobAttestationReport />} />
-          <Route path="/job-attestation-report/:id" element={<JobAttestationReport />} />
+          <Route path="/job-attestation-report/:id" element={<Certificate />} />
           <Route path="/job-attestation-report" element={<JobAttestationReport />} />
 
           {/* Settings & Profile Customization */}
@@ -233,9 +280,20 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/chat/:jobId" element={isVisitor ? <Navigate to="/login" replace /> : <Chat />} />
 
           {/* Standalone Maintenance Page route */}
-          <Route path="/maintenance" element={<MaintenancePage />} />
+          <Route path="/maintenance" element={<React.Suspense fallback={<RouteLoadingSpinner />}><MaintenancePage /></React.Suspense>} />
 
-          <Route path="*" element={<Navigate to={isCertifiedPassDomain ? "/certifiedpass" : "/"} replace />} />
+          <Route
+            path="*"
+            element={
+              isCertifiedPassDomain ? (
+                <Navigate to="/certifiedpass" replace />
+              ) : (
+                <React.Suspense fallback={<RouteLoadingSpinner />}>
+                  <NotFound />
+                </React.Suspense>
+              )
+            }
+          />
         </Routes>
       </motion.div>
     </AnimatePresence>
@@ -328,8 +386,14 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
+      {/* RPC Network Status Banner (displays when public RPCs degrade) */}
+      <NetworkStatusBanner />
+
       {/* Production Navbar with Role-Aware Perception Navigation (Hidden on Audit Document and Chat/Messages Section) */}
       {!isAudit && !isChat && <Navbar />}
+
+      {/* SIWE Authenticated Session Prompt Banner (rendered below navbar) */}
+      {!isAudit && !isChat && <AuthBanner />}
 
       {/* Persistent Demo Mode Banner with Role Switcher & Tour Trigger */}
       {!isAudit && !isChat && <DemoBanner />}
@@ -368,14 +432,16 @@ export const App: React.FC = () => {
   return (
     <Web3Provider>
       <DemoModeProvider>
-        <PolyLanceDataProvider>
-          <VideoManagerProvider>
-            <Router>
-              <ScrollToTop />
-              <AppContent />
-            </Router>
-          </VideoManagerProvider>
-        </PolyLanceDataProvider>
+        <AuthProvider>
+          <PolyLanceDataProvider>
+            <VideoManagerProvider>
+              <Router>
+                <ScrollToTop />
+                <AppContent />
+              </Router>
+            </VideoManagerProvider>
+          </PolyLanceDataProvider>
+        </AuthProvider>
       </DemoModeProvider>
     </Web3Provider>
   );

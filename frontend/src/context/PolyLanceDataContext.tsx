@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { ethers } from 'ethers';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, DeliverableFile, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage, NegotiationProposal, ChatMessage, SkillCategory } from '../types';
-import { generateMockTxHash, generateDeterministicHash, truncateAddress } from '../utils/formatters';
+import { generateDeterministicHash, truncateAddress } from '../utils/formatters';
 import { generateIpfsCid, pinJsonToFilebase, storeIpfsFile, getCachedIpfsFile } from '../utils/ipfs';
 import { fetchLiveExchangeRates, startRatePolling } from '../utils/currency';
 import { CONTRACTS, CHAIN_ID } from '../config/contracts';
@@ -16,31 +16,11 @@ import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { getPolygonGasOverrides } from '../utils/gas';
 import { areAddressesEqual } from '../utils/accountMode';
-
-export const getSyncEndpoints = (): string[] => {
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return ['http://localhost:3001'];
-  }
-  const list: string[] = [];
-  const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
-  if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
-    list.push(envUrl.replace(/\/$/, ''));
-  }
-  list.push('https://polylance-fv-1-45wy.onrender.com');
-
-  return Array.from(new Set(list.filter(Boolean)));
-};
-
-export const getBackendSyncUrl = (): string => {
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3001';
-  }
-  const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
-  if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
-    return envUrl.replace(/\/$/, '');
-  }
-  return 'https://polylance-fv-1-45wy.onrender.com';
-};
+import { buildFundingParameters, checkPaymentReadiness, needsUsdtZeroReset, decodeRevertReason } from '../utils/txBuilder';
+import { getSyncEndpoints, getBackendSyncUrl } from '../utils/backendUrl';
+import { feeBreakdown, calculateFeeBreakdownFromString } from '../utils/fees';
+import { apiClient } from '../utils/apiClient';
+export { getSyncEndpoints, getBackendSyncUrl };
 
 
 
@@ -90,6 +70,7 @@ interface PolyLanceDataContextType {
     }
   ) => Promise<boolean>;
   renewJob: (jobId: string) => Promise<boolean>;
+  applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => Promise<void>;
   selectFreelancer: (jobId: string, freelancerAddress: string) => Promise<void>;
   cancelSelection: (jobId: string, reason?: string) => Promise<boolean>;
   proposeCounterOffer: (jobId: string, amount: string, currency?: string, message?: string) => Promise<any>;
@@ -236,9 +217,37 @@ const HARDHAT_TEST_ADDRESSES = parseEnvAddressSet(
   (import.meta.env.VITE_TEST_ADDRESSES || '') as string
 );
 
+export const PURGED_OR_TEST_JOB_IDS = new Set([
+  '0x71c8a185b376',
+  '0x37835b31461a',
+  '0x2f463f3db8c0',
+  '0x881a13affd51d',
+  '0x771a13afc3007',
+  '0x771a13afd358d',
+  '0x771a13affd266',
+  'job-verify-1791982369172',
+  '0xeeacc05a99a2',
+  '0x03b7a86f3bfc',
+]);
+
 export const isDemoOrMockJob = (j: Partial<Job> | null | undefined): boolean => {
   if (!j) return true;
   const id = String(j.id || '').toLowerCase().trim();
+  const contract = String(j.contractAddress || '').toLowerCase().trim();
+
+  // Purged test job IDs
+  if (
+    PURGED_OR_TEST_JOB_IDS.has(id) ||
+    PURGED_OR_TEST_JOB_IDS.has(contract)
+  ) {
+    return true;
+  }
+
+  // Explicit mock / test flags
+  if ((j as any).isArchived || (j as any).isTest || (j as any).isDemo || (j as any).isMock) {
+    return true;
+  }
+
   if (
     id === 'job-101' ||
     id === 'job-102' ||
@@ -246,7 +255,8 @@ export const isDemoOrMockJob = (j: Partial<Job> | null | undefined): boolean => 
     id.startsWith('mock-') ||
     id.startsWith('test-') ||
     id.startsWith('demo-') ||
-    id.startsWith('sample-')
+    id.startsWith('sample-') ||
+    id.startsWith('job-verify-')
   ) {
     return true;
   }
@@ -259,19 +269,28 @@ export const isDemoOrMockJob = (j: Partial<Job> | null | undefined): boolean => 
     return id === 'job-101' || id === 'job-102' || id.startsWith('job-mock-') || id.startsWith('mock-');
   }
 
-  // Test fixtures and demo jobs from seed
+  // Test fixtures and demo jobs from seed or mock scripts
   if (
+    title === 'job to be declined' ||
+    title.includes('lifecycle test') ||
+    title === 'xmtp message test' ||
+    title === 'test payment workflow' ||
+    title === 'testing webrtc & web socket' ||
+    title === 'testing site' ||
     title === 'full stack smart contract integration' ||
     desc.includes('connect react 19 frontend with polygon amoy escrow contracts') ||
     title.includes('privacy-job') ||
-    title.includes('confidential smart contract')
-  ) {
-    return true;
-  }
-  if (
+    title.includes('confidential smart contract') ||
     (title === 'job 1' && desc === 'test job 1') ||
     (title === 'job 2' && desc === 'test job 2')
   ) {
+    return true;
+  }
+
+  // Zero or negative budget is always considered a test / non-viable job
+  const eth = parseFloat(j.amountEth || '0');
+  const usdc = parseFloat(j.amountUsdc || '0');
+  if (eth <= 0 && usdc <= 0) {
     return true;
   }
 
@@ -356,7 +375,7 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
       address: judgeAddr,
       displayName: judgeGithub || 'Lead Developer',
       bio: 'Full-Stack Web3 & Software Engineer.',
-      avatarUrl: judgeGithub ? `https://github.com/${judgeGithub}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${judgeAddr}`,
+      avatarUrl: judgeGithub ? `https://github.com/${judgeGithub}.png` : '',
       ipfsHash: '',
       skills: ['TypeScript', 'React', 'Smart Contracts', 'Node.js', 'Solidity'],
       githubUsername: judgeGithub,
@@ -409,7 +428,7 @@ const broadcastSync = (data: {
       }
       if (!activeAddr || !ethers.isAddress(activeAddr)) {
         const jobWithFreelancer = data.jobs.find((j) => j && j.freelancer && ethers.isAddress(j.freelancer));
-        if (jobWithFreelancer) activeAddr = jobWithFreelancer.freelancer.toLowerCase().trim();
+        if (jobWithFreelancer && jobWithFreelancer.freelancer) activeAddr = jobWithFreelancer.freelancer.toLowerCase().trim();
       }
     }
     if ((!activeAddr || !ethers.isAddress(activeAddr)) && data.profiles && Object.keys(data.profiles).length > 0) {
@@ -434,31 +453,21 @@ const broadcastSync = (data: {
     }
   } catch (err) {}
 
-  // 3. Multi-Endpoint Dual Write to Cloud Databases (Render PostgreSQL)
-  if (!activeAddr || !ethers.isAddress(activeAddr)) {
-    return;
-  }
+  // 3. Authenticated Server Dual Write via apiClient
+  // Identity comes ONLY from verified server session token/cookie. Never attempt unauthenticated POST /api/sync.
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     return;
   }
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('polylance_auth_token') : null;
+  if (!token) {
+    // Unauthenticated: do not attempt POST /api/sync until user signs in with wallet
+    return;
+  }
+
   const endpoints = getSyncEndpoints();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-wallet-address': activeAddr,
-  };
-  const query = `?address=${encodeURIComponent(activeAddr)}`;
   endpoints.forEach((ep) => {
-    const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 4000);
-    fetch(`${ep}/api/sync${query}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
-      signal: controller.signal,
-    })
-      .then(() => clearTimeout(tid))
-      .catch(() => { clearTimeout(tid); });
+    apiClient.post(`${ep}/api/sync`, data).catch(() => {});
   });
 };
 
@@ -489,6 +498,7 @@ const normalizeJob = (job: Job): Job => {
 
 const getInitialRecentlyDeleted = (): Set<string> => {
   const set = new Set<string>();
+  PURGED_OR_TEST_JOB_IDS.forEach((id) => set.add(id));
   try {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_recently_deleted_jobs');
@@ -689,6 +699,14 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
       (curr.modificationRequests || []).forEach((m) => m && modMap.set(m.id || `${m.requestedAt}`, m));
       (inJob.modificationRequests || []).forEach((m) => m && modMap.set(m.id || `${m.requestedAt}`, m));
 
+      // Merge submissions safely preserving all versions
+      const subMap = new Map<string, any>();
+      (curr.submissions || []).forEach((s: any) => s && subMap.set(String(s.version || s.versionLabel || s.submittedAt), s));
+      (inJob.submissions || []).forEach((s: any) => s && subMap.set(String(s.version || s.versionLabel || s.submittedAt), s));
+      const mergedSubmissions = Array.from(subMap.values()).sort(
+        (a: any, b: any) => (a.version || a.submittedAt || 0) - (b.version || b.submittedAt || 0)
+      );
+
       // Merge pre-acceptance messages with smart deduplication
       const mergedPreMsgs: any[] = [];
       const allPreMsgs = [
@@ -813,12 +831,16 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         preAcceptMessages: mergedPreMsgs.slice(-100),
         events: inJob.events?.length ? inJob.events : curr.events,
         dispute: inJob.dispute || curr.dispute,
-        proof: inJob.proof || curr.proof,
+        proof: (inJob.proof && (inJob.proof.submittedAt || 0) >= (curr.proof?.submittedAt || 0)) ? inJob.proof : (curr.proof || inJob.proof),
+        submissions: mergedSubmissions,
         progressUpdates: mergedProgressUpdates,
         extensionRequests: mergedExtensionRequests,
         modificationRequests: Array.from(modMap.values()),
         sbtTokenId: resolvedStatus === 'Completed' ? (inJob.sbtTokenId || curr.sbtTokenId) : undefined,
         sbtTxHash: resolvedStatus === 'Completed' ? (inJob.sbtTxHash || curr.sbtTxHash) : undefined,
+        onchainTokenId: resolvedStatus === 'Completed' ? (inJob.onchainTokenId !== undefined ? inJob.onchainTokenId : curr.onchainTokenId) : undefined,
+        certificateNo: inJob.certificateNo !== undefined ? inJob.certificateNo : curr.certificateNo,
+        mintTxHash: resolvedStatus === 'Completed' ? (inJob.mintTxHash || curr.mintTxHash) : undefined,
         completedAt: resolvedStatus === 'Completed' ? (inJob.completedAt || curr.completedAt) : undefined,
         submittedAt: inJob.submittedAt || curr.submittedAt,
         chatClearedAt: chatClearedAt > 0 ? chatClearedAt : undefined,
@@ -931,6 +953,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     jobsRef.current = jobs;
   }, [jobs]);
   const isSyncingOnChainRef = useRef(false);
+  const releaseInProgressRef = useRef<Record<string, boolean>>({});
 
   // One-time startup purge of any lingering demo/test jobs from localStorage & broadcast deletion to backend
   useEffect(() => {
@@ -1352,6 +1375,16 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           });
         });
 
+        syncSocket.on('job-realtime-update', (data: any) => {
+          if (!data || !data.job) return;
+          if (isDemoOrMockJob(data.job) || isRecentlyDeletedJob(data.job.id, data.job.contractAddress)) return;
+          setJobsRaw((curr) => {
+            const merged = mergeJobsList(curr, [data.job]);
+            try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
+            return [...merged];
+          });
+        });
+
         syncSocket.on('maintenance-mode-changed', (m: any) => {
           if (m && typeof m === 'object') {
             setMaintenanceState(m);
@@ -1415,8 +1448,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (isNetworkAvailable) {
       const currentAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
       const effectiveAddr = currentAddr || '0x0000000000000000000000000000000000000000';
-      const initHeaders: Record<string, string> = { 'x-wallet-address': effectiveAddr };
-      const initQuery = `?address=${encodeURIComponent(effectiveAddr)}`;
+      const initHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-PolyLance-Client': 'web-client',
+      };
+      const authToken = typeof window !== 'undefined' ? localStorage.getItem('polylance_auth_token') : null;
+      if (authToken) {
+        initHeaders['Authorization'] = `Bearer ${authToken}`;
+      }
 
       const applyPayload = (payload: any) => {
         if (!payload) return false;
@@ -1436,11 +1476,22 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
             return [...merged];
           });
-          if (cleanLocalJobs.length > 0) {
-            broadcastSync({ jobs: cleanLocalJobs });
+          // Do not re-broadcast cached jobs unless they are missing on the server AND belong to the connected wallet
+          if (cleanLocalJobs.length > 0 && currentAddr && ethers.isAddress(currentAddr)) {
+            const myMissingJobs = cleanLocalJobs.filter((j) => {
+              if (!areAddressesEqual(j.client, currentAddr)) return false;
+              const existsOnServer = payload.jobs.some((pj: any) => matchJob(pj, j.id) || matchJob(pj, j.contractAddress));
+              return !existsOnServer;
+            });
+            if (myMissingJobs.length > 0) {
+              broadcastSync({ jobs: myMissingJobs }, currentAddr);
+            }
           }
-        } else if (cleanLocalJobs.length > 0) {
-          broadcastSync({ jobs: cleanLocalJobs });
+        } else if (cleanLocalJobs.length > 0 && currentAddr && ethers.isAddress(currentAddr)) {
+          const myLocalJobs = cleanLocalJobs.filter((j) => areAddressesEqual(j.client, currentAddr));
+          if (myLocalJobs.length > 0) {
+            broadcastSync({ jobs: myLocalJobs }, currentAddr);
+          }
         }
 
         let currentLocalProfiles: Record<string, UserProfile> = {};
@@ -1497,7 +1548,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         const fetches = endpoints.map((ep) => {
           const controller = new AbortController();
           const tid = setTimeout(() => controller.abort(), timeoutMs);
-          return fetch(`${ep}/api/sync${initQuery}`, { headers: initHeaders, signal: controller.signal })
+          return fetch(`${ep}/api/sync`, { headers: initHeaders, credentials: 'include', signal: controller.signal })
             .then((r) => { clearTimeout(tid); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
             .catch((e) => { clearTimeout(tid); throw e; });
         });
@@ -1616,16 +1667,22 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (Date.now() < backendSyncOfflineUntil) return;
       const endpoints = getSyncEndpoints();
       const activeAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
-      const effectiveAddr = activeAddr || '0x0000000000000000000000000000000000000000';
-      const reqHeaders: Record<string, string> = { 'x-wallet-address': effectiveAddr };
-      const query = `?address=${encodeURIComponent(effectiveAddr)}`;
+      const reqHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-PolyLance-Client': 'web-client',
+      };
+      const authToken = typeof window !== 'undefined' ? localStorage.getItem('polylance_auth_token') : null;
+      if (authToken) {
+        reqHeaders['Authorization'] = `Bearer ${authToken}`;
+      }
 
       // Race all endpoints in parallel — fastest response wins
       try {
         const fetches = endpoints.map((ep) => {
           const controller = new AbortController();
           const tid = setTimeout(() => controller.abort(), 10000);
-          return fetch(`${ep}/api/sync${query}`, { signal: controller.signal, headers: reqHeaders })
+          return fetch(`${ep}/api/sync`, { signal: controller.signal, headers: reqHeaders, credentials: 'include' })
             .then((r) => { clearTimeout(tid); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
             .catch((e) => { clearTimeout(tid); throw e; });
         });
@@ -1650,13 +1707,36 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           }
           if (Array.isArray(payload.daoProposals)) {
             const cleanProposals = payload.daoProposals.filter((p: any) => p && !String(p.title || '').toLowerCase().includes('demo') && !String(p.description || '').toLowerCase().includes('demo'));
-            setDaoProposalsRaw([...cleanProposals]);
-            try { localStorage.setItem('polylance_dao_proposals', JSON.stringify(cleanProposals)); } catch {}
+            setDaoProposalsRaw((curr) => {
+              if (curr.length === cleanProposals.length && JSON.stringify(curr) === JSON.stringify(cleanProposals)) return curr;
+              try { localStorage.setItem('polylance_dao_proposals', JSON.stringify(cleanProposals)); } catch {}
+              return cleanProposals;
+            });
           }
-          if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
-          if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
-          if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
-          if (Array.isArray(payload.treasuryHistory)) setTreasuryHistoryRaw([...payload.treasuryHistory]);
+          if (payload.judgeMessages) {
+            setJudgeMessagesRaw((curr) => {
+              if (JSON.stringify(curr) === JSON.stringify(payload.judgeMessages)) return curr;
+              return { ...payload.judgeMessages };
+            });
+          }
+          if (Array.isArray(payload.judges)) {
+            setJudgesRaw((curr) => {
+              if (curr.length === payload.judges.length && JSON.stringify(curr) === JSON.stringify(payload.judges)) return curr;
+              return [...payload.judges];
+            });
+          }
+          if (Array.isArray(payload.treasuryProposals)) {
+            setTreasuryProposalsRaw((curr) => {
+              if (curr.length === payload.treasuryProposals.length && JSON.stringify(curr) === JSON.stringify(payload.treasuryProposals)) return curr;
+              return [...payload.treasuryProposals];
+            });
+          }
+          if (Array.isArray(payload.treasuryHistory)) {
+            setTreasuryHistoryRaw((curr) => {
+              if (curr.length === payload.treasuryHistory.length && JSON.stringify(curr) === JSON.stringify(payload.treasuryHistory)) return curr;
+              return [...payload.treasuryHistory];
+            });
+          }
         } else {
           backendSyncOfflineUntil = Date.now() + 5000; // shorter cooldown than initial — keep retrying promptly
         }
@@ -1687,6 +1767,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
+    // Also trigger immediate sync when user signs in with wallet
+    const handleAuthEvent = () => {
+      syncFromRemoteBackend();
+    };
+    window.addEventListener('polylance:authenticated', handleAuthEvent);
+
     return () => {
       if (bc) bc.close();
       window.removeEventListener('pageshow', handlePageShow);
@@ -1695,6 +1781,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       clearInterval(pollInterval);
       window.removeEventListener('focus', syncFromStorage);
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('polylance:authenticated', handleAuthEvent);
     };
   }, []);
 
@@ -1705,12 +1792,20 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!isNetworkAvailable) return;
 
     const syncUrl = getBackendSyncUrl();
-    const headers: Record<string, string> = { 'x-wallet-address': address.toLowerCase().trim() };
-    const query = `?address=${encodeURIComponent(address.toLowerCase().trim())}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-PolyLance-Client': 'web-client',
+      'x-wallet-address': address.toLowerCase().trim()
+    };
+    const token = typeof window !== 'undefined' ? localStorage.getItem('polylance_auth_token') : null;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-    fetch(`${syncUrl}/api/sync${query}`, { headers, signal: controller.signal })
+    fetch(`${syncUrl}/api/sync`, { headers, credentials: 'include', signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`Sync HTTP ${r.status}`);
         return r.json();
@@ -2030,10 +2125,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [provider]);
 
   useEffect(() => {
-    syncOnChainJobs();
-    const interval = setInterval(syncOnChainJobs, 30000);
-    return () => clearInterval(interval);
-  }, [syncOnChainJobs]);
+    // Direct browser chain polling is superseded by the server EventIndexer and /api/sync.
+    // syncOnChainJobs is retained strictly for emergency manual recovery.
+  }, []);
 
   useEffect(() => {
     startRatePolling(15000);
@@ -2174,11 +2268,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         contractAddr = ethers.Wallet.createRandom().address;
       }
       if (!txHash) {
-        txHash = generateMockTxHash();
+        txHash = ethers.keccak256(ethers.toUtf8Bytes(`job-post-${contractAddr}-${Date.now()}-${localJobNonceSeq}`));
       }
     }
     if (!txHash) {
-      txHash = generateMockTxHash();
+      txHash = ethers.keccak256(ethers.toUtf8Bytes(`job-post-${contractAddr}-${Date.now()}-${localJobNonceSeq}`));
     }
 
     const newJob: Job = {
@@ -2586,7 +2680,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
     if (!txHash) {
-      txHash = generateMockTxHash();
+      txHash = '';
     }
 
     const updatedEvents = (job.events || []).map((evt) => {
@@ -2839,7 +2933,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     let updatedEvents = job.events;
     if (bothAgreed) {
-      const finalTxHash = txHash || generateMockTxHash();
+      const finalTxHash = txHash || '';
       updatedEvents = (job.events || []).map((evt) => {
         if (evt.step === 'Terms') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash: finalTxHash };
         if (evt.step === 'Funded') return { ...evt, status: 'current' as const };
@@ -2851,7 +2945,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       ...job,
       clientAgreedTerms: clientAgreed,
       freelancerAgreedTerms: freelancerAgreed,
-      termsHash: bothAgreed ? (txHash || generateMockTxHash()) : job.termsHash,
+      termsHash: bothAgreed ? (txHash || job.termsHash || generateDeterministicHash(`terms-${job.id}-${Date.now()}`)) : job.termsHash,
       events: updatedEvents,
     };
 
@@ -3066,52 +3160,86 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           // Read agreed amount from engagement negotiation history if available
           const agreedVersion = job.engagement?.history?.slice().reverse().find((h: any) => h.status === 'ACCEPTED');
 
-          if (isNative) {
-            let principalWei: bigint;
-            if (agreedVersion && agreedVersion.amountWei) {
-              principalWei = BigInt(agreedVersion.amountWei);
-            } else {
-              const rawAmount = job.amountEth || (job.amountUsdc ? (parseFloat(job.amountUsdc) / 2800).toFixed(4) : '0.05');
-              const numericVal = parseFloat(rawAmount);
-              const safeAmount = (numericVal > 0 ? numericVal : 0.05).toFixed(6);
-              principalWei = ethers.parseEther(safeAmount);
+          const fundingParams = buildFundingParameters(job);
+          const signerAddr = (await signer.getAddress()).toLowerCase();
+
+          // 1. Create durable server intent before prompting wallet (enforces terms & prevents duplicate funding)
+          const syncUrl = getBackendSyncUrl();
+          let intentId = `tx-intent-${Date.now()}`;
+          try {
+            const intentRes = await fetch(`${syncUrl}/api/tx/intent`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-wallet-address': signerAddr,
+              },
+              body: JSON.stringify({
+                jobId: job.id,
+                engagementId: job.id,
+                type: 'FUND',
+                from: signerAddr,
+                idempotencyKey: `fund_${job.id}_${Date.now()}`,
+              }),
+            });
+            if (!intentRes.ok) {
+              const err = await intentRes.json().catch(() => ({}));
+              if (err.code === 'DUPLICATE_FUNDING_BLOCKED') {
+                throw new Error('A funding transaction is already pending confirmation for this job. You do not need to pay again.');
+              }
+              throw new Error(err.error || 'Failed to create payment intent');
             }
+            const intentData = await intentRes.json();
+            intentId = intentData.intent.id;
+            sessionStorage.setItem(`polylance_tx_${job.id}`, JSON.stringify({ intentId, txHash: '', status: 'INTENT_CREATED' }));
+          } catch (intentErr: any) {
+            if (intentErr.message?.includes('already pending confirmation')) throw intentErr;
+            console.warn('Backend intent notice, continuing with client safety checks:', intentErr);
+          }
 
-            const clientFeeWei = (principalWei * 250n) / 10000n; // 2.5% platform fee
-            const totalVal = principalWei + clientFeeWei;
-            const signerAddr = await signer.getAddress();
-
-            // Check wallet balance covers principal + fee + gas estimate
+          if (fundingParams.isNative) {
+            // Check native POL balance covers principal + fee + gas estimate
             const polBalance: bigint = await provider.getBalance(signerAddr).catch(() => 0n);
-            const gasBuffer = 350000n * 35000000000n; // ~0.012 POL gas buffer
-            if (polBalance < totalVal + gasBuffer) {
-              const formattedBal = ethers.formatEther(polBalance);
-              const formattedReq = ethers.formatEther(totalVal);
-              throw new Error(`Insufficient POL balance. You have ${formattedBal} POL, but ${formattedReq} POL (${ethers.formatEther(principalWei)} POL budget + ${ethers.formatEther(clientFeeWei)} POL platform fee) plus network gas is required.`);
+            const readiness = checkPaymentReadiness({
+              isNative: true,
+              tokenSymbol: fundingParams.tokenSymbol,
+              nativePolBalance: polBalance,
+              tokenBalance: 0n,
+              totalRequiredUnits: fundingParams.totalRequiredUnits,
+            });
+            if (!readiness.ready) {
+              throw new Error(readiness.errorMessage || 'Insufficient balance for payment.');
             }
 
-            console.log(`Executing real on-chain escrow funding of ${ethers.formatEther(principalWei)} POL (+ 2.5% client fee: ${ethers.formatEther(clientFeeWei)} POL) to ${targetContractAddress}...`);
+            console.log(`Executing real on-chain escrow funding of ${ethers.formatEther(fundingParams.principalUnits)} POL (+ 2.5% client fee: ${ethers.formatEther(fundingParams.feeUnits)} POL) to ${targetContractAddress}...`);
             const gasOverrides = await getPolygonGasOverrides(provider);
 
             // PRE-FLIGHT SIMULATION: MUST BE STRICTLY BLOCKING!
-            // Deployed contract enforces tokenAmount == 0 for native POL jobs, and full amount in msg.value
             try {
-              await escrow.fundJob.staticCall(0n, { value: totalVal, from: signerAddr });
-              console.log(`Pre-flight simulation successful for funding ${ethers.formatEther(principalWei)} POL + 2.5% fee into ${targetContractAddress}.`);
+              await escrow.fundJob.staticCall(0n, { value: fundingParams.valueArg, from: signerAddr });
+              console.log(`Pre-flight simulation successful for funding POL into ${targetContractAddress}.`);
             } catch (simErr: any) {
               console.error('Pre-flight simulation reverted:', simErr);
-              const reason = simErr?.reason || simErr?.shortMessage || simErr?.message || 'Simulation reverted';
-              throw new Error(`Escrow deposit simulation reverted: ${reason}. No transaction was broadcasted.`);
+              const decoded = decodeRevertReason(simErr);
+              throw new Error(`Simulation reverted: ${decoded.message}. No transaction was broadcasted.`);
             }
 
-            const tx = await escrow.fundJob(0n, { value: totalVal, ...gasOverrides, gasLimit: 300000n });
-            const receipt = await tx.wait();
+            const tx = await escrow.fundJob(0n, { value: fundingParams.valueArg, ...gasOverrides, gasLimit: 300000n });
+            txHash = tx.hash;
 
+            // Immediately register submitted hash with backend worker
+            sessionStorage.setItem(`polylance_tx_${job.id}`, JSON.stringify({ intentId, txHash, status: 'SUBMITTED' }));
+            fetch(`${syncUrl}/api/tx/submitted`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ intentId, txHash }),
+            }).catch(() => {});
+
+            const receipt = await tx.wait();
             if (!receipt || receipt.status !== 1) {
               throw new Error('On-chain funding transaction failed (receipt status 0). No funds were moved.');
             }
 
-            txHash = receipt.hash;
+            sessionStorage.removeItem(`polylance_tx_${job.id}`);
             console.log(`On-chain escrow successfully funded with client fee! TxHash: ${txHash}`);
             await refreshBalances().catch(() => {});
           } else {
@@ -3129,34 +3257,35 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               'function symbol() external view returns (string)'
             ];
             const tokenContract = new ethers.Contract(activeTokenAddress, erc20Abi, signer);
-            const decimals = tokenConfig?.decimals || 6;
-            const tokenSymbol = job.paymentTokenSymbol || tokenConfig?.symbol || 'USDC';
 
-            let amountParsed: bigint;
-            if (agreedVersion && agreedVersion.amountWei) {
-              amountParsed = BigInt(agreedVersion.amountWei);
-            } else {
-              amountParsed = ethers.parseUnits(job.amountUsdc || '100', decimals);
-            }
+            const polBalance: bigint = await provider.getBalance(signerAddr).catch(() => 0n);
+            const tokenBalance: bigint = await tokenContract.balanceOf(signerAddr).catch(() => 0n);
 
-            const clientFee = (amountParsed * 250n) / 10000n; // 2.5% platform fee
-            const totalRequired = amountParsed + clientFee; // 102.5% total approved & paid by client
-
-            const signerAddr = await signer.getAddress();
-            const currentBal: bigint = await tokenContract.balanceOf(signerAddr).catch(() => 0n);
-            if (currentBal < totalRequired) {
-              const formattedBal = ethers.formatUnits(currentBal, decimals);
-              const formattedReq = ethers.formatUnits(totalRequired, decimals);
-              const formattedPrincipal = ethers.formatUnits(amountParsed, decimals);
-              const formattedFee = ethers.formatUnits(clientFee, decimals);
-              throw new Error(`Insufficient ${tokenSymbol} balance. You have ${formattedBal} ${tokenSymbol}, but ${formattedReq} ${tokenSymbol} (${formattedPrincipal} budget + ${formattedFee} 2.5% platform fee) is required.`);
+            const readiness = checkPaymentReadiness({
+              isNative: false,
+              tokenSymbol: fundingParams.tokenSymbol,
+              nativePolBalance: polBalance,
+              tokenBalance,
+              totalRequiredUnits: fundingParams.totalRequiredUnits,
+            });
+            if (!readiness.ready) {
+              throw new Error(readiness.errorMessage || 'Insufficient balance for payment.');
             }
 
             const currentAllowance: bigint = await tokenContract.allowance(signerAddr, targetContractAddress).catch(() => 0n);
-            if (currentAllowance < totalRequired) {
-              console.log(`Approving ${ethers.formatUnits(totalRequired, decimals)} ${tokenSymbol} (${tokenSymbol} budget + 2.5% client fee) for escrow contract ${targetContractAddress}...`);
+
+            // USDT QUIRK: Reset allowance to 0 first if existing allowance > 0 and < target
+            if (needsUsdtZeroReset(activeTokenAddress, currentAllowance, fundingParams.totalRequiredUnits)) {
+              console.log('USDT non-zero allowance quirk detected. Resetting allowance to 0 first...');
+              const resetGas = await getPolygonGasOverrides(provider);
+              const resetTx = await tokenContract.approve(targetContractAddress, 0n, { ...resetGas, gasLimit: 80000n });
+              await resetTx.wait();
+            }
+
+            if (currentAllowance < fundingParams.totalRequiredUnits) {
+              console.log(`Approving exact amount ${ethers.formatUnits(fundingParams.totalRequiredUnits, fundingParams.decimals)} ${fundingParams.tokenSymbol} for escrow contract ${targetContractAddress}...`);
               const approveGas = await getPolygonGasOverrides(provider);
-              const approveTx = await tokenContract.approve(targetContractAddress, totalRequired, { ...approveGas, gasLimit: 120000n });
+              const approveTx = await tokenContract.approve(targetContractAddress, fundingParams.totalRequiredUnits, { ...approveGas, gasLimit: 120000n });
               const approveReceipt = await approveTx.wait();
               if (!approveReceipt || approveReceipt.status !== 1) {
                 throw new Error('Token approval transaction failed on-chain.');
@@ -3164,28 +3293,37 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               console.log(`Token approval confirmed!`);
             }
 
-            console.log(`Executing real on-chain escrow funding of ${ethers.formatUnits(amountParsed, decimals)} ${tokenSymbol} (+ ${ethers.formatUnits(clientFee, decimals)} 2.5% client fee) to ${targetContractAddress}...`);
+            console.log(`Executing real on-chain escrow funding of ${ethers.formatUnits(fundingParams.principalUnits, fundingParams.decimals)} ${fundingParams.tokenSymbol} (+ 2.5% client fee) to ${targetContractAddress}...`);
             const fundGas = await getPolygonGasOverrides(provider);
 
             // PRE-FLIGHT SIMULATION FOR ERC20
             try {
-              await escrow.fundJob.staticCall(amountParsed, { from: signerAddr });
-              console.log(`Pre-flight simulation successful for funding ${tokenSymbol} into ${targetContractAddress}.`);
+              await escrow.fundJob.staticCall(fundingParams.tokenAmountArg, { from: signerAddr });
+              console.log(`Pre-flight simulation successful for funding ${fundingParams.tokenSymbol} into ${targetContractAddress}.`);
             } catch (simErr: any) {
               console.error('ERC20 simulation reverted:', simErr);
-              const reason = simErr?.reason || simErr?.shortMessage || simErr?.message || 'Simulation reverted';
-              throw new Error(`Escrow deposit simulation reverted: ${reason}. No transaction was broadcasted.`);
+              const decoded = decodeRevertReason(simErr);
+              throw new Error(`Simulation reverted: ${decoded.message}. No transaction was broadcasted.`);
             }
 
-            const fundTx = await escrow.fundJob(amountParsed, { ...fundGas, gasLimit: 350000n });
-            const receipt = await fundTx.wait();
+            const fundTx = await escrow.fundJob(fundingParams.tokenAmountArg, { ...fundGas, gasLimit: 350000n });
+            txHash = fundTx.hash;
 
+            // Immediately register submitted hash with backend worker
+            sessionStorage.setItem(`polylance_tx_${job.id}`, JSON.stringify({ intentId, txHash, status: 'SUBMITTED' }));
+            fetch(`${syncUrl}/api/tx/submitted`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ intentId, txHash }),
+            }).catch(() => {});
+
+            const receipt = await fundTx.wait();
             if (!receipt || receipt.status !== 1) {
               throw new Error('On-chain token funding transaction failed (receipt status 0). No funds were moved.');
             }
 
-            txHash = receipt.hash;
-            console.log(`On-chain escrow successfully funded with ${tokenSymbol} + 2.5% client fee! TxHash: ${txHash}`);
+            sessionStorage.removeItem(`polylance_tx_${job.id}`);
+            console.log(`On-chain escrow successfully funded with ${fundingParams.tokenSymbol} + 2.5% client fee! TxHash: ${txHash}`);
             await refreshBalances().catch(() => {});
           }
         } else if (isConnected) {
@@ -3298,7 +3436,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
     if (!txHash) {
-      txHash = generateMockTxHash();
+      txHash = '';
     }
 
     const proofObj: ProofOfWork = {
@@ -3326,9 +3464,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       events: updatedEvents,
     };
 
-    setJobs((prev) =>
-      prev.map((j) => (matchJob(j, jobId) ? updatedJob : j))
-    );
+    setJobs((prev) => {
+      const next = prev.map((j) => (matchJob(j, jobId) ? updatedJob : j));
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
 
     const actorAddr = address || currentConnectedWalletAddress || (updatedJob as any).freelancer || '';
     broadcastSync({ jobs: [updatedJob] }, actorAddr);
@@ -3343,8 +3483,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           'Content-Type': 'application/json',
           'x-wallet-address': actorAddr,
         },
-        body: JSON.stringify(updatedJob),
-      }).catch(() => {});
+        body: JSON.stringify({
+          proof: proofObj,
+          status: 'Submitted',
+          submittedAt: Date.now(),
+          events: updatedEvents,
+        }),
+      }).catch((err) => console.warn('[SUBMIT WORK PATCH ERROR]', err));
     });
   };
 
@@ -3371,15 +3516,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('Real contract postProgressUpdate fallback:', err);
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
     const updateObj = {
-      id: txHash.slice(0, 10),
+      id: txHash ? txHash.slice(0, 10) : `upd-${Date.now()}`,
       ipfsHash: updateIpfsHash,
       progressPercent,
       statusNote,
       timestamp: Date.now(),
-      txHash,
+      txHash: txHash || undefined,
       demoUrl,
     };
 
@@ -3401,9 +3546,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       events: newEvents,
     };
 
-    setJobs((prev) =>
-      prev.map((j) => (matchJob(j, jobId) ? updatedJob : j))
-    );
+    setJobs((prev) => {
+      const next = prev.map((j) => (matchJob(j, jobId) ? updatedJob : j));
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
 
     const actorAddr = address || currentConnectedWalletAddress || (updatedJob as any).freelancer || '';
     broadcastSync({ jobs: [updatedJob] }, actorAddr);
@@ -3418,8 +3565,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           'Content-Type': 'application/json',
           'x-wallet-address': actorAddr,
         },
-        body: JSON.stringify(updatedJob),
-      }).catch(() => {});
+        body: JSON.stringify({
+          progressUpdate: updateObj,
+          events: newEvents,
+        }),
+      }).catch((err) => console.warn('[PROGRESS PATCH ERROR]', err));
     });
   };
 
@@ -3440,11 +3590,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('Real contract requestTimeExtension fallback:', err);
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
     const requestIndex = job?.extensionRequests ? job.extensionRequests.length : 0;
     const reqObj = {
-      id: txHash.slice(0, 10),
+      id: txHash ? txHash.slice(0, 10) : `ext-${Date.now()}`,
       requestIndex,
       requestedDays,
       reasonIpfsHash,
@@ -3455,8 +3605,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       status: 'Pending' as const,
     };
 
-    setJobs((prev) =>
-      prev.map((j) => {
+    let targetUpdatedJob: Job | null = null;
+    setJobs((prev) => {
+      const next = prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
         const newEvents = [
           ...j.events,
@@ -3470,13 +3621,38 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             description: reason,
           },
         ];
-        return {
+        const updated = {
           ...j,
           extensionRequests: [reqObj, ...(j.extensionRequests || [])],
           events: newEvents,
         };
-      })
-    );
+        targetUpdatedJob = updated;
+        return updated;
+      });
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (targetUpdatedJob) {
+      const actorAddr = address || currentConnectedWalletAddress || (targetUpdatedJob as any).freelancer || '';
+      broadcastSync({ jobs: [targetUpdatedJob] }, actorAddr);
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [targetUpdatedJob] });
+      }
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': actorAddr,
+          },
+          body: JSON.stringify({
+            extensionRequest: reqObj,
+          }),
+        }).catch(() => {});
+      });
+    }
   };
 
   const respondToTimeExtension = async (
@@ -3502,10 +3678,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('Real contract respondToTimeExtension fallback:', err);
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
-    setJobs((prev) =>
-      prev.map((j) => {
+    let targetUpdatedJob: Job | null = null;
+    setJobs((prev) => {
+      const next = prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
         let addedDays = 0;
         const updatedRequests = (j.extensionRequests || []).map((req) => {
@@ -3535,14 +3712,37 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           },
         ];
 
-        return {
+        const updated = {
           ...j,
           reviewPeriodDays: j.reviewPeriodDays + addedDays,
           extensionRequests: updatedRequests,
           events: newEvents,
         };
-      })
-    );
+        targetUpdatedJob = updated;
+        return updated;
+      });
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (targetUpdatedJob) {
+      const actorAddr = address || currentConnectedWalletAddress || (targetUpdatedJob as any).client || '';
+      broadcastSync({ jobs: [targetUpdatedJob] }, actorAddr);
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [targetUpdatedJob] });
+      }
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': actorAddr,
+          },
+          body: JSON.stringify(targetUpdatedJob),
+        }).catch(() => {});
+      });
+    }
   };
 
   const requestModifications = async (jobId: string, note: string) => {
@@ -3562,17 +3762,18 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('Real contract requestModifications fallback:', err);
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
     const modObj = {
-      id: txHash.slice(0, 10),
+      id: txHash ? txHash.slice(0, 10) : `mod-${Date.now()}`,
       note,
       requestedAt: Date.now(),
       status: 'Pending' as const,
     };
 
-    setJobs((prev) =>
-      prev.map((j) => {
+    let targetUpdatedJob: Job | null = null;
+    setJobs((prev) => {
+      const next = prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
         const newEvents = [
           ...j.events,
@@ -3586,21 +3787,81 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             description: note,
           },
         ];
-        return {
+        const updated: Job = {
           ...j,
+          status: 'Funded',
           modificationRequests: [modObj, ...(j.modificationRequests || [])],
           events: newEvents,
         };
-      })
-    );
+        targetUpdatedJob = updated;
+        return updated;
+      });
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (targetUpdatedJob) {
+      const actorAddr = address || currentConnectedWalletAddress || (targetUpdatedJob as any).client || '';
+      broadcastSync({ jobs: [targetUpdatedJob] }, actorAddr);
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [targetUpdatedJob] });
+      }
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': actorAddr,
+          },
+          body: JSON.stringify({
+            modificationRequest: modObj,
+            status: 'In Progress',
+          }),
+        }).catch((err) => console.warn('[REVISION REQUEST PATCH ERROR]', err));
+      });
+    }
+  };
+
+  const parseSbtTokenIdFromLogs = (logs?: readonly any[] | any[]): string | undefined => {
+    if (!logs || !Array.isArray(logs)) return undefined;
+    const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+    const sbtAddrLower = (CONTRACTS.ReputationSBT || '0x22a61f83ceb94233d30a20eeacbdeb9bcc1c2879').toLowerCase();
+    for (const log of logs) {
+      if (
+        log.address?.toLowerCase() === sbtAddrLower &&
+        log.topics &&
+        log.topics[0]?.toLowerCase() === transferTopic &&
+        log.topics[1]?.includes('0000000000000000000000000000000000000000') &&
+        log.topics[3]
+      ) {
+        try {
+          return BigInt(log.topics[3]).toString();
+        } catch {}
+      }
+    }
+    return undefined;
   };
 
   const releasePayment = async (jobId: string) => {
+    if (releaseInProgressRef.current[jobId]) {
+      console.warn(`[releasePayment] Release already in progress for job ${jobId}`);
+      return;
+    }
+    releaseInProgressRef.current[jobId] = true;
+
     let txHash = '';
     let sbtTxHash = '';
+    let realMintedSbtId: string | undefined = undefined;
     const job = jobs.find((j) => matchJob(j, jobId));
 
+    if (!job) {
+      releaseInProgressRef.current[jobId] = false;
+      throw new Error('Escrow job not found.');
+    }
+
     if (isConnected && isWrongNetwork) {
+      releaseInProgressRef.current[jobId] = false;
       throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to release escrow payment.`);
     }
 
@@ -3613,7 +3874,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (hasLiveContract) {
           const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
           const signerAddr = (await signer.getAddress()).toLowerCase();
-          
+
           // Verify on-chain status, amount, client, and freelancer
           const onChainStatus = Number(await escrow.status().catch(() => -1));
           const onChainAmount: bigint = await escrow.amount().catch(() => 0n);
@@ -3622,81 +3883,107 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
           console.log(`[releasePayment] On-chain escrow check (${job.contractAddress}): status=${onChainStatus}, amount=${ethers.formatEther(onChainAmount)} POL, client=${onChainClient}, freelancer=${onChainFreelancer}, signer=${signerAddr}`);
 
-          if (onChainAmount === 0n || onChainStatus === 4 || onChainStatus === 5) {
-            // Case 1: Escrow deposit is 0 or already completed/cancelled on-chain
-            console.log(`Escrow contract ${job.contractAddress} on-chain balance is 0 POL (status=${onChainStatus}). Finalizing settlement and minting dual reputation SBTs...`);
-            txHash = job.events?.find((e: any) => e.step === 'Completed')?.txHash || generateMockTxHash();
+          if (onChainStatus === 4) {
+            // Already completed on-chain
+            console.log(`Escrow contract ${job.contractAddress} is already Completed on-chain.`);
+            txHash = job.events?.find((e: any) => e.step === 'Completed' || e.step === 'Paid')?.txHash || '';
             sbtTxHash = txHash;
           } else if (onChainStatus === 2) {
-            // Case 2: Real on-chain JobStatus.Submitted (2)
-            console.log(`Executing real on-chain payment release from escrow ${job.contractAddress}...`);
+            // Case 2: Standard Submitted state — trigger releasePayment
+            console.log(`Executing on-chain payment release from escrow ${job.contractAddress}...`);
             const releaseGas = await getPolygonGasOverrides(provider);
             const tx = await escrow.releasePayment(releaseGas);
             const receipt = await tx.wait();
             txHash = receipt.hash;
             sbtTxHash = receipt.hash;
+            const parsedTokenId = parseSbtTokenIdFromLogs(receipt?.logs);
+            if (parsedTokenId) realMintedSbtId = parsedTokenId;
             console.log(`Payment successfully released on-chain! TxHash: ${txHash}`);
-          } else if (onChainStatus === 0) {
-            // Case 3: On-chain status is Open (0).
-            // The job was funded on-chain, but the intermediate steps (apply & submit) were handled off-chain.
-            if (onChainAmount > 0n) {
-              const escrowPaymentToken: string = await escrow.paymentToken().catch(() => ethers.ZeroAddress);
-              const isErc20 = escrowPaymentToken && escrowPaymentToken !== ethers.ZeroAddress;
-              console.log(`Escrow contract ${job.contractAddress} is in Open state with ${isErc20 ? 'ERC-20' : 'POL'} funds. Reclaiming escrow deposit before disbursing to talent...`);
-              const cancelGas = await getPolygonGasOverrides(provider);
-              const cancelTx = await escrow.cancelJob(cancelGas);
-              const cancelReceipt = await cancelTx.wait();
-              console.log(`Escrow deposit successfully reclaimed on-chain: ${cancelReceipt.hash}`);
+          } else if (onChainStatus === 0 || onChainStatus === 1) {
+            // Case 3: Contract is in Open (0) or Selected (1)
+            // CRITICAL: NEVER call cancelJob()!
+            const escrowPaymentToken: string = await escrow.paymentToken().catch(() => ethers.ZeroAddress);
+            const isErc20 = escrowPaymentToken && escrowPaymentToken !== ethers.ZeroAddress;
+            const targetFreelancer = job.freelancer && ethers.isAddress(job.freelancer) ? job.freelancer : null;
+            const treasuryAddr = (import.meta.env.VITE_TREASURY_ADDRESS || '0x940D8475689b2156D6174555F3382b5E6951653F').toLowerCase();
 
-              // Transfer net payout directly to freelancer on-chain in the matching token
-              const targetFreelancer = job.freelancer && ethers.isAddress(job.freelancer) ? job.freelancer : null;
-              if (targetFreelancer && targetFreelancer.toLowerCase() !== signerAddr) {
-                const feeAmount = (onChainAmount * 250n) / 10000n; // 2.5% platform fee
-                const payoutAmount = onChainAmount - feeAmount;
-                const payGas = await getPolygonGasOverrides(provider);
-                if (isErc20) {
-                  const erc20 = new ethers.Contract(escrowPaymentToken, ['function transfer(address to, uint256 amount) returns (bool)'], signer);
-                  const payTx = await erc20.transfer(targetFreelancer, payoutAmount, payGas);
-                  const payReceipt = await payTx.wait();
-                  txHash = payReceipt?.hash || payTx.hash;
-                  sbtTxHash = txHash;
-                } else {
-                  console.log(`Disbursing direct on-chain payout (${ethers.formatEther(payoutAmount)} POL) to freelancer ${targetFreelancer}...`);
-                  const payTx = await signer.sendTransaction({
-                    to: targetFreelancer,
-                    value: payoutAmount,
-                    ...payGas,
-                  });
-                  const payReceipt = await payTx.wait();
-                  txHash = payReceipt?.hash || payTx.hash;
-                  sbtTxHash = txHash;
-                }
-                console.log(`Direct on-chain payout to freelancer confirmed: ${txHash}`);
-              } else {
-                txHash = cancelReceipt?.hash || cancelTx.hash;
-                sbtTxHash = txHash;
-              }
-            } else {
-              txHash = generateMockTxHash();
-              sbtTxHash = txHash;
-            }
-          } else if (onChainStatus === 1) {
-            // Case 4: On-chain status is Selected (1).
-            // In JobEscrow.sol, releasePayment() requires status == JobStatus.Submitted (2).
-            if (onChainAmount > 0n) {
+            // Check if atomic release is supported by contract
+            if (typeof escrow.releasePaymentAtomic === 'function' && targetFreelancer) {
+              console.log(`Calling releasePaymentAtomic on contract ${job.contractAddress}...`);
+              const releaseGas = await getPolygonGasOverrides(provider);
+              const tx = await escrow.releasePaymentAtomic(targetFreelancer, releaseGas);
+              const receipt = await tx.wait();
+              txHash = receipt.hash;
+              sbtTxHash = receipt.hash;
+              const parsedTokenId = parseSbtTokenIdFromLogs(receipt?.logs);
+              if (parsedTokenId) realMintedSbtId = parsedTokenId;
+            } else if (onChainStatus === 1) {
               try {
                 const releaseGas = await getPolygonGasOverrides(provider);
                 const tx = await escrow.releasePayment(releaseGas);
                 const receipt = await tx.wait();
                 txHash = receipt.hash;
                 sbtTxHash = receipt.hash;
+                const parsedTokenId = parseSbtTokenIdFromLogs(receipt?.logs);
+                if (parsedTokenId) realMintedSbtId = parsedTokenId;
               } catch (relErr: any) {
-                console.warn('Direct escrow.releasePayment on Selected state requires submission:', relErr);
-                throw new Error('Deliverables must be submitted by the freelancer on-chain before the escrow payout can be released.');
+                console.warn('Escrow release on Selected requires work submission:', relErr);
+                throw new Error('On-chain deliverables must be recorded before release can be executed.');
+              }
+            } else if (onChainAmount > 0n && targetFreelancer && targetFreelancer.toLowerCase() !== signerAddr) {
+              // Direct on-chain settlement without cancelling the escrow
+              const fees = feeBreakdown(onChainAmount, escrowPaymentToken);
+              const payGas = await getPolygonGasOverrides(provider);
+
+              if (isErc20) {
+                const erc20 = new ethers.Contract(escrowPaymentToken, ['function transfer(address to, uint256 amount) returns (bool)'], signer);
+                // 1. Pay freelancer net amount
+                const flTx = await erc20.transfer(targetFreelancer, fees.freelancerNet, payGas);
+                const flReceipt = await flTx.wait();
+                txHash = flReceipt?.hash || flTx.hash;
+                sbtTxHash = txHash;
+                const parsedTokenId = parseSbtTokenIdFromLogs(flReceipt?.logs);
+                if (parsedTokenId) realMintedSbtId = parsedTokenId;
+                // 2. Pay treasury platform total
+                if (fees.platformTotal > 0n && ethers.isAddress(treasuryAddr)) {
+                  try {
+                    const trTx = await erc20.transfer(treasuryAddr, fees.platformTotal, payGas);
+                    await trTx.wait();
+                  } catch (trErr) {
+                    console.warn('[TREASURY TRANSFER NOTE] Treasury transfer failed, logged for reconciliation:', trErr);
+                  }
+                }
+              } else {
+                console.log(`Disbursing direct payout (${ethers.formatEther(fees.freelancerNet)} POL net) to freelancer ${targetFreelancer}...`);
+                const flTx = await signer.sendTransaction({
+                  to: targetFreelancer,
+                  value: fees.freelancerNet,
+                  ...payGas,
+                });
+                const flReceipt = await flTx.wait();
+                txHash = flReceipt?.hash || flTx.hash;
+                sbtTxHash = txHash;
+                const parsedTokenId = parseSbtTokenIdFromLogs(flReceipt?.logs);
+                if (parsedTokenId) realMintedSbtId = parsedTokenId;
+
+                // Transfer platform fee to treasury
+                if (fees.platformTotal > 0n && ethers.isAddress(treasuryAddr)) {
+                  try {
+                    console.log(`Transferring platform fee (${ethers.formatEther(fees.platformTotal)} POL) to treasury ${treasuryAddr}...`);
+                    const trTx = await signer.sendTransaction({
+                      to: treasuryAddr,
+                      value: fees.platformTotal,
+                      ...payGas,
+                    });
+                    await trTx.wait();
+                  } catch (trErr) {
+                    console.warn('[TREASURY TRANSFER NOTE] POL Treasury fee transfer failed, logged for reconciliation:', trErr);
+                  }
+                }
               }
             } else {
-              txHash = generateMockTxHash();
-              sbtTxHash = txHash;
+              txHash = '';
+              sbtTxHash = '';
             }
           } else {
             console.log(`Executing on-chain payment release attempt from escrow ${job.contractAddress}...`);
@@ -3706,9 +3993,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               const receipt = await tx.wait();
               txHash = receipt.hash;
               sbtTxHash = receipt.hash;
+              const parsedTokenId = parseSbtTokenIdFromLogs(receipt?.logs);
+              if (parsedTokenId) realMintedSbtId = parsedTokenId;
             } catch {
-              txHash = generateMockTxHash();
-              sbtTxHash = txHash;
+              txHash = '';
+              sbtTxHash = '';
             }
           }
 
@@ -3716,10 +4005,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     } catch (err: any) {
+      releaseInProgressRef.current[jobId] = false;
       console.error('Real contract releasePayment notice:', err);
       if (isConnected) {
         throw err;
       }
+    } finally {
+      releaseInProgressRef.current[jobId] = false;
     }
 
     if (!txHash) {
@@ -3727,13 +4019,16 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     if (!sbtTxHash) sbtTxHash = txHash;
 
+    let updatedJobToSync: Job | null = null;
+
     setJobs((prev) =>
       prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
-        const fee = parseFloat(j.amountUsdc || '0') * 0.025;
-        setTreasuryBalanceUsdc((b) => b + fee);
+        const feeCalc = calculateFeeBreakdownFromString(j.amountUsdc || j.amountEth || '0', j.paymentTokenSymbol || 'POL');
+        const feeAmount = parseFloat(feeCalc.formatted.platformTotal);
+        setTreasuryBalanceUsdc((b) => b + feeAmount);
         setTreasuryHistory((h) => [
-          { id: Date.now().toString(), type: 'FEE_COLLECTED', amountUsdc: fee, txHash, timestamp: Date.now() },
+          { id: Date.now().toString(), type: 'FEE_COLLECTED', amountUsdc: feeAmount, txHash, timestamp: Date.now() },
           ...h,
         ]);
 
@@ -3789,23 +4084,62 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           return next;
         });
 
-        const updatedEvents = j.events.map((evt) => {
+        const updatedEvents = (j.events || []).map((evt) => {
           if (evt.step === 'Completed') return { ...evt, title: 'Payment Released (100%)', status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
+          if (evt.step === 'Paid') return { ...evt, title: 'Payment Released (100%)', status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
           if (evt.step === 'Minted') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash: sbtTxHash, actor: 'JobFactory' };
           return evt;
         });
 
-        const finalSbtTokenId = j.sbtTokenId || (txHash ? parseInt(txHash.slice(-6), 16) % 10000 || 101 : 101);
-        return {
+        // Ensure step: 'Paid' and step: 'Completed' are both present
+        if (!updatedEvents.some(e => e.step === 'Paid' && e.status === 'completed')) {
+          updatedEvents.push({
+            step: 'Paid',
+            title: 'Payment Released (100%)',
+            status: 'completed',
+            timestamp: Date.now(),
+            txHash,
+          });
+        }
+        if (!updatedEvents.some(e => e.step === 'Completed' && e.status === 'completed')) {
+          updatedEvents.push({
+            step: 'Completed',
+            title: 'Milestone Completed & Settled',
+            status: 'completed',
+            timestamp: Date.now(),
+            txHash,
+          });
+        }
+
+        const finalSbtTokenId = realMintedSbtId || j.sbtTokenId || undefined;
+        const sbtMintStatus = finalSbtTokenId ? ('issued' as const) : ('pending' as const);
+        const updated = {
           ...j,
-          status: 'Completed',
+          status: 'Completed' as const,
+          escrowStatus: 'RELEASED' as const,
           completedAt: Date.now(),
+          releaseTxHash: txHash,
           sbtTokenId: finalSbtTokenId,
-          sbtTxHash: sbtTxHash || txHash,
+          sbtTxHash: finalSbtTokenId ? (sbtTxHash || txHash) : undefined,
+          onchainTokenId: j.onchainTokenId !== undefined ? j.onchainTokenId : (realMintedSbtId ? Number(realMintedSbtId) : undefined),
+          certificateNo: j.certificateNo !== undefined ? j.certificateNo : (typeof finalSbtTokenId === 'number' ? finalSbtTokenId : undefined),
+          mintTxHash: j.mintTxHash || (finalSbtTokenId ? (sbtTxHash || txHash) : undefined),
+          sbtMintStatus,
           events: updatedEvents,
         };
+        updatedJobToSync = updated;
+        return updated;
       })
     );
+
+    // CRITICAL: Push confirmed completion update over WebSocket and BroadcastChannel
+    if (updatedJobToSync) {
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [updatedJobToSync] });
+      }
+      broadcastSync({ jobs: [updatedJobToSync] });
+    }
+
     refreshBalances().catch(() => {});
   };
 
@@ -3912,7 +4246,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Real contract cancelJob error:', err);
       if (isConnected) throw err;
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
     setJobs((prev) =>
       prev.map((j) => {
@@ -3954,7 +4288,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('Real contract raiseDispute fallback:', err);
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
     setJobs((prev) =>
       prev.map((j) => {
@@ -4029,8 +4363,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
 
-    if (!txHash) txHash = generateMockTxHash();
-    if (!sbtTxHash) sbtTxHash = generateMockTxHash();
+    if (!txHash) txHash = '';
+    if (!sbtTxHash) sbtTxHash = '';
     const reasoningCid = generateIpfsCid(reasoningText);
 
     setJobs((prev) =>
@@ -4499,7 +4833,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         address: lowerAddress,
         displayName: 'Anonymous PolyLancer',
         bio: '',
-        avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${lowerAddress}`,
+        avatarUrl: '',
         ipfsHash: '',
         skills: [],
         githubVerified: false,
@@ -4525,22 +4859,6 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Explicitly broadcast and dual-write to cloud databases
       broadcastSync({ profiles: { [lowerAddress]: updatedSingle } }, lowerAddress);
-
-      // Direct multi-endpoint POST for guaranteed server persistence
-      const syncEndpoints = getSyncEndpoints();
-      const postPayload = JSON.stringify({
-        profiles: { [lowerAddress]: updatedSingle },
-      });
-      syncEndpoints.forEach((ep) => {
-        fetch(`${ep}/api/sync?address=${encodeURIComponent(lowerAddress)}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-wallet-address': lowerAddress,
-          },
-          body: postPayload,
-        }).catch(() => {});
-      });
 
       return finalMerged;
     });
@@ -4622,7 +4940,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         id: Date.now().toString(),
         type: 'WITHDRAWAL',
         amountUsdc,
-        txHash: generateMockTxHash(),
+        txHash: '',
         timestamp: Date.now(),
         by: `${byAddress.slice(0, 6)}... (Safe Multisig)`,
       },
