@@ -155,31 +155,14 @@ export const DOMAIN_BY_ID: Record<DomainId, DomainConfig> = {
   backend: DOMAINS[2],
   mobile: DOMAINS[3],
 };
+import { isJobListed as canonicalIsJobListed } from '../types/lifecycle';
 
 /**
  * Global single source of truth deciding whether a job appears in Find Jobs.
- * RULE: The job leaves Find Jobs ONLY when escrow funding is confirmed on-chain
- * (status === 'Funded'). Selection, counter-offers, or failed/pending tx MUST NOT hide it.
+ * RULE: Delegated directly to canonical isJobListed in types/lifecycle.ts
  */
 export function isJobListed(job: any): boolean {
-  if (!job) return false;
-  if (job.isDemo || job.isMock) return false;
-
-  const rawStatus = (job.status || '').toLowerCase().trim();
-
-  // Exclude completed, cancelled, or draft
-  if (rawStatus === 'completed' || rawStatus === 'cancelled' || rawStatus === 'draft') {
-    return false;
-  }
-  if (job.dispute && !job.dispute.resolved) return false;
-
-  // The job leaves Find Jobs ONLY when confirmed funded
-  if (rawStatus === 'funded' || rawStatus === 'submitted') {
-    return false;
-  }
-
-  // Jobs in 'open' or 'selected' (with active negotiation or pending funding) MUST stay listed!
-  return rawStatus === 'open' || rawStatus === 'selected';
+  return canonicalIsJobListed(job);
 }
 
 /**

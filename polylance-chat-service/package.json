@@ -30,12 +30,14 @@
     "polylance": "file:..",
     "prisma": "^6.19.3",
     "qrcode": "^1.5.4",
+    "sanitize-html": "^2.18.1",
     "socket.io": "^4.8.4",
     "telegraf": "^4.16.3",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@types/sanitize-html": "^2.16.2",
     "socket.io-client": "^4.8.4",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"

@@ -31,7 +31,7 @@ export const SUPPORTED_FIAT: FiatCurrency[] = [
 ];
 
 export const SUPPORTED_CRYPTO: CryptoToken[] = [
-  { id: 'POL', name: 'Polygon', symbol: 'POL', priceUsd: 0.45, color: 'text-[#0B0B0F] border-[#E5E7EB] bg-[#F6F7F9]', iconBg: 'bg-[#0B0B0F]' },
+  { id: 'POL', name: 'Polygon', symbol: 'POL', priceUsd: 0.089, color: 'text-[#0B0B0F] border-[#E5E7EB] bg-[#F6F7F9]', iconBg: 'bg-[#0B0B0F]' },
   { id: 'USDC', name: 'USD Coin', symbol: 'USDC', priceUsd: 1.0, color: 'text-[#0047AB] border-[#E5E7EB] bg-[#F6F7F9]', iconBg: 'bg-[#0047AB]' },
   { id: 'USDT', name: 'Tether', symbol: 'USDT', priceUsd: 1.0, color: 'text-[#1E8449] border-[#E5E7EB] bg-[#F6F7F9]', iconBg: 'bg-[#1E8449]' }
 ];
@@ -42,7 +42,7 @@ export interface ConversionRates {
   lastUpdated: number;
 }
 
-// Initial/Fallback rates (POL defaults to live $0.45)
+// Initial/Fallback rates (POL defaults to live market rate ~0.089)
 let activeRates: ConversionRates = {
   fiatRates: {
     USD: 1.0,
@@ -59,7 +59,7 @@ let activeRates: ConversionRates = {
   cryptoPrices: {
     USDC: 1.0,
     USDT: 1.0,
-    POL: 0.45
+    POL: 0.089
   },
   lastUpdated: Date.now()
 };
@@ -159,7 +159,7 @@ export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
       }
     } catch {}
 
-    // 2. Fetch Crypto prices in USD (Primary: Binance public ticker with 3s timeout)
+    // 2. Fetch Crypto prices in USD (Primary: Binance public ticker, Secondary: CoinGecko)
     let cryptoSuccess = false;
     try {
       const controller = new AbortController();
@@ -191,6 +191,37 @@ export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
         cryptoSuccess = true;
       }
     } catch {}
+
+    // Resilient fallback to CoinGecko if Binance is inaccessible (e.g. ISP blocked in India)
+    if (!cryptoSuccess) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const cgRes = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=polygon-ecosystem-token,usd-coin,tether&vs_currencies=usd',
+          { signal: controller.signal }
+        );
+        clearTimeout(timeoutId);
+        if (cgRes.ok) {
+          const cgData = await cgRes.json();
+          if (cgData['polygon-ecosystem-token']?.usd) {
+            activeRates.cryptoPrices.POL = cgData['polygon-ecosystem-token'].usd;
+          }
+          if (cgData['usd-coin']?.usd) {
+            activeRates.cryptoPrices.USDC = cgData['usd-coin'].usd;
+          }
+          if (cgData['tether']?.usd) {
+            activeRates.cryptoPrices.USDT = cgData['tether'].usd;
+          }
+          SUPPORTED_CRYPTO.forEach((c) => {
+            if (activeRates.cryptoPrices[c.id]) {
+              c.priceUsd = activeRates.cryptoPrices[c.id];
+            }
+          });
+          cryptoSuccess = true;
+        }
+      } catch {}
+    }
 
     activeRates.lastUpdated = Date.now();
     if (typeof window !== 'undefined') {
@@ -278,7 +309,7 @@ export function convertCryptoToFiat(
 ): { amount: number; formatted: string } {
   const num = typeof cryptoAmount === 'number' ? cryptoAmount : parseFloat(String(cryptoAmount).replace(/[^0-9.-]/g, '')) || 0;
   const sym = normalizeTokenSymbol(tokenCode);
-  const tokenPriceUsd = activeRates.cryptoPrices[sym] ?? (sym === 'POL' ? 0.45 : 1.0);
+  const tokenPriceUsd = activeRates.cryptoPrices[sym] ?? (sym === 'POL' ? 0.089 : 1.0);
   const targetFiat = (fiatCode || globalFiatCurrency).toUpperCase();
   const fiatRateVsUsd = activeRates.fiatRates[targetFiat] ?? (targetFiat === 'INR' ? 83.5 : 1.0);
 
@@ -293,6 +324,6 @@ export function convertCryptoToFiat(
 
 export function convertUsdToCrypto(usdAmount: number, tokenCode: string): number {
   const sym = normalizeTokenSymbol(tokenCode);
-  const tokenPriceUsd = activeRates.cryptoPrices[sym] || (sym === 'POL' ? 0.45 : 1.0);
+  const tokenPriceUsd = activeRates.cryptoPrices[sym] || (sym === 'POL' ? 0.089 : 1.0);
   return usdAmount / tokenPriceUsd;
 }

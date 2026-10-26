@@ -56,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             {this.state.error?.message && (
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] font-mono text-slate-600 text-left max-h-24 overflow-y-auto break-all">
+              <div data-lenis-prevent="true" className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] font-mono text-slate-600 text-left max-h-24 overflow-y-auto overscroll-contain break-all custom-scrollbar">
                 {this.state.error.message}
               </div>
             )}

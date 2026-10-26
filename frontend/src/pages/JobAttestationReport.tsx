@@ -18,12 +18,15 @@ import { LoginModal } from '../components/LoginModal';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { TokenIcon, PolygonIcon } from '../components/TokenIcon';
-import { truncateAddress, generateDeterministicHash, getCanonicalCertificateId, getCertifiedPassVerifyUrl, getPolygonScanUrl, formatWeb3ErrorMessage, getDeterministicSbtId } from '../utils/formatters';
+import { truncateAddress, generateDeterministicHash, getCanonicalCertificateId, getCertifiedPassVerifyUrl, buildVerifyUrl, getPolygonScanUrl, formatWeb3ErrorMessage, getDeterministicSbtId } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { generateCode128Bars } from '../utils/barcode';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
 import polylanceVerifiedSealImg from '../assets/polylance-verified-seal.png';
 import { Job } from '../types';
+import { CONTRACTS } from '../config/contracts';
+import { KNOWN_ONCHAIN_TOKENS } from '../utils/certificateGenerator';
+import { getJobAmounts } from '../lib/amounts/getJobAmounts';
 
 export const JobAttestationReport: React.FC = () => {
   const { id: jobIdParam } = useParams<{ id: string }>();
@@ -102,27 +105,72 @@ export const JobAttestationReport: React.FC = () => {
   // ── DATA PROTECTION: ONLY LOAD THE CONNECTED USER'S OWN COMPLETED CERTIFICATES ──
   const userCompletedJobs = useMemo(() => {
     if (!userAddress) return [];
-    const lowerUser = userAddress.toLowerCase();
+    const lowerUser = userAddress.toLowerCase().trim();
     const map = new Map<string, Job>();
 
-    // 1. Context jobs where user is client or talent
-    jobs.forEach((j) => {
-      if (
-        (j.status === 'Completed' || j.status === 'Submitted') &&
-        (j.freelancer?.toLowerCase() === lowerUser || j.client?.toLowerCase() === lowerUser)
-      ) {
-        map.set(j.id.toLowerCase(), j);
-      }
-    });
+    const checkAndAdd = (j: any) => {
+      if (!j) return;
+      const jFreelancer = (j.freelancer || '').toLowerCase().trim();
+      const jClient = (j.client || '').toLowerCase().trim();
+      const isParty = (jFreelancer === lowerUser || jClient === lowerUser);
+      if (!isParty) return;
 
-    // 2. Synced jobs from backend where user is client or talent
-    syncedJobs.forEach((j: any) => {
-      if (
-        (j.status === 'Completed' || j.status === 'Submitted') &&
-        (j.freelancer?.toLowerCase() === lowerUser || j.client?.toLowerCase() === lowerUser) &&
-        !map.has(j.id.toLowerCase())
-      ) {
-        map.set(j.id.toLowerCase(), j);
+      const isCompletedOrMinted =
+        j.status === 'Completed' ||
+        j.status === 'Submitted' ||
+        j.status === 'PaymentReleased' ||
+        Boolean(j.sbtTokenId) ||
+        Boolean(j.sbtPatronageTokenId) ||
+        Boolean(j.releaseTxHash) ||
+        Boolean(j.events && j.events.some((e: any) => e.step === 'Completed' || e.step === 'Released'));
+
+      if (isCompletedOrMinted) {
+        const key = String(j.id || '').toLowerCase().trim();
+        if (key && !map.has(key)) {
+          map.set(key, j);
+        }
+      }
+    };
+
+    // 1. Context jobs
+    (jobs || []).forEach(checkAndAdd);
+
+    // 2. Synced jobs from backend
+    (syncedJobs || []).forEach(checkAndAdd);
+
+    // 3. Check local storage fallback for any freshly completed jobs
+    try {
+      const stored = localStorage.getItem('polylance_jobs');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(checkAndAdd);
+        }
+      }
+    } catch (_) {}
+
+    // 4. Known on-chain tokens matching user address across both Patronage and Work roles
+    Object.values(KNOWN_ONCHAIN_TOKENS).forEach((tok) => {
+      const h = (tok.holderWallet || '').toLowerCase().trim();
+      const c = (tok.clientWallet || '').toLowerCase().trim();
+      if (h === lowerUser || c === lowerUser) {
+        const key = String(tok.jobId || tok.onchainTokenId).toLowerCase().trim();
+        if (!map.has(key)) {
+          map.set(key, {
+            id: tok.jobId,
+            title: tok.jobTitle,
+            client: tok.clientWallet,
+            freelancer: tok.variant === 'work' ? tok.holderWallet : ((tok as any).freelancerWallet || tok.holderWallet),
+            status: 'Completed',
+            amountEth: tok.amount,
+            paymentTokenSymbol: tok.tokenSymbol,
+            onchainTokenId: tok.onchainTokenId,
+            certificateNo: tok.certificateNo,
+            mintTxHash: tok.mintTxHash,
+            releaseTxHash: tok.mintTxHash,
+            completedAt: tok.mintedAt
+          } as any);
+        }
       }
     });
 
@@ -210,13 +258,13 @@ export const JobAttestationReport: React.FC = () => {
   // Filter and sort user's attestations based on latest certs and search query
   const filteredAndSortedJobs = useMemo(() => {
     let list = userCompletedJobs;
-    const lowerUser = (userAddress || '').toLowerCase();
+    const lowerUser = (userAddress || '').toLowerCase().trim();
 
     // 1. Role filter tabs
     if (filterTab === 'freelancer' && lowerUser) {
-      list = list.filter((j) => j.freelancer?.toLowerCase() === lowerUser);
+      list = list.filter((j) => (j.freelancer || '').toLowerCase().trim() === lowerUser);
     } else if (filterTab === 'client' && lowerUser) {
-      list = list.filter((j) => j.client?.toLowerCase() === lowerUser);
+      list = list.filter((j) => (j.client || '').toLowerCase().trim() === lowerUser);
     }
 
     // 2. Search query filtering (strictly within user's own certs)
@@ -258,22 +306,22 @@ export const JobAttestationReport: React.FC = () => {
       if (sortBy === 'oldest') {
         return getJobTimestamp(a) - getJobTimestamp(b);
       }
-    // Latest certs first
-    return getJobTimestamp(b) - getJobTimestamp(a);
-  });
-}, [userCompletedJobs, filterTab, searchQuery, sortBy, userAddress, profiles]);
+      // Latest certs first
+      return getJobTimestamp(b) - getJobTimestamp(a);
+    });
+  }, [userCompletedJobs, filterTab, searchQuery, sortBy, userAddress, profiles]);
 
-const talentCertsCount = useMemo(() => {
-  if (!userAddress) return 0;
-  const lower = userAddress.toLowerCase();
-  return userCompletedJobs.filter((j) => j.freelancer?.toLowerCase() === lower).length;
-}, [userCompletedJobs, userAddress]);
+  const talentCertsCount = useMemo(() => {
+    if (!userAddress) return 0;
+    const lower = userAddress.toLowerCase().trim();
+    return userCompletedJobs.filter((j) => (j.freelancer || '').toLowerCase().trim() === lower).length;
+  }, [userCompletedJobs, userAddress]);
 
-const clientCertsCount = useMemo(() => {
-  if (!userAddress) return 0;
-  const lower = userAddress.toLowerCase();
-  return userCompletedJobs.filter((j) => j.client?.toLowerCase() === lower).length;
-}, [userCompletedJobs, userAddress]);
+  const clientCertsCount = useMemo(() => {
+    if (!userAddress) return 0;
+    const lower = userAddress.toLowerCase().trim();
+    return userCompletedJobs.filter((j) => (j.client || '').toLowerCase().trim() === lower).length;
+  }, [userCompletedJobs, userAddress]);
 
 // Current active job for detailed certificate report
 const activeJob = useMemo(() => {
@@ -363,7 +411,8 @@ const activeJob = useMemo(() => {
 
   const viewRole: 'freelancer' | 'client' = isUserClient ? 'client' : 'freelancer';
 
-  const amountUsdc = parseFloat(job?.amountUsdc || '5.05');
+  const jobAmounts = getJobAmounts(job, undefined, undefined, viewRole);
+  const amountUsdc = parseFloat(jobAmounts.settled || jobAmounts.effectiveAmount || '0');
   const contractAddress = job?.contractAddress || (import.meta.env.VITE_JOB_ESCROW_ADDRESS || '') as string;
   const sbtTokenId =
     viewRole === 'client'
@@ -375,7 +424,14 @@ const activeJob = useMemo(() => {
     return getCanonicalCertificateId(job?.id, job?.contractAddress);
   }, [job]);
 
-  const certifiedPassVerifyUrl = getCertifiedPassVerifyUrl(certificateId);
+  const activeKnown = (job?.id ? KNOWN_ONCHAIN_TOKENS[job.id.toLowerCase()] : null) ||
+    (job?.sbtTokenId ? KNOWN_ONCHAIN_TOKENS[String(job.sbtTokenId)] : null);
+  const activeOnchainTokenId = job?.onchainTokenId ?? activeKnown?.onchainTokenId;
+  const activeCertNo = job?.certificateNo ?? activeKnown?.certificateNo ?? (job?.sbtTokenId ? Number(job.sbtTokenId) : undefined);
+
+  const certifiedPassVerifyUrl = useMemo(() => {
+    return buildVerifyUrl(activeCertNo !== undefined ? String(activeCertNo) : certificateId, activeOnchainTokenId);
+  }, [certificateId, activeOnchainTokenId, activeCertNo]);
 
   // Settlement tx hash
   const fundEscrowTxHash = useMemo(() => {
@@ -475,7 +531,13 @@ const activeJob = useMemo(() => {
     if (!activeTarget) return;
 
     const certId = getCanonicalCertificateId(activeTarget.id, activeTarget.contractAddress);
-    const amount = parseFloat(activeTarget.amountUsdc || '0').toLocaleString();
+    const isClientRole = Boolean(
+      userAddress &&
+      activeTarget.client &&
+      activeTarget.client.toLowerCase() === userAddress.toLowerCase()
+    );
+    const targetAmounts = getJobAmounts(activeTarget, undefined, undefined, isClientRole ? 'client' : 'freelancer');
+    const amountStr = `${targetAmounts.settled || targetAmounts.effectiveAmount} ${targetAmounts.token}`;
     const cAddr = activeTarget.client || '';
     const fAddr = activeTarget.freelancer || '';
     const cProfile = profiles[cAddr.toLowerCase()];
@@ -509,15 +571,10 @@ const activeJob = useMemo(() => {
     setShareToast('🚀 Opening X to share your verified certificate! Image downloaded.');
     setTimeout(() => setShareToast(null), 6000);
 
-    const isClientRole =
-      userAddress &&
-      activeTarget.client &&
-      activeTarget.client.toLowerCase() === userAddress.toLowerCase();
-
     const text = isClientRole
       ? encodeURIComponent(
           `🏛️ Trusted Milestone Settlement on @PolyLanceProtocol!\n\n` +
-            `Proud to sponsor & settle "${activeTarget.title || 'Web3 Project'}" for $${amount} USDC with verified talent @${fName}!\n\n` +
+            `Proud to sponsor & settle "${activeTarget.title || 'Web3 Project'}" for ${amountStr} with verified talent @${fName}!\n\n` +
             `🔒 100% Sovereign MultiSig Escrow • 0% Protocol Fees\n` +
             `📜 Verified Certificate: ${certId}\n\n` +
             `Verify on-chain:`
@@ -525,7 +582,7 @@ const activeJob = useMemo(() => {
       : encodeURIComponent(
           `🚀 Proof of Work Attested & Settled on @PolyLanceProtocol!\n\n` +
             `📌 Completed: "${activeTarget.title || 'Web3 Milestone'}"\n` +
-            `💰 Payout: $${amount} USDC Settled on @0xPolygon\n` +
+            `💰 Payout: ${amountStr} Settled on @0xPolygon\n` +
             `📜 Soulbound Token (ERC-5192): ${sbtToken}\n` +
             `🤝 Attested Client: @${cName}\n\n` +
             `Verify cryptographic attestation:`
@@ -738,7 +795,18 @@ const activeJob = useMemo(() => {
                 </div>
                 <div className="bg-white rounded-[8px] px-3.5 py-1.5 border border-[#E5E7EB] text-center shadow-xs">
                   <span className="text-sm font-semibold text-[#166534] font-mono mr-1.5">
-                    ${userCompletedJobs.reduce((acc, j) => acc + parseFloat(j.amountUsdc || '0'), 0).toLocaleString()}
+                    {(() => {
+                      const polTotal = userCompletedJobs
+                        .filter(j => (j.paymentTokenSymbol || 'POL').toUpperCase() === 'POL')
+                        .reduce((acc, j) => acc + parseFloat(getJobAmounts(j).effectiveAmount || '0'), 0);
+                      const usdcTotal = userCompletedJobs
+                        .filter(j => (j.paymentTokenSymbol || '').toUpperCase() === 'USDC')
+                        .reduce((acc, j) => acc + parseFloat(getJobAmounts(j).effectiveAmount || '0'), 0);
+                      return [
+                        polTotal > 0 ? `${polTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} POL` : null,
+                        usdcTotal > 0 ? `${usdcTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC` : null,
+                      ].filter(Boolean).join(' + ') || '0 POL';
+                    })()}
                   </span>
                   <span className="text-xs text-[#4B5563]">
                     Settled
@@ -778,7 +846,7 @@ const activeJob = useMemo(() => {
                 onClick={() => setFilterTab('all')}
                 className={`px-3 py-1.5 rounded-[6px] font-medium transition-colors cursor-pointer ${
                   filterTab === 'all'
-                    ? 'bg-white text-[#0B0B0F] shadow-xs'
+                    ? 'bg-white text-[#0B0B0F] shadow-xs font-semibold'
                     : 'text-[#4B5563] hover:text-[#0B0B0F]'
                 }`}
               >
@@ -789,22 +857,22 @@ const activeJob = useMemo(() => {
                 onClick={() => setFilterTab('freelancer')}
                 className={`px-3 py-1.5 rounded-[6px] font-medium transition-colors cursor-pointer ${
                   filterTab === 'freelancer'
-                    ? 'bg-white text-[#0B0B0F] shadow-xs'
+                    ? 'bg-white text-[#0B0B0F] shadow-xs font-semibold'
                     : 'text-[#4B5563] hover:text-[#0B0B0F]'
                 }`}
               >
-                Talent ({talentCertsCount})
+                Verified Work ({talentCertsCount})
               </button>
               <button
                 type="button"
                 onClick={() => setFilterTab('client')}
                 className={`px-3 py-1.5 rounded-[6px] font-medium transition-colors cursor-pointer ${
                   filterTab === 'client'
-                    ? 'bg-white text-[#0B0B0F] shadow-xs'
+                    ? 'bg-white text-[#0B0B0F] shadow-xs font-semibold'
                     : 'text-[#4B5563] hover:text-[#0B0B0F]'
                 }`}
               >
-                Client ({clientCertsCount})
+                Patronage ({clientCertsCount})
               </button>
             </div>
 
@@ -827,7 +895,7 @@ const activeJob = useMemo(() => {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-medium text-[#4B5563] px-1">
               <span>
-                Showing {filteredAndSortedJobs.length} {filteredAndSortedJobs.length === 1 ? 'certificate' : 'certificates'} (sorted by latest)
+                Showing {filteredAndSortedJobs.length} {filteredAndSortedJobs.length === 1 ? 'certificate' : 'certificates'} (sorted by newest first)
               </span>
               {searchQuery && (
                 <button
@@ -848,8 +916,21 @@ const activeJob = useMemo(() => {
                   ? new Date(j.events.find((e: any) => e.step === 'Completed')!.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                   : new Date(j.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 
-                const isClient = userAddress && j.client && j.client.toLowerCase() === userAddress.toLowerCase();
-                const tokenSymbol = j.paymentTokenSymbol === 'MATIC' ? 'POL' : (j.paymentTokenSymbol || 'USDC');
+                const lowerUser = (userAddress || '').toLowerCase().trim();
+                const isClient = Boolean(lowerUser && j.client && j.client.toLowerCase().trim() === lowerUser);
+                const isFreelancer = Boolean(lowerUser && j.freelancer && j.freelancer.toLowerCase().trim() === lowerUser);
+                const certVariant: 'patronage' | 'work' = isClient && !isFreelancer ? 'patronage' : 'work';
+                const roleBadgeLabel = isClient && !isFreelancer ? 'Patronage' : 'Verified Work';
+                const jAmounts = getJobAmounts(j, undefined, undefined, isClient && !isFreelancer ? 'client' : 'freelancer');
+                const tokenSymbol = jAmounts.token;
+                const tokenAmountStr = jAmounts.settled || jAmounts.effectiveAmount;
+                const jKnown = (j.id ? KNOWN_ONCHAIN_TOKENS[j.id.toLowerCase()] : null) ||
+                  (j.sbtTokenId ? KNOWN_ONCHAIN_TOKENS[String(j.sbtTokenId)] : null);
+                const jOnchainTokenId = j.onchainTokenId ?? jKnown?.onchainTokenId;
+                const jCertNo = j.certificateNo ?? jKnown?.certificateNo ?? j.sbtTokenId;
+                const isTokenMintedOnChain = Boolean(jOnchainTokenId !== undefined || j.sbtTokenId || (j as any).sbtPatronageTokenId);
+                const isMintPending = !isTokenMintedOnChain && !j.releaseTxHash;
+                const isMintFailed = (j as any).sbtMintStatus === 'failed';
 
                 return (
                   <div
@@ -864,9 +945,16 @@ const activeJob = useMemo(() => {
                     <div className="space-y-2">
                       {/* Top Row: Cert ID & Date */}
                       <div className="flex items-center justify-between gap-2">
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#EFF6FF] text-[#0047AB] text-[11px] font-mono font-medium truncate max-w-[170px]">
-                          <Award size={11} className="text-[#0047AB] shrink-0" />
-                          <span className="truncate">{certId}</span>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#EFF6FF] text-[#0047FF] text-[11px] font-mono font-bold truncate max-w-[170px]">
+                            <Award size={11} className="text-[#0047FF] shrink-0" />
+                            <span className="truncate">{jOnchainTokenId !== undefined ? `PL-SBT #${jOnchainTokenId}` : certId}</span>
+                          </div>
+                          {jCertNo !== undefined && jCertNo !== null && (
+                            <span className="text-[10px] text-gray-500 font-mono px-0.5">
+                              Certificate No: #{jCertNo}
+                            </span>
+                          )}
                         </div>
                         <span className="text-[11px] text-[#6B7280] font-mono shrink-0">
                           {dateStr}
@@ -880,31 +968,124 @@ const activeJob = useMemo(() => {
 
                       {/* Payout & Role */}
                       <div className="flex items-center justify-between text-xs pt-1.5 border-t border-[#E5E7EB]">
-                        <span className="font-semibold text-[#166534] flex items-center gap-1.5">
+                        <span className="font-semibold text-[#166534] flex items-center gap-1.5 font-mono">
                           <TokenIcon token={tokenSymbol} size={13} />
-                          <span>${parseFloat(j.amountUsdc || '0').toLocaleString()} {tokenSymbol}</span>
+                          <span>{tokenAmountStr} {tokenSymbol}</span>
                         </span>
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-[6px] bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB]">
-                          {isClient ? 'Patronage' : 'Proof of Work'}
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-[6px] border ${
+                          isClient && !isFreelancer
+                            ? 'bg-[#EFF6FF] text-[#0047FF] border-[#BFDBFE]'
+                            : 'bg-[#F0FDF4] text-[#166534] border-[#BBF7D0]'
+                        }`}>
+                          {roleBadgeLabel}
                         </span>
                       </div>
+
+                      {/* On-Chain Status Badge */}
+                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-[#F3F4F6] gap-2 flex-wrap">
+                        {isTokenMintedOnChain ? (
+                          <span className="inline-flex items-center gap-1 text-[#10B981] font-semibold text-[10px]">
+                            <CheckCircle2 size={12} />
+                            <span>On-Chain Verified (PL-SBT #{jOnchainTokenId !== undefined ? jOnchainTokenId : (j.sbtTokenId || '0')})</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-amber-600 font-semibold text-[10px]">
+                            <Clock size={12} />
+                            <span>{j.releaseTxHash ? 'Proof Anchored (Pending SBT Mint)' : 'Pending On-Chain Proof'}</span>
+                          </span>
+                        )}
+                        <div className="flex items-center gap-2">
+                          {jOnchainTokenId !== undefined && (
+                            <a
+                              href={`https://polygonscan.com/nft/${CONTRACTS.ReputationSBT}/${jOnchainTokenId}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[#0047FF] hover:underline inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold"
+                              title="View Soulbound NFT on Polygonscan"
+                            >
+                              <span>NFT #{jOnchainTokenId}</span>
+                              <ExternalLink size={9} />
+                            </a>
+                          )}
+                          {j.releaseTxHash && (
+                            <a
+                              href={`https://polygonscan.com/tx/${j.releaseTxHash}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[#0047AB] hover:underline inline-flex items-center gap-0.5 text-[10px] font-mono"
+                              title="View Settlement Transaction on Polygonscan"
+                            >
+                              <span>Tx</span>
+                              <ExternalLink size={9} />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Pending Mint / Retry Status */}
+                      {isMintPending && (
+                        <div className="flex items-center justify-between text-[11px] bg-amber-50 text-amber-900 px-2 py-1 rounded-[6px] border border-amber-200">
+                          <span className="flex items-center gap-1">
+                            <Loader2 size={11} className="animate-spin text-amber-600" />
+                            <span>{isMintFailed ? 'Mint Failed' : 'Minting on-chain…'}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                setShareToast('🔄 Retrying on-chain SBT attestation mint...');
+                                await releasePayment(j.id);
+                                setShareToast('🎉 SBT Certificate mint requested!');
+                                setTimeout(() => setShareToast(null), 5000);
+                              } catch (err: any) {
+                                setShareToast('⚠️ Mint retry failed: ' + formatWeb3ErrorMessage(err));
+                                setTimeout(() => setShareToast(null), 5000);
+                              }
+                            }}
+                            className="text-amber-950 font-bold underline hover:text-amber-800 text-[10px]"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Actions: View Cert (Redirect/Scrolls down) & Neutral Social Share */}
-                    <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-[#E5E7EB]">
+                    {/* Actions: Full Certificate Link, Public Verify Link, and Preview Below */}
+                    <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-[#E5E7EB] text-xs">
+                      <Link
+                        to={`/certificate/${jOnchainTokenId !== undefined ? jOnchainTokenId : j.id}?variant=${certVariant}${jOnchainTokenId !== undefined ? `&token=${jOnchainTokenId}&cert=${jCertNo}` : ''}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 font-semibold text-[#0047AB] hover:underline text-[11px]"
+                      >
+                        <span>Full Cert</span>
+                        <ArrowUpRight size={12} />
+                      </Link>
+
+                      <Link
+                        to={`/certified-pass?certId=${encodeURIComponent(certId)}${jOnchainTokenId !== undefined ? `&token=${jOnchainTokenId}` : ''}${jCertNo !== undefined ? `&cert=${jCertNo}` : ''}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 font-medium text-[#4B5563] hover:text-[#0B0B0F] text-[11px]"
+                      >
+                        <ShieldCheck size={12} className="text-[#0047AB]" />
+                        <span>Verify</span>
+                      </Link>
+
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSelectAndScrollToCert(j.id);
                         }}
-                        className={`flex-1 py-1.5 px-2 rounded-[8px] text-xs font-medium transition-colors text-center cursor-pointer ${
+                        className={`px-2 py-1 rounded-[6px] text-[11px] font-medium transition-colors cursor-pointer ${
                           isSelected
                             ? 'bg-[#0047AB] text-white'
                             : 'bg-[#F6F7F9] hover:bg-[#E5E7EB] text-[#0B0B0F] border border-[#E5E7EB]'
                         }`}
                       >
-                        {isSelected ? 'Viewing below ↓' : 'View cert ↓'}
+                        {isSelected ? 'Viewing ↓' : 'Preview ↓'}
                       </button>
 
                       {/* Direct 1-Click Share to X */}
@@ -915,22 +1096,9 @@ const activeJob = useMemo(() => {
                           handleShareTwitter(j);
                         }}
                         title="Share directly to X"
-                        className="p-1.5 rounded-[8px] border border-[#E5E7EB] bg-white hover:bg-[#F6F7F9] text-[#4B5563] hover:text-[#0B0B0F] transition-colors cursor-pointer shrink-0"
+                        className="p-1 rounded-[6px] border border-[#E5E7EB] bg-white hover:bg-[#F6F7F9] text-[#4B5563] hover:text-[#0B0B0F] transition-colors cursor-pointer shrink-0"
                       >
-                        <Twitter size={13} />
-                      </button>
-
-                      {/* Direct 1-Click Share to LinkedIn */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleShareLinkedIn(j);
-                        }}
-                        title="Share directly to LinkedIn"
-                        className="p-1.5 rounded-[8px] border border-[#E5E7EB] bg-white hover:bg-[#F6F7F9] text-[#4B5563] hover:text-[#0B0B0F] transition-colors cursor-pointer shrink-0"
-                      >
-                        <Linkedin size={13} />
+                        <Twitter size={12} />
                       </button>
                     </div>
                   </div>
@@ -1003,6 +1171,20 @@ const activeJob = useMemo(() => {
                   <span>Verify on CertifiedPass</span>
                   <ExternalLink size={11} />
                 </a>
+
+                {activeOnchainTokenId !== undefined && (
+                  <a
+                    href={`https://polygonscan.com/nft/${CONTRACTS.ReputationSBT}/${activeOnchainTokenId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View Soulbound NFT on Polygonscan"
+                    className="bg-[#F6F7F9] hover:bg-[#EFF6FF] text-[#0047FF] border border-[#BFDBFE] font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-3xs transition-all hover:scale-102 cursor-pointer active:scale-95 shrink-0"
+                  >
+                    <PolygonIcon size={12} className="text-[#0047FF]" />
+                    <span>NFT #{activeOnchainTokenId}</span>
+                    <ExternalLink size={10} />
+                  </a>
+                )}
               </div>
 
               {/* Right: Social Sharing & Export Actions */}
@@ -1379,13 +1561,13 @@ const activeJob = useMemo(() => {
                 {/* Escrow Amount */}
                 <div className="bg-white/80 border border-slate-200 rounded-xl p-2.5 space-y-0.5">
                   <div className="flex items-center gap-1.5 text-[#0047AB]">
-                    <TokenIcon token={job?.paymentTokenSymbol || 'USDC'} size={14} />
+                    <TokenIcon token={jobAmounts.token} size={14} />
                     <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold font-mono">
                       ESCROW AMOUNT
                     </span>
                   </div>
                   <div className="font-black text-slate-900 text-sm sm:text-base font-headline">
-                    ${amountUsdc.toFixed(2)} {job?.paymentTokenSymbol || 'USDC'}
+                    {jobAmounts.settled || jobAmounts.effectiveAmount} {jobAmounts.token}
                   </div>
                   <div className="text-[9px] text-slate-500 font-medium">
                     Released to Talent

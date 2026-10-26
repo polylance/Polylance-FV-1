@@ -355,7 +355,8 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
             id="skill-autocomplete-listbox"
             role="listbox"
             aria-label="Skill suggestions"
-            className="max-h-[260px] overflow-y-auto overscroll-contain divide-y divide-transparent space-y-0.5 pr-0.5"
+            data-lenis-prevent="true"
+            className="max-h-[260px] overflow-y-auto overscroll-contain divide-y divide-transparent space-y-0.5 pr-0.5 custom-scrollbar min-h-0"
           >
             {/* List of matched canonical skills */}
             {suggestions.map((item, index) => {

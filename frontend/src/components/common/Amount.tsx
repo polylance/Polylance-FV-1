@@ -1,15 +1,20 @@
-import React from 'react';
-import { convertCryptoToFiat, normalizeTokenSymbol, useLiveCurrencyRates, useGlobalFiat } from '../../utils/currency';
+import React, { useState } from 'react';
+import { convertCryptoToFiat, useLiveCurrencyRates, useGlobalFiat } from '../../utils/currency';
+import { formatAmount } from '../../utils/formatAmount';
+import { copyToClipboard } from '../../utils/formatters';
 
 export interface AmountProps {
-  value?: number | string;
-  amount?: number | string;
+  value?: number | string | bigint;
+  amount?: number | string | bigint;
   token?: string;
   showFiat?: boolean;
   className?: string;
   tokenClassName?: string;
   fiatClassName?: string;
   size?: 'sm' | 'md' | 'lg';
+  isBalance?: boolean;
+  align?: 'left' | 'right';
+  inline?: boolean;
 }
 
 export const Amount: React.FC<AmountProps> = ({
@@ -20,23 +25,31 @@ export const Amount: React.FC<AmountProps> = ({
   className = '',
   tokenClassName = '',
   fiatClassName = '',
-  size = 'md'
+  size = 'md',
+  isBalance = false,
+  align = 'left',
+  inline = false,
 }) => {
   useLiveCurrencyRates();
   const [fiatCode] = useGlobalFiat();
+  const [copied, setCopied] = useState(false);
 
   const rawVal = value !== undefined ? value : (amount !== undefined ? amount : 0);
-  const num = typeof rawVal === 'number'
-    ? rawVal
-    : parseFloat(String(rawVal).replace(/[^0-9.-]/g, '')) || 0;
-  const sym = normalizeTokenSymbol(token);
+  const formattedResult = formatAmount(rawVal, token, { isBalance });
+  const sym = formattedResult.symbol;
 
-  // Formatting token amount: up to 3 decimals if crypto, 2 if USD-pegged
-  const formattedToken = sym === 'POL'
-    ? num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 3 })
-    : num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Convert raw value to nominal number for fiat conversion
+  const nominalNum = parseFloat(formattedResult.fullPrecision) || 0;
+  const { formatted: fiatString } = convertCryptoToFiat(nominalNum, sym, fiatCode);
 
-  const { formatted: fiatString } = convertCryptoToFiat(num, sym, fiatCode);
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const ok = await copyToClipboard(formattedResult.fullPrecision);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
+  };
 
   const sizeClasses = {
     sm: {
@@ -56,14 +69,25 @@ export const Amount: React.FC<AmountProps> = ({
     }
   }[size];
 
+  const alignmentClass = align === 'right' ? 'text-right justify-end' : 'text-left justify-start';
+  const layoutClass = inline ? 'flex-row items-baseline gap-1.5' : 'flex-col';
+
   return (
-    <span className={`inline-flex items-baseline gap-1.5 ${sizeClasses.wrap} ${className}`}>
-      <span className={`${sizeClasses.token} ${tokenClassName}`}>
-        {formattedToken} {sym}
+    <span
+      className={`inline-flex ${layoutClass} min-w-0 ${alignmentClass} ${sizeClasses.wrap} ${className}`}
+      title={`${formattedResult.fullPrecision} ${sym} (Click to copy full precision)`}
+      onClick={handleCopy}
+    >
+      <span className={`inline-flex items-baseline gap-1 tabular-nums font-sans ${sizeClasses.token} ${tokenClassName} min-w-0 overflow-hidden text-ellipsis cursor-pointer hover:opacity-90`}>
+        <span>{formattedResult.formatted}</span>
+        <span className="font-normal text-[#6B7280] text-[0.88em] tracking-tight">{sym}</span>
+        {copied && (
+          <span className="text-[10px] font-normal text-emerald-600 ml-1 animate-pulse">Copied!</span>
+        )}
       </span>
       {showFiat && (
-        <span className={`${sizeClasses.fiat} ${fiatClassName}`}>
-          {fiatString}
+        <span className={`tabular-nums font-sans ${sizeClasses.fiat} ${fiatClassName} min-w-0 truncate`}>
+          {inline ? `(${fiatString})` : fiatString}
         </span>
       )}
     </span>

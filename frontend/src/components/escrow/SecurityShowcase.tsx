@@ -4,6 +4,7 @@ import { EscrowVideoStage } from './EscrowVideoStage';
 import { EscrowOptionCard } from './EscrowOptionCard';
 import { Reveal } from '../common/MotionPrimitives';
 import { useReducedMotion, useDataSaver } from '../../media/useDataSaver';
+import { MAINNET_CONTRACTS, POLYGONSCAN_BASE_URL } from '../../seo/site.config';
 
 export interface EscrowOption {
   id: string;
@@ -325,7 +326,7 @@ export const SecurityShowcase: React.FC = () => {
         <Reveal delay={250}>
           <div className="pt-2">
             <a
-              href="https://polygonscan.com/address/0x7D3eA4c153B8C13a299E41666870C0F0C058A9a3"
+              href={`${POLYGONSCAN_BASE_URL}/address/${MAINNET_CONTRACTS.jobEscrowImpl}`}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-white hover:underline underline-offset-4 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#0047AB] focus-visible:rounded"

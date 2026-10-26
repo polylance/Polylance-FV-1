@@ -72,15 +72,22 @@ export async function buildCertificateMetadata(
   }
 
   const isWork = certData.variant !== 'patronage';
+  const base = (import.meta.env.VITE_METADATA_BASE_URL || 'https://polylance.codes').replace(/\/+$/, '');
+  const canonicalImageUrl = `${base}/api/sbt/image/${numId}.png`;
+
   const metadata: CertificateMetadata = {
-    name: `PolyLance Verified Work Certificate #${numId}`,
-    description: "Non-transferable proof of completed work on PolyLance, recorded on Polygon.",
-    image: finalImageUri,
-    external_url: `https://polylance.codes/#/certificate/${numId}`,
+    name: isWork
+      ? `PolyLance Certificate of Verified Work #${numId}`
+      : `PolyLance Certificate of Patronage #${numId}`,
+    description: isWork
+      ? `Verified milestone performance attestation bound to freelancer ${certData.recipientAddress} on Polygon PoS. Soulbound ERC-721 credential.`
+      : `Commercial escrow patronage attestation bound to client ${certData.clientAddress} on Polygon PoS. Soulbound ERC-721 credential.`,
+    image: canonicalImageUrl,
+    external_url: `${base}/#/certificate/${numId}`,
     attributes: [
       {
-        trait_type: "Type",
-        value: isWork ? "Proof of Work" : "Patronage"
+        trait_type: "Certificate Type",
+        value: isWork ? "Verified Work" : "Patronage"
       },
       {
         trait_type: "Job",
@@ -93,7 +100,7 @@ export async function buildCertificateMetadata(
       },
       {
         trait_type: "Token",
-        value: certData.tokenSymbol || "USDC"
+        value: certData.tokenSymbol || "POL"
       },
       {
         trait_type: "Completed",
@@ -101,16 +108,16 @@ export async function buildCertificateMetadata(
         display_type: "date"
       },
       {
-        trait_type: "Network",
-        value: "Polygon"
+        trait_type: "Chain",
+        value: "Polygon PoS (Chain 137)"
       },
       {
         trait_type: "Soulbound",
-        value: "Yes"
+        value: "true"
       },
       {
-        trait_type: "Standard",
-        value: "ERC-5192"
+        trait_type: "Certificate No",
+        value: String(certData.certificateNo || numId)
       }
     ]
   };

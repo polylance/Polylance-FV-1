@@ -38,7 +38,7 @@ export const FeeBreakdown: React.FC<FeeBreakdownProps> = ({
   actualTxHash,
   actualGasUsedPol,
 }) => {
-  useLiveCurrencyRates();
+  const rates = useLiveCurrencyRates();
   const [fiatCode] = useGlobalFiat();
   const [showHowFeesWork, setShowHowFeesWork] = useState(false);
 
@@ -125,16 +125,34 @@ export const FeeBreakdown: React.FC<FeeBreakdownProps> = ({
   // Fiat equivalents - strictly memoized
   const freelancerNetNominal = useMemo(() => parseFloat(freelancerNetFmt.fullPrecision) || 0, [freelancerNetFmt.fullPrecision]);
   const clientDepositNominal = useMemo(() => parseFloat(clientDepositFmt.fullPrecision) || 0, [clientDepositFmt.fullPrecision]);
+  const budgetNominal = useMemo(() => parseFloat(budgetFmt.fullPrecision) || 0, [budgetFmt.fullPrecision]);
+  const clientFeeNominal = useMemo(() => parseFloat(clientFeeFmt.fullPrecision) || 0, [clientFeeFmt.fullPrecision]);
+  const freelancerFeeNominal = useMemo(() => parseFloat(freelancerFeeFmt.fullPrecision) || 0, [freelancerFeeFmt.fullPrecision]);
   
   const freelancerFiat = useMemo(() => {
     const { formatted } = convertCryptoToFiat(freelancerNetNominal, tokenSymbol, fiatCode);
     return formatted;
-  }, [freelancerNetNominal, tokenSymbol, fiatCode]);
+  }, [freelancerNetNominal, tokenSymbol, fiatCode, rates]);
 
   const clientFiat = useMemo(() => {
     const { formatted } = convertCryptoToFiat(clientDepositNominal, tokenSymbol, fiatCode);
     return formatted;
-  }, [clientDepositNominal, tokenSymbol, fiatCode]);
+  }, [clientDepositNominal, tokenSymbol, fiatCode, rates]);
+
+  const budgetFiat = useMemo(() => {
+    const { formatted } = convertCryptoToFiat(budgetNominal, tokenSymbol, fiatCode);
+    return formatted;
+  }, [budgetNominal, tokenSymbol, fiatCode, rates]);
+
+  const clientFeeFiat = useMemo(() => {
+    const { formatted } = convertCryptoToFiat(clientFeeNominal, tokenSymbol, fiatCode);
+    return formatted;
+  }, [clientFeeNominal, tokenSymbol, fiatCode, rates]);
+
+  const freelancerFeeFiat = useMemo(() => {
+    const { formatted } = convertCryptoToFiat(freelancerFeeNominal, tokenSymbol, fiatCode);
+    return formatted;
+  }, [freelancerFeeNominal, tokenSymbol, fiatCode, rates]);
 
   if (compact) {
     return (
@@ -176,30 +194,30 @@ export const FeeBreakdown: React.FC<FeeBreakdownProps> = ({
           <div className="space-y-1.5 pt-1">
             <div className="flex justify-between text-[#64748B]">
               <span>Job budget:</span>
-              <span className="tabular-nums text-[#0B0B0F]">{budgetFmt.formatted} {tokenSymbol}</span>
+              <span className="tabular-nums text-[#0B0B0F]">{budgetFmt.formatted} {tokenSymbol} <span className="text-[#64748B] text-[10px] font-normal">({budgetFiat})</span></span>
             </div>
             <div className="flex justify-between text-[#64748B]">
               <span>Platform service fee ({FREELANCER_FEE_PERCENT}%):</span>
-              <span className="tabular-nums text-[#475569]">−{freelancerFeeFmt.formatted} {tokenSymbol}</span>
+              <span className="tabular-nums text-[#475569]">−{freelancerFeeFmt.formatted} {tokenSymbol} <span className="text-[#64748B] text-[10px] font-normal">({freelancerFeeFiat})</span></span>
             </div>
             <div className="border-t border-[#E5E7EB] pt-1.5 flex justify-between font-semibold text-[#0B0B0F]">
               <span>You receive:</span>
-              <span className="tabular-nums text-[#0047AB]">{freelancerNetFmt.formatted} {tokenSymbol}</span>
+              <span className="tabular-nums text-[#0047AB]">{freelancerNetFmt.formatted} {tokenSymbol} <span className="text-[#0047AB]/80 text-[10px] font-normal">({freelancerFiat})</span></span>
             </div>
           </div>
         ) : (
           <div className="space-y-1.5 pt-1">
             <div className="flex justify-between text-[#64748B]">
               <span>Job budget:</span>
-              <span className="tabular-nums text-[#0B0B0F]">{budgetFmt.formatted} {tokenSymbol}</span>
+              <span className="tabular-nums text-[#0B0B0F]">{budgetFmt.formatted} {tokenSymbol} <span className="text-[#64748B] text-[10px] font-normal">({budgetFiat})</span></span>
             </div>
             <div className="flex justify-between text-[#64748B]">
               <span>Service fee ({CLIENT_FEE_PERCENT}%):</span>
-              <span className="tabular-nums text-[#475569]">+{clientFeeFmt.formatted} {tokenSymbol}</span>
+              <span className="tabular-nums text-[#475569]">+{clientFeeFmt.formatted} {tokenSymbol} <span className="text-[#64748B] text-[10px] font-normal">({clientFeeFiat})</span></span>
             </div>
             <div className="border-t border-[#E5E7EB] pt-1.5 flex justify-between font-semibold text-[#0B0B0F]">
               <span>Total deposit:</span>
-              <span className="tabular-nums text-[#0047AB]">{clientDepositFmt.formatted} {tokenSymbol}</span>
+              <span className="tabular-nums text-[#0047AB]">{clientDepositFmt.formatted} {tokenSymbol} <span className="text-[#0047AB]/80 text-[10px] font-normal">({clientFiat})</span></span>
             </div>
           </div>
         )}
@@ -258,15 +276,15 @@ export const FeeBreakdown: React.FC<FeeBreakdownProps> = ({
           {/* Headline Amount */}
           <div className="bg-[#F8FAFC] p-3 rounded-[10px] border border-[#E2E8F0]">
             <span className="text-xs text-[#64748B] block font-medium">You receive</span>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap">
               <span className="text-xl font-bold text-[#0047AB] tabular-nums font-sans">
                 {freelancerNetFmt.formatted}
               </span>
               <span className="text-sm font-semibold text-[#475569]">{tokenSymbol}</span>
+              <span className="text-xs text-[#64748B] tabular-nums font-normal">
+                ({freelancerFiat})
+              </span>
             </div>
-            <span className="text-xs text-[#64748B] tabular-nums block mt-0.5">
-              {freelancerFiat}
-            </span>
           </div>
 
           {/* Additive Line Items */}
@@ -274,21 +292,21 @@ export const FeeBreakdown: React.FC<FeeBreakdownProps> = ({
             <div className="flex items-center justify-between text-[#475569]">
               <span>Job budget</span>
               <span className="tabular-nums font-medium text-[#0B0B0F]">
-                {budgetFmt.formatted} {tokenSymbol}
+                {budgetFmt.formatted} {tokenSymbol} <span className="text-[#64748B] text-[11px] font-normal">({budgetFiat})</span>
               </span>
             </div>
 
             <div className="flex items-center justify-between text-[#475569]">
               <span>PolyLance service fee ({FREELANCER_FEE_PERCENT}%)</span>
               <span className="tabular-nums font-medium text-[#475569]">
-                −{freelancerFeeFmt.formatted} {tokenSymbol}
+                −{freelancerFeeFmt.formatted} {tokenSymbol} <span className="text-[#64748B] text-[11px] font-normal">({freelancerFeeFiat})</span>
               </span>
             </div>
 
             <div className="border-t border-[#E5E7EB] pt-2 flex items-center justify-between font-semibold text-[#0B0B0F] text-sm">
               <span>You receive</span>
               <span className="tabular-nums font-bold text-[#0047AB]">
-                {freelancerNetFmt.formatted} {tokenSymbol}
+                {freelancerNetFmt.formatted} {tokenSymbol} <span className="text-[#0047AB]/80 text-xs font-normal">({freelancerFiat})</span>
               </span>
             </div>
           </div>
@@ -304,15 +322,15 @@ export const FeeBreakdown: React.FC<FeeBreakdownProps> = ({
           {/* Headline Amount */}
           <div className="bg-[#F8FAFC] p-3 rounded-[10px] border border-[#E2E8F0]">
             <span className="text-xs text-[#64748B] block font-medium">You deposit</span>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap">
               <span className="text-xl font-bold text-[#0047AB] tabular-nums font-sans">
                 {clientDepositFmt.formatted}
               </span>
               <span className="text-sm font-semibold text-[#475569]">{tokenSymbol}</span>
+              <span className="text-xs text-[#64748B] tabular-nums font-normal">
+                ({clientFiat})
+              </span>
             </div>
-            <span className="text-xs text-[#64748B] tabular-nums block mt-0.5">
-              {clientFiat}
-            </span>
           </div>
 
           {/* Additive Line Items */}
@@ -320,28 +338,28 @@ export const FeeBreakdown: React.FC<FeeBreakdownProps> = ({
             <div className="flex items-center justify-between text-[#475569]">
               <span>Job budget</span>
               <span className="tabular-nums font-medium text-[#0B0B0F]">
-                {budgetFmt.formatted} {tokenSymbol}
+                {budgetFmt.formatted} {tokenSymbol} <span className="text-[#64748B] text-[11px] font-normal">({budgetFiat})</span>
               </span>
             </div>
 
             <div className="flex items-center justify-between text-[#475569]">
               <span>Service fee ({CLIENT_FEE_PERCENT}%)</span>
               <span className="tabular-nums font-medium text-[#475569]">
-                +{clientFeeFmt.formatted} {tokenSymbol}
+                +{clientFeeFmt.formatted} {tokenSymbol} <span className="text-[#64748B] text-[11px] font-normal">({clientFeeFiat})</span>
               </span>
             </div>
 
             <div className="border-t border-[#E5E7EB] pt-2 flex items-center justify-between font-semibold text-[#0B0B0F] text-sm">
               <span>Total deposit</span>
               <span className="tabular-nums font-bold text-[#0047AB]">
-                {clientDepositFmt.formatted} {tokenSymbol}
+                {clientDepositFmt.formatted} {tokenSymbol} <span className="text-[#0047AB]/80 text-xs font-normal">({clientFiat})</span>
               </span>
             </div>
           </div>
 
           {/* Secondary Freelancer Note */}
           <p className="text-[11px] text-[#64748B] pt-1 border-t border-[#E5E7EB]/80 leading-relaxed">
-            The freelancer receives {freelancerNetFmt.formatted} {tokenSymbol} after their {FREELANCER_FEE_PERCENT}% platform fee upon work approval.
+            The freelancer receives {freelancerNetFmt.formatted} {tokenSymbol} ({freelancerFiat}) after their {FREELANCER_FEE_PERCENT}% platform fee upon work approval.
           </p>
 
           {/* Network Fee Estimation Block for Client */}

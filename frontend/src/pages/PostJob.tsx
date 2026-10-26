@@ -15,6 +15,7 @@ import { TagInput, SkillAutocomplete } from '../components/common/FormControls';
 import { WatchButton, VideoModal, useVideoModal } from '../components/video';
 import { CATEGORIES } from '../utils/formatters';
 import { resolveDomainId, DOMAIN_BY_ID } from '../utils/domainMapping';
+import { calculateFeeBreakdownFromString } from '../utils/fees';
 import { useLiveCurrencyRates, convertCryptoToFiat, useGlobalFiat } from '../utils/currency';
 import { useAccountMode } from '../hooks/useAccountMode';
 import { toast } from '../utils/toast';
@@ -164,7 +165,11 @@ export const PostJob: React.FC = () => {
     return parseFloat(balanceUsdt || '0');
   }, [selectedToken, balanceNative, balanceUsdc, balanceUsdt]);
 
-  const hasSufficientBalance = walletBalance >= parsedAmount * 1.025; // includes 2.5% client fee
+  const hasSufficientBalance = useMemo(() => {
+    if (parsedAmount <= 0) return true;
+    const fb = calculateFeeBreakdownFromString(amount, selectedToken);
+    return walletBalance >= parseFloat(fb.clientDepositFormatted);
+  }, [parsedAmount, amount, selectedToken, walletBalance]);
 
   // Markdown toolbar insertion
   const insertMarkdown = (syntax: 'bold' | 'list' | 'code') => {
@@ -405,7 +410,7 @@ export const PostJob: React.FC = () => {
               <div className="grid grid-cols-3 gap-3">
                 {(['POL', 'USDC', 'USDT'] as const).map((tok) => {
                   const isSelected = selectedToken === tok;
-                  const price = rates.cryptoPrices[tok] || (tok === 'POL' ? 0.45 : 1.0);
+                  const price = rates.cryptoPrices[tok] || (tok === 'POL' ? 0.089 : 1.0);
                   return (
                     <div
                       key={tok}
@@ -423,7 +428,7 @@ export const PostJob: React.FC = () => {
                         )}
                       </div>
                       <span className={`text-xs block mt-1 ${isSelected ? 'text-[#0047AB] font-medium' : 'text-[#4B5563]'}`}>
-                        ~ ${price.toFixed(2)} USD
+                        ~ ${price < 0.1 ? price.toFixed(4) : price.toFixed(2)} USD
                       </span>
                     </div>
                   );
@@ -433,9 +438,16 @@ export const PostJob: React.FC = () => {
 
             {/* Amount input & presets */}
             <div>
-              <label htmlFor="principal-amount" className="block text-xs font-medium text-[#4B5563] mb-1.5">
-                Principal amount ({selectedToken})
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="principal-amount" className="text-xs font-medium text-[#4B5563]">
+                  Principal amount ({selectedToken})
+                </label>
+                {parsedAmount > 0 && (
+                  <span className="text-xs text-[#6B7280] tabular-nums font-normal">
+                    {convertCryptoToFiat(parsedAmount, selectedToken, selectedFiat).formatted}
+                  </span>
+                )}
+              </div>
               <div className="flex gap-2">
                 <input
                   id="principal-amount"
@@ -595,7 +607,7 @@ export const PostJob: React.FC = () => {
             <h3 className="text-sm font-semibold text-[#0B0B0F]">Escrow breakdown</h3>
 
             {/* Reused Single FeeBreakdown */}
-            <FeeBreakdown budget={parsedAmount} token={selectedToken} />
+            <FeeBreakdown budget={parsedAmount} token={selectedToken} isClient={true} />
 
             {/* Guarantees */}
             <div className="pt-3 border-t border-[#E5E7EB] space-y-2 text-xs text-[#4B5563]">
@@ -637,7 +649,7 @@ export const PostJob: React.FC = () => {
             <span className="text-sm font-semibold text-[#0B0B0F]">{title}</span>
           </div>
 
-          <FeeBreakdown budget={parsedAmount} token={selectedToken} />
+          <FeeBreakdown budget={parsedAmount} token={selectedToken} isClient={true} />
 
           {/* Wallet Balance check */}
           <div className="p-3 bg-white border border-[#E5E7EB] rounded-[8px] flex items-center justify-between text-xs">

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { DeviceFrame } from './video/DeviceFrame';
 import { PolygonIcon } from './TokenIcon';
+import { REVIEW_WINDOW_DAYS } from '../seo/site.config';
 
 export type ProductPreviewVariant = 'hero' | 'hire' | 'work' | 'paid' | 'safe';
 
@@ -139,14 +140,14 @@ export const ProductPreview: React.FC<ProductPreviewProps> = ({ variant, classNa
                   </span>
                 </div>
                 <div className="bg-white p-2 rounded border border-[#E5E7EB] font-mono text-[11px] text-[#4B5563] truncate">
-                  commit: 9f8a3c2e71d4b65a0e9... (main branch)
+                  commit: verified (git hash registered on-chain)
                 </div>
                 <div className="text-[11px] text-[#4B5563]">
-                  URL: <span className="text-[#0047AB] underline">https://staging.app-demo.dev</span>
+                  Deliverable submission confirmed in workspace
                 </div>
               </div>
               <p className="text-xs text-[#4B5563]">
-                Client has 5 days to review deliverable before automatic dispute window opens.
+                Client has {REVIEW_WINDOW_DAYS} days to review deliverable before automatic dispute window opens.
               </p>
             </div>
           )}

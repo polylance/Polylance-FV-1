@@ -40,8 +40,17 @@ import { Job } from '../types';
 import { TokenIcon } from '../components/TokenIcon';
 import { PageContainer } from '../components/layout/PageContainer';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { TokenAmount } from '../components/common/TokenAmount';
+import { getJobAmounts, ViewerRole } from '../lib/amounts/getJobAmounts';
 import { Stepper, StepItem } from '../components/common/Stepper';
 import { areAddressesEqual } from '../utils/accountMode';
+import { RequestExtensionModal } from '../components/RequestExtensionModal';
+import { getEngagementDisplayState } from '../types/lifecycle';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { backdropVariants, popoverVariants, reducedMotionVariants } from '../styles/popupMotion';
+import { usePlatformFeeDues } from '../hooks/usePlatformFeeDues';
+import { WalletBalanceModal } from '../components/WalletBalanceModal';
 
 export type JobCategoryFilter = 'all' | 'ongoing' | 'awaiting_release' | 'disputed' | 'negotiating' | 'completed';
 export type JobSortOption = 'latest' | 'priority' | 'oldest' | 'highest_budget' | 'lowest_budget' | 'title_az';
@@ -107,10 +116,11 @@ const getJobPriorityScore = (status: string, isNegotiating: boolean): number => 
 };
 
 export const JobWorkspace: React.FC = () => {
+  const prefersReducedMotion = useReducedMotion();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { address, currentRole, isConnected, connectWallet, isArbitrator } = useWeb3();
-  const { jobs, profiles, deleteJob } = usePolyLanceData();
+  const { jobs, profiles, deleteJob, requestTimeExtension, sendChatMessage } = usePolyLanceData();
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
 
   const userAddr = (address || '').toLowerCase();
@@ -172,6 +182,7 @@ export const JobWorkspace: React.FC = () => {
   }, [jobs, userAddr, isClientRole]);
 
   const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
 
   const handleDeleteActiveJob = () => {
     if (!activeJob) return;
@@ -218,7 +229,9 @@ export const JobWorkspace: React.FC = () => {
 
   useEffect(() => {
     if (queryJobId && myJobs.some(j => j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase())) {
-      setSelectedJobId(queryJobId);
+      if (selectedJobId !== queryJobId) {
+        setSelectedJobId(queryJobId);
+      }
     } else if (!selectedJobId) {
       const lastOpened = typeof window !== 'undefined' ? localStorage.getItem('polylance_last_opened_job') : null;
       if (lastOpened && myJobs.some(j => j.id === lastOpened || j.contractAddress?.toLowerCase() === lastOpened.toLowerCase())) {
@@ -251,6 +264,10 @@ export const JobWorkspace: React.FC = () => {
     return myJobs[0];
   }, [myJobs, selectedJobId, queryJobId]);
 
+  const isClientOfActive = Boolean(activeJob && userAddr && activeJob.client && areAddressesEqual(activeJob.client, userAddr));
+  const isFreelancerOfActive = Boolean(activeJob && userAddr && activeJob.freelancer && areAddressesEqual(activeJob.freelancer, userAddr));
+  const activeViewerRole: ViewerRole = isClientOfActive ? 'client' : (isFreelancerOfActive ? 'freelancer' : 'visitor');
+
   // Persist active job to localStorage so returning visitors resume this exact workspace
   useEffect(() => {
     if (activeJob?.id) {
@@ -259,6 +276,21 @@ export const JobWorkspace: React.FC = () => {
       } catch {}
     }
   }, [activeJob?.id]);
+
+  // Fee dues state for contextual notice on active job card
+  const { dues: feeDues, enabled: feeDuesEnabled } = usePlatformFeeDues();
+  const [feeNoticeDismissed, setFeeNoticeDismissed] = useState(false);
+  const [isFeeDuesBalanceModalOpen, setIsFeeDuesBalanceModalOpen] = useState(false);
+
+  const activeJobFeeDue = useMemo(() => {
+    if (!feeDuesEnabled || !activeJob || !userAddr) return null;
+    return feeDues.find(
+      (d) =>
+        (d.jobId === activeJob.id || (activeJob.contractAddress && d.jobId?.toLowerCase() === activeJob.contractAddress.toLowerCase())) &&
+        d.wallet.toLowerCase() === userAddr.toLowerCase() &&
+        d.status === 'DUE'
+    );
+  }, [feeDues, feeDuesEnabled, activeJob, userAddr]);
 
   // ── Job Switcher Dropdown & Sorting State ──
   const [isJobDropdownOpen, setIsJobDropdownOpen] = useState(false);
@@ -641,6 +673,37 @@ export const JobWorkspace: React.FC = () => {
               </div>
             </div>
 
+            {/* Contextual Fee Due Notice */}
+            {activeJobFeeDue && !feeNoticeDismissed && (
+              <div className="mb-3 p-3 rounded-[10px] bg-[#EAF1FB] border border-[#C9DAF2] text-xs text-[#0B0B0F] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-5 h-5 rounded-full bg-[#0047AB] text-white flex items-center justify-center shrink-0 text-[10px] font-bold">
+                    !
+                  </div>
+                  <span className="truncate text-xs font-medium text-[#0B0B0F]">
+                    A platform fee of {activeJobFeeDue.outstanding} {activeJobFeeDue.token} for &apos;{activeJob.title}&apos; is still open. Pay it in Payments.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsFeeDuesBalanceModalOpen(true)}
+                    className="px-2.5 py-1 rounded-[6px] bg-[#0047AB] hover:bg-[#003A8C] text-white font-medium text-xs transition-colors cursor-pointer"
+                  >
+                    Pay in Payments
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFeeNoticeDismissed(true)}
+                    className="text-[#6B7280] hover:text-[#0B0B0F] p-1 cursor-pointer"
+                    title="Dismiss notice"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Trigger button */}
             <button
               ref={triggerBtnRef}
@@ -667,11 +730,8 @@ export const JobWorkspace: React.FC = () => {
                     <div className="flex items-center flex-wrap gap-2 text-xs font-mono mt-0.5 text-[#4B5563]">
                       <span className="font-semibold text-[#10B981]">
                         {(() => {
-                          const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
-                          const isCrypto = sym === 'POL' || sym === 'MATIC';
-                          const tokenLabel = isCrypto ? 'POL' : sym;
-                          const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
-                          return `${amt} ${tokenLabel}`;
+                          const ja = getJobAmounts(activeJob, undefined, undefined, activeViewerRole);
+                          return `${ja.effectiveAmount} ${ja.token}`;
                         })()}
                       </span>
                       <span className="text-[#D1D5DB] hidden sm:inline">•</span>
@@ -688,7 +748,10 @@ export const JobWorkspace: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 self-stretch sm:self-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-[#E5E7EB]">
-                  <StatusBadge status={activeJob.status} />
+                  {(() => {
+                    const disp = getEngagementDisplayState(activeJob);
+                    return <StatusBadge status={disp.isCompleted ? 'Completed' : disp.displayLabel || activeJob.status} />;
+                  })()}
                   <div className="w-7 h-7 rounded-[6px] bg-[#F6F7F9] text-[#0B0B0F] flex items-center justify-center shrink-0">
                     <ChevronDown size={14} className={`transition-transform duration-200 ${isJobDropdownOpen ? 'rotate-180' : ''}`} />
                   </div>
@@ -699,29 +762,37 @@ export const JobWorkspace: React.FC = () => {
 
           {/* Quick Action Navigation Buttons */}
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
-            {isClient && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setIsModifyModalOpen(true)}
-                  className="px-3 py-2 rounded-[8px] bg-white hover:bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  title="Modify job title, description, budget"
-                >
-                  <Edit3 size={13} className="shrink-0 text-[#0047AB]" />
-                  <span>Modify job</span>
-                </button>
+            {(() => {
+              const isJobFunded = (activeJob.status as string) === 'Funded' || (activeJob.status as string) === 'Submitted' || (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Funded' || e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+              const isJobCompleted = (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+              const canModifyOrDelete = isClient && !isJobFunded && !isJobCompleted;
 
-                <button
-                  type="button"
-                  onClick={handleDeleteActiveJob}
-                  className="px-3 py-2 rounded-[8px] bg-white hover:bg-rose-50 text-[#DC2626] border border-[#FECACA] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  title="Delete this job posting"
-                >
-                  <Trash2 size={13} className="shrink-0 text-[#DC2626]" />
-                  <span>Delete</span>
-                </button>
-              </>
-            )}
+              if (!canModifyOrDelete) return null;
+
+              return (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsModifyModalOpen(true)}
+                    className="px-3 py-2 rounded-[8px] bg-white hover:bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Modify job title, description, budget"
+                  >
+                    <Edit3 size={13} className="shrink-0 text-[#0047AB]" />
+                    <span>Modify job</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteActiveJob}
+                    className="px-3 py-2 rounded-[8px] bg-white hover:bg-rose-50 text-[#DC2626] border border-[#FECACA] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Delete this job posting"
+                  >
+                    <Trash2 size={13} className="shrink-0 text-[#DC2626]" />
+                    <span>Delete</span>
+                  </button>
+                </>
+              );
+            })()}
 
             <button
               type="button"
@@ -738,22 +809,26 @@ export const JobWorkspace: React.FC = () => {
               <ArrowUpRight size={12} className="shrink-0" />
             </button>
 
-            {activeJob.status === 'Completed' && (
-              <Link
-                to={`/attestation/${activeJob.id}`}
-                className="px-3 py-2 rounded-[8px] bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#0047AB] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                title="View soulbound work certificate"
-              >
-                <Award size={13} className="shrink-0 text-[#0047AB]" />
-                <span>Certificate</span>
-              </Link>
-            )}
+            {(() => {
+              const display = getEngagementDisplayState(activeJob);
+              if (!display.isCompleted) return null;
+              return (
+                <Link
+                  to={`/attestation/${activeJob.id}`}
+                  className="px-3 py-2 rounded-[8px] bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#0047AB] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  title="View soulbound work certificate"
+                >
+                  <Award size={13} className="shrink-0 text-[#0047AB]" />
+                  <span>Certificate</span>
+                </Link>
+              );
+            })()}
 
             <Link
               to={`/jobs/${activeJob.id}`}
               className="px-3 py-2 rounded-[8px] bg-white hover:bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"
             >
-              <span>Listing</span>
+              <span>{getEngagementDisplayState(activeJob).isCompleted ? 'View job' : 'Listing'}</span>
             </Link>
           </div>
         </div>
@@ -764,7 +839,10 @@ export const JobWorkspace: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E7EB] pb-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-[#0B0B0F]">Milestone timeline</span>
-            <StatusBadge status={activeJob.status} size="sm" />
+            {(() => {
+              const disp = getEngagementDisplayState(activeJob);
+              return <StatusBadge status={disp.isCompleted ? 'Completed' : disp.displayLabel || activeJob.status} size="sm" />;
+            })()}
           </div>
           <Link
             to={`/chat?jobId=${activeJob.id}${counterpartAddress ? `&applicant=${counterpartAddress}` : ''}`}
@@ -776,16 +854,24 @@ export const JobWorkspace: React.FC = () => {
         </div>
 
         {(() => {
-          const isFunded = activeJob.status === 'Funded' || activeJob.status === 'Submitted' || activeJob.status === 'Completed';
+          const display = getEngagementDisplayState(activeJob);
+          const isJobFunded = (activeJob.status as string) === 'Funded' || (activeJob.status as string) === 'Submitted' || (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Funded' || e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+          const isJobCompleted = display.isCompleted || display.isPaid || (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+          const isFunded = isJobFunded || isJobCompleted || activeJob.status === 'Funded' || (activeJob.status as string) === 'Submitted';
 
           const getStepStatus = (idx: number): 'complete' | 'current' | 'upcoming' => {
-            if (activeJob.status === 'Completed') return 'complete';
-            if (activeJob.status === 'Submitted') {
+            if (isJobCompleted) return 'complete';
+            if (display.isApproved) {
+              if (idx < 4) return 'complete';
+              if (idx === 4) return 'current';
+              return 'upcoming';
+            }
+            if (display.state === 'UNDER_REVIEW' || display.state === 'SUBMITTED_LATE' || display.state === 'REVIEW_WINDOW_ENDED' || (activeJob.status as string) === 'Submitted') {
               if (idx < 3) return 'complete';
               if (idx === 3) return 'current';
               return 'upcoming';
             }
-            if (activeJob.status === 'Funded') {
+            if (isFunded || activeJob.status === 'Funded') {
               if (idx < 2) return 'complete';
               if (idx === 2) return 'current';
               return 'upcoming';
@@ -821,18 +907,125 @@ export const JobWorkspace: React.FC = () => {
                 : (activeJob.freelancerAgreedTerms ? 'Ready to fund' : 'Pending agreement'), 
               status: getStepStatus(1) 
             },
-            { id: 3, label: 'In progress', caption: 'Work underway', status: getStepStatus(2) },
-            { id: 4, label: 'Submitted', caption: 'In review', status: getStepStatus(3) },
-            { id: 5, label: 'Completed', caption: 'Funds released', status: getStepStatus(4) },
+            { 
+              id: 3, 
+              label: 'In progress', 
+              caption: display.isOverdue ? 'Overdue' : (display.state === 'DUE_SOON' ? 'Due soon' : 'Work underway'), 
+              status: getStepStatus(2) 
+            },
+            { 
+              id: 4, 
+              label: display.isLate ? 'Submitted (Late)' : 'Submitted', 
+              caption: isJobCompleted ? 'Approved' : (display.isApproved ? 'Approved' : 'In review'), 
+              status: getStepStatus(3) 
+            },
+            { 
+              id: 5, 
+              label: 'Completed', 
+              caption: isJobCompleted ? 'Funds released' : (display.isApproved ? 'Release pending' : 'Pending release'), 
+              status: getStepStatus(4) 
+            },
           ];
 
           return <Stepper steps={steps} className="pt-1" />;
         })()}
       </div>
 
+      {/* ── CONTEXTUAL DEADLINE, OVERDUE & LATE SUBMISSION BANNER ── */}
+      {(() => {
+        const display = getEngagementDisplayState(activeJob);
+        const isJobCompleted = display.isCompleted || display.isPaid || (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+        if (
+          isJobCompleted ||
+          display.state === 'COMPLETED' ||
+          display.state === 'CANCELLED' ||
+          display.state === 'OFFER_SENT' ||
+          display.state === 'TERMS_AGREED'
+        ) {
+          return null;
+        }
+
+        const isClient = areAddressesEqual(activeJob.client, address);
+        const isFreelancer = areAddressesEqual(activeJob.freelancer, address);
+        const roleNotice = isClient ? display.whatHappensNext.client : display.whatHappensNext.freelancer;
+
+        let bannerStyle = "bg-blue-50/80 border-blue-200 text-blue-950";
+        if (display.badgeVariant === "destructive") {
+          bannerStyle = "bg-rose-50 border-rose-200 text-rose-950";
+        } else if (display.badgeVariant === "warning") {
+          bannerStyle = "bg-amber-50 border-amber-200 text-amber-950";
+        } else if (display.badgeVariant === "purple") {
+          bannerStyle = "bg-purple-50 border-purple-200 text-purple-950";
+        }
+
+        return (
+          <div className={`rounded-[12px] border p-4 text-xs space-y-2.5 transition-all text-left shadow-xs ${bannerStyle}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm">{display.displayLabel}</span>
+                {display.isLate && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                    Late by {Math.round(display.lateByMs / 3600000)}h
+                  </span>
+                )}
+                {display.isOverdue && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200 text-rose-900 border border-rose-300">
+                    Overdue
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isFreelancer && display.allowedActions.canRequestExtension && (
+                  <button
+                    onClick={() => setIsExtensionModalOpen(true)}
+                    className="px-3 py-1.5 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-slate-50 font-medium text-xs text-[#0B0B0F] transition-colors cursor-pointer"
+                  >
+                    Request Extension
+                  </button>
+                )}
+                {isClient && display.state === 'EXPIRED_NO_SUBMISSION' && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        setAlertModalOptions({
+                          title: "Keep Waiting for Deliverables",
+                          message: "The delivery deadline has expired, but the freelancer is still permitted to submit work while escrow remains locked. You can cancel or request review at any time.",
+                          type: "info",
+                        });
+                      }}
+                      className="px-2.5 py-1.5 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-slate-50 font-medium text-xs text-[#0B0B0F] transition-colors cursor-pointer"
+                    >
+                      Keep Waiting
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAlertModalOptions({
+                          title: "Request Escrow Refund Review",
+                          message: "Because the job delivery deadline and grace period expired without deliverables, your refund request requires JudgeDAO arbitrator review or mutual agreement. Funds will remain safely locked in escrow until confirmed.",
+                          type: "confirm",
+                          showCancel: true,
+                          confirmText: "Open Dispute / Review",
+                          onConfirm: () => {
+                            navigate(`/workspace?jobId=${activeJob.id}&action=dispute`);
+                          },
+                        });
+                      }}
+                      className="px-2.5 py-1.5 rounded-[8px] bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs transition-colors cursor-pointer"
+                    >
+                      Cancel & Refund Review
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed opacity-90">{roleNotice}</p>
+          </div>
+        );
+      })()}
+
       {/* ── MAIN WORKSPACE CONTENT ── */}
       <div id="deliverable-workspace" className="space-y-6">
-        {activeJob.status === 'Funded' || activeJob.status === 'Submitted' || activeJob.status === 'Disputed' || activeJob.status === 'Completed' || activeJob.status === 'Selected' || Boolean(activeJob.freelancer) || (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ? (
+        {activeJob.status === 'Funded' || (activeJob.status as string) === 'Submitted' || activeJob.status === 'Disputed' || (activeJob.status as string) === 'Completed' || activeJob.status === 'Selected' || Boolean(activeJob.freelancer) || (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ? (
           <DeliverableWorkSubmissionPanel job={activeJob} />
         ) : (
           <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-6 sm:p-8 shadow-[0_1px_2px_rgba(0,0,0,0.06)] space-y-6 text-left">
@@ -873,24 +1066,17 @@ export const JobWorkspace: React.FC = () => {
                 </span>
                 <div className="text-xl font-semibold text-[#0B0B0F] tabular-nums">
                   {(() => {
-                    const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
-                    const isCrypto = sym === 'POL' || sym === 'MATIC';
-                    const tokenLabel = isCrypto ? 'POL' : sym;
-                    const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
-                    return isCrypto ? (
-                      <>
-                        <span>{amt}</span> <span className="text-xs font-semibold text-[#4B5563]">{tokenLabel}</span>
-                        <span className="text-xs font-normal text-[#6B7280] block">≈ ${activeJob.amountUsdc} USDC</span>
-                      </>
-                    ) : (
-                      <>
-                        ${amt} <span className="text-xs font-semibold text-[#4B5563]">{tokenLabel}</span>
-                      </>
+                    const ja = getJobAmounts(activeJob, undefined, undefined, activeViewerRole);
+                    return (
+                      <TokenAmount amount={ja.effectiveAmount} token={ja.token} />
                     );
                   })()}
                 </div>
                 <span className="text-xs text-[#0047AB] block">
-                  {activeJob.negotiatedAmount ? `Negotiated: ${activeJob.negotiatedAmount} ${activeJob.paymentTokenSymbol || 'USDC'}` : 'Standard listing price'}
+                  {(() => {
+                    const ja = getJobAmounts(activeJob, undefined, undefined, activeViewerRole);
+                    return ja.agreed ? `Agreed: ${ja.agreed} ${ja.token}` : (ja.proposed ? `Proposed: ${ja.proposed} ${ja.token}` : 'Standard listing price');
+                  })()}
                 </span>
               </div>
 
@@ -927,27 +1113,35 @@ export const JobWorkspace: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
-                {isClient && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setIsModifyModalOpen(true)}
-                      className="px-4 py-2.5 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                    >
-                      <Edit3 size={14} className="text-[#0047AB]" />
-                      <span>Modify Job Details</span>
-                    </button>
+                {(() => {
+                  const isJobFunded = (activeJob.status as string) === 'Funded' || (activeJob.status as string) === 'Submitted' || (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Funded' || e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+                  const isJobCompleted = (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+                  const canModifyOrDelete = isClient && !isJobFunded && !isJobCompleted;
 
-                    <button
-                      type="button"
-                      onClick={handleDeleteActiveJob}
-                      className="px-4 py-2.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                    >
-                      <Trash2 size={14} className="text-rose-600" />
-                      <span>Delete Posting</span>
-                    </button>
-                  </>
-                )}
+                  if (!canModifyOrDelete) return null;
+
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsModifyModalOpen(true)}
+                        className="px-4 py-2.5 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      >
+                        <Edit3 size={14} className="text-[#0047AB]" />
+                        <span>Modify Job Details</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDeleteActiveJob}
+                        className="px-4 py-2.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      >
+                        <Trash2 size={14} className="text-rose-600" />
+                        <span>Delete Posting</span>
+                      </button>
+                    </>
+                  );
+                })()}
 
                 <button
                   type="button"
@@ -977,23 +1171,33 @@ export const JobWorkspace: React.FC = () => {
       </div>
 
       {/* ── FIXED-POSITION JOB SWITCHER DROPDOWN (escapes stacking context) ── */}
-      {isJobDropdownOpen && dropdownPos && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/20 z-[9998] transition-opacity"
-            onClick={closeDropdown}
-          />
-          <div
-            ref={dropdownRef}
-            style={{
-              position: 'fixed',
-              top: dropdownPos.top,
-              left: dropdownPos.left,
-              width: dropdownPos.width,
-              zIndex: 9999,
-            }}
-            className="bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden animate-fadeIn"
-          >
+      <AnimatePresence>
+        {isJobDropdownOpen && dropdownPos && (
+          <>
+            <motion.div
+              variants={prefersReducedMotion ? reducedMotionVariants : backdropVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="fixed inset-0 bg-black/20 z-[9998]"
+              onClick={closeDropdown}
+            />
+            <motion.div
+              ref={dropdownRef}
+              variants={prefersReducedMotion ? reducedMotionVariants : popoverVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              style={{
+                position: 'fixed',
+                top: dropdownPos.top,
+                left: dropdownPos.left,
+                width: dropdownPos.width,
+                zIndex: 9999,
+                transformOrigin: 'top center',
+              }}
+              className="bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden"
+            >
           {/* Top Search Bar with ⌘ K */}
           <div className="p-4 pb-3 border-b border-[#E2E6EC] bg-white">
             <label className="relative flex items-center gap-3 bg-white border border-[#E2E6EC] rounded-xl px-4 py-3 focus-within:border-[#0047AB] focus-within:ring-1 focus-within:ring-[#0047AB] transition-all shadow-2xs cursor-text">
@@ -1218,7 +1422,10 @@ export const JobWorkspace: React.FC = () => {
           </div>
 
           {/* Scrollable job list */}
-          <div className="overflow-y-auto max-h-[480px] sm:max-h-[540px] p-3 pt-1 space-y-2">
+          <div
+            data-lenis-prevent="true"
+            className="overflow-y-auto overscroll-contain max-h-[480px] sm:max-h-[540px] min-h-0 p-3 pt-1 space-y-2 custom-scrollbar"
+          >
             {filteredMyJobs.length > 0 ? (
               filteredMyJobs.map((j) => {
                 const isSelected = j.id === activeJob.id;
@@ -1257,11 +1464,9 @@ export const JobWorkspace: React.FC = () => {
                   statusBadgeText = 'FUNDED';
                 }
 
-                const sym = (j.paymentTokenSymbol || 'USDC').toUpperCase();
-                const isCrypto = sym === 'POL' || sym === 'MATIC';
-                const tokenLabel = isCrypto ? 'POL' : sym;
-                const amt = isCrypto ? (j.amountEth || j.amountUsdc) : j.amountUsdc;
-                const amountDisplay = isCrypto ? `${amt} ${tokenLabel}` : `$${amt} ${tokenLabel}`;
+                const ja = getJobAmounts(j, undefined, undefined, isClientJob ? 'client' : (isFreelancerJob ? 'freelancer' : 'visitor'));
+                const sym = ja.token;
+                const amountDisplay = `${ja.effectiveAmount} ${ja.token}`;
                 const dateDisplay = formatJobDate(j.createdAt);
 
                 return (
@@ -1372,9 +1577,10 @@ export const JobWorkspace: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
         </>
       )}
+      </AnimatePresence>
 
       {/* Client Modify Job Details Modal */}
       <ModifyJobModal
@@ -1383,11 +1589,30 @@ export const JobWorkspace: React.FC = () => {
         onClose={() => setIsModifyModalOpen(false)}
       />
 
+      {/* Request Extension Modal */}
+      {activeJob && (
+        <RequestExtensionModal
+          isOpen={isExtensionModalOpen}
+          onClose={() => setIsExtensionModalOpen(false)}
+          jobTitle={activeJob.title}
+          onRequestExtension={(days, reason) => {
+            requestTimeExtension(activeJob.id, days, reason);
+            sendChatMessage(activeJob.id, `⏳ Extension Request: +${days} Days\n\nReason: ${reason}`, 'Freelancer');
+          }}
+        />
+      )}
+
       {/* PolyLance Alert & Confirmation Modal */}
       <PolyLanceAlertModal
         isOpen={Boolean(alertModalOptions)}
         options={alertModalOptions}
         onClose={() => setAlertModalOptions(null)}
+      />
+
+      {/* Platform Fees / Balance Modal */}
+      <WalletBalanceModal
+        isOpen={isFeeDuesBalanceModalOpen}
+        onClose={() => setIsFeeDuesBalanceModalOpen(false)}
       />
     </PageContainer>
   );

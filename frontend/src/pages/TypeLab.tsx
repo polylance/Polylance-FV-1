@@ -110,15 +110,6 @@ export const TypeLab: React.FC = () => {
             >
               Hire talent
             </Button>
-            <Button
-              as="a"
-              href="#/demo"
-              variant="ghost"
-              size="md"
-              trailingIcon={<ArrowRight size={14} />}
-            >
-              Try the demo
-            </Button>
           </div>
 
           <div className="pt-4 border-t border-[#E5E7EB] flex flex-wrap items-center gap-6 text-xs text-[#4B5563]">

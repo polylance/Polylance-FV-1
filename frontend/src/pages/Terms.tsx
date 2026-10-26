@@ -79,9 +79,9 @@ export const Terms: React.FC = () => {
   };
 
   return (
-    <PageContainer className="py-6 space-y-6 text-[#0B0B0F]">
-      {/* Header with 720px reading column */}
-      <div className="max-w-[720px] mx-auto text-left">
+    <PageContainer size="wide" className="py-8 space-y-8 text-[#0B0B0F]">
+      {/* Header */}
+      <div className="text-left space-y-3">
         <PageHeader
           title="Terms of Service & Escrow Protocol"
           subtitle="Please read these terms carefully. Interacting with PolyLance smart contracts binds your address to these autonomous rules."
@@ -96,8 +96,8 @@ export const Terms: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Layout: Sticky Index + 720px Content Card */}
-      <div className="max-w-[1080px] mx-auto space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8 items-start">
+      {/* Main Layout: Sticky Index + Content Card */}
+      <div className="w-full space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8 items-start">
         {/* Mobile Horizontal Selector */}
         <div className="lg:hidden space-y-2 max-w-[720px] mx-auto w-full">
           <div className="flex items-center justify-between px-1">
@@ -139,7 +139,7 @@ export const Terms: React.FC = () => {
         </div>
 
         {/* Desktop Sticky Index (left side) */}
-        <div className="hidden lg:block lg:col-span-5 sticky top-24 space-y-3 text-left">
+        <div className="hidden lg:block lg:col-span-4 sticky top-24 space-y-3 text-left">
           <h3 className="text-xs font-semibold text-[#6B7280] px-2">
             Contract terms index
           </h3>
@@ -181,8 +181,8 @@ export const Terms: React.FC = () => {
           </div>
         </div>
 
-        {/* Detail View Window (720px max column) */}
-        <div className="lg:col-span-7 max-w-[720px] w-full mx-auto">
+        {/* Detail View Window */}
+        <div className="lg:col-span-8 w-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

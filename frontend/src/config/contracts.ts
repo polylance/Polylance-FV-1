@@ -2,7 +2,8 @@ import localAddresses from "./localhost_addresses.json";
 import amoyAddresses from "./amoy_addresses.json";
 import polygonAddresses from "./polygon_addresses.json";
 
-const network = import.meta.env.VITE_NETWORK ?? "polygon";
+const defaultNetwork = import.meta.env.DEV ? "amoy" : "polygon";
+const network = import.meta.env.VITE_NETWORK ?? defaultNetwork;
 const manifest = 
   network === "amoy" 
     ? amoyAddresses 

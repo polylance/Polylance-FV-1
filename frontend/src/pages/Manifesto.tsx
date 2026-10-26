@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, ShieldCheck, Lock, Scale, 
   ArrowRight, Award, Cpu, TrendingUp, Code2, CheckCircle2, Users, LineChart, ExternalLink, Shield,
@@ -7,8 +7,11 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageContainer } from '../components/layout/PageContainer';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { backdropVariants, centerModalVariants, reducedMotionVariants } from '../styles/popupMotion';
 
 export const Manifesto: React.FC = () => {
+  const prefersReducedMotion = useReducedMotion();
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string; role: string } | null>(null);
 
   useEffect(() => {
@@ -495,16 +498,20 @@ export const Manifesto: React.FC = () => {
       {/* Full-size Photo Lightbox Modal */}
       <AnimatePresence>
         {selectedImage && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75"
+          <motion.div
+            variants={prefersReducedMotion ? reducedMotionVariants : backdropVariants}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 cursor-pointer"
             onClick={() => setSelectedImage(null)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 10 }}
-              transition={{ duration: 0.2 }}
-              className="relative max-w-xl w-full bg-[#0B0B0C] border border-white/20 rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col items-center"
+              variants={prefersReducedMotion ? reducedMotionVariants : centerModalVariants}
+              initial="closed"
+              animate="open"
+              exit="closed"
+              className="relative max-w-xl w-full bg-[#0B0B0C] border border-white/20 rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col items-center cursor-default"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close Button */}
@@ -536,7 +543,7 @@ export const Manifesto: React.FC = () => {
                 </p>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

@@ -284,8 +284,13 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
             </form>
           </div>
 
-          {/* Category Tabs (Scrollable Horizontal Pill Navigation with No-Scrollbar) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar scroll-smooth">
+          {/* Category Tabs (Scrollable Horizontal Pill Navigation with mouse wheel conversion) */}
+          <div
+            onWheel={(e) => {
+              if (e.deltaY !== 0) e.currentTarget.scrollLeft += e.deltaY;
+            }}
+            className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 custom-scrollbar-subtle scroll-smooth overscroll-contain"
+          >
             {(() => {
               const isSelected = selectedCategory === 'All';
               return (
@@ -325,7 +330,7 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
           </div>
 
           {/* Skills Grid / Search Results */}
-          <div className="max-h-72 overflow-y-auto pr-1 space-y-2">
+          <div data-lenis-prevent="true" className="max-h-72 overflow-y-auto pr-1 space-y-2 custom-scrollbar overscroll-contain min-h-0">
             {filteredSkills.length === 0 ? (
               <div className="py-8 text-center space-y-1">
                 <p className="text-xs font-semibold text-[#0B0B0F]">No matching skills found in database</p>

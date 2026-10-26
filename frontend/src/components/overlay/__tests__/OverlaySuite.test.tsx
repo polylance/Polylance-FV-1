@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Modal } from '../Modal';
 import { Popover } from '../Popover';
 import { ConfirmDialog } from '../ConfirmDialog';
@@ -54,7 +54,7 @@ describe('Overlay System QA Suite (Modal, Popover, ConfirmDialog, Sheet)', () =>
       expect(handleClose).toHaveBeenCalledTimes(1);
     });
 
-    it('does not render when isOpen is false and unlocks body scroll', () => {
+    it('does not render when isOpen is false and unlocks body scroll', async () => {
       const { rerender } = render(
         <Modal isOpen={true} onClose={vi.fn()} title="Test Modal">
           <p>Body</p>
@@ -68,7 +68,9 @@ describe('Overlay System QA Suite (Modal, Popover, ConfirmDialog, Sheet)', () =>
           <p>Body</p>
         </Modal>
       );
-      expect(overlayRoot.innerHTML).not.toContain('Test Modal');
+      await waitFor(() => {
+        expect(overlayRoot.innerHTML).not.toContain('Test Modal');
+      });
       expect(document.body.style.overflow).toBe('');
     });
 

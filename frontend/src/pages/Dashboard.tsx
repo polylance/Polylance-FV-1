@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { UserProfile, Job } from '../types';
-import { truncateAddress, formatTimeAgo, getDeterministicSbtId, getCanonicalCertificateId } from '../utils/formatters';
+import { truncateAddress, formatTimeAgo, getDeterministicSbtId, getCanonicalCertificateId, buildVerifyUrl } from '../utils/formatters';
 import { scoreGithubUser, getUserBytecodeMatrix } from '../utils/githubOracle';
 import { calculateReputationScores, getReputationTier } from '../utils/reputation';
 import { getJobInactivityStatus } from '../utils/inactivity';
@@ -13,6 +13,8 @@ import { GroupedList, GroupedRow } from '../components/common/GroupedList';
 import { CompactEmptyState } from '../components/common/CompactEmptyState';
 import { StatCard } from '../components/common/Card';
 import { Amount } from '../components/common/Amount';
+import { TokenAmount } from '../components/common/TokenAmount';
+import { getJobAmounts } from '../lib/amounts/getJobAmounts';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Badge } from '../components/common/Badge';
 import { AddressChip } from '../components/common/AddressChip';
@@ -41,9 +43,14 @@ import {
   Wallet,
   ArrowRight,
   DollarSign,
+  ArrowDownLeft,
   Layers,
   FileCheck,
+  X,
 } from 'lucide-react';
+import { usePlatformFeeDues } from '../hooks/usePlatformFeeDues';
+import { WalletBalanceModal } from '../components/WalletBalanceModal';
+import { formatAmount } from '../utils/formatAmount';
 
 export const Dashboard: React.FC = () => {
   const { address, currentRole, isArbitrator, balanceNative, balanceUsdc, balanceUsdt, refreshBalances } = useWeb3();
@@ -81,25 +88,52 @@ export const Dashboard: React.FC = () => {
   const lastOpenedJobId = typeof window !== 'undefined' ? localStorage.getItem('polylance_last_opened_job') : null;
   const lastOpenedJob = lastOpenedJobId ? jobs.find(j => j.id === lastOpenedJobId || j.contractAddress?.toLowerCase() === lastOpenedJobId.toLowerCase()) : null;
 
+  const [lastSyncedTime, setLastSyncedTime] = useState<number>(Date.now());
+  const [syncStatus, setSyncStatus] = useState<'live' | 'syncing' | 'delayed'>('live');
+
   const handleRefreshBalances = async () => {
     setIsRefreshingBalances(true);
-    await refreshBalances();
-    setTimeout(() => setIsRefreshingBalances(false), 500);
+    setSyncStatus('syncing');
+    try {
+      await refreshBalances();
+      setLastSyncedTime(Date.now());
+      setSyncStatus('live');
+    } catch {
+      setSyncStatus('delayed');
+    } finally {
+      setIsRefreshingBalances(false);
+    }
   };
+
+  const { dues: feeDues, enabled: feeDuesEnabled } = usePlatformFeeDues();
+  const [isFeeDuesModalOpen, setIsFeeDuesModalOpen] = useState(false);
+  const [feeNoticeDismissed, setFeeNoticeDismissed] = useState(false);
+
+  const openFeeDues = useMemo(() => {
+    if (!feeDuesEnabled || !activeAddress) return [];
+    return feeDues.filter(
+      (d) => d.wallet.toLowerCase() === activeAddress.toLowerCase() && d.status === 'DUE'
+    );
+  }, [feeDues, feeDuesEnabled, activeAddress]);
+
+  const firstFeeDue = openFeeDues[0] || null;
+  const firstFeeJob = firstFeeDue
+    ? jobs.find((j) => j.id === firstFeeDue.jobId || j.contractAddress?.toLowerCase() === firstFeeDue.jobId?.toLowerCase())
+    : null;
 
   const userProfileKey = activeAddress ? Object.keys(profiles).find(k => k.toLowerCase() === activeAddress.toLowerCase()) : null;
   const rawProfile = userProfileKey ? profiles[userProfileKey] : null;
   const userProfile = (rawProfile || {
     displayName: activeAddress ? `${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}` : 'Anonymous User',
     bio: 'No biography has been written yet.',
-    avatarUrl: activeAddress ? `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress.toLowerCase()}` : '',
+    avatarUrl: '',
     skills: [],
     reputationSbtCount: 0,
   }) as UserProfile;
 
-  // Sanitize any lingering unsplash demo avatars
-  if (userProfile.avatarUrl && userProfile.avatarUrl.includes('unsplash.com')) {
-    userProfile.avatarUrl = activeAddress ? `https://api.dicebear.com/7.x/identicon/svg?seed=${activeAddress.toLowerCase()}` : '';
+  // Sanitize any lingering unsplash or dicebear demo avatars
+  if (userProfile.avatarUrl && (userProfile.avatarUrl.includes('unsplash.com') || userProfile.avatarUrl.includes('dicebear.com'))) {
+    userProfile.avatarUrl = '';
   }
 
   const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
@@ -337,6 +371,23 @@ export const Dashboard: React.FC = () => {
     });
   });
 
+  // Platform fee dues attention items
+  if (feeDuesEnabled && openFeeDues.length > 0) {
+    openFeeDues.forEach((due) => {
+      const matchJob = jobs.find((j) => j.id === due.jobId || j.contractAddress?.toLowerCase() === due.jobId?.toLowerCase());
+      const jobTitle = matchJob?.title || `Escrow #${truncateAddress(due.jobId)}`;
+      attentionItems.push({
+        id: `fee-due-${due.id}`,
+        title: `Platform fee: ${jobTitle}`,
+        description: `A platform fee of ${due.outstanding} ${due.token} for '${jobTitle}' is outstanding. Settle directly to protocol treasury.`,
+        actionLabel: 'Pay fee',
+        actionPath: '#open-fees',
+        badge: 'Fee due',
+        badgeColor: 'bg-[#EAF1FB] text-[#0047AB]',
+      });
+    });
+  }
+
   // User's authentic completed jobs with on-chain attestations (freelancer + client)
   const allUserCompletedJobs = useMemo(() => {
     if (!activeAddress) return [];
@@ -557,6 +608,37 @@ export const Dashboard: React.FC = () => {
             </div>
           )}
 
+          {/* Contextual Fee Due Notice on Dashboard */}
+          {firstFeeDue && !feeNoticeDismissed && (
+            <div className="p-3.5 rounded-[12px] bg-[#EAF1FB] border border-[#C9DAF2] text-xs text-[#0B0B0F] flex items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-[#0047AB] text-white flex items-center justify-center shrink-0 text-[10px] font-bold">
+                  !
+                </div>
+                <span className="truncate text-xs font-medium text-[#0B0B0F]">
+                  A platform fee of {firstFeeDue.outstanding} {firstFeeDue.token} for &apos;{firstFeeJob?.title || `Escrow #${truncateAddress(firstFeeDue.jobId)}`}&apos; is still open. Pay it in Payments.
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsFeeDuesModalOpen(true)}
+                  className="px-2.5 py-1 rounded-[6px] bg-[#0047AB] hover:bg-[#003A8C] text-white font-medium text-xs transition-colors cursor-pointer"
+                >
+                  Pay in Payments
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeeNoticeDismissed(true)}
+                  className="text-[#6B7280] hover:text-[#0B0B0F] p-1 cursor-pointer"
+                  title="Dismiss notice"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Resume Last Workspace (if available) */}
           {lastOpenedJob && (
             <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
@@ -568,9 +650,9 @@ export const Dashboard: React.FC = () => {
                   <StatusBadge status={lastOpenedJob.status} />
                 </div>
                 <h4 className="font-semibold text-sm text-[#0B0B0F]">{lastOpenedJob.title}</h4>
-                <div className="text-xs text-[#4B5563] flex items-center gap-1.5">
+                <div className="text-xs text-[#4B5563] flex items-center gap-1.5 flex-wrap">
                   <span>Budget:</span>
-                  <Amount amount={lastOpenedJob.amountEth || lastOpenedJob.amountUsdc || '0'} token={lastOpenedJob.paymentTokenSymbol || 'POL'} showFiat={true} />
+                  <Amount amount={lastOpenedJob.amountEth || lastOpenedJob.amountUsdc || '0'} token={lastOpenedJob.paymentTokenSymbol || 'POL'} showFiat={true} inline={true} />
                 </div>
               </div>
               <Button
@@ -624,7 +706,13 @@ export const Dashboard: React.FC = () => {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => navigate(item.actionPath)}
+                      onClick={() => {
+                        if (item.actionPath === '#open-fees') {
+                          setIsFeeDuesModalOpen(true);
+                        } else {
+                          navigate(item.actionPath);
+                        }
+                      }}
                       icon={<ArrowRight size={12} />}
                     >
                       {item.actionLabel}
@@ -900,11 +988,10 @@ export const Dashboard: React.FC = () => {
                     title={job.title}
                     subtitle={
                       <div className="flex items-center gap-2 text-xs text-[#4B5563] mt-0.5">
-                        <Amount
-                          amount={job.amountEth || job.amountUsdc || '0'}
-                          token={job.paymentTokenSymbol || 'POL'}
-                          showFiat={true}
-                        />
+                        {(() => {
+                          const ja = getJobAmounts(job);
+                          return <TokenAmount amount={ja.effectiveAmount} token={ja.token} />;
+                        })()}
                         <span>•</span>
                         <span>{job.category}</span>
                         <span>•</span>
@@ -935,20 +1022,78 @@ export const Dashboard: React.FC = () => {
                 <Wallet size={15} className="text-[#0047AB]" />
                 <h3 className="font-semibold text-sm text-[#0B0B0F]">Escrow funding account</h3>
               </div>
-              <span className="text-[10px] text-[#047857] font-semibold bg-[#ECFDF5] px-2 py-0.5 rounded-[4px] border border-[#A7F3D0]">
-                Live sync
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-[4px] border ${
+                syncStatus === 'live'
+                  ? 'text-[#047857] bg-[#ECFDF5] border-[#A7F3D0]'
+                  : syncStatus === 'syncing'
+                  ? 'text-[#0047AB] bg-[#EFF6FF] border-[#BFDBFE]'
+                  : 'text-[#B45309] bg-[#FFFBEB] border-[#FDE68A]'
+              }`}>
+                {syncStatus === 'live' ? 'Live sync' : syncStatus === 'syncing' ? 'Syncing...' : 'Delayed'}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 bg-[#F6F7F9] p-3 rounded-[8px] border border-[#E5E7EB]">
-              <div className="text-xs">
-                <span className="text-[#4B5563] block text-[11px]">Native POL</span>
-                <span className="font-semibold text-sm text-[#0B0B0F] tabular-nums">{balanceNative}</span>
+            {/* Stacked Rows with overflow protection */}
+            <div className="space-y-2.5 bg-[#F6F7F9] p-3 rounded-[8px] border border-[#E5E7EB]">
+              {/* Native POL */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs min-w-0">
+                  <span className="text-[#4B5563] text-[11px] font-medium truncate">POL balance (for network fees)</span>
+                  <span
+                    className="font-semibold text-sm text-[#0B0B0F] tabular-nums font-sans cursor-pointer hover:opacity-90 ml-2 shrink-0"
+                    title={`${formatAmount(balanceNative, 'POL', { isBalance: true }).fullPrecision} POL (Click to copy)`}
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                        navigator.clipboard.writeText(formatAmount(balanceNative, 'POL', { isBalance: true }).fullPrecision);
+                      }
+                    }}
+                  >
+                    {formatAmount(balanceNative, 'POL', { isBalance: true }).displayWithSymbol}
+                  </span>
+                </div>
+                {/* Calm helper line */}
+                <div className="text-[11px] text-[#6B7280] flex items-center justify-between pt-0.5">
+                  <span>Keep about 0.1 POL for network fees</span>
+                  {parseFloat(balanceNative || '0') < 0.04 && (
+                    <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-medium border border-amber-200 shrink-0">
+                      Low POL
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="text-xs">
-                <span className="text-[#4B5563] block text-[11px]">Dollar Escrow</span>
-                <span className="font-semibold text-sm text-[#0047AB] tabular-nums">${balanceUsdc}</span>
+
+              {/* USDC balance */}
+              <div className="border-t border-[#E5E7EB]/80 pt-2">
+                <div className="flex items-center justify-between text-xs min-w-0">
+                  <span className="text-[#4B5563] text-[11px] font-medium truncate">USDC balance</span>
+                  <span
+                    className="font-semibold text-sm text-[#0047AB] tabular-nums font-sans cursor-pointer hover:opacity-90 ml-2 shrink-0"
+                    title={`${formatAmount(balanceUsdc, 'USDC', { isBalance: true }).fullPrecision} USDC (Click to copy)`}
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                        navigator.clipboard.writeText(formatAmount(balanceUsdc, 'USDC', { isBalance: true }).fullPrecision);
+                      }
+                    }}
+                  >
+                    {formatAmount(balanceUsdc, 'USDC', { isBalance: true }).displayWithSymbol}
+                  </span>
+                </div>
               </div>
+
+              {/* USDT balance (if held) */}
+              {Boolean(balanceUsdt && parseFloat(balanceUsdt) > 0) && (
+                <div className="border-t border-[#E5E7EB]/80 pt-2">
+                  <div className="flex items-center justify-between text-xs min-w-0">
+                    <span className="text-[#4B5563] text-[11px] font-medium truncate">USDT balance</span>
+                    <span
+                      className="font-semibold text-sm text-[#0B0B0F] tabular-nums font-sans cursor-pointer hover:opacity-90 ml-2 shrink-0"
+                      title={`${formatAmount(balanceUsdt, 'USDT', { isBalance: true }).fullPrecision} USDT`}
+                    >
+                      {formatAmount(balanceUsdt, 'USDT', { isBalance: true }).displayWithSymbol}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-1">
@@ -959,15 +1104,17 @@ export const Dashboard: React.FC = () => {
                 disabled={isRefreshingBalances}
                 icon={<RefreshCw size={13} className={isRefreshingBalances ? 'animate-spin text-[#0047AB]' : ''} />}
                 className="w-full justify-center"
+                title={`Last synced: ${formatTimeAgo(lastSyncedTime)}`}
               >
-                Sync
+                {isRefreshingBalances ? 'Syncing...' : 'Sync'}
               </Button>
               <Button
                 variant="primary"
                 size="sm"
                 className="w-full justify-center bg-[#0047AB] hover:bg-[#003882] text-white font-semibold shadow-xs"
                 onClick={() => setIsTopUpModalOpen(true)}
-                icon={<DollarSign size={13} />}
+                icon={<ArrowDownLeft size={13} />}
+                title="Deposit funds to wallet"
               >
                 Top-up
               </Button>
@@ -993,15 +1140,28 @@ export const Dashboard: React.FC = () => {
                 {allUserCompletedJobs.slice(0, 4).map((j) => {
                   const isFreelancer = Boolean(activeAddress && j.freelancer?.toLowerCase() === activeAddress.toLowerCase());
                   const canonicalCertId = getCanonicalCertificateId(j.id, j.contractAddress);
-                  const tokenAmt = parseFloat(j.amountUsdc || j.amountEth || '0');
-                  const tokenSym = j.paymentTokenSymbol === 'MATIC' ? 'POL' : (j.paymentTokenSymbol || 'USDC');
+                  const ja = getJobAmounts(j, undefined, undefined, isFreelancer ? 'freelancer' : 'client');
+                  const tokenAmt = ja.settled || ja.effectiveAmount;
+                  const tokenSym = ja.token;
 
                   return (
                     <GroupedRow
                       key={j.id}
                       title={j.title}
-                      subtitle={`${tokenAmt.toLocaleString()} ${tokenSym} • ${isFreelancer ? 'Proof of Work' : 'Patronage'}`}
-                      trailing={<ArrowUpRight size={13} className="text-[#6B7280]" />}
+                      subtitle={`${tokenAmt} ${tokenSym} • ${isFreelancer ? 'Proof of Work' : 'Patronage'}`}
+                      trailing={
+                        <div className="flex items-center gap-2">
+                          <Link
+                            to={buildVerifyUrl(canonicalCertId, j.onchainTokenId)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs text-[#0047AB] hover:underline flex items-center gap-0.5 font-semibold px-2 py-0.5 rounded-[4px] bg-[#EFF6FF] border border-[#BFDBFE]"
+                            title="Verify certificate on CertifiedPass"
+                          >
+                            <span>Verify</span>
+                            <ArrowUpRight size={11} />
+                          </Link>
+                        </div>
+                      }
                       onClick={() => navigate(`/attestation/${j.id}`)}
                     />
                   );
@@ -1059,6 +1219,12 @@ export const Dashboard: React.FC = () => {
         isOpen={isVideoModalOpen}
         onClose={closeVideo}
         triggerRef={triggerRef}
+      />
+
+      {/* Platform Fees / Balance Modal */}
+      <WalletBalanceModal
+        isOpen={isFeeDuesModalOpen}
+        onClose={() => setIsFeeDuesModalOpen(false)}
       />
     </PageContainer>
   );

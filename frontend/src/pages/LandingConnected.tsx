@@ -22,6 +22,8 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { truncateAddress } from '../utils/formatters';
 import { WatchButton } from '../components/video';
 import { Button } from '../components/common/Button';
+import { TokenAmount } from '../components/common/TokenAmount';
+import { getJobAmounts } from '../lib/amounts/getJobAmounts';
 
 interface LandingConnectedProps {
   address: string;
@@ -61,7 +63,7 @@ export const LandingConnected: React.FC<LandingConnectedProps> = ({
 
   // Spend or Earnings calculation
   const totalVolume = completedJobs.reduce((acc, j) => {
-    const val = parseFloat(j.amountUsdc || j.budget || '0') || 0;
+    const val = parseFloat(getJobAmounts(j).effectiveAmount || '0') || 0;
     return acc + val;
   }, 0);
 
@@ -320,9 +322,10 @@ export const LandingConnected: React.FC<LandingConnectedProps> = ({
                     <p className="text-[11px] text-[#4B5563] line-clamp-1 mt-0.5">{job.description}</p>
                   </div>
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-[#E5E7EB]">
-                    <span className="font-semibold text-[#0047AB] tabular-nums">
-                      {job.amountUsdc || job.budget} {job.token || 'USDC'}
-                    </span>
+                    {(() => {
+                      const ja = getJobAmounts(job);
+                      return <TokenAmount amount={ja.effectiveAmount} token={ja.token} />;
+                    })()}
                     <span className="text-[11px] text-[#4B5563]">{job.category || 'Web3'}</span>
                   </div>
                 </Link>
@@ -375,7 +378,7 @@ export const LandingConnected: React.FC<LandingConnectedProps> = ({
       <footer className="w-full bg-[#0B0B0F] text-white py-12 border-t border-black text-xs text-left">
         <PageContainer>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-gray-400">
-            <div>© {new Date().getFullYear()} PolyLance. Decentralized Escrow on Polygon.</div>
+            <div>PolyLance Protocol. Decentralized Escrow on Polygon.</div>
             <div className="flex items-center gap-4">
               <Link to="/terms" className="hover:text-white">Terms</Link>
               <Link to="/privacy" className="hover:text-white">Privacy</Link>

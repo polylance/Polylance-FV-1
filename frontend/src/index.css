@@ -83,7 +83,7 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: var(--nav-h, 64px);
+  scroll-padding-top: calc(var(--navbar-height, 72px) + 16px);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -93,7 +93,9 @@ html {
 }
 
 :root {
-  --nav-h: 64px;
+  --nav-h: 72px;
+  --navbar-height: 72px;
+  --meta-width: 360px;
   --black: #0B0B0F;
   --white: #FFFFFF;
   --bg: #FFFFFF;
@@ -167,15 +169,23 @@ html {
   --font-sans: 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, -webkit-system-font, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-  /* Shared Container Max Width: 1280px */
-  --container-max: 1280px;
-  --container-padding: 24px;
+  /* Shared Container Max Width: 1440px */
+  --container-max: 1440px;
+  --container-padding: clamp(20px, 3vw, 48px);
 }
 
-@media (max-width: 768px) {
-  :root {
-    --container-padding: 16px;
-  }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px; /* 72px navbar + 16px buffer */
+}
+
+/* Single Shared Apple-calm Container */
+.container-custom {
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-inline: clamp(20px, 3vw, 48px);
 }
 
 /* Fluid Landing Typography Utilities */
@@ -349,6 +359,48 @@ h1, h2, h3, h4, h5, h6 {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Custom sleek scrollbar for popup sections, options lists, and chat feeds */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.75);
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+/* Subtle thin scrollbar for compact horizontal/vertical popup sections */
+.custom-scrollbar-subtle::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar-subtle::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar-subtle::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+.custom-scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 71, 171, 0.65);
+}
+.custom-scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
 }
 
 /* Dark hero/banner headings & Cobalt band headings */
@@ -661,4 +713,27 @@ label,
 label *,
 summary {
   cursor: pointer !important;
+}
+
+/* Chat Message Status: Draw-in animation for seen checkmark */
+@keyframes seenTickDraw {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.seen-tick-path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 0;
+  animation: seenTickDraw 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seen-tick-path {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
 }

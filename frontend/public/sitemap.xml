@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://polylance.codes/sitemap-static.xml</loc>
+    <lastmod>2026-10-26</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://polylance.codes/sitemap-blog.xml</loc>
+    <lastmod>2026-10-26</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://polylance.codes/sitemap-skills.xml</loc>
+    <lastmod>2026-10-26</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://polylance.codes/sitemap-jobs.xml</loc>
+    <lastmod>2026-10-26</lastmod>
+  </sitemap>
+</sitemapindex>

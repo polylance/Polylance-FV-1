@@ -57,5 +57,9 @@ export const messageLimiter = createLimiter("message", 30, 60 * 1000, "1 m");
 export const joinLimiter = createLimiter("join", 20, 60 * 1000, "1 m");
 // 4. Delete Conversation Limiter: 5 attempts/hour per wallet
 export const deleteLimiter = createLimiter("delete", 5, 60 * 60 * 1000, "1 h");
-// 5. HTTP Limiter: 60 requests/min per IP
+// 5. HTTP Limiter: 60 requests/min per IP for mutations / heavy endpoints
 export const httpLimiter = createLimiter("http", 60, 60 * 1000, "1 m");
+// 6. HTTP Read Limiter: 300 requests/min per IP for lightweight read/polling routes
+export const httpReadLimiter = createLimiter("http_read", 300, 60 * 1000, "1 m");
+// 7. Nonce Limiter: 15 requests/min per IP to throttle SIWE nonce generation
+export const nonceLimiter = createLimiter("nonce", 15, 60 * 1000, "1 m");

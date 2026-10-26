@@ -839,9 +839,9 @@ app.use((req, res, next) => {
     res.setHeader("Content-Security-Policy-Report-Only", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: ipfs: blob:; connect-src 'self' http://localhost:3001 ws://localhost:3001 https://polylance-fv-1-45wy.onrender.com wss://polylance-fv-1-45wy.onrender.com https://*.rpc.thirdweb.com https://polygon-rpc.com https://rpc-amoy.polygon.technology https://api.github.com; media-src 'self' https: data: blob:;");
     next();
 });
-// Global HTTP rate limiter for Express routes (bypasses /health for probes, and test env)
+// Global HTTP rate limiter for Express routes (bypasses /health for probes, studio routes, and test env)
 app.use(async (req, res, next) => {
-    if (req.path === "/health" || req.path === "/api/health" || process.env.NODE_ENV === "test") {
+    if (req.path === "/health" || req.path === "/api/health" || req.path.startsWith("/api/studio") || process.env.NODE_ENV === "test") {
         return next();
     }
     const ip = req.headers["x-forwarded-for"]?.toString() || req.socket.remoteAddress || "unknown";

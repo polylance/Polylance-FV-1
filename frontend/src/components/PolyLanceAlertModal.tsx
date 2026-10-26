@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { AlertCircle, CheckCircle2, Info, AlertTriangle, HelpCircle } from 'lucide-react';
 import { scrollToSection } from '../utils/scroll';
 import { Modal } from './overlay/Modal';
@@ -28,53 +28,58 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
   options,
   onClose,
 }) => {
-  if (!isOpen || !options) return null;
+  const lastOptionsRef = useRef<AlertModalOptions | null>(options);
+  if (options) {
+    lastOptionsRef.current = options;
+  }
+  const currentOptions = options || lastOptionsRef.current;
+  if (!currentOptions) return null;
 
-  const type = options.type || 'info';
+  const type = currentOptions.type || 'info';
 
   const typeConfig = {
     error: {
       icon: <AlertCircle size={18} className="text-[#991B1B]" />,
-      title: options.title || 'Attention Required',
+      title: currentOptions.title || 'Attention Required',
       btnVariant: 'danger' as const,
     },
     warning: {
       icon: <AlertTriangle size={18} className="text-[#0047AB]" />,
-      title: options.title || 'Confirm Action',
-      btnVariant: options.isDestructive ? ('danger' as const) : ('primary' as const),
+      title: currentOptions.title || 'Confirm Action',
+      btnVariant: currentOptions.isDestructive ? ('danger' as const) : ('primary' as const),
     },
     confirm: {
-      icon: options.isDestructive ? (
+      icon: currentOptions.isDestructive ? (
         <AlertTriangle size={18} className="text-[#991B1B]" />
       ) : (
         <HelpCircle size={18} className="text-[#0047AB]" />
       ),
-      title: options.title || 'Please Confirm',
-      btnVariant: options.isDestructive ? ('danger' as const) : ('primary' as const),
+      title: currentOptions.title || 'Please Confirm',
+      btnVariant: currentOptions.isDestructive ? ('danger' as const) : ('primary' as const),
     },
     success: {
       icon: <CheckCircle2 size={18} className="text-[#0047AB]" />,
-      title: options.title || 'Success',
+      title: currentOptions.title || 'Success',
       btnVariant: 'primary' as const,
     },
     info: {
       icon: <Info size={18} className="text-[#0047AB]" />,
-      title: options.title || 'Information',
+      title: currentOptions.title || 'Information',
       btnVariant: 'primary' as const,
     },
   };
 
   const cfg = typeConfig[type];
-  const isConfirmDialog = options.showCancel || type === 'confirm';
+  const isConfirmDialog = currentOptions.showCancel || type === 'confirm';
 
   const handleCancel = () => {
-    if (options.onCancel) options.onCancel();
+    if (currentOptions.onCancel) currentOptions.onCancel();
     onClose();
   };
 
   const handleConfirm = () => {
-    const targetId = options.targetSectionId;
-    if (options.onConfirm) options.onConfirm();
+    const targetId = currentOptions.targetSectionId;
+    if (currentOptions.onConfirm) currentOptions.onConfirm();
     onClose();
     if (targetId) {
       scrollToSection(targetId, 160);
@@ -83,7 +88,7 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen={isOpen && Boolean(options)}
       onClose={handleCancel}
       maxWidth="sm"
       title={
@@ -96,17 +101,17 @@ export const PolyLanceAlertModal: React.FC<PolyLanceAlertModalProps> = ({
         <div className="flex items-center justify-end gap-2.5 w-full">
           {isConfirmDialog && (
             <Button variant="secondary" size="md" onClick={handleCancel}>
-              {options.cancelText || 'Cancel'}
+              {currentOptions.cancelText || 'Cancel'}
             </Button>
           )}
           <Button variant={cfg.btnVariant} size="md" onClick={handleConfirm}>
-            {options.confirmText || (isConfirmDialog ? 'Confirm' : 'Got it')}
+            {currentOptions.confirmText || (isConfirmDialog ? 'Confirm' : 'Got it')}
           </Button>
         </div>
       }
     >
       <div className="text-sm text-[#4B5563] leading-relaxed whitespace-pre-wrap">
-        {options.message}
+        {currentOptions.message}
       </div>
     </Modal>
   );

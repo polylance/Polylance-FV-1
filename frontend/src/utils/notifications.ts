@@ -1,9 +1,11 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { useWeb3 } from '../context/Web3Context';
+import { useAuth } from '../context/AuthContext';
 import { normalizeTimestampMs } from '../types/lifecycle';
 import { formatTimeAgo } from './formatters';
 import { sharedPoller } from './sharedPoller';
+import { apiClient } from './apiClient';
 
 export interface NotificationItem {
   id: string;
@@ -32,6 +34,7 @@ function getBackendUrl(): string {
 export function useNotifications() {
   const { jobs } = usePolyLanceData();
   const { address } = useWeb3();
+  const { isAuthenticated } = useAuth();
 
   const [serverNotifications, setServerNotifications] = useState<any[]>([]);
 
@@ -48,19 +51,15 @@ export function useNotifications() {
 
   // Fetch real notifications from backend server via deduplicated poller
   const fetchServerNotifications = useCallback(async () => {
-    if (!userAddr) {
+    if (!userAddr || !isAuthenticated) {
       setServerNotifications([]);
       return;
     }
     try {
       const backendUrl = getBackendUrl();
       const data = await sharedPoller.fetchDeduplicated<{ notifications: any[] }>(
-        `${backendUrl}/api/notifications?wallet=${encodeURIComponent(userAddr)}`,
-        {
-          headers: {
-            'x-wallet-address': userAddr,
-          },
-        },
+        `${backendUrl}/api/notifications`,
+        {},
         { cacheTtlMs: 8000, skipIfHidden: true }
       );
       if (data && Array.isArray(data.notifications)) {
@@ -69,15 +68,19 @@ export function useNotifications() {
     } catch (err) {
       // Graceful offline fallback / rate-limit cooldown
     }
-  }, [userAddr]);
+  }, [userAddr, isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated || !userAddr) {
+      setServerNotifications([]);
+      return;
+    }
     fetchServerNotifications();
     // 20s interval with slight random jitter (18s-22s)
     const jitter = Math.floor(Math.random() * 4000) - 2000;
     const interval = setInterval(fetchServerNotifications, 20000 + jitter);
     return () => clearInterval(interval);
-  }, [fetchServerNotifications]);
+  }, [fetchServerNotifications, isAuthenticated, userAddr]);
 
   const markAsRead = useCallback((id: string) => {
     setReadIds((prev) => {
@@ -90,12 +93,7 @@ export function useNotifications() {
     });
 
     if (id.startsWith('notif-')) {
-      try {
-        const backendUrl = getBackendUrl();
-        fetch(`${backendUrl}/api/notifications/${encodeURIComponent(id)}/read`, {
-          method: 'POST',
-        }).catch(() => {});
-      } catch {}
+      apiClient.post(`/api/notifications/${encodeURIComponent(id)}/read`).catch(() => {});
     }
   }, []);
 

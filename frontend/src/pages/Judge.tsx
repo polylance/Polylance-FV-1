@@ -16,6 +16,8 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 import { CompactEmptyState } from '../components/common/CompactEmptyState';
 import { Button } from '../components/common/Button';
+import { TokenAmount } from '../components/common/TokenAmount';
+import { getJobAmounts } from '../lib/amounts/getJobAmounts';
 import { Modal } from '../components/overlay';
 import { WatchButton, VideoModal, useVideoModal } from '../components/video';
 
@@ -52,7 +54,7 @@ export const Judge: React.FC = () => {
   const totalResolved = resolvedDisputes.length;
   const avgSla = totalResolved > 0 ? '3.2 Days' : '0.0 Days';
   const arbitratorFeeEarned = resolvedDisputes.reduce(
-    (sum, j) => sum + parseFloat(j.amountUsdc || '0') * 0.025,
+    (sum, j) => sum + parseFloat(getJobAmounts(j).effectiveAmount || '0') * 0.025,
     0
   );
   const activeJob = jobs.find((j) => j.id === selectedJobId);
@@ -250,7 +252,9 @@ export const Judge: React.FC = () => {
                         >
                           <td className="p-4 font-bold text-[#0B0B0C]">{j.id}</td>
                           <td className="p-4 text-slate-700">{j.dispute?.reason || 'QUALITY'}</td>
-                          <td className="p-4 font-bold text-emerald-700">${parseFloat(j.amountUsdc).toLocaleString()} USDC</td>
+                          <td className="p-4 font-bold text-emerald-700">
+                            <TokenAmount amount={getJobAmounts(j).effectiveAmount} token={getJobAmounts(j).token} />
+                          </td>
                           <td className="p-4">
                             <span className="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[10px] uppercase font-bold">
                               Waiting for Judge
@@ -299,7 +303,7 @@ export const Judge: React.FC = () => {
                         <div>
                           <span className="text-[10px] text-slate-400 font-mono uppercase block">Escrow Amount</span>
                           <span className="font-mono font-black text-emerald-700 text-sm">
-                            ${parseFloat(j.amountUsdc).toLocaleString()} USDC
+                            <TokenAmount amount={getJobAmounts(j).effectiveAmount} token={getJobAmounts(j).token} />
                           </span>
                         </div>
                         <button
@@ -331,7 +335,7 @@ export const Judge: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-emerald-700 text-lg font-mono">
-                      ${parseFloat(activeJob.amountUsdc).toLocaleString()} USDC
+                      <TokenAmount amount={getJobAmounts(activeJob).effectiveAmount} token={getJobAmounts(activeJob).token} />
                     </span>
                     <p className="text-[10px] text-slate-500 font-mono">Under Contractual Arbitration</p>
                   </div>

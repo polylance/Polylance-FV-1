@@ -28,6 +28,7 @@ import { truncateAddress } from '../utils/formatters';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { REPUTATION_TASKS } from '../config/reputationTasks';
+import { LocalAvatar } from '../components/common/LocalAvatar';
 import { TierEmblem, RankEmblem, CompactTierChip } from '../components/common/TierEmblem';
 import { Modal } from '../components/overlay/Modal';
 
@@ -147,7 +148,7 @@ export const Reputation: React.FC = () => {
             address: lower,
             displayName: `${lower.slice(0, 6)}...${lower.slice(-4)}`,
             bio: 'Verified Web3 Talent on PolyLance protocol.',
-            avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${lower}`,
+            avatarUrl: '',
             ipfsHash: '',
             skills: ['Smart Contracts', 'Polygon'],
             githubVerified: false,
@@ -166,7 +167,7 @@ export const Reputation: React.FC = () => {
           address: userLower,
           displayName: `${userLower.slice(0, 6)}...${userLower.slice(-4)}`,
           bio: 'PolyLance participant',
-          avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${userLower}`,
+          avatarUrl: '',
           ipfsHash: '',
           skills: ['Web3 Engineer'],
           githubVerified: false,
@@ -234,7 +235,7 @@ export const Reputation: React.FC = () => {
           successRate: `${scores.successRatePercent}%`,
           earnings: formatEarnings(scores.totalVolume),
           isUser: isYou,
-          avatar: profile.avatarUrl || (profile.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${profile.address}`),
+          avatar: profile.avatarUrl || (profile.githubUsername ? `https://github.com/${profile.githubUsername}.png` : ''),
           address: profile.address,
           tier: itemTier,
           githubVerified: Boolean(profile.githubVerified)
@@ -721,10 +722,12 @@ export const Reputation: React.FC = () => {
               {secondPlace ? (
                 <>
                   <Link to={`/profile/${secondPlace.address}`} className="relative hover:opacity-90">
-                    <img
-                      src={secondPlace.avatar}
-                      alt={secondPlace.name}
-                      className="w-12 h-12 rounded-full border border-[#E5E7EB] object-cover"
+                    <LocalAvatar
+                      address={secondPlace.address}
+                      name={secondPlace.name}
+                      avatarUrl={secondPlace.avatar}
+                      size={48}
+                      className="w-12 h-12 rounded-full border border-[#E5E7EB]"
                     />
                   </Link>
                   <div>
@@ -766,10 +769,12 @@ export const Reputation: React.FC = () => {
               {firstPlace ? (
                 <>
                   <Link to={`/profile/${firstPlace.address}`} className="relative hover:opacity-90">
-                    <img
-                      src={firstPlace.avatar}
-                      alt={firstPlace.name}
-                      className="w-16 h-16 rounded-full border-2 border-[#0047AB] object-cover"
+                    <LocalAvatar
+                      address={firstPlace.address}
+                      name={firstPlace.name}
+                      avatarUrl={firstPlace.avatar}
+                      size={64}
+                      className="w-16 h-16 rounded-full border-2 border-[#0047AB]"
                     />
                   </Link>
                   <div>
@@ -811,10 +816,12 @@ export const Reputation: React.FC = () => {
               {thirdPlace ? (
                 <>
                   <Link to={`/profile/${thirdPlace.address}`} className="relative hover:opacity-90">
-                    <img
-                      src={thirdPlace.avatar}
-                      alt={thirdPlace.name}
-                      className="w-12 h-12 rounded-full border border-[#E5E7EB] object-cover"
+                    <LocalAvatar
+                      address={thirdPlace.address}
+                      name={thirdPlace.name}
+                      avatarUrl={thirdPlace.avatar}
+                      size={48}
+                      className="w-12 h-12 rounded-full border border-[#E5E7EB]"
                     />
                   </Link>
                   <div>
@@ -887,12 +894,12 @@ export const Reputation: React.FC = () => {
           <table className="w-full border-collapse text-left text-[13px] text-[#0B0B0F]">
             <thead>
               <tr className="bg-[#F6F7F9] border-b border-[#E5E7EB] text-[12px] font-semibold text-[#4B5563] h-11">
-                <th className="px-4 text-center w-16">Rank</th>
-                <th className="px-4 min-w-[240px]">Developer</th>
-                <th className="px-4 w-44">Tier</th>
-                <th className="px-4 text-center w-28">Success Rate</th>
-                <th className="px-4 text-center w-32">Volume</th>
-                <th className="px-4 text-right w-44">Points</th>
+                <th className="px-3 text-center w-14">Rank</th>
+                <th className="px-3 min-w-[160px]">Developer</th>
+                <th className="px-3 w-32">Tier</th>
+                <th className="px-3 text-center w-24">Success Rate</th>
+                <th className="px-3 text-center w-24">Volume</th>
+                <th className="px-3 text-right w-32 pr-4">Points</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB]">
@@ -931,10 +938,12 @@ export const Reputation: React.FC = () => {
                     <td className="px-4">
                       <div className="flex items-center gap-3">
                         <Link to={`/profile/${row.address}`} className="relative shrink-0 hover:opacity-90">
-                          <img
-                            src={row.avatar}
-                            alt={row.name}
-                            className={`w-8 h-8 rounded-full object-cover border ${
+                          <LocalAvatar
+                            address={row.address}
+                            name={row.name}
+                            avatarUrl={row.avatar}
+                            size={32}
+                            className={`w-8 h-8 rounded-full border ${
                               row.isUser ? 'border-[#0047AB]' : 'border-[#E5E7EB]'
                             }`}
                           />
@@ -1215,7 +1224,7 @@ export const Reputation: React.FC = () => {
                     </div>
 
                     {userCompletedDeliverables.length > 0 ? (
-                      <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                      <div data-lenis-prevent="true" className="space-y-2 max-h-36 overflow-y-auto overscroll-contain pr-1 min-h-0 custom-scrollbar">
                         {userCompletedDeliverables.map((j) => (
                           <div
                             key={j.id}
@@ -1314,7 +1323,7 @@ export const Reputation: React.FC = () => {
         subtitle="Complete verified tasks to increase your on-chain reputation score"
         maxWidth="xl"
       >
-        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+        <div data-lenis-prevent="true" className="space-y-3 max-h-[60vh] overflow-y-auto overscroll-contain pr-1 min-h-0 custom-scrollbar">
           {REPUTATION_TASKS.map((task) => (
             <div
               key={task.id}

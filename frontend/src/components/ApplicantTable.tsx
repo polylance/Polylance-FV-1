@@ -4,6 +4,7 @@ import { Application, SkillCategory, UserProfile } from '../types';
 import { truncateAddress } from '../utils/formatters';
 import { calculateReputationScores } from '../utils/reputation';
 import { AddressChip } from './common/AddressChip';
+import { LocalAvatar } from './common/LocalAvatar';
 import { 
   CheckCircle2, 
   UserCheck, 
@@ -304,11 +305,15 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                   {/* Applicant Info (Username primary, AddressChip once) */}
                   <div className="flex items-center gap-3">
                     <Link to={`/profile/${app.applicant}`} className="shrink-0">
-                      <img 
-                        src={profile?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${app.applicant.toLowerCase()}`} 
-                        alt={name} 
-                        className="w-10 h-10 rounded-full object-cover border border-[#E5E7EB]"
-                      />
+                      {profile?.avatarUrl && !profile.avatarUrl.includes('dicebear') && !profile.avatarUrl.includes('unsplash') ? (
+                        <img 
+                          src={profile.avatarUrl} 
+                          alt={name} 
+                          className="w-10 h-10 rounded-full object-cover border border-[#E5E7EB]"
+                        />
+                      ) : (
+                        <LocalAvatar address={app.applicant} name={name} size={40} />
+                      )}
                     </Link>
 
                     <div>

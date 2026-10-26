@@ -1,0 +1,25 @@
+# PolyLance Search Engine & Web Crawler Directives
+User-agent: *
+Allow: /
+Disallow: /auditx/scan
+Disallow: /auditx/reports
+Disallow: /auditx/internal
+Disallow: /dashboard
+Disallow: /messages
+Disallow: /chat
+Disallow: /workspace
+Disallow: /settings
+Disallow: /login
+Disallow: /onboarding
+Disallow: /jobs/post
+Disallow: /post-job
+Disallow: /judge
+Disallow: /treasury
+Disallow: /maintenance
+Disallow: /api/
+Disallow: /c/
+Disallow: /studio/
+Disallow: /studio/*
+
+# Sitemap index
+Sitemap: https://polylance.codes/sitemap.xml

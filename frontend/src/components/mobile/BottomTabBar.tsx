@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Briefcase, Grid, MessageSquare, MoreHorizontal, User, Award, Settings, Shield, Vote, Landmark, HelpCircle, X } from 'lucide-react';
 import { useWeb3 } from '../../context/Web3Context';
 import { useDemoMode } from '../../context/DemoModeContext';
+import { Sheet } from '../overlay/Sheet';
 
 export const BottomTabBar: React.FC = () => {
   const location = useLocation();
@@ -111,56 +112,36 @@ export const BottomTabBar: React.FC = () => {
         </div>
       </nav>
 
-      {/* More Bottom Sheet (Human Interface pattern) */}
-      {isMoreSheetOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Flat backdrop (no blur) */}
-          <div
-            className="fixed inset-0 bg-black/40 transition-opacity duration-200"
-            onClick={() => setIsMoreSheetOpen(false)}
-          />
+      {/* More Bottom Sheet */}
+      <Sheet
+        isOpen={isMoreSheetOpen}
+        onClose={() => setIsMoreSheetOpen(false)}
+        title="Navigation & Tools"
+        side="bottom"
+      >
+        <div data-lenis-prevent="true" className="overflow-y-auto overscroll-contain max-h-[60vh] min-h-0 px-1 py-1 divide-y divide-[#E5E7EB] custom-scrollbar">
+          {moreLinks.map((item) => {
+            const Icon = item.icon;
+            const isSelected = location.pathname.startsWith(item.to);
 
-          {/* Sheet */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[16px] border-t border-[#E5E7EB] pb-safe max-h-[85vh] flex flex-col shadow-lg animate-in slide-in-from-bottom duration-250">
-            {/* Grab handle */}
-            <div className="w-10 h-1 bg-[#D1D5DB] rounded-full mx-auto my-3 shrink-0" />
-
-            <div className="flex items-center justify-between px-5 pb-2">
-              <span className="text-sm font-semibold text-[#0B0B0F]">Navigation & Tools</span>
-              <button
-                type="button"
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
                 onClick={() => setIsMoreSheetOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[#6B7280] hover:bg-[#F6F7F9]"
+                className={`flex items-center gap-3.5 py-3 px-3 text-sm transition-colors rounded-lg ${
+                  isSelected
+                    ? 'text-[#0047AB] font-semibold bg-[#EFF6FF]'
+                    : 'text-[#0B0B0F] hover:bg-[#F6F7F9]'
+                }`}
               >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto px-4 py-2 divide-y divide-[#E5E7EB]">
-              {moreLinks.map((item) => {
-                const Icon = item.icon;
-                const isSelected = location.pathname.startsWith(item.to);
-
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => setIsMoreSheetOpen(false)}
-                    className={`flex items-center gap-3.5 py-3 px-2 text-sm transition-colors rounded-lg ${
-                      isSelected
-                        ? 'text-[#0047AB] font-semibold bg-[#EFF6FF]'
-                        : 'text-[#0B0B0F] hover:bg-[#F6F7F9]'
-                    }`}
-                  >
-                    <Icon size={18} className={isSelected ? 'text-[#0047AB]' : 'text-[#6B7280]'} />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+                <Icon size={18} className={isSelected ? 'text-[#0047AB]' : 'text-[#6B7280]'} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
-      )}
+      </Sheet>
     </>
   );
 };

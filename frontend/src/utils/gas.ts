@@ -22,9 +22,21 @@ export async function getPolygonGasOverrides(provider?: ethers.Provider | null):
       feeData = await provider.getFeeData().catch(() => null);
     }
     if (!feeData) {
-      // Fallback directly to reliable public Polygon RPC if active provider fails
-      const borProvider = new ethers.JsonRpcProvider('https://polygon.drpc.org', 137, { staticNetwork: true });
-      feeData = await borProvider.getFeeData().catch(() => null);
+      const FALLBACK_RPCS = [
+        'https://polygon-bor-rpc.publicnode.com',
+        'https://polygon.drpc.org',
+        'https://1rpc.io/matic'
+      ];
+      for (const rpcUrl of FALLBACK_RPCS) {
+        try {
+          const borProvider = new ethers.JsonRpcProvider(rpcUrl, 137, { staticNetwork: true });
+          const timeoutPromise = new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000));
+          feeData = await Promise.race([borProvider.getFeeData(), timeoutPromise]).catch(() => null);
+          if (feeData) break;
+        } catch {
+          continue;
+        }
+      }
     }
 
     if (feeData) {

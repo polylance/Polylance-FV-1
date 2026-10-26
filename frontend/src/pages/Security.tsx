@@ -1,40 +1,36 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
 import { 
-  ShieldCheck, Lock, ExternalLink, Cpu, Sparkles, CheckCircle2, Award, ShieldAlert, Terminal,
-  Copy, Check
+  ShieldCheck, Lock, ExternalLink, Cpu, Sparkles, CheckCircle2, Award, ShieldAlert,
+  Layers, Check
 } from 'lucide-react';
-import { CONTRACTS } from '../config/contracts';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
+import { Seo } from '../components/seo/Seo';
+import { FaqSection } from '../components/faq/FaqSection';
 
 export const Security: React.FC = () => {
-  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
-
-  const handleCopy = (addr: string) => {
-    navigator.clipboard.writeText(addr);
-    setCopiedAddress(addr);
-    setTimeout(() => setCopiedAddress(null), 2000);
-  };
-
-  const verifiedContracts = [
-    { name: 'JobFactory (Proxy Factory)', address: CONTRACTS.JobFactory, spec: 'EIP-1167 Proxy Creator' },
-    { name: 'ReputationSBT', address: CONTRACTS.ReputationSBT, spec: 'ERC-721 Soulbound' },
-    { name: 'ProfileRegistry', address: CONTRACTS.ProfileRegistry, spec: 'On-Chain Bio & Skills' },
-    { name: 'GitHubRegistry', address: CONTRACTS.GithubReputationRegistry, spec: 'Ed25519 Oracle Attestation' },
-    { name: 'JudgeDAO', address: CONTRACTS.JudgeDAO, spec: 'Governance Arbitration' },
-    { name: 'TimelockController', address: CONTRACTS.TimelockController, spec: 'Multisig Timelock' },
+  const securityStandards = [
+    { name: 'Job Factory (Proxy Creator)', spec: 'EIP-1167 Minimal Proxy Standard', desc: 'Isolates escrow state so projects never share contract storage or funds.' },
+    { name: 'Escrow Vault Bytecode', spec: 'Non-Custodial Lock & Auto-Release', desc: 'Funds release only on client milestone approval or 7-day inactivity rule.' },
+    { name: 'Reputation Credentials', spec: 'ERC-5192 Soulbound Token Standard', desc: 'Immutable work history tied permanently to recipient wallet addresses.' },
+    { name: 'Decentralized Arbitration', spec: '3-Juror Quorum Review DAO', desc: 'Independent evidence evaluation with on-chain cryptographic signatures.' },
+    { name: 'Protocol Governance', spec: 'Multi-Sig Timelock Architecture', desc: 'Zero unilateral administrative backdoors or emergency drainage functions.' },
   ];
 
   return (
     <PageContainer className="space-y-6 py-6 w-full text-[#0B0B0F]">
+      <Seo routeKey="/security" />
       <PageHeader
-        title="Security and contract audits"
+        title="Security, Audit Status & Protocol Architecture"
         subtitle="PolyLance smart contracts are built using OpenZeppelin primitives, protected against reentrancy attacks, and deployed with zero administrative backdoors."
         actions={
           <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="bg-amber-50 text-amber-800 px-2.5 py-1 rounded-md border border-amber-200 font-semibold flex items-center gap-1">
+              <ShieldAlert size={13} className="text-amber-600" /> Independent Audit Pending
+            </span>
             <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md border border-emerald-100 font-semibold flex items-center gap-1">
-              <CheckCircle2 size={13} /> 34 Hardhat Unit Tests Passing
+              <CheckCircle2 size={13} /> 34 Hardhat Tests Passing
             </span>
             <span className="bg-[#F6F7F9] text-[#4B5563] px-2.5 py-1 rounded-md border border-[#E5E7EB] font-medium font-mono">
               Solidity 0.8.28
@@ -42,6 +38,17 @@ export const Security: React.FC = () => {
           </div>
         }
       />
+
+      {/* Truthful Audit Status & Advisory Banner */}
+      <section className="bg-white border-2 border-amber-200/90 rounded-3xl p-6 sm:p-7 shadow-xs text-left space-y-3">
+        <div className="flex items-center gap-2 text-amber-800 font-bold text-sm sm:text-base">
+          <ShieldAlert size={20} className="text-amber-600 shrink-0" />
+          <span>Audit Status & Advisory Notice</span>
+        </div>
+        <p className="text-sm text-slate-700 leading-relaxed font-normal">
+          PolyLance&apos;s escrow contracts operate on non-custodial bytecode deployed on Polygon PoS. An external audit by an independent third-party firm is scheduled. Until an external audit is completed, we advise users to start with smaller contracts and fund milestones incrementally.
+        </p>
+      </section>
 
       {/* Security Architecture Grid */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
@@ -96,92 +103,49 @@ export const Security: React.FC = () => {
 
       </section>
 
-      {/* Verified Smart Contract Registry Table */}
-      <section className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-md text-left space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+      {/* Verified Smart Contract Standards Card (Confidential & Protected) */}
+      <section className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs text-left space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2.5">
-            <Terminal size={22} className="text-emerald-600" />
-            <h3 className="font-headline font-bold text-xl text-slate-900">
-              Verified Polygon Mainnet Smart Contracts
-            </h3>
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0047AB] flex items-center justify-center shrink-0 border border-blue-100">
+              <Layers size={18} />
+            </div>
+            <div>
+              <h3 className="font-headline font-bold text-xl text-slate-900">
+                Verified On-Chain Architecture & Standards
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Engineered with OpenZeppelin security contracts on Polygon PoS
+              </p>
+            </div>
           </div>
-          <span className="font-mono text-xs text-slate-500 font-bold">
-            Chain ID: 137
+          <span className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <Check size={12} className="stroke-[3]" /> Polygon PoS · Chain ID 137
           </span>
         </div>
 
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase">
-                <th className="p-3.5">Contract Name</th>
-                <th className="p-3.5">Specification Standard</th>
-                <th className="p-3.5">Deployed Address</th>
-                <th className="p-3.5">Explorer</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {verifiedContracts.map((c) => (
-                <tr key={c.name} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-3.5 font-bold text-slate-900">{c.name}</td>
-                  <td className="p-3.5 text-slate-700 font-semibold">{c.spec}</td>
-                  <td className="p-3.5 text-slate-600 font-mono text-[11px]">{c.address}</td>
-                  <td className="p-3.5">
-                    <a
-                      href={`https://polygonscan.com/address/${c.address}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[#0047AB] font-bold hover:underline inline-flex items-center gap-1"
-                    >
-                      Polygonscan <ExternalLink size={12} />
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Card Stack (< md) */}
-        <div className="md:hidden space-y-2.5 p-1 sm:p-2">
-          {verifiedContracts.map((c) => (
-            <div key={c.name} className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 space-y-2 shadow-3xs">
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">{c.name}</span>
-                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold bg-slate-100 text-slate-800 border border-slate-200 whitespace-nowrap shrink-0">
-                  {c.spec}
-                </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {securityStandards.map((std) => (
+            <div
+              key={std.name}
+              className="p-4 rounded-2xl bg-[#F6F7F9] border border-[#E5E7EB] space-y-2 hover:border-[#0047AB]/30 transition-colors"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-sm text-slate-900">{std.name}</span>
               </div>
-              
-              <div className="flex items-center justify-between gap-2 p-1.5 px-2.5 rounded-xl bg-white border border-slate-200/80 font-mono text-[10.5px] sm:text-[11px] text-slate-700">
-                <span className="truncate">{c.address}</span>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(c.address)}
-                  title="Copy contract address"
-                  className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-colors shrink-0 cursor-pointer"
-                >
-                  {copiedAddress === c.address ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
-                </button>
+              <div className="text-[11px] font-mono font-semibold text-[#0047AB] bg-blue-50/80 px-2 py-0.5 rounded border border-blue-100 inline-block">
+                {std.spec}
               </div>
-
-              <div className="flex items-center justify-between gap-2 pt-0.5">
-                <span className="text-[10px] font-mono text-slate-400">Polygon Mainnet (137)</span>
-                <a
-                  href={`https://polygonscan.com/address/${c.address}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-[11px] inline-flex items-center gap-1 transition-colors shadow-3xs"
-                >
-                  <span>Polygonscan</span>
-                  <ExternalLink size={11} />
-                </a>
-              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {std.desc}
+              </p>
             </div>
           ))}
         </div>
       </section>
+
+      {/* Security FAQ */}
+      <FaqSection pageId="/security" title="Security & Escrow FAQ" className="py-6" />
 
     </PageContainer>
   );

@@ -19,6 +19,7 @@ interface PolyLanceSelectProps<T = string> {
   label?: string;
   variant?: 'neomorphic' | 'glass' | 'standard';
   size?: 'sm' | 'md';
+  compactTrigger?: boolean;
   searchable?: boolean;
   searchPlaceholder?: string;
   className?: string;
@@ -34,6 +35,7 @@ export function PolyLanceSelect<T = string>({
   label,
   variant = 'standard',
   size = 'md',
+  compactTrigger = false,
   searchable = false,
   searchPlaceholder = 'Search options...',
   className = '',
@@ -42,8 +44,10 @@ export function PolyLanceSelect<T = string>({
 }: PolyLanceSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -62,27 +66,6 @@ export function PolyLanceSelect<T = string>({
     };
   }, [isOpen]);
 
-  // Handle escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-
-  // Focus search input on open
-  useEffect(() => {
-    if (isOpen && searchable && searchInputRef.current) {
-      setTimeout(() => searchInputRef.current?.focus(), 50);
-    }
-    if (!isOpen) {
-      setSearchTerm('');
-    }
-  }, [isOpen, searchable]);
-
   const filteredOptions = searchable && searchTerm.trim()
     ? options.filter((opt) =>
         opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,6 +73,81 @@ export function PolyLanceSelect<T = string>({
         (typeof opt.value === 'string' && opt.value.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     : options;
+
+  // Auto-scroll selected into view when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      const selectedIdx = filteredOptions.findIndex((opt) => opt.value === value);
+      const initialIdx = selectedIdx >= 0 ? selectedIdx : 0;
+      setHighlightedIndex(initialIdx);
+
+      const timer = setTimeout(() => {
+        if (listRef.current) {
+          const targetEl = listRef.current.querySelector<HTMLElement>(`[data-option-index="${initialIdx}"]`);
+          if (targetEl) {
+            targetEl.scrollIntoView({ block: 'nearest' });
+          }
+        }
+      }, 50);
+
+      return () => clearTimeout(timer);
+    } else {
+      setSearchTerm('');
+      setHighlightedIndex(-1);
+    }
+  }, [isOpen, value, filteredOptions.length]);
+
+  // Handle keyboard navigation (Escape, ArrowDown, ArrowUp, Enter)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) {
+        if ((e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') && containerRef.current?.contains(document.activeElement)) {
+          e.preventDefault();
+          setIsOpen(true);
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsOpen(false);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => {
+          const next = prev < filteredOptions.length - 1 ? prev + 1 : 0;
+          const targetEl = listRef.current?.querySelector<HTMLElement>(`[data-option-index="${next}"]`);
+          targetEl?.scrollIntoView({ block: 'nearest' });
+          return next;
+        });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => {
+          const next = prev > 0 ? prev - 1 : filteredOptions.length - 1;
+          const targetEl = listRef.current?.querySelector<HTMLElement>(`[data-option-index="${next}"]`);
+          targetEl?.scrollIntoView({ block: 'nearest' });
+          return next;
+        });
+      } else if (e.key === 'Enter') {
+        if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
+          e.preventDefault();
+          onChange(filteredOptions[highlightedIndex].value);
+          setIsOpen(false);
+        }
+      } else if (e.key === 'Tab') {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, highlightedIndex, filteredOptions, onChange]);
+
+  // Focus search input on open
+  useEffect(() => {
+    if (isOpen && searchable && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [isOpen, searchable]);
 
   // Variants styling
   const triggerVariantClasses = {
@@ -147,10 +205,12 @@ export function PolyLanceSelect<T = string>({
           {selectedOption?.icon && (
             <span className="shrink-0 text-[#0047AB]">{selectedOption.icon}</span>
           )}
-          <span className="truncate font-medium text-[#0B0B0F]">
-            {selectedOption ? selectedOption.label : placeholder}
+          <span className="truncate font-semibold text-[#0B0B0F]">
+            {compactTrigger
+              ? (typeof selectedOption?.value === 'string' ? selectedOption.value : selectedOption?.label || placeholder)
+              : (selectedOption ? selectedOption.label : placeholder)}
           </span>
-          {selectedOption?.sublabel && (
+          {!compactTrigger && selectedOption?.sublabel && (
             <span className="text-[10.5px] text-[#6B7280] font-mono truncate hidden sm:inline">
               {selectedOption.sublabel}
             </span>
@@ -196,18 +256,24 @@ export function PolyLanceSelect<T = string>({
               </div>
             )}
 
-            {/* Options List */}
-            <div className="overflow-y-auto space-y-1 pr-1 custom-scrollbar max-h-72">
+            {/* Options List - Lenis Protected and Keyboard Navigable */}
+            <div
+              ref={listRef}
+              data-lenis-prevent="true"
+              className="overflow-y-auto overscroll-contain space-y-1 pr-1 custom-scrollbar max-h-72 min-h-0"
+            >
               {filteredOptions.length === 0 ? (
                 <div className="px-3 py-4 text-center text-xs text-[#6B7280] font-medium">
                   No matching options
                 </div>
               ) : (
-                filteredOptions.map((opt) => {
+                filteredOptions.map((opt, idx) => {
                   const isSelected = opt.value === value;
+                  const isHighlighted = idx === highlightedIndex;
                   return (
                     <button
                       key={String(opt.value)}
+                      data-option-index={idx}
                       type="button"
                       role="option"
                       aria-selected={isSelected}
@@ -215,10 +281,13 @@ export function PolyLanceSelect<T = string>({
                         onChange(opt.value);
                         setIsOpen(false);
                       }}
+                      onMouseEnter={() => setHighlightedIndex(idx)}
                       className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-[6px] text-xs text-left transition-all duration-150 cursor-pointer ${
                         isSelected
                           ? 'bg-[#EFF6FF] text-[#0047AB] font-semibold border border-[#BFDBFE]'
-                          : 'text-[#0B0B0F] hover:bg-[#F6F7F9] font-medium border border-transparent'
+                          : isHighlighted
+                          ? 'bg-[#F6F7F9] text-[#0B0B0F] font-medium border border-transparent'
+                          : 'text-[#0B0B0F] font-medium border border-transparent hover:bg-[#F6F7F9]'
                       }`}
                     >
                       <div className="flex flex-col min-w-0 flex-1 py-0.5">

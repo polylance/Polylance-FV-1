@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   BottomSheet,
   Drawer,
@@ -9,10 +9,21 @@ import {
   ToastMessage,
   PressableCard,
 } from '../components/mobile';
+import { Modal, Popover, ConfirmDialog, Sheet } from '../components/overlay';
+import { Tooltip } from '../components/common/Tooltip';
+import { ActionStatusModal } from '../components/ActionStatusModal';
+import { TransactionTracker, TxTrackerStep } from '../components/common/TransactionTracker';
 
 export const DevPrimitivesPage: React.FC = () => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isNestedConfirmOpen, setIsNestedConfirmOpen] = useState(false);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isActionStatusOpen, setIsActionStatusOpen] = useState(false);
+  const [isTxTrackerOpen, setIsTxTrackerOpen] = useState(false);
+  const [txStep, setTxStep] = useState<TxTrackerStep>('WALLET_SIGN');
+  const popoverBtnRef = useRef<HTMLButtonElement>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = (type: 'success' | 'error' | 'info' | 'pending') => {
@@ -71,6 +82,62 @@ export const DevPrimitivesPage: React.FC = () => {
           Interactive showcase for all 7 Phase 2 mobile primitives.
         </p>
       </div>
+
+      {/* 0. Unified Animated Popups & Overlays Test Suite */}
+      <section className="space-y-4 bg-slate-50 border border-slate-200 rounded-2xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Unified Animated Popup QA Suite</h2>
+            <p className="text-xs text-slate-500">
+              Test spring modals, mobile bottom sheets, popovers, nested dimming, status popups, and tooltips.
+            </p>
+          </div>
+          <Tooltip content="Tooltip renders with smooth fade & 2px offset">
+            <span className="text-xs font-mono font-bold text-[#0047AB] bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg cursor-help">
+              Hover Tooltip
+            </span>
+          </Tooltip>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <button
+            type="button"
+            id="demo-modal-btn"
+            onClick={() => setIsModalOpen(true)}
+            className="px-3 py-2.5 bg-[#0047AB] hover:bg-[#003882] text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
+          >
+            Modal + Nested
+          </button>
+
+          <button
+            ref={popoverBtnRef}
+            type="button"
+            id="demo-popover-btn"
+            onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+            className="px-3 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
+          >
+            Toggle Popover
+          </button>
+
+          <button
+            type="button"
+            id="demo-status-btn"
+            onClick={() => setIsActionStatusOpen(true)}
+            className="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
+          >
+            Status / Progress
+          </button>
+
+          <button
+            type="button"
+            id="demo-txtracker-btn"
+            onClick={() => setIsTxTrackerOpen(true)}
+            className="px-3 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
+          >
+            Tx Tracker States
+          </button>
+        </div>
+      </section>
 
       {/* 1. BottomSheet & Drawer Triggers */}
       <section className="space-y-4">
@@ -249,6 +316,146 @@ export const DevPrimitivesPage: React.FC = () => {
           </div>
         </div>
       </Drawer>
+
+      {/* Test Modal (Supports Desktop Centered / Mobile Bottom Sheet and Nested Modal Dimming) */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Primary Animated Modal"
+        subtitle="Desktop shows centered spring dialog; mobile (<640px) shows bottom sheet."
+        size="md"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <button
+              type="button"
+              id="open-nested-confirm-btn"
+              onClick={() => setIsNestedConfirmOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-bold transition cursor-pointer"
+            >
+              Open Nested Confirm Dialog
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2 rounded-xl bg-[#0047AB] text-white text-xs font-bold hover:bg-[#003882] transition cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            This dialog animates with soft spring physics (stiffness 320, damping 30). Try rapid opening/closing or opening a nested confirm dialog to verify lower modal dimming and top-only Escape dismissal.
+          </p>
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-xs font-mono text-slate-500">Auto-focus input check:</span>
+            <input
+              type="text"
+              placeholder="Type test value here..."
+              className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-hidden focus:border-[#0047AB]"
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Nested Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={isNestedConfirmOpen}
+        onClose={() => setIsNestedConfirmOpen(false)}
+        onConfirm={() => setIsNestedConfirmOpen(false)}
+        title="Nested Confirmation Action"
+        description="Notice how the parent modal underneath dims and scales to 0.98. Pressing Escape closes ONLY this confirm dialog, keeping the parent open."
+        confirmLabel="Acknowledge"
+        cancelLabel="Back"
+        isDestructive={false}
+      />
+
+      {/* Popover anchored to trigger button */}
+      <Popover
+        isOpen={isPopoverOpen}
+        onClose={() => setIsPopoverOpen(false)}
+        triggerRef={popoverBtnRef}
+        width={320}
+      >
+        <div className="p-4 space-y-3">
+          <div className="font-bold text-sm text-slate-900">Animated Popover Panel</div>
+          <p className="text-xs text-slate-600">
+            Scale (0.97 → 1) and translateY (4px → 0) with dynamic transform-origin anchored to the trigger position.
+          </p>
+          <div className="pt-2 border-t border-slate-100 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setIsPopoverOpen(false)}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </Popover>
+
+      {/* ActionStatusModal for 'Project Status Updated' test */}
+      <ActionStatusModal
+        isOpen={isActionStatusOpen}
+        onClose={() => setIsActionStatusOpen(false)}
+        title="Project Status Updated"
+        subtitle='Milestone progress for "Polygon DeFi Architecture" has been updated to 100%.'
+        icon="progress"
+        badgeText="100% PROGRESS"
+        details={[
+          { label: 'PROGRESS PERCENTAGE', value: '100%', isBadge: true },
+          { label: 'STATUS NOTE', value: 'Completed smart contract test suite and gas optimization benchmarks.' },
+          { label: 'NEXT STEP', value: 'Waiting for the client to review your submission.' },
+          { label: 'CONTRACT', value: '0x742d...44e', isMono: true },
+        ]}
+        primaryActionText="View Updates"
+        onPrimaryAction={() => setIsActionStatusOpen(false)}
+      />
+
+      {/* Transaction Tracker modal test */}
+      <Modal
+        isOpen={isTxTrackerOpen}
+        onClose={() => setIsTxTrackerOpen(false)}
+        title="Polygon Escrow Transaction Tracker"
+        subtitle="Test 160ms state transitions with zero container layout jumping."
+        size="md"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <div className="flex gap-1.5">
+              {(['WALLET_SIGN', 'SUBMITTED', 'CONFIRMING', 'CONFIRMED'] as TxTrackerStep[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setTxStep(s)}
+                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition ${
+                    txStep === s ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsTxTrackerOpen(false)}
+              className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs"
+            >
+              Done
+            </button>
+          </div>
+        }
+      >
+        <TransactionTracker
+          step={txStep}
+          confirmations={txStep === 'CONFIRMED' ? 5 : txStep === 'CONFIRMING' ? 3 : 0}
+          requiredConfirmations={5}
+          type="FUND"
+          amount="500"
+          tokenSymbol="USDC"
+          txHash="0x89abcdef0123456789abcdef0123456789abcdef0123456789abcdef01234567"
+        />
+      </Modal>
 
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>

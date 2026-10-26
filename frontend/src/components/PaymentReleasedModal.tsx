@@ -17,6 +17,7 @@ import { Modal } from './overlay/Modal';
 import { Button } from './common/Button';
 import { Amount } from './common/Amount';
 import { AddressChip } from './common/AddressChip';
+import { calculateFeeBreakdownFromString } from '../utils/fees';
 
 export interface PaymentReleasedModalProps {
   isOpen: boolean;
@@ -35,24 +36,10 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
   const navigate = useNavigate();
   const [showMintPanel, setShowMintPanel] = useState(false);
 
-  // Extract financial details
+  // Extract financial details using pure BigInt feeBreakdown
   const tokenSymbol = job.paymentTokenSymbol || (job.amountEth ? 'POL' : 'USDC');
-  const rawEth = parseFloat(job.amountEth || '0');
-  const rawUsdc = parseFloat(job.amountUsdc || '0');
-  const negotiated = parseFloat(job.negotiatedAmount || '0');
-
-  let totalAmount = 0;
-  if (negotiated > 0) {
-    totalAmount = negotiated;
-  } else if (tokenSymbol === 'USDC' || tokenSymbol === 'USDT') {
-    totalAmount = rawUsdc > 0 ? rawUsdc : (rawEth > 0 ? rawEth : 100);
-  } else {
-    totalAmount = rawUsdc > 0 ? rawUsdc : (rawEth > 0 ? rawEth : 100);
-  }
-
-  // 97.5% net to freelancer, 2.5% protocol fee
-  const fee = totalAmount * 0.025;
-  const netAmount = totalAmount - fee;
+  const budgetString = job.negotiatedAmount || (job as any).budget || job.amountEth || job.amountUsdc || '0';
+  const feeDetails = calculateFeeBreakdownFromString(budgetString, tokenSymbol);
 
   const explorerUrl = txHash
     ? getPolygonScanUrl(txHash)
@@ -109,7 +96,7 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
               On-Chain Settlement Confirmed
             </div>
             <div className="text-xl sm:text-2xl font-bold text-[#0B0B0F] tabular-nums tracking-tight">
-              +{netAmount.toFixed(4)} {tokenSymbol}
+              +{feeDetails.freelancerNetFormatted} {tokenSymbol}
             </div>
             <p className="text-xs text-[#4B5563]">
               Net payout disbursed directly to freelancer wallet
@@ -121,21 +108,25 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
             <div className="p-3 flex justify-between items-center">
               <span className="text-[#4B5563]">Total escrow vault:</span>
               <span className="font-semibold text-[#0B0B0F] tabular-nums">
-                {totalAmount.toFixed(4)} {tokenSymbol}
+                {feeDetails.budgetFormatted} {tokenSymbol}
               </span>
             </div>
             <div className="p-3 flex justify-between items-center text-[#4B5563]">
               <span>PolyLance protocol fee (2.5%):</span>
-              <span className="font-semibold text-[#0B0B0F] tabular-nums">
-                {fee.toFixed(4)} {tokenSymbol}
+              <span className="font-semibold text-rose-600 tabular-nums">
+                -{feeDetails.freelancerFeeFormatted} {tokenSymbol}
               </span>
             </div>
             <div className="p-3 flex justify-between items-center bg-[#F6F7F9] font-medium">
               <span className="text-[#0B0B0F]">Net disbursed to freelancer (97.5%):</span>
               <span className="font-bold text-[#0047AB] tabular-nums">
-                +{netAmount.toFixed(4)} {tokenSymbol}
+                +{feeDetails.freelancerNetFormatted} {tokenSymbol}
               </span>
             </div>
+          </div>
+
+          <div className="text-[11px] text-slate-500 px-1">
+            Network transaction gas was paid to Polygon validators to confirm the block on-chain.
           </div>
 
           {/* Dual SBT Attestations Minted */}
@@ -207,7 +198,7 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
             jobTitle={job.title}
             recipientAddress={job.freelancer || ''}
             clientAddress={job.client || ''}
-            amount={netAmount}
+            amount={parseFloat(feeDetails.freelancerNetFormatted) || 0}
             tokenSymbol={tokenSymbol}
             completedAt={job.completedAt || Date.now()}
             variant="work"

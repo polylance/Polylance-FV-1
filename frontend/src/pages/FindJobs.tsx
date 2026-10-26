@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { usePolyLanceData, isDemoOrMockJob } from '../context/PolyLanceDataContext';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Amount } from '../components/common/Amount';
+import { TokenAmount } from '../components/common/TokenAmount';
+import { getJobAmounts } from '../lib/amounts/getJobAmounts';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { EmptyState } from '../components/common/EmptyState';
@@ -36,6 +38,7 @@ import {
 import { Drawer } from '../components/mobile/Drawer';
 import { useDemoMode } from '../context/DemoModeContext';
 import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
+import { Seo } from '../components/seo/Seo';
 
 const POSTED_OPTIONS: SelectOption[] = [
   { value: 'any', label: 'Any time' },
@@ -454,6 +457,7 @@ export const FindJobs: React.FC = () => {
 
   return (
     <PageContainer>
+      <Seo routeKey="/find-jobs" />
       {/* Page Header */}
       <PageHeader
         title="Find jobs"
@@ -468,7 +472,8 @@ export const FindJobs: React.FC = () => {
                 onChange={setSelectedFiat}
                 options={FIAT_OPTIONS}
                 size="sm"
-                className="w-32"
+                compactTrigger
+                className="min-w-[110px]"
               />
             </div>
 
@@ -644,12 +649,16 @@ export const FindJobs: React.FC = () => {
                     ? 'No saved jobs'
                     : activeDomainConfig
                     ? `No open ${activeDomainConfig.label} jobs found`
-                    : 'No jobs found matching your filters'}
+                    : activeFilterCount > 0
+                    ? 'No jobs found matching your filters'
+                    : 'No open freelance contracts available'}
                 </h3>
                 <p className="text-xs text-[#4B5563] max-w-sm mx-auto">
                   {viewSaved
                     ? 'Click the bookmark icon on any job to save it for later review.'
-                    : 'Try loosening your filter criteria or searching for different keywords.'}
+                    : activeFilterCount > 0
+                    ? 'Try loosening your filter criteria or searching for different keywords.'
+                    : 'Be the first to post an on-chain milestone escrow contract on PolyLance.'}
                 </p>
               </div>
               <div className="flex items-center justify-center gap-2 pt-1">
@@ -675,8 +684,7 @@ export const FindJobs: React.FC = () => {
             <div className="space-y-2.5">
               {sortedJobs.slice(0, visibleCount).map((job) => {
                 const isSaved = savedJobIds.includes(job.id);
-                const tokenAmount = parseFloat(job.amountEth || job.amountUsdc || '0');
-                const tokenSymbol = (job.paymentTokenSymbol || 'POL').toUpperCase();
+                const jobAmounts = getJobAmounts(job, null, null, 'freelancer');
 
                 return (
                   <div
@@ -694,10 +702,10 @@ export const FindJobs: React.FC = () => {
 
                       <div className="flex items-center gap-2 shrink-0">
                         <div className="text-right">
-                          <Amount
-                            amount={tokenAmount}
-                            token={tokenSymbol}
-                            showFiat={true}
+                          <TokenAmount
+                            amount={jobAmounts.effectiveAmount}
+                            token={jobAmounts.token}
+                            size="sm"
                           />
                         </div>
                         <button
@@ -758,6 +766,70 @@ export const FindJobs: React.FC = () => {
           )}
         </main>
       </div>
+
+      {/* Browse Jobs by Category & Specialized Skill */}
+      <section className="mt-12 pt-8 border-t border-[#E5E7EB] space-y-5 text-left">
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-[#6B7280]">
+            Browse by Domain &amp; Skill
+          </h2>
+          <p className="text-xs text-[#4B5563] mt-0.5">
+            Explore dedicated job hubs and talent skill categories on Polygon.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <Link
+            to="/web3-jobs"
+            className="p-3 rounded-[10px] border border-[#E5E7EB] bg-white hover:border-[#0047AB] hover:shadow-xs transition-all block group"
+          >
+            <div className="text-xs font-bold text-[#0B0B0F] group-hover:text-[#0047AB]">Web3 Jobs</div>
+            <div className="text-[11px] text-[#6B7280] mt-0.5">Ecosystem & protocol gigs</div>
+          </Link>
+          <Link
+            to="/polygon-jobs"
+            className="p-3 rounded-[10px] border border-[#E5E7EB] bg-white hover:border-[#0047AB] hover:shadow-xs transition-all block group"
+          >
+            <div className="text-xs font-bold text-[#0B0B0F] group-hover:text-[#0047AB]">Polygon Jobs</div>
+            <div className="text-[11px] text-[#6B7280] mt-0.5">Polygon PoS & AggLayer roles</div>
+          </Link>
+          <Link
+            to="/solidity-developer-jobs"
+            className="p-3 rounded-[10px] border border-[#E5E7EB] bg-white hover:border-[#0047AB] hover:shadow-xs transition-all block group"
+          >
+            <div className="text-xs font-bold text-[#0B0B0F] group-hover:text-[#0047AB]">Solidity Jobs</div>
+            <div className="text-[11px] text-[#6B7280] mt-0.5">EVM contract development</div>
+          </Link>
+          <Link
+            to="/smart-contract-developer-jobs"
+            className="p-3 rounded-[10px] border border-[#E5E7EB] bg-white hover:border-[#0047AB] hover:shadow-xs transition-all block group"
+          >
+            <div className="text-xs font-bold text-[#0B0B0F] group-hover:text-[#0047AB]">Smart Contracts</div>
+            <div className="text-[11px] text-[#6B7280] mt-0.5">Security & token architecture</div>
+          </Link>
+          <Link
+            to="/dapp-developer-jobs"
+            className="p-3 rounded-[10px] border border-[#E5E7EB] bg-white hover:border-[#0047AB] hover:shadow-xs transition-all block group"
+          >
+            <div className="text-xs font-bold text-[#0B0B0F] group-hover:text-[#0047AB]">dApp Development</div>
+            <div className="text-[11px] text-[#6B7280] mt-0.5">Full-stack web3 frontends</div>
+          </Link>
+        </div>
+
+        {/* Skill Tags Strip */}
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <span className="text-xs font-medium text-[#6B7280] mr-1">Popular skills:</span>
+          {['Solidity', 'React', 'Rust', 'TypeScript', 'DeFi', 'TailwindCSS', 'Hardhat', 'Foundry'].map((sk) => (
+            <Link
+              key={sk}
+              to={`/skills/${encodeURIComponent(sk.toLowerCase())}`}
+              className="px-2.5 py-1 rounded-[6px] bg-[#F6F7F9] hover:bg-[#EAF1FB] text-xs font-medium text-[#4B5563] hover:text-[#0047AB] border border-[#E5E7EB] transition-colors"
+            >
+              {sk}
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* Mobile Filters Drawer */}
       <Drawer

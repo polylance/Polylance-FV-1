@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import { Clock, Send, AlertCircle } from 'lucide-react';
 import { Modal } from './overlay/Modal';
 import { Button } from './common/Button';
+import { feeBreakdown, CLIENT_FEE_PERCENT, FREELANCER_FEE_PERCENT } from '../utils/fees';
+import { normalizeTokenSymbol, formatTokenDecimals } from '../lib/amounts/getJobAmounts';
+import { toBaseUnits, getTokenDecimals } from '../utils/formatAmount';
+import { convertCryptoToFiat, useGlobalFiat, useLiveCurrencyRates } from '../utils/currency';
 
 export interface NegotiationProposalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (amountUsdc: string, deadlineDays: number, note: string, isFinalCall: boolean) => Promise<void>;
   role: 'Client' | 'Freelancer';
+  token?: string;
   currentAmountUsdc?: string;
   currentDeadlineDays?: number;
   counterpartName?: string;
@@ -19,11 +24,17 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
   onClose,
   onSubmit,
   role,
+  token: rawToken = 'POL',
   currentAmountUsdc = '1000',
   currentDeadlineDays = 7,
   counterpartName = 'the other party',
   initialIsFinalCall = false,
 }) => {
+  useLiveCurrencyRates();
+  const [fiatCode] = useGlobalFiat();
+  const token = normalizeTokenSymbol(rawToken);
+  const decimals = getTokenDecimals(token);
+
   const [amountUsdc, setAmountUsdc] = useState(currentAmountUsdc);
   const [deadlineDays, setDeadlineDays] = useState(currentDeadlineDays.toString());
   const [note, setNote] = useState('');
@@ -32,8 +43,16 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const numAmount = parseFloat(amountUsdc) || 0;
-  const platformFee = numAmount * 0.025;
-  const netPayout = numAmount - platformFee;
+  const units = toBaseUnits(amountUsdc || '0', decimals);
+  const breakdown = feeBreakdown(units, token);
+  const formattedBudget = formatTokenDecimals(breakdown.budget, decimals);
+  const formattedNet = formatTokenDecimals(breakdown.freelancerNet, decimals);
+  const formattedDeposit = formatTokenDecimals(breakdown.clientDeposit, decimals);
+  const formattedClientFee = formatTokenDecimals(breakdown.clientFee, decimals);
+  const formattedFreelancerFee = formatTokenDecimals(breakdown.freelancerFee, decimals);
+
+  const netFiat = convertCryptoToFiat(parseFloat(formattedNet) || 0, token, fiatCode).formatted;
+  const depositFiat = convertCryptoToFiat(parseFloat(formattedDeposit) || 0, token, fiatCode).formatted;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +60,7 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
 
     const val = parseFloat(amountUsdc);
     if (isNaN(val) || val <= 0) {
-      setValidationError('Please enter a valid budget amount above 0 USDC.');
+      setValidationError(`Please enter a valid budget amount above 0 ${token}.`);
       return;
     }
 
@@ -74,7 +93,7 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
     ? `Submit your rate and timeline for ${counterpartName} to review.`
     : `Send a counter-offer to ${counterpartName}.`;
 
-  const amountLabel = isFreelancer ? 'Asking price (USDC)' : 'Offered budget (USDC)';
+  const amountLabel = isFreelancer ? `Asking price (${token})` : `Offered budget (${token})`;
   const timelineLabel = isFreelancer ? 'Estimated delivery (days)' : 'Required timeline (days)';
   const noteLabel = isFreelancer
     ? 'Scope notes (optional)'
@@ -129,32 +148,40 @@ export const NegotiationProposalModal: React.FC<NegotiationProposalModalProps> =
             {amountLabel} <span className="text-[#991B1B]">*</span>
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs text-[#6B7280]">
-              $
-            </div>
             <input
               type="number"
               inputMode="decimal"
               step="any"
-              min="1"
+              min="0.0001"
               required
               value={amountUsdc}
               onChange={(e) => setAmountUsdc(e.target.value)}
-              placeholder="e.g. 2500"
-              className="w-full h-11 pl-7 pr-16 rounded-[10px] border border-[#E5E7EB] bg-white text-sm text-[#0B0B0F] tabular-nums focus:outline-none focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB]"
+              placeholder="e.g. 10.00"
+              className="w-full h-11 pl-3 pr-16 rounded-[10px] border border-[#E5E7EB] bg-white text-sm text-[#0B0B0F] tabular-nums focus:outline-none focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB]"
               disabled={isSubmitting}
             />
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs font-mono font-medium text-[#6B7280]">
-              USDC
+              {token}
             </div>
           </div>
           {numAmount > 0 && (
-            <div className="flex items-center justify-between text-[11px] px-1 text-[#6B7280] pt-0.5">
-              <span>
-                {isFreelancer ? 'You receive:' : 'Freelancer receives:'}{' '}
-                <strong className="text-[#0B0B0F] tabular-nums">${netPayout.toFixed(2)}</strong>
-              </span>
-              <span className="tabular-nums">Fee (2.5%): ${platformFee.toFixed(2)}</span>
+            <div className="flex flex-col gap-1 text-[11px] px-1 text-[#6B7280] pt-1 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <span>
+                  {isFreelancer ? 'You receive:' : 'Freelancer receives:'}{' '}
+                  <strong className="text-[#0B0B0F] tabular-nums">{formattedNet} {token}</strong>
+                  <span className="text-[10px] text-slate-500 ml-1">({netFiat})</span>
+                </span>
+                <span className="tabular-nums">Fee ({FREELANCER_FEE_PERCENT}%): −{formattedFreelancerFee} {token}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-500">
+                <span>
+                  {isFreelancer ? 'Client deposits:' : 'Total you pay / deposit:'}{' '}
+                  <strong className="text-[#0047AB] tabular-nums">{formattedDeposit} {token}</strong>
+                  <span className="text-[10px] text-slate-500 ml-1">({depositFiat})</span>
+                </span>
+                <span className="tabular-nums">Fee ({CLIENT_FEE_PERCENT}%): +{formattedClientFee} {token}</span>
+              </div>
             </div>
           )}
         </div>

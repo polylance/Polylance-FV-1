@@ -35,13 +35,18 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { AddressChip } from '../components/common/AddressChip';
 import { FeeBreakdown } from '../components/common/FeeBreakdown';
 import { Amount } from '../components/common/Amount';
+import { TokenAmount } from '../components/common/TokenAmount';
+import { getJobAmounts } from '../lib/amounts/getJobAmounts';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/overlay';
 import { Disclosure } from '../components/common/Disclosure';
 import { WatchButton, VideoModal, useVideoModal } from '../components/video';
-import { useDemoMode } from '../context/DemoModeContext';
+import { getEngagementDisplayState } from '../types/lifecycle';
 import { canApplyToJob, areAddressesEqual } from '../utils/accountMode';
 import { toast } from '../utils/toast';
+import { useDemoMode } from '../context/DemoModeContext';
+import { Seo } from '../components/seo/Seo';
+import { buildJobSeo } from '../seo/templates';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -279,8 +284,11 @@ export const JobDetail: React.FC = () => {
   const isParty = isClient || isFreelancer;
   const hasApplied = Boolean(isConnected && address && (job.applications || []).some((a) => areAddressesEqual(a.applicant, address)));
 
-  const tokenSymbol = (job.paymentTokenSymbol || 'POL').toUpperCase() === 'MATIC' ? 'POL' : (job.paymentTokenSymbol || 'POL').toUpperCase();
-  const tokenAmount = tokenSymbol === 'POL' ? (job.amountEth || job.amountUsdc || '0') : (job.amountUsdc || '0');
+  const display = getEngagementDisplayState(job);
+
+  const jobAmounts = getJobAmounts(job, undefined, undefined, isClient ? 'client' : (isFreelancer ? 'freelancer' : 'visitor'));
+  const tokenSymbol = jobAmounts.token;
+  const tokenAmount = jobAmounts.effectiveAmount;
 
   const handleGithubVerified = (res: GithubScoreResult) => {
     if (address) {
@@ -343,7 +351,7 @@ export const JobDetail: React.FC = () => {
         icon: 'success',
         badgeText: 'PROPOSAL ACTIVE',
         details: [
-          { label: 'Escrow Budget', value: `${tokenAmount} ${tokenSymbol}`, isBadge: true },
+          { label: 'Job budget', value: `${tokenAmount} ${tokenSymbol}`, isBadge: true },
           { label: 'Applicant', value: truncateAddress(address || ''), isMono: true },
           { label: 'Review Window', value: `${job.reviewPeriodDays || 7} Days` },
         ],
@@ -448,6 +456,7 @@ export const JobDetail: React.FC = () => {
   if (isConfidentialRestricted) {
     return (
       <PageContainer>
+        <Seo customConfig={buildJobSeo(job)} extraData={{ job }} />
         <div className="space-y-6 py-6 w-full font-sans">
           <div className="flex items-center justify-between">
             <Link to="/jobs" className="text-xs text-[#4B5563] hover:text-[#0B0B0F] flex items-center gap-1 font-medium">
@@ -500,6 +509,7 @@ export const JobDetail: React.FC = () => {
 
   return (
     <PageContainer>
+      <Seo customConfig={buildJobSeo(job)} extraData={{ job }} />
       <div className="space-y-6 py-6 w-full font-sans">
         <ActionStatusModal 
           {...actionModal} 
@@ -571,7 +581,7 @@ export const JobDetail: React.FC = () => {
           subtitle={`${getCanonicalCategory(job.category).label} • ${formattedPostedDate} • Review window: ${job.reviewPeriodDays || 7} days`}
           actions={
             <div className="flex flex-wrap items-center gap-2.5">
-              <StatusBadge status={job.status} />
+              <StatusBadge status={display.isCompleted ? 'Completed' : display.displayLabel ? display.displayLabel : job.status} />
 
               <Link
                 to={`/profile/${job.client}`}
@@ -584,7 +594,7 @@ export const JobDetail: React.FC = () => {
                 )}
               </Link>
 
-              {isClient && (
+              {isClient && !display.isCompleted && job.status === 'Open' && (
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
@@ -828,7 +838,7 @@ export const JobDetail: React.FC = () => {
                   <div className="bg-[#F6F7F9] p-3.5 rounded-lg border border-[#E5E7EB]">
                     <span className="text-xs text-[#4B5563] block">Amount paid</span>
                     <div className="mt-1 font-semibold text-[#0B0B0F]">
-                      <Amount value={tokenAmount} token={tokenSymbol} />
+                      <TokenAmount amount={jobAmounts.settled || tokenAmount} token={tokenSymbol} />
                     </div>
                   </div>
                   <div className="bg-[#F6F7F9] p-3.5 rounded-lg border border-[#E5E7EB]">
@@ -884,7 +894,14 @@ export const JobDetail: React.FC = () => {
               </div>
 
               {/* Shared FeeBreakdown Component */}
-              <FeeBreakdown budget={tokenAmount} token={tokenSymbol} />
+              <FeeBreakdown
+                budget={tokenAmount}
+                token={tokenSymbol}
+                job={job}
+                isClient={isClient}
+                isFreelancer={isFreelancer}
+                accountMode={currentUserProf?.accountMode || 'both'}
+              />
 
               {/* ONE Primary Action Button based on state/role */}
               <div className="pt-2">
@@ -915,17 +932,28 @@ export const JobDetail: React.FC = () => {
                     </div>
                   ) : job.status === 'Selected' ? (
                     <button
+                      type="button"
                       onClick={() => setIsFundEscrowModalOpen(true)}
                       className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                     >
                       Fund escrow deposit
                     </button>
-                  ) : job.status === 'Submitted' ? (
+                  ) : !display.isCompleted && display.allowedActions.canApproveWork ? (
                     <button
+                      type="button"
                       onClick={handleReleasePayment}
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                     >
                       Approve work & release funds
+                    </button>
+                  ) : display.isCompleted ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/workspace?jobId=${job.id}`)}
+                      className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 size={14} />
+                      <span>View settled workspace</span>
                     </button>
                   ) : (
                     <button
@@ -1014,8 +1042,12 @@ export const JobDetail: React.FC = () => {
               const completedJobsCount = clientJobs.filter(j => j.status === 'Completed').length;
               const disputedJobsCount = clientJobs.filter(j => j.status === 'Disputed' || (j.events || []).some(e => e.step === 'Disputed')).length;
 
-              const totalSpentUsdc = clientJobs
-                .filter(j => j.status === 'Completed')
+              const polSpent = clientJobs
+                .filter(j => j.status === 'Completed' && (j.paymentTokenSymbol || 'POL').toUpperCase() === 'POL')
+                .reduce((sum, j) => sum + parseFloat(j.amountEth || j.amountUsdc || '0'), 0);
+
+              const usdcSpent = clientJobs
+                .filter(j => j.status === 'Completed' && (j.paymentTokenSymbol || '').toUpperCase() === 'USDC')
                 .reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
 
               const isNewClient = completedJobsCount < 5;
@@ -1072,7 +1104,10 @@ export const JobDetail: React.FC = () => {
                     <div className="flex justify-between items-center py-1">
                       <span className="text-[#4B5563]">Total spent</span>
                       <span className="font-semibold text-[#0B0B0F]">
-                        ${totalSpentUsdc.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC
+                        {[
+                          polSpent > 0 ? `${polSpent.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} POL` : null,
+                          usdcSpent > 0 ? `${usdcSpent.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC` : null,
+                        ].filter(Boolean).join(' + ') || '0 POL'}
                       </span>
                     </div>
                   </div>

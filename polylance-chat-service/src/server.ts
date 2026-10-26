@@ -60,6 +60,8 @@ import { DeadlineWorker } from "./workers/DeadlineWorker.js";
 import { DEADLINE_CONFIG } from "./deadlineConfig.js";
 import { feeDuesRouter } from "./feeDues.js";
 import { sbtRouter } from "./sbtRoutes.js";
+import { blogRouter } from "./blog/routes.js";
+import { publicStatsRouter } from "./publicStats.js";
 
 dotenv.config();
 
@@ -703,7 +705,7 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
       // Respect chatClearedAt so cleared messages are never re-merged from server memory
       const chatClearedAt = Math.max(curr.chatClearedAt || 0, inJob.chatClearedAt || 0);
 
-      // Merge chat messages with smart deduplication (same sender + text within 3.5 seconds)
+      // Merge chat messages with smart deduplication and unidirectional status progression
       const mergedMsgs: any[] = [];
       const allMsgs = [
         ...(curr.chatMessages || []),
@@ -713,16 +715,37 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
       );
       for (const m of allMsgs) {
         if (!m || !m.text) continue;
-        const isDuplicate = mergedMsgs.some(
-          (existing: any) =>
-            existing.sender === m.sender &&
-            existing.text.trim() === m.text.trim() &&
-            Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500
+        const existingIdx = mergedMsgs.findIndex(
+          (em: any) =>
+            (m.id && em.id && m.id === em.id) ||
+            (em.sender === m.sender &&
+              em.text?.trim() === m.text?.trim() &&
+              Math.abs((em.timestamp || 0) - (m.timestamp || 0)) < 3500)
         );
-        if (!isDuplicate) {
+
+        if (existingIdx === -1) {
           mergedMsgs.push(m);
+        } else {
+          // Unidirectional status progression: sending (0) -> sent (1) -> seen (2)
+          const statusRank: Record<string, number> = { sending: 0, sent: 1, seen: 2, failed: -1 };
+          const existingMsg = mergedMsgs[existingIdx];
+          const currRank = statusRank[existingMsg.status || 'sent'] ?? 1;
+          const incomingRank = statusRank[m.status || 'sent'] ?? 1;
+
+          const mergedStatus = incomingRank >= currRank ? m.status || existingMsg.status : existingMsg.status;
+          const mergedSeenAt = m.seenAt || existingMsg.seenAt;
+          const mergedSeenBy = Array.from(new Set([...(existingMsg.seenBy || []), ...(m.seenBy || [])]));
+
+          mergedMsgs[existingIdx] = {
+            ...existingMsg,
+            ...m,
+            status: mergedStatus,
+            seenAt: mergedSeenAt,
+            seenBy: mergedSeenBy.length > 0 ? mergedSeenBy : undefined,
+          };
         }
       }
+
 
       // Merge pre-accept messages respecting chatClearedAt with deduplication
       const deduplicatedPreMsgs: any[] = [];
@@ -980,9 +1003,14 @@ app.use((req: Request, res: Response, next) => {
   next();
 });
 
-// Global HTTP rate limiter for Express routes (bypasses /health for probes, and test env)
+// Global HTTP rate limiter for Express routes (bypasses /health for probes, studio routes, and test env)
 app.use(async (req: Request, res: Response, next) => {
-  if (req.path === "/health" || req.path === "/api/health" || process.env.NODE_ENV === "test") {
+  if (
+    req.path === "/health" ||
+    req.path === "/api/health" ||
+    req.path.startsWith("/api/studio") ||
+    process.env.NODE_ENV === "test"
+  ) {
     return next();
   }
   const ip = req.headers["x-forwarded-for"]?.toString() || req.socket.remoteAddress || "unknown";
@@ -1257,8 +1285,18 @@ export function sanitizeSharedStateForRequester(
 
     return {
       ...publicJobFields,
-      chatMessages: [],
-      preAcceptMessages: canAccessPreAccept ? (job.preAcceptMessages || []) : [],
+      chatMessages: canAccessPreAccept ? (job.chatMessages || []).filter((m: any) => {
+        if (!m) return false;
+        const appAddr = (m.applicantAddress || '').toLowerCase().trim();
+        const sendAddr = (m.senderAddress || '').toLowerCase().trim();
+        return areAddressesEqual(appAddr, reqAddr) || areAddressesEqual(sendAddr, reqAddr);
+      }) : [],
+      preAcceptMessages: canAccessPreAccept ? (job.preAcceptMessages || []).filter((m: any) => {
+        if (!m) return false;
+        const appAddr = (m.applicantAddress || '').toLowerCase().trim();
+        const sendAddr = (m.sender || '').toLowerCase().trim();
+        return areAddressesEqual(appAddr, reqAddr) || areAddressesEqual(sendAddr, reqAddr);
+      }) : [],
       applications: sanitizedApplications,
       dispute: sanitizedDispute,
       proof: undefined,
@@ -1419,11 +1457,13 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Client sync handler to prevent socket event drop
-  socket.on("client-sync", async (data: any) => {
+  // Client sync handler to prevent socket event drop with server ack
+  socket.on("client-sync", async (data: any, callback?: (res: any) => void) => {
     try {
       const clientAddr = socket.data?.address;
-      if (!clientAddr || !data?.jobs || !Array.isArray(data.jobs)) return;
+      if (!clientAddr || !data?.jobs || !Array.isArray(data.jobs)) {
+        return callback?.({ error: "Invalid sync payload or unauthenticated socket" });
+      }
       const allowedJobs = data.jobs.filter((j: any) => {
         if (!j) return false;
         const isClient = areAddressesEqual(j.client, clientAddr);
@@ -1437,8 +1477,57 @@ io.on("connection", (socket) => {
         await persistStateToDatabases();
         broadcastScopedRealtimeSync();
       }
-    } catch (err) {
+      callback?.({ success: true, timestamp: Date.now() });
+    } catch (err: any) {
       console.warn("[SOCKET client-sync]", err);
+      callback?.({ error: err?.message || "Sync error" });
+    }
+  });
+
+  // Dedicated read receipts marker handler (XEP-0333 chat markers equivalent)
+  socket.on("mark-messages-seen", async (data: { jobId: string; messageIds: string[]; readerAddress: string }, callback?: (res: any) => void) => {
+    try {
+      const { jobId, messageIds, readerAddress } = data || {};
+      if (!jobId || !Array.isArray(messageIds) || messageIds.length === 0 || !readerAddress) {
+        return callback?.({ error: "Missing required fields" });
+      }
+      const cleanReader = readerAddress.toLowerCase().trim();
+      let hasChanges = false;
+      const now = Date.now();
+
+      sharedState.jobs = (sharedState.jobs || []).map((job: any) => {
+        if (!matchJobServer(job, jobId)) return job;
+        const updatedChat = (job.chatMessages || []).map((m: any) => {
+          if (m && m.id && messageIds.includes(m.id)) {
+            if (m.status !== 'seen') {
+              hasChanges = true;
+              const seenBy = Array.from(new Set([...(m.seenBy || []), cleanReader]));
+              return {
+                ...m,
+                status: 'seen',
+                seenAt: now,
+                seenBy,
+              };
+            }
+          }
+          return m;
+        });
+
+        if (!hasChanges) return job;
+        return {
+          ...job,
+          chatMessages: updatedChat,
+        };
+      });
+
+      if (hasChanges) {
+        await persistStateToDatabases();
+        broadcastScopedRealtimeSync();
+      }
+      callback?.({ success: true, seenCount: messageIds.length });
+    } catch (err: any) {
+      console.warn("[SOCKET mark-messages-seen]", err);
+      callback?.({ error: err?.message || "Seen update failed" });
     }
   });
 
@@ -5710,6 +5799,12 @@ app.use("/metadata", (req: Request, res: Response, next) => {
   sbtRouter(req, res, next);
 });
 
+// Mount PolyLance Blog & Blog Studio API (Role-restricted and Public endpoints)
+app.use(blogRouter);
+
+// Mount PolyLance Public Real-Time Aggregated Statistics API
+app.use(publicStatsRouter);
+
 app.get("/health", (req: Request, res: Response) => {
   res.json({ status: "healthy", service: "polylance-chat-service" });
 });
@@ -5717,6 +5812,136 @@ app.get("/health", (req: Request, res: Response) => {
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "healthy", service: "polylance-chat-service" });
 });
+
+// ── AuditX Endpoints ────────────────────────────────────────────────
+app.get("/api/auditx/capabilities", (req: Request, res: Response) => {
+  res.json({
+    version: "2.4.0",
+    supportedLanguages: ["Solidity"],
+    allowedExtensions: [".sol", ".zip"],
+    maxFileSizeBytes: 2097152,
+    maxTotalSizeBytes: 10485760,
+    maxFilesCount: 20,
+    retentionDays: 30,
+    pricing: {
+      tier: "free_preview",
+      scansPerDay: 15,
+      maxLinesPerScan: 5000,
+    },
+    privacy: {
+      isolatedPerUser: true,
+      codeEncryptedAtRest: true,
+      noPublicTraining: true,
+      deletionOnRequest: true,
+      needsConfirmation: true,
+    },
+    supportedCompilers: [
+      "v0.8.28",
+      "v0.8.26",
+      "v0.8.24",
+      "v0.8.20",
+      "v0.8.19",
+      "v0.7.6",
+    ],
+    categories: [
+      {
+        id: "reentrancy",
+        name: "Reentrancy Vulnerabilities",
+        description: "Detects state variable updates occurring after external calls (CEI violations).",
+        severityDefault: "Critical",
+        needsConfirmation: false,
+      },
+      {
+        id: "access-control",
+        name: "Access Control & Authorization",
+        description: "Unprotected administrative initializers, missing onlyOwner or custom role checks.",
+        severityDefault: "High",
+        needsConfirmation: false,
+      },
+      {
+        id: "arithmetic",
+        name: "Integer & Precision Issues",
+        description: "Checks division before multiplication, rounding discrepancies, unsafe type casting.",
+        severityDefault: "Medium",
+        needsConfirmation: true,
+      },
+      {
+        id: "unchecked-calls",
+        name: "Unchecked Return Values",
+        description: "Low-level .call() or ERC-20 transfer() without validating return boolean.",
+        severityDefault: "Medium",
+        needsConfirmation: false,
+      },
+      {
+        id: "gas-logic",
+        name: "Gas Optimization & Loop DOS",
+        description: "Unbounded array iterations, state reads inside loops, redundant storage ops.",
+        severityDefault: "Low",
+        needsConfirmation: true,
+      },
+      {
+        id: "best-practice",
+        name: "Code Quality & Informational",
+        description: "Missing NatSpec, hardcoded constants, floating pragmas, locked Ether.",
+        severityDefault: "Informational",
+        needsConfirmation: false,
+      },
+    ],
+  });
+});
+
+app.get("/api/auditx/internal-report", requireAdmin, (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    reportName: "PolyLance Smart Contract Security Report",
+    classification: "Internal & Confidential",
+    protocolVersion: "2.4.0",
+    generatedAt: "2026-10-24T12:00:00Z",
+    summary: {
+      totalContracts: 5,
+      overallStatus: "Hardened - Pre-Audit Review Complete",
+      thirdPartyAuditStatus: "Not yet independently audited by a third party",
+      criticalFindings: 0,
+      highFindings: 0,
+      mediumFindings: 0,
+      lowFindings: 2,
+      informationalFindings: 3,
+    },
+    contracts: [
+      {
+        name: "JobFactory",
+        address: "0xbE74923BBfd72d400a681915dBcf6e6Adc72C317",
+        status: "Verified",
+        compiler: "v0.8.24",
+      },
+      {
+        name: "JobEscrow",
+        address: "0x88dd19df1b6dBA8D2c53b3976f4ec39B75f17FbB",
+        status: "Verified",
+        compiler: "v0.8.24",
+      },
+      {
+        name: "ReputationSBT",
+        address: "0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879",
+        status: "Verified",
+        compiler: "v0.8.24",
+      },
+      {
+        name: "JudgeDAO",
+        address: "0xe991e45907Bd341a036CF4A6a95768af198d4b86",
+        status: "Verified",
+        compiler: "v0.8.24",
+      },
+      {
+        name: "Timelock",
+        address: "0x45602bE11306651C7FA5c96Bc7fa5051BA4a856f",
+        status: "Verified",
+        compiler: "v0.8.24",
+      },
+    ],
+  });
+});
+
 
 if (process.env.NODE_ENV !== "test") {
   (async () => {

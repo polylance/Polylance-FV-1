@@ -196,7 +196,7 @@ export const VideoManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
           </div>
 
           {isDevHUDVisible && (
-            <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
+            <div data-lenis-prevent="true" className="p-3 space-y-2 max-h-60 overflow-y-auto overscroll-contain custom-scrollbar">
               <div className="flex justify-between text-gray-400 text-[11px]">
                 <span>Autoplay allowed:</span>
                 <span className={canAutoplay ? 'text-emerald-400' : 'text-amber-400'}>

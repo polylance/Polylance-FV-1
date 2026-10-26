@@ -12,6 +12,7 @@ import { PolyLanceSelect, SelectOption } from './PolyLanceSelect';
 import { useWeb3 } from '../context/Web3Context';
 import { Modal } from './overlay';
 import { Button } from './common/Button';
+import { getJobAmounts } from '../lib/amounts/getJobAmounts';
 
 export interface RaiseDisputeModalProps {
   isOpen: boolean;
@@ -63,10 +64,11 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
       },
     ];
     jobs.forEach((j) => {
+      const ja = getJobAmounts(j);
       list.push({
         value: j.id,
         label: j.title,
-        sublabel: `$${parseFloat(j.amountUsdc || '0').toLocaleString()} USDC [${j.status}]`,
+        sublabel: `${ja.effectiveAmount} ${ja.token} [${j.status}]`,
         badge: j.status,
       });
     });
@@ -219,7 +221,7 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
             {currentSelectedJob && (
               <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
                 <div className="text-[11px] text-slate-900 font-medium">
-                  <strong>Escrow Locked:</strong> ${parseFloat(currentSelectedJob.amountUsdc || '0').toLocaleString()} USDC • Status: <strong>{currentSelectedJob.status}</strong>
+                  <strong>Escrow Locked:</strong> {getJobAmounts(currentSelectedJob).effectiveAmount} {getJobAmounts(currentSelectedJob).token} • Status: <strong>{currentSelectedJob.status}</strong>
                 </div>
                 <button
                   type="button"

@@ -302,32 +302,12 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     )) {
       throw err;
     }
-    console.warn('GitHub API fetch notice (using hardened fallback):', err);
+    throw err;
   }
   }
 
-  // ── Hardened Fallback: API throttled / offline ─────────────────────────
-  // Cap strictly at FALLBACK_SCORE_CAP (Bronze) so offline fallbacks cannot bypass rules
   if (!realSuccess) {
-    let seed = 0;
-    const lowerUser = cleanUsername.toLowerCase();
-    for (let i = 0; i < lowerUser.length; i++) {
-      seed += lowerUser.charCodeAt(i) * (i + 1) * 31;
-    }
-
-    reposCount = (seed % 5) + 3;           // 3–7 repos
-    commitsCount = 20 + (seed % 35);       // 20–55 commits
-    prsCount = Math.max(1, Math.round(reposCount * 0.8));
-
-    primaryCategory = 'web3';
-    // Strictly capped at BRONZE tier
-    primaryScore = Math.min(FALLBACK_SCORE_CAP, 180 + (seed % 140));
-    secondaryCategories = ['frontend', 'backend'];
-    secondaryScores = [Math.round(primaryScore * 0.35), Math.round(primaryScore * 0.18)];
-
-    languageBytes.Solidity = 24000 + (seed % 8000);
-    languageBytes.TypeScript = 18000 + (seed % 6000);
-    languageBytes.JavaScript = 8000;
+    throw new Error('GitHub oracle verification failed: unable to fetch public contribution data. Please check your username and retry.');
   }
 
   // Determine reputation tier with hardened thresholds:

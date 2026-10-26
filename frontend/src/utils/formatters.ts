@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 import { NETWORK_CONFIG } from '../config/contracts';
 import { normalizeTokenSymbol } from './currency';
+import { calculateFeeBreakdownFromString } from './fees';
 
 /**
  * Converts any Ethereum/Polygon address to EIP-55 Checksum casing.
@@ -84,13 +85,11 @@ export function formatDaysRemaining(submittedAt: number, reviewPeriodDays: numbe
   return `${remHours}h remaining`;
 }
 
+/**
+ * @deprecated Fake transaction hashes are prohibited by protocol integrity standards.
+ */
 export function generateFallbackTxHash(): string {
-  const chars = '0123456789abcdef';
-  let hash = '0x';
-  for (let i = 0; i < 64; i++) {
-    hash += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return hash;
+  return '';
 }
 
 export const generateMockTxHash = generateFallbackTxHash;
@@ -167,6 +166,8 @@ export function getPolygonScanUrl(txHash: string): string {
   return `${baseUrl}/tx/${txHash}`;
 }
 
+export const getPolygonScanTxUrl = getPolygonScanUrl;
+
 export function getPolygonScanAddressUrl(address: string): string {
   const baseUrl = NETWORK_CONFIG.blockExplorerUrl || 'https://polygonscan.com';
   return `${baseUrl}/address/${address}`;
@@ -212,13 +213,18 @@ export function getCanonicalCertificateId(jobId?: string | number | any, contrac
   return canonicalId;
 }
 
-export function getCertifiedPassVerifyUrl(certId: string): string {
+export function buildVerifyUrl(certId: string, tokenId?: string | number): string {
   const clean = String(certId || '').trim();
-  if (typeof window !== 'undefined') {
-    const origin = window.location.origin;
-    return `${origin}/?certId=${encodeURIComponent(clean)}#/verify?certId=${encodeURIComponent(clean)}`;
+  const params = new URLSearchParams();
+  if (clean) params.set('cert', clean);
+  if (tokenId !== undefined && tokenId !== null && String(tokenId).trim() !== '') {
+    params.set('token', String(tokenId).trim());
   }
-  return `https://certifiedpass.polylance.codes/?certId=${encodeURIComponent(clean)}#/verify?certId=${encodeURIComponent(clean)}`;
+  return `/certifiedpass?${params.toString()}`;
+}
+
+export function getCertifiedPassVerifyUrl(certId: string, tokenId?: string | number): string {
+  return buildVerifyUrl(certId, tokenId);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -292,11 +298,15 @@ export function getCanonicalJobStatus(job?: any | null): CanonicalJobStatus {
   if (!job) return 'Open';
   const raw = job.status;
 
-  if (raw === 'Completed') return 'Completed';
+  if (raw === 'Completed' || job.escrowStatus === 'RELEASED') return 'Completed';
   if (raw === 'Disputed' || Boolean(job.dispute && !job.dispute.resolved)) return 'Disputed';
   if (raw === 'Submitted' || Boolean(job.proof && job.proof.submittedAt)) return 'Submitted';
 
-  if (raw === 'Funded') {
+  const isFundedEvent = (job.events || []).some(
+    (e: any) => (e.step === 'Funded' || e.step === 'EscrowFunded') && (e.status === 'completed' || e.status === 'CONFIRMED')
+  );
+
+  if (raw === 'Funded' || isFundedEvent || job.escrowStatus === 'FUNDED') {
     return 'Funded';
   }
 
@@ -319,6 +329,7 @@ export function getCanonicalJobStatus(job?: any | null): CanonicalJobStatus {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FEE BREAKDOWN CALCULATION HELPER (Client pays +2.5% · Freelancer receives -2.5%)
+// Delegated to single source of truth BigInt feeBreakdown in utils/fees.ts
 // ─────────────────────────────────────────────────────────────────────────────
 export interface FeeBreakdownData {
   budget: number;
@@ -332,21 +343,16 @@ export function calculateFeeBreakdown(
   budgetInput: number | string,
   tokenInput: string = 'POL'
 ): FeeBreakdownData {
-  const budget = typeof budgetInput === 'number'
-    ? budgetInput
-    : parseFloat(String(budgetInput).replace(/[^0-9.-]/g, '')) || 0;
   const tokenSymbol = normalizeTokenSymbol(tokenInput);
-
-  const platformFee = budget * 0.025;
-  const clientDeposit = budget + platformFee;
-  const freelancerReceives = Math.max(0, budget - platformFee);
+  const cleanInput = String(budgetInput || '0').replace(/[^0-9.-]/g, '');
+  const { formatted } = calculateFeeBreakdownFromString(cleanInput, tokenSymbol);
 
   return {
-    budget,
-    platformFee,
-    clientDeposit,
-    freelancerReceives,
-    tokenSymbol
+    budget: parseFloat(formatted.budget) || 0,
+    platformFee: parseFloat(formatted.platformTotal) || 0,
+    clientDeposit: parseFloat(formatted.clientDeposit) || 0,
+    freelancerReceives: parseFloat(formatted.freelancerNet) || 0,
+    tokenSymbol: tokenSymbol as any,
   };
 }
 
@@ -359,3 +365,40 @@ export function calculateReputationPercentile(rank: number, total: number): stri
   const pct = Math.max(1, Math.min(100, Math.round((rank / total) * 100)));
   return `Top ${pct}%`;
 }
+
+/**
+ * Robust clipboard copy function that never throws an unhandled error.
+ * Gracefully falls back to document.execCommand if Clipboard API is blocked or denied.
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (!text) return false;
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (_) {
+    // Fallback to legacy execCommand below
+  }
+
+  try {
+    if (typeof document !== 'undefined') {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.opacity = '0';
+      textArea.style.pointerEvents = 'none';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return success;
+    }
+  } catch (_) {}
+
+  return false;
+}
+

@@ -8,6 +8,10 @@ export const CLIENT_FEE_PERCENT = Number(CLIENT_FEE_BPS) / 100; // 2.5
 export const FREELANCER_FEE_PERCENT = Number(FREELANCER_FEE_BPS) / 100; // 2.5
 export const TOTAL_PLATFORM_FEE_PERCENT = Number(CLIENT_FEE_BPS + FREELANCER_FEE_BPS) / 100; // 5.0
 
+export const PLATFORM_FEE_CLIENT_PERCENT = CLIENT_FEE_PERCENT; // 2.5
+export const PLATFORM_FEE_FREELANCER_PERCENT = FREELANCER_FEE_PERCENT; // 2.5
+export const PLATFORM_FEE_TOTAL_PERCENT = TOTAL_PLATFORM_FEE_PERCENT; // 5.0
+
 export interface FeeBreakdown {
   budget: bigint;
   clientFee: bigint;
@@ -147,3 +151,28 @@ export function calculateFeeBreakdownFromString(
     token: formatted.tokenSymbol,
   };
 }
+
+/**
+ * Calculates the total amount paid by the client (budget + 2.5% client fee).
+ * Example: 9 POL -> 9.225; 10 USDC -> 10.25; 100 USDC -> 102.50; 1000 USDC -> 1025.00
+ */
+export function calculateClientTotal(
+  budget: number | string | bigint,
+  tokenSymbol: string = 'POL'
+): string {
+  const result = calculateFeeBreakdownFromString(String(budget), tokenSymbol);
+  return result.clientDeposit;
+}
+
+/**
+ * Calculates the net amount received by the freelancer (budget - 2.5% freelancer fee).
+ * Example: 9 POL -> 8.775; 10 USDC -> 9.75; 100 USDC -> 97.50; 1000 USDC -> 975.00
+ */
+export function calculateFreelancerPayout(
+  budget: number | string | bigint,
+  tokenSymbol: string = 'POL'
+): string {
+  const result = calculateFeeBreakdownFromString(String(budget), tokenSymbol);
+  return result.freelancerNet;
+}
+

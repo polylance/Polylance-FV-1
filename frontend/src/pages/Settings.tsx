@@ -52,6 +52,7 @@ import { findSkillByIdOrName, formatSkillDisplayName } from '../data/skillsData'
 import { UsdcIcon } from '../components/TokenIcon';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
+import { LocalAvatar } from '../components/common/LocalAvatar';
 
 export type SettingsSection = 'profile' | 'accountMode' | 'notifications' | 'privacy' | 'appearance' | 'admin';
 
@@ -103,11 +104,9 @@ export const Settings: React.FC = () => {
   // View / Edit Toggle Mode (Default is Saved View Mode)
   const [isEditing, setIsEditing] = useState(false);
 
-  const fallbackDefaultAvatar = address
-    ? (currentProfile?.githubUsername
-        ? `https://github.com/${currentProfile.githubUsername}.png`
-        : `https://api.dicebear.com/7.x/identicon/svg?seed=${address.toLowerCase()}`)
-    : 'https://api.dicebear.com/7.x/identicon/svg?seed=polylance';
+  const fallbackDefaultAvatar = currentProfile?.githubUsername
+    ? `https://github.com/${currentProfile.githubUsername}.png`
+    : '';
 
   // Form State
   const [displayName, setDisplayName] = useState(currentProfile?.displayName || '');
@@ -917,13 +916,12 @@ export const Settings: React.FC = () => {
                     <div className="flex items-center gap-3.5">
                       {/* Avatar Image */}
                       <div className="relative w-14 h-14 rounded-[8px] overflow-hidden bg-white border border-[#E5E7EB] shrink-0">
-                        <img
-                          src={avatarUrl || fallbackDefaultAvatar}
-                          alt={displayName || 'User Avatar'}
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = fallbackDefaultAvatar;
-                          }}
-                          className="w-full h-full object-cover"
+                        <LocalAvatar
+                          address={address || ''}
+                          name={displayName}
+                          avatarUrl={avatarUrl || fallbackDefaultAvatar}
+                          size={56}
+                          className="w-full h-full rounded-[8px]"
                         />
                       </div>
 
@@ -1075,13 +1073,12 @@ export const Settings: React.FC = () => {
                   <div className="flex flex-col sm:flex-row items-center gap-4">
                     {/* Avatar Preview */}
                     <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white border-2 border-slate-300 shadow-sm shrink-0">
-                      <img
-                        src={avatarUrl || fallbackDefaultAvatar}
-                        alt="Avatar Preview"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = fallbackDefaultAvatar;
-                        }}
-                        className="w-full h-full object-cover"
+                      <LocalAvatar
+                        address={address || ''}
+                        name={displayName}
+                        avatarUrl={avatarUrl || fallbackDefaultAvatar}
+                        size={64}
+                        className="w-full h-full rounded-2xl"
                       />
                     </div>
 
@@ -1108,11 +1105,11 @@ export const Settings: React.FC = () => {
                         )}
                         <button
                           type="button"
-                          onClick={() => setAvatarUrl(`https://api.dicebear.com/7.x/identicon/svg?seed=${address || 'polylance'}`)}
+                          onClick={() => setAvatarUrl('')}
                           className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-bold font-sans flex items-center gap-1 transition-all cursor-pointer shadow-3xs"
                         >
-                          <Sparkles size={12} className="text-amber-500" />
-                          Use Web3 Identicon
+                          <Sparkles size={12} className="text-[#0047AB]" />
+                          Use PolyLance Monogram
                         </button>
                         {avatarUrl && (
                           <button

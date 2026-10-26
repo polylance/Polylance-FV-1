@@ -19,6 +19,11 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   triggerRef,
 }) => {
   const entry = id ? getVideo(id) : null;
+  const lastEntryRef = useRef<ReturnType<typeof getVideo>>(entry);
+  if (entry) {
+    lastEntryRef.current = entry;
+  }
+  const activeEntry = entry || lastEntryRef.current;
 
   const handleClose = () => {
     pauseAllVideos();
@@ -28,24 +33,24 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     }
   };
 
-  if (!isOpen || !entry) return null;
+  if (!activeEntry) return null;
 
-  const isReady = entry.status === 'ready' && Boolean(entry.sources.webm || entry.sources.mp4 || entry.embed);
+  const isReady = activeEntry.status === 'ready' && Boolean(activeEntry.sources.webm || activeEntry.sources.mp4 || activeEntry.embed);
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen={isOpen && Boolean(entry)}
       onClose={handleClose}
-      title={entry.title}
-      description={entry.summary}
+      title={activeEntry.title}
+      description={activeEntry.summary}
       maxWidth="lg"
       className="p-1 sm:p-2"
     >
       <div className="mt-2">
         {isReady ? (
-          <VideoPlayer entry={entry} autoPlayAmbient={false} />
+          <VideoPlayer entry={activeEntry} autoPlayAmbient={false} />
         ) : (
-          <VideoPlaceholder entry={entry} />
+          <VideoPlaceholder entry={activeEntry} />
         )}
       </div>
     </Modal>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Web3Provider, useWeb3 } from './context/Web3Context';
 import { PolyLanceDataProvider } from './context/PolyLanceDataContext';
@@ -29,8 +29,29 @@ import { Security } from './pages/Security';
 import { Disclaimer } from './pages/Disclaimer';
 import { Manifesto } from './pages/Manifesto';
 import { CertifiedPass } from './pages/CertifiedPass';
-import { AuditX } from './pages/AuditX';
 import { Help } from './pages/Help';
+import {
+  AuditXLandingPage,
+  ScanWorkspacePage,
+  UserReportsPage,
+  ReportDetailPage,
+  InternalReportPage
+} from './features/auditx';
+import { HowItWorksPage } from './pages/HowItWorksPage';
+import { FeesPage } from './pages/FeesPage';
+import { EscrowPage } from './pages/EscrowPage';
+import { ForFreelancersPage } from './pages/ForFreelancersPage';
+import { ForClientsPage } from './pages/ForClientsPage';
+import { GetPaidInUsdcPage } from './pages/GetPaidInUsdcPage';
+import { GetPaidInCryptoPage } from './pages/GetPaidInCryptoPage';
+import { CategoryJobsHubPage } from './pages/CategoryJobsHubPage';
+import { SkillPage } from './pages/SkillPage';
+
+export const FOOTER_HIDDEN_ROUTES: string[] = ['/'];
+import { FaqPage } from './pages/FaqPage';
+import { ContactPage } from './pages/ContactPage';
+import { BlogIndexPage } from './pages/BlogIndexPage';
+import { BlogPostPage } from './pages/BlogPostPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthBanner } from './components/common/AuthBanner';
 
@@ -47,10 +68,14 @@ const EmblemLab = React.lazy(() => import('./pages/EmblemLab').then((m) => ({ de
 const DevPrimitivesPage = React.lazy(() => import('./pages/DevPrimitivesPage').then((m) => ({ default: m.DevPrimitivesPage })));
 const DevStatesPage = React.lazy(() => import('./pages/DevStatesPage').then((m) => ({ default: m.DevStatesPage })));
 const NotFound = React.lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
+const BlogStudioPage = React.lazy(() => import('./features/studio/BlogStudioPage').then((m) => ({ default: m.BlogStudioPage })));
+const BlogStudioGuard = React.lazy(() => import('./features/studio/components/BlogStudioGuard').then((m) => ({ default: m.BlogStudioGuard })));
+const EscrowSimulatorPage = React.lazy(() => import('./pages/EscrowSimulatorPage').then((m) => ({ default: m.EscrowSimulatorPage })));
+
 
 const RouteLoadingSpinner: React.FC = () => (
   <div className="min-h-[50vh] flex items-center justify-center">
-    <div className="w-8 h-8 rounded-full border-2 border-purple-500/20 border-t-purple-500 animate-spin" />
+    <div className="w-8 h-8 rounded-full border-2 border-[#0047AB]/20 border-t-[#0047AB] animate-spin" />
   </div>
 );
 import { DemoModeProvider, useDemoMode } from './context/DemoModeContext';
@@ -63,6 +88,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { pageVariants, transition } from './lib/motion';
 import { scrollToSection, extractTargetSection } from './utils/scroll';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
+import { cleanupOrphanScrollLocks } from './utils/scrollLock';
 
 
 import { useAccountMode } from './hooks/useAccountMode';
@@ -127,6 +153,16 @@ const AnimatedRoutes: React.FC = () => {
     currentRole === 'admin' ||
     Boolean(address && isAdminAddress(address));
 
+  // Immediate redirect for incoming legacy hash routes (e.g. #/find-jobs -> /find-jobs)
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#/')) {
+      const cleanPath = hash.slice(1);
+      navigate(cleanPath, { replace: true });
+    }
+  }, [navigate]);
+
   // Social media deep link synchronization from search params & subdomain handling
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -171,6 +207,9 @@ const AnimatedRoutes: React.FC = () => {
     }
   }, [location.pathname, location.search, location.hash, location.state]);
 
+  const isStudioEditor = location.pathname === '/studio/blog/new' || (location.pathname.startsWith('/studio/blog/') && location.pathname.endsWith('/edit'));
+  const isConstrained = location.pathname.startsWith('/chat') || location.pathname.startsWith('/messages') || isStudioEditor;
+
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
@@ -180,7 +219,7 @@ const AnimatedRoutes: React.FC = () => {
         animate="animate"
         exit="exit"
         transition={transition.page}
-        className={location.pathname.startsWith('/chat') ? "w-full h-full flex-1 min-h-0 flex flex-col overflow-hidden" : "w-full"}
+        className={isConstrained ? "w-full h-full flex-1 min-h-0 flex flex-col overflow-hidden" : "w-full"}
         style={{ willChange: 'transform, opacity' }}
       >
         <Routes location={location}>
@@ -197,18 +236,50 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/certificate" element={<Certificate />} />
           <Route path="/login" element={<Login />} />
           <Route path="/jobs" element={<FindJobs />} />
+          <Route path="/find-jobs" element={<FindJobs />} />
           <Route path="/jobs/:id" element={<JobDetail />} />
           <Route path="/reputation" element={<Reputation />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:address" element={<Profile />} />
+          <Route path="/freelancers/:handle" element={<Profile />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/security" element={<Security />} />
           <Route path="/disclaimer" element={<Disclaimer />} />
           <Route path="/manifesto" element={<Manifesto />} />
-          <Route path="/auditx" element={<AuditX />} />
-          <Route path="/audit-x" element={<AuditX />} />
+          {/* AuditX Public Landing, User Scanning Workspace, User Reports & Admin Internal Report */}
+          <Route path="/auditx" element={<AuditXLandingPage />} />
+          <Route path="/audit-x" element={<Navigate to="/auditx" replace />} />
+          <Route path="/auditx/scan" element={<ScanWorkspacePage />} />
+          <Route path="/auditx/reports" element={<UserReportsPage />} />
+          <Route path="/auditx/reports/:id" element={<ReportDetailPage />} />
+          <Route path="/auditx/internal" element={<InternalReportPage />} />
           <Route path="/help" element={<Help />} />
+
+          {/* SEO Content, Hubs, and Landing Pages */}
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/fees" element={<FeesPage />} />
+          <Route path="/escrow" element={<EscrowPage />} />
+          <Route path="/escrow-simulator" element={<React.Suspense fallback={<RouteLoadingSpinner />}><EscrowSimulatorPage /></React.Suspense>} />
+          <Route path="/simulator" element={<Navigate to="/escrow-simulator" replace />} />
+          <Route path="/for-freelancers" element={<ForFreelancersPage />} />
+          <Route path="/for-clients" element={<ForClientsPage />} />
+          <Route path="/get-paid-in-usdc" element={<GetPaidInUsdcPage />} />
+          <Route path="/get-paid-in-crypto" element={<GetPaidInCryptoPage />} />
+          <Route path="/upwork-alternative" element={<Navigate to="/how-it-works" replace />} />
+          <Route path="/fiverr-alternative" element={<Navigate to="/how-it-works" replace />} />
+          <Route path="/web3-jobs" element={<CategoryJobsHubPage />} />
+          <Route path="/polygon-jobs" element={<CategoryJobsHubPage />} />
+          <Route path="/solidity-developer-jobs" element={<CategoryJobsHubPage />} />
+          <Route path="/smart-contract-developer-jobs" element={<CategoryJobsHubPage />} />
+          <Route path="/dapp-developer-jobs" element={<CategoryJobsHubPage />} />
+          <Route path="/skills/:skill" element={<SkillPage />} />
+          <Route path="/faq" element={<FaqPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/contact-us" element={<Navigate to="/contact" replace />} />
+          <Route path="/support" element={<Navigate to="/contact" replace />} />
+          <Route path="/blog" element={<BlogIndexPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
           {import.meta.env.DEV && (
             <>
               <Route path="/demo" element={<React.Suspense fallback={<RouteLoadingSpinner />}><Demo /></React.Suspense>} />
@@ -278,9 +349,22 @@ const AnimatedRoutes: React.FC = () => {
           {/* Chat & Negotiation messages */}
           <Route path="/chat" element={isVisitor ? <Navigate to="/login" replace /> : <Chat />} />
           <Route path="/chat/:jobId" element={isVisitor ? <Navigate to="/login" replace /> : <Chat />} />
+          <Route path="/messages" element={isVisitor ? <Navigate to="/login" replace /> : <Chat />} />
+          <Route path="/messages/:jobId" element={isVisitor ? <Navigate to="/login" replace /> : <Chat />} />
 
           {/* Standalone Maintenance Page route */}
           <Route path="/maintenance" element={<React.Suspense fallback={<RouteLoadingSpinner />}><MaintenancePage /></React.Suspense>} />
+
+          {/* Blog Studio (Role-restricted internal authoring area with 3-state guard) */}
+          <Route element={<React.Suspense fallback={<RouteLoadingSpinner />}><BlogStudioGuard /></React.Suspense>}>
+            <Route path="/studio/blog" element={<React.Suspense fallback={<RouteLoadingSpinner />}><BlogStudioPage /></React.Suspense>} />
+            <Route path="/studio/blog/new" element={<React.Suspense fallback={<RouteLoadingSpinner />}><BlogStudioPage /></React.Suspense>} />
+            <Route path="/studio/blog/:id/edit" element={<React.Suspense fallback={<RouteLoadingSpinner />}><BlogStudioPage /></React.Suspense>} />
+            <Route path="/studio/blog/team" element={<React.Suspense fallback={<RouteLoadingSpinner />}><BlogStudioPage /></React.Suspense>} />
+            <Route path="/studio/blog/media" element={<React.Suspense fallback={<RouteLoadingSpinner />}><BlogStudioPage /></React.Suspense>} />
+            <Route path="/studio/blog/audit" element={<React.Suspense fallback={<RouteLoadingSpinner />}><BlogStudioPage /></React.Suspense>} />
+            <Route path="/studio/*" element={<Navigate to="/studio/blog" replace />} />
+          </Route>
 
           <Route
             path="*"
@@ -345,15 +429,19 @@ const AppContent: React.FC = () => {
     return <MaintenancePage onBypass={isAdmin ? handleAdminBypass : undefined} />;
   }
 
-  const isChat = location.pathname.startsWith('/chat');
+  const isChat = location.pathname.startsWith('/chat') || location.pathname.startsWith('/messages');
   const isAudit = location.pathname.startsWith('/audit');
-  const showFooter = !isChat && !isAudit && location.pathname === '/dashboard';
+  const isStudio = location.pathname.startsWith('/studio');
+  const isStudioEditor = location.pathname === '/studio/blog/new' || (location.pathname.startsWith('/studio/blog/') && location.pathname.endsWith('/edit'));
+  const isViewportConstrained = isChat || isStudioEditor;
+  const isFooterHidden = FOOTER_HIDDEN_ROUTES.includes(location.pathname);
+  const showFooter = !isChat && !isAudit && !isStudio && !isFooterHidden;
 
   return (
     <div
       id="app"
       className={
-        isChat
+        isViewportConstrained
           ? "relative z-1 h-[100dvh] max-h-[100dvh] overflow-hidden bg-transparent text-[#0B0B0C] flex flex-col font-sans selection:bg-[#E7EEF9] selection:text-[#0047AB]"
           : isAudit
             ? "relative z-1 min-h-[100dvh] bg-[#FFFFFF] text-[#0B0B0C] flex flex-col font-sans selection:bg-[#E7EEF9] selection:text-[#0047AB]"
@@ -402,7 +490,19 @@ const AppContent: React.FC = () => {
       <GuidedTour />
 
       {/* Main Application Content */}
-      <main className={isChat ? "flex-1 w-full h-[100dvh] min-h-0 overflow-hidden flex flex-col p-0 m-0" : (isAudit ? "w-full p-0 m-0" : "flex-1 w-full flex flex-col min-h-0 pb-20 lg:pb-8")}>
+      <main
+        className={
+          isChat
+            ? "flex-1 w-full h-[100dvh] min-h-0 overflow-hidden flex flex-col p-0 m-0"
+            : isAudit
+              ? "w-full p-0 m-0"
+              : isStudioEditor
+                ? "flex-1 w-full h-full min-h-0 overflow-hidden flex flex-col p-0 m-0"
+                : isFooterHidden || isStudio
+                  ? "flex-1 w-full flex flex-col min-h-0 p-0 m-0"
+                  : "flex-1 w-full flex flex-col min-h-0 pb-20 lg:pb-8"
+        }
+      >
         <ErrorBoundary>
           <AnimatedRoutes />
         </ErrorBoundary>
@@ -421,10 +521,18 @@ const AppContent: React.FC = () => {
 };
 
 const ScrollToTop: React.FC = () => {
-  const { pathname } = useLocation();
+  const { pathname, search, hash } = useLocation();
   React.useEffect(() => {
+    cleanupOrphanScrollLocks();
+    // If navigating with a certificate ID or hash target, let the page handle smooth scroll to target
+    const params = new URLSearchParams(search);
+    const hasCertTarget = params.has('cert') || params.has('certId') || params.has('token') || params.has('tokenId');
+    const isVerifyPath = pathname === '/certifiedpass' || pathname === '/certified-pass' || pathname.startsWith('/verify');
+    if ((isVerifyPath && hasCertTarget) || hash) {
+      return;
+    }
     window.scrollTo(0, 0);
-  }, [pathname]);
+  }, [pathname, search, hash]);
   return null;
 };
 

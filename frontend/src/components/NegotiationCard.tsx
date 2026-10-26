@@ -23,6 +23,7 @@ import { ethers } from 'ethers';
 import { Job, NegotiationTermVersion } from '../types';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { truncateAddress } from '../utils/formatters';
+import { Modal } from './overlay';
 
 interface NegotiationCardProps {
   job: Job;
@@ -85,6 +86,7 @@ export const NegotiationCard: React.FC<NegotiationCardProps> = ({
         message: 'Initial project offer from client',
         status: job.freelancerAgreedTerms ? 'ACCEPTED' : 'PENDING',
         createdAt: job.createdAt ? Number(job.createdAt) : Date.now(),
+        expiresAt: (job.createdAt ? Number(job.createdAt) : Date.now()) + 72 * 3600 * 1000,
       },
     ];
   }, [engagement, job]);
@@ -565,7 +567,7 @@ export const NegotiationCard: React.FC<NegotiationCardProps> = ({
 
                 <div className="flex items-center gap-2 font-mono text-[10px] text-slate-400">
                   <span>{new Date(term.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  <span className={`px-1.5 py-0.2 rounded font-bold ${term.status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-800' : term.status === 'COUNTERED' ? 'bg-slate-200 text-slate-700' : 'bg-amber-100 text-amber-800'}`}>
+                  <span className={`px-1.5 py-0.2 rounded font-bold ${term.status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-800' : term.status === 'SUPERSEDED' || (term.status as any) === 'COUNTERED' ? 'bg-slate-200 text-slate-700' : 'bg-amber-100 text-amber-800'}`}>
                     {term.status}
                   </span>
                 </div>
@@ -576,176 +578,146 @@ export const NegotiationCard: React.FC<NegotiationCardProps> = ({
       )}
 
       {/* COUNTER-OFFER MODAL */}
-      {isCounterModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold">
-                  <RefreshCw size={15} />
-                </div>
-                <div>
-                  <h4 className="font-headline font-black text-slate-900 text-base">
-                    Propose Counter-Offer
-                  </h4>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    Round {currentRound + 1} of {MAX_ROUNDS}
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCounterModalOpen(false)}
-                className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold cursor-pointer"
-              >
-                ×
-              </button>
+      <Modal
+        isOpen={isCounterModalOpen}
+        onClose={() => setIsCounterModalOpen(false)}
+        title="Propose Counter-Offer"
+        subtitle={`Round ${currentRound + 1} of ${MAX_ROUNDS}`}
+        size="md"
+      >
+        <form onSubmit={handleSubmitCounter} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 block font-sans">
+              Proposed Project Amount ({currency})
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                required
+                value={counterAmount}
+                onChange={(e) => setCounterAmount(e.target.value)}
+                placeholder="e.g. 15"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-mono font-bold text-slate-900 focus:outline-hidden focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
+              />
+              <span className="absolute right-3.5 top-3 text-xs font-mono font-bold text-slate-400">
+                {currency}
+              </span>
             </div>
-
-            <form onSubmit={handleSubmitCounter} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 block font-sans">
-                  Proposed Project Amount ({currency})
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    value={counterAmount}
-                    onChange={(e) => setCounterAmount(e.target.value)}
-                    placeholder="e.g. 15"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-mono font-bold text-slate-900 focus:outline-hidden focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
-                  />
-                  <span className="absolute right-3.5 top-3 text-xs font-mono font-bold text-slate-400">
-                    {currency}
-                  </span>
-                </div>
-              </div>
-
-              {/* Warning if far above budget */}
-              {isFarAboveBudget && (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2">
-                  <AlertTriangle size={15} className="shrink-0 mt-0.5 text-amber-700" />
-                  <span>
-                    <strong>Heads up:</strong> This requested amount is &gt;25% above the client's initial budget of {originalBudgetNum} {currency}. The client will review this request.
-                  </span>
-                </div>
-              )}
-
-              {/* Live Fee Breakdown */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5 font-mono">
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Gross Contract Principal:</span>
-                  <span className="font-bold text-slate-900">{enteredCounterNum || 0} {currency}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Freelancer Receives (Net -2.5%):</span>
-                  <span className="font-bold text-emerald-700">{counterEnteredFreelancerNet} {currency}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Client Pays (Total +2.5%):</span>
-                  <span className="font-bold text-blue-700">{counterEnteredClientTotal} {currency}</span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 block font-sans">
-                  Message / Justification (Optional)
-                </label>
-                <textarea
-                  rows={3}
-                  value={counterMessage}
-                  onChange={(e) => setCounterMessage(e.target.value)}
-                  placeholder="Explain why this budget adjustment is necessary (scope complexity, faster turnaround, etc.)..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-hidden focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCounterModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingCounter || enteredCounterNum <= 0}
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
-                >
-                  {isSubmittingCounter ? <Loader2 size={13} className="animate-spin" /> : <SendHorizontal size={13} />}
-                  <span>Submit Counter-Offer</span>
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+
+          {/* Warning if far above budget */}
+          {isFarAboveBudget && (
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2">
+              <AlertTriangle size={15} className="shrink-0 mt-0.5 text-amber-700" />
+              <span>
+                <strong>Heads up:</strong> This requested amount is &gt;25% above the client's initial budget of {originalBudgetNum} {currency}. The client will review this request.
+              </span>
+            </div>
+          )}
+
+          {/* Live Fee Breakdown */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5 font-mono">
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Gross Contract Principal:</span>
+              <span className="font-bold text-slate-900">{enteredCounterNum || 0} {currency}</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Freelancer Receives (Net -2.5%):</span>
+              <span className="font-bold text-emerald-700">{counterEnteredFreelancerNet} {currency}</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Client Pays (Total +2.5%):</span>
+              <span className="font-bold text-blue-700">{counterEnteredClientTotal} {currency}</span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 block font-sans">
+              Message / Justification (Optional)
+            </label>
+            <textarea
+              rows={3}
+              value={counterMessage}
+              onChange={(e) => setCounterMessage(e.target.value)}
+              placeholder="Explain why this budget adjustment is necessary (scope complexity, faster turnaround, etc.)..."
+              className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-hidden focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsCounterModalOpen(false)}
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmittingCounter || enteredCounterNum <= 0}
+              className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              {isSubmittingCounter ? <Loader2 size={13} className="animate-spin" /> : <SendHorizontal size={13} />}
+              <span>Submit Counter-Offer</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* CANCEL SELECTION MODAL */}
-      {isCancelModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold shrink-0">
-                <XCircle size={18} />
-              </div>
-              <div>
-                <h4 className="font-headline font-black text-slate-900 text-base">
-                  Cancel Candidate Selection
-                </h4>
-                <span className="text-[10px] font-mono text-slate-400">
-                  Pre-Escrow Re-listing
-                </span>
-              </div>
-            </div>
+      <Modal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        title="Cancel Candidate Selection"
+        subtitle="Pre-Escrow Re-listing"
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setIsCancelModalOpen(false)}
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+            >
+              Keep Candidate
+            </button>
+            <button
+              type="button"
+              disabled={isCancelling}
+              onClick={handleCancelSelection}
+              className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              {isCancelling ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
+              <span>Confirm Cancel Selection</span>
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-slate-600 leading-relaxed font-sans">
+            This removes <strong>{truncateAddress(job.freelancer || '')}</strong> from this job. The job will remain or return to <strong>OPEN</strong> status in Find Jobs and your Dashboard, allowing you to select another candidate.
+          </p>
 
-            <p className="text-xs text-slate-600 leading-relaxed font-sans">
-              This removes <strong>{truncateAddress(job.freelancer || '')}</strong> from this job. The job will remain or return to <strong>OPEN</strong> status in Find Jobs and your Dashboard, allowing you to select another candidate.
-            </p>
+          <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2">
+            <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
+            <span><strong>No funds have moved.</strong> Escrow has not been funded yet.</span>
+          </div>
 
-            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2">
-              <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
-              <span><strong>No funds have moved.</strong> Escrow has not been funded yet.</span>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 block font-sans">
-                Reason for Cancellation (Optional)
-              </label>
-              <input
-                type="text"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="e.g. Could not agree on terms, scope changed, etc."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-hidden focus:border-rose-600 focus:ring-1 focus:ring-rose-600"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsCancelModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
-              >
-                Keep Candidate
-              </button>
-              <button
-                type="button"
-                disabled={isCancelling}
-                onClick={handleCancelSelection}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
-              >
-                {isCancelling ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
-                <span>Confirm Cancel Selection</span>
-              </button>
-            </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 block font-sans">
+              Reason for Cancellation (Optional)
+            </label>
+            <input
+              type="text"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="e.g. Could not agree on terms, scope changed, etc."
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-hidden focus:border-rose-600 focus:ring-1 focus:ring-rose-600"
+            />
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

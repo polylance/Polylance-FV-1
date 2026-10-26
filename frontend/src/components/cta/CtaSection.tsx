@@ -22,7 +22,7 @@ export const CtaSection: React.FC = () => {
         aria-hidden="true"
       />
 
-      <PageContainer>
+      <PageContainer noVerticalPadding>
         <div className="max-w-2xl mx-auto text-center space-y-6 relative z-10">
           {/* ── Headline: Pure white #FFFFFF, tracking -0.02em, 9.15:1 contrast ── */}
           <Reveal delay={0} riseDistance={16}>
@@ -80,7 +80,7 @@ export const CtaSection: React.FC = () => {
                 color: 'rgba(255, 255, 255, 0.80)',
               }}
             >
-              Transparent 2.5% platform fee • Instant settlement on Polygon Mainnet
+              Transparent 2.5% fee per side (5% total protocol fee) • Instant settlement on Polygon Mainnet
             </div>
           </Reveal>
         </div>

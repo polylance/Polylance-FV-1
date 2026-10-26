@@ -27,6 +27,7 @@ export { getSyncEndpoints, getBackendSyncUrl };
 let syncSocket: Socket | null = null;
 let backendSyncOfflineUntil = 0;
 let socketConnectFailures = 0;
+const chatOutbox: Array<{ jobId: string; updatedJob: any; msgId: string }> = [];
 
 
 const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
@@ -97,6 +98,7 @@ interface PolyLanceDataContextType {
   respondToNegotiationProposal: (jobId: string, proposalId: string, accept: boolean, rejectReason?: string, responderRole?: 'Client' | 'Freelancer', applicantAddress?: string) => Promise<void>;
   sendPreAcceptMessage: (jobId: string, text: string, senderAddress: string, senderRole: 'Client' | 'Freelancer', proposal?: NegotiationProposal, applicantAddress?: string) => void;
   sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge', proposal?: NegotiationProposal, applicantAddress?: string, senderAddress?: string) => void;
+  markMessagesAsSeen: (jobId: string, messageIds: string[], readerAddress: string) => void;
   sendJudgeChatMessage: (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => void;
   isEnclineConnected: boolean;
   judgeMessages: Record<string, JudgeMessage[]>;
@@ -622,7 +624,7 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
       // Respect chatClearedAt so cleared messages are never re-merged
       const chatClearedAt = Math.max(curr.chatClearedAt || 0, inJob.chatClearedAt || 0);
 
-      // Merge chat messages with smart deduplication (preserve all proposals and non-duplicates)
+      // Merge chat messages with smart deduplication and unidirectional status progression
       const mergedMsgs: any[] = [];
       const sourceMsgs = [
         ...(curr.chatMessages || []),
@@ -634,7 +636,7 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
       );
       for (const m of allMsgs) {
         if (!m) continue;
-        const isDuplicate = mergedMsgs.some(
+        const existingIdx = mergedMsgs.findIndex(
           (existing) =>
             (m.id && existing.id && m.id === existing.id) ||
             (m.proposal && existing.proposal && m.proposal.id === existing.proposal.id) ||
@@ -644,23 +646,31 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
               Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500 &&
               !m.proposal)
         );
-        if (!isDuplicate) {
+
+        if (existingIdx === -1) {
           mergedMsgs.push(m);
-        } else if (m.proposal) {
-          // Keep newest proposal status if incoming has updated status (e.g., Accepted/Rejected)
-          const propId = m.proposal.id;
-          const idx = mergedMsgs.findIndex(
-            (em) => (m.id && em.id === m.id) || (em.proposal && propId && em.proposal.id === propId)
-          );
-          if (idx !== -1 && m.proposal) {
-            mergedMsgs[idx] = {
-              ...mergedMsgs[idx],
-              ...m,
-              proposal: { ...(mergedMsgs[idx].proposal || {}), ...m.proposal },
-            };
-          }
+        } else {
+          // Unidirectional status progression: sending (0) -> sent (1) -> seen (2)
+          const statusRank: Record<string, number> = { sending: 0, sent: 1, seen: 2, failed: -1 };
+          const existingMsg = mergedMsgs[existingIdx];
+          const currRank = statusRank[existingMsg.status || 'sent'] ?? 1;
+          const incomingRank = statusRank[m.status || 'sent'] ?? 1;
+
+          const mergedStatus = incomingRank >= currRank ? m.status || existingMsg.status : existingMsg.status;
+          const mergedSeenAt = m.seenAt || existingMsg.seenAt;
+          const mergedSeenBy = Array.from(new Set([...(existingMsg.seenBy || []), ...(m.seenBy || [])]));
+
+          mergedMsgs[existingIdx] = {
+            ...existingMsg,
+            ...m,
+            proposal: m.proposal ? { ...(existingMsg.proposal || {}), ...m.proposal } : existingMsg.proposal,
+            status: mergedStatus,
+            seenAt: mergedSeenAt,
+            seenBy: mergedSeenBy.length > 0 ? mergedSeenBy : undefined,
+          };
         }
       }
+
 
       // Merge negotiation proposals safely
       const propMap = new Map<string, NegotiationProposal>();
@@ -1294,6 +1304,29 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           const currentAddr = (currentConnectedWalletAddress || address || '').toLowerCase().trim();
           if (currentAddr && syncSocket) {
             syncSocket.emit('identify', { address: currentAddr });
+          }
+
+          // Auto-flush pending messages in outbox on reconnection
+          if (chatOutbox.length > 0 && syncSocket) {
+            const pending = [...chatOutbox];
+            chatOutbox.length = 0;
+            pending.forEach(({ jobId, updatedJob, msgId }) => {
+              syncSocket?.emit('client-sync', { jobs: [updatedJob] }, (res: any) => {
+                if (res?.success) {
+                  setJobsRaw((curr) =>
+                    curr.map((j) => {
+                      if (!matchJob(j, jobId)) return j;
+                      return {
+                        ...j,
+                        chatMessages: (j.chatMessages || []).map((m) =>
+                          m.id === msgId ? { ...m, status: 'sent' as const } : m
+                        ),
+                      };
+                    })
+                  );
+                }
+              });
+            });
           }
         });
 
@@ -4468,7 +4501,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       createdAt: now,
     };
 
-    const actionText = `📋 ${senderRole === 'Freelancer' ? 'Freelancer' : 'Client'} proposed: $${amountUsdc} USDC in ${deadlineDays} days${note ? ` — "${note}"` : ''}`;
+    const targetJob = jobs.find((j) => matchJob(j, jobId));
+    const tokenSym = (targetJob?.paymentTokenSymbol === 'MATIC' ? 'POL' : (targetJob?.paymentTokenSymbol || 'POL')).toUpperCase();
+    const actionText = `📋 ${senderRole === 'Freelancer' ? 'Freelancer' : 'Client'} proposed: ${amountUsdc} ${tokenSym} in ${deadlineDays} days${note ? ` — "${note}"` : ''}`;
 
     const newMsg: ChatMessage = {
       id: `msg-${now}`,
@@ -4551,9 +4586,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           ? props.map((p) => (p.id === proposalId ? updatedProp : (accept && p.status === 'Pending' ? { ...p, status: 'Countered' as const } : p)))
           : [...props.map((p) => (accept && p.status === 'Pending' ? { ...p, status: 'Countered' as const } : p)), updatedProp];
 
+        const propToken = (j.paymentTokenSymbol === 'MATIC' ? 'POL' : (j.paymentTokenSymbol || 'POL')).toUpperCase();
         const confirmationText = accept
-          ? `🎉 ${responderRole} ACCEPTED the terms: $${targetProp.amountUsdc} USDC in ${targetProp.deadlineDays} days! Full contract terms are updated on-chain.`
-          : `❌ ${responderRole} declined the proposed terms ($${targetProp.amountUsdc} USDC in ${targetProp.deadlineDays} days)${rejectReason ? `: "${rejectReason}"` : '.'}`;
+          ? `🎉 ${responderRole} ACCEPTED the terms: ${targetProp.amountUsdc} ${propToken} in ${targetProp.deadlineDays} days! Full contract terms are updated on-chain.`
+          : `❌ ${responderRole} declined the proposed terms (${targetProp.amountUsdc} ${propToken} in ${targetProp.deadlineDays} days)${rejectReason ? `: "${rejectReason}"` : '.'}`;
 
         const confMsg: ChatMessage = {
           id: `msg-${now}`,
@@ -4669,19 +4705,28 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!text || !text.trim()) return;
     const trimmed = text.trim();
     const now = Date.now();
-    const cleanApplicant = applicantAddress?.toLowerCase();
+    const cleanApplicant = applicantAddress?.toLowerCase()?.trim();
+    const cleanSender = (senderAddress || currentConnectedWalletAddress || '').toLowerCase().trim();
+    
+    // Stable client-generated message ID
+    const msgId = `msg-${now}-${Math.random().toString(36).substring(2, 7)}`;
+    const isSocketOnline = Boolean(syncSocket && syncSocket.connected);
+
     const newMsg: ChatMessage = {
-      id: `msg-${now}`,
+      id: msgId,
       sender: senderRole,
-      senderAddress: senderAddress?.toLowerCase(),
+      senderAddress: cleanSender,
       applicantAddress: cleanApplicant,
       text: trimmed,
       timestamp: now,
       proposal,
+      status: isSocketOnline ? 'sent' : 'sending',
     };
 
-    setJobs((prev) =>
-      prev.map((job) => {
+    let updatedJobToSync: Job | null = null;
+
+    setJobs((prev) => {
+      const next = prev.map((job) => {
         if (!matchJob(job, jobId)) return job;
         const existing = job.chatMessages || [];
         const isRecentDuplicate = existing.some(
@@ -4694,13 +4739,159 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         );
         if (isRecentDuplicate) return job;
 
-        return {
+        const updatedChat = [...existing, newMsg];
+        const updatedPreAccept = [
+          ...(job.preAcceptMessages || []),
+          {
+            id: msgId,
+            sender: cleanSender,
+            senderRole: senderRole === 'Judge' ? 'Client' : senderRole,
+            text: trimmed,
+            timestamp: now,
+            proposal,
+            applicantAddress: cleanApplicant,
+            status: isSocketOnline ? 'sent' : 'sending',
+          }
+        ];
+
+        const updated = {
           ...job,
-          chatMessages: [...existing, newMsg],
+          chatMessages: updatedChat,
+          preAcceptMessages: updatedPreAccept,
         };
-      })
-    );
+        updatedJobToSync = updated;
+        return updated;
+      });
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (updatedJobToSync) {
+      const actorAddr = cleanSender || (updatedJobToSync as any).client || '';
+      broadcastSync({ jobs: [updatedJobToSync] }, actorAddr);
+
+      // Socket sync with server ack
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [updatedJobToSync] }, (res: any) => {
+          if (res?.success) {
+            setJobs((curr) =>
+              curr.map((j) => {
+                if (!matchJob(j, jobId)) return j;
+                return {
+                  ...j,
+                  chatMessages: (j.chatMessages || []).map((m) =>
+                    m.id === msgId && m.status === 'sending' ? { ...m, status: 'sent' as const } : m
+                  ),
+                };
+              })
+            );
+          }
+        });
+      } else {
+        chatOutbox.push({ jobId, updatedJob: updatedJobToSync, msgId });
+      }
+
+      // 10s timeout: mark failed with Retry if ack never received
+      setTimeout(() => {
+        setJobs((curr) =>
+          curr.map((j) => {
+            if (!matchJob(j, jobId)) return j;
+            return {
+              ...j,
+              chatMessages: (j.chatMessages || []).map((m) =>
+                m.id === msgId && m.status === 'sending'
+                  ? { ...m, status: 'failed' as const, failedReason: 'Delivery timeout' }
+                  : m
+              ),
+            };
+          })
+        );
+      }, 10000);
+
+      // REST dual-write fallback
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': cleanSender,
+          },
+          body: JSON.stringify({
+            chatMessages: (updatedJobToSync as any).chatMessages,
+            preAcceptMessages: (updatedJobToSync as any).preAcceptMessages,
+          }),
+        }).catch(() => {});
+      });
+    }
   };
+
+  const markMessagesAsSeen = (jobId: string, messageIds: string[], readerAddress: string) => {
+    if (!jobId || !Array.isArray(messageIds) || messageIds.length === 0 || !readerAddress) return;
+    const cleanReader = readerAddress.toLowerCase().trim();
+    const now = Date.now();
+
+    let updatedJobToSync: Job | null = null;
+
+    setJobs((prev) => {
+      const next = prev.map((job) => {
+        if (!matchJob(job, jobId)) return job;
+        const existing = job.chatMessages || [];
+        let hasChanges = false;
+
+        const nextMsgs = existing.map((m) => {
+          if (m.id && messageIds.includes(m.id)) {
+            // Unidirectional status progression: sending/sent -> seen
+            if (m.status !== 'seen') {
+              hasChanges = true;
+              const seenBy = Array.from(new Set([...(m.seenBy || []), cleanReader]));
+              return {
+                ...m,
+                status: 'seen' as const,
+                seenAt: now,
+                seenBy,
+              };
+            }
+          }
+          return m;
+        });
+
+        if (!hasChanges) return job;
+        const updated = {
+          ...job,
+          chatMessages: nextMsgs,
+        };
+        updatedJobToSync = updated;
+        return updated;
+      });
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (updatedJobToSync) {
+      broadcastSync({ jobs: [updatedJobToSync] }, cleanReader);
+
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('mark-messages-seen', { jobId, messageIds, readerAddress: cleanReader });
+        syncSocket.emit('client-sync', { jobs: [updatedJobToSync] });
+      }
+
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': cleanReader,
+          },
+          body: JSON.stringify({
+            chatMessages: (updatedJobToSync as any).chatMessages,
+          }),
+        }).catch(() => {});
+      });
+    }
+  };
+
 
   const checkGithubBinding = async (
     githubUsername: string,
@@ -5503,6 +5694,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     respondToNegotiationProposal,
     sendPreAcceptMessage,
     sendChatMessage,
+    markMessagesAsSeen,
     sendJudgeChatMessage,
     isEnclineConnected: false,
     judgeMessages,
@@ -5649,6 +5841,7 @@ const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
   respondToNegotiationProposal: async () => {},
   sendPreAcceptMessage: () => {},
   sendChatMessage: () => {},
+  markMessagesAsSeen: () => {},
   sendJudgeChatMessage: () => {},
   isEnclineConnected: false,
   judgeMessages: {},

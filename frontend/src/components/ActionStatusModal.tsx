@@ -9,6 +9,9 @@ import { scrollToSection } from '../utils/scroll';
 import { TokenIcon } from './TokenIcon';
 import { Modal } from './overlay';
 import { Button } from './common/Button';
+import { motion } from 'framer-motion';
+import { iconPopVariants } from '../styles/popupMotion';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 export interface ActionModalDetail {
   label: string;
@@ -50,6 +53,7 @@ export const ActionStatusModal: React.FC<ActionStatusModalProps> = ({
   secondaryActionText,
   onSecondaryAction,
 }) => {
+  const prefersReducedMotion = useReducedMotion();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const handleCopy = (text: string, index: number) => {
@@ -84,9 +88,14 @@ export const ActionStatusModal: React.FC<ActionStatusModalProps> = ({
       size="md"
       title={
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#EAF1FB] text-[#0047AB] border border-[#C9DAF2] flex items-center justify-center shrink-0">
+          <motion.div
+            variants={prefersReducedMotion ? undefined : iconPopVariants}
+            initial="initial"
+            animate="animate"
+            className="w-10 h-10 rounded-xl bg-[#EAF1FB] text-[#0047AB] border border-[#C9DAF2] flex items-center justify-center shrink-0"
+          >
             <CheckCircle2 size={22} />
-          </div>
+          </motion.div>
           <div className="min-w-0">
             {badgeText && (
               <span className="inline-block px-2 py-0.5 rounded text-[10px] font-sans font-medium uppercase tracking-wider bg-slate-100 text-slate-800 border border-slate-200 mb-0.5">
@@ -228,9 +237,12 @@ export const ActionStatusModal: React.FC<ActionStatusModalProps> = ({
                     </span>
                   </div>
                   <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#0047AB] rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(Math.max(percentVal, 4), 100)}%` }}
+                    <motion.div
+                      className="h-full w-full bg-[#0047AB] rounded-full"
+                      initial={prefersReducedMotion ? { scaleX: Math.min(Math.max(percentVal, 4), 100) / 100 } : { scaleX: 0 }}
+                      animate={{ scaleX: Math.min(Math.max(percentVal, 4), 100) / 100 }}
+                      transition={{ duration: prefersReducedMotion ? 0 : 0.6, ease: [0.16, 1, 0.3, 1] }}
+                      style={{ transformOrigin: 'left center' }}
                     />
                   </div>
                 </div>

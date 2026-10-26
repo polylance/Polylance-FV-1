@@ -17,6 +17,7 @@ import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 import polylanceLogoImg from '../assets/polylanceLogo.png';
 import { getUserBytecodeMatrix } from '../utils/githubOracle';
 import { PageContainer } from '../components/layout/PageContainer';
+import { LocalAvatar } from '../components/common/LocalAvatar';
 
 export const AuditReport: React.FC = () => {
   const { address: targetAddressParam } = useParams<{ address: string }>();
@@ -854,14 +855,13 @@ export const AuditReport: React.FC = () => {
               {/* Profile Card Summary (Fixed broken avatar & name word-wrapping) */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
                 <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl ${perspectiveData.sealColor} text-white font-headline font-black text-xl sm:text-2xl flex items-center justify-center shadow-md shrink-0 overflow-hidden`}>
-                    <img
-                      src={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`)}
-                      alt={displayName}
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`;
-                      }}
-                      className="w-full h-full object-cover rounded-2xl"
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shrink-0 overflow-hidden shadow-xs">
+                    <LocalAvatar
+                      address={targetAddress}
+                      name={displayName}
+                      avatarUrl={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : '')}
+                      size={56}
+                      className="w-full h-full rounded-2xl"
                     />
                   </div>
                   <div className="min-w-0">
@@ -1030,14 +1030,13 @@ export const AuditReport: React.FC = () => {
         <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 space-y-2.5 relative z-10 shadow-xs">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className={`w-11 h-11 rounded-2xl ${perspectiveData.sealColor} text-white font-headline font-black text-lg flex items-center justify-center shadow-md shrink-0 overflow-hidden`}>
-                <img
-                  src={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`)}
-                  alt={displayName}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetAddress}`;
-                  }}
-                  className="w-full h-full object-cover rounded-2xl"
+              <div className="w-11 h-11 rounded-2xl shrink-0 overflow-hidden shadow-xs">
+                <LocalAvatar
+                  address={targetAddress}
+                  name={displayName}
+                  avatarUrl={profile?.avatarUrl || (profile?.githubUsername ? `https://github.com/${profile.githubUsername}.png` : '')}
+                  size={44}
+                  className="w-full h-full rounded-2xl"
                 />
               </div>
               <div className="space-y-0.5 min-w-0">

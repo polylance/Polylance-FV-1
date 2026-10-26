@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { toastVariants, reducedMotionVariants } from '../../styles/popupMotion';
 
 export type ToastType = 'success' | 'error' | 'info' | 'pending';
 
@@ -114,10 +115,10 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-      transition={{ duration: prefersReducedMotion ? 0.05 : 0.2 }}
+      variants={prefersReducedMotion ? reducedMotionVariants : toastVariants}
+      initial="closed"
+      animate="open"
+      exit="closed"
       drag
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       onDragEnd={handleDragEnd}

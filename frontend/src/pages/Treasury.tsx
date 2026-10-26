@@ -11,6 +11,7 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { CompactEmptyState } from '../components/common/CompactEmptyState';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/overlay';
+import { getJobAmounts } from '../lib/amounts/getJobAmounts';
 
 export const Treasury: React.FC = () => {
   const { address } = useWeb3();
@@ -36,10 +37,11 @@ export const Treasury: React.FC = () => {
     // 1. Logs from jobs state
     jobs.forEach((job) => {
       // Job Created
+      const ja = getJobAmounts(job);
       list.push({
         timestamp: formatLogTime(job.createdAt),
         timeMs: job.createdAt,
-        text: `Job #${job.id.slice(0, 6).toUpperCase()} Escrow Created - Funded $${parseFloat(job.amountUsdc).toLocaleString()} USDC by Client ${truncateAddress(job.client)}`,
+        text: `Job #${job.id.slice(0, 6).toUpperCase()} Escrow Created - Funded ${ja.effectiveAmount} ${ja.token} by Client ${truncateAddress(job.client)}`,
         iconType: 'code'
       });
 

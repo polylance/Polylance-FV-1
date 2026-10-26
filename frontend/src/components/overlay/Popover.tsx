@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { OverlayPortal } from './OverlayRoot';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { popoverVariants, reducedMotionVariants } from '../../styles/popupMotion';
 
 export interface PopoverProps {
   isOpen: boolean;
@@ -10,6 +13,7 @@ export interface PopoverProps {
   className?: string;
   align?: 'start' | 'center' | 'end';
   offset?: number;
+  onExitComplete?: () => void;
 }
 
 export const Popover: React.FC<PopoverProps> = ({
@@ -21,8 +25,11 @@ export const Popover: React.FC<PopoverProps> = ({
   className = '',
   align = 'end',
   offset = 8,
+  onExitComplete,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+  const [placedBelow, setPlacedBelow] = useState<boolean>(true);
   const [coords, setCoords] = useState<{ top: number; left: number; maxHeight: number }>({
     top: 0,
     left: 0,
@@ -45,6 +52,7 @@ export const Popover: React.FC<PopoverProps> = ({
       placeBelow = false;
       computedMaxHeight = Math.min(480, availableAbove);
     }
+    setPlacedBelow(placeBelow);
 
     const top = placeBelow ? triggerRect.bottom + offset : triggerRect.top - offset - computedMaxHeight;
 
@@ -115,27 +123,42 @@ export const Popover: React.FC<PopoverProps> = ({
     };
   }, [isOpen, onClose, updatePosition, triggerRef]);
 
-  if (!isOpen) return null;
+  const originX = align === 'end' ? 'right' : align === 'start' ? 'left' : 'center';
+  const originY = placedBelow ? 'top' : 'bottom';
+  const transformOrigin = `${originY} ${originX}`;
 
   return (
     <OverlayPortal>
-      <div
-        ref={popoverRef}
-        role="region"
-        aria-label="Popover panel"
-        data-lenis-prevent="true"
-        style={{
-          position: 'fixed',
-          top: `${coords.top}px`,
-          left: `${coords.left}px`,
-          width: typeof width === 'number' ? `${width}px` : width,
-          maxHeight: `${coords.maxHeight}px`,
-          zIndex: 200,
+      <AnimatePresence
+        onExitComplete={() => {
+          if (onExitComplete) onExitComplete();
         }}
-        className={`bg-white rounded-[12px] border border-[#E5E7EB] shadow-[0_8px_24px_rgba(11,11,15,0.12)] flex flex-col overflow-hidden outline-none animate-in fade-in-0 duration-150 ${className}`}
       >
-        {children}
-      </div>
+        {isOpen && (
+          <motion.div
+            ref={popoverRef}
+            role="region"
+            aria-label="Popover panel"
+            data-lenis-prevent="true"
+            variants={prefersReducedMotion ? reducedMotionVariants : popoverVariants}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            style={{
+              position: 'fixed',
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+              width: typeof width === 'number' ? `${width}px` : width,
+              maxHeight: `${coords.maxHeight}px`,
+              zIndex: 200,
+              transformOrigin,
+            }}
+            className={`bg-white rounded-[12px] border border-[#E5E7EB] shadow-[0_8px_24px_rgba(11,11,15,0.12)] flex flex-col overflow-hidden outline-none ${className}`}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </OverlayPortal>
   );
 };

@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
-import { truncateAddress, formatTimeAgo, getPolygonScanAddressUrl } from '../utils/formatters';
+import { truncateAddress, formatTimeAgo, getPolygonScanAddressUrl, getPolygonScanTxUrl } from '../utils/formatters';
 import { NETWORK_CONFIG } from '../config/contracts';
 import { useLiveCurrencyRates } from '../utils/currency';
 import { useNavigate } from 'react-router-dom';
@@ -31,6 +31,10 @@ import { Button } from './common/Button';
 import { Modal } from './overlay/Modal';
 import { useDemoMode } from '../context/DemoModeContext';
 import { UsdcIcon, UsdtIcon } from './TokenIcon';
+import { usePlatformFeeDues, PlatformFeeDue } from '../hooks/usePlatformFeeDues';
+import { PlatformFeePayModal } from './PlatformFeePayModal';
+import { PlatformFeeProblemModal } from './PlatformFeeProblemModal';
+import { HelpCircle, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface WalletBalanceModalProps {
   isOpen: boolean;
@@ -52,9 +56,52 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
   const rates = useLiveCurrencyRates();
   const navigate = useNavigate();
 
+  const { dues: feeDues, enabled: feeDuesEnabled } = usePlatformFeeDues({ enabled: isOpen });
   const [copiedTxHash, setCopiedTxHash] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [view, setView] = useState<'balances' | 'polygon_history'>('balances');
+  const [view, setView] = useState<'balances' | 'polygon_history' | 'platform_fees'>('balances');
+  const [feesTab, setFeesTab] = useState<'due' | 'paid' | 'all'>('due');
+  const [selectedDueForPay, setSelectedDueForPay] = useState<PlatformFeeDue | null>(null);
+  const [selectedDueForProblem, setSelectedDueForProblem] = useState<PlatformFeeDue | null>(null);
+  const [receiptDue, setReceiptDue] = useState<PlatformFeeDue | null>(null);
+  const [showWhatIsThis, setShowWhatIsThis] = useState(false);
+
+  // Grouped and filtered dues
+  const dueFees = useMemo(() => {
+    return feeDues.filter((d) => d.status === 'DUE' || d.status === 'PAYMENT_PENDING' || d.status === 'UNDER_REVIEW');
+  }, [feeDues]);
+
+  const paidFees = useMemo(() => {
+    return feeDues.filter((d) => d.status === 'PAID');
+  }, [feeDues]);
+
+  const filteredDues = useMemo(() => {
+    if (feesTab === 'due') return dueFees;
+    if (feesTab === 'paid') return paidFees;
+    return feeDues;
+  }, [feesTab, dueFees, paidFees, feeDues]);
+
+  // Aggregate totals per token
+  const duesSummary = useMemo(() => {
+    const totals: Record<string, number> = {};
+    const jobsSet = new Set<string>();
+    let oldestTimestamp = Infinity;
+
+    dueFees.forEach((d) => {
+      const amt = parseFloat(d.outstanding) || 0;
+      totals[d.token] = (totals[d.token] || 0) + amt;
+      if (d.jobId) jobsSet.add(d.jobId);
+      if (d.dueSince && d.dueSince < oldestTimestamp) {
+        oldestTimestamp = d.dueSince;
+      }
+    });
+
+    return {
+      totals,
+      jobCount: jobsSet.size,
+      oldestDueSince: oldestTimestamp === Infinity ? null : oldestTimestamp,
+    };
+  }, [dueFees]);
 
   const handleCopyTxHash = (hash: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -84,20 +131,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
   const usdcUsd = usdcNum * 1.0;
   const usdtUsd = usdtNum * 1.0;
 
-  // Extra demo tokens seeded in demo mode to test 8+ tokens scroll
-  const demoTokens: DemoToken[] = useMemo(() => {
-    if (!isDemoMode) return [];
-    return [
-      { symbol: 'WETH', name: 'Wrapped Ether', balance: 0.85, decimals: 18, usdPrice: 2850 },
-      { symbol: 'DAI', name: 'Dai Stablecoin', balance: 250.0, decimals: 18, usdPrice: 1.0 },
-      { symbol: 'WBTC', name: 'Wrapped Bitcoin', balance: 0.045, decimals: 8, usdPrice: 65400 },
-      { symbol: 'LINK', name: 'Chainlink', balance: 42.5, decimals: 18, usdPrice: 14.8 },
-      { symbol: 'QUICK', name: 'QuickSwap', balance: 1850.0, decimals: 18, usdPrice: 0.052 },
-    ];
-  }, [isDemoMode]);
-
-  const demoTokensUsd = demoTokens.reduce((acc, t) => acc + t.balance * t.usdPrice, 0);
-  const totalUsd = polUsd + usdcUsd + usdtUsd + demoTokensUsd;
+  const totalUsd = polUsd + usdcUsd + usdtUsd;
 
   // Polygon Transaction History calculation (strictly from real jobs & events)
   const polygonTransactions = useMemo(() => {
@@ -220,7 +254,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
           </div>
           <div className="min-w-0">
             <h3 className="text-base font-semibold text-[#0B0B0F] tracking-tight truncate">
-              {view === 'polygon_history' ? 'Polygon Transaction History' : 'Wallet & Balances'}
+              {view === 'polygon_history' ? 'Polygon Transaction History' : view === 'platform_fees' ? 'Platform Fees Due' : 'Wallet & Balances'}
             </h3>
           </div>
         </div>
@@ -246,7 +280,28 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
             >
               Refresh
             </Button>
-            {view === 'polygon_history' ? (
+            {view === 'balances' ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setView('polygon_history')}
+                  icon={<Clock size={13} />}
+                >
+                  Tx history ({polygonTransactions.length})
+                </Button>
+                {feeDuesEnabled && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setView('platform_fees')}
+                    icon={<Award size={13} />}
+                  >
+                    Platform fees {feeDues.length > 0 ? `(${feeDues.length})` : ''}
+                  </Button>
+                )}
+              </>
+            ) : (
               <Button
                 variant="ghost"
                 size="sm"
@@ -254,15 +309,6 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                 icon={<ArrowLeft size={13} />}
               >
                 Back to balances
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setView('polygon_history')}
-                icon={<Clock size={13} />}
-              >
-                Tx history ({polygonTransactions.length})
               </Button>
             )}
           </div>
@@ -306,7 +352,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
               Available assets on Polygon
             </div>
 
-            <div className="space-y-1.5 max-h-[300px] overflow-y-auto overscroll-contain pr-1">
+            <div data-lenis-prevent="true" className="space-y-1.5 max-h-[300px] overflow-y-auto overscroll-contain pr-1 min-h-0 custom-scrollbar">
               {/* 1. Native POL */}
               <div
                 onClick={() => setView('polygon_history')}
@@ -379,39 +425,221 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
                   <Amount value={usdtNum} token="USDT" size="sm" />
                 </div>
               </div>
-
-              {/* Seeded Demo Tokens (only in demo mode to test 8+ scrollable items) */}
-              {demoTokens.map((tok) => (
-                <div
-                  key={tok.symbol}
-                  className="p-3 rounded-[10px] bg-white border border-[#E5E7EB] flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center text-xs font-semibold text-[#4B5563] shrink-0">
-                      {tok.symbol.slice(0, 2)}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold text-[#0B0B0F]">{tok.name}</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#F6F7F9] text-[#4B5563] font-semibold">
-                          {tok.symbol}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-[#6B7280] mt-0.5">Sample Token</p>
-                    </div>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <div className="text-xs font-semibold text-[#0B0B0F] tabular-nums">
-                      {tok.balance.toLocaleString()} {tok.symbol}
-                    </div>
-                    <div className="text-[11px] text-[#6B7280] tabular-nums">
-                      ${(tok.balance * tok.usdPrice).toFixed(2)} USD
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
+          </div>
+        </div>
+      ) : view === 'platform_fees' ? (
+        /* View 3: Platform Fees Due */
+        <div className="space-y-4">
+          {/* Summary Card */}
+          <div className="p-4 rounded-[12px] bg-[#0B0B0F] text-white space-y-2">
+            <div className="flex items-center justify-between text-xs text-[#9CA3AF]">
+              <span>Outstanding protocol fees</span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-[#C9DAF2]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB]" />
+                Polygon settlement dues
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-baseline gap-3 pt-1">
+              {Object.keys(duesSummary.totals).length === 0 ? (
+                <div className="text-2xl font-semibold tracking-tight">0.00 POL</div>
+              ) : (
+                Object.entries(duesSummary.totals).map(([tok, amt]) => (
+                  <div key={tok} className="flex items-baseline gap-1.5">
+                    <span className="text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums">
+                      {amt.toFixed(4)}
+                    </span>
+                    <span className="text-xs font-normal text-[#9CA3AF]">{tok}</span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-[#9CA3AF] pt-2 border-t border-[#1F2937]">
+              <span>
+                {duesSummary.jobCount} {duesSummary.jobCount === 1 ? 'project' : 'projects'} with fee due
+              </span>
+              {duesSummary.oldestDueSince && (
+                <span>Oldest due: {formatTimeAgo(duesSummary.oldestDueSince)}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="flex items-center justify-between gap-2 border-b border-[#E5E7EB] pb-2">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setFeesTab('due')}
+                className={`px-3 py-1 rounded-[6px] text-xs font-medium transition-colors ${
+                  feesTab === 'due'
+                    ? 'bg-[#EAF1FB] text-[#0047AB] font-semibold'
+                    : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                }`}
+              >
+                Due ({dueFees.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFeesTab('paid')}
+                className={`px-3 py-1 rounded-[6px] text-xs font-medium transition-colors ${
+                  feesTab === 'paid'
+                    ? 'bg-[#EAF1FB] text-[#0047AB] font-semibold'
+                    : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                }`}
+              >
+                Paid ({paidFees.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFeesTab('all')}
+                className={`px-3 py-1 rounded-[6px] text-xs font-medium transition-colors ${
+                  feesTab === 'all'
+                    ? 'bg-[#EAF1FB] text-[#0047AB] font-semibold'
+                    : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                }`}
+              >
+                All ({feeDues.length})
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowWhatIsThis(!showWhatIsThis)}
+              className="text-xs text-[#0047AB] hover:underline flex items-center gap-1"
+            >
+              <HelpCircle size={13} />
+              <span>What is this?</span>
+            </button>
+          </div>
+
+          {showWhatIsThis && (
+            <div className="p-3 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] text-xs text-[#4B5563] space-y-1">
+              <div className="font-semibold text-[#0B0B0F]">About PolyLance Platform Fees</div>
+              <p className="leading-relaxed">
+                PolyLance charges a 2.5% protocol fee to support non-custodial smart contracts, decentralized IPFS deliverable pinning, and community arbitration. For past settlements completed outside the atomic fee router, any uncollected fee can be settled directly here to the protocol treasury.
+              </p>
+            </div>
+          )}
+
+          {/* Dues List */}
+          <div data-lenis-prevent="true" className="space-y-2 max-h-[320px] overflow-y-auto overscroll-contain pr-1 min-h-0 custom-scrollbar">
+            {filteredDues.length === 0 ? (
+              <div className="py-8 text-center text-xs text-[#6B7280] border border-dashed border-[#E5E7EB] rounded-[8px] space-y-1">
+                <CheckCircle2 size={20} className="mx-auto text-[#0047AB]" />
+                <div className="font-medium text-[#0B0B0F]">No platform fees in this view</div>
+                <div className="text-[11px] text-[#6B7280]">All your milestone protocol fees are fully reconciled.</div>
+              </div>
+            ) : (
+              filteredDues.map((d) => {
+                const matchingJob = jobs?.find((j) => j.id === d.jobId || j.contractAddress?.toLowerCase() === d.jobId?.toLowerCase());
+                const jobTitle = matchingJob?.title || `Escrow #${truncateAddress(d.jobId)}`;
+
+                return (
+                  <div
+                    key={d.id}
+                    className="p-3.5 rounded-[10px] bg-white border border-[#E5E7EB] hover:border-[#C9DAF2] transition-colors space-y-2.5"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              navigate(`/jobs/${d.jobId}`);
+                            }}
+                            className="text-xs font-semibold text-[#0B0B0F] hover:text-[#0047AB] hover:underline truncate max-w-[260px] text-left"
+                            title={jobTitle}
+                          >
+                            {jobTitle}
+                          </button>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#F6F7F9] text-[#4B5563] font-medium border border-[#E5E7EB]">
+                            {d.party === 'CLIENT' ? 'Client fee' : 'Freelancer fee'}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-[#6B7280] mt-0.5">
+                          Due since: {formatTimeAgo(d.dueSince)}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center sm:flex-col sm:items-end justify-between gap-1 shrink-0">
+                        <div className="text-xs font-semibold text-[#0B0B0F] tabular-nums">
+                          {d.outstanding} {d.token}
+                        </div>
+                        {rates?.cryptoPrices?.[d.token] && (
+                          <div className="text-[10px] text-[#6B7280] tabular-nums">
+                            ~${(parseFloat(d.outstanding) * rates.cryptoPrices[d.token]).toFixed(2)} USD
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#F6F7F9]">
+                      <div className="flex items-center gap-2">
+                        {d.status === 'PAID' ? (
+                          <span className="px-2 py-0.5 rounded-[6px] bg-[#DCFCE7] text-[#15803D] text-[10px] font-semibold">
+                            Paid
+                          </span>
+                        ) : d.status === 'PAYMENT_PENDING' ? (
+                          <span className="px-2 py-0.5 rounded-[6px] bg-[#FFFBEB] text-[#B45309] text-[10px] font-semibold inline-flex items-center gap-1">
+                            <RefreshCw size={10} className="animate-spin" />
+                            Confirming
+                          </span>
+                        ) : d.status === 'UNDER_REVIEW' ? (
+                          <span className="px-2 py-0.5 rounded-[6px] bg-[#F3E8FF] text-[#7E22CE] text-[10px] font-semibold">
+                            Under Review
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-[6px] bg-[#EAF1FB] text-[#0047AB] text-[10px] font-semibold">
+                            Fee Due
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {d.status === 'DUE' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedDueForProblem(d)}
+                              className="text-[11px] h-7 px-2 text-[#6B7280]"
+                            >
+                              Report problem
+                            </Button>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => setSelectedDueForPay(d)}
+                              className="text-[11px] h-7 px-3"
+                            >
+                              Pay now
+                            </Button>
+                          </>
+                        )}
+                        {d.status === 'PAID' && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setReceiptDue(d)}
+                            className="text-[11px] h-7 px-2.5 text-[11px]"
+                          >
+                            View receipt
+                          </Button>
+                        )}
+                        {d.status === 'UNDER_REVIEW' && (
+                          <span className="text-[11px] text-[#6B7280] italic">
+                            Disputed — reminders paused
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       ) : (
@@ -433,7 +661,7 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
             </a>
           </div>
 
-          <div className="space-y-2 max-h-[320px] overflow-y-auto overscroll-contain pr-1">
+          <div data-lenis-prevent="true" className="space-y-2 max-h-[320px] overflow-y-auto overscroll-contain pr-1 min-h-0 custom-scrollbar">
             {polygonTransactions.length === 0 ? (
               <div className="py-8 text-center text-xs text-[#6B7280] border border-dashed border-[#E5E7EB] rounded-[8px]">
                 No on-chain PolyLance transactions yet for this address.
@@ -505,6 +733,82 @@ export const WalletBalanceModal: React.FC<WalletBalanceModalProps> = ({ isOpen, 
             )}
           </div>
         </div>
+      )}
+
+      {/* Pay Modal */}
+      {selectedDueForPay && (
+        <PlatformFeePayModal
+          isOpen={Boolean(selectedDueForPay)}
+          onClose={() => setSelectedDueForPay(null)}
+          due={selectedDueForPay}
+          jobTitle={
+            jobs?.find((j) => j.id === selectedDueForPay.jobId || j.contractAddress?.toLowerCase() === selectedDueForPay.jobId?.toLowerCase())?.title ||
+            `Job #${truncateAddress(selectedDueForPay.jobId)}`
+          }
+          onPaidSuccess={() => setSelectedDueForPay(null)}
+        />
+      )}
+
+      {/* Report Problem Modal */}
+      {selectedDueForProblem && (
+        <PlatformFeeProblemModal
+          isOpen={Boolean(selectedDueForProblem)}
+          onClose={() => setSelectedDueForProblem(null)}
+          due={selectedDueForProblem}
+          jobTitle={
+            jobs?.find((j) => j.id === selectedDueForProblem.jobId || j.contractAddress?.toLowerCase() === selectedDueForProblem.jobId?.toLowerCase())?.title ||
+            `Job #${truncateAddress(selectedDueForProblem.jobId)}`
+          }
+        />
+      )}
+
+      {/* Receipt Modal */}
+      {receiptDue && (
+        <Modal
+          isOpen={Boolean(receiptDue)}
+          onClose={() => setReceiptDue(null)}
+          maxWidth="sm"
+          title="Platform Fee Settlement Receipt"
+          description="Verified on Polygon PoS blockchain"
+          footer={
+            <div className="flex justify-end w-full">
+              <Button variant="secondary" size="sm" onClick={() => setReceiptDue(null)}>
+                Close
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-3 text-xs">
+            <div className="p-3 rounded-[8px] bg-[#F0FDF4] border border-[#DCFCE7] text-[#15803D] flex items-center gap-2">
+              <CheckCircle2 size={16} />
+              <span className="font-semibold">Fee Paid in Full</span>
+            </div>
+            <div className="p-3 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] space-y-2">
+              <div className="flex justify-between">
+                <span className="text-[#6B7280]">Amount:</span>
+                <span className="font-semibold text-[#0B0B0F]">{receiptDue.paidFee || receiptDue.outstanding} {receiptDue.token}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#6B7280]">Role:</span>
+                <span className="font-semibold text-[#0B0B0F]">{receiptDue.party === 'CLIENT' ? 'Client service fee (2.5%)' : 'Freelancer fee (2.5%)'}</span>
+              </div>
+              {receiptDue.evidence?.submittedTxHash && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[#6B7280]">Payment Tx:</span>
+                  <a
+                    href={getPolygonScanTxUrl(receiptDue.evidence.submittedTxHash)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#0047AB] hover:underline inline-flex items-center gap-1 font-mono"
+                  >
+                    <span>{truncateAddress(receiptDue.evidence.submittedTxHash)}</span>
+                    <ExternalLink size={10} />
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal>
       )}
     </Modal>
   );

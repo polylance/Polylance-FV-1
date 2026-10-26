@@ -76,7 +76,6 @@ export const CategoryVideo: React.FC<CategoryVideoProps> = ({
     try {
       video.defaultPlaybackRate = TARGET_RATE;
       video.playbackRate = TARGET_RATE;
-      console.log(`[CategoryVideo ${categoryId}] playbackRate:`, video.playbackRate);
     } catch {}
   }, [categoryId]);
 

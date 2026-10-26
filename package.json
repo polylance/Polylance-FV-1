@@ -13,8 +13,12 @@
     "start": "node index.js",
     "install:backend": "npm --prefix polylance-chat-service install --legacy-peer-deps",
     "test": "node scripts/ci-security-check.mjs",
+    "lint:banned-terms": "node scripts/lint-banned-terms.mjs",
+    "lint:no-mock-data": "node scripts/ci-no-mock-data.mjs",
     "security:check": "node scripts/ci-security-check.mjs",
-    "qa:gaps": "node scripts/qa/run-gap-audit.mjs"
+    "qa:gaps": "node scripts/qa/run-gap-audit.mjs",
+    "github:diagnose": "node scripts/github-diagnose.mjs",
+    "certs:audit": "node scripts/certs-audit.mjs"
   },
   "keywords": [],
   "author": "",

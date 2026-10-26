@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FileText, Link2, ShieldCheck, RefreshCw, Copy, Check, Send, AlertTriangle } from 'lucide-react';
 import { generateIpfsCid, storeIpfsFile, getCachedIpfsFile } from '../utils/ipfs';
+import { validateDeliverableUrl } from '../utils/security';
 import { DeliverableFile } from '../types';
 
 interface UploadingFile {
@@ -143,6 +144,12 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
       return;
     }
 
+    const urlCheck = validateDeliverableUrl(externalLink.trim());
+    if (!urlCheck.valid) {
+      setValidationError(urlCheck.error || 'Invalid deliverable URL. HTTPS is required, and localhost/private IP links are blocked.');
+      return;
+    }
+
     const readyCids = files.filter((f) => f.done && f.cid).map((f) => f.cid as string);
     const readyFiles: DeliverableFile[] = [];
 
@@ -208,8 +215,8 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
       <div className="space-y-4">
         {/* Field 1: DELIVERABLE TITLE * */}
         <div>
-          <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            Deliverable Title <span className="text-rose-500">*</span>
+          <label className="block text-xs font-semibold text-[#0B0B0F] mb-1.5">
+            Deliverable title <span className="text-rose-500">*</span>
           </label>
           <div className="relative">
             <input
@@ -218,18 +225,18 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               placeholder="e.g. Completed Smart Contract Suite & Test Coverage Report"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-white border border-[#E5E7EB] text-[#0B0B0F] font-medium text-xs sm:text-sm rounded-[10px] pl-10 pr-4 py-2.5 focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none transition-all placeholder:text-[#9CA3AF]"
               style={{ paddingLeft: '2.5rem' }}
             />
-            <FileText size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <FileText size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" />
           </div>
         </div>
 
-        {/* Field 2: PROJECT / DELIVERABLE LINK * (STRICTLY REQUIRED) */}
+        {/* Field 2: PROJECT / DELIVERABLE LINK * Required */}
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5">
-            <span className="text-slate-700">Project / Deliverable Link </span>
-            <span className="text-rose-500 font-black">* (Strictly Required)</span>
+          <label className="block text-xs font-semibold text-[#0B0B0F] mb-1.5">
+            <span>Project or deliverable link </span>
+            <span className="text-rose-500 font-medium">* Required</span>
           </label>
           <div className="relative">
             <input
@@ -238,20 +245,20 @@ export const ProofOfWorkUploader: React.FC<ProofOfWorkUploaderProps> = ({ onSubm
               placeholder="https://github.com/your-org/repo/pull/1 or https://demo.yourproject.xyz"
               value={externalLink}
               onChange={(e) => setExternalLink(e.target.value)}
-              className="w-full bg-slate-50/60 border border-slate-200 text-slate-900 font-medium text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-white border border-[#E5E7EB] text-[#0B0B0F] font-medium text-xs sm:text-sm rounded-[10px] pl-10 pr-4 py-2.5 focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none transition-all placeholder:text-[#9CA3AF]"
               style={{ paddingLeft: '2.5rem' }}
             />
-            <Link2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Link2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" />
           </div>
-          <p className="text-[11px] text-slate-400 font-medium mt-1">
-            Provide a working repository, pull request, Figma prototype, or live deployment URL.
+          <p className="text-xs text-[#6B7280] font-normal mt-1">
+            Provide a working repository, pull request, Figma prototype, or live deployment URL (HTTPS required).
           </p>
         </div>
 
         {/* Field 3: DETAILED SUMMARY / RELEASE NOTES * */}
         <div>
-          <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            Detailed Summary / Release Notes <span className="text-rose-500">*</span>
+          <label className="block text-xs font-semibold text-[#0B0B0F] mb-1.5">
+            Deliverable scope & submission notes <span className="text-rose-500">*</span>
           </label>
           <div className="relative">
             <textarea

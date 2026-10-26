@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import { NegotiationProposal } from '../types';
 import { Sparkles, Clock, CheckCircle2, XCircle, Zap, ShieldCheck, Wallet, Target, Scale } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { TokenAmount } from './common/TokenAmount';
+import { normalizeTokenSymbol, formatTokenDecimals } from '../lib/amounts/getJobAmounts';
+import { toBaseUnits, getTokenDecimals } from '../utils/formatAmount';
+import { feeBreakdown } from '../utils/fees';
 
 interface NegotiationProposalCardProps {
   proposal: NegotiationProposal;
   currentUserRole: 'Client' | 'Freelancer' | 'Judge' | 'Admin' | 'visitor';
+  token?: string;
   onAccept: (proposalId: string) => Promise<void> | void;
   onReject: (proposalId: string, reason: string) => Promise<void> | void;
   onCounterOffer: (proposal: NegotiationProposal) => void;
@@ -14,6 +19,7 @@ interface NegotiationProposalCardProps {
 export const NegotiationProposalCard: React.FC<NegotiationProposalCardProps> = ({
   proposal,
   currentUserRole,
+  token: rawToken = 'POL',
   onAccept,
   onReject,
   onCounterOffer,
@@ -22,8 +28,14 @@ export const NegotiationProposalCard: React.FC<NegotiationProposalCardProps> = (
   const [rejectReason, setRejectReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const numAmount = parseFloat(proposal.amountUsdc || '0');
-  const netPayout = numAmount * 0.975;
+  const token = normalizeTokenSymbol(rawToken);
+  const decimals = getTokenDecimals(token);
+  const units = toBaseUnits(proposal.amountUsdc || '0', decimals);
+  const breakdown = feeBreakdown(units, token);
+  const formattedBudget = formatTokenDecimals(breakdown.budget, decimals);
+  const formattedNet = formatTokenDecimals(breakdown.freelancerNet, decimals);
+  const formattedDeposit = formatTokenDecimals(breakdown.clientDeposit, decimals);
+  const isClient = currentUserRole === 'Client';
   const isRecipient =
     (currentUserRole === 'Client' && proposal.proposedBy === 'Freelancer') ||
     (currentUserRole === 'Freelancer' && proposal.proposedBy === 'Client');
@@ -109,19 +121,23 @@ export const NegotiationProposalCard: React.FC<NegotiationProposalCardProps> = (
               <span className="text-[9px] uppercase font-mono font-bold text-[#8892A0] tracking-wider block truncate">
                 PROPOSED BUDGET
               </span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-base sm:text-lg font-black text-[#0B0B0C] font-headline leading-tight">
-                  ${numAmount.toLocaleString()}
-                </span>
-                <span className="text-[10px] font-bold text-[#4B5563]">USDC</span>
+              <div className="mt-0.5">
+                <TokenAmount amount={formattedBudget} token={token} size="md" />
               </div>
             </div>
           </div>
 
           <div className="mt-2 bg-white py-1 px-2 rounded-lg border border-[#E2E6EC] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB] shrink-0" />
-            <span className="text-[9.5px] font-mono font-bold text-[#0047AB] truncate">
-              Net payout: ${netPayout.toFixed(2)}
+            <span className="text-[9.5px] font-mono font-bold text-[#0047AB] truncate flex items-center gap-1">
+              <span>{isClient ? 'Total deposit:' : 'Net receive:'}</span>
+              <TokenAmount
+                amount={isClient ? formattedDeposit : formattedNet}
+                token={token}
+                size="xs"
+                amountClassName="text-[#0047AB]"
+                showFiat={false}
+              />
             </span>
           </div>
         </div>
