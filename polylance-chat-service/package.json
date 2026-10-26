@@ -45,6 +45,8 @@
   "overrides": {
     "elliptic": "^6.6.1",
     "secp256k1": "^5.0.2",
+    "proxy-addr": "^2.0.8",
+    "launch-editor": "^2.14.2",
     "deepmerge-ts": "^8.0.2",
     "engine.io": "^6.6.11",
     "qs": "^6.16.0",
