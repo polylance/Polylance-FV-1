@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "naumovs.color-highlight",
+    "pranaygp.vscode-css-peek",
+    "figma.figma-vscode-extension",
+    "esbenp.prettier-vscode",
+    "formulahendry.auto-rename-tag",
+    "simonsiefke.svg-preview",
+    "kisstkondoros.vscode-gutter-preview"
+  ]
+}

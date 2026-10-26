@@ -1,23 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CheckCircle2, Sparkles, ExternalLink, Award, ArrowRight, 
-  Wallet, ShieldCheck, X 
+import {
+  CheckCircle2,
+  Award,
+  ExternalLink,
+  ShieldCheck,
+  Wallet,
+  ArrowRight,
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { Job } from '../types';
-import { modalOverlayVariants, modalContentVariants, transition } from '../lib/motion';
-import { getPolygonScanUrl, getPolygonScanAddressUrl } from '../utils/formatters';
+import { getPolygonScanUrl, getPolygonScanAddressUrl, truncateAddress, getDeterministicSbtId } from '../utils/formatters';
+import { CertificateMintPanel } from './certificate/CertificateMintPanel';
+import { CONTRACTS } from '../config/contracts';
 import { scrollToSection } from '../utils/scroll';
-import { TokenIcon } from './TokenIcon';
+import { Modal } from './overlay/Modal';
+import { Button } from './common/Button';
+import { Amount } from './common/Amount';
+import { AddressChip } from './common/AddressChip';
+import { calculateFeeBreakdownFromString } from '../utils/fees';
 
-interface PaymentReleasedModalProps {
+export interface PaymentReleasedModalProps {
   isOpen: boolean;
   onClose: () => void;
   job: Job;
   txHash?: string;
-  onViewAttestation: () => void;
+  onViewAttestation?: () => void | Promise<void>;
 }
 
 export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
@@ -25,227 +32,183 @@ export const PaymentReleasedModal: React.FC<PaymentReleasedModalProps> = ({
   onClose,
   job,
   txHash,
-  onViewAttestation,
 }) => {
   const navigate = useNavigate();
-  useEffect(() => {
-    if (isOpen) {
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#22c55e', '#3b82f6', '#8b5cf6', '#eab308']
-      });
-    }
-  }, [isOpen]);
+  const [showMintPanel, setShowMintPanel] = useState(false);
 
-  // Determine payment token symbol and amount accurately
-  const sym = (job.paymentTokenSymbol || '').toUpperCase();
-  const rawEth = parseFloat(job.amountEth || '0');
-  const rawUsdc = parseFloat(job.amountUsdc || '0');
+  // Extract financial details using pure BigInt feeBreakdown
+  const tokenSymbol = job.paymentTokenSymbol || (job.amountEth ? 'POL' : 'USDC');
+  const budgetString = job.negotiatedAmount || (job as any).budget || job.amountEth || job.amountUsdc || '0';
+  const feeDetails = calculateFeeBreakdownFromString(budgetString, tokenSymbol);
 
-  // Determine token symbol: if not explicitly set, deduce from non-zero amounts
-  const tokenSymbol = sym || (rawEth > 0 && rawUsdc === 0 ? 'POL' : 'USDC');
-  const isCryptoNative = tokenSymbol === 'POL' || tokenSymbol === 'MATIC';
-
-  let totalAmount = 0;
-  if (tokenSymbol === 'USDC' || tokenSymbol === 'USDT') {
-    totalAmount = rawUsdc > 0 ? rawUsdc : (rawEth > 0 ? rawEth : 100);
-  } else if (isCryptoNative) {
-    totalAmount = rawEth > 0 ? rawEth : (rawUsdc > 0 ? rawUsdc : 0.05);
-  } else {
-    totalAmount = rawUsdc > 0 ? rawUsdc : (rawEth > 0 ? rawEth : 100);
-  }
-
-  // 97.5% net to freelancer, 2.5% treasury protocol fee
-  const fee = totalAmount * 0.025;
-  const netAmount = totalAmount - fee;
-
-  const formatTokens = (val: number) => {
-    if (tokenSymbol === 'USDC' || tokenSymbol === 'USDT') {
-      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-    return val >= 1
-      ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
-      : val.toFixed(4);
-  };
-
-  const truncateAddress = (addr: string) => {
-    if (!addr) return '';
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-  };
-
-  const explorerUrl = txHash 
+  const explorerUrl = txHash
     ? getPolygonScanUrl(txHash)
-    : (job.contractAddress ? getPolygonScanAddressUrl(job.contractAddress) : '#');
+    : job.contractAddress
+    ? getPolygonScanAddressUrl(job.contractAddress)
+    : '#';
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          variants={modalOverlayVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={transition.fast}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
-        >
-          <motion.div
-            variants={modalContentVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={transition.medium}
-            className="glass-panel max-w-lg w-full p-6 sm:p-7 border-emerald-300 bg-white hard-shadow relative space-y-5"
-          >
-            {/* Close Button */}
-            <button
-              onClick={onClose}
-              className="absolute right-4 top-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer z-10"
-            >
-              <X size={18} />
-            </button>
-
-            {/* Celebratory Icon & Header */}
-            <div className="text-center space-y-2 pt-2">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-600 mx-auto shadow-inner shadow-emerald-200">
-                <CheckCircle2 size={36} className="text-emerald-600" />
-              </div>
-
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 border border-emerald-200 text-xs font-mono font-bold text-emerald-800">
-                <Sparkles size={13} className="text-emerald-600" />
-                <span>PAYMENT SETTLED ON-CHAIN</span>
-              </div>
-
-              <h3 className="text-2xl font-black text-slate-900 font-heading">
-                Payment Released Successfully!
-              </h3>
-              <p className="text-xs text-slate-500 font-sans max-w-sm mx-auto">
-                Escrow vault funds have been irrevocably transferred to the freelancer, and an on-chain Soulbound reputation badge has been issued.
-              </p>
-            </div>
-
-            {/* Payout Breakdown Card */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
-                <span className="text-xs font-semibold text-slate-600">Total Escrow Vault:</span>
-                <span className="font-mono font-bold text-sm text-slate-900 flex items-center gap-1.5">
-                  <TokenIcon token={tokenSymbol} size={15} />
-                  <span>{formatTokens(totalAmount)} {tokenSymbol}</span>
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center text-xs">
-                <div className="flex items-center gap-1.5 text-slate-600">
-                  <Wallet size={14} className="text-emerald-600" />
-                  <span>Net Payout to Freelancer (97.5%):</span>
-                </div>
-                <span className="font-mono font-bold text-emerald-700 flex items-center gap-1.5">
-                  <TokenIcon token={tokenSymbol} size={15} />
-                  <span>+{formatTokens(netAmount)} {tokenSymbol}</span>
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center text-xs">
-                <div className="flex items-center gap-1.5 text-slate-600">
-                  <ShieldCheck size={14} className="text-blue-600" />
-                  <span>PolyLance DAO Treasury Fee (2.5%):</span>
-                </div>
-                <span className="font-mono font-medium text-slate-600">{formatTokens(fee)} {tokenSymbol}</span>
-              </div>
-            </div>
-
-            {/* Dual Soulbound Token Attestations Minted (Freelancer & Client) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 font-bold uppercase">
-                <span>Dual Soulbound Attestations Minted</span>
-                <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  ERC-5192 Soulbound
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {/* Freelancer Proof-of-Work SBT */}
-                <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-[#0047AB] shrink-0">
-                      <Award size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-bold text-slate-900 truncate text-[11.5px]">Talent Proof of Work SBT</div>
-                      <div className="text-[10px] text-slate-600 font-mono truncate">
-                        {truncateAddress(job.freelancer || '')}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="px-1.5 py-0.5 bg-blue-100 rounded text-[9.5px] font-bold text-[#0047AB] uppercase tracking-wide shrink-0">
-                    +1 SBT
-                  </div>
-                </div>
-
-                {/* Client Escrow Patron SBT */}
-                <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
-                      <ShieldCheck size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-bold text-emerald-900 truncate text-[11.5px]">Client Escrow Patron SBT</div>
-                      <div className="text-[10px] text-emerald-700 font-mono truncate">
-                        {truncateAddress(job.client || '')}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="px-1.5 py-0.5 bg-emerald-100 rounded text-[9.5px] font-bold text-emerald-800 uppercase tracking-wide shrink-0">
-                    +1 SBT
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Explorer Link */}
-            {explorerUrl !== '#' && (
-              <div className="text-center">
-                <a
-                  href={explorerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-mono text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  <span>Verify Transaction on Polygonscan</span>
-                  <ExternalLink size={12} />
-                </a>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="pt-2 flex items-center gap-3">
-              <button
-                type="button"
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        maxWidth="md"
+        title="Payment Released Successfully"
+        description="Escrow vault funds have been disbursed on-chain and Soulbound reputation attestations issued."
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <span className="text-xs text-[#6B7280] font-mono">
+              Settled on Polygon
+            </span>
+            <div className="flex items-center gap-2.5">
+              <Button
+                variant="secondary"
+                size="md"
                 onClick={() => {
                   onClose();
                   scrollToSection('deliverable-workspace');
                 }}
-                className="flex-1 py-3 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors cursor-pointer text-center"
               >
-                Back to Workspace
-              </button>
-              <button
-                type="button"
+                Back to workspace
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
                 onClick={() => {
                   onClose();
-                  onViewAttestation();
+                  navigate(`/attestation/${job.id}`);
                 }}
-                className="flex-1.5 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 hard-shadow shadow-emerald-200"
+                icon={<Award size={15} />}
               >
-                <Award size={15} />
-                <span>View Attestation SBT</span>
-                <ArrowRight size={14} />
-              </button>
+                View certificate (SBT)
+              </Button>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {/* Header Badge */}
+          <div className="p-4 rounded-[12px] bg-[#EAF1FB] border border-[#C9DAF2] text-center space-y-1.5">
+            <div className="w-12 h-12 rounded-full bg-white border border-[#C9DAF2] text-[#0047AB] flex items-center justify-center mx-auto shadow-xs">
+              <CheckCircle2 size={24} />
+            </div>
+            <div className="text-xs font-semibold text-[#0047AB]">
+              On-Chain Settlement Confirmed
+            </div>
+            <div className="text-xl sm:text-2xl font-bold text-[#0B0B0F] tabular-nums tracking-tight">
+              +{feeDetails.freelancerNetFormatted} {tokenSymbol}
+            </div>
+            <p className="text-xs text-[#4B5563]">
+              Net payout disbursed directly to freelancer wallet
+            </p>
+          </div>
+
+          {/* Breakdown Card */}
+          <div className="rounded-[10px] border border-[#E5E7EB] bg-white divide-y divide-[#E5E7EB] text-xs">
+            <div className="p-3 flex justify-between items-center">
+              <span className="text-[#4B5563]">Total escrow vault:</span>
+              <span className="font-semibold text-[#0B0B0F] tabular-nums">
+                {feeDetails.budgetFormatted} {tokenSymbol}
+              </span>
+            </div>
+            <div className="p-3 flex justify-between items-center text-[#4B5563]">
+              <span>PolyLance protocol fee (2.5%):</span>
+              <span className="font-semibold text-rose-600 tabular-nums">
+                -{feeDetails.freelancerFeeFormatted} {tokenSymbol}
+              </span>
+            </div>
+            <div className="p-3 flex justify-between items-center bg-[#F6F7F9] font-medium">
+              <span className="text-[#0B0B0F]">Net disbursed to freelancer (97.5%):</span>
+              <span className="font-bold text-[#0047AB] tabular-nums">
+                +{feeDetails.freelancerNetFormatted} {tokenSymbol}
+              </span>
+            </div>
+          </div>
+
+          <div className="text-[11px] text-slate-500 px-1">
+            Network transaction gas was paid to Polygon validators to confirm the block on-chain.
+          </div>
+
+          {/* Dual SBT Attestations Minted */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-medium text-[#4B5563]">
+              <span>Dual Soulbound Attestations Minted</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#EAF1FB] text-[#0047AB] font-semibold">
+                ERC-5192 Soulbound
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Talent SBT */}
+              <div className="p-3 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Award size={14} className="text-[#0047AB]" />
+                    <span className="text-xs font-semibold text-[#0B0B0F]">Talent Proof of Work</span>
+                  </div>
+                  <span className="text-[10px] px-1 py-0.5 rounded bg-white border border-[#E5E7EB] font-mono text-[#0047AB] font-semibold">
+                    +1 SBT
+                  </span>
+                </div>
+                {job.freelancer && <AddressChip address={job.freelancer} truncate />}
+              </div>
+
+              {/* Client SBT */}
+              <div className="p-3 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck size={14} className="text-[#0047AB]" />
+                    <span className="text-xs font-semibold text-[#0B0B0F]">Client Escrow Patron</span>
+                  </div>
+                  <span className="text-[10px] px-1 py-0.5 rounded bg-white border border-[#E5E7EB] font-mono text-[#0047AB] font-semibold">
+                    +1 SBT
+                  </span>
+                </div>
+                {job.client && <AddressChip address={job.client} truncate />}
+              </div>
+            </div>
+          </div>
+
+          {/* Explorer Link */}
+          {explorerUrl !== '#' && (
+            <div className="text-center pt-1">
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-[#0047AB] hover:underline"
+              >
+                <span>Verify settlement on PolygonScan</span>
+                <ExternalLink size={12} />
+              </a>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {showMintPanel && (
+        <Modal
+          isOpen={showMintPanel}
+          onClose={() => setShowMintPanel(false)}
+          maxWidth="lg"
+          title="Soulbound Token Details"
+        >
+          <CertificateMintPanel
+            tokenId={job.sbtTokenId || getDeterministicSbtId(job.id)}
+            jobTitle={job.title}
+            recipientAddress={job.freelancer || ''}
+            clientAddress={job.client || ''}
+            amount={parseFloat(feeDetails.freelancerNetFormatted) || 0}
+            tokenSymbol={tokenSymbol}
+            completedAt={job.completedAt || Date.now()}
+            variant="work"
+            contractAddress={CONTRACTS.ReputationSBT}
+            onClose={() => setShowMintPanel(false)}
+          />
+        </Modal>
       )}
-    </AnimatePresence>
+    </>
   );
 };
+
+export default PaymentReleasedModal;

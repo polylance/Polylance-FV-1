@@ -1,0 +1,449 @@
+{
+  "posts": [
+    {
+      "id": "3240ebce-8e28-4bb3-8de5-2ba57211d26a",
+      "slug": "untitled-article",
+      "title": "Untitled Article",
+      "excerpt": "A brief overview of this guide...",
+      "category": "Guides",
+      "tags": [
+        "Web3"
+      ],
+      "authorId": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+      "authorName": "PolyLance Team",
+      "status": "draft",
+      "contentMarkdown": "## Introduction\n\nWrite your article here...",
+      "contentHtml": "## Introduction\n\nWrite your article here...",
+      "keyTakeaways": [],
+      "tableOfContents": [],
+      "faqs": [],
+      "sources": [],
+      "readingMinutes": 1,
+      "createdAt": "2026-10-25T11:30:46.317Z",
+      "updatedAt": "2026-10-25T11:30:46.317Z"
+    },
+    {
+      "id": "a927c746-47b2-4590-8c68-c79b530d899c",
+      "slug": "what-is-crypto-escrow-and-how-does-it-work",
+      "title": "What Is Crypto Escrow & How It Protects Web3 Freelancers",
+      "excerpt": "Learn how smart contract crypto escrow protects both clients and freelancers. Discover automated milestone releases, dispute resolution, and security.",
+      "category": "Escrow",
+      "tags": [
+        "Escrow",
+        "Polygon",
+        "Smart Contracts"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "# What Is Crypto Escrow & How It Protects Web3 Freelancers\n\nFreelancing online has historically suffered from an asymmetrical trust problem. Clients fear paying upfront for incomplete or subpar deliverables, while freelancers fear delivering high-value work only to face payment withholding, sudden scope creep, or chargebacks.\n\nCrypto escrow replaces human intermediaries with self-executing smart contracts. When a client commissions a job on PolyLance, the payment (such as USDC or POL) is transferred directly into a smart contract deployed on the Polygon blockchain. The funds remain locked until pre-agreed milestone criteria are fulfilled.\n\n## Smart Contract Escrow Architecture\n\nIn traditional escrow, a centralized company holds funds in a corporate bank account. They charge hefty processing percentages (often 5% to 20%), require invasive identity verification, and hold unilateral authority over dispute outcomes.\n\nIn contrast, non-custodial Web3 escrow is governed entirely by transparent bytecode deployed on Polygon PoS:\n\n| Specification | PolyLance Escrow Protocol | Traditional Escrow Platforms |\n| :--- | :--- | :--- |\n| **Custody** | Non-custodial smart contract (`JobEscrow.sol`) | Centralized corporate holding account |\n| **Platform Fee** | {{PLATFORM_FEE_PERCENT}} per side ({{PLATFORM_FEE_TOTAL}} total) | 10% to 20% platform commission |\n| **Settlement Time** | Instant upon client approval (~2 seconds) | 5 to 14 business days wire processing |\n| **Network Finality** | Polygon PoS finality | Reversible via bank chargeback |\n| **Arbitration** | Decentralized JudgeDAO consensus | Opaque internal customer support desk |\n| **Transparency** | 100% publicly verifiable on Polygonscan | Private database records |\n\n## Step-by-Step On-Chain Execution\n\n1. **Contract Initialization**: When terms are agreed, the JobFactory deploys or assigns a JobEscrow instance with the defined budget, review period, and milestones.\n2. **Escrow Funding**: The client signs a transaction that deposits the principal into the contract. The funds are visibly locked on-chain.\n3. **Milestone Delivery**: The freelancer works with confidence knowing payment exists. Upon completion, the freelancer submits proof-of-work with cryptographic IPFS evidence hashes.\n4. **Inspection & Approval**: The client inspects deliverables within the standard 7-day review window. Clicking 'Approve' triggers `releasePayment()`, transferring tokens directly to the freelancer's wallet.\n5. **Auto-Release Safety**: If the client fails to review the work within the review window, the freelancer can invoke `claimAutoRelease()` directly on-chain.\n\n## Why Polygon PoS Powers Modern Escrow\n\nOperating escrow on Ethereum Mainnet can incur tens of dollars in gas fees per interaction. Polygon PoS provides sub-cent transaction costs and 2-second block finality. This allows micro-milestones—such as paying $50 for a smart contract test suite—without fees eating into earnings.\n\nFurthermore, Polygon's EVM compatibility ensures robust security tooling, formal verification, and complete interoperability with ERC-20 stablecoins like USDC and native POL.\n\n## Arbitration & Dispute Resolution\n\nIf deliverables diverge from the agreed specification, either party can invoke `raiseDispute()`. The funds remain locked while evidence is submitted to PolyLance's JudgeDAO arbitrators. Arbitrators inspect terms, chat logs, and code deliverables, issuing a binding on-chain distribution.\n\nThis non-custodial arbitration mechanism prevents arbitrary account freezes and ensures unbiased settlement based strictly on documented milestone acceptance criteria.\n\n## Frequently Asked Questions\n\n### Can a client cancel a funded escrow unilaterally?\nNo. Once work is in progress, funds can only be refunded via mutual client and freelancer consent, or through an arbitrator ruling in a dispute.\n\n### Who holds the private keys to escrow funds?\nNobody. Escrowed tokens are locked directly inside immutable smart contract bytecode on Polygon PoS, governed exclusively by verified programmatic rules.\n\n### Which currencies are supported for escrow locking?\nPolyLance natively supports liquid ERC-20 assets on Polygon including native USDC and POL, ensuring instant settlement without volatile slippage.\n",
+      "contentHtml": "# What Is Crypto Escrow &amp; How It Protects Web3 Freelancers\n\nFreelancing online has historically suffered from an asymmetrical trust problem. Clients fear paying upfront for incomplete or subpar deliverables, while freelancers fear delivering high-value work only to face payment withholding, sudden scope creep, or chargebacks.\n\nCrypto escrow replaces human intermediaries with self-executing smart contracts. When a client commissions a job on PolyLance, the payment (such as USDC or POL) is transferred directly into a smart contract deployed on the Polygon blockchain. The funds remain locked until pre-agreed milestone criteria are fulfilled.\n\n## Smart Contract Escrow Architecture\n\nIn traditional escrow, a centralized company holds funds in a corporate bank account. They charge hefty processing percentages (often 5% to 20%), require invasive identity verification, and hold unilateral authority over dispute outcomes.\n\nIn contrast, non-custodial Web3 escrow is governed entirely by transparent bytecode deployed on Polygon PoS:\n\n| Specification | PolyLance Escrow Protocol | Traditional Escrow Platforms |\n| :--- | :--- | :--- |\n| **Custody** | Non-custodial smart contract (`JobEscrow.sol`) | Centralized corporate holding account |\n| **Platform Fee** | {{PLATFORM_FEE_PERCENT}} per side ({{PLATFORM_FEE_TOTAL}} total) | 10% to 20% platform commission |\n| **Settlement Time** | Instant upon client approval (~2 seconds) | 5 to 14 business days wire processing |\n| **Network Finality** | Polygon PoS finality | Reversible via bank chargeback |\n| **Arbitration** | Decentralized JudgeDAO consensus | Opaque internal customer support desk |\n| **Transparency** | 100% publicly verifiable on Polygonscan | Private database records |\n\n## Step-by-Step On-Chain Execution\n\n1. **Contract Initialization**: When terms are agreed, the JobFactory deploys or assigns a JobEscrow instance with the defined budget, review period, and milestones.\n2. **Escrow Funding**: The client signs a transaction that deposits the principal into the contract. The funds are visibly locked on-chain.\n3. **Milestone Delivery**: The freelancer works with confidence knowing payment exists. Upon completion, the freelancer submits proof-of-work with cryptographic IPFS evidence hashes.\n4. **Inspection &amp; Approval**: The client inspects deliverables within the standard 7-day review window. Clicking 'Approve' triggers `releasePayment()`, transferring tokens directly to the freelancer's wallet.\n5. **Auto-Release Safety**: If the client fails to review the work within the review window, the freelancer can invoke `claimAutoRelease()` directly on-chain.\n\n## Why Polygon PoS Powers Modern Escrow\n\nOperating escrow on Ethereum Mainnet can incur tens of dollars in gas fees per interaction. Polygon PoS provides sub-cent transaction costs and 2-second block finality. This allows micro-milestones—such as paying $50 for a smart contract test suite—without fees eating into earnings.\n\nFurthermore, Polygon's EVM compatibility ensures robust security tooling, formal verification, and complete interoperability with ERC-20 stablecoins like USDC and native POL.\n\n## Arbitration &amp; Dispute Resolution\n\nIf deliverables diverge from the agreed specification, either party can invoke `raiseDispute()`. The funds remain locked while evidence is submitted to PolyLance's JudgeDAO arbitrators. Arbitrators inspect terms, chat logs, and code deliverables, issuing a binding on-chain distribution.\n\nThis non-custodial arbitration mechanism prevents arbitrary account freezes and ensures unbiased settlement based strictly on documented milestone acceptance criteria.\n\n## Frequently Asked Questions\n\n### Can a client cancel a funded escrow unilaterally?\nNo. Once work is in progress, funds can only be refunded via mutual client and freelancer consent, or through an arbitrator ruling in a dispute.\n\n### Who holds the private keys to escrow funds?\nNobody. Escrowed tokens are locked directly inside immutable smart contract bytecode on Polygon PoS, governed exclusively by verified programmatic rules.\n\n### Which currencies are supported for escrow locking?\nPolyLance natively supports liquid ERC-20 assets on Polygon including native USDC and POL, ensuring instant settlement without volatile slippage.\n",
+      "readingMinutes": 3,
+      "publishedAt": "2026-09-15T00:00:00Z",
+      "createdAt": "2026-09-15T00:00:00Z",
+      "updatedAt": "2026-10-25T10:52:02.792Z",
+      "coverImage": "/escrow-flow-poster.jpg",
+      "coverAlt": "PolyLance Non-Custodial Smart Contract Escrow Architecture on Polygon",
+      "authorRole": "Core Protocol Contributor",
+      "authorBio": "Specializing in non-custodial milestone architecture, multi-sig escrow, and decentralized settlement on Polygon.",
+      "authorAvatar": "/sunny-avatar.png",
+      "keyTakeaways": [
+        "Non-custodial smart contracts eliminate human counterparty risk by locking deposits on Polygon.",
+        "Milestones feature automated release mechanisms triggered when the client review period elapses.",
+        "Polygon PoS finality enables low transaction fees, protecting earnings on small tasks.",
+        "JudgeDAO decentralized arbitration provides transparent on-chain resolution if terms are disputed."
+      ]
+    },
+    {
+      "id": "2dc24dd4-6543-40f5-91bd-79cfd993d74a",
+      "slug": "how-to-get-paid-in-usdc-guide",
+      "title": "How to Get Paid in USDC as a Freelancer (Step-by-Step)",
+      "excerpt": "Learn how to get paid in USDC for your freelance work. Avoid bank wire fees, currency exchange spreads, and chargebacks with digital dollar escrow.",
+      "category": "Payments",
+      "tags": [
+        "USDC",
+        "Payments",
+        "Stablecoins"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## Why Choose USDC for Freelancing\nInternational freelancers frequently lose 5% to 8% of their gross revenue to cross-border wire fees, intermediary correspondent banking charges, and unfavorable foreign exchange conversion spreads. Furthermore, traditional cross-border bank transfers take 3 to 7 business days to clear.\n\nUSD Coin (USDC) is a regulated, dollar-backed digital stablecoin issued by Circle. When you receive payment in USDC on Polygon, you gain:\n- **Zero Volatility**: 1 USDC is pegged 1:1 to 1 US Dollar.\n- **Immediate Settlement**: Funds arrive in your self-custody wallet within seconds of client milestone approval.\n- **Negligible Network Fees**: Sending or swapping USDC on Polygon typically costs less than $0.01 in POL gas.\n- **Global Inclusivity**: No bank account is required to receive funds.\n\n## Setting Up Your Polygon Wallet\n1. Download a reputable Web3 wallet such as MetaMask or Rabby.\n2. Store your 12- or 24-word Secret Recovery Phrase offline on paper or steel. Never screenshot or store it in cloud drives.\n3. Configure your network to Polygon Mainnet (Chain ID 137). PolyLance prompts and configures this automatically when connecting your wallet.\n4. Fund your wallet with a small balance of POL (e.g., 1 to 2 POL, approximately $0.50) to cover network gas fees.\n\n## Receiving Escrow Payments on PolyLance\nOn PolyLance, milestone agreements can be denominated in USDC. When the client approves your work deliverable, the escrow smart contract transfers USDC directly into your wallet. There is no middleman account, no withdrawal wait period, and no account hold.\n\n## Converting USDC to Local Currency\nDepending on your country of residence, multiple reputable off-ramps allow converting USDC to local currency:\n- **Centralized Exchanges**: Coinbase, Kraken, Binance, or CoinDCX support direct Polygon USDC deposits with local bank withdrawals.\n- **Direct Web3 Off-Ramps**: Solutions like Transak, MoonPay, and Ramp Network offer direct wallet-to-bank transfers in over 100 countries.",
+      "contentHtml": "## Why Choose USDC for Freelancing\nInternational freelancers frequently lose 5% to 8% of their gross revenue to cross-border wire fees, intermediary correspondent banking charges, and unfavorable foreign exchange conversion spreads. Furthermore, traditional cross-border bank transfers take 3 to 7 business days to clear.\n\nUSD Coin (USDC) is a regulated, dollar-backed digital stablecoin issued by Circle. When you receive payment in USDC on Polygon, you gain:\n- **Zero Volatility**: 1 USDC is pegged 1:1 to 1 US Dollar.\n- **Immediate Settlement**: Funds arrive in your self-custody wallet within seconds of client milestone approval.\n- **Negligible Network Fees**: Sending or swapping USDC on Polygon typically costs less than $0.01 in POL gas.\n- **Global Inclusivity**: No bank account is required to receive funds.\n\n## Setting Up Your Polygon Wallet\n1. Download a reputable Web3 wallet such as MetaMask or Rabby.\n2. Store your 12- or 24-word Secret Recovery Phrase offline on paper or steel. Never screenshot or store it in cloud drives.\n3. Configure your network to Polygon Mainnet (Chain ID 137). PolyLance prompts and configures this automatically when connecting your wallet.\n4. Fund your wallet with a small balance of POL (e.g., 1 to 2 POL, approximately $0.50) to cover network gas fees.\n\n## Receiving Escrow Payments on PolyLance\nOn PolyLance, milestone agreements can be denominated in USDC. When the client approves your work deliverable, the escrow smart contract transfers USDC directly into your wallet. There is no middleman account, no withdrawal wait period, and no account hold.\n\n## Converting USDC to Local Currency\nDepending on your country of residence, multiple reputable off-ramps allow converting USDC to local currency:\n- **Centralized Exchanges**: Coinbase, Kraken, Binance, or CoinDCX support direct Polygon USDC deposits with local bank withdrawals.\n- **Direct Web3 Off-Ramps**: Solutions like Transak, MoonPay, and Ramp Network offer direct wallet-to-bank transfers in over 100 countries.",
+      "readingMinutes": 6,
+      "publishedAt": "2026-09-18T00:00:00Z",
+      "createdAt": "2026-09-18T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.057Z"
+    },
+    {
+      "id": "a61a14a1-87ef-489a-a5ed-c952f475fc8a",
+      "slug": "web3-freelance-escrow-guide",
+      "title": "Smart Contract Escrow Guide for Web3 Freelancing",
+      "excerpt": "An in-depth guide to smart contract milestone escrow for Web3 developers and clients. Learn about automated releases, dispute handling, and non-custodial payouts.",
+      "category": "Escrow",
+      "tags": [
+        "Escrow",
+        "Milestones",
+        "Smart Contracts"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## Smart Contract Escrow Fundamentals\nIn digital freelancing, smart contracts replace custodial middleman accounts with self-executing code. When entering an engagement on PolyLance, milestone terms and payment balances are programmed into \\",
+      "contentHtml": "## Smart Contract Escrow Fundamentals\nIn digital freelancing, smart contracts replace custodial middleman accounts with self-executing code. When entering an engagement on PolyLance, milestone terms and payment balances are programmed into \\",
+      "readingMinutes": 8,
+      "publishedAt": "2026-09-20T00:00:00Z",
+      "createdAt": "2026-09-20T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.057Z"
+    },
+    {
+      "id": "fdb251eb-4a57-4327-8f31-aa94d43c57db",
+      "slug": "transparent-freelance-pricing-breakdown",
+      "title": "Understanding On-Chain Freelance Pricing: Gas, Escrow & Fees",
+      "excerpt": "A complete breakdown of Web3 freelance pricing. Learn how platform service fees, smart contract escrow deposits, and Polygon gas interact on real contracts.",
+      "category": "Payments",
+      "tags": [
+        "Fees",
+        "Gas",
+        "Polygon"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## On-Chain Fee Architecture\nPolyLance operates a dual-sided {{PLATFORM_FEE_PERCENT}} protocol fee model ({{PLATFORM_FEE_TOTAL}} total platform take rate). Because settlements occur directly on Polygon PoS smart contracts, all fees are transparent, deterministic, and verifiable on-chain:\n- **Client Fee**: 2.5% of the milestone budget, collected at escrow funding.\n- **Freelancer Fee**: 2.5% of the milestone budget, deducted upon payment release.\n- **Total Platform Fee**: 5.0% across the full contract lifecycle.\n\n## Transparent Fee Schedule & Examples\nThe table below illustrates exact fee calculations across both POL and USDC denominations:\n\n| Job Budget | Client Fee (2.5%) | Total Client Pays | Freelancer Fee (2.5%) | Net Freelancer Receives | Total PolyLance Fee |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| **9.00 POL** | 0.225 POL | 9.225 POL | 0.225 POL | 8.775 POL | 0.450 POL |\n| **10.00 USDC** | 0.25 USDC | 10.25 USDC | 0.25 USDC | 9.75 USDC | 0.50 USDC |\n| **100.00 USDC** | 2.50 USDC | 102.50 USDC | 2.50 USDC | 97.50 USDC | 5.00 USDC |\n| **1,000.00 USDC** | 25.00 USDC | 1,025.00 USDC | 25.00 USDC | 975.00 USDC | 50.00 USDC |\n| **100.00 POL** | 2.50 POL | 102.50 POL | 2.50 POL | 97.50 POL | 5.00 POL |\n| **1,000.00 POL** | 25.00 POL | 1,025.00 POL | 25.00 POL | 975.00 POL | 50.00 POL |\n\n## Polygon PoS Gas & Validator Fees\nIn addition to the 2.5% platform fee, blockchain transactions require a small network gas fee paid in POL to Polygon validators. \nBecause Polygon PoS delivers high transaction throughput, typical transaction costs remain negligible:\n- Funding escrow: approximately 0.005 to 0.02 POL\n- Submitting deliverables: approximately 0.003 to 0.01 POL\n- Releasing payment: approximately 0.005 to 0.02 POL\n\nThese network fees go entirely to decentralized network validators, not to PolyLance.\n\n## Direct Settlement Without Intermediary Holds\nOnce client approval executes on-chain:\n- Escrowed tokens land in the freelancer's self-custody wallet within seconds.\n- No multi-day security holding periods.\n- No wire transfer deductions or international currency spread markups.\n- Zero monthly subscription dues or account access fees.",
+      "contentHtml": "## On-Chain Fee Architecture\nPolyLance operates a dual-sided {{PLATFORM_FEE_PERCENT}} protocol fee model ({{PLATFORM_FEE_TOTAL}} total platform take rate). Because settlements occur directly on Polygon PoS smart contracts, all fees are transparent, deterministic, and verifiable on-chain:\n- **Client Fee**: 2.5% of the milestone budget, collected at escrow funding.\n- **Freelancer Fee**: 2.5% of the milestone budget, deducted upon payment release.\n- **Total Platform Fee**: 5.0% across the full contract lifecycle.\n\n## Transparent Fee Schedule &amp; Examples\nThe table below illustrates exact fee calculations across both POL and USDC denominations:\n\n| Job Budget | Client Fee (2.5%) | Total Client Pays | Freelancer Fee (2.5%) | Net Freelancer Receives | Total PolyLance Fee |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| **9.00 POL** | 0.225 POL | 9.225 POL | 0.225 POL | 8.775 POL | 0.450 POL |\n| **10.00 USDC** | 0.25 USDC | 10.25 USDC | 0.25 USDC | 9.75 USDC | 0.50 USDC |\n| **100.00 USDC** | 2.50 USDC | 102.50 USDC | 2.50 USDC | 97.50 USDC | 5.00 USDC |\n| **1,000.00 USDC** | 25.00 USDC | 1,025.00 USDC | 25.00 USDC | 975.00 USDC | 50.00 USDC |\n| **100.00 POL** | 2.50 POL | 102.50 POL | 2.50 POL | 97.50 POL | 5.00 POL |\n| **1,000.00 POL** | 25.00 POL | 1,025.00 POL | 25.00 POL | 975.00 POL | 50.00 POL |\n\n## Polygon PoS Gas &amp; Validator Fees\nIn addition to the 2.5% platform fee, blockchain transactions require a small network gas fee paid in POL to Polygon validators. \nBecause Polygon PoS delivers high transaction throughput, typical transaction costs remain negligible:\n- Funding escrow: approximately 0.005 to 0.02 POL\n- Submitting deliverables: approximately 0.003 to 0.01 POL\n- Releasing payment: approximately 0.005 to 0.02 POL\n\nThese network fees go entirely to decentralized network validators, not to PolyLance.\n\n## Direct Settlement Without Intermediary Holds\nOnce client approval executes on-chain:\n- Escrowed tokens land in the freelancer's self-custody wallet within seconds.\n- No multi-day security holding periods.\n- No wire transfer deductions or international currency spread markups.\n- Zero monthly subscription dues or account access fees.",
+      "readingMinutes": 7,
+      "publishedAt": "2026-09-22T00:00:00Z",
+      "createdAt": "2026-09-22T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.059Z"
+    },
+    {
+      "id": "3dc87e0a-8ac3-44f8-b8f1-fa86bbf2b3af",
+      "slug": "how-to-avoid-freelance-payment-scams",
+      "title": "How to Avoid Freelance Payment Scams in Crypto & Web3",
+      "excerpt": "Protect your freelance earnings from common crypto scams, fake escrow sites, signature phishing, and off-platform payment fraud with our security guide.",
+      "category": "Security",
+      "tags": [
+        "Security",
+        "Scams",
+        "Escrow"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## Top 5 Freelance Crypto Scams\n1. **The \"Off-Platform Telegram\" Trap**: Scammers post jobs on marketplaces, then urge applicants to move to Telegram or Discord, promising higher pay to bypass fees. Once code is delivered, they vanish.\n2. **Fake Escrow Smart Contracts**: Malicious actors send links to cloned websites purporting to hold escrow. Always verify the domain is \\",
+      "contentHtml": "## Top 5 Freelance Crypto Scams\n1. **The \"Off-Platform Telegram\" Trap**: Scammers post jobs on marketplaces, then urge applicants to move to Telegram or Discord, promising higher pay to bypass fees. Once code is delivered, they vanish.\n2. **Fake Escrow Smart Contracts**: Malicious actors send links to cloned websites purporting to hold escrow. Always verify the domain is \\",
+      "readingMinutes": 8,
+      "publishedAt": "2026-09-25T00:00:00Z",
+      "createdAt": "2026-09-25T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.060Z"
+    },
+    {
+      "id": "13542013-8491-4ef5-809f-34b733be9ec6",
+      "slug": "how-to-hire-solidity-smart-contract-developer",
+      "title": "How to Hire a Solidity Developer: Vetting, Rates & Escrow",
+      "excerpt": "A comprehensive hiring guide for Web3 founders. Learn how to vet smart contract engineers, assess GitHub reputation, set milestones, and protect funds.",
+      "category": "Hiring",
+      "tags": [
+        "Solidity",
+        "Developers",
+        "Hiring"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## Core Competencies of Senior Solidity Engineers\nSmart contract bugs are irreversible and directly expose capital to exploits. When hiring a Solidity developer, prioritize:\n- **EVM Internals**: Understanding storage layout, gas optimization, memory vs calldata, and assembly (Yul).\n- **Security Standards**: Experience with OpenZeppelin contracts, reentrancy guards, checks-effects-interactions patterns, and flash loan defense.\n- **Testing Rigs**: Proficiency with Foundry (Forge) or Hardhat, with 100% test coverage including fuzzing and invariant testing.\n\n## Market Rates (2026)\n- **Junior / Mid Developer**: $40 - $80 / hour (or $1,500 - $4,000 per feature)\n- **Senior Smart Contract Architect**: $100 - $200 / hour (or $5,000 - $20,000 per protocol subsystem)\n- **Security Auditor**: $150 - $300 / hour",
+      "contentHtml": "## Core Competencies of Senior Solidity Engineers\nSmart contract bugs are irreversible and directly expose capital to exploits. When hiring a Solidity developer, prioritize:\n- **EVM Internals**: Understanding storage layout, gas optimization, memory vs calldata, and assembly (Yul).\n- **Security Standards**: Experience with OpenZeppelin contracts, reentrancy guards, checks-effects-interactions patterns, and flash loan defense.\n- **Testing Rigs**: Proficiency with Foundry (Forge) or Hardhat, with 100% test coverage including fuzzing and invariant testing.\n\n## Market Rates (2026)\n- **Junior / Mid Developer**: $40 - $80 / hour (or $1,500 - $4,000 per feature)\n- **Senior Smart Contract Architect**: $100 - $200 / hour (or $5,000 - $20,000 per protocol subsystem)\n- **Security Auditor**: $150 - $300 / hour",
+      "readingMinutes": 9,
+      "publishedAt": "2026-09-28T00:00:00Z",
+      "createdAt": "2026-09-28T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.061Z"
+    },
+    {
+      "id": "c565a17e-f944-4bd8-aeba-11793db0ea38",
+      "slug": "how-to-find-web3-freelance-jobs-india",
+      "title": "How to Find Web3 Freelance Jobs in India (2026 Guide)",
+      "excerpt": "Guide for Indian software engineers entering Web3 freelancing. Learn how to get paid in USDC on Polygon, build a global reputation, and comply with tax rules.",
+      "category": "Guides",
+      "tags": [
+        "Freelancing",
+        "Jobs",
+        "Web3"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## The Indian Developer Web3 Advantage\nIndia boasts the largest developer base in the world and has become a primary hub for Web3 engineering talent. Major protocols and international startups actively seek Indian engineers for smart contract, indexing, and dApp development.\n\nBy utilizing decentralized escrow platforms like PolyLance, Indian developers can contract directly with global clients in the US, Europe, and Asia, eliminating wire fees and lengthy SWIFT delays.\n\n## Receiving USDC & Polygon Gas\nReceiving milestone compensation in USDC on Polygon allows Indian freelancers to safeguard against currency depreciation while receiving exact dollar-denominated sums. Payouts arrive in non-custodial wallets within seconds.",
+      "contentHtml": "## The Indian Developer Web3 Advantage\nIndia boasts the largest developer base in the world and has become a primary hub for Web3 engineering talent. Major protocols and international startups actively seek Indian engineers for smart contract, indexing, and dApp development.\n\nBy utilizing decentralized escrow platforms like PolyLance, Indian developers can contract directly with global clients in the US, Europe, and Asia, eliminating wire fees and lengthy SWIFT delays.\n\n## Receiving USDC &amp; Polygon Gas\nReceiving milestone compensation in USDC on Polygon allows Indian freelancers to safeguard against currency depreciation while receiving exact dollar-denominated sums. Payouts arrive in non-custodial wallets within seconds.",
+      "readingMinutes": 7,
+      "publishedAt": "2026-10-01T00:00:00Z",
+      "createdAt": "2026-10-01T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.061Z"
+    },
+    {
+      "id": "0b750c9f-ac79-479c-937b-58192e4211c1",
+      "slug": "why-polygon-is-ideal-for-freelance-payments",
+      "title": "Why Polygon PoS Is Ideal for Low-Fee Freelance Escrow",
+      "excerpt": "Discover how Polygon PoS delivers sub-cent gas fees and 2-second block times, making micro-milestones and global freelance payments viable.",
+      "category": "Polygon",
+      "tags": [
+        "Polygon",
+        "PoS",
+        "Gas Fees"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## The Ethereum L1 Gas Barrier\nWhile Ethereum Mainnet is the most battle-tested smart contract settlement layer, executing complex escrow logic—such as initializing a job, depositing tokens, submitting proof hashes, and calling release—can cost $15 to $50 in gas depending on congestion. This makes milestones under $500 economically unfeasible.\n\n## Polygon PoS Architecture & Throughput\nPolygon PoS operates as an EVM-compatible sidechain secured by a decentralized proof-of-stake validator network. With block times of approximately 2 seconds and transaction fees averaging $0.005, developers and clients can interact with smart contracts without friction.",
+      "contentHtml": "## The Ethereum L1 Gas Barrier\nWhile Ethereum Mainnet is the most battle-tested smart contract settlement layer, executing complex escrow logic—such as initializing a job, depositing tokens, submitting proof hashes, and calling release—can cost $15 to $50 in gas depending on congestion. This makes milestones under $500 economically unfeasible.\n\n## Polygon PoS Architecture &amp; Throughput\nPolygon PoS operates as an EVM-compatible sidechain secured by a decentralized proof-of-stake validator network. With block times of approximately 2 seconds and transaction fees averaging $0.005, developers and clients can interact with smart contracts without friction.",
+      "readingMinutes": 6,
+      "publishedAt": "2026-10-03T00:00:00Z",
+      "createdAt": "2026-10-03T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.062Z"
+    },
+    {
+      "id": "9fb4cb38-1fe9-4d5a-aeb4-fcca6d712bb4",
+      "slug": "what-is-pol-token-matic-upgrade-freelancers",
+      "title": "What Is POL? The MATIC Token Upgrade for Freelancers",
+      "excerpt": "Understand the transition from MATIC to POL on Polygon. Learn what the upgrade means for gas fees, staking, and receiving freelance payments on PolyLance.",
+      "category": "Polygon",
+      "tags": [
+        "POL",
+        "Token",
+        "Polygon"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## The Evolution from MATIC to POL\nAs part of the Polygon 2.0 roadmap, the network upgraded its native gas and staking token from MATIC to POL. POL is a hyperproductive token designed to secure Polygon PoS and future AggLayer-connected ZK-rollups.\n\n## What It Means for Freelancers\nOn Polygon PoS, all native token balances automatically converted 1:1 from MATIC to POL. POL serves as the native currency for transaction gas. When using PolyLance, jobs funded in native token utilize POL.",
+      "contentHtml": "## The Evolution from MATIC to POL\nAs part of the Polygon 2.0 roadmap, the network upgraded its native gas and staking token from MATIC to POL. POL is a hyperproductive token designed to secure Polygon PoS and future AggLayer-connected ZK-rollups.\n\n## What It Means for Freelancers\nOn Polygon PoS, all native token balances automatically converted 1:1 from MATIC to POL. POL serves as the native currency for transaction gas. When using PolyLance, jobs funded in native token utilize POL.",
+      "readingMinutes": 5,
+      "publishedAt": "2026-10-05T00:00:00Z",
+      "createdAt": "2026-10-05T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.063Z"
+    },
+    {
+      "id": "69a3dbc2-850a-4f27-a5fe-f6065a0107c9",
+      "slug": "how-milestone-payments-protect-clients-freelancers",
+      "title": "How Milestone Payments Protect Clients & Web3 Freelancers",
+      "excerpt": "Learn how milestone-based escrow contracts align incentives, eliminate scope creep, and ensure continuous project momentum on PolyLance.",
+      "category": "Escrow",
+      "tags": [
+        "Milestones",
+        "Escrow",
+        "Protection"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## The Threat of Unbounded Scope Creep\nLump-sum contracts create conflict: clients worry whether the final build will match their vision, while freelancers risk hundreds of unpaid hours if specifications shift.\n\nMilestone payments decompose a project into discrete checkpoints (e.g., Milestone 1: Architecture Spec; Milestone 2: Smart Contract Core; Milestone 3: Test Suite & Deployment). Each checkpoint is individually funded into escrow and reviewed upon delivery.",
+      "contentHtml": "## The Threat of Unbounded Scope Creep\nLump-sum contracts create conflict: clients worry whether the final build will match their vision, while freelancers risk hundreds of unpaid hours if specifications shift.\n\nMilestone payments decompose a project into discrete checkpoints (e.g., Milestone 1: Architecture Spec; Milestone 2: Smart Contract Core; Milestone 3: Test Suite &amp; Deployment). Each checkpoint is individually funded into escrow and reviewed upon delivery.",
+      "readingMinutes": 7,
+      "publishedAt": "2026-10-08T00:00:00Z",
+      "createdAt": "2026-10-08T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.064Z"
+    },
+    {
+      "id": "a011d2c0-2fdd-43da-be6b-ed3397453a4b",
+      "slug": "on-chain-work-certificates-freelance-portfolio",
+      "title": "How On-Chain Work Certificates Build Your Web3 Portfolio",
+      "excerpt": "Discover how soulbound tokens and verifiable on-chain credentials replace easily faked PDF resumes, giving freelancers immutable proof of experience.",
+      "category": "Reputation",
+      "tags": [
+        "Certificates",
+        "SBT",
+        "Portfolio"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## The Problem with Web2 Resumes\nIn traditional freelancing, resumes and LinkedIn profiles are easily embellished with unverifiable claims. Conversely, clients on Web3 platforms want verifiable proof: did this developer actually write production contracts? Did the client approve the work? What was the budget?\n\n## Soulbound Tokens (SBT) Explained\nProposed by Vitalik Buterin, Soulbound Tokens are non-transferable NFTs tied permanently to a specific address. They cannot be sold or transferred. PolyLance's ReputationSBT contract mints an SBT upon milestone completion, recording the job ID, escrow address, and completion timestamp.",
+      "contentHtml": "## The Problem with Web2 Resumes\nIn traditional freelancing, resumes and LinkedIn profiles are easily embellished with unverifiable claims. Conversely, clients on Web3 platforms want verifiable proof: did this developer actually write production contracts? Did the client approve the work? What was the budget?\n\n## Soulbound Tokens (SBT) Explained\nProposed by Vitalik Buterin, Soulbound Tokens are non-transferable NFTs tied permanently to a specific address. They cannot be sold or transferred. PolyLance's ReputationSBT contract mints an SBT upon milestone completion, recording the job ID, escrow address, and completion timestamp.",
+      "readingMinutes": 6,
+      "publishedAt": "2026-10-10T00:00:00Z",
+      "createdAt": "2026-10-10T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.064Z"
+    },
+    {
+      "id": "09010246-c295-454c-b1dd-2a82bd8abb5a",
+      "slug": "wallet-safety-guide-for-freelancers",
+      "title": "Wallet Safety Guide for Freelancers: Seed Phrases & Phishing",
+      "excerpt": "Essential Web3 security practices for freelancers. Learn how to protect your private keys, avoid malicious signatures, and use hardware wallets safely.",
+      "category": "Security",
+      "tags": [
+        "Security",
+        "Wallets",
+        "Phishing"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## The Responsibility of Self-Custody\nIn Web3, you are your own bank. If an attacker gains your seed phrase or tricks you into signing a malicious approval, no customer support team can reverse the blockchain transaction.\n\n## Understanding What You Sign\n- **SIWE (EIP-4361)**: Safe. A gasless signature verifying you control an address. Always check the domain is \\",
+      "contentHtml": "## The Responsibility of Self-Custody\nIn Web3, you are your own bank. If an attacker gains your seed phrase or tricks you into signing a malicious approval, no customer support team can reverse the blockchain transaction.\n\n## Understanding What You Sign\n- **SIWE (EIP-4361)**: Safe. A gasless signature verifying you control an address. Always check the domain is \\",
+      "readingMinutes": 8,
+      "publishedAt": "2026-10-12T00:00:00Z",
+      "createdAt": "2026-10-12T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.065Z"
+    },
+    {
+      "id": "a59ee606-5d05-4515-bbec-cb4847557588",
+      "slug": "freelance-contract-template-crypto-payments-checklist",
+      "title": "Freelance Contract Template Checklist for Crypto Payments",
+      "excerpt": "Essential checklist for drafting Web3 freelance agreements. Cover token choice, milestone definitions, revision limits, and dispute arbitration.",
+      "category": "Guides",
+      "tags": [
+        "Contracts",
+        "Checklist",
+        "Payments"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## Clear Deliverable Specifications\nA robust Web3 contract should detail exact technical criteria: target blockchain, framework versions, expected test coverage (e.g. 95%+ branch coverage in Foundry), and deployment network before escrow funding.\n\n## Denomination & Gas Allocation\nAlways specify the payment token. USDC or USDT avoids volatility disputes. Clarify that the client pays the escrow funding gas while the platform deducts standard protocol fees upon release.",
+      "contentHtml": "## Clear Deliverable Specifications\nA robust Web3 contract should detail exact technical criteria: target blockchain, framework versions, expected test coverage (e.g. 95%+ branch coverage in Foundry), and deployment network before escrow funding.\n\n## Denomination &amp; Gas Allocation\nAlways specify the payment token. USDC or USDT avoids volatility disputes. Clarify that the client pays the escrow funding gas while the platform deducts standard protocol fees upon release.",
+      "readingMinutes": 7,
+      "publishedAt": "2026-10-15T00:00:00Z",
+      "createdAt": "2026-10-15T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.065Z"
+    },
+    {
+      "id": "b8d002dc-d03b-42ec-abb9-f36b44f4a552",
+      "slug": "web3-freelance-skills-in-demand",
+      "title": "Top Web3 Freelance Skills in Demand (2026 Industry Report)",
+      "excerpt": "Discover the most lucrative and requested skills in the Web3 freelance economy, from Solidity and Rust to Zero-Knowledge engineering and security auditing.",
+      "category": "Guides",
+      "tags": [
+        "Skills",
+        "Trends",
+        "Web3"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## Leading Smart Contract Languages\n- **Solidity & Yul**: Dominates EVM ecosystems including Polygon, Arbitrum, Optimism, and Base.\n- **Rust**: High demand for Solana, Near, and Substrate networks.\n\n## High-Value Specializations\nSmart contract security auditors and Zero-Knowledge (ZK) circuit developers (Circom, Halo2) command the highest hourly rates in the ecosystem, often exceeding $200/hour for verified professionals.",
+      "contentHtml": "## Leading Smart Contract Languages\n- **Solidity &amp; Yul**: Dominates EVM ecosystems including Polygon, Arbitrum, Optimism, and Base.\n- **Rust**: High demand for Solana, Near, and Substrate networks.\n\n## High-Value Specializations\nSmart contract security auditors and Zero-Knowledge (ZK) circuit developers (Circom, Halo2) command the highest hourly rates in the ecosystem, often exceeding $200/hour for verified professionals.",
+      "readingMinutes": 8,
+      "publishedAt": "2026-10-18T00:00:00Z",
+      "createdAt": "2026-10-18T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.065Z"
+    },
+    {
+      "id": "a818ccbe-a13d-4a56-879f-2bb90b8b40d0",
+      "slug": "sovereign-freelance-work-reputation-guide",
+      "title": "Soulbound Work Certificates: On-Chain Freelance Reputation",
+      "excerpt": "Learn how Soulbound Tokens (ERC-5192) create portable, verifiable work history and credentials for Web3 developers and digital freelancers.",
+      "category": "Reputation",
+      "tags": [
+        "Reputation",
+        "Soulbound",
+        "ERC-5192"
+      ],
+      "authorId": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "authorName": "PolyLance Core Team",
+      "status": "published",
+      "contentMarkdown": "## The Problem of Siloed Credentials\nIn the digital freelance economy, a professional's reputation is their most valuable asset. When ratings, reviews, and transaction volumes are stored in private databases, freelancers cannot export their track record. Leaving a platform or facing arbitrary account closure means forfeiting years of client testimonials and verified work history.\n\n## What Are Soulbound Reputation Tokens (ERC-5192)?\nSoulbound Tokens (SBTs) are non-fungible tokens permanently bound to a single cryptographic wallet address. Under the ERC-5192 standard:\n- Tokens cannot be transferred, sold, or stolen.\n- Each token encapsulates immutable project metadata: project title, volume, timestamp, and client counterparty.\n- Freelancers maintain permanent sovereign ownership of their achievements.\n\n## Automated Minting on Milestone Completion\nOn PolyLance, reputation certificates are not issued by manual administrative fiat. When a client signs the transaction approving a completed milestone:\n1. \\",
+      "contentHtml": "## The Problem of Siloed Credentials\nIn the digital freelance economy, a professional's reputation is their most valuable asset. When ratings, reviews, and transaction volumes are stored in private databases, freelancers cannot export their track record. Leaving a platform or facing arbitrary account closure means forfeiting years of client testimonials and verified work history.\n\n## What Are Soulbound Reputation Tokens (ERC-5192)?\nSoulbound Tokens (SBTs) are non-fungible tokens permanently bound to a single cryptographic wallet address. Under the ERC-5192 standard:\n- Tokens cannot be transferred, sold, or stolen.\n- Each token encapsulates immutable project metadata: project title, volume, timestamp, and client counterparty.\n- Freelancers maintain permanent sovereign ownership of their achievements.\n\n## Automated Minting on Milestone Completion\nOn PolyLance, reputation certificates are not issued by manual administrative fiat. When a client signs the transaction approving a completed milestone:\n1. \\",
+      "readingMinutes": 8,
+      "publishedAt": "2026-10-20T00:00:00Z",
+      "createdAt": "2026-10-20T00:00:00Z",
+      "updatedAt": "2026-10-25T05:04:22.065Z"
+    }
+  ],
+  "revisions": {
+    "a927c746-47b2-4590-8c68-c79b530d899c": [
+      {
+        "id": "3dd31988-9a25-4610-9bb1-65b064bbd028",
+        "postId": "a927c746-47b2-4590-8c68-c79b530d899c",
+        "title": "What Is Crypto Escrow & How It Protects Web3 Freelancers",
+        "contentMarkdown": "# What Is Crypto Escrow & How It Protects Web3 Freelancers\n\nFreelancing online has historically suffered from an asymmetrical trust problem. Clients fear paying upfront for incomplete or subpar deliverables, while freelancers fear delivering high-value work only to face payment withholding, sudden scope creep, or chargebacks.\n\nCrypto escrow replaces human intermediaries with self-executing smart contracts. When a client commissions a job on PolyLance, the payment (such as USDC or POL) is transferred directly into a smart contract deployed on the Polygon blockchain. The funds remain locked until pre-agreed milestone criteria are fulfilled.\n\n## Smart Contract Escrow Architecture\n\nIn traditional escrow, a centralized company holds funds in a corporate bank account. They charge hefty processing percentages (often 5% to 20%), require invasive identity verification, and hold unilateral authority over dispute outcomes.\n\nIn contrast, non-custodial Web3 escrow is governed entirely by transparent bytecode deployed on Polygon PoS:\n\n| Specification | PolyLance Escrow Protocol | Traditional Escrow Platforms |\n| :--- | :--- | :--- |\n| **Custody** | Non-custodial smart contract (`JobEscrow.sol`) | Centralized corporate holding account |\n| **Platform Fee** | {{PLATFORM_FEE_PERCENT}} per side ({{PLATFORM_FEE_TOTAL}} total) | 10% to 20% platform commission |\n| **Settlement Time** | Instant upon client approval (~2 seconds) | 5 to 14 business days wire processing |\n| **Network Finality** | Polygon PoS finality | Reversible via bank chargeback |\n| **Arbitration** | Decentralized JudgeDAO consensus | Opaque internal customer support desk |\n| **Transparency** | 100% publicly verifiable on Polygonscan | Private database records |\n\n## Step-by-Step On-Chain Execution\n\n1. **Contract Initialization**: When terms are agreed, the JobFactory deploys or assigns a JobEscrow instance with the defined budget, review period, and milestones.\n2. **Escrow Funding**: The client signs a transaction that deposits the principal into the contract. The funds are visibly locked on-chain.\n3. **Milestone Delivery**: The freelancer works with confidence knowing payment exists. Upon completion, the freelancer submits proof-of-work with cryptographic IPFS evidence hashes.\n4. **Inspection & Approval**: The client inspects deliverables within the standard 7-day review window. Clicking 'Approve' triggers `releasePayment()`, transferring tokens directly to the freelancer's wallet.\n5. **Auto-Release Safety**: If the client fails to review the work within the review window, the freelancer can invoke `claimAutoRelease()` directly on-chain.\n\n## Why Polygon PoS Powers Modern Escrow\n\nOperating escrow on Ethereum Mainnet can incur tens of dollars in gas fees per interaction. Polygon PoS provides sub-cent transaction costs and 2-second block finality. This allows micro-milestones—such as paying $50 for a smart contract test suite—without fees eating into earnings.\n\nFurthermore, Polygon's EVM compatibility ensures robust security tooling, formal verification, and complete interoperability with ERC-20 stablecoins like USDC and native POL.\n\n## Arbitration & Dispute Resolution\n\nIf deliverables diverge from the agreed specification, either party can invoke `raiseDispute()`. The funds remain locked while evidence is submitted to PolyLance's JudgeDAO arbitrators. Arbitrators inspect terms, chat logs, and code deliverables, issuing a binding on-chain distribution.\n\nThis non-custodial arbitration mechanism prevents arbitrary account freezes and ensures unbiased settlement based strictly on documented milestone acceptance criteria.\n\n## Frequently Asked Questions\n\n### Can a client cancel a funded escrow unilaterally?\nNo. Once work is in progress, funds can only be refunded via mutual client and freelancer consent, or through an arbitrator ruling in a dispute.\n\n### Who holds the private keys to escrow funds?\nNobody. Escrowed tokens are locked directly inside immutable smart contract bytecode on Polygon PoS, governed exclusively by verified programmatic rules.\n\n### Which currencies are supported for escrow locking?\nPolyLance natively supports liquid ERC-20 assets on Polygon including native USDC and POL, ensuring instant settlement without volatile slippage.\n",
+        "contentHtml": "# What Is Crypto Escrow &amp; How It Protects Web3 Freelancers\n\nFreelancing online has historically suffered from an asymmetrical trust problem. Clients fear paying upfront for incomplete or subpar deliverables, while freelancers fear delivering high-value work only to face payment withholding, sudden scope creep, or chargebacks.\n\nCrypto escrow replaces human intermediaries with self-executing smart contracts. When a client commissions a job on PolyLance, the payment (such as USDC or POL) is transferred directly into a smart contract deployed on the Polygon blockchain. The funds remain locked until pre-agreed milestone criteria are fulfilled.\n\n## Smart Contract Escrow Architecture\n\nIn traditional escrow, a centralized company holds funds in a corporate bank account. They charge hefty processing percentages (often 5% to 20%), require invasive identity verification, and hold unilateral authority over dispute outcomes.\n\nIn contrast, non-custodial Web3 escrow is governed entirely by transparent bytecode deployed on Polygon PoS:\n\n| Specification | PolyLance Escrow Protocol | Traditional Escrow Platforms |\n| :--- | :--- | :--- |\n| **Custody** | Non-custodial smart contract (`JobEscrow.sol`) | Centralized corporate holding account |\n| **Platform Fee** | {{PLATFORM_FEE_PERCENT}} per side ({{PLATFORM_FEE_TOTAL}} total) | 10% to 20% platform commission |\n| **Settlement Time** | Instant upon client approval (~2 seconds) | 5 to 14 business days wire processing |\n| **Network Finality** | Polygon PoS finality | Reversible via bank chargeback |\n| **Arbitration** | Decentralized JudgeDAO consensus | Opaque internal customer support desk |\n| **Transparency** | 100% publicly verifiable on Polygonscan | Private database records |\n\n## Step-by-Step On-Chain Execution\n\n1. **Contract Initialization**: When terms are agreed, the JobFactory deploys or assigns a JobEscrow instance with the defined budget, review period, and milestones.\n2. **Escrow Funding**: The client signs a transaction that deposits the principal into the contract. The funds are visibly locked on-chain.\n3. **Milestone Delivery**: The freelancer works with confidence knowing payment exists. Upon completion, the freelancer submits proof-of-work with cryptographic IPFS evidence hashes.\n4. **Inspection &amp; Approval**: The client inspects deliverables within the standard 7-day review window. Clicking 'Approve' triggers `releasePayment()`, transferring tokens directly to the freelancer's wallet.\n5. **Auto-Release Safety**: If the client fails to review the work within the review window, the freelancer can invoke `claimAutoRelease()` directly on-chain.\n\n## Why Polygon PoS Powers Modern Escrow\n\nOperating escrow on Ethereum Mainnet can incur tens of dollars in gas fees per interaction. Polygon PoS provides sub-cent transaction costs and 2-second block finality. This allows micro-milestones—such as paying $50 for a smart contract test suite—without fees eating into earnings.\n\nFurthermore, Polygon's EVM compatibility ensures robust security tooling, formal verification, and complete interoperability with ERC-20 stablecoins like USDC and native POL.\n\n## Arbitration &amp; Dispute Resolution\n\nIf deliverables diverge from the agreed specification, either party can invoke `raiseDispute()`. The funds remain locked while evidence is submitted to PolyLance's JudgeDAO arbitrators. Arbitrators inspect terms, chat logs, and code deliverables, issuing a binding on-chain distribution.\n\nThis non-custodial arbitration mechanism prevents arbitrary account freezes and ensures unbiased settlement based strictly on documented milestone acceptance criteria.\n\n## Frequently Asked Questions\n\n### Can a client cancel a funded escrow unilaterally?\nNo. Once work is in progress, funds can only be refunded via mutual client and freelancer consent, or through an arbitrator ruling in a dispute.\n\n### Who holds the private keys to escrow funds?\nNobody. Escrowed tokens are locked directly inside immutable smart contract bytecode on Polygon PoS, governed exclusively by verified programmatic rules.\n\n### Which currencies are supported for escrow locking?\nPolyLance natively supports liquid ERC-20 assets on Polygon including native USDC and POL, ensuring instant settlement without volatile slippage.\n",
+        "authorWallet": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+        "savedAt": "2026-10-25T10:52:02.792Z",
+        "changeSummary": "Post updated"
+      },
+      {
+        "id": "95e750cb-148d-4369-a90d-8390f07bc520",
+        "postId": "a927c746-47b2-4590-8c68-c79b530d899c",
+        "title": "What Is Crypto Escrow & How It Protects Web3 Freelancers",
+        "contentMarkdown": "## The Freelance Trust Dilemma\nFreelancing online has historically suffered from an asymmetrical trust problem. Clients fear paying upfront for incomplete or subpar deliverables, while freelancers fear delivering high-value work only to face payment withholding, sudden scope creep, or chargebacks.\n\nCrypto escrow replaces human intermediaries with self-executing smart contracts. When a client commissions a job on PolyLance, the payment (such as USDC or POL) is transferred directly into a smart contract deployed on the Polygon blockchain. The funds remain locked until pre-agreed milestone criteria are fulfilled.\n\n## Smart Contract Escrow Architecture\n\n| Specification | PolyLance Escrow Protocol |\n| :--- | :--- |\n| **Custody** | Non-custodial smart contract on Polygon (`JobEscrow.sol`) |\n| **Platform Fee** | {{PLATFORM_FEE_PERCENT}} per side ({{PLATFORM_FEE_TOTAL}} total) |\n| **Settlement Time** | Instant upon client approval |\n| **Network Finality** | ~2 seconds on Polygon PoS |\n| **Transparency** | 100% publicly verifiable on Polygonscan |\n\n## Step-by-Step On-Chain Execution\n1. **Contract Initialization**: When terms are agreed, the JobFactory deploys or assigns a JobEscrow instance with the defined budget, review period, and milestones.\n2. **Escrow Funding**: The client signs a transaction that deposits the principal into the contract. The funds are visibly locked on-chain.\n3. **Milestone Delivery**: The freelancer works with confidence knowing payment exists. Upon completion, the freelancer submits proof-of-work with cryptographic IPFS evidence hashes.\n4. **Inspection & Approval**: The client inspects deliverables within the standard 7-day review window. Clicking \"Approve\" triggers `releasePayment()`, transferring tokens directly to the freelancer's wallet.\n5. **Auto-Release Safety**: If the client fails to review the work within the review window, the freelancer can invoke `claimAutoRelease()` directly on-chain.\n\n## Why Polygon PoS Powers Modern Escrow\nOperating escrow on Ethereum Mainnet can incur tens of dollars in gas fees per interaction. Polygon PoS provides sub-cent transaction costs and 2-second block finality. This allows micro-milestones—such as paying $50 for a smart contract test suite—without fees eating into earnings.\n\n## Arbitration & Dispute Resolution\nIf deliverables diverge from the agreed specification, either party can invoke `raiseDispute()`. The funds remain locked while evidence is submitted to PolyLance's JudgeDAO arbitrators. Arbitrators inspect terms, chat logs, and code deliverables, issuing a binding on-chain distribution.",
+        "contentHtml": "## The Freelance Trust Dilemma\nFreelancing online has historically suffered from an asymmetrical trust problem. Clients fear paying upfront for incomplete or subpar deliverables, while freelancers fear delivering high-value work only to face payment withholding, sudden scope creep, or chargebacks.\n\nCrypto escrow replaces human intermediaries with self-executing smart contracts. When a client commissions a job on PolyLance, the payment (such as USDC or POL) is transferred directly into a smart contract deployed on the Polygon blockchain. The funds remain locked until pre-agreed milestone criteria are fulfilled.\n\n## Smart Contract Escrow Architecture\n\n| Specification | PolyLance Escrow Protocol |\n| :--- | :--- |\n| **Custody** | Non-custodial smart contract on Polygon (`JobEscrow.sol`) |\n| **Platform Fee** | {{PLATFORM_FEE_PERCENT}} per side ({{PLATFORM_FEE_TOTAL}} total) |\n| **Settlement Time** | Instant upon client approval |\n| **Network Finality** | ~2 seconds on Polygon PoS |\n| **Transparency** | 100% publicly verifiable on Polygonscan |\n\n## Step-by-Step On-Chain Execution\n1. **Contract Initialization**: When terms are agreed, the JobFactory deploys or assigns a JobEscrow instance with the defined budget, review period, and milestones.\n2. **Escrow Funding**: The client signs a transaction that deposits the principal into the contract. The funds are visibly locked on-chain.\n3. **Milestone Delivery**: The freelancer works with confidence knowing payment exists. Upon completion, the freelancer submits proof-of-work with cryptographic IPFS evidence hashes.\n4. **Inspection &amp; Approval**: The client inspects deliverables within the standard 7-day review window. Clicking \"Approve\" triggers `releasePayment()`, transferring tokens directly to the freelancer's wallet.\n5. **Auto-Release Safety**: If the client fails to review the work within the review window, the freelancer can invoke `claimAutoRelease()` directly on-chain.\n\n## Why Polygon PoS Powers Modern Escrow\nOperating escrow on Ethereum Mainnet can incur tens of dollars in gas fees per interaction. Polygon PoS provides sub-cent transaction costs and 2-second block finality. This allows micro-milestones—such as paying $50 for a smart contract test suite—without fees eating into earnings.\n\n## Arbitration &amp; Dispute Resolution\nIf deliverables diverge from the agreed specification, either party can invoke `raiseDispute()`. The funds remain locked while evidence is submitted to PolyLance's JudgeDAO arbitrators. Arbitrators inspect terms, chat logs, and code deliverables, issuing a binding on-chain distribution.",
+        "authorWallet": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+        "savedAt": "2026-10-25T10:48:36.633Z",
+        "changeSummary": "Post updated"
+      }
+    ],
+    "3240ebce-8e28-4bb3-8de5-2ba57211d26a": [
+      {
+        "id": "13961d9c-ff70-4657-80d5-9c7e394e90d1",
+        "postId": "3240ebce-8e28-4bb3-8de5-2ba57211d26a",
+        "title": "Untitled Article",
+        "contentMarkdown": "## Introduction\n\nWrite your article here...",
+        "contentHtml": "## Introduction\n\nWrite your article here...",
+        "authorWallet": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+        "savedAt": "2026-10-25T11:30:46.317Z",
+        "changeSummary": "Initial draft created"
+      }
+    ]
+  },
+  "team": {
+    "0x940d8475689b2156d6174555f3382b5e6951653f": {
+      "wallet": "0x940d8475689b2156d6174555f3382b5e6951653f",
+      "role": "admin",
+      "active": true,
+      "addedBy": "0x0000000000000000000000000000000000000000",
+      "addedAt": "2026-10-25T05:04:22.044Z"
+    },
+    "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a": {
+      "wallet": "0x25f6c8ed995c811e6c0adb1d66a60830e8115e9a",
+      "role": "admin",
+      "active": true,
+      "addedBy": "0x0000000000000000000000000000000000000000",
+      "addedAt": "2026-10-25T05:04:22.047Z"
+    },
+    "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1": {
+      "wallet": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+      "role": "admin",
+      "active": true,
+      "addedBy": "0x0000000000000000000000000000000000000000",
+      "addedAt": "2026-10-25T05:04:22.047Z"
+    }
+  },
+  "media": [],
+  "auditLog": [
+    {
+      "actorWallet": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+      "action": "POST_CREATED",
+      "targetType": "post",
+      "targetId": "3240ebce-8e28-4bb3-8de5-2ba57211d26a",
+      "details": {
+        "slug": "untitled-article",
+        "title": "Untitled Article"
+      },
+      "id": "ffe6802c-14ad-47e9-afbe-e2ca93b5e390",
+      "timestamp": "2026-10-25T11:30:46.319Z"
+    },
+    {
+      "actorWallet": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+      "action": "POST_UPDATED",
+      "targetType": "post",
+      "targetId": "a927c746-47b2-4590-8c68-c79b530d899c",
+      "details": {
+        "slug": "what-is-crypto-escrow-and-how-does-it-work"
+      },
+      "id": "8715959b-7311-4bcc-8eb3-ca405a162fc4",
+      "timestamp": "2026-10-25T10:52:02.793Z"
+    },
+    {
+      "actorWallet": "0xb30f2efbcebc529d946e05c9cce0f1fffb7e1ab1",
+      "action": "POST_UPDATED",
+      "targetType": "post",
+      "targetId": "a927c746-47b2-4590-8c68-c79b530d899c",
+      "details": {
+        "slug": "what-is-crypto-escrow-and-how-does-it-work"
+      },
+      "id": "e0cc901d-36dc-4b3e-a921-6d637af85392",
+      "timestamp": "2026-10-25T10:48:36.635Z"
+    }
+  ],
+  "slugRedirects": {}
+}

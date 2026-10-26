@@ -35,11 +35,11 @@ export const PageContainer: React.FC<PageContainerProps> = ({
 }) => {
   const baseClasses = fluid
     ? 'w-full'
-    : 'w-full max-w-[1760px] mx-auto';
+    : 'w-full max-w-[1440px] mx-auto';
 
   const paddingClasses = noPadding
     ? ''
-    : 'px-[clamp(16px,3vw,56px)] pl-[max(env(safe-area-inset-left,0px),clamp(16px,3vw,56px))] pr-[max(env(safe-area-inset-right,0px),clamp(16px,3vw,56px))]';
+    : 'px-[clamp(20px,3vw,48px)] pl-[max(env(safe-area-inset-left,0px),clamp(20px,3vw,48px))] pr-[max(env(safe-area-inset-right,0px),clamp(20px,3vw,48px))]';
 
   return (
     <Component

@@ -12,6 +12,14 @@ import confetti from 'canvas-confetti';
 import { EmptyState, PermissionDeniedState } from '../components/UIStates';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 import { scrollToSection } from '../utils/scroll';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
+import { CompactEmptyState } from '../components/common/CompactEmptyState';
+import { Button } from '../components/common/Button';
+import { TokenAmount } from '../components/common/TokenAmount';
+import { getJobAmounts } from '../lib/amounts/getJobAmounts';
+import { Modal } from '../components/overlay';
+import { WatchButton, VideoModal, useVideoModal } from '../components/video';
 
 export const Judge: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,6 +42,7 @@ export const Judge: React.FC = () => {
   const [newJudgeName, setNewJudgeName] = useState('');
   const [newJudgeNotes, setNewJudgeNotes] = useState('');
   const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
+  const { activeVideoId, isOpen, openVideo, closeVideo, triggerRef } = useVideoModal();
 
   // Dispute resolution state
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -45,7 +54,7 @@ export const Judge: React.FC = () => {
   const totalResolved = resolvedDisputes.length;
   const avgSla = totalResolved > 0 ? '3.2 Days' : '0.0 Days';
   const arbitratorFeeEarned = resolvedDisputes.reduce(
-    (sum, j) => sum + parseFloat(j.amountUsdc || '0') * 0.025,
+    (sum, j) => sum + parseFloat(getJobAmounts(j).effectiveAmount || '0') * 0.025,
     0
   );
   const activeJob = jobs.find((j) => j.id === selectedJobId);
@@ -92,63 +101,58 @@ export const Judge: React.FC = () => {
 
   if (currentRole === 'freelancer' || currentRole === 'client' || (!isAdmin && !isJudgeRole)) {
     return (
-      <div className="w-full py-16">
+      <PageContainer className="w-full py-16 text-[#0B0B0F]">
         <PermissionDeniedState
           title="Judge Panel Protected"
           description="The Judge Arbitration Panel is strictly restricted to appointed DAO Arbitrators and Governors. Freelancers and Clients cannot access or participate in dispute rulings."
           onBack={() => navigate('/dashboard')}
         />
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-6 py-6 w-full font-sans">
-      {/* Top Restricted Header */}
-      <div className="glass-panel p-6 sm:p-8 border-[#E2E6EC] bg-white shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="font-headline text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-              <Gavel className="text-[#0047AB]" /> Judge Governance & Dispute Panel
-            </h1>
-            <span className="bg-slate-100 text-[#0B0B0C] border border-slate-200 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
-              {isAdmin ? 'Admin Governance' : 'Arbitrator Access'}
-            </span>
+    <PageContainer className="space-y-6 py-6 w-full text-[#0B0B0F]">
+      {/* Plain Page Header */}
+      <PageHeader
+        title="Judge Panel"
+        subtitle={`Connected as ${truncateAddress(address)} (${isAdmin ? 'DAO Administrator' : 'Accredited Arbitrator'})`}
+        actions={
+          <div className="flex items-center gap-2.5">
+            <WatchButton
+              id="task-disputes"
+              label="Disputes guide (45s)"
+              onOpen={openVideo}
+            />
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsInviteModalOpen(true)}
+                className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-3.5 py-2 rounded-[8px] font-medium text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+              >
+                <UserPlus size={14} />
+                <span>Invite judge</span>
+              </button>
+            )}
           </div>
-          <p className="text-xs text-slate-600 font-mono">
-            CONNECTED_ROLE: <span className="text-[#0B0B0C] font-bold">{truncateAddress(address)}</span> ({isAdmin ? 'DAO Administrator' : 'Accredited Judge'})
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => setIsInviteModalOpen(true)}
-              className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
-            >
-              <UserPlus size={15} />
-              <span>Invite / Appoint Judge</span>
-            </button>
-          )}
-        </div>
-      </div>
+        }
+      />
 
       {/* Navigation Tab Bar */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-2 border-b border-[#E5E7EB] pb-2">
         <button
           type="button"
           onClick={() => setActiveTab('disputes')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold font-headline flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border ${
             activeTab === 'disputes'
-              ? 'bg-[#0B0B0C] text-white shadow-xs'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-[#0047AB] text-white border-[#0047AB] shadow-xs'
+              : 'bg-white hover:bg-[#F6F7F9] text-[#374151] hover:text-[#0B0B0F] border-[#E5E7EB]'
           }`}
         >
-          <Scale size={14} />
-          <span>Dispute Queue & Verdicts</span>
+          <Scale size={14} className={activeTab === 'disputes' ? 'text-white' : 'text-[#0047AB]'} />
+          <span className={activeTab === 'disputes' ? 'text-white' : 'text-[#374151]'}>Dispute queue and verdicts</span>
           {disputedJobs.length > 0 && (
-            <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-mono font-bold ${
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-medium ${
               activeTab === 'disputes' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-900'
             }`}>
               {disputedJobs.length}
@@ -159,16 +163,16 @@ export const Judge: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('manage')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold font-headline flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border ${
             activeTab === 'manage'
-              ? 'bg-[#0B0B0C] text-white shadow-xs'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-[#0047AB] text-white border-[#0047AB] shadow-xs'
+              : 'bg-white hover:bg-[#F6F7F9] text-[#374151] hover:text-[#0B0B0F] border-[#E5E7EB]'
           }`}
         >
-          <Users size={14} />
-          <span>Appointed Judges Roster</span>
-          <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-mono font-bold ${
-            activeTab === 'manage' ? 'bg-white/20 text-white' : 'bg-slate-100 text-[#0B0B0C]'
+          <Users size={14} className={activeTab === 'manage' ? 'text-white' : 'text-[#0047AB]'} />
+          <span className={activeTab === 'manage' ? 'text-white' : 'text-[#374151]'}>Appointed judges</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-medium ${
+            activeTab === 'manage' ? 'bg-white/20 text-white' : 'bg-[#E5E7EB] text-[#4B5563]'
           }`}>
             {judges.length}
           </span>
@@ -180,29 +184,29 @@ export const Judge: React.FC = () => {
         <div className="space-y-6">
           {/* Helpful Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 border border-slate-200/90 rounded-2xl bg-white shadow-xs space-y-2 hover:border-slate-300 transition-colors">
-              <p className="font-label-mono text-xs text-slate-500 font-bold uppercase tracking-wider">Total Resolved (30d)</p>
-              <h4 className="font-headline text-3xl font-black text-[#0B0B0C]">{totalResolved}</h4>
-              <div className="flex items-center text-xs text-slate-500 gap-1.5 font-mono pt-1 font-medium">
-                <TrendingUp size={14} className="text-slate-400" /> Active arbitrator track record
+            <div className="p-6 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-2 hover:border-[#D1D5DB] transition-colors">
+              <p className="text-xs text-[#6B7280] font-medium">Total resolved (30d)</p>
+              <h4 className="text-3xl font-semibold text-[#0B0B0F] tabular-nums">{totalResolved}</h4>
+              <div className="flex items-center text-xs text-[#6B7280] gap-1.5 pt-1">
+                <TrendingUp size={14} className="text-[#0047AB]" /> Active arbitrator track record
               </div>
             </div>
 
-            <div className="p-6 border border-slate-200/90 rounded-2xl bg-white shadow-xs space-y-2 hover:border-slate-300 transition-colors">
-              <p className="font-label-mono text-xs text-slate-500 font-bold uppercase tracking-wider">Average Resolution SLA</p>
-              <h4 className="font-headline text-3xl font-black text-[#0B0B0C]">{avgSla}</h4>
-              <div className="flex items-center text-xs text-slate-600 gap-1.5 font-mono pt-1 font-medium">
-                <Clock size={14} className="text-slate-400" /> Within SLA threshold
+            <div className="p-6 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-2 hover:border-[#D1D5DB] transition-colors">
+              <p className="text-xs text-[#6B7280] font-medium">Average resolution SLA</p>
+              <h4 className="text-3xl font-semibold text-[#0B0B0F] tabular-nums">{avgSla}</h4>
+              <div className="flex items-center text-xs text-[#6B7280] gap-1.5 pt-1">
+                <Clock size={14} className="text-[#0047AB]" /> Within SLA threshold
               </div>
             </div>
 
-            <div className="p-6 border border-slate-200/90 rounded-2xl bg-white shadow-xs space-y-2 hover:border-slate-300 transition-colors">
-              <p className="font-label-mono text-xs text-slate-500 font-bold uppercase tracking-wider">Arbitrator Fee Earned</p>
-              <h4 className="font-headline text-3xl font-black text-emerald-700">
+            <div className="p-6 border border-[#E5E7EB] rounded-xl bg-white shadow-2xs space-y-2 hover:border-[#D1D5DB] transition-colors">
+              <p className="text-xs text-[#6B7280] font-medium">Arbitrator fee earned</p>
+              <h4 className="text-3xl font-semibold text-[#15803D] tabular-nums">
                 ${arbitratorFeeEarned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
               </h4>
-              <div className="flex items-center text-xs text-slate-600 gap-1.5 font-mono pt-1 font-medium">
-                <CreditCard size={14} className="text-emerald-600/70" /> 2.5% protocol resolution fee
+              <div className="flex items-center text-xs text-[#6B7280] gap-1.5 pt-1">
+                <CreditCard size={14} className="text-[#15803D]" /> 2.5% platform fee
               </div>
             </div>
           </div>
@@ -217,10 +221,11 @@ export const Judge: React.FC = () => {
             </div>
 
             {disputedJobs.length === 0 ? (
-              <div className="p-12 text-center text-slate-500 space-y-2">
-                <CheckCircle2 size={36} className="text-emerald-600 mx-auto" />
-                <h4 className="font-bold text-slate-900 text-sm">No Open Disputes</h4>
-                <p className="text-xs text-slate-500">All smart contract escrows are in good standing.</p>
+              <div className="py-6">
+                <CompactEmptyState
+                  title="No open disputes"
+                  description="All smart contract escrows are in good standing."
+                />
               </div>
             ) : (
               <>
@@ -247,7 +252,9 @@ export const Judge: React.FC = () => {
                         >
                           <td className="p-4 font-bold text-[#0B0B0C]">{j.id}</td>
                           <td className="p-4 text-slate-700">{j.dispute?.reason || 'QUALITY'}</td>
-                          <td className="p-4 font-bold text-emerald-700">${parseFloat(j.amountUsdc).toLocaleString()} USDC</td>
+                          <td className="p-4 font-bold text-emerald-700">
+                            <TokenAmount amount={getJobAmounts(j).effectiveAmount} token={getJobAmounts(j).token} />
+                          </td>
                           <td className="p-4">
                             <span className="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[10px] uppercase font-bold">
                               Waiting for Judge
@@ -296,7 +303,7 @@ export const Judge: React.FC = () => {
                         <div>
                           <span className="text-[10px] text-slate-400 font-mono uppercase block">Escrow Amount</span>
                           <span className="font-mono font-black text-emerald-700 text-sm">
-                            ${parseFloat(j.amountUsdc).toLocaleString()} USDC
+                            <TokenAmount amount={getJobAmounts(j).effectiveAmount} token={getJobAmounts(j).token} />
                           </span>
                         </div>
                         <button
@@ -328,7 +335,7 @@ export const Judge: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-emerald-700 text-lg font-mono">
-                      ${parseFloat(activeJob.amountUsdc).toLocaleString()} USDC
+                      <TokenAmount amount={getJobAmounts(activeJob).effectiveAmount} token={getJobAmounts(activeJob).token} />
                     </span>
                     <p className="text-[10px] text-slate-500 font-mono">Under Contractual Arbitration</p>
                   </div>
@@ -648,110 +655,92 @@ export const Judge: React.FC = () => {
       )}
 
       {/* APPOINT / INVITE JUDGE MODAL */}
-      {isInviteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in font-sans">
-          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full border border-[#E2E6EC] shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center shrink-0">
-                  <UserPlus size={20} />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900 font-headline">
-                    Appoint Protocol Arbitrator
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Authorize a new Judge address for DAO dispute arbitration
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsInviteModalOpen(false)}
-                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddJudgeSubmit} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Judge Ethereum / Polygon Address *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="0x..."
-                  value={newJudgeAddress}
-                  onChange={(e) => setNewJudgeAddress(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono text-xs focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                />
-                {/* Quick Presets */}
-                {import.meta.env.VITE_JUDGE_ADDRESS && (
-                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                    <span className="text-[10px] text-slate-400 font-bold">Quick Presets:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewJudgeAddress(import.meta.env.VITE_JUDGE_ADDRESS);
-                        setNewJudgeName('Accredited Arbitrator');
-                        setNewJudgeNotes('Accredited DeFi & smart contract auditor.');
-                      }}
-                      className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0047AB] border border-slate-200 font-mono text-[9.5px] cursor-pointer"
-                    >
-                      Configured Arbitrator
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Judge Display Name / Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Arbitrator Dr. Elena Vance"
-                  value={newJudgeName}
-                  onChange={(e) => setNewJudgeName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 uppercase text-[9.5px] tracking-wider">
-                  Arbitration Specialization & Scope
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Smart Contract Security, DeFi protocols, Zero-Knowledge proofs..."
-                  value={newJudgeNotes}
-                  onChange={(e) => setNewJudgeNotes(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:bg-white focus:border-[#0047AB] focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
+      <Modal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        size="md"
+        title="Appoint Protocol Arbitrator"
+        subtitle="Authorize a new Judge address for DAO dispute arbitration."
+        footer={
+          <div className="flex items-center justify-end w-full gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsInviteModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={!newJudgeAddress.trim() || !newJudgeName.trim()}
+              onClick={(e) => handleAddJudgeSubmit(e as any)}
+            >
+              Appoint & Authorize Judge
+            </Button>
+          </div>
+        }
+      >
+        <form onSubmit={handleAddJudgeSubmit} className="space-y-3.5 text-xs font-sans">
+          <div>
+            <label className="block font-medium text-slate-700 mb-1 uppercase text-[10px] tracking-wider">
+              Judge Ethereum / Polygon Address *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="0x..."
+              value={newJudgeAddress}
+              onChange={(e) => setNewJudgeAddress(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 font-mono text-xs focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none transition-all"
+            />
+            {/* Quick Presets */}
+            {import.meta.env.VITE_JUDGE_ADDRESS && (
+              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                <span className="text-[11px] text-slate-500 font-medium">Quick Presets:</span>
                 <button
                   type="button"
-                  onClick={() => setIsInviteModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 cursor-pointer"
+                  onClick={() => {
+                    setNewJudgeAddress(import.meta.env.VITE_JUDGE_ADDRESS);
+                    setNewJudgeName('Accredited Arbitrator');
+                    setNewJudgeNotes('Accredited DeFi & smart contract auditor.');
+                  }}
+                  className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0047AB] border border-slate-200 font-mono text-[10px] cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold shadow-xs cursor-pointer transition-colors"
-                >
-                  Appoint & Authorize Judge
+                  Configured Arbitrator
                 </button>
               </div>
-            </form>
+            )}
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block font-medium text-slate-700 mb-1 uppercase text-[10px] tracking-wider">
+              Judge Display Name / Title *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Arbitrator Dr. Elena Vance"
+              value={newJudgeName}
+              onChange={(e) => setNewJudgeName(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium text-slate-700 mb-1 uppercase text-[10px] tracking-wider">
+              Arbitration Specialization & Scope
+            </label>
+            <textarea
+              rows={2}
+              placeholder="e.g. Smart Contract Security, DeFi protocols, Zero-Knowledge proofs..."
+              value={newJudgeNotes}
+              onChange={(e) => setNewJudgeNotes(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 font-sans text-xs focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none transition-all resize-none"
+            />
+          </div>
+        </form>
+      </Modal>
 
       {/* Modern In-App Dialog Modal */}
       <PolyLanceAlertModal
@@ -759,6 +748,14 @@ export const Judge: React.FC = () => {
         options={alertModalOptions}
         onClose={() => setAlertModalOptions(null)}
       />
-    </div>
+
+      {/* Global Video Modal */}
+      <VideoModal
+        id={activeVideoId}
+        isOpen={isOpen}
+        onClose={closeVideo}
+        triggerRef={triggerRef}
+      />
+    </PageContainer>
   );
 };

@@ -5,118 +5,34 @@ import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { ProofOfWorkUploader } from './ProofOfWorkUploader';
 import { getIpfsGatewayUrl, generateIpfsCid, getCachedIpfsFile, storeIpfsFile, openOrDownloadIpfsFile, CachedIpfsFile } from '../utils/ipfs';
-import { truncateAddress, getCanonicalCertificateId, getCertifiedPassVerifyUrl, formatWeb3ErrorMessage } from '../utils/formatters';
+import { truncateAddress, getCanonicalCertificateId, getCertifiedPassVerifyUrl, formatWeb3ErrorMessage, getPolygonScanUrl } from '../utils/formatters';
+import { calculateFeeBreakdownFromString } from '../utils/fees';
+import { getEngagementDisplayState } from '../types/lifecycle';
 import { 
   Sparkles, CheckCircle2, Clock, FileText, ExternalLink, Link2,
   Send, Scale, RefreshCw, Layers, TrendingUp, MessageSquare, 
   ChevronRight, Calendar, UserCheck, Eye, XCircle, Info, Copy,
   Check, Filter, ArrowUpDown, ChevronDown, DollarSign, Flag,
-  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award, CheckCheck, Loader2, Lock
+  Download, Image as ImageIcon, FileSpreadsheet, FileArchive, X, Award, CheckCheck, Loader2, Lock, Star, Share2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { generateCertificateSvg, KNOWN_ONCHAIN_TOKENS } from '../utils/certificateGenerator';
+import { CONTRACTS, TREASURY_WALLET } from '../config/contracts';
+import { PolygonLogo } from './brand/PolygonLogo';
+import { Button } from './common/Button';
 
 import { ActionStatusModal, ActionModalDetail } from './ActionStatusModal';
 import { RaiseDisputeModal } from './RaiseDisputeModal';
 import { FormattedJobDescription } from './FormattedJobDescription';
 import { PaymentReleasedModal } from './PaymentReleasedModal';
+import { NegotiationCard } from './NegotiationCard';
 import { scrollToSection } from '../utils/scroll';
 import { TokenIcon } from './TokenIcon';
+import { Modal } from './overlay';
 
 interface DeliverableWorkSubmissionPanelProps {
   job: Job;
 }
-
-/* 3D Header Illustration: Clipboard Checklist + Shield + Golden Cube */
-const ChecklistIllustration = () => (
-  <div className="relative w-24 h-20 flex items-center justify-center shrink-0 select-none">
-    <svg width="100%" height="100%" viewBox="0 0 160 115" fill="none" xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
-      {/* Floating Golden 3D Cube */}
-      <g transform="translate(118, 12) rotate(16)">
-        <polygon points="10,0 20,5 20,16 10,11" fill="#FBBF24" />
-        <polygon points="0,5 10,0 10,11 0,16" fill="#F59E0B" />
-        <polygon points="0,5 10,0 20,5 10,10" fill="#FDE68A" opacity="0.95" />
-      </g>
-
-      {/* Floating Cyan Orb */}
-      <circle cx="22" cy="74" r="4.5" fill="#38BDF8" opacity="0.9" />
-      <circle cx="23.5" cy="72.5" r="1.5" fill="#FFFFFF" />
-
-      {/* Sparkles */}
-      <path d="M124 44 L125.5 48 L129.5 49.5 L125.5 51 L124 55 L122.5 51 L118.5 49.5 L122.5 48 Z" fill="#93C5FD" opacity="0.85" />
-      <path d="M28 18 L29.5 22 L33.5 23.5 L29.5 25 L28 29 L26.5 25 L22.5 23.5 L26.5 22 Z" fill="#60A5FA" opacity="0.75" />
-
-      {/* Main Clipboard Container */}
-      <g>
-        <rect x="42" y="8" width="68" height="90" rx="14" fill="#FFFFFF" stroke="#93C5FD" strokeWidth="2.5" />
-        <rect x="62" y="3" width="28" height="10" rx="5" fill="#0047AB" />
-        <circle cx="76" cy="8" r="2.5" fill="#DBEAFE" />
-
-        <rect x="52" y="24" width="10" height="10" rx="3" fill="#0047AB" />
-        <path d="M54.5 29 L56.5 31 L60 26.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <rect x="66" y="27" width="34" height="4" rx="2" fill="#BAE6FD" />
-
-        <rect x="52" y="42" width="10" height="10" rx="3" fill="#0047AB" />
-        <path d="M54.5 47 L56.5 49 L60 44.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <rect x="66" y="45" width="30" height="4" rx="2" fill="#BAE6FD" />
-
-        <rect x="52" y="60" width="10" height="10" rx="3" fill="#0047AB" />
-        <path d="M54.5 65 L56.5 67 L60 62.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <rect x="66" y="63" width="24" height="4" rx="2" fill="#BAE6FD" />
-      </g>
-
-      {/* 3D Green Check Shield */}
-      <g transform="translate(90, 58)">
-        <path d="M16 0 C25 0 30 4 30 14 C30 26 18 33 16 35 C14 33 2 26 2 14 C2 4 7 0 16 0 Z" fill="#10B981" />
-        <path d="M16 3 C23 3 27 6 27 14 C27 24 17 30 16 32 C15 30 5 24 5 14 C5 6 9 3 16 3 Z" fill="#34D399" opacity="0.3" />
-        <path d="M11 16 L14.5 19.5 L21.5 12.5" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-      </g>
-    </svg>
-  </div>
-);
-
-/* Compact 3D Clock Illustration for Client View */
-const CompactClockIllustration = () => (
-  <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
-    <svg width="100%" height="100%" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg" className="select-none">
-      <circle cx="75" cy="75" r="65" fill="#FEF3C7" opacity="0.6" />
-      <circle cx="75" cy="75" r="58" stroke="#FDE68A" strokeWidth="1.5" strokeDasharray="3 6" opacity="0.85" />
-      <path d="M28 32 L30 35 L33 37 L30 39 L28 42 L26 39 L23 37 L26 35 Z" fill="#38BDF8" />
-      <path d="M122 28 L123.5 31 L126.5 32.5 L123.5 34 L122 37 L120.5 34 L117.5 32.5 L120.5 31 Z" fill="#0047AB" />
-      <path d="M132 94 L133.5 96.5 L136 98 L133.5 99.5 L132 102 L130.5 99.5 L128 98 L130.5 96.5 Z" fill="#F59E0B" />
-      <path d="M34 114 L35.5 116.5 L38 118 L35.5 119.5 L34 122 L32.5 119.5 L30 118 L32.5 116.5 Z" fill="#10B981" />
-
-      <g>
-        <circle cx="75" cy="75" r="41" fill="#F59E0B" stroke="#B45309" strokeWidth="3" />
-        <circle cx="75" cy="75" r="31" fill="#FFFDF8" stroke="#FEF3C7" strokeWidth="2" />
-        <circle cx="75" cy="48" r="1.5" fill="#D97706" />
-        <circle cx="102" cy="75" r="1.5" fill="#D97706" />
-        <circle cx="75" cy="102" r="1.5" fill="#D97706" />
-        <circle cx="48" cy="75" r="1.5" fill="#D97706" />
-        <line x1="75" y1="75" x2="67" y2="57" stroke="#1E293B" strokeWidth="3.5" strokeLinecap="round" />
-        <line x1="75" y1="75" x2="91" y2="63" stroke="#1E293B" strokeWidth="3" strokeLinecap="round" />
-        <circle cx="75" cy="75" r="3.5" fill="#F59E0B" stroke="#B45309" strokeWidth="1.5" />
-      </g>
-    </svg>
-  </div>
-);
-
-/* Compact 3D Mailbox for Client View */
-const CompactMailboxIllustration = () => (
-  <svg width="48" height="32" viewBox="0 0 80 54" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 select-none">
-    <ellipse cx="68" cy="47" rx="9" ry="5" fill="#10B981" />
-    <ellipse cx="72" cy="43" rx="6" ry="7" fill="#34D399" />
-    <rect x="47" y="29" width="6" height="25" rx="2" fill="#64748B" />
-    <rect x="32" y="9" width="34" height="24" rx="12" fill="#0047AB" />
-    <circle cx="66" cy="21" r="12" fill="#003882" />
-    <rect x="45" y="3" width="3" height="12" rx="1.5" fill="#EF4444" />
-    <rect x="45" y="3" width="10" height="6" rx="1" fill="#EF4444" />
-    <circle cx="46.5" cy="15" r="2" fill="#B91C1C" />
-    <g transform="translate(18, 13) rotate(-10)">
-      <rect x="0" y="0" width="24" height="16" rx="2" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="1" />
-      <path d="M0 0 L12 9 L24 0" stroke="#94A3B8" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </g>
-  </svg>
-);
 
 // Clean real-time date and time formatter
 const formatActivityTime = (ts?: number | string) => {
@@ -161,8 +77,16 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     requestModifications, 
     releasePayment, 
     claimAutoRelease,
-    raiseDispute 
+    raiseDispute,
+    submitClientReview,
+    acceptJobOffer,
+    declineJobOffer,
+    fundJob
   } = usePolyLanceData();
+
+  const [isAcceptingOffer, setIsAcceptingOffer] = useState(false);
+  const [isDecliningOffer, setIsDecliningOffer] = useState(false);
+  const [isFundingEscrow, setIsFundingEscrow] = useState(false);
 
   // Reactive job instance from Context
   const currentJob = useMemo(() => {
@@ -178,28 +102,45 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     return [...currentJob.progressUpdates].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
   }, [currentJob.progressUpdates]);
 
-  // Derived real-time latest modification request
+  const display = useMemo(() => {
+    return getEngagementDisplayState(currentJob);
+  }, [currentJob]);
+
+  // Derived real-time latest modification request: ONLY active if not superseded by a newer submission or completion
   const latestModificationRequest = useMemo(() => {
+    if (display.isCompleted || display.isPaid) return null;
     if (!currentJob.modificationRequests || currentJob.modificationRequests.length === 0) return null;
-    return [...currentJob.modificationRequests].sort((a, b) => (b.requestedAt || 0) - (a.requestedAt || 0))[0];
-  }, [currentJob.modificationRequests]);
+    const sortedMods = [...currentJob.modificationRequests].sort((a, b) => (b.requestedAt || 0) - (a.requestedAt || 0));
+    const latestMod = sortedMods[0];
+    if (!latestMod) return null;
+
+    // Check if there is any submission made after this modification request
+    const sortedSubs = [...(currentJob.submissions || [])].sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+    const latestSub = sortedSubs[0];
+    if (latestSub && (latestSub.submittedAt || 0) >= (latestMod.requestedAt || 0)) {
+      return null;
+    }
+
+    return latestMod;
+  }, [currentJob.modificationRequests, currentJob.submissions, display.isCompleted, display.isPaid]);
 
   // Derived pending time extension requests
   const pendingExtensionRequests = useMemo(() => {
+    if (display.isCompleted) return [];
     if (!currentJob.extensionRequests || currentJob.extensionRequests.length === 0) return [];
     return currentJob.extensionRequests.filter(
       (req) => req.status === 'Pending' || (!req.responded && req.status !== 'Approved' && req.status !== 'Rejected')
     );
-  }, [currentJob.extensionRequests]);
+  }, [currentJob.extensionRequests, display.isCompleted]);
 
   const milestoneProgressText = useMemo(() => {
-    if (currentJob.status === 'Completed') return '1 of 1 Completed';
+    if (display.isCompleted) return '1 of 1 Completed';
     if (currentJob.proof) return '1 of 1 Submitted';
     if (latestProgressUpdate && latestProgressUpdate.progressPercent !== undefined) {
       return `${latestProgressUpdate.progressPercent}% in Progress`;
     }
     return '0 of 1 Completed';
-  }, [currentJob.status, currentJob.proof, latestProgressUpdate]);
+  }, [display.isCompleted, currentJob.proof, latestProgressUpdate]);
 
   const isClient = Boolean(isConnected && address && currentJob.client && address.toLowerCase() === currentJob.client.toLowerCase());
   
@@ -245,6 +186,36 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
   const [previewFile, setPreviewFile] = useState<CachedIpfsFile | null>(null);
   const [isPaymentReleasedModalOpen, setIsPaymentReleasedModalOpen] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
+  const [reviewRating, setReviewRating] = useState<number>(currentJob.clientReview?.rating || 5);
+  const [reviewComment, setReviewComment] = useState<string>(currentJob.clientReview?.comment || '');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isEditingReview, setIsEditingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+
+  useEffect(() => {
+    if (currentJob.clientReview) {
+      setReviewRating(currentJob.clientReview.rating || 5);
+      setReviewComment(currentJob.clientReview.comment || '');
+    }
+  }, [currentJob.clientReview]);
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewComment.trim()) return;
+    setIsSubmittingReview(true);
+    try {
+      const ok = await submitClientReview(currentJob.id, reviewRating, reviewComment);
+      if (ok) {
+        setReviewSuccess(true);
+        setIsEditingReview(false);
+        setTimeout(() => setReviewSuccess(false), 3000);
+      }
+    } catch (err) {
+      console.error('Review submit error:', err);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
@@ -291,6 +262,26 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     }
     return `$${amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${paymentSymbol}`;
   };
+
+  const isCompletedOrReleased = useMemo(() => {
+    return (
+      display.isCompleted ||
+      display.isPaid ||
+      currentJob.status === 'Completed' ||
+      (currentJob as any).escrowStatus === 'RELEASED' ||
+      Boolean(currentJob.events?.some(e => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && ((e.status as string) === 'completed' || (e.status as string) === 'CONFIRMED')))
+    );
+  }, [display.isCompleted, display.isPaid, currentJob.status, (currentJob as any).escrowStatus, currentJob.events]);
+
+  const settledTxHash = useMemo(() => {
+    const paymentEv = currentJob.events?.find(e => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.txHash);
+    return paymentEv?.txHash || (currentJob as any).settlementTxHash || (currentJob as any).txHash;
+  }, [currentJob.events, (currentJob as any).settlementTxHash, (currentJob as any).txHash]);
+
+  const feeDetails = useMemo(() => {
+    const rawBudget = (currentJob as any).budget || currentJob.amountEth || currentJob.amountUsdc || String(rawEscrowAmount || 0);
+    return calculateFeeBreakdownFromString(rawBudget, paymentSymbol);
+  }, [(currentJob as any).budget, currentJob.amountEth, currentJob.amountUsdc, rawEscrowAmount, paymentSymbol]);
 
   const submittedTime = useMemo(() => {
     return currentJob.proof?.submittedAt || currentJob.submittedAt || 0;
@@ -393,13 +384,14 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     setActionModal({
       isOpen: true,
       title: 'Project Status Updated',
-      subtitle: `Milestone progress for "${currentJob.title}" has been updated on-chain to ${progressPercent}%.`,
+      subtitle: `Milestone progress for "${currentJob.title}" has been updated to ${progressPercent}%.`,
       icon: 'progress',
-      badgeText: `${progressPercent}% COMPLETED`,
+      badgeText: `${progressPercent}% PROGRESS`,
       details: [
         { label: 'PROGRESS PERCENTAGE', value: `${progressPercent}%`, isBadge: true },
         { label: 'STATUS NOTE', value: statusNote.trim() },
         ...(demoUrl.trim() ? [{ label: 'LIVE DEMO', value: demoUrl.trim(), isMono: true, explorerUrl: demoUrl.trim() }] : []),
+        ...(progressPercent === 100 ? [{ label: 'NEXT STEP', value: 'Waiting for the client to review your submission.' }] : []),
         { label: 'CONTRACT', value: truncateAddress(currentJob.contractAddress), isMono: true },
       ],
       primaryActionText: 'View Milestone Updates',
@@ -504,6 +496,86 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
     }
   };
 
+  const handleAcceptOffer = async () => {
+    setIsAcceptingOffer(true);
+    try {
+      await acceptJobOffer(currentJob.id);
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      setActionModal({
+        isOpen: true,
+        title: 'Offer Accepted Successfully',
+        subtitle: 'You have agreed to the project terms! The client has been notified to deposit the escrow funds on Polygon.',
+        icon: 'success',
+        badgeText: 'TERMS CONFIRMED',
+      });
+    } catch (err: any) {
+      console.error('Failed to accept offer:', err);
+      setActionModal({
+        isOpen: true,
+        title: 'Failed to Accept Offer',
+        subtitle: formatWeb3ErrorMessage(err),
+        icon: 'dispute',
+        badgeText: 'ACTION REJECTED',
+      });
+    } finally {
+      setIsAcceptingOffer(false);
+    }
+  };
+
+  const handleDeclineOffer = async () => {
+    if (!window.confirm('Are you sure you want to decline this job offer? The position will be returned to the open marketplace.')) {
+      return;
+    }
+    setIsDecliningOffer(true);
+    try {
+      await declineJobOffer(currentJob.id);
+      setActionModal({
+        isOpen: true,
+        title: 'Offer Declined',
+        subtitle: 'You have declined this project offer. The client has been notified and the job has been restored to Open status.',
+        icon: 'dispute',
+        badgeText: 'OFFER DECLINED',
+      });
+    } catch (err: any) {
+      console.error('Failed to decline offer:', err);
+      setActionModal({
+        isOpen: true,
+        title: 'Failed to Decline Offer',
+        subtitle: formatWeb3ErrorMessage(err),
+        icon: 'dispute',
+        badgeText: 'ACTION REJECTED',
+      });
+    } finally {
+      setIsDecliningOffer(false);
+    }
+  };
+
+  const handleDepositEscrow = async () => {
+    setIsFundingEscrow(true);
+    try {
+      await fundJob(currentJob.id);
+      confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+      setActionModal({
+        isOpen: true,
+        title: 'Escrow Successfully Funded!',
+        subtitle: `Project budget of ${formatAmountWithToken(rawEscrowAmount)} is now locked in non-custodial smart contract escrow on Polygon.`,
+        icon: 'success',
+        badgeText: 'ESCROW FUNDED',
+      });
+    } catch (err: any) {
+      console.error('Failed to fund escrow:', err);
+      setActionModal({
+        isOpen: true,
+        title: 'Escrow Funding Failed',
+        subtitle: formatWeb3ErrorMessage(err),
+        icon: 'dispute',
+        badgeText: 'TRANSACTION FAILED',
+      });
+    } finally {
+      setIsFundingEscrow(false);
+    }
+  };
+
   const handleEscalateToJudge = (e: React.FormEvent) => {
     e.preventDefault();
     if (!disputeEvidence.trim()) return;
@@ -560,7 +632,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
           title: upd.statusNote || `Milestone progress updated to ${upd.progressPercent}%`,
           subtitle: `Freelancer has completed ${upd.progressPercent}% of the milestone work.`,
           statusPill: {
-            text: upd.progressPercent === 100 ? 'Completed' : 'In Progress',
+            text: upd.progressPercent === 100 ? 'Progress 100%' : 'In Progress',
             pillClass: upd.progressPercent === 100 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200',
             dotClass: upd.progressPercent === 100 ? undefined : 'bg-blue-600',
             showCheck: upd.progressPercent === 100,
@@ -584,13 +656,35 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
         title: currentJob.proof.title || 'Milestone Deliverable Submitted',
         subtitle: currentJob.proof.description || 'Deliverables & IPFS Proof uploaded for client review.',
         statusPill: {
-          text: currentJob.status === 'Completed' ? 'Approved & Paid' : 'Under Review',
-          pillClass: currentJob.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-800 border border-slate-300',
-          showCheck: currentJob.status === 'Completed',
-          dotClass: currentJob.status === 'Completed' ? undefined : 'bg-[#0047AB]',
+          text: isCompletedOrReleased ? 'Approved' : 'Under Review',
+          pillClass: isCompletedOrReleased ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-800 border border-slate-300',
+          showCheck: isCompletedOrReleased,
+          dotClass: isCompletedOrReleased ? undefined : 'bg-[#0047AB]',
         },
         icon: <FileText size={13} />,
         demoUrl: currentJob.proof.externalLink,
+      });
+    }
+
+    // 2b. Real Payment Released event (when release is confirmed on-chain)
+    if (isCompletedOrReleased) {
+      const completedEvt = currentJob.events?.find((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed');
+      const releaseTs = completedEvt?.timestamp || (currentJob as any).completedAt || Date.now();
+      list.push({
+        id: `payment-released-${releaseTs}`,
+        type: 'milestone',
+        badge: 'PAYMENT',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border border-emerald-200',
+        timestamp: releaseTs,
+        dateStr: formatActivityTime(releaseTs),
+        title: 'Escrow Payment Released',
+        subtitle: `Escrow vault disbursed net payout to talent on Polygon PoS.`,
+        statusPill: {
+          text: 'Payment released',
+          pillClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+          showCheck: true,
+        },
+        icon: <CheckCircle2 size={13} />,
       });
     }
 
@@ -641,9 +735,11 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       });
     }
 
-    // 4. Real Escrow Funded Event
-    if (currentJob.createdAt || currentJob.status === 'Funded' || currentJob.status === 'Selected' || currentJob.status === 'Completed') {
-      const fundedEvent = currentJob.events?.find(e => (e.step === 'Funded' || e.title?.toLowerCase().includes('fund')) && e.timestamp && e.timestamp > 0);
+    // 4. Real Escrow Funded Event (ONLY when escrow is genuinely funded)
+    const fundedEvent = currentJob.events?.find(e => (e.step === 'Funded' || e.title?.toLowerCase().includes('fund')) && e.status === 'completed' && e.timestamp && e.timestamp > 0);
+    const isGenuinelyFunded = Boolean(fundedEvent) || currentJob.status === 'Funded' || currentJob.status === 'Submitted' || currentJob.status === 'Completed';
+
+    if (isGenuinelyFunded) {
       const rawFundedTs = fundedEvent?.timestamp || (currentJob as any).fundedAt || currentJob.createdAt || Date.now();
       const ts = typeof rawFundedTs === 'string' ? new Date(rawFundedTs).getTime() : rawFundedTs;
       const validTs = isNaN(ts) || ts <= 0 ? Date.now() : ts;
@@ -685,61 +781,47 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
   return (
     <div className="glass-panel p-4 sm:p-6 border border-slate-200/90 bg-white rounded-3xl shadow-xs space-y-4 overflow-hidden">
       
-      {/* 1. TOP HEADER WITH 3D CLIPBOARD CHECKLIST ART */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4 border-b border-slate-100 pb-4">
-        <div className="space-y-2 max-w-2xl">
+      {/* 1. TOP HEADER (COMPACT & CALM) */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-[#E5E7EB] pb-4">
+        <div className="space-y-1.5 max-w-2xl">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shadow-2xs shrink-0 ${currentJob.status === 'Completed' ? 'bg-emerald-50 border border-emerald-200/80 text-emerald-600' : 'bg-blue-50 border border-blue-200/80 text-blue-600'}`}>
-              {currentJob.status === 'Completed' ? <Award size={15} /> : <Layers size={15} />}
-            </div>
-            <span className={`text-[10px] sm:text-[10.5px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg ${currentJob.status === 'Completed' ? 'text-emerald-800 bg-emerald-50/80 border border-emerald-200/60' : 'text-blue-800 bg-blue-50/80 border border-blue-200/60'}`}>
-              {currentJob.status === 'Completed' ? 'Verified Milestone Archive' : 'Milestone Escrow Workspace'}
+            <span className="text-xs font-semibold text-[#0047AB] bg-[#EFF6FF] border border-[#BFDBFE] px-2.5 py-0.5 rounded-[6px]">
+              {isCompletedOrReleased ? 'Completed Project' : 'Milestone Workspace'}
             </span>
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-mono font-bold text-[9.5px] sm:text-[10px] uppercase tracking-wide shrink-0 ${
-              currentJob.status === 'Completed'
-                ? 'bg-emerald-100/70 text-emerald-800 border border-emerald-200'
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              isCompletedOrReleased
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : currentJob.status === 'Submitted'
-                ? 'bg-slate-100 text-slate-900 border border-slate-300 shadow-2xs'
-                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                ? 'bg-blue-50 text-[#0047AB] border border-blue-200'
+                : 'bg-amber-50 text-amber-800 border border-amber-200'
             }`}>
-              <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${
-                currentJob.status === 'Completed' ? 'bg-emerald-500' : currentJob.status === 'Submitted' ? 'bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] animate-pulse' : 'bg-amber-500 animate-pulse'
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                isCompletedOrReleased ? 'bg-emerald-500' : 'bg-[#0047AB]'
               }`} />
-              {currentJob.status === 'Completed' 
-                ? 'COMPLETED / SETTLED' 
-                : currentJob.status === 'Submitted' 
-                ? 'SUBMITTED • UNDER REVIEW' 
-                : (currentJob.status === 'Funded' || currentJob.status === 'Selected' ? 'FUNDED' : currentJob.status.toUpperCase())}
+              <span>{isCompletedOrReleased ? 'Completed' : currentJob.status === 'Submitted' ? 'Submitted • Under Review' : currentJob.status}</span>
             </span>
           </div>
 
-          <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 font-headline tracking-tight leading-tight">
-            {currentJob.status === 'Completed'
-              ? 'Completed Project & Settled Escrow Archive'
-              : 'Project Submission & Deliverable Verification Workspace'}
+          <h2 className="text-lg sm:text-xl font-bold text-[#0B0B0F] tracking-tight">
+            {currentJob.title}
           </h2>
 
-          <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xl">
-            {currentJob.status === 'Completed'
+          <p className="text-xs text-[#4B5563]">
+            {isCompletedOrReleased
               ? 'This project milestone has been completed, verified, and 100% of escrow funds are settled on Polygon PoS.'
               : 'On-chain milestone submission, revision requests, extension management, and escrow payout release.'}
           </p>
         </div>
 
-        {/* Right side: Action Button + Checklist Art (Properly Contained) */}
-        <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto justify-between sm:justify-end pr-0 lg:pr-1">
+        <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
           <button
             type="button"
             onClick={() => navigate(`/chat?jobId=${currentJob.id}`)}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] hover:shadow-md hover:shadow-[#00D2FF]/20 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs hover:shadow transition-all cursor-pointer shrink-0 active:scale-95 w-full sm:w-auto"
+            className="px-3.5 py-2 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-[#F6F7F9] text-[#0B0B0F] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
-            <MessageSquare size={13} />
-            <span>Open Messages Hub</span>
+            <MessageSquare size={14} className="text-[#0047AB]" />
+            <span>Open messages</span>
           </button>
-          
-          <div className="hidden sm:flex items-center justify-center shrink-0 w-24 h-20 overflow-hidden">
-            <ChecklistIllustration />
-          </div>
         </div>
       </div>
 
@@ -785,107 +867,253 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       {/* ========================================================================= */}
       {/* 2. DEDICATED COMPLETED VIEW (NO SUBMISSION FORMS, ONLY VERIFIED DETAILS) */}
       {/* ========================================================================= */}
-      {currentJob.status === 'Completed' ? (
+      {isCompletedOrReleased ? (
         <div className="space-y-4 animate-fadeIn">
-          {/* COMPLETED JOB SBT ATTESTATION BANNER (COMPACT, PROPORTIONAL & RESPONSIVE) */}
-          <div className="p-3 sm:p-4 rounded-2xl bg-[#0B0B0C] text-white border border-slate-800 shadow-xs relative overflow-hidden">
-            <div className="relative z-10 flex flex-col gap-2.5">
-              <div className="flex items-start gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 text-[#0047AB] flex items-center justify-center shadow-inner shrink-0 mt-0.5">
-                  <Award size={15} className="text-[#0047AB]" />
-                </div>
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
-                      ● Escrow Settled
-                    </span>
-                    <span className="text-[9.5px] text-slate-400 font-mono shrink-0">ERC-5192 SBT</span>
-                    
-                    {/* Canonical Certificate ID Badge with click-to-copy */}
-                    {(() => {
-                      const certId = getCanonicalCertificateId(currentJob.id, currentJob.contractAddress);
-                      return (
-                        <button
-                          type="button"
-                          onClick={handleCopySbtCertId}
-                          title="Click to copy Certificate ID"
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-[9px] font-mono font-bold text-slate-300 hover:text-white transition-colors cursor-pointer max-w-[160px] sm:max-w-xs truncate"
-                        >
-                          <span className="truncate">{certId}</span>
-                          {copiedSbtCertId ? (
-                            <CheckCheck size={10} className="text-emerald-400 shrink-0" />
-                          ) : (
-                            <Copy size={9} className="text-slate-400 shrink-0" />
-                          )}
-                        </button>
-                      );
-                    })()}
+          {/* COMPACT ROLE-BASED CERTIFICATE CARD */}
+          {(() => {
+            const certVariant = isClient ? 'patronage' : 'work';
+            const known = currentJob ? (KNOWN_ONCHAIN_TOKENS[(currentJob.id || '').toLowerCase()] || KNOWN_ONCHAIN_TOKENS[String(currentJob.sbtTokenId || '')]) : null;
+            const realTokenId = currentJob.onchainTokenId ?? known?.onchainTokenId;
+            const certTokenId = realTokenId ?? (currentJob.sbtTokenId ? Number(currentJob.sbtTokenId) : 1);
+            const certNo = currentJob.certificateNo ?? known?.certificateNo;
+            const certAmount = rawEscrowAmount || 10;
+            
+            let certSvg = '';
+            try {
+              certSvg = generateCertificateSvg({
+                tokenId: certTokenId,
+                certificateNo: certNo,
+                variant: certVariant,
+                jobTitle: currentJob.title,
+                recipientAddress: currentJob.freelancer || '',
+                recipientName: undefined,
+                clientAddress: currentJob.client || '',
+                clientName: undefined,
+                amount: certAmount,
+                tokenSymbol: paymentSymbol,
+                completedAt: currentJob.completedAt || currentJob.createdAt || Date.now(),
+                contractAddress: CONTRACTS.ReputationSBT,
+              });
+            } catch {
+              certSvg = '';
+            }
+
+            const polygonscanUrl = realTokenId !== undefined
+              ? `https://polygonscan.com/nft/${CONTRACTS.ReputationSBT}/${realTokenId}`
+              : (currentJob.releaseTxHash ? `https://polygonscan.com/tx/${currentJob.releaseTxHash}` : `https://polygonscan.com/address/${CONTRACTS.ReputationSBT}`);
+
+            return (
+              <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  {/* Scaled Square Thumbnail using Canonical Certificate Generator */}
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[8px] border border-[#E5E7EB] overflow-hidden bg-[#FAFAF8] shrink-0 shadow-xs flex items-center justify-center">
+                    {certSvg ? (
+                      <div 
+                        className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full select-none"
+                        dangerouslySetInnerHTML={{ __html: certSvg }} 
+                      />
+                    ) : (
+                      <Award size={24} className="text-[#0047AB]" />
+                    )}
                   </div>
 
-                  <h3 className="font-headline font-bold text-sm sm:text-base text-white tracking-tight">
-                    Official Soulbound Token (SBT) Issued
-                  </h3>
-                  <p className="text-[11px] text-slate-300 font-sans leading-snug line-clamp-2">
-                    On-chain proof of work minted to Polygon PoS. Verify and share this cryptographic milestone attestation.
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-semibold text-[#0047AB] bg-[#EFF6FF] border border-[#BFDBFE] px-2 py-0.5 rounded-[6px]">
+                        PL-SBT #{certTokenId}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 size={11} className="text-emerald-600" />
+                        <span>Issued</span>
+                      </span>
+                    </div>
+
+                    <h3 className="text-sm font-semibold text-[#0B0B0F] truncate">
+                      {isClient ? 'Escrow Patronage Certificate' : 'Proof of Work Certificate'}
+                    </h3>
+
+                    <p className="text-xs text-[#4B5563]">
+                      ERC-5192 Soulbound Token cryptographically minted to Polygon PoS
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 flex-wrap sm:flex-nowrap">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => navigate(`/certificate/${certTokenId}`)}
+                    icon={<ExternalLink size={13} />}
+                  >
+                    View certificate
+                  </Button>
+                  <a
+                    href={polygonscanUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-[#F6F7F9] text-xs font-medium text-[#0B0B0F] transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <span>Verify on Polygonscan</span>
+                    <ExternalLink size={12} className="text-[#6B7280]" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/#/certificate/${certTokenId}`;
+                      navigator.clipboard.writeText(shareUrl);
+                      setCopiedSbtCertId(true);
+                      setTimeout(() => setCopiedSbtCertId(false), 2000);
+                    }}
+                    className="px-3 py-1.5 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-[#F6F7F9] text-xs font-medium text-[#0B0B0F] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Share2 size={12} className="text-[#6B7280]" />
+                    <span>{copiedSbtCertId ? 'Copied link!' : 'Share'}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* CLIENT REVIEW & QUALITY RATING SECTION */}
+          <div className="bg-white border border-[#E5E7EB] rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E7EB] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center font-bold shrink-0">
+                  <Star size={16} className="fill-amber-500 text-amber-500" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm sm:text-base text-[#0B0B0F]">
+                    Client Review & Quality Rating
+                  </h4>
+                  <p className="text-xs text-[#4B5563]">
+                    Verified feedback recorded on the freelancer's public profile and reputation record
                   </p>
                 </div>
               </div>
 
-              {/* Compact Action Buttons Group */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800 w-full">
-                <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
-                  {(() => {
-                    const certId = getCanonicalCertificateId(currentJob.id, currentJob.contractAddress);
-                    const verifyUrl = getCertifiedPassVerifyUrl(certId);
-                    return (
-                      <>
-                        <button
-                          type="button"
-                          onClick={handleCopySbtCertId}
-                          title="Copy Certificate ID"
-                          className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white border border-white/20 text-[11px] font-bold font-mono flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
-                        >
-                          {copiedSbtCertId ? <CheckCheck size={11} className="text-emerald-400 shrink-0" /> : <Copy size={11} className="shrink-0" />}
-                          <span className="truncate">{copiedSbtCertId ? 'Copied!' : 'Copy ID'}</span>
-                        </button>
-
-                        <a
-                          href={verifyUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Verify on CertifiedPass"
-                          className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
-                        >
-                          <span className="truncate">CertifiedPass</span>
-                          <ExternalLink size={10} className="shrink-0" />
-                        </a>
-                      </>
-                    );
-                  })()}
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => setIsPaymentReleasedModalOpen(true)}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-emerald-100 hover:text-white border border-emerald-500/40 text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto shrink-0"
-                  >
-                    <CheckCircle2 size={13} className="text-emerald-300" />
-                    <span>Settlement Receipt</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/jobs/${currentJob.id}/attestation`)}
-                    className="px-3 py-1.5 rounded-lg bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto shrink-0"
-                  >
-                    <Award size={13} />
-                    <span>View Certificate</span>
-                    <ExternalLink size={11} />
-                  </button>
-                </div>
-              </div>
+              {currentJob.clientReview && isClient && !isEditingReview && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingReview(true)}
+                  className="text-xs text-[#0047AB] hover:underline font-medium flex items-center gap-1 cursor-pointer"
+                >
+                  Edit Review
+                </button>
+              )}
             </div>
+
+            {/* Review form for client when no review or editing */}
+            {isClient && (!currentJob.clientReview || isEditingReview) ? (
+              <form onSubmit={handleReviewSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-[#0B0B0F]">
+                    Rate Freelancer Performance (1 to 5 stars)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewRating(star)}
+                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                        title={`${star} star${star > 1 ? 's' : ''}`}
+                      >
+                        <Star
+                          size={24}
+                          className={star <= reviewRating ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}
+                        />
+                      </button>
+                    ))}
+                    <span className="text-xs font-semibold text-[#0B0B0F] ml-2">
+                      {reviewRating === 5 ? '5.0 - Exceptional Work' :
+                       reviewRating === 4 ? '4.0 - Great Delivery' :
+                       reviewRating === 3 ? '3.0 - Satisfactory' :
+                       reviewRating === 2 ? '2.0 - Needs Improvement' : '1.0 - Poor'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-[#0B0B0F]">
+                    Client Feedback & Testimonial
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Describe the freelancer's communication, speed, deliverable quality, and overall experience..."
+                    className="w-full text-xs p-3 border border-[#E5E7EB] rounded-xl bg-white focus:outline-none focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] resize-none"
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReview || !reviewComment.trim()}
+                    className="px-4 py-2 bg-[#0047AB] hover:bg-[#003882] disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    {isSubmittingReview ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={13} />
+                        <span>{isEditingReview ? 'Update Review' : 'Submit Review'}</span>
+                      </>
+                    )}
+                  </button>
+
+                  {isEditingReview && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingReview(false)}
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-xl transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  )}
+
+                  {reviewSuccess && (
+                    <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                      <CheckCircle2 size={13} /> Review recorded successfully!
+                    </span>
+                  )}
+                </div>
+              </form>
+            ) : currentJob.clientReview ? (
+              <div className="p-4 bg-[#F6F7F9] border border-[#E5E7EB] rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          size={15}
+                          className={s <= currentJob.clientReview!.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-[#0B0B0F]">
+                      {currentJob.clientReview.rating}.0 / 5.0 Rating
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-[#6B7280]">
+                    Verified Client Review
+                  </span>
+                </div>
+
+                <p className="text-xs text-[#0B0B0F] leading-relaxed italic bg-white p-3 rounded-lg border border-[#E5E7EB]">
+                  "{currentJob.clientReview.comment}"
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 bg-[#F6F7F9] border border-[#E5E7EB] rounded-xl text-center text-xs text-[#6B7280]">
+                <span>No review has been posted by the client yet. Once submitted, it will be displayed on the freelancer's public profile.</span>
+              </div>
+            )}
           </div>
 
 
@@ -983,33 +1211,138 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               </div>
             )}
 
-            {/* Escrow Settlement Financial Breakdown */}
-            <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2.5 sm:space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-emerald-200/70 pb-2">
-                <span className="font-mono text-[10px] sm:text-[11px] font-bold uppercase text-emerald-900 flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-emerald-600" />
-                  Full On-Chain Escrow Settlement Summary
-                </span>
-                <span className="text-[11px] sm:text-xs font-mono font-bold text-emerald-950">
-                  100% Released
-                </span>
-              </div>
+            {/* Clean Receipt-Style Escrow Settlement Summary */}
+            {(() => {
+              const completedEvt = currentJob.events?.find((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.txHash);
+              const txHash = completedEvt?.txHash || currentJob.contractAddress;
+              const hasConfirmedTx = Boolean(completedEvt?.txHash);
 
-              <div className="space-y-1.5 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-3 text-xs font-mono">
-                <div className="p-2 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-emerald-100 flex sm:block items-center justify-between">
-                  <span className="text-slate-500 text-[10px] sm:text-[10.5px] block">Gross Contract Escrow</span>
-                  <strong className="text-slate-900 text-xs sm:text-sm font-bold sm:font-black">{formatAmountWithToken(rawEscrowAmount)}</strong>
+              const handleDownloadCsvReceipt = () => {
+                const rows = [
+                  ['PolyLance Escrow Settlement Receipt'],
+                  ['Job Title', currentJob.title],
+                  ['Job ID', currentJob.id],
+                  ['Contract Address', currentJob.contractAddress || ''],
+                  ['Client Address', currentJob.client || ''],
+                  ['Freelancer Address', currentJob.freelancer || ''],
+                  ['Gross Job Budget', `${feeDetails.budgetFormatted} ${paymentSymbol}`],
+                  ['Client Service Fee', `${feeDetails.clientFeeFormatted} ${paymentSymbol}`],
+                  ['Total Client Deposit', `${feeDetails.clientDepositFormatted} ${paymentSymbol}`],
+                  ['Freelancer Platform Fee (2.5%)', `-${feeDetails.freelancerFeeFormatted} ${paymentSymbol}`],
+                  ['Net Released to Talent', `${feeDetails.freelancerNetFormatted} ${paymentSymbol}`],
+                  ['PolyLance Platform Total', `${feeDetails.platformTotalFormatted} ${paymentSymbol}`],
+                  ['Settlement Network', 'Polygon PoS (Chain ID 137)'],
+                  ['Treasury Destination', TREASURY_WALLET || ''],
+                  ['Status', isCompletedOrReleased ? 'Confirmed & Settled' : 'Release Pending'],
+                  ['Settled Timestamp', new Date(currentJob.completedAt || Date.now()).toISOString()],
+                ];
+                const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement('a');
+                link.setAttribute('href', encodedUri);
+                link.setAttribute('download', `PolyLance-Receipt-${currentJob.id}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              };
+
+              return (
+                <div className={`rounded-[12px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs space-y-0 ${isCompletedOrReleased ? 'bg-[#F0FDF4]/30' : ''}`}>
+                  <div className="p-4 bg-[#F6F7F9] border-b border-[#E5E7EB] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-emerald-600" />
+                      <span className="text-sm font-semibold text-[#0B0B0F]">
+                        Escrow Settlement Summary
+                      </span>
+                    </div>
+                    <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                      {isCompletedOrReleased ? '100% Released' : 'Release Pending'}
+                    </span>
+                  </div>
+
+                  <div className="p-4 divide-y divide-[#E5E7EB] text-xs space-y-0">
+                    <div className="py-2.5 flex justify-between items-center">
+                      <span className="text-[#4B5563]">Gross job budget</span>
+                      <span className="font-semibold text-[#0B0B0F] tabular-nums">
+                        {feeDetails.budgetFormatted} {paymentSymbol}
+                      </span>
+                    </div>
+
+                    <div className="py-2.5 flex justify-between items-center">
+                      <span className="text-[#4B5563]">Client service fee</span>
+                      <span className="font-semibold text-[#0B0B0F] tabular-nums">
+                        +{feeDetails.clientFeeFormatted} {paymentSymbol}
+                      </span>
+                    </div>
+
+                    <div className="py-2.5 flex justify-between items-center">
+                      <span className="text-[#4B5563]">Total client deposit</span>
+                      <span className="font-semibold text-[#0B0B0F] tabular-nums">
+                        {feeDetails.clientDepositFormatted} {paymentSymbol}
+                      </span>
+                    </div>
+
+                    <div className="py-2.5 flex justify-between items-center">
+                      <span className="text-[#4B5563]">Freelancer platform fee (2.5%)</span>
+                      <span className="font-semibold text-rose-600 tabular-nums">
+                        -{feeDetails.freelancerFeeFormatted} {paymentSymbol}
+                      </span>
+                    </div>
+
+                    <div className="py-2.5 flex justify-between items-center bg-[#F0FDF4]/60 px-3 -mx-4 font-medium">
+                      <span className="text-emerald-950 font-semibold">Net released to talent</span>
+                      <span className="font-bold text-emerald-900 text-sm tabular-nums">
+                        {feeDetails.freelancerNetFormatted} {paymentSymbol}
+                      </span>
+                    </div>
+
+                    <div className="py-2.5 flex justify-between items-center">
+                      <span className="text-[#4B5563]">PolyLance platform total</span>
+                      <span className="font-semibold text-[#0B0B0F] tabular-nums">
+                        {feeDetails.platformTotalFormatted} {paymentSymbol}
+                      </span>
+                    </div>
+
+                    <div className="py-2.5 flex justify-between items-center">
+                      <span className="text-[#4B5563]">Settlement network</span>
+                      <span className="font-medium text-[#0B0B0F] inline-flex items-center gap-1">
+                        <PolygonLogo variant="mark" size={13} />
+                        <span>Polygon PoS</span>
+                      </span>
+                    </div>
+
+                    {hasConfirmedTx && (
+                      <div className="py-2.5 flex justify-between items-center">
+                        <span className="text-[#4B5563]">On-chain transaction</span>
+                        <a
+                          href={getPolygonScanUrl(txHash)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-[#0047AB] hover:underline inline-flex items-center gap-1 text-[11px]"
+                        >
+                          <span>{truncateAddress(txHash)}</span>
+                          <ExternalLink size={11} />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-3 bg-[#F6F7F9] border-t border-[#E5E7EB] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                    <span className="text-[11px] text-[#6B7280]">
+                      Treasury vault: {truncateAddress(TREASURY_WALLET || '0x0000...0000')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleDownloadCsvReceipt}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-slate-50 text-xs font-medium text-[#0B0B0F] transition-colors cursor-pointer"
+                    >
+                      <Download size={13} className="text-[#6B7280]" />
+                      <span>Download receipt (CSV)</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="p-2 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-emerald-100 flex sm:block items-center justify-between">
-                  <span className="text-slate-500 text-[10px] sm:text-[10.5px] block">Platform Maintenance (2.5%)</span>
-                  <strong className="text-rose-600 text-xs sm:text-sm font-bold sm:font-black">-{formatAmountWithToken(rawEscrowAmount * 0.025)}</strong>
-                </div>
-                <div className="p-2 sm:p-3 bg-emerald-600 text-white rounded-lg sm:rounded-xl shadow-xs flex sm:block items-center justify-between">
-                  <span className="text-emerald-100 text-[10px] sm:text-[10.5px] block">Net Released to Talent</span>
-                  <strong className="text-white text-xs sm:text-base font-black">{formatAmountWithToken(rawEscrowAmount * 0.975)}</strong>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
         </div>
       ) : showFreelancerWorkspace && currentJob.status !== 'Cancelled' ? (
@@ -1058,15 +1391,13 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
 
             {/* Gating for Selection Phase / Awaiting Escrow Funding */}
             {currentJob.status === 'Selected' ? (
-              <div className="p-6 rounded-2xl bg-slate-50 border-2 border-slate-200 shadow-xs text-center space-y-2.5">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 text-[#0047AB] flex items-center justify-center mx-auto shadow-2xs">
-                  <Clock size={24} />
-                </div>
-                <h4 className="font-headline font-bold text-slate-900 text-sm">Escrow Funding in Progress</h4>
-                <p className="text-xs text-slate-600 font-sans max-w-md mx-auto leading-relaxed">
-                  You are the selected talent for this project! Deliverable uploads and milestone verification will unlock immediately once the client funds the smart contract escrow on Polygon.
-                </p>
-              </div>
+              <NegotiationCard
+                job={currentJob}
+                isClient={isClient}
+                isFreelancer={isAssignedFreelancer}
+                onFundEscrow={handleDepositEscrow}
+                isFundingEscrow={isFundingEscrow}
+              />
             ) : (
               <>
                 {/* Submitted Deliverables Card (Awaiting Client Review) */}
@@ -1161,8 +1492,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   </div>
                 ) : null}
 
-                {/* Main Primary Deliverables Submission Form: Only shown when no submission exists, client asked for revisions, or freelancer toggled update */}
-                {((!currentJob.proof && currentJob.status !== 'Submitted') || latestModificationRequest || showUpdateForm) && (
+                {/* Main Primary Deliverables Submission Form: Only shown when active, not completed, and either no submission exists, client asked for revisions, or freelancer toggled update */}
+                {!isCompletedOrReleased && !display.isCompleted && ((!currentJob.proof && currentJob.status !== 'Submitted') || latestModificationRequest || showUpdateForm) && (
                   <ProofOfWorkUploader onSubmit={handleWorkSubmit} />
                 )}
               </>
@@ -1203,8 +1534,9 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 <ChevronRight size={13} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
               </button>
 
-              {/* Side Quick Actions: Progress & Extension Drawer Toggles */}
-              <div className="space-y-2 pt-1">
+              {/* Side Quick Actions: Progress & Extension Drawer Toggles (Hidden when completed) */}
+              {!isCompletedOrReleased && !display.isCompleted && (
+                <div className="space-y-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setFreelancerTab(freelancerTab === 'status' ? 'submit' : 'status')}
@@ -1333,6 +1665,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   </form>
                 )}
               </div>
+              )}
             </div>
 
             {/* Pending Extension Notification if any */}
@@ -1387,9 +1720,21 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 Escrow Status
               </span>
               <div className="truncate">
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-bold text-[10px] uppercase tracking-wide whitespace-nowrap">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
-                  {currentJob.status === 'Funded' || currentJob.status === 'Selected' ? 'FUNDED' : currentJob.status.toUpperCase()}
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-mono font-bold text-[10px] uppercase tracking-wide whitespace-nowrap ${
+                  currentJob.status === 'Funded'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : currentJob.status === 'Selected'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-slate-100 text-slate-700 border border-slate-300'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${
+                    currentJob.status === 'Funded' ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`} />
+                  {currentJob.status === 'Funded'
+                    ? 'FUNDED'
+                    : currentJob.status === 'Selected'
+                    ? (currentJob.freelancerAgreedTerms ? 'OFFER ACCEPTED' : 'OFFER PENDING')
+                    : currentJob.status.toUpperCase()}
                 </span>
               </div>
             </div>
@@ -1661,34 +2006,34 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             </div>
           )}
 
-          {/* Awaiting Freelancer Deliverables Showcase Card (CLIENT ONLY) */}
-          {!currentJob.proof ? (
-            <div className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs relative overflow-hidden">
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4">
-                <CompactClockIllustration />
-                <div className="space-y-0.5 text-center sm:text-left flex-1 min-w-0">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100/90 text-amber-800 border border-amber-300/80 font-mono font-bold text-[9.5px] uppercase tracking-wide">
-                    <span>⏳</span> IN PROGRESS
-                  </span>
-                  <h3 className="text-sm sm:text-base font-black text-slate-900 font-headline tracking-tight mt-0.5">
-                    Awaiting Freelancer Deliverables
+          {/* Selection Stage Gating or Awaiting Deliverables (CLIENT ONLY) */}
+          {currentJob.status === 'Selected' ? (
+            <NegotiationCard
+              job={currentJob}
+              isClient={isClient}
+              isFreelancer={isAssignedFreelancer}
+              onFundEscrow={handleDepositEscrow}
+              isFundingEscrow={isFundingEscrow}
+            />
+          ) : !currentJob.proof ? (
+            <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[12px] p-4 shadow-xs space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-[8px] bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <Clock size={20} />
+                </div>
+                <div className="space-y-1 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-[6px]">
+                      In Progress
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-[#0B0B0F]">
+                    Awaiting freelancer deliverables
                   </h3>
-                  <p className="text-[11px] text-slate-600 font-medium leading-relaxed max-w-lg">
-                    The hired freelancer is currently working on the project milestones. Once deliverables are uploaded to IPFS, you can inspect the files, review code, and approve escrow payout.
+                  <p className="text-xs text-[#4B5563] leading-relaxed">
+                    The hired freelancer is currently working on the project deliverables. Once submitted, you will be notified to inspect the deliverables and approve payment release.
                   </p>
                 </div>
-              </div>
-
-              <div className="bg-blue-50/80 border border-blue-200/80 rounded-xl p-2 px-3 flex items-center justify-between gap-2.5 mt-2.5 shadow-2xs">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-[9px] font-bold">
-                    <Info size={10} className="text-white" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-blue-900 truncate">
-                    Your action is required once the deliverables are submitted.
-                  </span>
-                </div>
-                <CompactMailboxIllustration />
               </div>
             </div>
           ) : (
@@ -1919,22 +2264,56 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 </div>
               </div>
 
-              {currentJob.status !== 'Disputed' && (() => {
-                const grossAmount = rawEscrowAmount;
-                const maintFeeAmount = grossAmount * 0.025;
-                const netDevPayout = grossAmount - maintFeeAmount;
-
-                return (
+              {currentJob.status !== 'Disputed' && (
+                isCompletedOrReleased ? (
+                  <div className="pt-2.5 border-t border-slate-200 space-y-2.5 font-sans">
+                    <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                          <CheckCircle2 size={14} className="text-emerald-600" />
+                          Escrow Settled &amp; Funds Disbursed
+                        </span>
+                        <span className="font-mono text-[10px] uppercase font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          On-Chain Confirmed
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-emerald-100 text-xs font-mono">
+                        <div className="flex items-center gap-3">
+                          <span className="text-slate-600">Disbursed: <strong className="text-slate-900">{feeDetails.budgetFormatted} {feeDetails.token}</strong></span>
+                          <span className="text-slate-400">|</span>
+                          <span className="text-slate-600">Platform Fee (2.5%): <strong className="text-rose-600">-{feeDetails.freelancerFeeFormatted} {feeDetails.token}</strong></span>
+                        </div>
+                        <div className="text-slate-900 font-bold">
+                          <span>Net Sent to Talent: </span>
+                          <strong className="text-emerald-700 text-sm font-black">{feeDetails.freelancerNetFormatted} {feeDetails.token}</strong>
+                        </div>
+                      </div>
+                      {settledTxHash && (
+                        <div className="pt-1 flex items-center justify-between text-[11px] font-mono">
+                          <a
+                            href={`https://polygonscan.com/tx/${settledTxHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#0047AB] hover:underline inline-flex items-center gap-1"
+                          >
+                            <span>View Settlement on Polygonscan</span>
+                            <ExternalLink size={11} />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
                   <div className="pt-2.5 border-t border-slate-200 space-y-2.5 font-sans">
                     <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono">
                       <div className="flex items-center gap-3">
-                        <span className="text-slate-600">Escrow Release: <strong className="text-slate-900">{formatAmountWithToken(grossAmount)}</strong></span>
+                        <span className="text-slate-600">Escrow Release: <strong className="text-slate-900">{feeDetails.budgetFormatted} {feeDetails.token}</strong></span>
                         <span className="text-slate-400">|</span>
-                        <span className="text-slate-600">Platform Maintenance Fee (2.5%): <strong className="text-rose-600">-{formatAmountWithToken(maintFeeAmount)}</strong></span>
+                        <span className="text-slate-600">Platform Maintenance Fee (2.5%): <strong className="text-rose-600">-{feeDetails.freelancerFeeFormatted} {feeDetails.token}</strong></span>
                       </div>
                       <div className="text-slate-900 font-bold">
                         <span>Net Sent to Talent: </span>
-                        <strong className="text-emerald-700 text-sm font-black">{formatAmountWithToken(netDevPayout)}</strong>
+                        <strong className="text-emerald-700 text-sm font-black">{feeDetails.freelancerNetFormatted} {feeDetails.token}</strong>
                       </div>
                     </div>
 
@@ -1955,7 +2334,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                           ) : (
                             <>
                               <CheckCircle2 size={13} />
-                              <span>Approve & Release Funds ({formatAmountWithToken(grossAmount)} • Net: {formatAmountWithToken(netDevPayout)})</span>
+                              <span>Approve & Release Funds ({feeDetails.budgetFormatted} {feeDetails.token} • Net: {feeDetails.freelancerNetFormatted} {feeDetails.token})</span>
                             </>
                           )}
                         </button>
@@ -2018,7 +2397,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                             ) : (
                               <>
                                 <CheckCircle2 size={12} />
-                                <span>Claim Auto-Release ({formatAmountWithToken(grossAmount)})</span>
+                                <span>Claim Auto-Release ({feeDetails.budgetFormatted} {feeDetails.token})</span>
                               </>
                             )}
                           </button>
@@ -2026,8 +2405,8 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                       </div>
                     )}
                   </div>
-                );
-              })()}
+                )
+              )}
             </div>
           )}
 
@@ -2261,11 +2640,11 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                             href={act.demoUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg bg-[#0047AB] text-white font-bold text-[8.5px] sm:text-[9px] shadow-2xs transition-all cursor-pointer shrink-0"
-                            title="Open Live Staging / Demo URL"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0047AB] text-white text-[10px] font-medium transition-colors cursor-pointer shrink-0"
+                            title="Open submitted deliverable or project PR"
                           >
-                            <span>Demo</span>
-                            <ExternalLink size={8.5} className="text-white shrink-0" />
+                            <span>Open deliverable</span>
+                            <ExternalLink size={10} className="text-white shrink-0" />
                           </a>
                         )}
                         <span className={`${act.statusPill.pillClass} font-bold text-[8.5px] sm:text-[9.5px] px-1.5 sm:px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-2xs shrink-0 whitespace-nowrap`}>
@@ -2327,27 +2706,18 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       />
 
       {/* Interactive IPFS Deliverable File Preview Modal */}
-      {previewFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn font-sans">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 relative overflow-hidden max-h-[90vh] flex flex-col">
-            
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center shrink-0">
-                  <FileText size={15} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-black text-slate-900 truncate">
-                    {previewFile.name}
-                  </h3>
-                  <span className="text-[10px] font-mono text-slate-600 truncate block">
-                    CID: {previewFile.cid}
-                  </span>
-                </div>
-              </div>
-
+      <Modal
+        isOpen={Boolean(previewFile)}
+        onClose={() => setPreviewFile(null)}
+        title={previewFile?.name}
+        subtitle={previewFile ? `CID: ${previewFile.cid}` : undefined}
+        maxWidth="lg"
+        footer={
+          previewFile && (
+            <div className="flex items-center justify-between w-full text-[11px] text-slate-500 font-mono">
+              <span>Size: {(previewFile.size / 1024).toFixed(1)} KB</span>
               <div className="flex items-center gap-2">
+                <span>Uploaded: {new Date(previewFile.uploadedAt).toLocaleTimeString()}</span>
                 <button
                   type="button"
                   onClick={() => openOrDownloadIpfsFile(previewFile.cid, previewFile.name)}
@@ -2356,70 +2726,56 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                   <Download size={12} />
                   <span>Download</span>
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPreviewFile(null)}
-                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer transition-colors"
-                >
-                  <X size={15} />
-                </button>
               </div>
             </div>
-
-            {/* Modal Content Preview */}
-            <div className="flex-1 overflow-auto py-4">
-              {previewFile.type?.startsWith('image/') || /\.(png|jpe?g|webp|svg|gif)$/i.test(previewFile.name) ? (
-                <div className="flex items-center justify-center p-2 bg-slate-50 rounded-2xl border border-slate-200">
-                  <img
-                    src={previewFile.dataUrl}
-                    alt={previewFile.name}
-                    className="max-h-[60vh] max-w-full rounded-xl object-contain shadow-xs"
-                  />
+          )
+        }
+      >
+        {previewFile && (
+          <div data-lenis-prevent="true" className="flex-1 overflow-auto overscroll-contain py-2 min-h-0 custom-scrollbar">
+            {previewFile.type?.startsWith('image/') || /\.(png|jpe?g|webp|svg|gif)$/i.test(previewFile.name) ? (
+              <div className="flex items-center justify-center p-2 bg-slate-50 rounded-2xl border border-slate-200">
+                <img
+                  src={previewFile.dataUrl}
+                  alt={previewFile.name}
+                  className="max-h-[60vh] max-w-full rounded-xl object-contain shadow-xs"
+                />
+              </div>
+            ) : previewFile.type === 'application/pdf' || /\.pdf$/i.test(previewFile.name) ? (
+              <div className="w-full h-[60vh] rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
+                <iframe
+                  src={previewFile.dataUrl}
+                  title={previewFile.name}
+                  className="w-full h-full border-none"
+                />
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 text-[#0047AB] mx-auto flex items-center justify-center">
+                  <FileSpreadsheet size={24} />
                 </div>
-              ) : previewFile.type === 'application/pdf' || /\.pdf$/i.test(previewFile.name) ? (
-                <div className="w-full h-[60vh] rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
-                  <iframe
-                    src={previewFile.dataUrl}
-                    title={previewFile.name}
-                    className="w-full h-full border-none"
-                  />
-                </div>
-              ) : (
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-[#0047AB] mx-auto flex items-center justify-center">
-                    <FileSpreadsheet size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">{previewFile.name}</h4>
-                    <p className="text-xs text-slate-500 font-medium mt-0.5">
-                      {previewFile.type || 'Document / Binary Artifact'} ({(previewFile.size / 1024).toFixed(1)} KB)
-                    </p>
-                  </div>
-                  <p className="text-xs text-slate-600 max-w-md mx-auto">
-                    This file is ready for full inspection in your preferred desktop application (Excel, Numbers, LibreOffice, or IDE).
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">{previewFile.name}</h4>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    {previewFile.type || 'Document / Binary Artifact'} ({(previewFile.size / 1024).toFixed(1)} KB)
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => openOrDownloadIpfsFile(previewFile.cid, previewFile.name)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-xs shadow-md cursor-pointer transition-all hover:scale-105"
-                  >
-                    <Download size={14} />
-                    <span>Open / Download {previewFile.name}</span>
-                  </button>
                 </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-              <span>Size: {(previewFile.size / 1024).toFixed(1)} KB</span>
-              <span>Uploaded: {new Date(previewFile.uploadedAt).toLocaleTimeString()}</span>
-            </div>
-
+                <p className="text-xs text-slate-600 max-w-md mx-auto">
+                  This file is ready for full inspection in your preferred desktop application (Excel, Numbers, LibreOffice, or IDE).
+                </p>
+                <button
+                  type="button"
+                  onClick={() => openOrDownloadIpfsFile(previewFile.cid, previewFile.name)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0047AB] hover:bg-[#003882] text-white font-bold text-xs shadow-md cursor-pointer transition-all hover:scale-105"
+                >
+                  <Download size={14} />
+                  <span>Open / Download {previewFile.name}</span>
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Payment Released Celebratory Modal */}
       <PaymentReleasedModal

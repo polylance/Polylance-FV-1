@@ -1,106 +1,163 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --font-serif: 'Fraunces', Georgia, serif;
-  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-heading: 'Fraunces', Georgia, serif;
-  --font-headline: 'Fraunces', Georgia, serif;
-  --font-jetbrains: 'JetBrains Mono', monospace;
+/* ==========================================================================
+   SELF-HOSTED VARIABLE FONTS & METRIC-ADJUSTED ZERO-CLS FALLBACK
+   ========================================================================== */
 
-  --color-black: #0B0B0C;
+/* Metric-adjusted fallback stack to eliminate Layout Shift (CLS 0) */
+@font-face {
+  font-family: 'Plus Jakarta Sans Fallback';
+  src: local('Arial');
+  ascent-override: 95%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+  size-adjust: 102%;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/plus-jakarta-sans-variable.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/manrope-variable.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/geist-variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, -webkit-system-font, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, -webkit-system-font, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, -webkit-system-font, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-headline: 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, -webkit-system-font, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-jetbrains: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --color-black: #0B0B0F;
   --color-white: #FFFFFF;
   --color-bg: #FFFFFF;
-  --color-bg-subtle: #F4F6F9;
+  --color-bg-subtle: #F6F7F9;
   --color-surface: #FFFFFF;
-  --color-border: #E2E6EC;
-  --color-ink: #0B0B0C;
+  --color-border: #E5E7EB;
+  --color-ink: #0B0B0F;
   --color-ink-2: #4B5563;
-  --color-ink-3: #8892A0;
+  --color-ink-3: #6B7280;
+  
+  /* Brand Accent: Cobalt ONLY */
   --color-primary: #0047AB;
-  --color-primary-hover: #003A8C;
-  --color-primary-pressed: #002F73;
-  --color-primary-tint: #E7EEF9;
-  --color-accent: #E8A317;
-  --color-accent-tint: #FDF3DC;
-  --color-success: #1E8449;
-  --color-success-tint: #E3F3EA;
-  --color-warning: #C2610C;
-  --color-warning-tint: #FCEBDD;
-  --color-error: #C0392B;
-  --color-error-tint: #FAE4E1;
-  --color-slate: #334155;
-  --color-slate-tint: #EDF0F4;
-  --color-tier-silver: #8C929B;
-  --color-tier-gold: #C98A1B;
-  --color-tier-diamond: #3B82C4;
-  /* PolyLance Logo Brand Palette */
-  --color-polylance: #0047AB;
-  --color-polylance-hover: #003A8C;
-  --color-polylance-pressed: #002F73;
-  --color-polylance-tint: #E7EEF9;
+  --color-primary-hover: #00388A;
+  --color-primary-pressed: #002C6C;
+  --color-primary-tint: #EFF6FF;
 
-  /* Electric Blue Futuristic Palette */
-  --color-electric: #0066FF;
-  --color-electric-hover: #0052CC;
-  --color-electric-cyan: #00D2FF;
-  --color-electric-glow: #00D2FF;
-  --color-electric-tint: #EBF3FF;
-  --color-electric-dark: #001A4D;
+  /* Semantic status colors ONLY */
+  --color-success: #166534;
+  --color-success-tint: #F0FDF4;
+  --color-warning: #92400E;
+  --color-warning-tint: #FFFBEB;
+  --color-error: #991B1B;
+  --color-error-tint: #FEF2F2;
+
+  --color-polylance: #0047AB;
+  --color-polylance-hover: #00388A;
+  --color-polylance-pressed: #002C6C;
+  --color-polylance-tint: #EFF6FF;
 }
 
 /* ==========================================================================
-   POLYLANCE FINTECH/EDITORIAL DESIGN SYSTEM TOKENS (Black, White & Cobalt Blue)
+   POLYLANCE RESTRAINED DESIGN SYSTEM TOKENS (Black, White, Cobalt, Neutral Grays)
    ========================================================================== */
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--navbar-height, 72px) + 16px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 :root {
-  --black: #0B0B0C;
+  --nav-h: 72px;
+  --navbar-height: 72px;
+  --meta-width: 360px;
+  --black: #0B0B0F;
   --white: #FFFFFF;
   --bg: #FFFFFF;
-  --bg-subtle: #F4F6F9;
+  --bg-subtle: #F6F7F9;
   --surface: #FFFFFF;
-  --border: #E2E6EC;
-  --ink: #0B0B0C;
+  --border: #E5E7EB;
+  --ink: #0B0B0F;
   --ink-2: #4B5563;
-  --ink-3: #8892A0;
+  --ink-3: #6B7280;
+
+  /* Brand Accent */
   --primary: #0047AB;
-  --primary-hover: #003A8C;
-  --primary-pressed: #002F73;
-  --primary-tint: #E7EEF9;
+  --primary-hover: #00388A;
+  --primary-pressed: #002C6C;
+  --primary-tint: #EFF6FF;
   --on-primary: #FFFFFF;
-  --accent: #E8A317;
-  --accent-tint: #FDF3DC;
-  --success: #1E8449;
-  --success-tint: #E3F3EA;
-  --warning: #C2610C;
-  --warning-tint: #FCEBDD;
-  --error: #C0392B;
-  --error-tint: #FAE4E1;
-  --slate: #334155;
-  --slate-tint: #EDF0F4;
-  --tier-silver: #8C929B;
-  --tier-gold: #C98A1B;
-  --tier-diamond: #3B82C4;
 
-  /* PolyLance Logo & Electric Blue Palette Tokens */
+  /* Semantic status colors */
+  --success: #166534;
+  --success-tint: #F0FDF4;
+  --warning: #92400E;
+  --warning-tint: #FFFBEB;
+  --error: #991B1B;
+  --error-tint: #FEF2F2;
+
+  /* PolyLance tokens */
   --polylance: #0047AB;
-  --polylance-hover: #003A8C;
-  --polylance-pressed: #002F73;
-  --polylance-tint: #E7EEF9;
-  --electric: #0066FF;
-  --electric-hover: #0052CC;
-  --electric-cyan: #00D2FF;
-  --electric-glow: #00D2FF;
-  --electric-tint: #EBF3FF;
-  --electric-dark: #001A4D;
+  --polylance-hover: #00388A;
+  --polylance-pressed: #002C6C;
+  --polylance-tint: #EFF6FF;
 
-  /* Radiant Gradients */
-  --gradient-polylance-electric: linear-gradient(135deg, #0047AB 0%, #0066FF 50%, #00D2FF 100%);
-  --gradient-electric-glow: linear-gradient(135deg, rgba(0, 102, 255, 0.15) 0%, rgba(0, 210, 255, 0.08) 100%);
+  /* Spacing Scale (4px base unit in rem) */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
 
-  /* Elevation shadow on popovers only */
-  --shadow-popover: 0 1px 2px rgba(11, 11, 12, 0.06);
+  /* Motion Tokens (Human Interface standard) */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --duration-press: 100ms;
+  --duration-hover: 150ms;
+  --duration-state: 150ms;
+  --duration-popover: 180ms;
+  --duration-sheet: 280ms;
+  --duration-modal: 280ms;
+  --duration-page: 200ms;
+
+  /* Subtle shadow: at most 0 1px 2px rgba(0,0,0,0.06) */
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-popover: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+  /* Radius scale: 8px (inputs, buttons, chips) and 12px (cards, modals) */
+  --radius-sm: 8px;
+  --radius-md: 12px;
 
   /* Safe Area Inset Variables for Notched Devices */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -108,17 +165,129 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 
-  /* Global Fluid Layout System Tokens (1440px - 2560px Wide Polish) */
-  --container-max: 1760px;
-  --container-padding: clamp(16px, 3vw, 56px);
-  --gutter: 24px;
-  --section-spacing-y: clamp(24px, 4vw, 48px);
-  --card-padding: clamp(20px, 2.5vw, 32px);
-  --card-radius: 16px;
-  --card-shadow: 0 1px 3px 0 rgba(11, 11, 12, 0.05), 0 1px 2px -1px rgba(11, 11, 12, 0.05);
+  /* Primary Font Tokens */
+  --font-sans: 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, -webkit-system-font, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Shared Container Max Width: 1440px */
+  --container-max: 1440px;
+  --container-padding: clamp(20px, 3vw, 48px);
 }
 
-/* Fluid Layout System Utilities */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px; /* 72px navbar + 16px buffer */
+}
+
+/* Single Shared Apple-calm Container */
+.container-custom {
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-inline: clamp(20px, 3vw, 48px);
+}
+
+/* Fluid Landing Typography Utilities */
+.text-display {
+  font-size: clamp(2.5rem, 1.6rem + 4vw, 4.75rem);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.text-landing-h2 {
+  font-size: clamp(1.875rem, 1.3rem + 2vw, 3rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.text-landing-h3 {
+  font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.text-lead {
+  font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
+  font-weight: 400;
+  line-height: 1.6;
+  color: #374151;
+  max-width: 62ch;
+  text-wrap: pretty;
+  letter-spacing: 0;
+}
+
+.text-body {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: #374151;
+  max-width: 62ch;
+  text-wrap: pretty;
+  letter-spacing: 0;
+}
+
+.text-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #0047AB;
+  text-transform: none;
+}
+
+input, textarea, select, ::placeholder {
+  letter-spacing: 0 !important;
+}
+
+.btn-landing {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border-radius: 10px;
+  white-space: nowrap;
+  transition: all 100ms ease-out;
+}
+
+.stat-numeral {
+  font-size: clamp(2.5rem, 2rem + 2vw, 4rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+/* 2px Cobalt Scroll Progress Bar */
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #0047AB;
+  z-index: 100;
+  transform-origin: 0% 50%;
+  pointer-events: none;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+.tabular-nums, [data-amount], .amount-val, table td {
+  font-variant-numeric: tabular-nums;
+}
+
 .page-container {
   width: 100%;
   max-width: var(--container-max);
@@ -150,7 +319,6 @@ html {
 
 body {
   background-color: #FFFFFF;
-  isolation: isolate;
   color: var(--ink);
   font-family: var(--font-sans);
   min-height: 100vh;
@@ -163,13 +331,7 @@ body {
 }
 
 #bg {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -1;
-  pointer-events: none;
-  display: block;
+  display: none;
 }
 
 #app {
@@ -177,18 +339,86 @@ body {
   z-index: 1;
 }
 
-/* Headings: Fraunces serif, tight tracking */
-h1, h2, h3, h4, h5, h6, .font-serif, .font-heading, .font-headline {
-  font-family: var(--font-serif);
+/* Headings: ONE sans-serif family, clean weight */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.015em;
+  color: var(--ink);
 }
 
-/* Headings and labels inside dark containers and footer */
+.font-serif, .font-heading, .font-headline {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom sleek scrollbar for popup sections, options lists, and chat feeds */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.75);
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+/* Subtle thin scrollbar for compact horizontal/vertical popup sections */
+.custom-scrollbar-subtle::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar-subtle::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar-subtle::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+.custom-scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 71, 171, 0.65);
+}
+.custom-scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+/* Dark hero/banner headings & Cobalt band headings */
+.bg-\[\#0B0B0F\] h1,
+.bg-\[\#0B0B0F\] h2,
+.bg-\[\#0B0B0F\] h3,
+.bg-\[\#0B0B0F\] h4,
 .bg-\[\#0B0B0C\] h1,
 .bg-\[\#0B0B0C\] h2,
 .bg-\[\#0B0B0C\] h3,
 .bg-\[\#0B0B0C\] h4,
+.bg-\[\#0047AB\] h1,
+.bg-\[\#0047AB\] h2,
+.bg-\[\#0047AB\] h3,
+.bg-\[\#0047AB\] h4,
+[data-theme="cobalt"] h1,
+[data-theme="cobalt"] h2,
+[data-theme="cobalt"] h3,
 footer h1,
 footer h2,
 footer h3,
@@ -196,13 +426,28 @@ footer h4 {
   color: #FFFFFF !important;
 }
 
-/* Only color plain links white, never override button styling or explicit text colors */
-footer a:where(:not([class*="text-"]):not([class*="btn-"]):not([class*="bg-"])),
-.bg-\[\#0B0B0C\] a:where(:not([class*="text-"]):not([class*="btn-"]):not([class*="bg-"])) {
-  color: #FFFFFF;
+/* Ensure text-lead and text-body inherit or become light on dark / cobalt backgrounds */
+.bg-\[\#0047AB\] .text-lead,
+.bg-\[\#0047AB\] .text-body,
+.bg-\[\#0B0B0F\] .text-lead,
+.bg-\[\#0B0B0F\] .text-body,
+.text-white .text-lead,
+.text-white .text-body {
+  color: rgba(255, 255, 255, 0.88);
 }
 
-/* Monospace restricted to wallet addresses, contract hashes, token amounts */
+@keyframes heroGlowPulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
+/* Monospace restricted strictly to wallet addresses, contract hashes, tx IDs */
 code, pre, .font-mono, [data-mono] {
   font-family: var(--font-mono);
 }
@@ -219,13 +464,6 @@ code, pre, .font-mono, [data-mono] {
   color: var(--primary);
 }
 
-/* iOS Safari Automatic Zoom Prevention */
-@media (max-width: 767px) {
-  input, select, textarea {
-    font-size: 16px !important;
-  }
-}
-
 /* Safe Area Utility Classes */
 .pt-safe {
   padding-top: max(var(--safe-top), 0px);
@@ -239,17 +477,8 @@ code, pre, .font-mono, [data-mono] {
 .pr-safe {
   padding-right: max(var(--safe-right), 0px);
 }
-.safe-h-screen {
-  height: 100dvh;
-}
-.safe-min-h-screen {
-  min-height: 100dvh;
-}
 
-/* ==========================================================================
-   BUTTON DESIGN SYSTEM (Solid cobalt primary, white secondary, no gradients)
-   ========================================================================== */
-
+/* Standard Buttons */
 .btn-primary {
   background-color: var(--primary);
   color: #FFFFFF;
@@ -263,6 +492,7 @@ code, pre, .font-mono, [data-mono] {
   justify-content: center;
   gap: 8px;
   cursor: pointer;
+  min-height: 40px;
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 
@@ -277,7 +507,7 @@ code, pre, .font-mono, [data-mono] {
 }
 
 .btn-secondary {
-  background-color: var(--surface);
+  background-color: #FFFFFF;
   color: var(--ink);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -289,6 +519,7 @@ code, pre, .font-mono, [data-mono] {
   justify-content: center;
   gap: 8px;
   cursor: pointer;
+  min-height: 40px;
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 
@@ -309,6 +540,7 @@ code, pre, .font-mono, [data-mono] {
   justify-content: center;
   gap: 8px;
   cursor: pointer;
+  min-height: 40px;
   transition: background-color 150ms ease;
 }
 
@@ -316,118 +548,55 @@ code, pre, .font-mono, [data-mono] {
   background-color: var(--bg-subtle);
 }
 
-/* ==========================================================================
-   CARDS & POPOVER PANELS (10px radius, 1px border, no heavy shadows)
-   ========================================================================== */
-
+/* Cards */
 .card-editorial {
-  background-color: var(--surface);
+  background-color: #FFFFFF;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-subtle);
 }
 
-.popover-dropdown {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: var(--shadow-popover);
-}
-
-/* Inputs */
-@layer base {
-  input, textarea, select {
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background-color: var(--surface);
-    color: var(--ink);
-    padding: 8px 12px;
-    font-family: var(--font-sans);
-    font-size: 14px;
-    transition: border-color 150ms ease;
-  }
-
-  input:focus, textarea:focus, select:focus {
-    border-color: var(--primary) !important;
-    outline: 2px solid var(--primary-tint);
-    outline-offset: 1px;
-  }
-}
-
-/* ==========================================================================
-   STATUS BADGES & CHIPS (Sentence case, flat tinted bg, dark text)
-   ========================================================================== */
-
+/* Badges */
 .badge-flat {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
+  border: 1px solid transparent;
 }
 
 .badge-primary {
   background-color: var(--primary-tint);
   color: var(--primary);
+  border-color: #BFDBFE;
 }
 
 .badge-success {
   background-color: var(--success-tint);
   color: var(--success);
+  border-color: #BBF7D0;
 }
 
 .badge-warning {
   background-color: var(--warning-tint);
   color: var(--warning);
+  border-color: #FDE68A;
 }
 
 .badge-error {
   background-color: var(--error-tint);
   color: var(--error);
+  border-color: #FECACA;
 }
 
 .badge-neutral {
   background-color: var(--bg-subtle);
   color: var(--ink-2);
-  border: 1px solid var(--border);
-}
-
-.badge-slate {
-  background-color: var(--slate-tint);
-  color: var(--slate);
-  border: 1px solid var(--border);
-}
-
-.badge-tier-gold {
-  background-color: var(--accent-tint);
-  color: var(--accent);
-}
-
-.badge-tier-silver {
-  background-color: #F1F3F5;
-  color: var(--tier-silver);
-}
-
-.badge-tier-diamond {
-  background-color: #EBF3F9;
-  color: var(--tier-diamond);
-}
-
-/* Progress bar (cobalt fill on bg-subtle track, 6px height) */
-.progress-track {
-  height: 6px;
-  background-color: var(--bg-subtle);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.progress-fill-cobalt {
-  height: 100%;
-  background-color: var(--primary);
-  border-radius: 999px;
-  transition: width 200ms ease;
+  border-color: var(--border);
 }
 
 /* Custom Minimal Scrollbar */
@@ -437,7 +606,7 @@ code, pre, .font-mono, [data-mono] {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg);
+  background: var(--bg-subtle);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -447,100 +616,6 @@ code, pre, .font-mono, [data-mono] {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--ink-3);
-}
-
-/* ==========================================================================
-   POLYLANCE LOGO COLOR & ELECTRIC BLUE DESIGN UTILITIES
-   ========================================================================== */
-
-.bg-polylance-electric {
-  background: linear-gradient(135deg, #0047AB 0%, #0066FF 50%, #00D2FF 100%);
-}
-
-.text-polylance-electric {
-  background: linear-gradient(135deg, #0047AB 0%, #0066FF 50%, #00D2FF 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.text-electric-glow {
-  color: #00D2FF;
-  text-shadow: 0 0 14px rgba(0, 210, 255, 0.45);
-}
-
-.shadow-electric {
-  box-shadow: 0 4px 20px -2px rgba(0, 102, 255, 0.35);
-}
-
-.shadow-electric-glow {
-  box-shadow: 0 0 25px rgba(0, 210, 255, 0.45);
-}
-
-.border-electric {
-  border-color: rgba(0, 102, 255, 0.35);
-}
-
-.border-electric-glow {
-  border-color: rgba(0, 210, 255, 0.5);
-}
-
-/* Electric Blue Button */
-.btn-electric {
-  background: linear-gradient(135deg, #0047AB 0%, #0066FF 60%, #00D2FF 100%);
-  color: #FFFFFF !important;
-  font-weight: 600;
-  box-shadow: 0 4px 14px rgba(0, 102, 255, 0.35);
-  border: 1px solid rgba(0, 210, 255, 0.35);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.btn-electric:hover {
-  box-shadow: 0 6px 22px rgba(0, 210, 255, 0.55);
-  transform: translateY(-1px);
-  filter: brightness(1.06);
-}
-
-/* Crisp High-Contrast White Pill Button */
-.btn-pill-white {
-  background-color: #FFFFFF !important;
-  color: #0B0B0C !important;
-  box-shadow: 0 4px 18px rgba(0, 102, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.btn-pill-white:hover {
-  background-color: #F8FAFC !important;
-  box-shadow: 0 6px 24px rgba(0, 210, 255, 0.4);
-  transform: translateY(-1px);
-}
-
-.btn-pill-white * {
-  color: #0B0B0C !important;
-}
-
-/* Electric Badge */
-.badge-electric {
-  background-color: rgba(0, 102, 255, 0.08);
-  border: 1px solid rgba(0, 210, 255, 0.35);
-  color: #0066FF;
-}
-
-.dark .badge-electric,
-.bg-\[\#0B0B0C\] .badge-electric {
-  background-color: rgba(0, 102, 255, 0.15);
-  border: 1px solid rgba(0, 210, 255, 0.4);
-  color: #00D2FF;
 }
 
 /* Print optimization */
@@ -556,7 +631,7 @@ code, pre, .font-mono, [data-mono] {
 
   html, body {
     background: #ffffff !important;
-    color: #0B0B0C !important;
+    color: #0B0B0F !important;
     padding: 0 !important;
     margin: 0 !important;
     font-size: 11px !important;
@@ -572,5 +647,93 @@ code, pre, .font-mono, [data-mono] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   POLYLANCE GLOBAL SELECT DESIGN TOKENS (No Default OS Styles)
+   ========================================================================== */
+select:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234B5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 0.95rem 0.95rem;
+  padding-right: 2rem !important;
+  font-family: var(--font-sans);
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  color: #0B0B0F;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+
+select:not([multiple]):hover {
+  border-color: #9CA3AF;
+}
+
+select:not([multiple]):focus {
+  outline: none;
+  border-color: #0047AB;
+  box-shadow: 0 0 0 2px #EFF6FF;
+}
+
+select option {
+  background-color: #FFFFFF;
+  color: #0B0B0F;
+  padding: 8px 12px;
+  cursor: pointer !important;
+}
+
+/* Ensure hand symbol cursor on all options sections, dropdown items, tabs, and clickable elements */
+select,
+option,
+select option,
+optgroup,
+[role="option"],
+[role="listbox"],
+[role="combobox"],
+[role="menuitem"],
+[role="tab"],
+[role="button"],
+.cursor-pointer,
+.cursor-pointer *,
+button,
+button *,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="radio"],
+input[type="checkbox"],
+label,
+label *,
+summary {
+  cursor: pointer !important;
+}
+
+/* Chat Message Status: Draw-in animation for seen checkmark */
+@keyframes seenTickDraw {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.seen-tick-path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 0;
+  animation: seenTickDraw 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seen-tick-path {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
   }
 }

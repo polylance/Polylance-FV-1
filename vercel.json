@@ -4,6 +4,13 @@
   "installCommand": "npm --prefix frontend install",
   "buildCommand": "node scripts/build-frontend.js",
   "outputDirectory": "frontend/dist",
+  "redirects": [
+    {
+      "source": "/simulator",
+      "destination": "/escrow-simulator",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/Polylance-FV-1/assets/(.*)",

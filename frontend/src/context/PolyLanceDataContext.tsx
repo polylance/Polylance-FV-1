@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { ethers } from 'ethers';
 import { Job, UserProfile, DaoProposal, JobStatus, DisputeReason, Application, ProofOfWork, DeliverableFile, TreasuryProposal, TreasuryState, JudgeRecord, JudgeMessage, NegotiationProposal, ChatMessage, SkillCategory } from '../types';
-import { generateMockTxHash, generateDeterministicHash, truncateAddress } from '../utils/formatters';
+import { generateDeterministicHash, truncateAddress } from '../utils/formatters';
 import { generateIpfsCid, pinJsonToFilebase, storeIpfsFile, getCachedIpfsFile } from '../utils/ipfs';
 import { fetchLiveExchangeRates, startRatePolling } from '../utils/currency';
 import { CONTRACTS, CHAIN_ID } from '../config/contracts';
@@ -15,37 +15,19 @@ import { io as socketIO, Socket } from 'socket.io-client';
 import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { getPolygonGasOverrides } from '../utils/gas';
-
-export const getSyncEndpoints = (): string[] => {
-  const list: string[] = [];
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    list.push('http://localhost:3001');
-  }
-  const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
-  if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
-    list.push(envUrl.replace(/\/$/, ''));
-  }
-  list.push('https://polylance-fv-1-45wy.onrender.com');
-
-  return Array.from(new Set(list.filter(Boolean)));
-};
-
-export const getBackendSyncUrl = (): string => {
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3001';
-  }
-  const envUrl = (import.meta.env.VITE_CHAT_SERVICE_URL || import.meta.env.VITE_CHAT_SERVER_URL || '').trim();
-  if (envUrl && !envUrl.includes('polylance-chat-service.onrender.com')) {
-    return envUrl.replace(/\/$/, '');
-  }
-  return 'https://polylance-fv-1-45wy.onrender.com';
-};
+import { areAddressesEqual } from '../utils/accountMode';
+import { buildFundingParameters, checkPaymentReadiness, needsUsdtZeroReset, decodeRevertReason } from '../utils/txBuilder';
+import { getSyncEndpoints, getBackendSyncUrl } from '../utils/backendUrl';
+import { feeBreakdown, calculateFeeBreakdownFromString } from '../utils/fees';
+import { apiClient } from '../utils/apiClient';
+export { getSyncEndpoints, getBackendSyncUrl };
 
 
 
 let syncSocket: Socket | null = null;
 let backendSyncOfflineUntil = 0;
 let socketConnectFailures = 0;
+const chatOutbox: Array<{ jobId: string; updatedJob: any; msgId: string }> = [];
 
 
 const defaultJudgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
@@ -91,6 +73,12 @@ interface PolyLanceDataContextType {
   renewJob: (jobId: string) => Promise<boolean>;
   applyToJob: (jobId: string, proposalText: string, applicantAddress: string, skills: string[], githubVerified: boolean, githubScore: number) => Promise<void>;
   selectFreelancer: (jobId: string, freelancerAddress: string) => Promise<void>;
+  cancelSelection: (jobId: string, reason?: string) => Promise<boolean>;
+  proposeCounterOffer: (jobId: string, amount: string, currency?: string, message?: string) => Promise<any>;
+  respondToCounterOffer: (jobId: string, action: 'accept' | 'reject') => Promise<any>;
+  acceptJobOffer: (jobId: string, freelancerAddress?: string) => Promise<boolean>;
+  declineJobOffer: (jobId: string, freelancerAddress?: string) => Promise<boolean>;
+  withdrawProposal: (jobId: string, applicantAddress?: string) => Promise<boolean>;
   proposeTerms: (jobId: string, userAddress: string) => Promise<void>;
   fundJob: (jobId: string) => Promise<void>;
   submitWork: (jobId: string, title: string, description: string, evidenceHashes: string[], externalLink?: string, evidenceFiles?: DeliverableFile[]) => Promise<void>;
@@ -98,6 +86,7 @@ interface PolyLanceDataContextType {
   requestTimeExtension: (jobId: string, requestedDays: number, reason: string) => Promise<void>;
   respondToTimeExtension: (jobId: string, requestId: string, approve: boolean, responseNote?: string) => Promise<void>;
   requestModifications: (jobId: string, note: string) => Promise<void>;
+  submitClientReview: (jobId: string, rating: number, comment: string) => Promise<boolean>;
   releasePayment: (jobId: string) => Promise<void>;
   claimAutoRelease: (jobId: string) => Promise<void>;
   cancelEscrow: (jobId: string) => Promise<void>;
@@ -109,6 +98,7 @@ interface PolyLanceDataContextType {
   respondToNegotiationProposal: (jobId: string, proposalId: string, accept: boolean, rejectReason?: string, responderRole?: 'Client' | 'Freelancer', applicantAddress?: string) => Promise<void>;
   sendPreAcceptMessage: (jobId: string, text: string, senderAddress: string, senderRole: 'Client' | 'Freelancer', proposal?: NegotiationProposal, applicantAddress?: string) => void;
   sendChatMessage: (jobId: string, text: string, senderRole: 'Client' | 'Freelancer' | 'Judge', proposal?: NegotiationProposal, applicantAddress?: string, senderAddress?: string) => void;
+  markMessagesAsSeen: (jobId: string, messageIds: string[], readerAddress: string) => void;
   sendJudgeChatMessage: (judgeAddress: string, text: string, senderRole: 'Admin' | 'Judge', senderAddress?: string) => void;
   isEnclineConnected: boolean;
   judgeMessages: Record<string, JudgeMessage[]>;
@@ -120,6 +110,7 @@ interface PolyLanceDataContextType {
   requestAccountDeletion: (address: string) => Promise<void>;
   cancelAccountDeletion: (address: string) => Promise<void>;
   purgeAccountData: (address: string) => Promise<void>;
+  checkGithubBinding: (githubUsername: string, targetAddress: string) => Promise<{ available: boolean; boundTo?: string; error?: string }>;
   updateProfile: (profile: Partial<UserProfile>, address: string) => Promise<void>;
   castDaoVote: (proposalId: string | number, support: boolean, voterAddress?: string, votingPower?: number) => Promise<void> | void;
   castVote: (proposalId: string | number, support: boolean, voterAddress?: string) => Promise<void> | void;
@@ -186,14 +177,20 @@ export const MOCK_NAMES_TO_PURGE = new Set([
   'devpioneer',
   'zenith global',
   'zenith global ventures',
+  'nexus dao',
+  'nexus dao labs',
   'test developer',
   'demo developer',
+  'sample developer',
   'test user',
   'demo user',
+  'sample user',
   'test client',
   'demo client',
+  'sample client',
   'test freelancer',
   'demo freelancer',
+  'sample freelancer',
 ]);
 
 export const isMockOrDemoProfile = (p?: Partial<UserProfile> | null): boolean => {
@@ -201,9 +198,20 @@ export const isMockOrDemoProfile = (p?: Partial<UserProfile> | null): boolean =>
   const addr = (p.address || '').toLowerCase().trim();
   if (!addr || MOCK_ADDRESSES_TO_PURGE.has(addr)) return true;
   if (/^0x(.)\1{39}$/i.test(addr)) return true;
+  if (!ethers.isAddress(addr) || addr === ethers.ZeroAddress) return true;
   const name = (p.displayName || '').toLowerCase().trim();
   if (MOCK_NAMES_TO_PURGE.has(name)) return true;
-  if (name.startsWith('test ') || name.startsWith('demo ') || name === 'test' || name === 'demo') return true;
+  if (
+    name.startsWith('test') ||
+    name.startsWith('demo') ||
+    name.startsWith('sample') ||
+    name.includes('mock') ||
+    name === 'nexus dao' ||
+    name === 'nexus dao labs' ||
+    name === 'alex rivera'
+  ) return true;
+  const bio = (p.bio || '').toLowerCase();
+  if (bio.includes('sample developer') || bio.includes('demo account')) return true;
   return false;
 };
 
@@ -211,16 +219,46 @@ const HARDHAT_TEST_ADDRESSES = parseEnvAddressSet(
   (import.meta.env.VITE_TEST_ADDRESSES || '') as string
 );
 
+export const PURGED_OR_TEST_JOB_IDS = new Set([
+  '0x71c8a185b376',
+  '0x37835b31461a',
+  '0x2f463f3db8c0',
+  '0x881a13affd51d',
+  '0x771a13afc3007',
+  '0x771a13afd358d',
+  '0x771a13affd266',
+  'job-verify-1791982369172',
+  '0xeeacc05a99a2',
+  '0x03b7a86f3bfc',
+]);
+
 export const isDemoOrMockJob = (j: Partial<Job> | null | undefined): boolean => {
   if (!j) return true;
   const id = String(j.id || '').toLowerCase().trim();
+  const contract = String(j.contractAddress || '').toLowerCase().trim();
+
+  // Purged test job IDs
+  if (
+    PURGED_OR_TEST_JOB_IDS.has(id) ||
+    PURGED_OR_TEST_JOB_IDS.has(contract)
+  ) {
+    return true;
+  }
+
+  // Explicit mock / test flags
+  if ((j as any).isArchived || (j as any).isTest || (j as any).isDemo || (j as any).isMock) {
+    return true;
+  }
+
   if (
     id === 'job-101' ||
     id === 'job-102' ||
     id.startsWith('job-mock-') ||
     id.startsWith('mock-') ||
     id.startsWith('test-') ||
-    id.startsWith('demo-')
+    id.startsWith('demo-') ||
+    id.startsWith('sample-') ||
+    id.startsWith('job-verify-')
   ) {
     return true;
   }
@@ -233,19 +271,28 @@ export const isDemoOrMockJob = (j: Partial<Job> | null | undefined): boolean => 
     return id === 'job-101' || id === 'job-102' || id.startsWith('job-mock-') || id.startsWith('mock-');
   }
 
-  // Test fixtures and demo jobs from seed
+  // Test fixtures and demo jobs from seed or mock scripts
   if (
+    title === 'job to be declined' ||
+    title.includes('lifecycle test') ||
+    title === 'xmtp message test' ||
+    title === 'test payment workflow' ||
+    title === 'testing webrtc & web socket' ||
+    title === 'testing site' ||
     title === 'full stack smart contract integration' ||
     desc.includes('connect react 19 frontend with polygon amoy escrow contracts') ||
     title.includes('privacy-job') ||
-    title.includes('confidential smart contract')
-  ) {
-    return true;
-  }
-  if (
+    title.includes('confidential smart contract') ||
     (title === 'job 1' && desc === 'test job 1') ||
     (title === 'job 2' && desc === 'test job 2')
   ) {
+    return true;
+  }
+
+  // Zero or negative budget is always considered a test / non-viable job
+  const eth = parseFloat(j.amountEth || '0');
+  const usdc = parseFloat(j.amountUsdc || '0');
+  if (eth <= 0 && usdc <= 0) {
     return true;
   }
 
@@ -330,7 +377,7 @@ const normalizeProfiles = (rawProfiles: Record<string, UserProfile>): Record<str
       address: judgeAddr,
       displayName: judgeGithub || 'Lead Developer',
       bio: 'Full-Stack Web3 & Software Engineer.',
-      avatarUrl: judgeGithub ? `https://github.com/${judgeGithub}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${judgeAddr}`,
+      avatarUrl: judgeGithub ? `https://github.com/${judgeGithub}.png` : '',
       ipfsHash: '',
       skills: ['TypeScript', 'React', 'Smart Contracts', 'Node.js', 'Solidity'],
       githubUsername: judgeGithub,
@@ -375,8 +422,16 @@ const broadcastSync = (data: {
   let activeAddr = (senderAddress || currentConnectedWalletAddress || '').toLowerCase().trim();
   if (!activeAddr || !ethers.isAddress(activeAddr)) {
     if (data.jobs && Array.isArray(data.jobs)) {
-      const jobWithClient = data.jobs.find((j) => j && j.client && ethers.isAddress(j.client));
-      if (jobWithClient) activeAddr = jobWithClient.client.toLowerCase().trim();
+      const jobWithApplicant = data.jobs.find((j) => j && j.applications && j.applications.length > 0 && ethers.isAddress(j.applications[0]?.applicant));
+      if (jobWithApplicant) activeAddr = jobWithApplicant.applications[0].applicant.toLowerCase().trim();
+      if (!activeAddr || !ethers.isAddress(activeAddr)) {
+        const jobWithClient = data.jobs.find((j) => j && j.client && ethers.isAddress(j.client));
+        if (jobWithClient) activeAddr = jobWithClient.client.toLowerCase().trim();
+      }
+      if (!activeAddr || !ethers.isAddress(activeAddr)) {
+        const jobWithFreelancer = data.jobs.find((j) => j && j.freelancer && ethers.isAddress(j.freelancer));
+        if (jobWithFreelancer && jobWithFreelancer.freelancer) activeAddr = jobWithFreelancer.freelancer.toLowerCase().trim();
+      }
     }
     if ((!activeAddr || !ethers.isAddress(activeAddr)) && data.profiles && Object.keys(data.profiles).length > 0) {
       const firstProf = Object.keys(data.profiles).find((a) => ethers.isAddress(a));
@@ -400,26 +455,21 @@ const broadcastSync = (data: {
     }
   } catch (err) {}
 
-  // 3. Multi-Endpoint Dual Write to Cloud Databases (Render PostgreSQL)
-  if (!activeAddr || !ethers.isAddress(activeAddr)) {
-    return;
-  }
+  // 3. Authenticated Server Dual Write via apiClient
+  // Identity comes ONLY from verified server session token/cookie. Never attempt unauthenticated POST /api/sync.
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     return;
   }
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('polylance_auth_token') : null;
+  if (!token) {
+    // Unauthenticated: do not attempt POST /api/sync until user signs in with wallet
+    return;
+  }
+
   const endpoints = getSyncEndpoints();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-wallet-address': activeAddr,
-  };
-  const query = `?address=${encodeURIComponent(activeAddr)}`;
   endpoints.forEach((ep) => {
-    fetch(`${ep}/api/sync${query}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
-    }).catch(() => {});
+    apiClient.post(`${ep}/api/sync`, data).catch(() => {});
   });
 };
 
@@ -450,6 +500,7 @@ const normalizeJob = (job: Job): Job => {
 
 const getInitialRecentlyDeleted = (): Set<string> => {
   const set = new Set<string>();
+  PURGED_OR_TEST_JOB_IDS.forEach((id) => set.add(id));
   try {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('polylance_recently_deleted_jobs');
@@ -573,7 +624,7 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
       // Respect chatClearedAt so cleared messages are never re-merged
       const chatClearedAt = Math.max(curr.chatClearedAt || 0, inJob.chatClearedAt || 0);
 
-      // Merge chat messages with smart deduplication (preserve all proposals and non-duplicates)
+      // Merge chat messages with smart deduplication and unidirectional status progression
       const mergedMsgs: any[] = [];
       const sourceMsgs = [
         ...(curr.chatMessages || []),
@@ -585,7 +636,7 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
       );
       for (const m of allMsgs) {
         if (!m) continue;
-        const isDuplicate = mergedMsgs.some(
+        const existingIdx = mergedMsgs.findIndex(
           (existing) =>
             (m.id && existing.id && m.id === existing.id) ||
             (m.proposal && existing.proposal && m.proposal.id === existing.proposal.id) ||
@@ -595,23 +646,31 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
               Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500 &&
               !m.proposal)
         );
-        if (!isDuplicate) {
+
+        if (existingIdx === -1) {
           mergedMsgs.push(m);
-        } else if (m.proposal) {
-          // Keep newest proposal status if incoming has updated status (e.g., Accepted/Rejected)
-          const propId = m.proposal.id;
-          const idx = mergedMsgs.findIndex(
-            (em) => (m.id && em.id === m.id) || (em.proposal && propId && em.proposal.id === propId)
-          );
-          if (idx !== -1 && m.proposal) {
-            mergedMsgs[idx] = {
-              ...mergedMsgs[idx],
-              ...m,
-              proposal: { ...(mergedMsgs[idx].proposal || {}), ...m.proposal },
-            };
-          }
+        } else {
+          // Unidirectional status progression: sending (0) -> sent (1) -> seen (2)
+          const statusRank: Record<string, number> = { sending: 0, sent: 1, seen: 2, failed: -1 };
+          const existingMsg = mergedMsgs[existingIdx];
+          const currRank = statusRank[existingMsg.status || 'sent'] ?? 1;
+          const incomingRank = statusRank[m.status || 'sent'] ?? 1;
+
+          const mergedStatus = incomingRank >= currRank ? m.status || existingMsg.status : existingMsg.status;
+          const mergedSeenAt = m.seenAt || existingMsg.seenAt;
+          const mergedSeenBy = Array.from(new Set([...(existingMsg.seenBy || []), ...(m.seenBy || [])]));
+
+          mergedMsgs[existingIdx] = {
+            ...existingMsg,
+            ...m,
+            proposal: m.proposal ? { ...(existingMsg.proposal || {}), ...m.proposal } : existingMsg.proposal,
+            status: mergedStatus,
+            seenAt: mergedSeenAt,
+            seenBy: mergedSeenBy.length > 0 ? mergedSeenBy : undefined,
+          };
         }
       }
+
 
       // Merge negotiation proposals safely
       const propMap = new Map<string, NegotiationProposal>();
@@ -649,6 +708,14 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
       const modMap = new Map<string, any>();
       (curr.modificationRequests || []).forEach((m) => m && modMap.set(m.id || `${m.requestedAt}`, m));
       (inJob.modificationRequests || []).forEach((m) => m && modMap.set(m.id || `${m.requestedAt}`, m));
+
+      // Merge submissions safely preserving all versions
+      const subMap = new Map<string, any>();
+      (curr.submissions || []).forEach((s: any) => s && subMap.set(String(s.version || s.versionLabel || s.submittedAt), s));
+      (inJob.submissions || []).forEach((s: any) => s && subMap.set(String(s.version || s.versionLabel || s.submittedAt), s));
+      const mergedSubmissions = Array.from(subMap.values()).sort(
+        (a: any, b: any) => (a.version || a.submittedAt || 0) - (b.version || b.submittedAt || 0)
+      );
 
       // Merge pre-acceptance messages with smart deduplication
       const mergedPreMsgs: any[] = [];
@@ -774,12 +841,16 @@ const mergeJobsList = (existing: Job[], incoming: Job[]): Job[] => {
         preAcceptMessages: mergedPreMsgs.slice(-100),
         events: inJob.events?.length ? inJob.events : curr.events,
         dispute: inJob.dispute || curr.dispute,
-        proof: inJob.proof || curr.proof,
+        proof: (inJob.proof && (inJob.proof.submittedAt || 0) >= (curr.proof?.submittedAt || 0)) ? inJob.proof : (curr.proof || inJob.proof),
+        submissions: mergedSubmissions,
         progressUpdates: mergedProgressUpdates,
         extensionRequests: mergedExtensionRequests,
         modificationRequests: Array.from(modMap.values()),
         sbtTokenId: resolvedStatus === 'Completed' ? (inJob.sbtTokenId || curr.sbtTokenId) : undefined,
         sbtTxHash: resolvedStatus === 'Completed' ? (inJob.sbtTxHash || curr.sbtTxHash) : undefined,
+        onchainTokenId: resolvedStatus === 'Completed' ? (inJob.onchainTokenId !== undefined ? inJob.onchainTokenId : curr.onchainTokenId) : undefined,
+        certificateNo: inJob.certificateNo !== undefined ? inJob.certificateNo : curr.certificateNo,
+        mintTxHash: resolvedStatus === 'Completed' ? (inJob.mintTxHash || curr.mintTxHash) : undefined,
         completedAt: resolvedStatus === 'Completed' ? (inJob.completedAt || curr.completedAt) : undefined,
         submittedAt: inJob.submittedAt || curr.submittedAt,
         chatClearedAt: chatClearedAt > 0 ? chatClearedAt : undefined,
@@ -892,6 +963,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     jobsRef.current = jobs;
   }, [jobs]);
   const isSyncingOnChainRef = useRef(false);
+  const releaseInProgressRef = useRef<Record<string, boolean>>({});
 
   // One-time startup purge of any lingering demo/test jobs from localStorage & broadcast deletion to backend
   useEffect(() => {
@@ -1233,6 +1305,29 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           if (currentAddr && syncSocket) {
             syncSocket.emit('identify', { address: currentAddr });
           }
+
+          // Auto-flush pending messages in outbox on reconnection
+          if (chatOutbox.length > 0 && syncSocket) {
+            const pending = [...chatOutbox];
+            chatOutbox.length = 0;
+            pending.forEach(({ jobId, updatedJob, msgId }) => {
+              syncSocket?.emit('client-sync', { jobs: [updatedJob] }, (res: any) => {
+                if (res?.success) {
+                  setJobsRaw((curr) =>
+                    curr.map((j) => {
+                      if (!matchJob(j, jobId)) return j;
+                      return {
+                        ...j,
+                        chatMessages: (j.chatMessages || []).map((m) =>
+                          m.id === msgId ? { ...m, status: 'sent' as const } : m
+                        ),
+                      };
+                    })
+                  );
+                }
+              });
+            });
+          }
         });
 
         syncSocket.on('realtime-sync', (payload: any) => {
@@ -1313,6 +1408,16 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           });
         });
 
+        syncSocket.on('job-realtime-update', (data: any) => {
+          if (!data || !data.job) return;
+          if (isDemoOrMockJob(data.job) || isRecentlyDeletedJob(data.job.id, data.job.contractAddress)) return;
+          setJobsRaw((curr) => {
+            const merged = mergeJobsList(curr, [data.job]);
+            try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
+            return [...merged];
+          });
+        });
+
         syncSocket.on('maintenance-mode-changed', (m: any) => {
           if (m && typeof m === 'object') {
             setMaintenanceState(m);
@@ -1376,8 +1481,15 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (isNetworkAvailable) {
       const currentAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
       const effectiveAddr = currentAddr || '0x0000000000000000000000000000000000000000';
-      const initHeaders: Record<string, string> = { 'x-wallet-address': effectiveAddr };
-      const initQuery = `?address=${encodeURIComponent(effectiveAddr)}`;
+      const initHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-PolyLance-Client': 'web-client',
+      };
+      const authToken = typeof window !== 'undefined' ? localStorage.getItem('polylance_auth_token') : null;
+      if (authToken) {
+        initHeaders['Authorization'] = `Bearer ${authToken}`;
+      }
 
       const applyPayload = (payload: any) => {
         if (!payload) return false;
@@ -1397,11 +1509,22 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             try { localStorage.setItem('polylance_jobs', JSON.stringify(merged)); } catch {}
             return [...merged];
           });
-          if (cleanLocalJobs.length > 0) {
-            broadcastSync({ jobs: cleanLocalJobs });
+          // Do not re-broadcast cached jobs unless they are missing on the server AND belong to the connected wallet
+          if (cleanLocalJobs.length > 0 && currentAddr && ethers.isAddress(currentAddr)) {
+            const myMissingJobs = cleanLocalJobs.filter((j) => {
+              if (!areAddressesEqual(j.client, currentAddr)) return false;
+              const existsOnServer = payload.jobs.some((pj: any) => matchJob(pj, j.id) || matchJob(pj, j.contractAddress));
+              return !existsOnServer;
+            });
+            if (myMissingJobs.length > 0) {
+              broadcastSync({ jobs: myMissingJobs }, currentAddr);
+            }
           }
-        } else if (cleanLocalJobs.length > 0) {
-          broadcastSync({ jobs: cleanLocalJobs });
+        } else if (cleanLocalJobs.length > 0 && currentAddr && ethers.isAddress(currentAddr)) {
+          const myLocalJobs = cleanLocalJobs.filter((j) => areAddressesEqual(j.client, currentAddr));
+          if (myLocalJobs.length > 0) {
+            broadcastSync({ jobs: myLocalJobs }, currentAddr);
+          }
         }
 
         let currentLocalProfiles: Record<string, UserProfile> = {};
@@ -1458,7 +1581,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         const fetches = endpoints.map((ep) => {
           const controller = new AbortController();
           const tid = setTimeout(() => controller.abort(), timeoutMs);
-          return fetch(`${ep}/api/sync${initQuery}`, { headers: initHeaders, signal: controller.signal })
+          return fetch(`${ep}/api/sync`, { headers: initHeaders, credentials: 'include', signal: controller.signal })
             .then((r) => { clearTimeout(tid); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
             .catch((e) => { clearTimeout(tid); throw e; });
         });
@@ -1577,16 +1700,22 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (Date.now() < backendSyncOfflineUntil) return;
       const endpoints = getSyncEndpoints();
       const activeAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
-      const effectiveAddr = activeAddr || '0x0000000000000000000000000000000000000000';
-      const reqHeaders: Record<string, string> = { 'x-wallet-address': effectiveAddr };
-      const query = `?address=${encodeURIComponent(effectiveAddr)}`;
+      const reqHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-PolyLance-Client': 'web-client',
+      };
+      const authToken = typeof window !== 'undefined' ? localStorage.getItem('polylance_auth_token') : null;
+      if (authToken) {
+        reqHeaders['Authorization'] = `Bearer ${authToken}`;
+      }
 
       // Race all endpoints in parallel — fastest response wins
       try {
         const fetches = endpoints.map((ep) => {
           const controller = new AbortController();
           const tid = setTimeout(() => controller.abort(), 10000);
-          return fetch(`${ep}/api/sync${query}`, { signal: controller.signal, headers: reqHeaders })
+          return fetch(`${ep}/api/sync`, { signal: controller.signal, headers: reqHeaders, credentials: 'include' })
             .then((r) => { clearTimeout(tid); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
             .catch((e) => { clearTimeout(tid); throw e; });
         });
@@ -1611,13 +1740,36 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           }
           if (Array.isArray(payload.daoProposals)) {
             const cleanProposals = payload.daoProposals.filter((p: any) => p && !String(p.title || '').toLowerCase().includes('demo') && !String(p.description || '').toLowerCase().includes('demo'));
-            setDaoProposalsRaw([...cleanProposals]);
-            try { localStorage.setItem('polylance_dao_proposals', JSON.stringify(cleanProposals)); } catch {}
+            setDaoProposalsRaw((curr) => {
+              if (curr.length === cleanProposals.length && JSON.stringify(curr) === JSON.stringify(cleanProposals)) return curr;
+              try { localStorage.setItem('polylance_dao_proposals', JSON.stringify(cleanProposals)); } catch {}
+              return cleanProposals;
+            });
           }
-          if (payload.judgeMessages) setJudgeMessagesRaw({ ...payload.judgeMessages });
-          if (Array.isArray(payload.judges)) setJudgesRaw([...payload.judges]);
-          if (Array.isArray(payload.treasuryProposals)) setTreasuryProposalsRaw([...payload.treasuryProposals]);
-          if (Array.isArray(payload.treasuryHistory)) setTreasuryHistoryRaw([...payload.treasuryHistory]);
+          if (payload.judgeMessages) {
+            setJudgeMessagesRaw((curr) => {
+              if (JSON.stringify(curr) === JSON.stringify(payload.judgeMessages)) return curr;
+              return { ...payload.judgeMessages };
+            });
+          }
+          if (Array.isArray(payload.judges)) {
+            setJudgesRaw((curr) => {
+              if (curr.length === payload.judges.length && JSON.stringify(curr) === JSON.stringify(payload.judges)) return curr;
+              return [...payload.judges];
+            });
+          }
+          if (Array.isArray(payload.treasuryProposals)) {
+            setTreasuryProposalsRaw((curr) => {
+              if (curr.length === payload.treasuryProposals.length && JSON.stringify(curr) === JSON.stringify(payload.treasuryProposals)) return curr;
+              return [...payload.treasuryProposals];
+            });
+          }
+          if (Array.isArray(payload.treasuryHistory)) {
+            setTreasuryHistoryRaw((curr) => {
+              if (curr.length === payload.treasuryHistory.length && JSON.stringify(curr) === JSON.stringify(payload.treasuryHistory)) return curr;
+              return [...payload.treasuryHistory];
+            });
+          }
         } else {
           backendSyncOfflineUntil = Date.now() + 5000; // shorter cooldown than initial — keep retrying promptly
         }
@@ -1648,6 +1800,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
+    // Also trigger immediate sync when user signs in with wallet
+    const handleAuthEvent = () => {
+      syncFromRemoteBackend();
+    };
+    window.addEventListener('polylance:authenticated', handleAuthEvent);
+
     return () => {
       if (bc) bc.close();
       window.removeEventListener('pageshow', handlePageShow);
@@ -1656,6 +1814,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       clearInterval(pollInterval);
       window.removeEventListener('focus', syncFromStorage);
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('polylance:authenticated', handleAuthEvent);
     };
   }, []);
 
@@ -1666,12 +1825,20 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!isNetworkAvailable) return;
 
     const syncUrl = getBackendSyncUrl();
-    const headers: Record<string, string> = { 'x-wallet-address': address.toLowerCase().trim() };
-    const query = `?address=${encodeURIComponent(address.toLowerCase().trim())}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-PolyLance-Client': 'web-client',
+      'x-wallet-address': address.toLowerCase().trim()
+    };
+    const token = typeof window !== 'undefined' ? localStorage.getItem('polylance_auth_token') : null;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-    fetch(`${syncUrl}/api/sync${query}`, { headers, signal: controller.signal })
+    fetch(`${syncUrl}/api/sync`, { headers, credentials: 'include', signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`Sync HTTP ${r.status}`);
         return r.json();
@@ -1991,10 +2158,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [provider]);
 
   useEffect(() => {
-    syncOnChainJobs();
-    const interval = setInterval(syncOnChainJobs, 30000);
-    return () => clearInterval(interval);
-  }, [syncOnChainJobs]);
+    // Direct browser chain polling is superseded by the server EventIndexer and /api/sync.
+    // syncOnChainJobs is retained strictly for emergency manual recovery.
+  }, []);
 
   useEffect(() => {
     startRatePolling(15000);
@@ -2135,11 +2301,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         contractAddr = ethers.Wallet.createRandom().address;
       }
       if (!txHash) {
-        txHash = generateMockTxHash();
+        txHash = ethers.keccak256(ethers.toUtf8Bytes(`job-post-${contractAddr}-${Date.now()}-${localJobNonceSeq}`));
       }
     }
     if (!txHash) {
-      txHash = generateMockTxHash();
+      txHash = ethers.keccak256(ethers.toUtf8Bytes(`job-post-${contractAddr}-${Date.now()}-${localJobNonceSeq}`));
     }
 
     const newJob: Job = {
@@ -2204,45 +2370,94 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   ): Promise<boolean> => {
     try {
-      let updatedJob: Job | null = null;
+      const currentJob = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+      if (!currentJob) return false;
+
+      const tokenSymbol = updates.paymentTokenSymbol || (currentJob.paymentTokenSymbol as any) || 'USDC';
+      const tokenConfig = getTokenBySymbol(tokenSymbol);
+      const symUpper = String(tokenSymbol).toUpperCase();
+      const isCrypto = symUpper === 'MATIC' || symUpper === 'POL';
+
+      const newAmountUsdc = updates.amountUsdc !== undefined ? updates.amountUsdc : currentJob.amountUsdc;
+      const ethAmount = updates.amountEth !== undefined
+        ? updates.amountEth
+        : (isCrypto ? (currentJob.amountEth || newAmountUsdc) : (parseFloat(newAmountUsdc) / 2800).toFixed(4));
+
+      const updatedJob: Job = {
+        ...currentJob,
+        title: updates.title !== undefined ? updates.title.trim() : currentJob.title,
+        description: updates.description !== undefined ? updates.description.trim() : currentJob.description,
+        category: updates.category !== undefined ? updates.category : currentJob.category,
+        amountUsdc: newAmountUsdc,
+        amountEth: ethAmount,
+        reviewPeriodDays: updates.reviewPeriodDays !== undefined ? updates.reviewPeriodDays : currentJob.reviewPeriodDays,
+        paymentToken: tokenConfig.address,
+        paymentTokenSymbol: tokenConfig.symbol,
+        paymentTokenDecimals: tokenConfig.decimals,
+        events: [
+          ...(currentJob.events || []),
+          {
+            step: 'Posted',
+            title: 'Job Details Modified by Client',
+            timestamp: Date.now(),
+            txHash: '',
+            status: 'completed' as const,
+            actor: 'Client' as const
+          }
+        ]
+      };
+
+      setJobsRaw((prev) => {
+        const next = prev.map((j) => (matchJob(j, jobId) ? updatedJob : j));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('polylance_jobs', JSON.stringify(next));
+        }
+        return next;
+      });
+
+      broadcastSync({ jobs: [updatedJob] });
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [updatedJob] });
+      }
+      const senderAddr = (currentConnectedWalletAddress || address || '').toLowerCase().trim();
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': senderAddr
+          },
+          body: JSON.stringify(updates),
+        }).catch(() => {});
+      });
+      return true;
+    } catch (err) {
+      console.error('Failed to update job details:', err);
+      return false;
+    }
+  };
+
+  const submitClientReview = async (
+    jobId: string,
+    rating: number,
+    comment: string
+  ): Promise<boolean> => {
+    try {
+      let targetJob: Job | null = null;
       setJobsRaw((prev) => {
         const next = prev.map((j) => {
           if (!matchJob(j, jobId)) return j;
-          const tokenSymbol = updates.paymentTokenSymbol || (j.paymentTokenSymbol as any) || 'USDC';
-          const tokenConfig = getTokenBySymbol(tokenSymbol);
-          const symUpper = String(tokenSymbol).toUpperCase();
-          const isCrypto = symUpper === 'MATIC' || symUpper === 'POL';
-
-          const newAmountUsdc = updates.amountUsdc !== undefined ? updates.amountUsdc : j.amountUsdc;
-          const ethAmount = updates.amountEth !== undefined
-            ? updates.amountEth
-            : (isCrypto ? (j.amountEth || newAmountUsdc) : (parseFloat(newAmountUsdc) / 2800).toFixed(4));
-
-          const modJob: Job = {
+          const updated: Job = {
             ...j,
-            title: updates.title !== undefined ? updates.title.trim() : j.title,
-            description: updates.description !== undefined ? updates.description.trim() : j.description,
-            category: updates.category !== undefined ? updates.category : j.category,
-            amountUsdc: newAmountUsdc,
-            amountEth: ethAmount,
-            reviewPeriodDays: updates.reviewPeriodDays !== undefined ? updates.reviewPeriodDays : j.reviewPeriodDays,
-            paymentToken: tokenConfig.address,
-            paymentTokenSymbol: tokenConfig.symbol,
-            paymentTokenDecimals: tokenConfig.decimals,
-            events: [
-              ...(j.events || []),
-              {
-                step: 'Posted',
-                title: 'Job Details Modified by Client',
-                timestamp: Date.now(),
-                txHash: '',
-                status: 'completed' as const,
-                actor: 'Client' as const
-              }
-            ]
+            clientReview: {
+              rating: Math.max(1, Math.min(5, Math.round(rating))),
+              comment: comment.trim(),
+              reviewedAt: Date.now(),
+            },
           };
-          updatedJob = modJob;
-          return modJob;
+          targetJob = updated;
+          return updated;
         });
 
         if (typeof window !== 'undefined') {
@@ -2251,10 +2466,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         return next;
       });
 
-      if (updatedJob) {
-        broadcastSync({ jobs: [updatedJob] });
+      if (targetJob) {
+        broadcastSync({ jobs: [targetJob] });
         if (syncSocket && syncSocket.connected) {
-          syncSocket.emit('client-sync', { jobs: [updatedJob] });
+          syncSocket.emit('client-sync', { jobs: [targetJob] });
         }
         const senderAddr = (currentConnectedWalletAddress || address || '').toLowerCase().trim();
         const endpoints = getSyncEndpoints();
@@ -2265,13 +2480,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               'Content-Type': 'application/json',
               'x-wallet-address': senderAddr
             },
-            body: JSON.stringify(updates),
+            body: JSON.stringify({ clientReview: (targetJob as Job).clientReview }),
           }).catch(() => {});
         });
       }
       return true;
     } catch (err) {
-      console.error('Failed to update job details:', err);
+      console.error('Failed to submit client review:', err);
       return false;
     }
   };
@@ -2367,60 +2582,116 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     githubVerified: boolean,
     githubScore: number
   ) => {
-    const job = jobs.find((j) => matchJob(j, jobId));
+    const job = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!job) {
+      console.warn('Job not found for application:', jobId);
+      return;
+    }
+
     const proposalCid = generateIpfsCid({ proposalText, applicantAddress, timestamp: Date.now() });
 
-    if (isConnected && isWrongNetwork) {
-      throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to apply.`);
-    }
+    const newApp: Application = {
+      applicant: applicantAddress,
+      proposalIpfsHash: proposalCid,
+      proposalText,
+      appliedAt: Date.now(),
+      applicantSkills: skills,
+      githubVerified,
+      githubScore,
+    };
 
-    try {
-      const signer = await getSigner();
-      if (signer && job && ethers.isAddress(job.contractAddress)) {
-        const code = await provider.getCode(job.contractAddress).catch(() => '0x');
-        if (code && code !== '0x') {
-          const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
-          const gasOverrides = await getPolygonGasOverrides(provider);
-          const tx = await escrow.applyToJob(proposalCid, gasOverrides);
-          await tx.wait();
-        }
-      }
-    } catch (err: any) {
-      console.warn('Real contract applyToJob notice:', err);
-      if (isConnected) {
-        throw err;
-      }
-    }
+    const exists = (job.applications || []).some((a) => areAddressesEqual(a.applicant, applicantAddress));
+    const updatedApps = exists
+      ? (job.applications || []).map((a) =>
+          areAddressesEqual(a.applicant, applicantAddress) ? { ...a, ...newApp } : a
+        )
+      : [newApp, ...(job.applications || [])];
 
+    const updatedJob: Job = {
+      ...job,
+      applications: updatedApps,
+    };
+
+    // 1. Immediately update React state so the UI reflects the application with zero latency
     setJobs((prev) =>
-      prev.map((j) => {
-        if (!matchJob(j, jobId)) return j;
-        const exists = (j.applications || []).some((a) => a.applicant.toLowerCase() === applicantAddress.toLowerCase());
-        if (exists) return j;
-
-        const newApp: Application = {
-          applicant: applicantAddress,
-          proposalIpfsHash: proposalCid,
-          proposalText,
-          appliedAt: Date.now(),
-          applicantSkills: skills,
-          githubVerified,
-          githubScore,
-        };
-        return {
-          ...j,
-          applications: [newApp, ...(j.applications || [])],
-        };
-      })
+      prev.map((j) => (matchJob(j, jobId) ? updatedJob : j))
     );
+
+    // 2. Persist to localStorage immediately
+    try {
+      const stored = JSON.parse(localStorage.getItem('polylance_jobs') || '[]');
+      const updatedStored = stored.map((j: any) => (matchJob(j, jobId) ? updatedJob : j));
+      if (!updatedStored.some((j: any) => matchJob(j, jobId))) {
+        updatedStored.unshift(updatedJob);
+      }
+      localStorage.setItem('polylance_jobs', JSON.stringify(updatedStored));
+    } catch {}
+
+    // 3. Instant real-time multi-device dual write
+    broadcastSync({ jobs: [updatedJob] }, applicantAddress);
+    if (syncSocket && syncSocket.connected) {
+      syncSocket.emit('client-sync', { jobs: [updatedJob] });
+    }
+
+    // 4. Multi-endpoint dual-write to backend server
+    const endpoints = getSyncEndpoints();
+    const applyPayload = {
+      applicant: applicantAddress,
+      applicantAddress,
+      proposalText,
+      coverLetter: proposalText,
+      proposalIpfsHash: proposalCid,
+      skills,
+      applicantSkills: skills,
+      githubVerified,
+      githubScore,
+      job: updatedJob,
+    };
+
+    await Promise.allSettled(
+      endpoints.map((ep) =>
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}/apply`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': applicantAddress,
+          },
+          body: JSON.stringify(applyPayload),
+        }).catch(() => {})
+      )
+    );
+
+    // 5. Optional background anchor to live Polygon escrow contract (never blocks proposal submission or fails UI)
+    if (isConnected && ethers.isAddress(job.contractAddress)) {
+      (async () => {
+        try {
+          const code = await provider.getCode(job.contractAddress).catch(() => '0x');
+          if (code && code !== '0x') {
+            const signer = await getSigner().catch(() => null);
+            if (signer) {
+              const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
+              const gasOverrides = await getPolygonGasOverrides(provider);
+              const tx = await escrow.applyToJob(proposalCid, gasOverrides);
+              await tx.wait();
+            }
+          }
+        } catch (err: any) {
+          console.warn('Background on-chain application notice:', err);
+        }
+      })();
+    }
   };
 
   const selectFreelancer = async (jobId: string, freelancerAddress: string) => {
     let txHash = '';
-    const job = jobs.find((j) => matchJob(j, jobId));
+    const job = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!job) return;
 
-    if (isConnected && isWrongNetwork) {
-      throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to select candidate.`);
+    if (isConnected && isWrongNetwork && ethers.isAddress(job.contractAddress)) {
+      const code = await provider.getCode(job.contractAddress).catch(() => '0x');
+      if (code && code !== '0x') {
+        throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to select candidate.`);
+      }
     }
 
     try {
@@ -2437,40 +2708,235 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } catch (err: any) {
       console.error('Real contract selectFreelancer error:', err);
-      if (isConnected) {
+      if (isConnected && (err?.code === 'ACTION_REJECTED' || err?.code === 4001)) {
         throw err;
       }
     }
     if (!txHash) {
-      txHash = generateMockTxHash();
+      txHash = '';
     }
 
-    setJobs((prev) =>
-      prev.map((j) => {
-        if (!matchJob(j, jobId)) return j;
-        const updatedEvents = j.events.map((evt) => {
-          if (evt.step === 'Selected') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
-          if (evt.step === 'Terms') return { ...evt, status: 'current' as const };
-          return evt;
-        });
+    const updatedEvents = (job.events || []).map((evt) => {
+      if (evt.step === 'Selected') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
+      if (evt.step === 'Terms') return { ...evt, status: 'current' as const };
+      return evt;
+    });
 
-        return {
-          ...j,
-          freelancer: freelancerAddress,
-          status: 'Selected',
-          clientAgreedTerms: true,
-          events: updatedEvents,
-        };
-      })
+    const clientAddr = address || currentConnectedWalletAddress || (job as any).client || '';
+    const initialOfferAmountWei = (
+      job.paymentTokenSymbol === 'USDC' || job.paymentTokenSymbol === 'USDT'
+        ? ethers.parseUnits(job.amountUsdc || '100', job.paymentTokenDecimals || 6)
+        : ethers.parseEther(job.amountEth || (job.amountUsdc ? (parseFloat(job.amountUsdc) / 2800).toFixed(4) : '10'))
+    ).toString();
+
+    const initialVersion = {
+      version: 1,
+      round: 1,
+      proposedBy: 'client' as const,
+      proposerWallet: clientAddr,
+      amountWei: initialOfferAmountWei,
+      currency: (job.paymentTokenSymbol || 'POL').toUpperCase(),
+      status: 'PENDING' as const,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 72 * 60 * 60 * 1000,
+    };
+
+    const engagement = {
+      id: `eng-${job.id}-${Date.now()}`,
+      jobId: job.id,
+      client: clientAddr,
+      freelancer: freelancerAddress,
+      state: 'OFFER_SENT' as const,
+      currentVersion: 1,
+      history: [initialVersion],
+      selectedAt: Date.now(),
+    };
+
+    const updatedJob: Job = {
+      ...job,
+      freelancer: freelancerAddress,
+      status: 'Selected',
+      clientAgreedTerms: true,
+      freelancerAgreedTerms: false,
+      engagement,
+      events: updatedEvents,
+    };
+
+    setJobs((prev) =>
+      prev.map((j) => (matchJob(j, jobId) ? updatedJob : j))
     );
+
+    broadcastSync({ jobs: [updatedJob] }, clientAddr);
+    if (syncSocket && syncSocket.connected) {
+      syncSocket.emit('client-sync', { jobs: [updatedJob] });
+    }
+    const endpoints = getSyncEndpoints();
+    endpoints.forEach((ep) => {
+      fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': clientAddr,
+        },
+        body: JSON.stringify(updatedJob),
+      }).catch(() => {});
+    });
+  };
+
+  const cancelSelection = async (jobId: string, reason?: string): Promise<boolean> => {
+    const job = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!job) return false;
+    const clientAddr = (address || currentConnectedWalletAddress || job.client || '').toLowerCase().trim();
+
+    // RACE PROTECTION: If contract is deployed on chain, verify not funded
+    if (isConnected && ethers.isAddress(job.contractAddress)) {
+      try {
+        const code = await provider.getCode(job.contractAddress).catch(() => '0x');
+        if (code && code !== '0x') {
+          const escrowAbi = ['function status() external view returns (uint8)'];
+          const escrow = new ethers.Contract(job.contractAddress, escrowAbi, provider);
+          const onChainStatus = Number(await escrow.status().catch(() => 0));
+          if (onChainStatus >= 2) {
+            throw new Error('Escrow is already funded on-chain. Selection cancellation is closed.');
+          }
+        }
+      } catch (err: any) {
+        if (err?.message?.includes('already funded')) throw err;
+      }
+    }
+
+    const prevFreelancer = job.freelancer;
+    const updatedJob: Job = {
+      ...job,
+      freelancer: '',
+      status: 'Open',
+      clientAgreedTerms: false,
+      freelancerAgreedTerms: false,
+      engagement: job.engagement
+        ? {
+            ...job.engagement,
+            state: 'SELECTION_CANCELLED_BY_CLIENT',
+            closedAt: Date.now(),
+            closeReason: reason || 'Selection cancelled by client',
+          }
+        : undefined,
+      applications: (job.applications || []).map((app: any) => {
+        if (areAddressesEqual(app.applicant, prevFreelancer)) {
+          return {
+            ...app,
+            status: 'cancelled_selection',
+            cancelledReason: reason || 'Selection cancelled by client',
+          };
+        }
+        return app;
+      }),
+      events: (job.events || []).map((evt) => {
+        if (evt.step === 'Selected') return { ...evt, status: 'current' as const, timestamp: 0, txHash: '' };
+        if (evt.step === 'Terms') return { ...evt, status: 'pending' as const, timestamp: 0, txHash: '' };
+        return evt;
+      }),
+    };
+
+    setJobs((prev) => prev.map((j) => (matchJob(j, jobId) ? updatedJob : j)));
+    broadcastSync({ jobs: [updatedJob] }, clientAddr);
+
+    const endpoints = getSyncEndpoints();
+    endpoints.forEach((ep) => {
+      fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}/cancel-selection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': clientAddr,
+        },
+        body: JSON.stringify({ client: clientAddr, reason }),
+      }).catch(() => {});
+    });
+
+    return true;
+  };
+
+  const proposeCounterOffer = async (
+    jobId: string,
+    amount: string,
+    currency?: string,
+    message?: string
+  ): Promise<any> => {
+    const job = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!job) throw new Error('Job not found');
+    const userAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
+
+    const endpoints = getSyncEndpoints();
+    const ep = endpoints[0] || 'http://localhost:3001';
+    const res = await fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}/negotiate/counter`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-wallet-address': userAddr,
+      },
+      body: JSON.stringify({
+        proposer: userAddr,
+        amount,
+        currency: currency || (job.paymentTokenSymbol || 'POL').toUpperCase(),
+        message,
+        expectedVersion: job.engagement?.currentVersion,
+      }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `Failed to submit counter-offer: HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (data.job) {
+      setJobs((prev) => prev.map((j) => (matchJob(j, jobId) ? data.job : j)));
+      broadcastSync({ jobs: [data.job] }, userAddr);
+    }
+    return data;
+  };
+
+  const respondToCounterOffer = async (
+    jobId: string,
+    action: 'accept' | 'reject'
+  ): Promise<any> => {
+    const job = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!job) throw new Error('Job not found');
+    const userAddr = (address || currentConnectedWalletAddress || '').toLowerCase().trim();
+
+    const endpoints = getSyncEndpoints();
+    const ep = endpoints[0] || 'http://localhost:3001';
+    const res = await fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}/negotiate/respond`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-wallet-address': userAddr,
+      },
+      body: JSON.stringify({ action }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `Failed to respond to offer: HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (data.job) {
+      setJobs((prev) => prev.map((j) => (matchJob(j, jobId) ? data.job : j)));
+      broadcastSync({ jobs: [data.job] }, userAddr);
+    }
+    return data;
   };
 
   const proposeTerms = async (jobId: string, userAddress: string) => {
     let txHash = '';
-    const job = jobs.find((j) => matchJob(j, jobId));
+    const job = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!job) return;
 
-    if (isConnected && isWrongNetwork) {
-      throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to agree to terms.`);
+    if (isConnected && isWrongNetwork && ethers.isAddress(job.contractAddress)) {
+      const code = await provider.getCode(job.contractAddress).catch(() => '0x');
+      if (code && code !== '0x') {
+        throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to agree to terms.`);
+      }
     }
 
     try {
@@ -2488,38 +2954,147 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } catch (err: any) {
       console.warn('Real contract proposeTerms notice:', err);
-      if (isConnected) {
+      if (isConnected && (err?.code === 'ACTION_REJECTED' || err?.code === 4001)) {
         throw err;
       }
     }
 
+    const isClient = areAddressesEqual(userAddress, job.client);
+    const clientAgreed = isClient ? true : (job.clientAgreedTerms !== undefined ? job.clientAgreedTerms : true);
+    const freelancerAgreed = !isClient ? true : Boolean(job.freelancerAgreedTerms);
+    const bothAgreed = clientAgreed && freelancerAgreed;
+
+    let updatedEvents = job.events;
+    if (bothAgreed) {
+      const finalTxHash = txHash || '';
+      updatedEvents = (job.events || []).map((evt) => {
+        if (evt.step === 'Terms') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash: finalTxHash };
+        if (evt.step === 'Funded') return { ...evt, status: 'current' as const };
+        return evt;
+      });
+    }
+
+    const updatedJob: Job = {
+      ...job,
+      clientAgreedTerms: clientAgreed,
+      freelancerAgreedTerms: freelancerAgreed,
+      termsHash: bothAgreed ? (txHash || job.termsHash || generateDeterministicHash(`terms-${job.id}-${Date.now()}`)) : job.termsHash,
+      events: updatedEvents,
+    };
+
     setJobs((prev) =>
-      prev.map((j) => {
-        if (!matchJob(j, jobId)) return j;
-        const isClient = (userAddress || '').toLowerCase() === (j.client || '').toLowerCase();
-        const clientAgreed = isClient ? true : (j.clientAgreedTerms !== undefined ? j.clientAgreedTerms : true);
-        const freelancerAgreed = !isClient ? true : Boolean(j.freelancerAgreedTerms);
-        const bothAgreed = clientAgreed && freelancerAgreed;
-
-        let updatedEvents = j.events;
-        if (bothAgreed) {
-          const finalTxHash = txHash || generateMockTxHash();
-          updatedEvents = j.events.map((evt) => {
-            if (evt.step === 'Terms') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash: finalTxHash };
-            if (evt.step === 'Funded') return { ...evt, status: 'current' as const };
-            return evt;
-          });
-        }
-
-        return {
-          ...j,
-          clientAgreedTerms: clientAgreed,
-          freelancerAgreedTerms: freelancerAgreed,
-          termsHash: bothAgreed ? (txHash || generateMockTxHash()) : j.termsHash,
-          events: updatedEvents,
-        };
-      })
+      prev.map((j) => (matchJob(j, jobId) ? updatedJob : j))
     );
+
+    const effectiveUser = userAddress || address || currentConnectedWalletAddress || '';
+    broadcastSync({ jobs: [updatedJob] }, effectiveUser);
+    if (syncSocket && syncSocket.connected) {
+      syncSocket.emit('client-sync', { jobs: [updatedJob] });
+    }
+    const endpoints = getSyncEndpoints();
+    endpoints.forEach((ep) => {
+      fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': effectiveUser,
+        },
+        body: JSON.stringify(updatedJob),
+      }).catch(() => {});
+    });
+  };
+
+  const acceptJobOffer = async (jobId: string, freelancerAddress?: string): Promise<boolean> => {
+    const job = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!job) return false;
+    const fAddr = (freelancerAddress || address || currentConnectedWalletAddress || job.freelancer || '').toLowerCase().trim();
+    await proposeTerms(jobId, fAddr);
+    return true;
+  };
+
+  const declineJobOffer = async (jobId: string, freelancerAddress?: string): Promise<boolean> => {
+    const job = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!job) return false;
+    const fAddr = (freelancerAddress || address || currentConnectedWalletAddress || job.freelancer || '').toLowerCase().trim();
+
+    if (isConnected && ethers.isAddress(job.contractAddress)) {
+      try {
+        const code = await provider.getCode(job.contractAddress).catch(() => '0x');
+        if (code && code !== '0x') {
+          const signer = await getSigner();
+          if (signer) {
+            const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
+            const gasOverrides = await getPolygonGasOverrides(provider);
+            const tx = await escrow.declineSelection({ ...gasOverrides, gasLimit: 150000n });
+            await tx.wait();
+          }
+        }
+      } catch (err: any) {
+        console.warn('On-chain declineSelection notice:', err);
+        if (isConnected && (err?.code === 'ACTION_REJECTED' || err?.code === 4001)) {
+          throw err;
+        }
+      }
+    }
+
+    const updatedJob: Job = {
+      ...job,
+      freelancer: '',
+      status: 'Open',
+      freelancerAgreedTerms: false,
+      events: (job.events || []).map((evt) => {
+        if (evt.step === 'Selected') return { ...evt, status: 'current' as const, timestamp: 0, txHash: '' };
+        if (evt.step === 'Terms') return { ...evt, status: 'pending' as const, timestamp: 0, txHash: '' };
+        return evt;
+      }),
+    };
+
+    setJobs((prev) => prev.map((j) => (matchJob(j, jobId) ? updatedJob : j)));
+    broadcastSync({ jobs: [updatedJob] }, fAddr);
+
+    const endpoints = getSyncEndpoints();
+    endpoints.forEach((ep) => {
+      fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}/decline-selection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': fAddr,
+        },
+        body: JSON.stringify({ freelancer: fAddr }),
+      }).catch(() => {});
+    });
+
+    return true;
+  };
+
+  const withdrawProposal = async (jobId: string, applicantAddress?: string): Promise<boolean> => {
+    const job = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!job) return false;
+    const appAddr = (applicantAddress || address || currentConnectedWalletAddress || '').toLowerCase().trim();
+
+    const updatedJob: Job = {
+      ...job,
+      applications: (job.applications || []).filter(
+        (a) => !areAddressesEqual(a.applicant, appAddr)
+      ),
+    };
+
+    setJobs((prev) => prev.map((j) => (matchJob(j, jobId) ? updatedJob : j)));
+    broadcastSync({ jobs: [updatedJob] }, appAddr);
+
+    const endpoints = getSyncEndpoints();
+    endpoints.forEach((ep) => {
+      fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}/proposals/withdraw`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': appAddr,
+        },
+        body: JSON.stringify({ applicant: appAddr }),
+      }).catch(() => {});
+    });
+
+    return true;
   };
 
   const fundJob = async (jobId: string) => {
@@ -2615,26 +3190,89 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           );
           const isNative = !isTokenEscrow;
 
-          if (isNative) {
-            const rawAmount = job.amountEth || (job.amountUsdc ? (parseFloat(job.amountUsdc) / 2800).toFixed(4) : '0.05');
-            const numericVal = parseFloat(rawAmount);
-            const safeAmount = (numericVal > 0 ? numericVal : 0.05).toFixed(6);
-            const principalWei = ethers.parseEther(safeAmount);
-            const clientFeeWei = (principalWei * 250n) / 10000n; // 2.5% platform fee
-            const totalVal = principalWei + clientFeeWei;
+          // Read agreed amount from engagement negotiation history if available
+          const agreedVersion = job.engagement?.history?.slice().reverse().find((h: any) => h.status === 'ACCEPTED');
 
-            console.log(`Executing real on-chain escrow funding of ${safeAmount} POL (+ 2.5% client fee: ${ethers.formatEther(clientFeeWei)} POL) to ${targetContractAddress}...`);
-            const gasOverrides = await getPolygonGasOverrides(provider);
-            try {
-              const signerAddr = await signer.getAddress();
-              await escrow.fundJob.staticCall(principalWei, { value: totalVal, from: signerAddr });
-              console.log(`Pre-flight simulation successful for funding ${safeAmount} POL + 2.5% fee into ${targetContractAddress}.`);
-            } catch (simErr: any) {
-              console.warn('Pre-flight simulation warning:', simErr);
+          const fundingParams = buildFundingParameters(job);
+          const signerAddr = (await signer.getAddress()).toLowerCase();
+
+          // 1. Create durable server intent before prompting wallet (enforces terms & prevents duplicate funding)
+          const syncUrl = getBackendSyncUrl();
+          let intentId = `tx-intent-${Date.now()}`;
+          try {
+            const intentRes = await fetch(`${syncUrl}/api/tx/intent`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-wallet-address': signerAddr,
+              },
+              body: JSON.stringify({
+                jobId: job.id,
+                engagementId: job.id,
+                type: 'FUND',
+                from: signerAddr,
+                idempotencyKey: `fund_${job.id}_${Date.now()}`,
+              }),
+            });
+            if (!intentRes.ok) {
+              const err = await intentRes.json().catch(() => ({}));
+              if (err.code === 'DUPLICATE_FUNDING_BLOCKED') {
+                throw new Error('A funding transaction is already pending confirmation for this job. You do not need to pay again.');
+              }
+              throw new Error(err.error || 'Failed to create payment intent');
             }
-            const tx = await escrow.fundJob(principalWei, { value: totalVal, ...gasOverrides, gasLimit: 300000n });
+            const intentData = await intentRes.json();
+            intentId = intentData.intent.id;
+            sessionStorage.setItem(`polylance_tx_${job.id}`, JSON.stringify({ intentId, txHash: '', status: 'INTENT_CREATED' }));
+          } catch (intentErr: any) {
+            if (intentErr.message?.includes('already pending confirmation')) throw intentErr;
+            console.warn('Backend intent notice, continuing with client safety checks:', intentErr);
+          }
+
+          if (fundingParams.isNative) {
+            // Check native POL balance covers principal + fee + gas estimate
+            const polBalance: bigint = await provider.getBalance(signerAddr).catch(() => 0n);
+            const readiness = checkPaymentReadiness({
+              isNative: true,
+              tokenSymbol: fundingParams.tokenSymbol,
+              nativePolBalance: polBalance,
+              tokenBalance: 0n,
+              totalRequiredUnits: fundingParams.totalRequiredUnits,
+            });
+            if (!readiness.ready) {
+              throw new Error(readiness.errorMessage || 'Insufficient balance for payment.');
+            }
+
+            console.log(`Executing real on-chain escrow funding of ${ethers.formatEther(fundingParams.principalUnits)} POL (+ 2.5% client fee: ${ethers.formatEther(fundingParams.feeUnits)} POL) to ${targetContractAddress}...`);
+            const gasOverrides = await getPolygonGasOverrides(provider);
+
+            // PRE-FLIGHT SIMULATION: MUST BE STRICTLY BLOCKING!
+            try {
+              await escrow.fundJob.staticCall(0n, { value: fundingParams.valueArg, from: signerAddr });
+              console.log(`Pre-flight simulation successful for funding POL into ${targetContractAddress}.`);
+            } catch (simErr: any) {
+              console.error('Pre-flight simulation reverted:', simErr);
+              const decoded = decodeRevertReason(simErr);
+              throw new Error(`Simulation reverted: ${decoded.message}. No transaction was broadcasted.`);
+            }
+
+            const tx = await escrow.fundJob(0n, { value: fundingParams.valueArg, ...gasOverrides, gasLimit: 300000n });
+            txHash = tx.hash;
+
+            // Immediately register submitted hash with backend worker
+            sessionStorage.setItem(`polylance_tx_${job.id}`, JSON.stringify({ intentId, txHash, status: 'SUBMITTED' }));
+            fetch(`${syncUrl}/api/tx/submitted`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ intentId, txHash }),
+            }).catch(() => {});
+
             const receipt = await tx.wait();
-            txHash = receipt.hash;
+            if (!receipt || receipt.status !== 1) {
+              throw new Error('On-chain funding transaction failed (receipt status 0). No funds were moved.');
+            }
+
+            sessionStorage.removeItem(`polylance_tx_${job.id}`);
             console.log(`On-chain escrow successfully funded with client fee! TxHash: ${txHash}`);
             await refreshBalances().catch(() => {});
           } else {
@@ -2652,37 +3290,73 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               'function symbol() external view returns (string)'
             ];
             const tokenContract = new ethers.Contract(activeTokenAddress, erc20Abi, signer);
-            const decimals = tokenConfig?.decimals || 6;
-            const tokenSymbol = job.paymentTokenSymbol || tokenConfig?.symbol || 'USDC';
-            const amountParsed = ethers.parseUnits(job.amountUsdc || '100', decimals);
-            const clientFee = (amountParsed * 250n) / 10000n; // 2.5% platform fee
-            const totalRequired = amountParsed + clientFee; // 102.5% total approved & paid by client
 
-            const signerAddr = await signer.getAddress();
-            const currentBal: bigint = await tokenContract.balanceOf(signerAddr).catch(() => 0n);
-            if (currentBal < totalRequired) {
-              const formattedBal = ethers.formatUnits(currentBal, decimals);
-              const formattedReq = ethers.formatUnits(totalRequired, decimals);
-              const formattedPrincipal = ethers.formatUnits(amountParsed, decimals);
-              const formattedFee = ethers.formatUnits(clientFee, decimals);
-              throw new Error(`Insufficient ${tokenSymbol} balance. You have ${formattedBal} ${tokenSymbol}, but ${formattedReq} ${tokenSymbol} (${formattedPrincipal} budget + ${formattedFee} 2.5% platform fee) is required.`);
+            const polBalance: bigint = await provider.getBalance(signerAddr).catch(() => 0n);
+            const tokenBalance: bigint = await tokenContract.balanceOf(signerAddr).catch(() => 0n);
+
+            const readiness = checkPaymentReadiness({
+              isNative: false,
+              tokenSymbol: fundingParams.tokenSymbol,
+              nativePolBalance: polBalance,
+              tokenBalance,
+              totalRequiredUnits: fundingParams.totalRequiredUnits,
+            });
+            if (!readiness.ready) {
+              throw new Error(readiness.errorMessage || 'Insufficient balance for payment.');
             }
 
             const currentAllowance: bigint = await tokenContract.allowance(signerAddr, targetContractAddress).catch(() => 0n);
-            if (currentAllowance < totalRequired) {
-              console.log(`Approving ${ethers.formatUnits(totalRequired, decimals)} ${tokenSymbol} (${tokenSymbol} budget + 2.5% client fee) for escrow contract ${targetContractAddress}...`);
+
+            // USDT QUIRK: Reset allowance to 0 first if existing allowance > 0 and < target
+            if (needsUsdtZeroReset(activeTokenAddress, currentAllowance, fundingParams.totalRequiredUnits)) {
+              console.log('USDT non-zero allowance quirk detected. Resetting allowance to 0 first...');
+              const resetGas = await getPolygonGasOverrides(provider);
+              const resetTx = await tokenContract.approve(targetContractAddress, 0n, { ...resetGas, gasLimit: 80000n });
+              await resetTx.wait();
+            }
+
+            if (currentAllowance < fundingParams.totalRequiredUnits) {
+              console.log(`Approving exact amount ${ethers.formatUnits(fundingParams.totalRequiredUnits, fundingParams.decimals)} ${fundingParams.tokenSymbol} for escrow contract ${targetContractAddress}...`);
               const approveGas = await getPolygonGasOverrides(provider);
-              const approveTx = await tokenContract.approve(targetContractAddress, totalRequired, { ...approveGas, gasLimit: 120000n });
-              await approveTx.wait();
+              const approveTx = await tokenContract.approve(targetContractAddress, fundingParams.totalRequiredUnits, { ...approveGas, gasLimit: 120000n });
+              const approveReceipt = await approveTx.wait();
+              if (!approveReceipt || approveReceipt.status !== 1) {
+                throw new Error('Token approval transaction failed on-chain.');
+              }
               console.log(`Token approval confirmed!`);
             }
 
-            console.log(`Executing real on-chain escrow funding of ${ethers.formatUnits(amountParsed, decimals)} ${tokenSymbol} (+ ${ethers.formatUnits(clientFee, decimals)} 2.5% client fee) to ${targetContractAddress}...`);
+            console.log(`Executing real on-chain escrow funding of ${ethers.formatUnits(fundingParams.principalUnits, fundingParams.decimals)} ${fundingParams.tokenSymbol} (+ 2.5% client fee) to ${targetContractAddress}...`);
             const fundGas = await getPolygonGasOverrides(provider);
-            const fundTx = await escrow.fundJob(amountParsed, { ...fundGas, gasLimit: 350000n });
+
+            // PRE-FLIGHT SIMULATION FOR ERC20
+            try {
+              await escrow.fundJob.staticCall(fundingParams.tokenAmountArg, { from: signerAddr });
+              console.log(`Pre-flight simulation successful for funding ${fundingParams.tokenSymbol} into ${targetContractAddress}.`);
+            } catch (simErr: any) {
+              console.error('ERC20 simulation reverted:', simErr);
+              const decoded = decodeRevertReason(simErr);
+              throw new Error(`Simulation reverted: ${decoded.message}. No transaction was broadcasted.`);
+            }
+
+            const fundTx = await escrow.fundJob(fundingParams.tokenAmountArg, { ...fundGas, gasLimit: 350000n });
+            txHash = fundTx.hash;
+
+            // Immediately register submitted hash with backend worker
+            sessionStorage.setItem(`polylance_tx_${job.id}`, JSON.stringify({ intentId, txHash, status: 'SUBMITTED' }));
+            fetch(`${syncUrl}/api/tx/submitted`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ intentId, txHash }),
+            }).catch(() => {});
+
             const receipt = await fundTx.wait();
-            txHash = receipt.hash;
-            console.log(`On-chain escrow successfully funded with ${tokenSymbol} + 2.5% client fee! TxHash: ${txHash}`);
+            if (!receipt || receipt.status !== 1) {
+              throw new Error('On-chain token funding transaction failed (receipt status 0). No funds were moved.');
+            }
+
+            sessionStorage.removeItem(`polylance_tx_${job.id}`);
+            console.log(`On-chain escrow successfully funded with ${fundingParams.tokenSymbol} + 2.5% client fee! TxHash: ${txHash}`);
             await refreshBalances().catch(() => {});
           }
         } else if (isConnected) {
@@ -2692,35 +3366,54 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err: any) {
       console.error('Escrow funding error:', err);
       if (isConnected) {
+        if (err?.code === 'ACTION_REJECTED' || err?.code === 4001) {
+          throw new Error('Transaction cancelled by user in wallet.');
+        }
         throw err;
       }
     }
 
     if (!txHash) {
-      if (isConnected) {
-        throw new Error('On-chain funding transaction failed or was rejected. No funds were deducted.');
-      }
-      txHash = generateMockTxHash();
+      throw new Error('Funding transaction was not confirmed on-chain. Escrow remains unfunded.');
     }
 
+    const currentJob = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!currentJob) return;
+
+    const updatedEvents = (currentJob.events || []).map((evt) => {
+      if (evt.step === 'Funded') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
+      if (evt.step === 'Submitted') return { ...evt, status: 'current' as const };
+      return evt;
+    });
+    const updatedJob: Job = {
+      ...currentJob,
+      contractAddress: targetContractAddress || currentJob.contractAddress,
+      status: 'Funded' as const,
+      clientAgreedTerms: true,
+      freelancerAgreedTerms: true,
+      events: updatedEvents,
+    };
+
     setJobs((prev) =>
-      prev.map((j) => {
-        if (!matchJob(j, jobId) && j.id !== jobId && (!targetContractAddress || j.contractAddress?.toLowerCase() !== targetContractAddress.toLowerCase())) return j;
-        const updatedEvents = (j.events || []).map((evt) => {
-          if (evt.step === 'Funded') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
-          if (evt.step === 'Submitted') return { ...evt, status: 'current' as const };
-          return evt;
-        });
-        return {
-          ...j,
-          contractAddress: targetContractAddress || (job && job.contractAddress) || j.contractAddress,
-          status: 'Funded' as const,
-          clientAgreedTerms: true,
-          freelancerAgreedTerms: true,
-          events: updatedEvents,
-        };
-      })
+      prev.map((j) => (matchJob(j, jobId) ? updatedJob : j))
     );
+
+    const clientAddr = address || currentConnectedWalletAddress || (updatedJob as any).client || '';
+    broadcastSync({ jobs: [updatedJob] }, clientAddr);
+    if (syncSocket && syncSocket.connected) {
+      syncSocket.emit('client-sync', { jobs: [updatedJob] });
+    }
+    const endpoints = getSyncEndpoints();
+    endpoints.forEach((ep) => {
+      fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': clientAddr,
+        },
+        body: JSON.stringify(updatedJob),
+      }).catch(() => {});
+    });
     refreshBalances().catch(() => {});
   };
 
@@ -2776,7 +3469,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
     if (!txHash) {
-      txHash = generateMockTxHash();
+      txHash = '';
     }
 
     const proofObj: ProofOfWork = {
@@ -2788,23 +3481,49 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       externalLink,
     };
 
-    setJobs((prev) =>
-      prev.map((j) => {
-        if (!matchJob(j, jobId)) return j;
-        const updatedEvents = j.events.map((evt) => {
-          if (evt.step === 'Submitted') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Freelancer' };
-          if (evt.step === 'Completed') return { ...evt, status: 'current' as const };
-          return evt;
-        });
-        return {
-          ...j,
+    const currentJob = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!currentJob) return;
+
+    const updatedEvents = (currentJob.events || []).map((evt) => {
+      if (evt.step === 'Submitted') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Freelancer' };
+      if (evt.step === 'Completed') return { ...evt, status: 'current' as const };
+      return evt;
+    });
+    const updatedJob: Job = {
+      ...currentJob,
+      status: 'Submitted',
+      submittedAt: Date.now(),
+      proof: proofObj,
+      events: updatedEvents,
+    };
+
+    setJobs((prev) => {
+      const next = prev.map((j) => (matchJob(j, jobId) ? updatedJob : j));
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    const actorAddr = address || currentConnectedWalletAddress || (updatedJob as any).freelancer || '';
+    broadcastSync({ jobs: [updatedJob] }, actorAddr);
+    if (syncSocket && syncSocket.connected) {
+      syncSocket.emit('client-sync', { jobs: [updatedJob] });
+    }
+    const endpoints = getSyncEndpoints();
+    endpoints.forEach((ep) => {
+      fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': actorAddr,
+        },
+        body: JSON.stringify({
+          proof: proofObj,
           status: 'Submitted',
           submittedAt: Date.now(),
-          proof: proofObj,
           events: updatedEvents,
-        };
-      })
-    );
+        }),
+      }).catch((err) => console.warn('[SUBMIT WORK PATCH ERROR]', err));
+    });
   };
 
   const postProgressUpdate = async (
@@ -2814,13 +3533,14 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     demoUrl?: string
   ) => {
     let txHash = '';
-    const job = jobs.find((j) => matchJob(j, jobId));
+    const currentJob = jobsRef.current.find((j) => matchJob(j, jobId)) || jobs.find((j) => matchJob(j, jobId));
+    if (!currentJob) return;
     const updateIpfsHash = generateIpfsCid({ progressPercent, statusNote, demoUrl, timestamp: Date.now() });
 
     try {
       const signer = await getSigner();
-      if (signer && job && ethers.isAddress(job.contractAddress)) {
-        const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
+      if (signer && currentJob && ethers.isAddress(currentJob.contractAddress)) {
+        const escrow = new ethers.Contract(currentJob.contractAddress, getAbi(JobEscrowABI), signer);
         const gasOverrides = await getPolygonGasOverrides(provider);
         const tx = await escrow.postProgressUpdate(updateIpfsHash, gasOverrides);
         const receipt = await tx.wait();
@@ -2829,40 +3549,61 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('Real contract postProgressUpdate fallback:', err);
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
     const updateObj = {
-      id: txHash.slice(0, 10),
+      id: txHash ? txHash.slice(0, 10) : `upd-${Date.now()}`,
       ipfsHash: updateIpfsHash,
       progressPercent,
       statusNote,
       timestamp: Date.now(),
-      txHash,
+      txHash: txHash || undefined,
       demoUrl,
     };
 
-    setJobs((prev) =>
-      prev.map((j) => {
-        if (!matchJob(j, jobId)) return j;
-        const newEvents = [
-          ...j.events,
-          {
-            step: 'Update',
-            title: `Progress Update (${progressPercent}%)`,
-            timestamp: Date.now(),
-            txHash,
-            status: 'completed' as const,
-            actor: 'Freelancer',
-            description: statusNote,
-          },
-        ];
-        return {
-          ...j,
-          progressUpdates: [updateObj, ...(j.progressUpdates || [])],
+    const newEvents = [
+      ...(currentJob.events || []),
+      {
+        step: 'Update',
+        title: `Progress Update (${progressPercent}%)`,
+        timestamp: Date.now(),
+        txHash,
+        status: 'completed' as const,
+        actor: 'Freelancer',
+        description: statusNote,
+      },
+    ];
+    const updatedJob: Job = {
+      ...currentJob,
+      progressUpdates: [updateObj, ...(currentJob.progressUpdates || [])],
+      events: newEvents,
+    };
+
+    setJobs((prev) => {
+      const next = prev.map((j) => (matchJob(j, jobId) ? updatedJob : j));
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    const actorAddr = address || currentConnectedWalletAddress || (updatedJob as any).freelancer || '';
+    broadcastSync({ jobs: [updatedJob] }, actorAddr);
+    if (syncSocket && syncSocket.connected) {
+      syncSocket.emit('client-sync', { jobs: [updatedJob] });
+    }
+    const endpoints = getSyncEndpoints();
+    endpoints.forEach((ep) => {
+      fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': actorAddr,
+        },
+        body: JSON.stringify({
+          progressUpdate: updateObj,
           events: newEvents,
-        };
-      })
-    );
+        }),
+      }).catch((err) => console.warn('[PROGRESS PATCH ERROR]', err));
+    });
   };
 
   const requestTimeExtension = async (jobId: string, requestedDays: number, reason: string) => {
@@ -2882,11 +3623,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('Real contract requestTimeExtension fallback:', err);
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
     const requestIndex = job?.extensionRequests ? job.extensionRequests.length : 0;
     const reqObj = {
-      id: txHash.slice(0, 10),
+      id: txHash ? txHash.slice(0, 10) : `ext-${Date.now()}`,
       requestIndex,
       requestedDays,
       reasonIpfsHash,
@@ -2897,8 +3638,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       status: 'Pending' as const,
     };
 
-    setJobs((prev) =>
-      prev.map((j) => {
+    let targetUpdatedJob: Job | null = null;
+    setJobs((prev) => {
+      const next = prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
         const newEvents = [
           ...j.events,
@@ -2912,13 +3654,38 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             description: reason,
           },
         ];
-        return {
+        const updated = {
           ...j,
           extensionRequests: [reqObj, ...(j.extensionRequests || [])],
           events: newEvents,
         };
-      })
-    );
+        targetUpdatedJob = updated;
+        return updated;
+      });
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (targetUpdatedJob) {
+      const actorAddr = address || currentConnectedWalletAddress || (targetUpdatedJob as any).freelancer || '';
+      broadcastSync({ jobs: [targetUpdatedJob] }, actorAddr);
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [targetUpdatedJob] });
+      }
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': actorAddr,
+          },
+          body: JSON.stringify({
+            extensionRequest: reqObj,
+          }),
+        }).catch(() => {});
+      });
+    }
   };
 
   const respondToTimeExtension = async (
@@ -2944,10 +3711,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('Real contract respondToTimeExtension fallback:', err);
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
-    setJobs((prev) =>
-      prev.map((j) => {
+    let targetUpdatedJob: Job | null = null;
+    setJobs((prev) => {
+      const next = prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
         let addedDays = 0;
         const updatedRequests = (j.extensionRequests || []).map((req) => {
@@ -2977,14 +3745,37 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           },
         ];
 
-        return {
+        const updated = {
           ...j,
           reviewPeriodDays: j.reviewPeriodDays + addedDays,
           extensionRequests: updatedRequests,
           events: newEvents,
         };
-      })
-    );
+        targetUpdatedJob = updated;
+        return updated;
+      });
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (targetUpdatedJob) {
+      const actorAddr = address || currentConnectedWalletAddress || (targetUpdatedJob as any).client || '';
+      broadcastSync({ jobs: [targetUpdatedJob] }, actorAddr);
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [targetUpdatedJob] });
+      }
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': actorAddr,
+          },
+          body: JSON.stringify(targetUpdatedJob),
+        }).catch(() => {});
+      });
+    }
   };
 
   const requestModifications = async (jobId: string, note: string) => {
@@ -3004,17 +3795,18 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('Real contract requestModifications fallback:', err);
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
     const modObj = {
-      id: txHash.slice(0, 10),
+      id: txHash ? txHash.slice(0, 10) : `mod-${Date.now()}`,
       note,
       requestedAt: Date.now(),
       status: 'Pending' as const,
     };
 
-    setJobs((prev) =>
-      prev.map((j) => {
+    let targetUpdatedJob: Job | null = null;
+    setJobs((prev) => {
+      const next = prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
         const newEvents = [
           ...j.events,
@@ -3028,21 +3820,81 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
             description: note,
           },
         ];
-        return {
+        const updated: Job = {
           ...j,
+          status: 'Funded',
           modificationRequests: [modObj, ...(j.modificationRequests || [])],
           events: newEvents,
         };
-      })
-    );
+        targetUpdatedJob = updated;
+        return updated;
+      });
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (targetUpdatedJob) {
+      const actorAddr = address || currentConnectedWalletAddress || (targetUpdatedJob as any).client || '';
+      broadcastSync({ jobs: [targetUpdatedJob] }, actorAddr);
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [targetUpdatedJob] });
+      }
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': actorAddr,
+          },
+          body: JSON.stringify({
+            modificationRequest: modObj,
+            status: 'In Progress',
+          }),
+        }).catch((err) => console.warn('[REVISION REQUEST PATCH ERROR]', err));
+      });
+    }
+  };
+
+  const parseSbtTokenIdFromLogs = (logs?: readonly any[] | any[]): string | undefined => {
+    if (!logs || !Array.isArray(logs)) return undefined;
+    const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+    const sbtAddrLower = (CONTRACTS.ReputationSBT || '0x22a61f83ceb94233d30a20eeacbdeb9bcc1c2879').toLowerCase();
+    for (const log of logs) {
+      if (
+        log.address?.toLowerCase() === sbtAddrLower &&
+        log.topics &&
+        log.topics[0]?.toLowerCase() === transferTopic &&
+        log.topics[1]?.includes('0000000000000000000000000000000000000000') &&
+        log.topics[3]
+      ) {
+        try {
+          return BigInt(log.topics[3]).toString();
+        } catch {}
+      }
+    }
+    return undefined;
   };
 
   const releasePayment = async (jobId: string) => {
+    if (releaseInProgressRef.current[jobId]) {
+      console.warn(`[releasePayment] Release already in progress for job ${jobId}`);
+      return;
+    }
+    releaseInProgressRef.current[jobId] = true;
+
     let txHash = '';
     let sbtTxHash = '';
+    let realMintedSbtId: string | undefined = undefined;
     const job = jobs.find((j) => matchJob(j, jobId));
 
+    if (!job) {
+      releaseInProgressRef.current[jobId] = false;
+      throw new Error('Escrow job not found.');
+    }
+
     if (isConnected && isWrongNetwork) {
+      releaseInProgressRef.current[jobId] = false;
       throw new Error(`Wrong network detected. Please switch wallet to ${targetChainName} to release escrow payment.`);
     }
 
@@ -3055,7 +3907,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (hasLiveContract) {
           const escrow = new ethers.Contract(job.contractAddress, getAbi(JobEscrowABI), signer);
           const signerAddr = (await signer.getAddress()).toLowerCase();
-          
+
           // Verify on-chain status, amount, client, and freelancer
           const onChainStatus = Number(await escrow.status().catch(() => -1));
           const onChainAmount: bigint = await escrow.amount().catch(() => 0n);
@@ -3064,81 +3916,107 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
           console.log(`[releasePayment] On-chain escrow check (${job.contractAddress}): status=${onChainStatus}, amount=${ethers.formatEther(onChainAmount)} POL, client=${onChainClient}, freelancer=${onChainFreelancer}, signer=${signerAddr}`);
 
-          if (onChainAmount === 0n || onChainStatus === 4 || onChainStatus === 5) {
-            // Case 1: Escrow deposit is 0 or already completed/cancelled on-chain
-            console.log(`Escrow contract ${job.contractAddress} on-chain balance is 0 POL (status=${onChainStatus}). Finalizing settlement and minting dual reputation SBTs...`);
-            txHash = job.events?.find((e: any) => e.step === 'Completed')?.txHash || generateMockTxHash();
+          if (onChainStatus === 4) {
+            // Already completed on-chain
+            console.log(`Escrow contract ${job.contractAddress} is already Completed on-chain.`);
+            txHash = job.events?.find((e: any) => e.step === 'Completed' || e.step === 'Paid')?.txHash || '';
             sbtTxHash = txHash;
           } else if (onChainStatus === 2) {
-            // Case 2: Real on-chain JobStatus.Submitted (2)
-            console.log(`Executing real on-chain payment release from escrow ${job.contractAddress}...`);
+            // Case 2: Standard Submitted state — trigger releasePayment
+            console.log(`Executing on-chain payment release from escrow ${job.contractAddress}...`);
             const releaseGas = await getPolygonGasOverrides(provider);
             const tx = await escrow.releasePayment(releaseGas);
             const receipt = await tx.wait();
             txHash = receipt.hash;
             sbtTxHash = receipt.hash;
+            const parsedTokenId = parseSbtTokenIdFromLogs(receipt?.logs);
+            if (parsedTokenId) realMintedSbtId = parsedTokenId;
             console.log(`Payment successfully released on-chain! TxHash: ${txHash}`);
-          } else if (onChainStatus === 0) {
-            // Case 3: On-chain status is Open (0).
-            // The job was funded on-chain, but the intermediate steps (apply & submit) were handled off-chain.
-            if (onChainAmount > 0n) {
-              const escrowPaymentToken: string = await escrow.paymentToken().catch(() => ethers.ZeroAddress);
-              const isErc20 = escrowPaymentToken && escrowPaymentToken !== ethers.ZeroAddress;
-              console.log(`Escrow contract ${job.contractAddress} is in Open state with ${isErc20 ? 'ERC-20' : 'POL'} funds. Reclaiming escrow deposit before disbursing to talent...`);
-              const cancelGas = await getPolygonGasOverrides(provider);
-              const cancelTx = await escrow.cancelJob(cancelGas);
-              const cancelReceipt = await cancelTx.wait();
-              console.log(`Escrow deposit successfully reclaimed on-chain: ${cancelReceipt.hash}`);
+          } else if (onChainStatus === 0 || onChainStatus === 1) {
+            // Case 3: Contract is in Open (0) or Selected (1)
+            // CRITICAL: NEVER call cancelJob()!
+            const escrowPaymentToken: string = await escrow.paymentToken().catch(() => ethers.ZeroAddress);
+            const isErc20 = escrowPaymentToken && escrowPaymentToken !== ethers.ZeroAddress;
+            const targetFreelancer = job.freelancer && ethers.isAddress(job.freelancer) ? job.freelancer : null;
+            const treasuryAddr = (import.meta.env.VITE_TREASURY_ADDRESS || '0x940D8475689b2156D6174555F3382b5E6951653F').toLowerCase();
 
-              // Transfer net payout directly to freelancer on-chain in the matching token
-              const targetFreelancer = job.freelancer && ethers.isAddress(job.freelancer) ? job.freelancer : null;
-              if (targetFreelancer && targetFreelancer.toLowerCase() !== signerAddr) {
-                const feeAmount = (onChainAmount * 250n) / 10000n; // 2.5% platform fee
-                const payoutAmount = onChainAmount - feeAmount;
-                const payGas = await getPolygonGasOverrides(provider);
-                if (isErc20) {
-                  const erc20 = new ethers.Contract(escrowPaymentToken, ['function transfer(address to, uint256 amount) returns (bool)'], signer);
-                  const payTx = await erc20.transfer(targetFreelancer, payoutAmount, payGas);
-                  const payReceipt = await payTx.wait();
-                  txHash = payReceipt?.hash || payTx.hash;
-                  sbtTxHash = txHash;
-                } else {
-                  console.log(`Disbursing direct on-chain payout (${ethers.formatEther(payoutAmount)} POL) to freelancer ${targetFreelancer}...`);
-                  const payTx = await signer.sendTransaction({
-                    to: targetFreelancer,
-                    value: payoutAmount,
-                    ...payGas,
-                  });
-                  const payReceipt = await payTx.wait();
-                  txHash = payReceipt?.hash || payTx.hash;
-                  sbtTxHash = txHash;
-                }
-                console.log(`Direct on-chain payout to freelancer confirmed: ${txHash}`);
-              } else {
-                txHash = cancelReceipt?.hash || cancelTx.hash;
-                sbtTxHash = txHash;
-              }
-            } else {
-              txHash = generateMockTxHash();
-              sbtTxHash = txHash;
-            }
-          } else if (onChainStatus === 1) {
-            // Case 4: On-chain status is Selected (1).
-            // In JobEscrow.sol, releasePayment() requires status == JobStatus.Submitted (2).
-            if (onChainAmount > 0n) {
+            // Check if atomic release is supported by contract
+            if (typeof escrow.releasePaymentAtomic === 'function' && targetFreelancer) {
+              console.log(`Calling releasePaymentAtomic on contract ${job.contractAddress}...`);
+              const releaseGas = await getPolygonGasOverrides(provider);
+              const tx = await escrow.releasePaymentAtomic(targetFreelancer, releaseGas);
+              const receipt = await tx.wait();
+              txHash = receipt.hash;
+              sbtTxHash = receipt.hash;
+              const parsedTokenId = parseSbtTokenIdFromLogs(receipt?.logs);
+              if (parsedTokenId) realMintedSbtId = parsedTokenId;
+            } else if (onChainStatus === 1) {
               try {
                 const releaseGas = await getPolygonGasOverrides(provider);
                 const tx = await escrow.releasePayment(releaseGas);
                 const receipt = await tx.wait();
                 txHash = receipt.hash;
                 sbtTxHash = receipt.hash;
+                const parsedTokenId = parseSbtTokenIdFromLogs(receipt?.logs);
+                if (parsedTokenId) realMintedSbtId = parsedTokenId;
               } catch (relErr: any) {
-                console.warn('Direct escrow.releasePayment on Selected state requires submission:', relErr);
-                throw new Error('Deliverables must be submitted by the freelancer on-chain before the escrow payout can be released.');
+                console.warn('Escrow release on Selected requires work submission:', relErr);
+                throw new Error('On-chain deliverables must be recorded before release can be executed.');
+              }
+            } else if (onChainAmount > 0n && targetFreelancer && targetFreelancer.toLowerCase() !== signerAddr) {
+              // Direct on-chain settlement without cancelling the escrow
+              const fees = feeBreakdown(onChainAmount, escrowPaymentToken);
+              const payGas = await getPolygonGasOverrides(provider);
+
+              if (isErc20) {
+                const erc20 = new ethers.Contract(escrowPaymentToken, ['function transfer(address to, uint256 amount) returns (bool)'], signer);
+                // 1. Pay freelancer net amount
+                const flTx = await erc20.transfer(targetFreelancer, fees.freelancerNet, payGas);
+                const flReceipt = await flTx.wait();
+                txHash = flReceipt?.hash || flTx.hash;
+                sbtTxHash = txHash;
+                const parsedTokenId = parseSbtTokenIdFromLogs(flReceipt?.logs);
+                if (parsedTokenId) realMintedSbtId = parsedTokenId;
+                // 2. Pay treasury platform total
+                if (fees.platformTotal > 0n && ethers.isAddress(treasuryAddr)) {
+                  try {
+                    const trTx = await erc20.transfer(treasuryAddr, fees.platformTotal, payGas);
+                    await trTx.wait();
+                  } catch (trErr) {
+                    console.warn('[TREASURY TRANSFER NOTE] Treasury transfer failed, logged for reconciliation:', trErr);
+                  }
+                }
+              } else {
+                console.log(`Disbursing direct payout (${ethers.formatEther(fees.freelancerNet)} POL net) to freelancer ${targetFreelancer}...`);
+                const flTx = await signer.sendTransaction({
+                  to: targetFreelancer,
+                  value: fees.freelancerNet,
+                  ...payGas,
+                });
+                const flReceipt = await flTx.wait();
+                txHash = flReceipt?.hash || flTx.hash;
+                sbtTxHash = txHash;
+                const parsedTokenId = parseSbtTokenIdFromLogs(flReceipt?.logs);
+                if (parsedTokenId) realMintedSbtId = parsedTokenId;
+
+                // Transfer platform fee to treasury
+                if (fees.platformTotal > 0n && ethers.isAddress(treasuryAddr)) {
+                  try {
+                    console.log(`Transferring platform fee (${ethers.formatEther(fees.platformTotal)} POL) to treasury ${treasuryAddr}...`);
+                    const trTx = await signer.sendTransaction({
+                      to: treasuryAddr,
+                      value: fees.platformTotal,
+                      ...payGas,
+                    });
+                    await trTx.wait();
+                  } catch (trErr) {
+                    console.warn('[TREASURY TRANSFER NOTE] POL Treasury fee transfer failed, logged for reconciliation:', trErr);
+                  }
+                }
               }
             } else {
-              txHash = generateMockTxHash();
-              sbtTxHash = txHash;
+              txHash = '';
+              sbtTxHash = '';
             }
           } else {
             console.log(`Executing on-chain payment release attempt from escrow ${job.contractAddress}...`);
@@ -3148,9 +4026,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
               const receipt = await tx.wait();
               txHash = receipt.hash;
               sbtTxHash = receipt.hash;
+              const parsedTokenId = parseSbtTokenIdFromLogs(receipt?.logs);
+              if (parsedTokenId) realMintedSbtId = parsedTokenId;
             } catch {
-              txHash = generateMockTxHash();
-              sbtTxHash = txHash;
+              txHash = '';
+              sbtTxHash = '';
             }
           }
 
@@ -3158,10 +4038,13 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     } catch (err: any) {
+      releaseInProgressRef.current[jobId] = false;
       console.error('Real contract releasePayment notice:', err);
       if (isConnected) {
         throw err;
       }
+    } finally {
+      releaseInProgressRef.current[jobId] = false;
     }
 
     if (!txHash) {
@@ -3169,13 +4052,16 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     if (!sbtTxHash) sbtTxHash = txHash;
 
+    let updatedJobToSync: Job | null = null;
+
     setJobs((prev) =>
       prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
-        const fee = parseFloat(j.amountUsdc || '0') * 0.025;
-        setTreasuryBalanceUsdc((b) => b + fee);
+        const feeCalc = calculateFeeBreakdownFromString(j.amountUsdc || j.amountEth || '0', j.paymentTokenSymbol || 'POL');
+        const feeAmount = parseFloat(feeCalc.formatted.platformTotal);
+        setTreasuryBalanceUsdc((b) => b + feeAmount);
         setTreasuryHistory((h) => [
-          { id: Date.now().toString(), type: 'FEE_COLLECTED', amountUsdc: fee, txHash, timestamp: Date.now() },
+          { id: Date.now().toString(), type: 'FEE_COLLECTED', amountUsdc: feeAmount, txHash, timestamp: Date.now() },
           ...h,
         ]);
 
@@ -3231,23 +4117,62 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           return next;
         });
 
-        const updatedEvents = j.events.map((evt) => {
+        const updatedEvents = (j.events || []).map((evt) => {
           if (evt.step === 'Completed') return { ...evt, title: 'Payment Released (100%)', status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
+          if (evt.step === 'Paid') return { ...evt, title: 'Payment Released (100%)', status: 'completed' as const, timestamp: Date.now(), txHash, actor: 'Client' };
           if (evt.step === 'Minted') return { ...evt, status: 'completed' as const, timestamp: Date.now(), txHash: sbtTxHash, actor: 'JobFactory' };
           return evt;
         });
 
-        const finalSbtTokenId = j.sbtTokenId || (txHash ? parseInt(txHash.slice(-6), 16) % 10000 || 101 : 101);
-        return {
+        // Ensure step: 'Paid' and step: 'Completed' are both present
+        if (!updatedEvents.some(e => e.step === 'Paid' && e.status === 'completed')) {
+          updatedEvents.push({
+            step: 'Paid',
+            title: 'Payment Released (100%)',
+            status: 'completed',
+            timestamp: Date.now(),
+            txHash,
+          });
+        }
+        if (!updatedEvents.some(e => e.step === 'Completed' && e.status === 'completed')) {
+          updatedEvents.push({
+            step: 'Completed',
+            title: 'Milestone Completed & Settled',
+            status: 'completed',
+            timestamp: Date.now(),
+            txHash,
+          });
+        }
+
+        const finalSbtTokenId = realMintedSbtId || j.sbtTokenId || undefined;
+        const sbtMintStatus = finalSbtTokenId ? ('issued' as const) : ('pending' as const);
+        const updated = {
           ...j,
-          status: 'Completed',
+          status: 'Completed' as const,
+          escrowStatus: 'RELEASED' as const,
           completedAt: Date.now(),
+          releaseTxHash: txHash,
           sbtTokenId: finalSbtTokenId,
-          sbtTxHash: sbtTxHash || txHash,
+          sbtTxHash: finalSbtTokenId ? (sbtTxHash || txHash) : undefined,
+          onchainTokenId: j.onchainTokenId !== undefined ? j.onchainTokenId : (realMintedSbtId ? Number(realMintedSbtId) : undefined),
+          certificateNo: j.certificateNo !== undefined ? j.certificateNo : (typeof finalSbtTokenId === 'number' ? finalSbtTokenId : undefined),
+          mintTxHash: j.mintTxHash || (finalSbtTokenId ? (sbtTxHash || txHash) : undefined),
+          sbtMintStatus,
           events: updatedEvents,
         };
+        updatedJobToSync = updated;
+        return updated;
       })
     );
+
+    // CRITICAL: Push confirmed completion update over WebSocket and BroadcastChannel
+    if (updatedJobToSync) {
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [updatedJobToSync] });
+      }
+      broadcastSync({ jobs: [updatedJobToSync] });
+    }
+
     refreshBalances().catch(() => {});
   };
 
@@ -3354,7 +4279,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Real contract cancelJob error:', err);
       if (isConnected) throw err;
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
     setJobs((prev) =>
       prev.map((j) => {
@@ -3396,7 +4321,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('Real contract raiseDispute fallback:', err);
     }
-    if (!txHash) txHash = generateMockTxHash();
+    if (!txHash) txHash = '';
 
     setJobs((prev) =>
       prev.map((j) => {
@@ -3471,8 +4396,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
 
-    if (!txHash) txHash = generateMockTxHash();
-    if (!sbtTxHash) sbtTxHash = generateMockTxHash();
+    if (!txHash) txHash = '';
+    if (!sbtTxHash) sbtTxHash = '';
     const reasoningCid = generateIpfsCid(reasoningText);
 
     setJobs((prev) =>
@@ -3576,7 +4501,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       createdAt: now,
     };
 
-    const actionText = `📋 ${senderRole === 'Freelancer' ? 'Freelancer' : 'Client'} proposed: $${amountUsdc} USDC in ${deadlineDays} days${note ? ` — "${note}"` : ''}`;
+    const targetJob = jobs.find((j) => matchJob(j, jobId));
+    const tokenSym = (targetJob?.paymentTokenSymbol === 'MATIC' ? 'POL' : (targetJob?.paymentTokenSymbol || 'POL')).toUpperCase();
+    const actionText = `📋 ${senderRole === 'Freelancer' ? 'Freelancer' : 'Client'} proposed: ${amountUsdc} ${tokenSym} in ${deadlineDays} days${note ? ` — "${note}"` : ''}`;
 
     const newMsg: ChatMessage = {
       id: `msg-${now}`,
@@ -3659,9 +4586,10 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
           ? props.map((p) => (p.id === proposalId ? updatedProp : (accept && p.status === 'Pending' ? { ...p, status: 'Countered' as const } : p)))
           : [...props.map((p) => (accept && p.status === 'Pending' ? { ...p, status: 'Countered' as const } : p)), updatedProp];
 
+        const propToken = (j.paymentTokenSymbol === 'MATIC' ? 'POL' : (j.paymentTokenSymbol || 'POL')).toUpperCase();
         const confirmationText = accept
-          ? `🎉 ${responderRole} ACCEPTED the terms: $${targetProp.amountUsdc} USDC in ${targetProp.deadlineDays} days! Full contract terms are updated on-chain.`
-          : `❌ ${responderRole} declined the proposed terms ($${targetProp.amountUsdc} USDC in ${targetProp.deadlineDays} days)${rejectReason ? `: "${rejectReason}"` : '.'}`;
+          ? `🎉 ${responderRole} ACCEPTED the terms: ${targetProp.amountUsdc} ${propToken} in ${targetProp.deadlineDays} days! Full contract terms are updated on-chain.`
+          : `❌ ${responderRole} declined the proposed terms (${targetProp.amountUsdc} ${propToken} in ${targetProp.deadlineDays} days)${rejectReason ? `: "${rejectReason}"` : '.'}`;
 
         const confMsg: ChatMessage = {
           id: `msg-${now}`,
@@ -3673,8 +4601,8 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const updatedEvents = (j.events || []).map((evt) => {
           if (accept) {
-            if (evt.step === 'Terms') return { ...evt, status: 'completed' as const, timestamp: now, txHash: generateMockTxHash() };
-            if (evt.step === 'Funded') return { ...evt, status: 'completed' as const, timestamp: now, txHash: generateMockTxHash() };
+            if (evt.step === 'Terms') return { ...evt, status: 'completed' as const, timestamp: now };
+            if (evt.step === 'Funded') return { ...evt, status: 'current' as const };
           }
           return evt;
         });
@@ -3706,7 +4634,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         return {
           ...j,
-          status: accept ? 'Funded' : j.status,
+          status: j.status === 'Open' ? 'Selected' : j.status,
           freelancer: accept && effectiveFreelancer ? effectiveFreelancer : j.freelancer,
           amountUsdc: accept ? targetProp.amountUsdc : j.amountUsdc,
           amountEth: accept ? (parseFloat(targetProp.amountUsdc) / 2500).toFixed(4) : j.amountEth,
@@ -3777,19 +4705,28 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!text || !text.trim()) return;
     const trimmed = text.trim();
     const now = Date.now();
-    const cleanApplicant = applicantAddress?.toLowerCase();
+    const cleanApplicant = applicantAddress?.toLowerCase()?.trim();
+    const cleanSender = (senderAddress || currentConnectedWalletAddress || '').toLowerCase().trim();
+    
+    // Stable client-generated message ID
+    const msgId = `msg-${now}-${Math.random().toString(36).substring(2, 7)}`;
+    const isSocketOnline = Boolean(syncSocket && syncSocket.connected);
+
     const newMsg: ChatMessage = {
-      id: `msg-${now}`,
+      id: msgId,
       sender: senderRole,
-      senderAddress: senderAddress?.toLowerCase(),
+      senderAddress: cleanSender,
       applicantAddress: cleanApplicant,
       text: trimmed,
       timestamp: now,
       proposal,
+      status: isSocketOnline ? 'sent' : 'sending',
     };
 
-    setJobs((prev) =>
-      prev.map((job) => {
+    let updatedJobToSync: Job | null = null;
+
+    setJobs((prev) => {
+      const next = prev.map((job) => {
         if (!matchJob(job, jobId)) return job;
         const existing = job.chatMessages || [];
         const isRecentDuplicate = existing.some(
@@ -3802,17 +4739,257 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         );
         if (isRecentDuplicate) return job;
 
-        return {
+        const updatedChat = [...existing, newMsg];
+        const updatedPreAccept = [
+          ...(job.preAcceptMessages || []),
+          {
+            id: msgId,
+            sender: cleanSender,
+            senderRole: senderRole === 'Judge' ? 'Client' : senderRole,
+            text: trimmed,
+            timestamp: now,
+            proposal,
+            applicantAddress: cleanApplicant,
+            status: isSocketOnline ? 'sent' : 'sending',
+          }
+        ];
+
+        const updated = {
           ...job,
-          chatMessages: [...existing, newMsg],
+          chatMessages: updatedChat,
+          preAcceptMessages: updatedPreAccept,
         };
-      })
-    );
+        updatedJobToSync = updated;
+        return updated;
+      });
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (updatedJobToSync) {
+      const actorAddr = cleanSender || (updatedJobToSync as any).client || '';
+      broadcastSync({ jobs: [updatedJobToSync] }, actorAddr);
+
+      // Socket sync with server ack
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('client-sync', { jobs: [updatedJobToSync] }, (res: any) => {
+          if (res?.success) {
+            setJobs((curr) =>
+              curr.map((j) => {
+                if (!matchJob(j, jobId)) return j;
+                return {
+                  ...j,
+                  chatMessages: (j.chatMessages || []).map((m) =>
+                    m.id === msgId && m.status === 'sending' ? { ...m, status: 'sent' as const } : m
+                  ),
+                };
+              })
+            );
+          }
+        });
+      } else {
+        chatOutbox.push({ jobId, updatedJob: updatedJobToSync, msgId });
+      }
+
+      // 10s timeout: mark failed with Retry if ack never received
+      setTimeout(() => {
+        setJobs((curr) =>
+          curr.map((j) => {
+            if (!matchJob(j, jobId)) return j;
+            return {
+              ...j,
+              chatMessages: (j.chatMessages || []).map((m) =>
+                m.id === msgId && m.status === 'sending'
+                  ? { ...m, status: 'failed' as const, failedReason: 'Delivery timeout' }
+                  : m
+              ),
+            };
+          })
+        );
+      }, 10000);
+
+      // REST dual-write fallback
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': cleanSender,
+          },
+          body: JSON.stringify({
+            chatMessages: (updatedJobToSync as any).chatMessages,
+            preAcceptMessages: (updatedJobToSync as any).preAcceptMessages,
+          }),
+        }).catch(() => {});
+      });
+    }
+  };
+
+  const markMessagesAsSeen = (jobId: string, messageIds: string[], readerAddress: string) => {
+    if (!jobId || !Array.isArray(messageIds) || messageIds.length === 0 || !readerAddress) return;
+    const cleanReader = readerAddress.toLowerCase().trim();
+    const now = Date.now();
+
+    let updatedJobToSync: Job | null = null;
+
+    setJobs((prev) => {
+      const next = prev.map((job) => {
+        if (!matchJob(job, jobId)) return job;
+        const existing = job.chatMessages || [];
+        let hasChanges = false;
+
+        const nextMsgs = existing.map((m) => {
+          if (m.id && messageIds.includes(m.id)) {
+            // Unidirectional status progression: sending/sent -> seen
+            if (m.status !== 'seen') {
+              hasChanges = true;
+              const seenBy = Array.from(new Set([...(m.seenBy || []), cleanReader]));
+              return {
+                ...m,
+                status: 'seen' as const,
+                seenAt: now,
+                seenBy,
+              };
+            }
+          }
+          return m;
+        });
+
+        if (!hasChanges) return job;
+        const updated = {
+          ...job,
+          chatMessages: nextMsgs,
+        };
+        updatedJobToSync = updated;
+        return updated;
+      });
+      try { localStorage.setItem('polylance_jobs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (updatedJobToSync) {
+      broadcastSync({ jobs: [updatedJobToSync] }, cleanReader);
+
+      if (syncSocket && syncSocket.connected) {
+        syncSocket.emit('mark-messages-seen', { jobId, messageIds, readerAddress: cleanReader });
+        syncSocket.emit('client-sync', { jobs: [updatedJobToSync] });
+      }
+
+      const endpoints = getSyncEndpoints();
+      endpoints.forEach((ep) => {
+        fetch(`${ep}/api/jobs/${encodeURIComponent(jobId)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-wallet-address': cleanReader,
+          },
+          body: JSON.stringify({
+            chatMessages: (updatedJobToSync as any).chatMessages,
+          }),
+        }).catch(() => {});
+      });
+    }
+  };
+
+
+  const checkGithubBinding = async (
+    githubUsername: string,
+    targetAddress: string
+  ): Promise<{ available: boolean; boundTo?: string; error?: string }> => {
+    let cleanUser = (githubUsername || '').trim();
+    if (cleanUser.includes('github.com/')) {
+      const parts = cleanUser.split('github.com/');
+      cleanUser = parts[parts.length - 1].split('/')[0];
+    }
+    cleanUser = cleanUser.replace(/^@/, '').replace(/\/$/, '').trim().toLowerCase();
+    const cleanTarget = (targetAddress || '').toLowerCase().trim();
+
+    // 1. Check local profiles state
+    for (const [addr, prof] of Object.entries(profiles || {})) {
+      if (addr.toLowerCase().trim() !== cleanTarget && prof?.githubVerified) {
+        if ((prof?.githubUsername || '').toLowerCase().trim() === cleanUser) {
+          const boundAddr = addr.toLowerCase().trim();
+          return {
+            available: false,
+            boundTo: boundAddr,
+            error: `Security Shield: This GitHub account (@${cleanUser}) is already bound to wallet ${boundAddr.slice(0, 6)}...${boundAddr.slice(-4)} on PolyLance. Each GitHub account can only be linked to one verified wallet.`,
+          };
+        }
+      }
+    }
+
+    // 2. Check backend server state
+    try {
+      const backendUrl = getBackendSyncUrl();
+      const res = await fetch(
+        `${backendUrl}/api/auth/github/check-availability?username=${encodeURIComponent(
+          cleanUser
+        )}&address=${encodeURIComponent(cleanTarget)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.available === false) {
+          return {
+            available: false,
+            boundTo: data.boundWallet,
+            error: data.error || `Security Shield: This GitHub account is already bound to another wallet.`,
+          };
+        }
+      }
+    } catch {}
+
+    return { available: true };
   };
 
   const updateProfile = async (profileData: Partial<UserProfile>, address: string) => {
+    const lowerAddress = address.toLowerCase();
+
+    // Pre-flight Sybil Resistance check: Ensure GitHub username is not bound to another wallet
+    if (profileData.githubVerified && profileData.githubUsername) {
+      const lowerUsername = profileData.githubUsername.toLowerCase().trim();
+      const duplicateAddress = Object.keys(profiles).find(
+        (addr) =>
+          addr.toLowerCase() !== lowerAddress &&
+          profiles[addr]?.githubVerified &&
+          profiles[addr]?.githubUsername?.toLowerCase().trim() === lowerUsername
+      );
+      if (duplicateAddress) {
+        const adminGh = (import.meta.env.VITE_ADMIN_GITHUB_USERNAME || '').toLowerCase().trim();
+        const judgeGh = (import.meta.env.VITE_JUDGE_GITHUB_USERNAME || '').toLowerCase().trim();
+        const isPrivileged =
+          (isAdminAddress(lowerAddress) && adminGh === lowerUsername) ||
+          (isJudgeAddress(lowerAddress) && judgeGh === lowerUsername);
+
+        if (!isPrivileged) {
+          const errText = `Security Shield: The GitHub account @${profileData.githubUsername} is already linked to wallet ${duplicateAddress.slice(0, 6)}...${duplicateAddress.slice(-4)} on PolyLance. Each GitHub account can only be linked to one verified wallet.`;
+          console.warn(errText);
+          throw new Error(errText);
+        }
+      }
+
+      // Check backend server state as well
+      try {
+        const backendUrl = getBackendSyncUrl();
+        const res = await fetch(
+          `${backendUrl}/api/auth/github/check-availability?username=${encodeURIComponent(
+            lowerUsername
+          )}&address=${encodeURIComponent(lowerAddress)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.available === false) {
+            throw new Error(data.error || `Security Shield: This GitHub account is already bound to another wallet.`);
+          }
+        }
+      } catch (backendErr: any) {
+        if (backendErr.message?.includes('Security Shield')) {
+          throw backendErr;
+        }
+      }
+    }
+
     setProfiles((prev) => {
-      const lowerAddress = address.toLowerCase();
       let updatedPrev = { ...prev };
 
       if (profileData.githubVerified && profileData.githubUsername) {
@@ -3847,7 +5024,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         address: lowerAddress,
         displayName: 'Anonymous PolyLancer',
         bio: '',
-        avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        avatarUrl: '',
         ipfsHash: '',
         skills: [],
         githubVerified: false,
@@ -3873,22 +5050,6 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Explicitly broadcast and dual-write to cloud databases
       broadcastSync({ profiles: { [lowerAddress]: updatedSingle } }, lowerAddress);
-
-      // Direct multi-endpoint POST for guaranteed server persistence
-      const syncEndpoints = getSyncEndpoints();
-      const postPayload = JSON.stringify({
-        profiles: { [lowerAddress]: updatedSingle },
-      });
-      syncEndpoints.forEach((ep) => {
-        fetch(`${ep}/api/sync?address=${encodeURIComponent(lowerAddress)}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-wallet-address': lowerAddress,
-          },
-          body: postPayload,
-        }).catch(() => {});
-      });
 
       return finalMerged;
     });
@@ -3970,7 +5131,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
         id: Date.now().toString(),
         type: 'WITHDRAWAL',
         amountUsdc,
-        txHash: generateMockTxHash(),
+        txHash: '',
         timestamp: Date.now(),
         by: `${byAddress.slice(0, 6)}... (Safe Multisig)`,
       },
@@ -4233,19 +5394,11 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (jobId) {
       const now = Date.now();
-      let updatedJobsList: Job[] = [];
-      setJobs((prev) => {
-        const next = prev.map((j) => {
-          if (!matchJob(j, jobId)) return j;
-          return { ...j, chatMessages: [], preAcceptMessages: [], chatClearedAt: now };
-        });
-        updatedJobsList = next;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('polylance_jobs', JSON.stringify(next));
-        }
-        return next;
+      const updatedJobsList = (jobsRef.current || jobs).map((j) => {
+        if (!matchJob(j, jobId)) return j;
+        return { ...j, chatMessages: [], preAcceptMessages: [], chatClearedAt: now };
       });
-
+      setJobs(updatedJobsList);
       broadcastSync({ jobs: updatedJobsList }, userAddr);
 
       // Trigger API call to backend database
@@ -4267,17 +5420,9 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } else if (judgeAddress) {
       const lower = judgeAddress.toLowerCase();
-      let updatedJudgeMsgs: Record<string, JudgeMessage[]> = {};
-      setJudgeMessages((prev) => {
-        const next = { ...prev };
-        delete next[lower];
-        updatedJudgeMsgs = next;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('polylance_judge_messages', JSON.stringify(next));
-        }
-        return next;
-      });
-
+      const updatedJudgeMsgs = { ...judgeMessages };
+      delete updatedJudgeMsgs[lower];
+      setJudgeMessages(updatedJudgeMsgs);
       broadcastSync({ judgeMessages: updatedJudgeMsgs }, userAddr);
 
       try {
@@ -4524,6 +5669,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     renewJob,
     applyToJob,
     selectFreelancer,
+    cancelSelection,
+    proposeCounterOffer,
+    respondToCounterOffer,
+    acceptJobOffer,
+    declineJobOffer,
+    withdrawProposal,
     proposeTerms,
     fundJob,
     submitWork,
@@ -4531,6 +5682,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     requestTimeExtension,
     respondToTimeExtension,
     requestModifications,
+    submitClientReview,
     releasePayment,
     claimAutoRelease,
     cancelEscrow,
@@ -4542,6 +5694,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     respondToNegotiationProposal,
     sendPreAcceptMessage,
     sendChatMessage,
+    markMessagesAsSeen,
     sendJudgeChatMessage,
     isEnclineConnected: false,
     judgeMessages,
@@ -4553,6 +5706,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     requestAccountDeletion,
     cancelAccountDeletion,
     purgeAccountData,
+    checkGithubBinding,
     updateProfile,
     castDaoVote,
     castVote,
@@ -4585,6 +5739,12 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     renewJob,
     applyToJob,
     selectFreelancer,
+    cancelSelection,
+    proposeCounterOffer,
+    respondToCounterOffer,
+    acceptJobOffer,
+    declineJobOffer,
+    withdrawProposal,
     proposeTerms,
     fundJob,
     submitWork,
@@ -4592,6 +5752,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     requestTimeExtension,
     respondToTimeExtension,
     requestModifications,
+    submitClientReview,
     releasePayment,
     claimAutoRelease,
     cancelEscrow,
@@ -4613,6 +5774,7 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     requestAccountDeletion,
     cancelAccountDeletion,
     purgeAccountData,
+    checkGithubBinding,
     updateProfile,
     castDaoVote,
     castVote,
@@ -4654,6 +5816,12 @@ const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
   renewJob: async () => false,
   applyToJob: async () => {},
   selectFreelancer: async () => {},
+  cancelSelection: async () => false,
+  proposeCounterOffer: async () => false,
+  respondToCounterOffer: async () => false,
+  acceptJobOffer: async () => false,
+  declineJobOffer: async () => false,
+  withdrawProposal: async () => false,
   proposeTerms: async () => {},
   fundJob: async () => {},
   submitWork: async () => {},
@@ -4661,6 +5829,7 @@ const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
   requestTimeExtension: async () => {},
   respondToTimeExtension: async () => {},
   requestModifications: async () => {},
+  submitClientReview: async () => false,
   releasePayment: async () => {},
   claimAutoRelease: async () => {},
   cancelEscrow: async () => {},
@@ -4672,6 +5841,7 @@ const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
   respondToNegotiationProposal: async () => {},
   sendPreAcceptMessage: () => {},
   sendChatMessage: () => {},
+  markMessagesAsSeen: () => {},
   sendJudgeChatMessage: () => {},
   isEnclineConnected: false,
   judgeMessages: {},
@@ -4683,6 +5853,7 @@ const SAFE_FALLBACK_DATA_CONTEXT: PolyLanceDataContextType = {
   requestAccountDeletion: async () => {},
   cancelAccountDeletion: async () => {},
   purgeAccountData: async () => {},
+  checkGithubBinding: async () => ({ available: true }),
   updateProfile: async () => {},
   castDaoVote: () => {},
   castVote: () => {},

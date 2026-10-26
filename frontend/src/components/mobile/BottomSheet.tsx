@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { pauseLenis, resumeLenis } from '../../hooks/useSmoothScroll';
 
 export interface BottomSheetProps {
   isOpen: boolean;
@@ -36,12 +37,14 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = '100%';
     document.body.style.overflow = 'hidden';
+    pauseLenis();
 
     return () => {
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
       document.body.style.overflow = '';
+      resumeLenis();
       window.scrollTo(0, scrollY);
     };
   }, [isOpen]);
@@ -113,7 +116,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.05 : 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-900/60"
             aria-hidden="true"
           />
 
@@ -161,7 +164,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             )}
 
             {/* Content Scroll Area */}
-            <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+            <div data-lenis-prevent="true" className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 min-h-0 custom-scrollbar">
               {children}
             </div>
           </motion.div>

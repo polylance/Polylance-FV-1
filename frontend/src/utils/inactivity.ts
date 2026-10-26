@@ -31,7 +31,11 @@ export const getJobInactivityStatus = (job: Job | null | undefined): JobInactivi
     return { daysElapsed: 0, daysRemaining: JOB_AUTO_EXPIRY_DAYS, isReminderActive: false, isExpired: false };
   }
 
-  const postedAt = job.createdAt || Date.now();
+  const rawPostedAt = job.createdAt || job.events?.[0]?.timestamp;
+  if (!rawPostedAt) {
+    return { daysElapsed: 0, daysRemaining: JOB_AUTO_EXPIRY_DAYS, isReminderActive: false, isExpired: false };
+  }
+  const postedAt = typeof rawPostedAt === 'number' && rawPostedAt < 100000000000 ? rawPostedAt * 1000 : Number(rawPostedAt);
   const diffMs = Math.max(0, Date.now() - postedAt);
   const daysElapsed = diffMs / MS_PER_DAY;
   const daysRemaining = Math.max(0, Math.ceil(JOB_AUTO_EXPIRY_DAYS - daysElapsed));

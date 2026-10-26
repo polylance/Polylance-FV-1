@@ -1,19 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, ShieldCheck, ArrowRight, Wallet, AlertTriangle, 
-  CheckCircle2, Loader2, Sparkles, ExternalLink, Info, RefreshCw
+import React, { useState } from 'react';
+import {
+  ShieldCheck,
+  Sparkles,
+  Wallet,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+  ArrowRight,
+  Info,
+  Loader2,
 } from 'lucide-react';
-import { useWeb3 } from '../context/Web3Context';
 import { Job } from '../types';
-import { modalOverlayVariants, modalContentVariants, transition } from '../lib/motion';
+import { useWeb3 } from '../context/Web3Context';
 import { InsufficientFundsModal } from './InsufficientFundsModal';
+import { NETWORK_CONFIG } from '../config/contracts';
+import { Modal } from './overlay/Modal';
+import { Button } from './common/Button';
+import { AddressChip } from './common/AddressChip';
+import { FeeBreakdown } from './common/FeeBreakdown';
+import { TransactionTracker, TxTrackerStep } from './common/TransactionTracker';
+import { decodeRevertReason } from '../utils/txBuilder';
+import { calculateFeeBreakdownFromString } from '../utils/fees';
+import { formatAmount } from '../utils/formatAmount';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { PauseCircle, Clock } from 'lucide-react';
+import { NetworkFeeBlock } from './common/NetworkFeeBlock';
+import { convertCryptoToFiat, useLiveCurrencyRates, useGlobalFiat } from '../utils/currency';
 
 interface FundEscrowModalProps {
   isOpen: boolean;
   onClose: () => void;
   job: Job;
   onConfirmFund: () => Promise<void>;
+  tokenSymbol?: string;
 }
 
 export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
@@ -21,46 +40,44 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
   onClose,
   job,
   onConfirmFund,
+  tokenSymbol = 'POL',
 }) => {
-  const { address, balanceNative, balanceUsdc, balanceUsdt, isWrongNetwork, targetChainName, switchToTargetNetwork, refreshBalances } = useWeb3();
+  const { balanceNative, balanceUsdc, refreshBalances, isWrongNetwork } = useWeb3();
+  const { severity, isPaymentDisabled } = useNetworkStatus();
+  useLiveCurrencyRates();
+  const [fiatCode] = useGlobalFiat();
+
   const [isFunding, setIsFunding] = useState(false);
+  const [trackerStep, setTrackerStep] = useState<TxTrackerStep>('IDLE');
+  const [activeTxHash, setActiveTxHash] = useState<string>('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isRefreshingBal, setIsRefreshingBal] = useState(false);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Refresh live balances when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      refreshBalances().catch(() => {});
-    }
-  }, [isOpen, refreshBalances]);
+  // Financial calculations via pure BigInt fee breakdown
+  const rawBudgetString = (job as any).budget || job.amountEth || job.amountUsdc || '0';
+  const feeDetails = calculateFeeBreakdownFromString(rawBudgetString, tokenSymbol);
+  const principalAmount = parseFloat(feeDetails.budgetFormatted) || 0;
+  const clientFee = parseFloat(feeDetails.clientFeeFormatted) || 0;
+  const totalRequired = parseFloat(feeDetails.clientDepositFormatted) || 0;
+  const netFreelancerPayout = parseFloat(feeDetails.freelancerNetFormatted) || 0;
 
-  // Determine token and amounts
-  const isNative = !job.paymentToken || job.paymentToken === '0x0000000000000000000000000000000000000000' || job.paymentTokenSymbol === 'POL' || job.paymentTokenSymbol === 'MATIC';
-  const tokenSymbol = job.paymentTokenSymbol || (isNative ? 'POL' : 'USDC');
-  const principalAmount = isNative 
-    ? parseFloat(job.amountEth || '0.05') 
-    : parseFloat(job.amountUsdc || '100');
-  
-  // 2.5% site maintenance fee:
-  // Client pays 2.5% upfront site maintenance fee credited to treasury upon funding
-  // Freelancer has 2.5% site maintenance fee deducted upon milestone completion
-  const feeRate = 0.025;
-  const clientFee = principalAmount * feeRate;
-  const totalRequired = principalAmount + clientFee;
-  const freelancerFee = principalAmount * feeRate;
-  const netFreelancerPayout = principalAmount - freelancerFee;
-
-  // Real-time balance check
-  const currentBalance = isNative ? balanceNative : tokenSymbol === 'USDT' ? balanceUsdt : balanceUsdc;
-  const currentBalNum = parseFloat(currentBalance) || 0;
+  const currentBalance = tokenSymbol === 'USDC' ? balanceUsdc : balanceNative;
+  const currentBalNum = parseFloat(currentBalance || '0') || 0;
   const hasSufficientFunds = currentBalNum >= totalRequired;
   const shortfall = Math.max(0, totalRequired - currentBalNum);
 
+  // Gas pre-check: if funding in token, client must have native POL for gas
+  const isGasShortage = tokenSymbol !== 'POL' && parseFloat(balanceNative || '0') < 0.01;
+
+  const targetChainName = NETWORK_CONFIG.chainName || 'Polygon';
+
   const handleManualRefresh = async () => {
+    setIsRefreshingBal(true);
     try {
-      setIsRefreshingBal(true);
       await refreshBalances();
+    } catch {
+      // silently handle
     } finally {
       setIsRefreshingBal(false);
     }
@@ -72,6 +89,10 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
       setErrorMsg(`Please switch your wallet to ${targetChainName} to fund this escrow.`);
       return;
     }
+    if (isGasShortage) {
+      setErrorMsg('You need a small amount of POL for network fees. You hold USDC, but gas on Polygon PoS requires native POL.');
+      return;
+    }
     if (!hasSufficientFunds && currentBalNum > 0) {
       setShowInsufficientModal(true);
       return;
@@ -79,11 +100,17 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
 
     try {
       setIsFunding(true);
+      setTrackerStep('WALLET_SIGN');
       await onConfirmFund();
-      onClose();
+      setTrackerStep('CONFIRMED');
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (err: any) {
       console.error('Escrow funding submission error:', err);
-      setErrorMsg(err?.message || 'Failed to fund escrow contract. Please try again.');
+      const decoded = decodeRevertReason(err);
+      setErrorMsg(decoded.message);
+      setTrackerStep('FAILED');
     } finally {
       setIsFunding(false);
     }
@@ -91,211 +118,242 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
 
   return (
     <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            variants={modalOverlayVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={transition.fast}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
-          >
-            <motion.div
-              variants={modalContentVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={transition.medium}
-              className="glass-panel max-w-lg w-full p-6 sm:p-7 border-blue-200 bg-white hard-shadow relative space-y-5"
-            >
-              {/* Close Button */}
-              <button
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        maxWidth="md"
+        isPending={isFunding}
+        title="Lock Escrow Deposit"
+        description={`Deposit ${tokenSymbol} into isolated non-custodial milestone escrow.`}
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <span className="text-xs text-[#6B7280] font-mono">
+              Secured on Polygon PoS
+            </span>
+            <div className="flex items-center gap-2.5">
+              <Button
+                variant="secondary"
+                size="md"
                 onClick={onClose}
                 disabled={isFunding}
-                className="absolute right-4 top-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-150 transition-colors cursor-pointer z-10 disabled:opacity-50"
               >
-                <X size={18} />
-              </button>
-
-              {/* Header */}
-              <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
-                  <ShieldCheck size={26} />
-                </div>
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-100/70 border border-blue-200 text-[10px] font-mono font-bold text-blue-700 mb-1">
-                    <Sparkles size={11} />
-                    <span>SMART CONTRACT ESCROW</span>
-                  </div>
-                  <h3 className="text-xl font-black text-slate-900 font-heading">
-                    Lock Escrow Deposit
-                  </h3>
-                  <p className="text-xs text-slate-500 font-sans">
-                    Deposit {tokenSymbol} into isolated EIP-1167 contract proxy.
-                  </p>
-                </div>
-              </div>
-
-              {/* Job Summary Banner */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
-                <div className="font-bold text-slate-800 line-clamp-1">{job.title}</div>
-                <div className="flex items-center justify-between text-slate-500 font-mono text-[11px]">
-                  <span>Job ID: {job.id.slice(0, 10)}...</span>
-                  <span className="text-slate-700 font-medium">Selected: {job.freelancer ? `${job.freelancer.slice(0, 6)}...${job.freelancer.slice(-4)}` : 'Freelancer'}</span>
-                </div>
-              </div>
-
-              {/* Financial Breakdown Table */}
-              <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100 overflow-hidden text-xs">
-                <div className="p-3.5 flex justify-between items-center">
-                  <span className="text-slate-600 font-sans">Escrow Principal Budget:</span>
-                  <span className="font-bold font-mono text-slate-900">{principalAmount.toFixed(4)} {tokenSymbol}</span>
-                </div>
-                <div className="p-3.5 flex justify-between items-center bg-slate-50">
-                  <div className="flex items-center gap-1.5 text-slate-700 font-sans">
-                    <span>Site Maintenance Fee (2.5%):</span>
-                    <span title="Credited directly to Treasury for escrow protection and security"><Info size={12} className="text-slate-400" /></span>
-                  </div>
-                  <span className="font-bold font-mono text-slate-900">+{clientFee.toFixed(4)} {tokenSymbol}</span>
-                </div>
-                <div className="p-4 flex justify-between items-center bg-blue-50/70 font-bold border-t border-blue-100">
-                  <span className="text-slate-900 font-heading text-sm">Total Deposit to Escrow:</span>
-                  <span className="text-base font-black font-mono text-blue-700">{totalRequired.toFixed(4)} {tokenSymbol}</span>
-                </div>
-                <div className="p-3.5 flex justify-between items-center bg-emerald-50/40">
-                  <span className="text-emerald-800 font-sans font-medium">Net Disbursed to Talent on Approval:</span>
-                  <span className="font-bold font-mono text-emerald-700">{netFreelancerPayout.toFixed(4)} {tokenSymbol}</span>
-                </div>
-              </div>
-
-              {/* Live Wallet Balance Status */}
-              <div className={`p-3.5 rounded-xl border flex items-center justify-between text-xs ${
-                hasSufficientFunds 
-                  ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800' 
-                  : 'bg-amber-50/70 border-amber-200 text-amber-800'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Wallet size={16} />
-                  <div>
-                    <div className="flex items-center gap-1.5 font-semibold">
-                      <span>Your Live Balance:</span>
-                      <button
-                        type="button"
-                        onClick={handleManualRefresh}
-                        disabled={isRefreshingBal}
-                        className="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                        title="Refresh balance from blockchain"
-                      >
-                        <RefreshCw size={11} className={isRefreshingBal ? 'animate-spin' : ''} />
-                      </button>
-                    </div>
-                    <div className="font-mono text-xs">{currentBalNum.toFixed(4)} {tokenSymbol}</div>
-                  </div>
-                </div>
-
-                {hasSufficientFunds ? (
-                  <div className="flex items-center gap-1 font-bold text-emerald-700 text-xs">
-                    <CheckCircle2 size={14} />
-                    <span>Funds Ready</span>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowInsufficientModal(true)}
-                    className="flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <AlertTriangle size={13} />
-                    <span>Top-Up Shortfall ({shortfall.toFixed(3)})</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Error Message if any */}
-              {errorMsg === 'METAMASK_SMART_TX_REVERT' ? (
-                <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 space-y-2.5 text-left">
-                  <div className="flex items-center gap-2 font-bold text-xs text-amber-900">
-                    <AlertTriangle size={16} className="text-amber-600 shrink-0" />
-                    <span>Action Required: Turn OFF MetaMask "Smart Transactions"</span>
-                  </div>
-                  <p className="text-[11px] text-amber-800 leading-relaxed">
-                    MetaMask routed your deposit through an EIP-7702 Delegation Relayer (<code className="bg-amber-100 px-1 py-0.5 rounded text-[10px]">0xdb9b...</code>), which reverted because smart contract escrows require direct client funding.
-                  </p>
-                  <div className="p-3 rounded-lg bg-white/90 border border-amber-200 text-[11px] font-sans space-y-1.5 text-slate-700">
-                    <p className="font-bold text-slate-900">How to Fix in 5 Seconds:</p>
-                    <ol className="list-decimal list-inside space-y-1 text-slate-600">
-                      <li>Open your <strong>MetaMask extension</strong></li>
-                      <li>Go to <strong>Settings → Transactions</strong> (or <strong>Advanced</strong>)</li>
-                      <li>Toggle <strong>"Smart Transactions"</strong> to <strong className="text-amber-700">OFF</strong></li>
-                      <li>Click the blue <strong>"Lock & Fund Escrow"</strong> button below to complete funding</li>
-                    </ol>
-                  </div>
-                </div>
-              ) : errorMsg && (
-                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
-                  <AlertTriangle size={15} className="shrink-0 mt-0.5 text-red-600" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              {/* Wallet Authorization in progress notification */}
-              {isFunding && (
-                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 flex items-start gap-2.5">
-                  <Loader2 size={18} className="shrink-0 mt-0.5 text-blue-600 animate-spin" />
-                  <div className="space-y-1 text-left">
-                    <p className="font-bold text-blue-950">Awaiting Wallet Approval</p>
-                    <p className="text-[11px] text-blue-700 leading-relaxed">
-                      Please confirm the transaction in your wallet app. If your wallet does not pop up automatically, <strong>click the MetaMask / Coinbase icon</strong> in your browser extension bar to approve the pending request.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="pt-2 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  disabled={isFunding}
-                  className="flex-1 py-3 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors cursor-pointer text-center disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleFundClick}
-                  disabled={isFunding}
-                  className="flex-2 py-3 px-5 rounded-xl bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 shadow-xs"
-                >
-                  {isFunding ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Confirming On-Chain Escrow...</span>
-                    </>
-                  ) : hasSufficientFunds ? (
-                    <>
-                      <span>Lock & Fund Escrow ({totalRequired.toFixed(3)} {tokenSymbol})</span>
-                      <ArrowRight size={15} />
-                    </>
-                  ) : (
-                    <>
-                      <span>Lock & Fund Escrow ({totalRequired.toFixed(3)} {tokenSymbol})</span>
-                      <ArrowRight size={15} />
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Security Footnote */}
-              <div className="text-center">
-                <p className="text-[10.5px] text-slate-400 font-mono">
-                  Funds are secured in contract {job.contractAddress ? `${job.contractAddress.slice(0, 8)}...` : 'proxy'} and released only on your approval.
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleFundClick}
+                loading={isFunding}
+                disabled={isFunding || isPaymentDisabled}
+                icon={!isFunding && !isPaymentDisabled && <ArrowRight size={15} />}
+              >
+                {isPaymentDisabled
+                  ? 'Payments Paused'
+                  : isFunding
+                  ? 'Confirming in wallet...'
+                  : `Lock & fund escrow (${totalRequired.toFixed(3)} ${tokenSymbol})`}
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {/* Contextual Network Status Notice */}
+          {isPaymentDisabled && (
+            <div className="p-3.5 rounded-[10px] bg-[#FFFBEB] border border-[#FDE68A] text-xs text-[#92400E] flex items-start gap-2.5">
+              <PauseCircle size={16} className="shrink-0 mt-0.5 text-[#D97706]" />
+              <div className="space-y-0.5">
+                <p className="font-semibold text-[#92400E]">Payments are temporarily paused</p>
+                <p className="text-[11.5px] text-[#78350F] leading-relaxed">
+                  Your funds and escrow are unaffected. We'll update this page as soon as the network recovers.
                 </p>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          )}
+
+          {severity === 'SLOW' && !isPaymentDisabled && (
+            <div className="p-3 rounded-[10px] bg-[#EAF1FF] border border-[#C8DBF8] text-xs text-[#0B4FBF] flex items-start gap-2">
+              <Clock size={14} className="shrink-0 mt-0.5 text-[#0B4FBF]" />
+              <span className="text-[11.5px] leading-relaxed text-[#374151]">
+                Confirmations are a little slower right now. Your funds stay in the escrow smart contract.
+              </span>
+            </div>
+          )}
+
+          {/* Smart Contract Isolation & Trust Banner */}
+          <div className="p-3 rounded-[10px] bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-center justify-between shadow-sm">
+            <span className="flex items-center gap-1.5 text-slate-400">
+              <ShieldCheck size={14} className="text-purple-400" />
+              <span>Funds are held by smart contract:</span>
+            </span>
+            <span className="font-mono text-purple-300 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/40 text-[11px]">
+              {job.contractAddress ? `${job.contractAddress.slice(0, 8)}...${job.contractAddress.slice(-6)}` : 'Deploys on First Deposit'}
+            </span>
+          </div>
+
+          {/* Job Summary Banner */}
+          <div className="p-3.5 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] text-xs space-y-1">
+            <div className="font-semibold text-[#0B0B0F] truncate">{job.title}</div>
+            <div className="flex items-center justify-between text-[#6B7280]">
+              <span className="font-mono">Job ID: {job.id.slice(0, 10)}...</span>
+              {job.freelancer && (
+                <span className="flex items-center gap-1">
+                  Selected: <AddressChip address={job.freelancer} truncate />
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* POL Gas Requirement Warning */}
+          {isGasShortage && (
+            <div className="p-3 rounded-[8px] bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
+              <AlertTriangle size={15} className="shrink-0 mt-0.5 text-amber-600" />
+              <div>
+                <span className="font-semibold block">You need a small amount of POL for network fees.</span>
+                <span className="text-[11px] text-amber-700">
+                  You hold {tokenSymbol}, but network transactions on Polygon PoS require native POL for gas. Please top up at least 0.02 POL.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Transaction Tracker when funding is active */}
+          {trackerStep !== 'IDLE' && (
+            <div className="pt-2">
+              <TransactionTracker
+                jobId={job.id}
+                type="FUND"
+                tokenSymbol={tokenSymbol}
+                amount={totalRequired.toFixed(3)}
+                contractAddress={job.contractAddress}
+                step={trackerStep}
+                txHash={activeTxHash}
+                onRetry={() => {
+                  setTrackerStep('IDLE');
+                  setErrorMsg(null);
+                }}
+                onDone={onClose}
+              />
+            </div>
+          )}
+
+          {/* Fee & Breakdown Table */}
+          <div className="rounded-[10px] border border-[#E5E7EB] bg-white divide-y divide-[#E5E7EB] text-xs overflow-hidden">
+            <div className="p-3 flex justify-between items-center">
+              <span className="text-[#4B5563]">Escrow principal budget:</span>
+              <span className="font-semibold text-[#0B0B0F] tabular-nums font-sans">
+                {formatAmount(feeDetails.breakdown.budget, tokenSymbol).formatted} {tokenSymbol} <span className="text-[#64748B] text-[11px] font-normal">({convertCryptoToFiat(principalAmount, tokenSymbol, fiatCode).formatted})</span>
+              </span>
+            </div>
+            <div className="p-3 flex justify-between items-center bg-[#F6F7F9]">
+              <div className="flex items-center gap-1.5 text-[#4B5563]">
+                <span>Platform fee (2.5%):</span>
+                <span title="Protocol escrow fee">
+                  <Info size={12} className="text-[#6B7280]" />
+                </span>
+              </div>
+              <span className="font-semibold text-[#4B5563] tabular-nums font-sans">
+                +{formatAmount(feeDetails.breakdown.clientFee, tokenSymbol).formatted} {tokenSymbol} <span className="text-[#64748B] text-[11px] font-normal">({convertCryptoToFiat(clientFee, tokenSymbol, fiatCode).formatted})</span>
+              </span>
+            </div>
+            <div className="p-3.5 flex justify-between items-center bg-[#EAF1FB]/50 border-t border-[#C9DAF2]">
+              <span className="font-semibold text-[#0B0B0F]">Total deposit to escrow:</span>
+              <span className="font-bold text-[#0047AB] tabular-nums text-sm font-sans">
+                {formatAmount(feeDetails.breakdown.clientDeposit, tokenSymbol).formatted} {tokenSymbol} <span className="text-[#0047AB]/80 text-xs font-normal">({convertCryptoToFiat(totalRequired, tokenSymbol, fiatCode).formatted})</span>
+              </span>
+            </div>
+            <div className="p-3 flex justify-between items-center text-[#4B5563]">
+              <span>Net disbursed to freelancer on approval:</span>
+              <span className="font-semibold text-[#0B0B0F] tabular-nums font-sans">
+                {formatAmount(feeDetails.breakdown.freelancerNet, tokenSymbol).formatted} {tokenSymbol} <span className="text-[#64748B] text-[11px] font-normal">({convertCryptoToFiat(netFreelancerPayout, tokenSymbol, fiatCode).formatted})</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Live Network Fee Engine Block */}
+          <NetworkFeeBlock
+            actionKey={tokenSymbol === 'POL' ? 'fundNative' : 'fundUsdc'}
+            isErc20={tokenSymbol !== 'POL'}
+            tokenSymbol={tokenSymbol}
+          />
+
+          {/* Live Balance Status */}
+          <div className="p-3.5 rounded-[10px] border border-[#E5E7EB] bg-[#F6F7F9] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <Wallet size={16} className="text-[#0047AB]" />
+              <div>
+                <div className="flex items-center gap-1.5 text-[#4B5563]">
+                  <span>Your live balance:</span>
+                  <button
+                    type="button"
+                    onClick={handleManualRefresh}
+                    disabled={isRefreshingBal}
+                    className="p-0.5 rounded text-[#6B7280] hover:text-[#0B0B0F] transition-colors cursor-pointer"
+                    title="Refresh balance"
+                  >
+                    <RefreshCw size={11} className={isRefreshingBal ? 'animate-spin' : ''} />
+                  </button>
+                </div>
+                <div className="font-semibold text-[#0B0B0F] tabular-nums">
+                  {currentBalNum.toFixed(4)} {tokenSymbol}
+                </div>
+              </div>
+            </div>
+
+            {hasSufficientFunds ? (
+              <span className="px-2 py-0.5 rounded-[6px] bg-[#EAF1FB] text-[#0047AB] font-semibold flex items-center gap-1 text-xs">
+                <CheckCircle2 size={13} />
+                <span>Funds ready</span>
+              </span>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowInsufficientModal(true)}
+                icon={<AlertTriangle size={13} />}
+              >
+                Top-up shortfall ({shortfall.toFixed(3)})
+              </Button>
+            )}
+          </div>
+
+          {/* Error Message if any */}
+          {errorMsg === 'METAMASK_SMART_TX_REVERT' ? (
+            <div className="p-3.5 rounded-[10px] bg-[#EAF1FB] border border-[#C9DAF2] text-xs text-[#0B0B0F] space-y-2">
+              <div className="flex items-center gap-2 font-semibold text-[#0047AB]">
+                <AlertTriangle size={16} className="shrink-0" />
+                <span>Action Required: Turn OFF MetaMask "Smart Transactions"</span>
+              </div>
+              <p className="text-xs text-[#4B5563] leading-relaxed">
+                MetaMask routed your deposit through an EIP-7702 Delegation Relayer, which reverted because smart contract escrows require direct client funding.
+              </p>
+              <ol className="list-decimal list-inside space-y-1 text-xs text-[#4B5563] pt-1">
+                <li>Open your <strong>MetaMask extension</strong></li>
+                <li>Go to <strong>Settings → Advanced</strong></li>
+                <li>Toggle <strong>"Smart Transactions"</strong> to <strong>OFF</strong></li>
+                <li>Click <strong>"Lock & fund escrow"</strong> to retry</li>
+              </ol>
+            </div>
+          ) : errorMsg && (
+            <div className="p-3 rounded-[8px] bg-[#FEF2F2] border border-[#FECACA] text-xs text-[#991B1B] flex items-start gap-2">
+              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {isFunding && (
+            <div className="p-3.5 rounded-[10px] bg-[#EAF1FB] border border-[#C9DAF2] text-xs text-[#0B0B0F] flex items-start gap-2.5">
+              <Loader2 size={16} className="shrink-0 mt-0.5 text-[#0047AB] animate-spin" />
+              <div className="space-y-0.5">
+                <p className="font-semibold text-[#0047AB]">Awaiting wallet confirmation</p>
+                <p className="text-xs text-[#4B5563] leading-relaxed">
+                  Please approve the transaction in your connected wallet.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* Top-up Assistant Modal */}
       <InsufficientFundsModal
@@ -309,3 +367,5 @@ export const FundEscrowModal: React.FC<FundEscrowModalProps> = ({
     </>
   );
 };
+
+export default FundEscrowModal;

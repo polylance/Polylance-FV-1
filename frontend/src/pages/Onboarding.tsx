@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 import { SkillSelector } from '../components/SkillSelector';
+import { Modal } from '../components/overlay/Modal';
+import { LocalAvatar } from '../components/common/LocalAvatar';
 
 export const Onboarding: React.FC = () => {
   const { address, currentRole, isConnected, connectWallet } = useWeb3();
@@ -29,15 +31,13 @@ export const Onboarding: React.FC = () => {
   const [displayName, setDisplayName] = useState(existing.displayName || '');
   const [bio, setBio] = useState(existing.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(() => {
-    if (existing.avatarUrl) return existing.avatarUrl;
-    if (currentRole === 'client') {
-      return 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80';
+    if (existing.avatarUrl && !existing.avatarUrl.includes('unsplash.com') && !existing.avatarUrl.includes('dicebear.com')) {
+      return existing.avatarUrl;
     }
-    return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+    return '';
   });
   const [skills, setSkills] = useState<string[]>(() => {
-    if (currentRole === 'client') return [];
-    return existing.skills || ['Solidity', 'TypeScript', 'Ethers.js'];
+    return existing.skills || [];
   });
   const [tagInput, setTagInput] = useState('');
 
@@ -637,80 +637,48 @@ export const Onboarding: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start pt-2">
               <div className="md:col-span-1 flex flex-col items-center">
-                <div className="w-28 h-28 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden relative shadow-xs">
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <div className="w-28 h-28 rounded-2xl bg-slate-50 border-2 border-slate-200 flex items-center justify-center overflow-hidden relative shadow-xs">
+                  <LocalAvatar
+                    address={address || ''}
+                    name={displayName}
+                    avatarUrl={avatarUrl}
+                    size={112}
+                    className="w-full h-full rounded-2xl"
+                  />
                 </div>
-                <span className="font-label-mono text-[10px] text-slate-500 font-bold mt-2 text-[11px] tracking-[0.18em]">AVATAR (IPFS)</span>
+                <span className="font-label-mono text-[10px] text-slate-500 font-bold mt-2 text-[11px] tracking-[0.18em]">AVATAR</span>
               </div>
 
               <div className="md:col-span-3 space-y-4">
                 <div>
                   <label className="block font-label-mono text-xs text-slate-700 uppercase tracking-wider mb-1 font-bold text-[11px] tracking-[0.18em]">
-                    Avatar / Logo Image URL
+                    Avatar / Logo Image URL (Optional)
                   </label>
                   <input
                     type="text"
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://ipfs.io/ipfs/... or https://github.com/..."
                     value={avatarUrl}
                     onChange={(e) => setAvatarUrl(e.target.value)}
                     className="w-full glass-input text-xs"
                   />
-                  {/* Preset Avatar Selection Grid */}
-                  <div className="mt-2.5 space-y-1.5">
-                    <span className="text-[10px] font-label-mono text-slate-500 uppercase tracking-wider font-bold block text-[11px] tracking-[0.18em]">
-                      Or Choose a Preset Logo/Avatar:
-                    </span>
-                    <div className="flex gap-2">
-                      {isClient ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
-                          >
-                            <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80" alt="Preset Building 1" className="w-full h-full object-cover" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
-                          >
-                            <img src="https://images.unsplash.com/photo-1549692520-acc6669e2f0c?w=150&auto=format&fit=crop&q=80" alt="Preset Logo 2" className="w-full h-full object-cover" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
-                          >
-                            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80" alt="Preset Office 3" className="w-full h-full object-cover" />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
-                          >
-                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 1" className="w-full h-full object-cover" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
-                          >
-                            <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 2" className="w-full h-full object-cover" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setAvatarUrl('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80')}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-[#0047AB] transition-all hover:scale-105 active:scale-95"
-                          >
-                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" alt="Preset Avatar 3" className="w-full h-full object-cover" />
-                          </button>
-                        </>
-                      )}
-                    </div>
+                  {/* Avatar Option Helpers */}
+                  <div className="mt-2.5 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAvatarUrl('')}
+                      className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
+                    >
+                      Use PolyLance Monogram
+                    </button>
+                    {githubUsername && (
+                      <button
+                        type="button"
+                        onClick={() => setAvatarUrl(`https://github.com/${githubUsername}.png`)}
+                        className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors flex items-center gap-1.5"
+                      >
+                        <Github size={12} /> Use GitHub Avatar
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -721,7 +689,7 @@ export const Onboarding: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Alex Rivera"
+                    placeholder="e.g. Web3 Full-Stack Developer"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     className="w-full glass-input"
@@ -817,37 +785,40 @@ export const Onboarding: React.FC = () => {
       </form>
 
       {/* Success Screen Overlay Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="glass-panel p-8 sm:p-10 rounded-2xl max-w-md w-full text-center border-slate-200 bg-white hard-shadow space-y-6">
-            <div className="w-20 h-20 bg-emerald-100 border-2 border-emerald-400 rounded-full flex items-center justify-center mx-auto text-emerald-700 shadow-md">
-              <CheckCircle2 size={48} />
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="font-headline text-2xl font-black text-slate-900">
-                {isClient ? 'Client Profile Saved' : 'Immutable Identity Established'}
-              </h2>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {isClient
-                  ? 'Your organization metadata has been updated and pinned to ProfileRegistry.sol.'
-                  : 'Your profile has been minted to ProfileRegistry.sol. You are now a verified professional on PolyLance.'}
-              </p>
-            </div>
-
-            <div className="font-data-hash text-[11px] bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-800 font-bold break-all">
-              TX Hash: {mintedTxHash}
-            </div>
-
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="w-full py-3.5 rounded-xl font-headline font-bold text-sm shadow-sm cursor-pointer bg-[#0047AB] hover:bg-[#003882] text-white transition-colors"
-            >
-              Go to Dashboard
-            </button>
+      <Modal
+        isOpen={showSuccessModal}
+        onClose={() => navigate('/dashboard')}
+        maxWidth="sm"
+        disableDismiss={true}
+      >
+        <div className="p-4 sm:p-6 text-center space-y-6">
+          <div className="w-16 h-16 bg-emerald-100 border-2 border-emerald-400 rounded-full flex items-center justify-center mx-auto text-emerald-700 shadow-md">
+            <CheckCircle2 size={38} />
           </div>
+
+          <div className="space-y-2">
+            <h2 className="font-headline text-xl sm:text-2xl font-black text-slate-900">
+              {isClient ? 'Client Profile Saved' : 'Immutable Identity Established'}
+            </h2>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {isClient
+                ? 'Your organization metadata has been updated and pinned to ProfileRegistry.sol.'
+                : 'Your profile has been minted to ProfileRegistry.sol. You are now a verified professional on PolyLance.'}
+            </p>
+          </div>
+
+          <div className="font-data-hash text-[11px] bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-800 font-bold break-all">
+            TX Hash: {mintedTxHash}
+          </div>
+
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="w-full py-3.5 rounded-xl font-headline font-bold text-sm shadow-sm cursor-pointer bg-[#0047AB] hover:bg-[#003882] text-white transition-colors"
+          >
+            Go to Dashboard
+          </button>
         </div>
-      )}
+      </Modal>
 
       {/* Modern In-App Notification / Alert Modal */}
       <PolyLanceAlertModal

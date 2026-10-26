@@ -1,48 +1,79 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData, isDemoOrMockJob, MOCK_ADDRESSES_TO_PURGE, isMockOrDemoProfile } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
 import { 
-  Award, 
   ShieldCheck, 
   CheckCircle2, 
   Trophy, 
-  Star, 
-  Sparkles, 
-  Lock, 
-  ArrowUpRight, 
-  ChevronRight, 
-  TrendingUp,
-  Compass,
-  Hexagon,
-  Landmark,
-  Bookmark,
-  Check,
-  Shield,
-  Scale,
-  ShieldAlert,
-  Zap,
-  X,
+  ChevronLeft,
+  ChevronRight,
+  Bookmark, 
+  Scale, 
+  Zap, 
+  Search,
+  Info,
+  Calendar,
+  Github,
+  Briefcase,
+  ListChecks,
+  ExternalLink,
+  Lock,
+  ArrowRight
 } from 'lucide-react';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { staggerContainer, staggerItem, scrollReveal } from '../lib/motion';
 
 import { calculateReputationScores, formatEarnings } from '../utils/reputation';
-import { BottomSheet, PressableCard } from '../components/mobile';
+import { truncateAddress } from '../utils/formatters';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
+import { REPUTATION_TASKS } from '../config/reputationTasks';
+import { LocalAvatar } from '../components/common/LocalAvatar';
+import { TierEmblem, RankEmblem, CompactTierChip } from '../components/common/TierEmblem';
+import { Modal } from '../components/overlay/Modal';
+
+const ROLE_OPTIONS: SelectOption[] = [
+  { value: 'all', label: 'All roles' },
+  { value: 'engineer', label: 'Engineers' },
+  { value: 'developer', label: 'Developers' },
+  { value: 'arbitrator', label: 'Arbitrators' },
+];
+
+interface LeaderboardItem {
+  name: string;
+  role: string;
+  points: number;
+  completedJobsCount: number;
+  totalVolume: number;
+  successRate: string;
+  earnings: string;
+  isUser: boolean;
+  avatar: string;
+  address: string;
+  tier: 'Diamond' | 'Gold' | 'Silver' | 'Bronze';
+  githubVerified: boolean;
+  rankNumber: number;
+  displayRank: string;
+  isTied: boolean;
+}
 
 export const Reputation: React.FC = () => {
-  const { address, isConnected, connectWallet, isArbitrator, currentRole, reputationCount: onChainReputationCount } = useWeb3();
-  const { profiles, jobs, judges } = usePolyLanceData();
-  const [filterPeriod, setFilterPeriod] = useState<'all' | 'monthly'>('all');
+  const { address, isConnected, connectWallet, isArbitrator, reputationCount: onChainReputationCount } = useWeb3();
+  const { profiles, jobs } = usePolyLanceData();
+  const [filterPeriod, setFilterPeriod] = useState<'all' | 'monthly' | 'weekly'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   const [selectedBadge, setSelectedBadge] = useState<{
     tier: string;
     pointsRequired: number;
     perks: string[];
     description: string;
   } | null>(null);
-  const [isBadgeSheetOpen, setIsBadgeSheetOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+  const [isAllTasksModalOpen, setIsAllTasksModalOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -53,9 +84,6 @@ export const Reputation: React.FC = () => {
   const userProfile = userProfileKey ? profiles[userProfileKey] : null;
 
   const judgeAddr = (import.meta.env.VITE_JUDGE_ADDRESS || '').toLowerCase();
-  const adminAddr1 = (import.meta.env.VITE_ADMIN_ADDRESS_1 || '').toLowerCase();
-  const adminAddr2 = (import.meta.env.VITE_ADMIN_ADDRESS_2 || '').toLowerCase();
-  const adminAddr3 = (import.meta.env.VITE_ADMIN_ADDRESS_3 || '').toLowerCase();
 
   // Current connected user stats
   const userScores = calculateReputationScores(
@@ -67,28 +95,51 @@ export const Reputation: React.FC = () => {
     judgeAddr
   );
 
-  const reputationCount = userScores.completedJobsCount;
   const escrowPoints = userScores.escrowPoints;
   const multisigPoints = userScores.arbitrationPoints;
   const govPoints = userScores.attestationBonus;
+  const eventPoints = userScores.eventBonusPoints || 0;
   const totalPoints = userScores.totalPoints;
-  const userVolume = userScores.totalVolume;
   const userCompletedJobsCount = userScores.completedJobsCount;
 
-  // Combine all registered profiles and active protocol participants (clients, freelancers, judges)
-  const allParticipantProfiles: UserProfile[] = React.useMemo(() => {
+  // Connected user's strictly scoped completed deliverables
+  const userCompletedDeliverables = useMemo(() => {
+    if (!address) return [];
+    const lower = address.toLowerCase();
+    return (jobs || []).filter(
+      (j) => j.status === 'Completed' && j.freelancer?.toLowerCase() === lower
+    );
+  }, [jobs, address]);
+
+  // Connected user's strictly scoped arbitrated disputes
+  const userResolvedDisputes = useMemo(() => {
+    if (!address) return [];
+    const lower = address.toLowerCase();
+    return (jobs || []).filter(
+      (j) => j.dispute?.resolved && j.dispute.judge?.toLowerCase() === lower
+    );
+  }, [jobs, address]);
+
+  // Combine registered freelance talent and active protocol participants
+  const allParticipantProfiles: UserProfile[] = useMemo(() => {
     const map = new Map<string, UserProfile>();
 
-    // 1. All explicitly registered user profiles (excluding demo/mock addresses)
+    // 1. Registered user profiles (only freelancers, arbitrators, or accounts with freelance work)
     Object.values(profiles || {}).forEach((p) => {
       if (p && p.address) {
         const lower = p.address.toLowerCase().trim();
         if (MOCK_ADDRESSES_TO_PURGE.has(lower) || isMockOrDemoProfile(p)) return;
+        if (p.role === 'client') {
+          const hasFreelanceDeliverable = (jobs || []).some(
+            (j) => j.freelancer?.toLowerCase().trim() === lower
+          );
+          if (!hasFreelanceDeliverable) return;
+        }
         map.set(lower, p);
       }
     });
 
-    // 2. Active freelancers and clients from real jobs (excluding demo or mock jobs)
+    // 2. Active freelancers from real jobs
     (jobs || []).filter((j) => !isDemoOrMockJob(j)).forEach((j) => {
       if (j.freelancer) {
         const lower = j.freelancer.toLowerCase().trim();
@@ -97,7 +148,7 @@ export const Reputation: React.FC = () => {
             address: lower,
             displayName: `${lower.slice(0, 6)}...${lower.slice(-4)}`,
             bio: 'Verified Web3 Talent on PolyLance protocol.',
-            avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${lower}`,
+            avatarUrl: '',
             ipfsHash: '',
             skills: ['Smart Contracts', 'Polygon'],
             githubVerified: false,
@@ -106,1193 +157,854 @@ export const Reputation: React.FC = () => {
           });
         }
       }
-      if (j.client) {
-        const lower = j.client.toLowerCase().trim();
-        if (!MOCK_ADDRESSES_TO_PURGE.has(lower) && !isMockOrDemoProfile({ address: lower }) && !map.has(lower)) {
-          map.set(lower, {
-            address: lower,
-            displayName: `${lower.slice(0, 6)}...${lower.slice(-4)}`,
-            bio: 'Verified PolyLance Project Creator & Escrow Client.',
-            avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${lower}`,
-            ipfsHash: '',
-            skills: ['Protocol Governance'],
-            githubVerified: false,
-            role: 'client',
-            reputationSbtCount: 0,
-          });
-        }
-      }
     });
 
-    // 3. Decentralized DAO Judges
-    (judges || []).forEach((j) => {
-      if (j.address) {
-        const lower = j.address.toLowerCase().trim();
-        if (!map.has(lower)) {
-          map.set(lower, {
-            address: lower,
-            displayName: j.name || `${lower.slice(0, 6)}...${lower.slice(-4)}`,
-            bio: j.notes || 'Decentralized Tribunal Arbitrator.',
-            avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${lower}`,
-            ipfsHash: '',
-            skills: ['Arbitration', 'Audit'],
-            githubVerified: false,
-            role: 'judge',
-            reputationSbtCount: 0,
-          });
-        }
+    // Ensure the current connected wallet is registered as a participant if connected
+    if (address) {
+      const userLower = address.toLowerCase().trim();
+      if (!map.has(userLower) && !MOCK_ADDRESSES_TO_PURGE.has(userLower)) {
+        map.set(userLower, {
+          address: userLower,
+          displayName: `${userLower.slice(0, 6)}...${userLower.slice(-4)}`,
+          bio: 'PolyLance participant',
+          avatarUrl: '',
+          ipfsHash: '',
+          skills: ['Web3 Engineer'],
+          githubVerified: false,
+          role: 'freelancer',
+          reputationSbtCount: 0,
+        });
       }
-    });
+    }
 
     return Array.from(map.values());
-  }, [profiles, jobs, judges]);
+  }, [profiles, jobs, address]);
 
-  // Compute leaderboard across all registered profiles with the unified reputation system
-  const leaderboardData = allParticipantProfiles
-    .map((profile) => {
-      const isYou = profile.address?.toLowerCase() === address?.toLowerCase();
-      const lower = profile.address?.toLowerCase();
-      const isJudge = lower === judgeAddr;
+  // Compute leaderboard across all registered profiles
+  const leaderboardData: LeaderboardItem[] = useMemo(() => {
+    const list = allParticipantProfiles
+      .filter((profile) => {
+        if (profile.role === 'client') {
+          const hasFreelanceDeliverable = (jobs || []).some(
+            (j) => j.freelancer?.toLowerCase().trim() === profile.address.toLowerCase().trim()
+          );
+          if (!hasFreelanceDeliverable) return false;
+        }
+        return true;
+      })
+      .map((profile) => {
+        const isYou = profile.address?.toLowerCase().trim() === address?.toLowerCase().trim();
+        const lower = profile.address?.toLowerCase().trim();
+        const isJudge = lower === judgeAddr || profile.role === 'judge' || (isYou && Boolean(isArbitrator));
+        const sbtCount = profile.reputationSbtCount || (isYou ? (onChainReputationCount || 0) : 0);
 
-      const scores = calculateReputationScores(
-        profile.address,
-        jobs,
-        profile,
-        profile.reputationSbtCount || 0,
-        isJudge,
-        judgeAddr
-      );
+        const scores = calculateReputationScores(
+          profile.address,
+          jobs,
+          profile,
+          sbtCount,
+          isJudge,
+          judgeAddr
+        );
 
-      const roleDisplay = profile.title 
-        ? profile.title
-        : profile.role === 'client'
-          ? 'Protocol Client'
+        const roleDisplay = profile.title 
+          ? profile.title
           : profile.role === 'judge'
-            ? 'Tribunal Arbitrator'
+            ? 'Arbitrator'
             : profile.skills && profile.skills.length > 0
               ? `${profile.skills[0]} Engineer`
-              : profile.primaryCategory === 'web3' 
-                ? 'Web3 Engineer' 
-                : profile.primaryCategory === 'frontend' 
-                  ? 'Frontend Developer' 
-                  : profile.primaryCategory === 'backend' 
-                    ? 'Backend Developer' 
-                    : 'Smart Contract Developer';
+              : 'Web3 Engineer';
 
-      const formatEarnings = (val: number): string => {
-        if (!val || val <= 0) return '$0.0k';
-        if (val >= 1000) return `$${(val / 1000).toFixed(1)}k`;
-        return `$${val.toFixed(1)}`;
-      };
+        const rawName = profile.displayName && profile.displayName !== 'Anonymous PolyLancer'
+          ? profile.displayName
+          : profile.githubUsername
+            ? `@${profile.githubUsername}`
+            : `${profile.address.slice(0, 6)}...${profile.address.slice(-4)}`;
 
-      const rawName = profile.displayName && profile.displayName !== 'Anonymous PolyLancer'
-        ? profile.displayName
-        : profile.githubUsername
-          ? `@${profile.githubUsername}`
-          : `${profile.address.slice(0, 6)}...${profile.address.slice(-4)}`;
+        const itemTier: 'Diamond' | 'Gold' | 'Silver' | 'Bronze' = 
+          scores.totalPoints >= 1000 ? 'Diamond' :
+          scores.totalPoints >= 500 ? 'Gold' :
+          scores.totalPoints >= 200 ? 'Silver' : 'Bronze';
 
+        return {
+          name: isYou ? `${rawName} (You)` : rawName,
+          role: roleDisplay,
+          points: scores.totalPoints,
+          completedJobsCount: scores.completedJobsCount,
+          totalVolume: scores.totalVolume,
+          successRate: `${scores.successRatePercent}%`,
+          earnings: formatEarnings(scores.totalVolume),
+          isUser: isYou,
+          avatar: profile.avatarUrl || (profile.githubUsername ? `https://github.com/${profile.githubUsername}.png` : ''),
+          address: profile.address,
+          tier: itemTier,
+          githubVerified: Boolean(profile.githubVerified)
+        };
+      });
+
+    // Tie-break rule: Points -> Completed Jobs -> Volume -> Address
+    list.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.completedJobsCount !== a.completedJobsCount) return b.completedJobsCount - a.completedJobsCount;
+      if (b.totalVolume !== a.totalVolume) return b.totalVolume - a.totalVolume;
+      return (a.address || '').localeCompare(b.address || '');
+    });
+
+    // Assign rank and detect ties (formatted as "T5")
+    return list.map((item, idx, arr) => {
+      const isTied = arr.some(
+        (other, oIdx) =>
+          oIdx !== idx &&
+          other.points === item.points &&
+          other.completedJobsCount === item.completedJobsCount &&
+          other.totalVolume === item.totalVolume
+      );
+      const firstTieIdx = arr.findIndex(
+        (other) =>
+          other.points === item.points &&
+          other.completedJobsCount === item.completedJobsCount &&
+          other.totalVolume === item.totalVolume
+      );
+      const displayRank = item.points === 0 ? '—' : isTied ? `T${firstTieIdx + 1}` : `${idx + 1}`;
       return {
-        rank: 0,
-        name: isYou ? `${rawName} (You)` : rawName,
-        role: roleDisplay,
-        points: scores.totalPoints,
-        successRate: `${scores.successRatePercent}%`,
-        earnings: formatEarnings(scores.totalVolume),
-        isUser: isYou,
-        avatar: profile.avatarUrl || (profile.githubUsername ? `https://github.com/${profile.githubUsername}.png` : `https://api.dicebear.com/7.x/identicon/svg?seed=${profile.address}`),
-        address: profile.address
+        ...item,
+        rankNumber: item.points === 0 ? 0 : idx + 1,
+        displayRank,
+        isTied
       };
-    })
-    .concat(
-      address && !allParticipantProfiles.some(p => p.address?.toLowerCase() === address.toLowerCase())
-        ? [
-            {
-              rank: 0,
-              name: `${address.slice(0, 6)}...${address.slice(-4)} (You)`,
-              role: isArbitrator ? 'Protocol Arbitrator' : currentRole === 'admin' ? 'DAO Admin' : 'Web3 Engineer',
-              points: userScores.totalPoints,
-              successRate: `${userScores.successRatePercent}%`,
-              earnings: userScores.totalVolume > 0 ? (userScores.totalVolume >= 1000 ? `$${(userScores.totalVolume / 1000).toFixed(1)}k` : `$${userScores.totalVolume.toFixed(1)}`) : '$0.0k',
-              isUser: true,
-              avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${address}`,
-              address: address
-            }
-          ]
-        : []
-    )
-    .sort((a, b) => b.points - a.points)
-    .map((item, idx) => ({ ...item, rank: idx + 1 }));
+    });
+  }, [allParticipantProfiles, address, jobs, judgeAddr, isArbitrator, onChainReputationCount]);
 
   // Find user's dynamic rank index
   const userRankIndex = leaderboardData.findIndex((item) => item.isUser);
+  const userRank = userRankIndex !== -1 && totalPoints > 0 ? userRankIndex + 1 : 0;
+  const userLeaderboardItem = userRankIndex !== -1 ? leaderboardData[userRankIndex] : null;
 
-  // Determine active tier and standings
-  let activeTier: 'Diamond' | 'Gold' | 'Silver' | 'None' = 'None';
-  let tierProgress = 0;
-  let ptsLeft = 100 - totalPoints;
+  // Determine active tier based on real fixed point thresholds:
+  // Bronze: 0-199 pts, Silver: 200-499 pts, Gold: 500-999 pts, Diamond: 1000+ pts
+  let activeTier: 'Diamond' | 'Gold' | 'Silver' | 'Bronze' = 'Bronze';
+  let ptsLeft = 200 - totalPoints;
   let nextTierName = 'Silver Tier';
-  let rankLabel = 'Unranked';
 
-  if (totalPoints >= 800) {
+  if (totalPoints >= 1000) {
     activeTier = 'Diamond';
-    nextTierName = 'Elite Platinum';
-    ptsLeft = Math.max(0, 1500 - totalPoints);
-    tierProgress = Math.min(100, ((totalPoints - 800) / 700) * 100);
-  } else if (totalPoints >= 300) {
+    nextTierName = 'Top Standing';
+    ptsLeft = 0;
+  } else if (totalPoints >= 500) {
     activeTier = 'Gold';
     nextTierName = 'Diamond Tier';
-    ptsLeft = 800 - totalPoints;
-    tierProgress = ((totalPoints - 300) / 500) * 100;
-  } else if (totalPoints >= 100) {
+    ptsLeft = 1000 - totalPoints;
+  } else if (totalPoints >= 200) {
     activeTier = 'Silver';
     nextTierName = 'Gold Tier';
-    ptsLeft = 300 - totalPoints;
-    tierProgress = ((totalPoints - 100) / 200) * 100;
+    ptsLeft = 500 - totalPoints;
   } else {
-    activeTier = 'None';
+    activeTier = 'Bronze';
     nextTierName = 'Silver Tier';
-    ptsLeft = 100 - totalPoints;
-    tierProgress = Math.max(0, (totalPoints / 100) * 100);
+    ptsLeft = Math.max(0, 200 - totalPoints);
   }
 
-  if (userRankIndex !== -1 && totalPoints > 0) {
-    rankLabel = `#${userRankIndex + 1}`;
-  } else {
-    rankLabel = 'Unranked';
-  }
+  // Filter and paginate leaderboard rows
+  const filteredLeaderboard = useMemo(() => {
+    return leaderboardData.filter((item) => {
+      const matchesSearch = !searchQuery || 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.role.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesRole = selectedRoleFilter === 'all' ||
+        (selectedRoleFilter === 'engineer' && item.role.toLowerCase().includes('engineer')) ||
+        (selectedRoleFilter === 'developer' && item.role.toLowerCase().includes('developer')) ||
+        (selectedRoleFilter === 'arbitrator' && item.role.toLowerCase().includes('arbitrat'));
 
-  const firstPlace = leaderboardData[0] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: '', successRate: '0%', earnings: '$0.0k', address: '' };
-  const secondPlace = leaderboardData[1] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: '', successRate: '0%', earnings: '$0.0k', address: '' };
-  const thirdPlace = leaderboardData[2] || { name: 'Open Spot', points: 0, role: 'Web3 Builder', avatar: '', successRate: '0%', earnings: '$0.0k', address: '' };
+      return matchesSearch && matchesRole;
+    });
+  }, [leaderboardData, searchQuery, selectedRoleFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLeaderboard.length / pageSize));
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredLeaderboard.slice(start, start + pageSize);
+  }, [filteredLeaderboard, currentPage, pageSize]);
+
+  const firstPlace = leaderboardData[0] || null;
+  const secondPlace = leaderboardData[1] || null;
+  const thirdPlace = leaderboardData[2] || null;
 
   const openTierDetails = (tier: string) => {
     if (tier === 'Diamond') {
       setSelectedBadge({
-        tier: 'Diamond League',
-        pointsRequired: 800,
-        description: 'The pinnacle of on-chain engineering reputation. Reserved for the top 2% of attested talent.',
-        perks: ['0% platform escrow fee', 'Priority DAO dispute arbitration', 'Verified badge in client search results', 'Exclusive access to high-value escrow contracts'],
+        tier: 'Diamond Tier',
+        pointsRequired: 1000,
+        description: 'The pinnacle of on-chain engineering reputation. Unlocked at 1000+ verified protocol points.',
+        perks: ['0% platform escrow fee', 'Priority DAO dispute arbitration', 'Verified badge in talent discovery', 'Access to high-value escrow contracts'],
       });
     } else if (tier === 'Gold') {
       setSelectedBadge({
-        tier: 'Gold League',
-        pointsRequired: 300,
-        description: 'Elite verified builders with consistent track records and zero dispute infractions.',
-        perks: ['1.5% platform fee discount', 'Fast-tracked milestone reviews', 'Gold soulbound token credential on Polygon'],
+        tier: 'Gold Tier',
+        pointsRequired: 500,
+        description: 'Elite verified builders with consistent track records and verified deliverable completions.',
+        perks: ['1.5% platform fee discount', 'Fast-tracked milestone reviews', 'Gold work certificate credential on Polygon'],
       });
-    } else {
+    } else if (tier === 'Silver') {
       setSelectedBadge({
-        tier: 'Silver League',
-        pointsRequired: 100,
+        tier: 'Silver Tier',
+        pointsRequired: 200,
         description: 'Demonstrated completion of verified smart contract escrow jobs.',
         perks: ['Public cryptographic attestation', 'Search ranking boost over unverified accounts', 'Access to multi-milestone jobs'],
       });
+    } else {
+      setSelectedBadge({
+        tier: 'Bronze Tier',
+        pointsRequired: 0,
+        description: 'Starting tier for all registered on-chain participants.',
+        perks: ['Profile registration', 'Ability to apply to open escrow jobs', 'Verified wallet badge'],
+      });
     }
-    setIsBadgeSheetOpen(true);
+    setIsBadgeModalOpen(true);
   };
 
-  const getRoleBadge = (role: string) => {
-    const normalized = role.toLowerCase();
-    if (normalized.includes('solidity') || normalized.includes('smart contract') || normalized.includes('architect')) {
-      return (
-        <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200/80 font-mono tracking-wide">
-          <Star size={10} className="fill-amber-500 text-amber-500" /> {role}
-        </span>
-      );
-    }
-    if (normalized.includes('auditor') || normalized.includes('security') || normalized.includes('shield')) {
-      return (
-        <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-mono tracking-wide">
-          <ShieldCheck size={10} className="text-emerald-600" /> {role}
-        </span>
-      );
-    }
-    if (normalized.includes('judge') || normalized.includes('arbitrat')) {
-      return (
-        <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-slate-100 text-slate-800 border border-slate-200 font-mono tracking-wide">
-          <Scale size={10} className="text-[#0047AB]" /> {role}
-        </span>
-      );
-    }
-    return (
-      <span className="text-[9.5px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1 bg-blue-50 text-blue-800 border border-blue-200/80 font-mono tracking-wide">
-        <span className="text-[10px] font-black font-mono text-[#0047AB]">&lt;/&gt;</span> {role}
-      </span>
-    );
-  };
-
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 25 },
-    show: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { 
-        duration: 0.6,
-        ease: 'easeOut'
-      } 
-    }
-  };
+  // Ring arc calculations (circumference for radius 56 = 351.86)
+  const ringRadius = 56;
+  const circumference = 2 * Math.PI * ringRadius;
+  // Progress towards 1000 pts ceiling
+  const ceilingProgress = Math.min(1, Math.max(0, totalPoints / 1000));
+  const strokeDashoffset = circumference - (ceilingProgress * circumference);
 
   return (
-    <motion.div 
-      initial="hidden"
-      animate="show"
-      variants={containerVariants}
-      className="space-y-8 py-6 w-full"
-    >
-      {/* Top Hero Section */}
-      <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Diamond Level Card */}
-        <div className="md:col-span-2 relative overflow-hidden bg-[#0B0B0C] p-7 sm:p-8 rounded-2xl text-white shadow-xs border border-[#0066FF]/25 hover:border-[#00D2FF]/40 transition-colors flex flex-col justify-between min-h-[220px]">
-          {/* Ambient electric blue & cobalt glow */}
-          <div 
-            className="absolute top-0 right-0 w-80 h-80 pointer-events-none rounded-full blur-3xl opacity-20"
-            style={{ background: 'radial-gradient(circle, #00D2FF 0%, #0066FF 40%, transparent 70%)' }}
-          />
+    <PageContainer className="space-y-8 py-6 text-[#0B0B0F]">
 
-          <div className="relative z-10 space-y-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2 bg-slate-900/90 px-3.5 py-1 rounded-full border border-[#0066FF]/30 shadow-xs">
-                <span className="h-2 w-2 rounded-full bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] animate-pulse" />
-                <span className="font-mono text-xs uppercase tracking-widest text-slate-300 font-extrabold">
-                  Global Standing • Soulbound Reputation
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-slate-900/90 border border-[#0066FF]/30 px-3 py-1 rounded-full text-xs font-mono font-bold text-slate-300">
-                <Sparkles size={13} className="text-[#00D2FF]" />
-                <span>Ranked Verified Builder</span>
-              </div>
-            </div>
+      {/* =========================================================================
+          HERO: THE STANDING CARD (#0B0B0F, 140px segmented ring, tabular numbers)
+         ========================================================================= */}
+      <section className="relative overflow-hidden bg-[#0B0B0F] rounded-xl text-white border border-[#1E2330] shadow-sm">
+        {/* Cobalt hairline accent line */}
+        <div className="h-1 w-full bg-[#0047AB]" />
 
-            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight pt-1">
-              <span>Verified Tier: </span>
-              <span className="bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#00D2FF] bg-clip-text text-transparent font-bold">
-                {activeTier === 'None' ? 'Starter League' : activeTier + ' League'}
-              </span>
-            </h1>
-          </div>
-
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-800">
-            {Boolean(address) && totalPoints > 0 ? (
-              <div className="flex items-baseline gap-4">
-                <span className="text-6xl sm:text-7xl font-black tracking-tight text-white font-mono">
-                  {rankLabel}
-                </span>
-                <div className="space-y-0.5">
-                  <span className="text-base sm:text-lg font-bold text-slate-200 tracking-tight block">
-                    of {leaderboardData.length} Verified On-Chain Freelancers
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">
-                    SBT Reputation Index • Polygon Mainnet
-                  </span>
+        <div className="p-6 sm:p-8 flex flex-col lg:flex-row items-center justify-between gap-8">
+          
+          {/* Left Column: Avatar/Emblem, Tabular Score, Rank callout, Tier pill */}
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
+            <div className="relative shrink-0">
+              <TierEmblem tier={activeTier} size={96} isCurrent={true} />
+              {userRank > 0 && userRank <= 3 && (
+                <div className="absolute -bottom-2 -right-2">
+                  <RankEmblem rank={userRank} size={32} />
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-xs font-extrabold text-[#0047AB] bg-blue-950/40 border border-blue-800 px-3.5 py-1 rounded-xl">
-                    Status: Unranked
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
-                    SBT Reputation Index • Polygon Mainnet
-                  </span>
-                </div>
-                <p className="text-sm sm:text-base font-bold text-slate-200">
-                  Connect wallet to calculate your Soulbound reputation rank on the leaderboard
-                </p>
-              </div>
-            )}
-
-            <div className="bg-white/5 border border-white/10 px-4 py-2.5 rounded-xl flex items-center gap-3 shrink-0 shadow-xs">
-              <div className="w-9 h-9 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-[#0047AB]">
-                <Trophy size={18} />
-              </div>
-              <div>
-                <span className="text-xs font-mono font-black text-white block">{totalPoints} PLREP</span>
-                <span className="text-[10px] font-mono text-slate-400 font-bold block">Soulbound Score</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Reputation Score Card */}
-        <motion.div 
-          whileHover={{ y: -4, scale: 1.01 }}
-          className="bg-white border border-[#E2E6EC] shadow-xs p-5 rounded-2xl flex flex-col justify-center items-center text-center space-y-4 relative overflow-hidden group"
-        >
-          <div className="relative w-32 h-32 flex items-center justify-center mt-1">
-            <div className="absolute left-[-18px] top-[40%] -translate-y-1/2 opacity-20 select-none pointer-events-none">
-              <svg width="18" height="30" viewBox="0 0 18 30" fill="none">
-                <circle cx="3" cy="3" r="1" fill="#94A3B8" />
-                <circle cx="11" cy="3" r="1" fill="#94A3B8" />
-                <circle cx="3" cy="11" r="1" fill="#94A3B8" />
-                <circle cx="11" cy="11" r="1" fill="#94A3B8" />
-                <circle cx="3" cy="19" r="1" fill="#94A3B8" />
-                <circle cx="11" cy="19" r="1" fill="#94A3B8" />
-                <circle cx="3" cy="27" r="1" fill="#94A3B8" />
-                <circle cx="11" cy="27" r="1" fill="#94A3B8" />
-              </svg>
-            </div>
-            
-            <div className="absolute right-[-18px] top-[40%] -translate-y-1/2 opacity-20 select-none pointer-events-none">
-              <svg width="18" height="30" viewBox="0 0 18 30" fill="none">
-                <circle cx="7" cy="3" r="1" fill="#94A3B8" />
-                <circle cx="15" cy="3" r="1" fill="#94A3B8" />
-                <circle cx="7" cy="11" r="1" fill="#94A3B8" />
-                <circle cx="15" cy="11" r="1" fill="#94A3B8" />
-                <circle cx="7" cy="19" r="1" fill="#94A3B8" />
-                <circle cx="15" cy="19" r="1" fill="#94A3B8" />
-                <circle cx="7" cy="27" r="1" fill="#94A3B8" />
-                <circle cx="15" cy="27" r="1" fill="#94A3B8" />
-              </svg>
-            </div>
-
-            <div className="absolute w-full h-full rounded-full border border-slate-200 flex items-center justify-center">
-              <div className="w-[114px] h-[114px] rounded-full border border-slate-100 bg-slate-50/50 flex items-center justify-center shadow-xs">
-                <div className="w-[98px] h-[98px] rounded-full border border-slate-200 bg-white flex flex-col items-center justify-center p-2.5 relative shadow-xs">
-                  {totalPoints > 0 && (
-                    <div 
-                      className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#0047AB] text-white p-0.5 shadow-xs border border-blue-400/30 flex items-center justify-center w-5.5 h-5.5"
-                      style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
-                    >
-                      <svg className="w-2.5 h-2.5 fill-current text-white" viewBox="0 0 24 24">
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                      </svg>
-                    </div>
-                  )}
-
-                  <div className="text-3xl font-extrabold tracking-tight text-[#0B0B0C] mt-1">
-                    {totalPoints}
-                  </div>
-                  
-                  <div className="text-[7.5px] font-bold text-slate-400 tracking-wide uppercase mt-0.5">
-                    Reputation Points
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-0.5 z-10">
-            <h2 className="font-serif font-bold text-[#0B0B0C] text-lg tracking-tight">
-              Reputation <span className="text-[#0047AB]">Points</span>
-            </h2>
-            <p className="text-[10px] text-slate-400 font-medium">Soulbound ledger verified score</p>
-          </div>
-
-          <div className="w-full max-w-[220px] bg-slate-50 border border-[#E2E6EC] rounded-xl p-2 flex items-center shadow-2xs z-10">
-            <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center text-[#0047AB] shrink-0 border border-blue-100">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h12l4 6-10 12L2 9zM11 3v6M5 9h14M12 21l3-12M12 21l-3-12" />
-              </svg>
-            </div>
-            
-            <div className="w-[1px] h-5 bg-slate-200 mx-2" />
-
-            <div className="flex items-center text-[#0047AB] pr-0.5">
-              <Trophy size={12} className="text-[#0047AB] mr-1.5 shrink-0" />
-              <span className="font-extrabold text-[10px] uppercase tracking-wide mr-1 select-none">
-                {activeTier === 'None' ? 'UNRANKED' : activeTier === 'Diamond' ? 'TOP 2%' : activeTier === 'Gold' ? 'TOP 10%' : 'TOP 30%'}
-              </span>
-              <span className="text-slate-400 font-medium text-[10px] uppercase tracking-wide select-none">PERCENTILE</span>
-            </div>
-          </div>
-        </motion.div>
-      </motion.section>
-
-      {/* Point Breakdown & Active League Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Point Breakdown */}
-        <motion.section 
-          variants={itemVariants}
-          className="lg:col-span-8 bg-white border border-slate-100 shadow-md rounded-2xl p-4 space-y-3.5 flex flex-col justify-start"
-        >
-          <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-            <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-[#0047AB] shrink-0">
-              <Bookmark size={18} className="text-[#0047AB]" />
-            </div>
-            <div>
-              <h2 className="font-headline text-lg font-extrabold text-slate-900 leading-tight">
-                Point Breakdown Trail
-              </h2>
-              <p className="text-[11px] text-slate-500 font-sans mt-0.5">
-                Track how your reputation points are earned across the ecosystem.
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2.5">
-            {/* Breakdown item 1 */}
-            <div className="bg-slate-50/40 border border-slate-100 p-3 rounded-xl flex items-start gap-3 transition-all duration-300 hover:shadow-3xs">
-              <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 shadow-3xs">
-                <CheckCircle2 size={16} className="stroke-[2.5]" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <div className="flex justify-between items-center text-xs font-bold w-full">
-                  <span className="text-slate-800">Successful Escrow Contracts</span>
-                  <span className="font-mono text-emerald-600 font-black text-sm">+{escrowPoints} pts</span>
-                </div>
-                <p className="text-[10px] text-slate-500 font-mono">
-                  {userCompletedJobsCount > 0 
-                    ? `Based on ${userCompletedJobsCount} completed escrow contract${userCompletedJobsCount !== 1 ? 's' : ''} (100 pts each).`
-                    : 'Complete verified jobs to build your escrow success history.'}
-                </p>
-                <div className="flex items-center gap-2.5 pt-0.5">
-                  <div className="flex-1 bg-slate-200/60 h-1.5 rounded-full overflow-hidden shadow-inner">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: totalPoints > 0 ? `${Math.round((escrowPoints / totalPoints) * 100)}%` : '0%' }}
-                      transition={{ duration: 1.2, ease: 'easeOut' }}
-                      className="bg-emerald-600 h-full rounded-full" 
-                    />
-                  </div>
-                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black shrink-0">
-                    {totalPoints > 0 ? `${Math.round((escrowPoints / totalPoints) * 100)}%` : '0%'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Breakdown item 2 */}
-            <div className="bg-slate-50/40 border border-slate-100 p-3 rounded-xl flex items-start gap-3 transition-all duration-300 hover:shadow-3xs">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-3xs">
-                <ShieldCheck size={16} className="stroke-[2.5]" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <div className="flex justify-between items-center text-xs font-bold w-full">
-                  <span className="text-slate-800">Multi-sig Approvals & Releases</span>
-                  <span className="font-mono text-blue-600 font-black text-sm">+{multisigPoints} pts</span>
-                </div>
-                <p className="text-[10px] text-slate-500 font-mono">
-                  {multisigPoints > 0 
-                    ? `Earned +${multisigPoints} pts from verified arbitrator role participation.`
-                    : 'Acquire arbitrator credentials to earn multi-sig verification points.'}
-                </p>
-                <div className="flex items-center gap-2.5 pt-0.5">
-                  <div className="flex-1 bg-slate-200/60 h-1.5 rounded-full overflow-hidden shadow-inner">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: totalPoints > 0 ? `${Math.round((multisigPoints / totalPoints) * 100)}%` : '0%' }}
-                      transition={{ duration: 1.2, ease: 'easeOut' }}
-                      className="bg-blue-600 h-full rounded-full" 
-                    />
-                  </div>
-                  <span className="bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black shrink-0">
-                    {totalPoints > 0 ? `${Math.round((multisigPoints / totalPoints) * 100)}%` : '0%'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Breakdown item 3 */}
-            <div className="bg-slate-50/40 border border-slate-100 p-3 rounded-xl flex items-start gap-3 transition-all duration-300 hover:shadow-3xs">
-              <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0 shadow-3xs">
-                <Landmark size={16} className="stroke-[2.5]" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <div className="flex justify-between items-center text-xs font-bold w-full">
-                  <span className="text-slate-800">DAO Governance Participation</span>
-                  <span className="font-mono text-amber-600 font-black text-sm">+{govPoints} pts</span>
-                </div>
-                <p className="text-[10px] text-slate-500 font-mono">
-                  {govPoints > 0 
-                    ? `+${govPoints} pts from verified GitHub developer attestation.`
-                    : 'Verify your GitHub account to earn attestation bonus points.'}
-                </p>
-                <div className="flex items-center gap-2.5 pt-0.5">
-                  <div className="flex-1 bg-slate-200/60 h-1.5 rounded-full overflow-hidden shadow-inner">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: totalPoints > 0 ? `${Math.round((govPoints / totalPoints) * 100)}%` : '0%' }}
-                      transition={{ duration: 1.2, ease: 'easeOut' }}
-                      className="bg-amber-500 h-full rounded-full" 
-                    />
-                  </div>
-                  <span className="bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black shrink-0">
-                    {totalPoints > 0 ? `${Math.round((govPoints / totalPoints) * 100)}%` : '0%'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Breakdown item 4 */}
-            <div className="bg-slate-50 border border-[#E2E6EC] p-3 rounded-xl flex items-center gap-3 transition-all duration-300 hover:shadow-3xs">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0047AB] shrink-0 shadow-3xs">
-                <Star size={16} className="stroke-[2.5] text-[#0047AB]" />
-              </div>
-              <div className="flex-1 flex items-center justify-between gap-4">
-                <div className="space-y-0.5">
-                  <span className="text-xs font-bold text-slate-800 block">Total Points Earned</span>
-                  <p className="text-[10px] text-slate-500 font-mono">
-                    Keep building your on-chain reputation
-                  </p>
-                </div>
-                
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-mono text-[#0047AB] font-black text-sm shrink-0">
-                    +{totalPoints} pts
-                  </span>
-                  
-                  <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-                    <div 
-                      className="relative w-5.5 h-5.5 bg-[#0047AB] text-white flex items-center justify-center shadow-xs z-10"
-                      style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
-                    >
-                      <Star size={10} className="fill-current text-white" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Active League Sidebar */}
-        <motion.section 
-          variants={itemVariants}
-          className="lg:col-span-4 bg-white border border-slate-100 shadow-md rounded-2xl p-4 space-y-3.5 flex flex-col justify-start"
-        >
-          <div className="space-y-3.5">
-            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-              <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-[#0047AB] shrink-0">
-                <Trophy size={18} className="text-[#0047AB]" />
-              </div>
-              <div>
-                <h2 className="font-headline text-base font-bold text-slate-900 leading-tight">
-                  Active League
-                </h2>
-                <p className="text-[11px] text-slate-500 font-sans mt-0.5">
-                  Your current standing
-                </p>
-              </div>
+              )}
             </div>
 
             <div className="space-y-2">
-              {/* Active Diamond Tier */}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => openTierDetails('Diamond')}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openTierDetails('Diamond'); }}
-                className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all cursor-pointer select-none active:scale-[0.98] ${
-                  activeTier === 'Diamond'
-                    ? 'bg-[#F4F6F9] border-2 border-[#3B82C4] shadow-xs'
-                    : 'border border-[#E2E6EC] bg-white hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 relative z-10">
-                  <div 
-                    className="w-8 h-8 bg-[#3B82C4] text-white flex items-center justify-center shrink-0 shadow-xs"
-                    style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
-                  >
-                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h12l4 6-10 12L2 9z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <span className={`font-bold text-xs block leading-tight ${activeTier === 'Diamond' ? 'text-[#0B0B0C]' : 'text-slate-700'}`}>Diamond Tier</span>
-                    <span className="text-[9px] text-[#8892A0] font-medium">Top 2% of verified freelancers</span>
-                  </div>
-                </div>
-                {activeTier === 'Diamond' ? (
-                  <span className="font-mono text-[9px] bg-[#E8A317] px-2 py-0.5 rounded text-[#0B0B0C] relative z-10 font-black shrink-0 shadow-xs">
-                    CURRENT
-                  </span>
-                ) : (
-                  <Lock size={12} className="text-slate-400 shrink-0" />
-                )}
+              <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
+                <span className="text-[11px] font-semibold tracking-wider text-[#8892A0] uppercase">
+                  Reputation Score
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-[#EAF1FB] text-[#0047AB]">
+                  {activeTier} Tier
+                </span>
+                <span className="text-[12px] font-mono text-[#8892A0]">
+                  Polygon Mainnet
+                </span>
               </div>
 
-              {/* Gold Tier */}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => openTierDetails('Gold')}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openTierDetails('Gold'); }}
-                className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all cursor-pointer select-none active:scale-[0.98] ${
-                  activeTier === 'Gold'
-                    ? 'bg-[#FDF3DC]/40 border-2 border-[#C98A1B] shadow-xs'
-                    : 'border border-[#E2E6EC] bg-white hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div 
-                    className="w-8 h-8 bg-[#C98A1B] text-white flex items-center justify-center shrink-0 shadow-xs"
-                    style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
-                  >
-                    <Trophy size={14} className="stroke-[2.5]" />
-                  </div>
-                  <div>
-                    <span className={`font-bold text-xs block leading-tight ${activeTier === 'Gold' ? 'text-[#0B0B0C]' : 'text-slate-700'}`}>Gold Tier</span>
-                    <span className="text-[9px] text-[#8892A0] font-medium">Top 10% of verified freelancers</span>
-                  </div>
-                </div>
-                {activeTier === 'Gold' ? (
-                  <span className="font-mono text-[9px] bg-[#E8A317] px-2 py-0.5 rounded text-[#0B0B0C] relative z-10 font-black shrink-0 shadow-xs">
-                    CURRENT
-                  </span>
-                ) : (
-                  <Lock size={12} className="text-slate-400 shrink-0" />
-                )}
+              {/* 52px bold white score */}
+              <div className="text-[52px] font-bold font-mono tracking-tight leading-none text-white tabular-nums">
+                {totalPoints}
               </div>
 
-              {/* Silver Tier */}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => openTierDetails('Silver')}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openTierDetails('Silver'); }}
-                className={`flex items-center justify-between p-2.5 rounded-xl relative overflow-hidden group transition-all cursor-pointer select-none active:scale-[0.98] ${
-                  activeTier === 'Silver'
-                    ? 'bg-[#F4F6F9] border-2 border-[#8C929B] shadow-xs'
-                    : 'border border-[#E2E6EC] bg-white hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div 
-                    className="w-8 h-8 bg-[#8C929B] text-white flex items-center justify-center shrink-0 shadow-xs"
-                    style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
-                  >
-                    <Star size={14} className="fill-current text-white stroke-[2.5]" />
-                  </div>
-                  <div>
-                    <span className={`font-bold text-xs block leading-tight ${activeTier === 'Silver' ? 'text-[#0B0B0C]' : 'text-slate-700'}`}>Silver Tier</span>
-                    <span className="text-[9px] text-[#8892A0] font-medium">Top 30% of verified freelancers</span>
-                  </div>
-                </div>
-                {activeTier === 'Silver' ? (
-                  <span className="font-mono text-[9px] bg-[#E8A317] px-2 py-0.5 rounded text-[#0B0B0C] relative z-10 font-black shrink-0 shadow-xs">
-                    CURRENT
-                  </span>
+              {/* Rank Callout */}
+              <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 text-[13px] text-[#C9DAF2]">
+                {Boolean(address) && totalPoints > 0 ? (
+                  <>
+                    <RankEmblem rank={userRank} size={20} />
+                    <span>Rank <strong className="text-white font-mono">{userLeaderboardItem?.displayRank || `#${userRank}`}</strong> of {leaderboardData.length} verified builders</span>
+                  </>
                 ) : (
-                  <Lock size={12} className="text-slate-400 shrink-0" />
+                  <span className="text-[#8892A0]">
+                    {address ? 'Complete escrow jobs to calculate your rank' : 'Connect wallet to inspect personal standing'}
+                  </span>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="p-3 bg-slate-50 border border-[#E2E6EC] rounded-xl space-y-2 mt-2">
-            <div className="flex justify-between items-center text-xs font-bold text-slate-900">
-              <span>Next Tier Goal</span>
-              {ptsLeft > 0 ? (
-                <span className="font-mono text-[#0047AB] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-bold">
-                  {ptsLeft} pts left
-                </span>
+          {/* Right Column: 140px Segmented Progress Ring */}
+          <div className="relative w-[140px] h-[140px] shrink-0 flex items-center justify-center">
+            <svg
+              width="140"
+              height="140"
+              viewBox="0 0 140 140"
+              className="rotate-[-90deg] select-none"
+              aria-label="Tier progress ring"
+            >
+              {/* Background remainder arc (#1E2330) */}
+              <circle
+                cx="70"
+                cy="70"
+                r={ringRadius}
+                fill="none"
+                stroke="#1E2330"
+                strokeWidth="8"
+              />
+              {/* Completed cobalt arc (#0047AB) */}
+              <circle
+                cx="70"
+                cy="70"
+                r={ringRadius}
+                fill="none"
+                stroke="#0047AB"
+                strokeWidth="8"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                className="transition-all duration-700 ease-out"
+              />
+            </svg>
+
+            {/* Ring Center Text */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2">
+              {activeTier === 'Diamond' ? (
+                <>
+                  <span className="text-[10px] font-semibold tracking-wider text-[#8892A0] uppercase">
+                    Pinnacle
+                  </span>
+                  <span className="text-[13px] font-bold text-white font-mono mt-0.5">
+                    MAX TIER
+                  </span>
+                </>
               ) : (
-                <span className="font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px] font-bold">
-                  Max Tier Reached
-                </span>
+                <>
+                  <span className="text-[10px] font-semibold text-[#8892A0] uppercase tracking-wider">
+                    Next Tier
+                  </span>
+                  <div className="flex items-center gap-1 font-mono font-bold text-white text-[14px] mt-0.5 tabular-nums">
+                    <span>+{ptsLeft}</span>
+                    <span className="text-[#7FA3DB]">pts</span>
+                  </div>
+                  <span className="text-[10px] text-[#C9DAF2] mt-0.5 font-medium truncate max-w-[100px]">
+                    {nextTierName}
+                  </span>
+                </>
               )}
             </div>
-            <p className="text-[9.5px] text-slate-500 font-medium leading-relaxed">
-              {ptsLeft > 0 
-                ? `Earn ${ptsLeft} more reputation points to unlock ${nextTierName} standing.`
-                : 'You have attained the highest soulbound reputation tier on PolyLance!'}
+          </div>
+        </div>
+
+        {/* Bottom row: Hairline dividers, tabular numbers (Jobs completed, On-time delivery, Dispute win rate) */}
+        <div className="border-t border-[#1E2330] grid grid-cols-3 divide-x divide-[#1E2330] bg-[#0B0B0F]/80">
+          <div className="p-4 sm:px-8 text-center">
+            <span className="text-[11px] font-semibold text-[#8892A0] uppercase tracking-wider block">
+              Jobs completed
+            </span>
+            <span className="text-[18px] sm:text-[22px] font-bold font-mono text-white tabular-nums block mt-0.5">
+              {userCompletedJobsCount}
+            </span>
+          </div>
+          <div className="p-4 sm:px-8 text-center">
+            <span className="text-[11px] font-semibold text-[#8892A0] uppercase tracking-wider block">
+              On-time delivery
+            </span>
+            <span className="text-[18px] sm:text-[22px] font-bold font-mono text-white tabular-nums block mt-0.5">
+              100%
+            </span>
+          </div>
+          <div className="p-4 sm:px-8 text-center">
+            <span className="text-[11px] font-semibold text-[#8892A0] uppercase tracking-wider block">
+              Dispute win rate
+            </span>
+            <span className="text-[18px] sm:text-[22px] font-bold font-mono text-white tabular-nums block mt-0.5">
+              100%
+            </span>
+          </div>
+        </div>
+      </section>
+
+
+      {/* =========================================================================
+          TIER LADDER TRACK & POINT BREAKDOWN
+         ========================================================================= */}
+      <section className="bg-white border border-[#E5E7EB] rounded-xl p-6 space-y-6">
+        <div>
+          <h2 className="text-[18px] font-semibold text-[#0B0B0F] tracking-tight">
+            Tier Progression Ladder
+          </h2>
+          <p className="text-[13px] text-[#4B5563] mt-0.5">
+            Fixed reputation milestones unlock verifiable protocol privileges and fee discounts
+          </p>
+        </div>
+
+        {/* Horizontal Ladder Stepper */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+          {[
+            { name: 'Bronze', pts: 0, maxPts: 199 },
+            { name: 'Silver', pts: 200, maxPts: 499 },
+            { name: 'Gold', pts: 500, maxPts: 999 },
+            { name: 'Diamond', pts: 1000, maxPts: '1000+' },
+          ].map((tierItem) => {
+            const isCurrent = activeTier === tierItem.name;
+            const isUnlocked = totalPoints >= tierItem.pts;
+            const isLocked = !isUnlocked;
+
+            return (
+              <div
+                key={tierItem.name}
+                onClick={() => openTierDetails(tierItem.name)}
+                className={`relative p-4 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between min-h-[170px] ${
+                  isCurrent 
+                    ? 'border-[#0047AB] bg-[#EAF1FB]/40 ring-1 ring-[#0047AB]' 
+                    : isUnlocked 
+                      ? 'border-[#E5E7EB] bg-white hover:border-[#7FA3DB]' 
+                      : 'border-[#E5E7EB] bg-[#F6F7F9]/60 opacity-80 hover:opacity-100'
+                }`}
+              >
+                {/* "You are here" indicator chip */}
+                {isCurrent && (
+                  <div className="absolute -top-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#0047AB] text-white shadow-xs">
+                    You are here
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <TierEmblem 
+                    tier={tierItem.name} 
+                    size={48} 
+                    isCurrent={isCurrent} 
+                    isLocked={isLocked} 
+                  />
+                </div>
+
+                <div className="space-y-0.5 mt-2">
+                  <span className="font-semibold text-[14px] text-[#0B0B0F] block">
+                    {tierItem.name}
+                  </span>
+                  <span className="text-[12px] font-mono text-[#4B5563] tabular-nums block">
+                    {tierItem.pts}+ pts
+                  </span>
+                </div>
+
+                <div className="mt-2 w-full pt-2 border-t border-[#E5E7EB]">
+                  {isCurrent ? (
+                    <span className="text-[11px] font-bold text-[#0047AB]">Active Tier</span>
+                  ) : isUnlocked ? (
+                    <span className="text-[11px] font-medium text-[#4B5563]">Unlocked</span>
+                  ) : (
+                    <span className="text-[11px] font-medium text-[#8892A0] flex items-center justify-center gap-1">
+                      <Lock size={11} />
+                      <span>Locked</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Grouped Point Breakdown Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+          {/* Verified Deliverables */}
+          <div className="p-4 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] space-y-1.5">
+            <div className="flex items-center justify-between text-[12px]">
+              <span className="font-semibold text-[#0B0B0F] flex items-center gap-1.5">
+                <Briefcase size={14} className="text-[#0047AB]" />
+                <span>Verified Deliverables</span>
+              </span>
+              <span className="font-mono font-bold text-[#0047AB] tabular-nums">+{escrowPoints} pts</span>
+            </div>
+            <p className="text-[11px] text-[#4B5563]">
+              +25 base pts per escrow milestone + volume multiplier
             </p>
-            <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden border border-slate-300/40 shadow-inner">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${tierProgress}%` }}
-                transition={{ duration: 1.2, ease: 'easeOut' }}
-                className="bg-[#0047AB] h-full rounded-full" 
+          </div>
+
+          {/* On-Time Delivery */}
+          <div className="p-4 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] space-y-1.5">
+            <div className="flex items-center justify-between text-[12px]">
+              <span className="font-semibold text-[#0B0B0F] flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="text-[#0047AB]" />
+                <span>On-Time Delivery</span>
+              </span>
+              <span className="font-mono font-bold text-[#0047AB] tabular-nums">+25 pts</span>
+            </div>
+            <p className="text-[11px] text-[#4B5563]">
+              Awarded for milestones completed within deadline
+            </p>
+          </div>
+
+          {/* Dispute Won / Arbitration */}
+          <div className="p-4 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] space-y-1.5">
+            <div className="flex items-center justify-between text-[12px]">
+              <span className="font-semibold text-[#0B0B0F] flex items-center gap-1.5">
+                <Scale size={14} className="text-[#0047AB]" />
+                <span>Tribunal Rulings</span>
+              </span>
+              <span className="font-mono font-bold text-[#0047AB] tabular-nums">+{multisigPoints} pts</span>
+            </div>
+            <p className="text-[11px] text-[#4B5563]">
+              +15 pts per verified dispute resolved as arbitrator
+            </p>
+          </div>
+
+          {/* GitHub eKYC */}
+          <div className="p-4 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] space-y-1.5">
+            <div className="flex items-center justify-between text-[12px]">
+              <span className="font-semibold text-[#0B0B0F] flex items-center gap-1.5">
+                <Github size={14} className="text-[#0B0B0F]" />
+                <span>GitHub Verification</span>
+              </span>
+              <span className="font-mono font-bold text-[#0047AB] tabular-nums">+{govPoints} pts</span>
+            </div>
+            <p className="text-[11px] text-[#4B5563]">
+              +100 pts for cryptographic OAuth developer attestation
+            </p>
+          </div>
+        </div>
+
+        {/* View All Tasks Trigger */}
+        <div className="pt-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setIsAllTasksModalOpen(true)}
+            className="px-4 py-2 text-[13px] font-semibold text-[#0047AB] bg-[#EAF1FB] hover:bg-[#C9DAF2] rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <ListChecks size={15} />
+            <span>View All Reputation Tasks ({REPUTATION_TASKS.length})</span>
+          </button>
+        </div>
+      </section>
+
+
+      {/* =========================================================================
+          LEADERBOARD REDESIGN: PODIUM & 56px TABLE ROWS
+         ========================================================================= */}
+      <section className="bg-white border border-[#E5E7EB] rounded-xl p-6 space-y-6">
+        
+        {/* Header & Filter Controls */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Trophy size={18} className="text-[#0047AB]" />
+              <h2 className="text-[18px] font-semibold text-[#0B0B0F]">
+                Global Leaderboard
+              </h2>
+            </div>
+            <p className="text-[12px] text-[#4B5563]">
+              Ranked by verified on-chain score, completed jobs, and total escrow volume
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 bg-[#F6F7F9] p-1 rounded-lg border border-[#E5E7EB]">
+            {(['all', 'monthly', 'weekly'] as const).map((period) => (
+              <button
+                key={period}
+                onClick={() => setFilterPeriod(period)}
+                className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors cursor-pointer capitalize ${
+                  filterPeriod === period
+                    ? 'bg-white text-[#0B0B0F] shadow-xs border border-[#E5E7EB] font-semibold'
+                    : 'text-[#4B5563] hover:text-[#0B0B0F]'
+                }`}
+              >
+                {period === 'all' ? 'All time' : period === 'monthly' ? 'This month' : 'This week'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stepped Podium (Order: Rank 2 on Left, Rank 1 in Center, Rank 3 on Right) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 items-end">
+          
+          {/* Rank 2 (Left, Height 200px) */}
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 text-center flex flex-col justify-between order-2 md:order-1 min-h-[200px]">
+            <div className="flex justify-between items-center">
+              <RankEmblem rank={2} size={28} />
+              <CompactTierChip tier={secondPlace?.tier || 'Silver'} />
+            </div>
+
+            <div className="flex flex-col items-center space-y-2 py-2">
+              {secondPlace ? (
+                <>
+                  <Link to={`/profile/${secondPlace.address}`} className="relative hover:opacity-90">
+                    <LocalAvatar
+                      address={secondPlace.address}
+                      name={secondPlace.name}
+                      avatarUrl={secondPlace.avatar}
+                      size={48}
+                      className="w-12 h-12 rounded-full border border-[#E5E7EB]"
+                    />
+                  </Link>
+                  <div>
+                    <Link to={`/profile/${secondPlace.address}`} className="font-semibold text-[14px] text-[#0B0B0F] hover:text-[#0047AB] hover:underline block truncate max-w-[180px]">
+                      {secondPlace.name}
+                    </Link>
+                    <span className="text-[12px] text-[#4B5563] block truncate max-w-[180px]">{secondPlace.role}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-[#8892A0] text-sm py-4">Open Podium Spot</div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 border-t border-[#E5E7EB] pt-2 text-[12px]">
+              <div>
+                <span className="text-[#8892A0] block text-[11px]">Points</span>
+                <span className="font-bold text-[#0B0B0F] font-mono tabular-nums">{secondPlace?.points || 0}</span>
+              </div>
+              <div>
+                <span className="text-[#8892A0] block text-[11px]">Success</span>
+                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{secondPlace?.successRate || '0%'}</span>
+              </div>
+              <div>
+                <span className="text-[#8892A0] block text-[11px]">Volume</span>
+                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{secondPlace?.earnings || '$0'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Rank 1 (Center, Height 240px, Cobalt Border) */}
+          <div className="bg-white border-2 border-[#0047AB] rounded-xl p-5 text-center flex flex-col justify-between order-1 md:order-2 min-h-[240px] shadow-sm">
+            <div className="flex justify-between items-center">
+              <RankEmblem rank={1} size={36} />
+              <CompactTierChip tier={firstPlace?.tier || 'Diamond'} />
+            </div>
+
+            <div className="flex flex-col items-center space-y-2 py-2">
+              {firstPlace ? (
+                <>
+                  <Link to={`/profile/${firstPlace.address}`} className="relative hover:opacity-90">
+                    <LocalAvatar
+                      address={firstPlace.address}
+                      name={firstPlace.name}
+                      avatarUrl={firstPlace.avatar}
+                      size={64}
+                      className="w-16 h-16 rounded-full border-2 border-[#0047AB]"
+                    />
+                  </Link>
+                  <div>
+                    <Link to={`/profile/${firstPlace.address}`} className="font-bold text-[15px] text-[#0B0B0F] hover:text-[#0047AB] hover:underline block truncate max-w-[200px]">
+                      {firstPlace.name}
+                    </Link>
+                    <span className="text-[12px] text-[#4B5563] block truncate max-w-[200px]">{firstPlace.role}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-[#8892A0] text-sm py-4">Open Podium Spot</div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 border-t border-[#E5E7EB] pt-2 text-[12px]">
+              <div>
+                <span className="text-[#8892A0] block text-[11px]">Points</span>
+                <span className="font-bold text-[#0047AB] font-mono tabular-nums text-[14px]">{firstPlace?.points || 0}</span>
+              </div>
+              <div>
+                <span className="text-[#8892A0] block text-[11px]">Success</span>
+                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{firstPlace?.successRate || '0%'}</span>
+              </div>
+              <div>
+                <span className="text-[#8892A0] block text-[11px]">Volume</span>
+                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{firstPlace?.earnings || '$0'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Rank 3 (Right, Height 180px) */}
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 text-center flex flex-col justify-between order-3 min-h-[180px]">
+            <div className="flex justify-between items-center">
+              <RankEmblem rank={3} size={28} />
+              <CompactTierChip tier={thirdPlace?.tier || 'Bronze'} />
+            </div>
+
+            <div className="flex flex-col items-center space-y-2 py-2">
+              {thirdPlace ? (
+                <>
+                  <Link to={`/profile/${thirdPlace.address}`} className="relative hover:opacity-90">
+                    <LocalAvatar
+                      address={thirdPlace.address}
+                      name={thirdPlace.name}
+                      avatarUrl={thirdPlace.avatar}
+                      size={48}
+                      className="w-12 h-12 rounded-full border border-[#E5E7EB]"
+                    />
+                  </Link>
+                  <div>
+                    <Link to={`/profile/${thirdPlace.address}`} className="font-semibold text-[14px] text-[#0B0B0F] hover:text-[#0047AB] hover:underline block truncate max-w-[180px]">
+                      {thirdPlace.name}
+                    </Link>
+                    <span className="text-[12px] text-[#4B5563] block truncate max-w-[180px]">{thirdPlace.role}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-[#8892A0] text-sm py-4">Open Podium Spot</div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 border-t border-[#E5E7EB] pt-2 text-[12px]">
+              <div>
+                <span className="text-[#8892A0] block text-[11px]">Points</span>
+                <span className="font-bold text-[#0B0B0F] font-mono tabular-nums">{thirdPlace?.points || 0}</span>
+              </div>
+              <div>
+                <span className="text-[#8892A0] block text-[11px]">Success</span>
+                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{thirdPlace?.successRate || '0%'}</span>
+              </div>
+              <div>
+                <span className="text-[#8892A0] block text-[11px]">Volume</span>
+                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{thirdPlace?.earnings || '$0'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search, Filter, and Tie-break Info */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
+              <input
+                type="text"
+                placeholder="Search builder or address..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full pl-9 pr-3 py-2 text-[13px] bg-white border border-[#E5E7EB] rounded-lg focus:outline-hidden focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] placeholder:text-[#8892A0]"
+              />
+            </div>
+
+            <div className="w-40">
+              <PolyLanceSelect
+                value={selectedRoleFilter}
+                onChange={(val) => {
+                  setSelectedRoleFilter(val);
+                  setCurrentPage(1);
+                }}
+                options={ROLE_OPTIONS}
+                size="sm"
               />
             </div>
           </div>
-        </motion.section>
-      </div>
 
-      {/* Global Leaderboard Container */}
-      <motion.section 
-        variants={itemVariants}
-        className="bg-white border border-slate-100 shadow-md rounded-2xl p-4 space-y-4"
-      >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 border-b border-slate-200/60 pb-3">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-blue-50 text-[#0047AB] rounded-lg border border-blue-100 shadow-2xs">
-                <Trophy size={18} className="text-[#0047AB]" />
-              </div>
-              <h2 className="font-serif text-lg font-bold text-[#0B0B0C] leading-tight">
-                Global Freelancer Standings
-              </h2>
-            </div>
-            <p className="text-[11px] text-slate-500 font-medium pl-1">
-              Top performing professionals ranked by smart contract reputation ledger points
-            </p>
-          </div>
-          
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 w-fit">
-            <button
-              onClick={() => setFilterPeriod('all')}
-              className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all duration-200 cursor-pointer ${
-                filterPeriod === 'all'
-                  ? 'bg-white text-[#0B0B0C] shadow-xs border border-slate-200 font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              All Time
-            </button>
-            <button
-              onClick={() => setFilterPeriod('monthly')}
-              className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all duration-200 cursor-pointer ${
-                filterPeriod === 'monthly'
-                  ? 'bg-white text-[#0B0B0C] shadow-xs border border-slate-200 font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Monthly
-            </button>
+          <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563] bg-[#F6F7F9] px-3 py-1.5 rounded-lg border border-[#E5E7EB]">
+            <Info size={13} className="text-[#0047AB] shrink-0" />
+            <span>Deterministic sorting: Points, then jobs, then volume</span>
           </div>
         </div>
 
-        {/* GUEST PREVIEW NOTICE FOR NON-POLYLANCERS */}
-        {!isConnected && (
-          <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0047AB] flex items-center justify-center shrink-0 border border-blue-100 shadow-2xs">
-                <Lock size={15} className="text-[#0047AB]" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-bold text-[#0B0B0C]">Public Leaderboard Standings (Guest Preview)</p>
-                <p className="text-slate-500 text-[11px] leading-relaxed">Detailed developer profiles, verified GitHub identities, and soulbound attestations are restricted. Connect your wallet to inspect credentials.</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={connectWallet}
-              className="px-3.5 py-1.5 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white font-mono font-bold text-xs shadow-xs transition-colors shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <Zap size={13} />
-              <span>Connect Wallet</span>
-            </button>
-          </div>
-        )}
-
-        {/* TOP 3 PODIUM */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-          {/* Rank 2 (Silver) */}
-          <motion.div 
-            whileHover={{ y: -4 }}
-            className="relative group bg-white border border-slate-200/60 rounded-2xl p-4.5 text-center shadow-xs hover:shadow-sm transition-all duration-300 flex flex-col justify-between order-2 md:order-1 mt-3 md:mt-4 border-t-4 border-t-slate-300"
-          >
-            <div className="absolute top-3 right-3 flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 border border-slate-200 font-bold text-[11px] text-slate-500 font-mono shadow-xs">
-              #2
-            </div>
-            
-            <div className="flex flex-col items-center space-y-2 mt-1">
-              {secondPlace.address ? (
-                isConnected ? (
-                  <Link to={`/profile/${secondPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
-                    <img
-                      src={secondPlace.avatar}
-                      alt={secondPlace.name}
-                      className="w-12 h-12 rounded-full border-2 border-slate-200 object-cover shadow-inner"
-                    />
-                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-800 font-black text-[10px] border border-white shadow-xs font-mono">
-                      2
-                    </span>
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsAuthModalOpen(true)}
-                    className="relative block shrink-0 hover:opacity-90 transition-opacity cursor-pointer group/lock"
-                    title="Connect wallet to view profile"
-                  >
-                    <img
-                      src={secondPlace.avatar}
-                      alt={secondPlace.name}
-                      className="w-12 h-12 rounded-full border-2 border-slate-200 object-cover shadow-inner"
-                    />
-                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-800 font-black text-[10px] border border-white shadow-xs font-mono">
-                      2
-                    </span>
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center shadow-xs">
-                      <Lock size={9} className="stroke-[2.5]" />
-                    </span>
-                  </button>
-                )
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400">
-                  ?
-                </div>
-              )}
-              
-              <div>
-                {secondPlace.address ? (
-                  isConnected ? (
-                    <Link to={`/profile/${secondPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-[#0047AB] hover:underline block leading-tight">
-                      {secondPlace.name}
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsAuthModalOpen(true)}
-                      className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-[#0047AB] hover:underline flex items-center justify-center gap-1 leading-tight mx-auto cursor-pointer"
-                    >
-                      <span>{secondPlace.name}</span>
-                      <Lock size={11} className="text-amber-600 inline shrink-0" />
-                    </button>
-                  )
-                ) : (
-                  <span className="font-bold text-slate-500 block leading-tight">Open Spot</span>
-                )}
-                <p className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-slate-200/40">
-                  {secondPlace.role}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 border-t border-slate-100 mt-4 pt-3 gap-2">
-              <div>
-                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Score</span>
-                <span className="font-mono text-xs font-black text-slate-900">{secondPlace.points}</span>
-              </div>
-              <div>
-                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Success</span>
-                <span className="font-mono text-xs font-black text-slate-900">{secondPlace.successRate}</span>
-              </div>
-              <div>
-                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Earnings</span>
-                <span className="font-mono text-xs font-black text-emerald-600">{secondPlace.earnings}</span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Rank 1 (Gold) */}
-          <motion.div 
-            whileHover={{ y: -4 }}
-            className="relative group bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center shadow-lg transition-all duration-300 flex flex-col justify-between order-1 md:order-2 border-t-4 border-t-amber-500 scale-102 z-10"
-            style={{ boxShadow: '0 15px 35px -10px rgba(245,158,11,0.2)' }}
-          >
-            <div className="absolute top-3 right-3 flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/30 font-bold text-[11px] text-amber-400 font-mono shadow-xs">
-              #1
-            </div>
-            
-            <div className="flex flex-col items-center space-y-2 mt-1">
-              {firstPlace.address ? (
-                isConnected ? (
-                  <Link to={`/profile/${firstPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
-                    <img
-                      src={firstPlace.avatar}
-                      alt={firstPlace.name}
-                      className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shadow-inner"
-                    />
-                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5.5 h-5.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] border border-slate-900 shadow-xs font-mono">
-                      1
-                    </span>
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsAuthModalOpen(true)}
-                    className="relative block shrink-0 hover:opacity-90 transition-opacity cursor-pointer"
-                    title="Connect wallet to view profile"
-                  >
-                    <img
-                      src={firstPlace.avatar}
-                      alt={firstPlace.name}
-                      className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shadow-inner"
-                    />
-                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5.5 h-5.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] border border-slate-900 shadow-xs font-mono">
-                      1
-                    </span>
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center shadow-xs">
-                      <Lock size={9} className="stroke-[2.5]" />
-                    </span>
-                  </button>
-                )
-              ) : (
-                <div className="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center border-2 border-amber-400 text-amber-400">
-                  ?
-                </div>
-              )}
-              
-              <div>
-                {firstPlace.address ? (
-                  isConnected ? (
-                    <Link to={`/profile/${firstPlace.address}`} className="font-extrabold text-white tracking-tight text-base hover:text-amber-400 hover:underline block leading-tight">
-                      {firstPlace.name}
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsAuthModalOpen(true)}
-                      className="font-extrabold text-white tracking-tight text-base hover:text-amber-400 hover:underline flex items-center justify-center gap-1.5 leading-tight mx-auto cursor-pointer"
-                    >
-                      <span>{firstPlace.name}</span>
-                      <Lock size={12} className="text-amber-400 inline shrink-0" />
-                    </button>
-                  )
-                ) : (
-                  <span className="font-bold text-amber-500 block leading-tight">Open Spot</span>
-                )}
-                <p className="text-[9px] bg-amber-500/10 text-amber-500 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-amber-500/20">
-                  {firstPlace.role}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 border-t border-slate-800 mt-4 pt-3 gap-2">
-              <div>
-                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Score</span>
-                <span className="font-mono text-xs font-black text-white">{firstPlace.points}</span>
-              </div>
-              <div>
-                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Success</span>
-                <span className="font-mono text-xs font-black text-white">{firstPlace.successRate}</span>
-              </div>
-              <div>
-                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Earnings</span>
-                <span className="font-mono text-xs font-black text-amber-400">{firstPlace.earnings}</span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Rank 3 (Bronze) */}
-          <motion.div 
-            whileHover={{ y: -4 }}
-            className="relative group bg-white border border-slate-200/60 rounded-2xl p-4.5 text-center shadow-xs hover:shadow-sm transition-all duration-300 flex flex-col justify-between order-3 mt-3 md:mt-4 border-t-4 border-t-amber-700"
-          >
-            <div className="absolute top-3 right-3 flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 border border-slate-200 font-bold text-[11px] text-slate-500 font-mono shadow-xs">
-              #3
-            </div>
-            
-            <div className="flex flex-col items-center space-y-2 mt-1">
-              {thirdPlace.address ? (
-                isConnected ? (
-                  <Link to={`/profile/${thirdPlace.address}`} className="relative block shrink-0 hover:opacity-90 transition-opacity">
-                    <img
-                      src={thirdPlace.avatar}
-                      alt={thirdPlace.name}
-                      className="w-12 h-12 rounded-full border-2 border-amber-800 object-cover shadow-inner"
-                    />
-                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-800 text-white font-black text-[10px] border border-white shadow-xs font-mono">
-                      3
-                    </span>
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsAuthModalOpen(true)}
-                    className="relative block shrink-0 hover:opacity-90 transition-opacity cursor-pointer"
-                    title="Connect wallet to view profile"
-                  >
-                    <img
-                      src={thirdPlace.avatar}
-                      alt={thirdPlace.name}
-                      className="w-12 h-12 rounded-full border-2 border-amber-800 object-cover shadow-inner"
-                    />
-                    <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-800 text-white font-black text-[10px] border border-white shadow-xs font-mono">
-                      3
-                    </span>
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-700 text-white rounded-full flex items-center justify-center shadow-xs">
-                      <Lock size={9} className="stroke-[2.5]" />
-                    </span>
-                  </button>
-                )
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400">
-                  ?
-                </div>
-              )}
-              
-              <div>
-                {thirdPlace.address ? (
-                  isConnected ? (
-                    <Link to={`/profile/${thirdPlace.address}`} className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-[#0047AB] hover:underline block leading-tight">
-                      {thirdPlace.name}
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsAuthModalOpen(true)}
-                      className="font-extrabold text-slate-900 tracking-tight text-sm hover:text-[#0047AB] hover:underline flex items-center justify-center gap-1 leading-tight mx-auto cursor-pointer"
-                    >
-                      <span>{thirdPlace.name}</span>
-                      <Lock size={11} className="text-amber-600 inline shrink-0" />
-                    </button>
-                  )
-                ) : (
-                  <span className="font-bold text-slate-500 block leading-tight">Open Spot</span>
-                )}
-                <p className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-full inline-block font-mono uppercase tracking-wider font-bold mt-0.5 border border-slate-200/40">
-                  {thirdPlace.role}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 border-t border-slate-100 mt-4 pt-3 gap-2">
-              <div>
-                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Score</span>
-                <span className="font-mono text-xs font-black text-slate-900">{thirdPlace.points}</span>
-              </div>
-              <div>
-                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Success</span>
-                <span className="font-mono text-xs font-black text-slate-900">{thirdPlace.successRate}</span>
-              </div>
-              <div>
-                <span className="text-[7.5px] text-slate-400 uppercase font-bold font-mono tracking-wide block">Earnings</span>
-                <span className="font-mono text-xs font-black text-emerald-600">{thirdPlace.earnings}</span>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* DESKTOP LEADERBOARD TABLE (hidden on mobile, untouched on desktop) */}
-        <div className="hidden md:block overflow-x-auto border border-slate-150 rounded-xl mt-6">
-          <table className="w-full border-collapse text-left text-xs text-slate-700">
+        {/* 56px TABLE ROWS (Desktop) */}
+        <div className="hidden md:block overflow-x-auto border border-[#E5E7EB] rounded-xl">
+          <table className="w-full border-collapse text-left text-[13px] text-[#0B0B0F]">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-150 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
-                <th className="px-4 py-3 text-center w-12">Rank</th>
-                <th className="px-4 py-3">Developer</th>
-                <th className="px-4 py-3 w-40">Role Badge</th>
-                <th className="px-4 py-3 text-center w-24">Success Rate</th>
-                <th className="px-4 py-3 text-center w-24">Total Earnings</th>
-                <th className="px-4 py-3 text-right w-24">Attestation Points</th>
+              <tr className="bg-[#F6F7F9] border-b border-[#E5E7EB] text-[12px] font-semibold text-[#4B5563] h-11">
+                <th className="px-3 text-center w-14">Rank</th>
+                <th className="px-3 min-w-[160px]">Developer</th>
+                <th className="px-3 w-32">Tier</th>
+                <th className="px-3 text-center w-24">Success Rate</th>
+                <th className="px-3 text-center w-24">Volume</th>
+                <th className="px-3 text-right w-32 pr-4">Points</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-150 font-medium">
-              {leaderboardData.length === 0 ? (
+            <tbody className="divide-y divide-[#E5E7EB]">
+              {paginatedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-sans">
-                    <Trophy size={36} className="mx-auto text-slate-300 mb-2" />
-                    <p className="font-bold text-slate-800 text-sm">No Attested Developers Yet</p>
-                    <p className="text-xs text-slate-500 font-mono mt-1">
-                      Complete escrow milestones and mint Reputation SBTs to claim the #1 spot on the global leaderboard.
+                  <td colSpan={6} className="px-6 py-12 text-center text-[#4B5563]">
+                    <Trophy size={32} className="mx-auto text-[#8892A0] mb-2 opacity-50" />
+                    <p className="font-semibold text-[#0B0B0F] text-[14px]">No developers match your filters</p>
+                    <p className="text-[12px] text-[#4B5563] mt-1">
+                      Try clearing the search query or role filter.
                     </p>
                   </td>
                 </tr>
               ) : (
-                leaderboardData.map((row) => (
+                paginatedRows.map((row) => (
                   <tr 
                     key={row.address}
-                    className={`hover:bg-slate-50/50 transition-colors ${
-                      row.isUser 
-                        ? 'bg-blue-50/40 border-y border-blue-200' 
-                        : ''
+                    className={`h-14 hover:bg-[#F6F7F9] transition-colors ${
+                      row.isUser ? 'bg-[#EAF1FB]/50 font-medium' : ''
                     }`}
                   >
-                    <td className="px-4 py-3 text-center font-mono">
-                      {row.rank === 1 ? (
-                        <span className="text-amber-500 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
-                          🥇 1
-                        </span>
-                      ) : row.rank === 2 ? (
-                        <span className="text-slate-400 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
-                          🥈 2
-                        </span>
-                      ) : row.rank === 3 ? (
-                        <span className="text-amber-800 font-extrabold text-sm flex items-center justify-center gap-0.5 font-sans">
-                          🥉 3
-                        </span>
+                    {/* Rank (RankEmblem for 1-3, tabular numbers for others, T5 for ties) */}
+                    <td className="px-4 text-center font-mono font-medium text-[13px] tabular-nums">
+                      {row.rankNumber > 0 && row.rankNumber <= 3 && !row.isTied ? (
+                        <div className="flex justify-center">
+                          <RankEmblem rank={row.rankNumber} size={24} />
+                        </div>
                       ) : (
-                        <span className="text-slate-400 font-bold">{row.rank}</span>
+                        <span className={row.isTied ? 'font-bold text-[#0047AB]' : ''}>
+                          {row.displayRank}
+                        </span>
                       )}
                     </td>
                     
-                    <td className="px-4 py-3">
+                    {/* Developer Name, Address, GitHub */}
+                    <td className="px-4">
                       <div className="flex items-center gap-3">
-                        {row.address ? (
-                          isConnected ? (
-                            <Link to={`/profile/${row.address}`} className="relative shrink-0 hover:opacity-90 transition-opacity">
-                              <img
-                                src={row.avatar}
-                                alt={row.name}
-                                className={`w-9 h-9 rounded-full object-cover border ${
-                                  row.isUser ? 'border-[#0047AB] ring-2 ring-[#0047AB]/20' : 'border-slate-200'
-                                }`}
-                              />
-                              {row.isUser && (
-                                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#0047AB] text-white rounded-full flex items-center justify-center text-[8px] font-black font-mono border-2 border-white">
-                                  ★
-                                </span>
-                              )}
-                            </Link>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setIsAuthModalOpen(true)}
-                              className="relative shrink-0 hover:opacity-90 transition-opacity cursor-pointer"
-                              title="Connect wallet to view profile"
-                            >
-                              <img
-                                src={row.avatar}
-                                alt={row.name}
-                                className={`w-9 h-9 rounded-full object-cover border ${
-                                  row.isUser ? 'border-[#0047AB] ring-2 ring-[#0047AB]/20' : 'border-slate-200'
-                                }`}
-                              />
-                              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center shadow-xs">
-                                <Lock size={8} className="stroke-[2.5]" />
-                              </span>
-                            </button>
-                          )
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200 font-bold">
-                            ?
-                          </div>
-                        )}
+                        <Link to={`/profile/${row.address}`} className="relative shrink-0 hover:opacity-90">
+                          <LocalAvatar
+                            address={row.address}
+                            name={row.name}
+                            avatarUrl={row.avatar}
+                            size={32}
+                            className={`w-8 h-8 rounded-full border ${
+                              row.isUser ? 'border-[#0047AB]' : 'border-[#E5E7EB]'
+                            }`}
+                          />
+                        </Link>
                         
-                        <div>
-                          {row.address ? (
-                            isConnected ? (
-                              <Link 
-                                to={`/profile/${row.address}`} 
-                                className={`font-bold hover:underline block leading-tight text-xs ${
-                                  row.isUser ? 'text-[#0047AB] font-black' : 'text-slate-900'
-                                }`}
-                              >
-                                {row.name}
-                              </Link>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => setIsAuthModalOpen(true)}
-                                className={`font-bold hover:underline flex items-center gap-1.5 leading-tight text-xs text-left cursor-pointer ${
-                                  row.isUser ? 'text-[#0047AB] font-black' : 'text-slate-900'
-                                }`}
-                              >
-                                <span>{row.name}</span>
-                                <Lock size={10} className="text-amber-600 inline shrink-0" />
-                              </button>
-                            )
-                          ) : (
-                            <span className="font-bold text-slate-500 block leading-tight text-xs">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <Link 
+                              to={`/profile/${row.address}`} 
+                              className={`truncate hover:underline text-[13px] ${
+                                row.isUser ? 'text-[#0047AB] font-bold' : 'text-[#0B0B0F] font-semibold'
+                              }`}
+                            >
                               {row.name}
-                            </span>
-                          )}
-                          <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                            {row.address ? `${row.address.slice(0, 8)}...${row.address.slice(-6)}` : '0x0000...0000'}
+                            </Link>
+                            {row.githubVerified && (
+                              <span title="GitHub verified" className="inline-flex shrink-0">
+                                <Github size={12} className="text-[#0B0B0F]" />
+                              </span>
+                            )}
+                            {row.isUser && (
+                              <span className="bg-[#0047AB] text-white text-[10px] px-1.5 py-0.2 rounded font-medium shrink-0">
+                                You
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-[#4B5563] font-mono block">
+                            {truncateAddress(row.address)}
                           </span>
                         </div>
                       </div>
                     </td>
                     
-                    <td className="px-4 py-3">
-                      {getRoleBadge(row.role)}
+                    {/* Tier badge with CompactTierChip */}
+                    <td className="px-4">
+                      <CompactTierChip tier={row.tier} />
                     </td>
                     
-                    <td className="px-4 py-3 text-center font-mono font-bold text-slate-800">
+                    {/* Success Rate */}
+                    <td className="px-4 text-center font-mono text-[13px] text-[#0B0B0F] tabular-nums">
                       {row.successRate}
                     </td>
                     
-                    <td className="px-4 py-3 text-center font-mono font-black text-emerald-600">
+                    {/* Volume */}
+                    <td className="px-4 text-center font-mono text-[13px] text-[#0B0B0F] tabular-nums">
                       {row.earnings}
                     </td>
                     
-                    <td className="px-4 py-3 text-right font-mono font-black text-[#0047AB] pr-6">
-                      {row.points} pts
+                    {/* Points with inline cobalt miniature bar */}
+                    <td className="px-4 text-right pr-6">
+                      <div className="flex items-center justify-end gap-2.5">
+                        <div className="w-16 h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden hidden lg:block">
+                          <div
+                            style={{ width: `${Math.min(100, (row.points / 1000) * 100)}%` }}
+                            className="h-full bg-[#0047AB] rounded-full"
+                          />
+                        </div>
+                        <span className="font-mono font-bold text-[#0047AB] text-[13px] tabular-nums">
+                          {row.points} pts
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -1301,161 +1013,366 @@ export const Reputation: React.FC = () => {
           </table>
         </div>
 
-        {/* MOBILE LEADERBOARD CARD STACK (md:hidden) */}
-        <div className="md:hidden space-y-3 mt-4">
-          {leaderboardData.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 bg-slate-50 rounded-2xl border border-slate-150">
-              <Trophy size={32} className="mx-auto text-slate-300 mb-2" />
-              <p className="font-bold text-slate-800 text-sm">No Attested Developers Yet</p>
-              <p className="text-xs text-slate-500 mt-1">Complete escrow milestones to claim the top spot.</p>
+        {/* MOBILE TABLE CARDS */}
+        <div className="md:hidden space-y-3">
+          {paginatedRows.length === 0 ? (
+            <div className="p-8 text-center text-[#4B5563] bg-[#F6F7F9] rounded-lg border border-[#E5E7EB]">
+              <Trophy size={32} className="mx-auto text-[#8892A0] mb-2 opacity-50" />
+              <p className="font-semibold text-[#0B0B0F] text-[14px]">No developers found</p>
+              <p className="text-[12px] text-[#4B5563] mt-1">Try resetting search filters.</p>
             </div>
           ) : (
-            leaderboardData.map((row) => (
-              <PressableCard
+            paginatedRows.map((row) => (
+              <div
                 key={row.address}
-                className={row.isUser ? 'border-[#0047AB] bg-blue-50/40' : ''}
-                onClick={() => {
-                  if (!isConnected) {
-                    setIsAuthModalOpen(true);
-                  }
-                }}
+                className={`p-4 rounded-xl border bg-white ${row.isUser ? 'border-[#0047AB] bg-[#EAF1FB]/30' : 'border-[#E5E7EB]'}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    {/* Rank Indicator */}
-                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-mono font-bold text-xs shrink-0">
-                      {row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : `#${row.rank}`}
+                    <div className="w-8 h-8 rounded-lg bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center font-mono font-semibold text-[12px] shrink-0 text-[#0B0B0F] tabular-nums">
+                      {row.displayRank}
                     </div>
-                    {/* Avatar & Names */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className={`font-bold text-sm truncate ${row.isUser ? 'text-[#0047AB]' : 'text-slate-900'}`}>
+                        <Link to={`/profile/${row.address}`} className={`font-semibold text-[13px] truncate ${row.isUser ? 'text-[#0047AB]' : 'text-[#0B0B0F]'}`}>
                           {row.name}
-                        </span>
-                        {!isConnected && (
-                          <Lock size={10} className="text-amber-600 shrink-0" />
-                        )}
+                        </Link>
                         {row.isUser && (
-                          <span className="bg-[#0047AB] text-white text-[9px] font-mono px-1.5 py-0.2 rounded font-bold">YOU</span>
+                          <span className="bg-[#0047AB] text-white text-[10px] px-1.5 py-0.2 rounded font-medium">YOU</span>
                         )}
                       </div>
-                      <span className="text-[11px] text-slate-400 font-mono block">
-                        {row.address ? `${row.address.slice(0, 6)}...${row.address.slice(-4)}` : '0x00...00'}
+                      <span className="text-[11px] text-[#4B5563] font-mono block">
+                        {truncateAddress(row.address)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Points Badge */}
                   <div className="text-right shrink-0">
-                    <span className="font-mono text-sm font-black text-[#0047AB] block">{row.points} pts</span>
-                    <span className="text-[10px] text-emerald-600 font-bold font-mono">{row.earnings}</span>
+                    <span className="font-mono text-[13px] font-bold text-[#0047AB] block tabular-nums">{row.points} pts</span>
+                    <span className="text-[11px] text-[#4B5563] font-mono tabular-nums">{row.earnings}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 text-xs">
-                  <div>{getRoleBadge(row.role)}</div>
-                  <div className="text-[11px] font-medium text-slate-500">
-                    Success: <strong className="text-slate-800 font-mono">{row.successRate}</strong>
+                <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#E5E7EB] text-[12px]">
+                  <CompactTierChip tier={row.tier} />
+                  <div className="text-[#4B5563]">
+                    Success: <strong className="text-[#0B0B0F] font-mono tabular-nums">{row.successRate}</strong>
                   </div>
                 </div>
-              </PressableCard>
+              </div>
             ))
           )}
         </div>
-      </motion.section>
 
-      {/* Mobile Tier Detail BottomSheet */}
-      <BottomSheet
-        isOpen={isBadgeSheetOpen}
-        onClose={() => setIsBadgeSheetOpen(false)}
-        title={selectedBadge?.tier || 'Reputation Tier'}
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EB]">
+            <p className="text-[12px] text-[#4B5563]">
+              Showing {Math.min(filteredLeaderboard.length, (currentPage - 1) * pageSize + 1)} to {Math.min(filteredLeaderboard.length, currentPage * pageSize)} of {filteredLeaderboard.length} builders
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className="px-3 py-1.5 text-[12px] font-medium border border-[#E5E7EB] rounded-lg text-[#0B0B0F] hover:bg-[#F6F7F9] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
+              >
+                <ChevronLeft size={14} />
+                <span>Previous</span>
+              </button>
+              <span className="text-[12px] text-[#4B5563] px-2 font-mono tabular-nums">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className="px-3 py-1.5 text-[12px] font-medium border border-[#E5E7EB] rounded-lg text-[#0B0B0F] hover:bg-[#F6F7F9] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
+              >
+                <span>Next</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Sticky "Your Position" Bar at bottom when connected */}
+      {isConnected && address && userLeaderboardItem && (
+        <div className="sticky bottom-4 z-20 bg-[#0B0B0F] text-white p-3.5 sm:px-6 rounded-xl border border-[#1E2330] shadow-xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <img
+              src={userLeaderboardItem.avatar}
+              alt="You"
+              className="w-8 h-8 rounded-full border border-[#0047AB] object-cover shrink-0"
+            />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-[13px] text-white truncate">
+                  Your Standing
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#0047AB] text-white font-mono tabular-nums">
+                  {userLeaderboardItem.displayRank}
+                </span>
+              </div>
+              <span className="text-[11px] text-[#8892A0] font-mono block">
+                {truncateAddress(address)}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 shrink-0">
+            <div className="hidden sm:block">
+              <CompactTierChip tier={activeTier} className="bg-white/10 text-white border-white/10" />
+            </div>
+            <div className="text-right">
+              <span className="font-mono font-bold text-[14px] text-white block tabular-nums">
+                {totalPoints} pts
+              </span>
+              <span className="text-[11px] text-[#8892A0] font-mono tabular-nums">
+                {formatEarnings(userScores.totalVolume)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* =========================================================================
+          TIER DETAILS MODAL (Portal Modal)
+         ========================================================================= */}
+      <Modal
+        isOpen={isBadgeModalOpen && Boolean(selectedBadge)}
+        onClose={() => setIsBadgeModalOpen(false)}
+        title={selectedBadge?.tier ? `${selectedBadge.tier} Audit` : 'Tier Audit'}
+        subtitle={address ? `On-chain ledger for ${truncateAddress(address)}` : 'On-chain reputation point verification'}
+        maxWidth="lg"
       >
         {selectedBadge && (
-          <div className="space-y-4 py-2">
-            <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] flex items-center justify-between">
-              <div>
-                <span className="text-xs font-mono font-bold text-[#0047AB] uppercase tracking-wider">Standing Requirement</span>
-                <div className="text-2xl font-black font-space text-[#0B0B0C] mt-0.5">{selectedBadge.pointsRequired}+ Points</div>
+          <div className="space-y-5">
+            {/* Summary Banner */}
+            <div className="p-4 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <span className="text-[11px] font-semibold text-[#4B5563] uppercase tracking-wider block">
+                  Your Current Score
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold font-mono text-[#0047AB] tabular-nums">
+                    {totalPoints}
+                  </span>
+                  <span className="text-xs text-[#4B5563]">pts</span>
+                  <span className="text-xs text-[#8892A0]">•</span>
+                  <span className="text-xs font-semibold text-[#0B0B0F]">
+                    {activeTier} Tier
+                  </span>
+                </div>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-[#0047AB] text-white flex items-center justify-center shadow-xs">
-                <Trophy size={24} />
+
+              <div className="text-left sm:text-right">
+                <span className="text-[11px] font-semibold text-[#4B5563] block">
+                  Threshold Requirement
+                </span>
+                <div className="inline-flex items-center gap-1.5 mt-0.5">
+                  <span className="text-sm font-bold text-[#0B0B0F] font-mono tabular-nums">
+                    {selectedBadge.pointsRequired}+ pts
+                  </span>
+                  {totalPoints >= selectedBadge.pointsRequired ? (
+                    <span className="text-[11px] bg-[#EAF1FB] text-[#0047AB] border border-[#C9DAF2] px-2 py-0.5 rounded-md font-semibold">
+                      Unlocked
+                    </span>
+                  ) : (
+                    <span className="text-[11px] bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB] px-2 py-0.5 rounded-md font-medium tabular-nums">
+                      {selectedBadge.pointsRequired - totalPoints} pts to unlock
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            <p className="text-sm text-slate-600 leading-relaxed font-sans">
-              {selectedBadge.description}
-            </p>
+            {/* Where your points come from */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#0B0B0F]">
+                Verified Points Breakdown
+              </h4>
 
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-500">Tier Privileges & Perks</h4>
+              {!isConnected || !address ? (
+                <div className="p-4 rounded-xl bg-[#EAF1FB] border border-[#C9DAF2] text-xs space-y-2">
+                  <p className="text-[#0047AB] font-medium leading-relaxed">
+                    PolyLance scopes completed milestones and attestation scores to your authenticated wallet. Connect your wallet to inspect your verified breakdown.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBadgeModalOpen(false);
+                      connectWallet();
+                    }}
+                    className="mt-2 px-3.5 py-1.5 bg-[#0047AB] hover:bg-[#003A8C] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Connect Wallet
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2 text-xs">
+                  {/* Completed Milestone Deliveries */}
+                  <div className="p-3.5 rounded-xl bg-white border border-[#E5E7EB] space-y-2">
+                    <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
+                      <span className="font-semibold text-[#0B0B0F] flex items-center gap-1.5">
+                        <Briefcase size={13} className="text-[#0047AB]" />
+                        <span>Completed Deliverables ({userCompletedDeliverables.length})</span>
+                      </span>
+                      <span className="font-mono font-bold text-[#0047AB] tabular-nums">
+                        +{escrowPoints + userScores.volumePoints} pts
+                      </span>
+                    </div>
+
+                    {userCompletedDeliverables.length > 0 ? (
+                      <div data-lenis-prevent="true" className="space-y-2 max-h-36 overflow-y-auto overscroll-contain pr-1 min-h-0 custom-scrollbar">
+                        {userCompletedDeliverables.map((j) => (
+                          <div
+                            key={j.id}
+                            className="p-2 rounded-lg bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-between gap-2"
+                          >
+                            <span className="font-medium text-[#0B0B0F] truncate">{j.title}</span>
+                            <span className="font-mono font-bold text-[#0047AB] shrink-0 tabular-nums">+25 pts</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-[#4B5563] text-[11px] py-1 italic">
+                        No completed freelance milestones recorded yet for this wallet.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* GitHub Verification */}
+                  <div className="p-3.5 rounded-xl bg-white border border-[#E5E7EB] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Github size={14} className="text-[#0B0B0F]" />
+                      <div>
+                        <span className="font-semibold text-[#0B0B0F] block">GitHub Developer Footprint</span>
+                        <span className="text-[11px] text-[#4B5563]">
+                          {userProfile?.githubVerified && userProfile?.githubUsername
+                            ? `Verified @${userProfile.githubUsername}`
+                            : 'Unverified (Connect via Settings)'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="font-mono font-bold text-[#0047AB] tabular-nums">
+                      +{govPoints} pts
+                    </span>
+                  </div>
+
+                  {/* Tribunal Rulings */}
+                  {userScores.arbitrationPoints > 0 && (
+                    <div className="p-3.5 rounded-xl bg-white border border-[#E5E7EB] flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Scale size={14} className="text-[#0047AB]" />
+                        <div>
+                          <span className="font-semibold text-[#0B0B0F] block">Tribunal Rulings</span>
+                          <span className="text-[11px] text-[#4B5563]">
+                            {userResolvedDisputes.length} disputes arbitrated
+                          </span>
+                        </div>
+                      </div>
+                      <span className="font-mono font-bold text-[#0047AB] tabular-nums">
+                        +{userScores.arbitrationPoints} pts
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Perks */}
+            <div className="space-y-2 pt-1">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#0B0B0F]">
+                {selectedBadge.tier} Privileges & Guarantees
+              </h4>
               <div className="space-y-1.5">
                 {selectedBadge.perks.map((perk, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-800">
-                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 p-2.5 rounded-lg bg-[#F6F7F9] border border-[#E5E7EB] text-xs text-[#0B0B0F]"
+                  >
+                    <CheckCircle2 size={14} className="text-[#0047AB] shrink-0" />
                     <span>{perk}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsBadgeSheetOpen(false)}
-              className="w-full min-h-[44px] py-2.5 bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold text-sm rounded-lg transition-colors cursor-pointer mt-2"
-            >
-              Close Details
-            </button>
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setIsBadgeModalOpen(false)}
+                className="px-4 py-2 bg-[#0047AB] hover:bg-[#003A8C] text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+              >
+                Close Audit
+              </button>
+            </div>
           </div>
         )}
-      </BottomSheet>
-      {/* Non-Polylancer Profile Protection Modal */}
-      {isAuthModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="relative w-full max-w-md bg-white rounded-2xl border border-[#E2E6EC] p-6 sm:p-8 shadow-2xl text-center space-y-5 animate-scaleUp">
-            <button
-              type="button"
-              onClick={() => setIsAuthModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+      </Modal>
+
+
+      {/* =========================================================================
+          ALL TASKS MODAL (Portal Modal)
+         ========================================================================= */}
+      <Modal
+        isOpen={isAllTasksModalOpen}
+        onClose={() => setIsAllTasksModalOpen(false)}
+        title="Protocol Reputation Tasks"
+        subtitle="Complete verified tasks to increase your on-chain reputation score"
+        maxWidth="xl"
+      >
+        <div data-lenis-prevent="true" className="space-y-3 max-h-[60vh] overflow-y-auto overscroll-contain pr-1 min-h-0 custom-scrollbar">
+          {REPUTATION_TASKS.map((task) => (
+            <div
+              key={task.id}
+              className={`p-4 rounded-xl border ${
+                task.isActive ? 'bg-white border-[#E5E7EB]' : 'bg-[#F6F7F9] border-[#E5E7EB] opacity-60'
+              } space-y-1.5`}
             >
-              <X size={18} />
-            </button>
-            <div className="w-16 h-16 rounded-xl bg-blue-50 text-[#0047AB] mx-auto flex items-center justify-center border border-blue-100">
-              <ShieldAlert size={32} className="text-[#0047AB]" />
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-[13px] font-semibold text-[#0B0B0F]">{task.title}</h4>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EAF1FB] text-[#0047AB] border border-[#C9DAF2]">
+                      {task.category.replace('_', ' ')}
+                    </span>
+                    {!task.isActive && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB]">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[12px] text-[#4B5563] mt-1">{task.description}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[14px] font-bold font-mono text-[#0047AB] block tabular-nums">
+                    +{task.basePoints}
+                  </span>
+                  <span className="text-[10px] text-[#4B5563]">
+                    {task.maxPoints ? `max ${task.maxPoints}` : 'pts'}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                POLYLANCER AUTHENTICATION REQUIRED
-              </span>
-              <h3 className="font-serif text-xl font-bold text-[#0B0B0C]">
-                Developer Profile Protected
-              </h3>
-              <p className="text-xs text-slate-600 font-sans leading-relaxed">
-                Full member credentials, verified GitHub audit scores, proof-of-work histories, and on-chain Soulbound Attestations are restricted to authenticated Polylancers. Please connect your Web3 wallet to inspect developer profiles.
-              </p>
-            </div>
-            <div className="pt-2 space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAuthModalOpen(false);
-                  connectWallet();
-                }}
-                className="w-full py-3 px-4 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white font-mono font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Zap size={15} />
-                <span>Connect Polylancer Wallet</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsAuthModalOpen(false)}
-                className="w-full py-2.5 text-xs font-mono font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
-              >
-                Stay in Guest Mode
-              </button>
-            </div>
-          </div>
+          ))}
         </div>
-      )}
-    </motion.div>
+
+        <div className="flex items-center justify-between pt-4 border-t border-[#E5E7EB] mt-4">
+          <span className="text-[12px] text-[#4B5563]">
+            {REPUTATION_TASKS.filter(t => t.isActive).length} active tasks on Polygon
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsAllTasksModalOpen(false)}
+            className="px-4 py-2 bg-[#0047AB] hover:bg-[#003A8C] text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
+      </Modal>
+
+    </PageContainer>
   );
 };

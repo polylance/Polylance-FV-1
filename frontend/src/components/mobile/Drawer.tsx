@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { pauseLenis, resumeLenis } from '../../hooks/useSmoothScroll';
+import { backdropVariants, sideDrawerVariants, reducedMotionVariants } from '../../styles/popupMotion';
 
 export interface DrawerProps {
   isOpen: boolean;
@@ -42,12 +44,14 @@ export const Drawer: React.FC<DrawerProps> = ({
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = '100%';
     document.body.style.overflow = 'hidden';
+    pauseLenis();
 
     return () => {
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
       document.body.style.overflow = '';
+      resumeLenis();
       window.scrollTo(0, scrollY);
     };
   }, [isOpen]);
@@ -86,26 +90,22 @@ export const Drawer: React.FC<DrawerProps> = ({
         >
           {/* Backdrop */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0.05 : 0.2 }}
+            variants={prefersReducedMotion ? reducedMotionVariants : backdropVariants}
+            initial="closed"
+            animate="open"
+            exit="closed"
             onClick={onClose}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-[#0B0B0F]/48 cursor-pointer"
             aria-hidden="true"
           />
 
           {/* Drawer Panel */}
           <motion.div
             ref={drawerRef}
-            initial={{ x: initialX }}
-            animate={{ x: 0 }}
-            exit={{ x: initialX }}
-            transition={{
-              type: prefersReducedMotion ? 'tween' : 'spring',
-              damping: 30,
-              stiffness: 300,
-            }}
+            variants={prefersReducedMotion ? reducedMotionVariants : sideDrawerVariants(side)}
+            initial="closed"
+            animate="open"
+            exit="closed"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
@@ -141,7 +141,8 @@ export const Drawer: React.FC<DrawerProps> = ({
                 },
                 closed: {},
               }}
-              className="flex-1 overflow-y-auto overscroll-contain px-5 py-6 space-y-4"
+              data-lenis-prevent="true"
+              className="flex-1 overflow-y-auto overscroll-contain px-5 py-6 space-y-4 min-h-0 custom-scrollbar"
             >
               {children}
             </motion.div>

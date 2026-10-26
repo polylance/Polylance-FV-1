@@ -1,0 +1,39 @@
+# PolyLance
+> Decentralized Freelance Marketplace & Escrow on Polygon (Chain ID: 137)
+
+PolyLance (https://polylance.codes) is a non-custodial Web3 freelance marketplace that replaces opaque corporate intermediaries with immutable smart contract escrows on Polygon. Clients deposit funds into escrow milestones; freelancers deliver verified code; funds release instantly upon milestone approval.
+
+## Core Protocol Architecture
+- Smart Contract Escrow: Milestone funds locked on Polygon PoS. No platform employee or central entity holds private custody of funds.
+- Fee Structure: 2.5% platform fee per side (client pays 2.5% deposit fee, freelancer pays 2.5% payout fee; total platform fee 5.0%).
+- Settlement Currencies: Native USDC (Polygon 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359) and POL.
+- Work Verification: Soulbound Token (ReputationSBT) non-transferable certificates minted upon verified delivery, backed by GitHub commit verification.
+- Dispute Arbitration: Decentralized JudgeDAO council (0xe991e45907Bd341a036CF4A6a95768af198d4b86) handles evidence reviews and rulings with arbitrary split capabilities (0-10000 bps).
+- Review Period: 7 days default window after milestone submission. If client takes no action, the freelancer can invoke on-chain claimAutoRelease().
+- Audit Status Notice: PolyLance smart contracts have undergone internal security hardening and automated test suites, but have not yet completed an independent third-party audit firm engagement.
+
+## Key Hubs & Documentation
+- [How PolyLance Works](https://polylance.codes/how-it-works): 4-step escrow lifecycle from job discovery to SBT minting.
+- [Transparent Fee Schedule](https://polylance.codes/fees): Real cost breakdown detailing the 2.5% per side escrow fees with POL and USDC examples.
+- [Smart Contract Escrow Safeguards](https://polylance.codes/escrow): Milestone locks, auto-release timers, and mutual cancellation protocols.
+- [Security Disclosures & Contract Registry](https://polylance.codes/security): Verified mainnet contract addresses, timelock policies, and audit notices.
+- [AuditX Security Engine](https://polylance.codes/auditx): Automated smart contract static analysis and threat monitoring reports.
+- [Find Web3 Jobs](https://polylance.codes/find-jobs): Live decentralized marketplace contracts.
+- [For Freelancers](https://polylance.codes/for-freelancers): Instant global crypto settlement, zero chargebacks, portable reputation.
+- [For Clients](https://polylance.codes/for-clients): Zero hiring subscription fees, milestone protection, top Web3 engineers.
+- [Get Paid in USDC](https://polylance.codes/get-paid-in-usdc): Dollar-pegged stablecoin settlement guide with sub-cent Polygon gas.
+- [Get Paid in Crypto](https://polylance.codes/get-paid-in-crypto): Cross-border crypto freelancing guide and tax considerations.
+- [Web3 Jobs](https://polylance.codes/web3-jobs): Specialized blockchain, DeFi, and smart contract opportunities.
+- [Polygon Jobs](https://polylance.codes/polygon-jobs): High-throughput, low-fee Polygon ecosystem contracts.
+- [Solidity Jobs](https://polylance.codes/solidity-developer-jobs): Smart contract architecture and security auditing contracts.
+- [FAQ Hub](https://polylance.codes/faq): 25 verified policy and technical answers.
+- [Authority Blog & Guides](https://polylance.codes/blog): 15 comprehensive educational guides on crypto freelancing, escrow mechanics, and Web3 hiring.
+
+## Mainnet Smart Contract Addresses (Polygon Chain ID 137)
+- JobFactory: 0xbE74923BBfd72d400a681915dBcf6e6Adc72C317
+- JobEscrowImpl: 0x88dd19df1b6dBA8D2c53b3976f4ec39B75f17FbB
+- ReputationSBT: 0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879
+- ProfileRegistry: 0xA408070979043215C8C91d245973886eA7c09f42
+- GithubReputationRegistry: 0x91e103Fd78ccC3233d08f4830587763F72b9D5aB
+- JudgeDAO: 0xe991e45907Bd341a036CF4A6a95768af198d4b86
+- TimelockController: 0x45602bE11306651C7FA5c96Bc7fa5051BA4a856f

@@ -74,7 +74,13 @@
       };
     })();
   </script>
-  <link rel="icon" type="image/png" href="%BASE_URL%polylanceLogo.png" />
+  <link rel="icon" href="/favicon.ico?v=3" sizes="48x48">
+  <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=3">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=3">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0047AB">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="canonical" href="https://polylance.codes/" />
   <title>PolyLance — Decentralized Freelance Marketplace &amp; Escrow on Polygon</title>
@@ -84,12 +90,9 @@
     content="freelancing, freelance marketplace, smart contract escrow, Web3 freelancing, Polygon freelance, POL crypto payments, stablecoin escrow, Soulbound reputation, SBT, GitHub attestations, PolyLance" />
   <meta name="author" content="PolyLance Team" />
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-  <meta name="theme-color" content="#0047AB" />
 
-  <!-- Google Fonts: Fraunces (Headings), DM Sans (UI/Body), JetBrains Mono (Hashes/Balances) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <!-- Preload Primary Variable Font (Plus Jakarta Sans) ONLY -->
+  <link rel="preload" href="/fonts/plus-jakarta-sans-variable.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
   <!-- Open Graph / Social Media Meta Tags -->
   <meta property="og:type" content="website" />
@@ -109,6 +112,7 @@
   <meta name="twitter:image" content="https://polylance.codes/polylanceLogo.png" />
 
   <!-- SPA Routing & Subdomain / Social Media Deep Link Synchronizer for HashRouter -->
+  <!-- Canonical Hash-to-Path 301-equivalent redirect for legacy links -->
   <script type="text/javascript">
     (function (l) {
       var isCertifiedPass = (l.hostname === 'certifiedpass.polylance.codes' || l.hostname.indexOf('certifiedpass.') === 0);
@@ -116,60 +120,18 @@
         document.title = "CertifiedPass — Proof of What You've Achieved | Verification Oracle";
       }
 
-      // 1. Direct path routing: if landed on /verify, /audit, /attestation, /certifiedpass etc. without hash
-      if (l.pathname && l.pathname !== '/' && !l.pathname.endsWith('/index.html')) {
-        var cleanPath = l.pathname;
-        var search = l.search || '';
-
-        // If visiting /verify on any domain, cleanly route to #/verify preserving search params
-        if (cleanPath === '/verify' || cleanPath.indexOf('/verify/') === 0) {
-          var certPart = cleanPath.replace('/verify', '');
-          window.location.replace(l.protocol + '//' + l.host + '/#/verify' + certPart + search);
-          return;
-        }
-
-        window.location.replace(l.protocol + '//' + l.host + '/#' + cleanPath + search);
+      // Convert legacy hash routes (e.g. #/find-jobs or #/jobs/123) into clean standard paths
+      if (l.hash && l.hash.indexOf('#/') === 0) {
+        var cleanPath = l.hash.substring(1);
+        var targetUrl = l.protocol + '//' + l.host + cleanPath;
+        window.location.replace(targetUrl);
         return;
       }
 
-      // 2. If on CertifiedPass subdomain at root with no hash, ensure it loads CertifiedPass
-      if (isCertifiedPass && (!l.hash || l.hash === '#' || l.hash === '#/')) {
-        window.location.replace(l.protocol + '//' + l.host + '/#/certifiedpass' + (l.search || ''));
-        return;
-      }
-
-      // 3. Query parameter deep linking from LinkedIn, X/Twitter, or shared verification links
-      if (l.search) {
-        // Handle SPA GitHub Pages format: ?/...
-        if (l.search.indexOf('?/') === 0) {
-          var decoded = l.search.slice(2).split('&').map(function (s) {
-            return s.replace(/~and~/g, '&');
-          }).join('?');
-          window.location.replace(l.protocol + '//' + l.host + '/#' + decoded);
-          return;
-        }
-
-        // Handle direct social share or verification query params
-        var params = new URLSearchParams(l.search);
-        var auditAddr = params.get('audit') || params.get('audit-report');
-        var attestationId = params.get('attestation') || params.get('cert');
-        var certId = params.get('certId') || (isCertifiedPass ? (params.get('id') || params.get('q')) : null);
-        var role = params.get('role');
-
-        if (certId && !l.hash.includes('certifiedpass') && !l.hash.includes('verify')) {
-          window.location.replace(l.protocol + '//' + l.host + '/#/verify?certId=' + encodeURIComponent(certId));
-          return;
-        }
-
-        if (auditAddr) {
-          window.location.replace(l.protocol + '//' + l.host + '/#/audit/' + encodeURIComponent(auditAddr));
-          return;
-        }
-        if (attestationId) {
-          var roleParam = role ? '?role=' + encodeURIComponent(role) : '';
-          window.location.replace(l.protocol + '//' + l.host + '/#/attestation/' + encodeURIComponent(attestationId) + roleParam);
-          return;
-        }
+      // Handle SPA redirect query parameter (?p=/find-jobs) if routed via static 404
+      if (l.search && l.search.indexOf('?p=') === 0) {
+        var path = decodeURIComponent(l.search.slice(3));
+        window.history.replaceState(null, null, l.protocol + '//' + l.host + path);
       }
     }(window.location));
   </script>
@@ -314,6 +276,7 @@
 
 <body class="bg-[#FFFFFF] text-[#0B0B0C] antialiased">
   <div id="root"></div>
+  <div id="overlay-root" data-lenis-prevent="true"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 
 export interface GithubScoreResult {
+  id?: string;
   username: string;
   primaryCategory: string;
   primaryScore: number;
@@ -97,6 +98,7 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
   if (cached) {
     return {
       ...cached,
+      id: cached.id || cleanUsername,
       attestationUID: ethers.keccak256(
         ethers.toUtf8Bytes(`${userAddress.toLowerCase()}:${cleanUsername.toLowerCase()}:${Date.now()}`)
       ),
@@ -132,6 +134,10 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
       // 1. Fetch real user profile from GitHub API
       const userRes = await fetch(`https://api.github.com/users/${cleanUsername}`, { headers });
 
+      if (userRes.status === 404) {
+        throw new Error(`GitHub account @${cleanUsername} does not exist. Please verify the account exists on GitHub.`);
+      }
+
       if (userRes.status === 403 || userRes.status === 429) {
         githubRateLimitedUntil = Date.now() + 15 * 60 * 1000;
         console.warn(`[GitHub Oracle] GitHub API rate-limited (status ${userRes.status}). Using local score engine.`);
@@ -145,8 +151,8 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
         const publicRepos = userData.public_repos || 0;
 
         // ── Hard Minimum Activity Gate ──────────────────────────────────────
-        if (publicRepos < MIN_PUBLIC_REPOS) {
-          throw new Error(`GitHub account does not meet minimum requirements: ${publicRepos} public repos (need ≥ ${MIN_PUBLIC_REPOS}). Build more public code first.`);
+        if (publicRepos < 1) {
+          throw new Error(`GitHub account @${cleanUsername} has 0 public repositories. PolyLance requires an active developer account with public code.`);
         }
 
         reposCount = publicRepos;
@@ -287,38 +293,21 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
     }
   } catch (err) {
     if (err instanceof Error && (
+      err.message.includes('does not exist') ||
+      err.message.includes('not found') ||
+      err.message.includes('0 public repositories') ||
       err.message.includes('minimum requirement') ||
       err.message.includes('below the minimum threshold') ||
       err.message.includes('contribution history too low')
     )) {
       throw err;
     }
-    console.warn('GitHub API fetch notice (using hardened fallback):', err);
+    throw err;
   }
   }
 
-  // ── Hardened Fallback: API throttled / offline ─────────────────────────
-  // Cap strictly at FALLBACK_SCORE_CAP (Bronze) so offline fallbacks cannot bypass rules
   if (!realSuccess) {
-    let seed = 0;
-    const lowerUser = cleanUsername.toLowerCase();
-    for (let i = 0; i < lowerUser.length; i++) {
-      seed += lowerUser.charCodeAt(i) * (i + 1) * 31;
-    }
-
-    reposCount = (seed % 5) + 3;           // 3–7 repos
-    commitsCount = 20 + (seed % 35);       // 20–55 commits
-    prsCount = Math.max(1, Math.round(reposCount * 0.8));
-
-    primaryCategory = 'web3';
-    // Strictly capped at BRONZE tier
-    primaryScore = Math.min(FALLBACK_SCORE_CAP, 180 + (seed % 140));
-    secondaryCategories = ['frontend', 'backend'];
-    secondaryScores = [Math.round(primaryScore * 0.35), Math.round(primaryScore * 0.18)];
-
-    languageBytes.Solidity = 24000 + (seed % 8000);
-    languageBytes.TypeScript = 18000 + (seed % 6000);
-    languageBytes.JavaScript = 8000;
+    throw new Error('GitHub oracle verification failed: unable to fetch public contribution data. Please check your username and retry.');
   }
 
   // Determine reputation tier with hardened thresholds:
@@ -345,6 +334,7 @@ export async function scoreGithubUser(username: string, userAddress: string): Pr
   );
 
   const finalResult: GithubScoreResult = {
+    id: cleanUsername,
     username: cleanUsername,
     primaryCategory,
     primaryScore,
