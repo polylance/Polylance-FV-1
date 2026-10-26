@@ -107,21 +107,6 @@ Freelance smart contract deliveries often contain critical vulnerabilities (reen
 
 ---
 
-## 📜 On-Chain Smart Contract Infrastructure
-
-The PolyLance protocol is deployed and active on **Polygon PoS Mainnet (Chain ID 137)**:
-
-| Contract | Purpose | Mainnet Address (Polygon PoS) |
-| :--- | :--- | :--- |
-| `JobEscrowImplementation` | Master logic for milestone escrow, deposits, releases, and refund safety | [`0x88dd19df1b6dBA8D2c53b3976f4ec39B75f17FbB`](https://polygonscan.com/address/0x88dd19df1b6dBA8D2c53b3976f4ec39B75f17FbB) |
-| `JobFactory` | Minimal proxy factory deploying deterministic, gas-optimized job escrows | [`0xbE74923BBfd72d400a681915dBcf6e6Adc72C317`](https://polygonscan.com/address/0xbE74923BBfd72d400a681915dBcf6e6Adc72C317) |
-| `ReputationSBT` | Soulbound ERC-721 token tracking immutable credentials and ratings | [`0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879`](https://polygonscan.com/address/0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879) |
-| `ProfileRegistry` | Registry mapping wallet addresses to decentralized identities and metadata | [`0xA408070979043215C8C91d245973886eA7c09f42`](https://polygonscan.com/address/0xA408070979043215C8C91d245973886eA7c09f42) |
-| `GithubReputationRegistry` | On-chain mapping linking GitHub identities, commits, and PR activity | [`0x91e103Fd78ccC3233d08f4830587763F72b9D5aB`](https://polygonscan.com/address/0x91e103Fd78ccC3233d08f4830587763F72b9D5aB) |
-| `TimelockController` | Governance delay controller enforcing transparent security upgrade windows | [`0x45602bE11306651C7FA5c96Bc7fa5051BA4a856f`](https://polygonscan.com/address/0x45602bE11306651C7FA5c96Bc7fa5051BA4a856f) |
-| `JudgeDAO` | Multi-sig dispute arbitration voting contract with staked juror quorums | [`0xe991e45907Bd341a036CF4A6a95768af198d4b86`](https://polygonscan.com/address/0xe991e45907Bd341a036CF4A6a95768af198d4b86) |
-
----
 
 ## 🛡️ Protocol Security & Safeguards
 
@@ -135,7 +120,7 @@ The PolyLance protocol is deployed and active on **Polygon PoS Mainnet (Chain ID
 
 ## 💻 Technology Stack
 
-- **Smart Contracts**: Solidity 0.8.20, Hardhat, Ethers.js v6, TypeChain, OpenZeppelin Contracts v5.
+- **Smart Contracts**: Solidity 0.8.20, Hardhat, Ethers.js v6, OpenZeppelin Contracts v5.
 - **Frontend Layer**: React 18, Vite, TypeScript, Tailwind CSS, Lucide Icons, Framer Motion animations.
 - **Web3 Connector**: Wagmi, Viem, Reown AppKit (formerly Web3Modal), MetaMask SDK, WalletConnect v2.
 - **Real-Time Backend**: Node.js, Express, Socket.io, TypeScript, Prisma ORM, PostgreSQL / SQLite.
