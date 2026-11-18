@@ -1,0 +1,718 @@
+[
+  {
+    "id": "hero-loop",
+    "title": "PolyLance Platform in Action",
+    "summary": "Muted overview of the non-custodial milestone escrow and verified reputation workflow.",
+    "type": "ambient",
+    "aspect": "16:9",
+    "durationSeconds": 22,
+    "sources": {
+      "mp4": "/videos/your-work.mp4"
+    },
+    "poster": "/media/posters/hero-loop.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/hero-loop.en.vtt"
+      }
+    ],
+    "transcript": "",
+    "status": "ready",
+    "tags": [
+      "landing",
+      "hero",
+      "ambient"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "intro-30s",
+    "title": "30-Second PolyLance Overview",
+    "summary": "Understand how smart contract escrows and verified Soulbound certificates protect both clients and freelancers.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 30,
+    "sources": {
+      "mp4": "/videos/your-identity.mp4"
+    },
+    "poster": "/media/posters/intro-30s.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/intro-30s.en.vtt"
+      }
+    ],
+    "transcript": "PolyLance is a decentralized freelance marketplace on Polygon. When a project begins, client funds are locked securely in a non-custodial smart contract escrow. Freelancers deliver milestones with guaranteed payment protection. Once reviewed and approved, funds release instantly and a tamper-proof ERC-721 Soulbound work certificate is minted directly to the freelancer's wallet. If an issue arises, peer arbitrators on JudgeDAO resolve it transparently on-chain.",
+    "status": "ready",
+    "tags": [
+      "landing",
+      "explainer",
+      "intro"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "walkthrough",
+    "title": "Complete Product Walkthrough",
+    "summary": "End-to-end tour of browsing jobs, funding escrow contracts, milestone submission, and on-chain release.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 75,
+    "sources": {
+      "mp4": "/videos/client-escrow.mp4"
+    },
+    "poster": "/media/posters/walkthrough.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/walkthrough.en.vtt"
+      }
+    ],
+    "transcript": "In this guided walkthrough, we step through posting a requirement, negotiating terms in encrypted chat, locking milestone deposits in an EIP-1167 minimal proxy contract, and verifying deliverable hashes before final release.",
+    "status": "ready",
+    "tags": [
+      "demo",
+      "walkthrough",
+      "product"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "pitch-demo",
+    "title": "Investor & Partner Demo",
+    "summary": "Protocol architecture, economic model, and the sovereign work history infrastructure powering PolyLance.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 90,
+    "sources": {},
+    "poster": "/media/posters/pitch-demo.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/pitch-demo.en.vtt"
+      }
+    ],
+    "transcript": "An executive summary of PolyLance's 2.5% protocol fee architecture, CertifiedPass oracle integrations, and JudgeDAO staking model for partners and reviewers.",
+    "status": "coming-soon",
+    "tags": [
+      "investors",
+      "partners",
+      "architecture"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "welcome-15s",
+    "title": "Welcome to Your PolyLance Dashboard",
+    "summary": "A 15-second primer on tracking your active escrows, earnings, and verified credentials.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 15,
+    "sources": {},
+    "poster": "/media/posters/welcome-15s.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/welcome-15s.en.vtt"
+      }
+    ],
+    "transcript": "Welcome to PolyLance. Here you can monitor active project milestones, check escrow deposits, and view your Soulbound reputation certificates in one sovereign dashboard.",
+    "status": "coming-soon",
+    "tags": [
+      "dashboard",
+      "onboarding"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "task-connect-wallet",
+    "title": "How to Connect Your Wallet",
+    "summary": "Learn how to connect with MetaMask, Coinbase, or WalletConnect on Polygon Mainnet.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 30,
+    "sources": {
+      "mp4": "/videos/your-identity.mp4"
+    },
+    "poster": "/media/posters/task-connect-wallet.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-connect-wallet.en.vtt"
+      }
+    ],
+    "transcript": "Connecting your wallet takes seconds. Select your preferred wallet, approve the connection request on Polygon Mainnet (Chain ID 137), and your profile address is instantly authenticated without usernames or passwords.",
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "wallet"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "task-post-job",
+    "title": "Posting an On-Chain Job",
+    "summary": "Step-by-step guide to defining milestones, allocating budgets, and deploying escrow jobs.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 35,
+    "sources": {
+      "mp4": "/videos/your-work.mp4"
+    },
+    "poster": "/media/posters/task-post-job.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-post-job.en.vtt"
+      }
+    ],
+    "transcript": "To post a project, enter your scope, select required skills, and set milestone budgets in POL or USDC. Review the transparent 2.5% platform fee breakdown before publishing.",
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "client"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "task-apply-negotiate",
+    "title": "Applying & Negotiating Proposals",
+    "summary": "How freelancers submit verified proposals and chat securely with clients.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 40,
+    "sources": {
+      "mp4": "/videos/submission.mp4"
+    },
+    "poster": "/media/posters/task-apply-negotiate.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-apply-negotiate.en.vtt"
+      }
+    ],
+    "transcript": "Freelancers can review project specifications and submit tailored proposals accompanied by their on-chain SBT ratings. Clients and freelancers can then negotiate deliverable terms directly.",
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "freelancer"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "task-fund-release",
+    "title": "Funding Escrow & Milestone Release",
+    "summary": "Understand how funds lock in the smart contract and release upon deliverable inspection.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 35,
+    "sources": {
+      "mp4": "/videos/client-escrow.mp4"
+    },
+    "poster": "/media/posters/task-fund-release.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-fund-release.en.vtt"
+      }
+    ],
+    "transcript": "Clients deposit milestone payments into the contract proxy. When work is submitted and approved, a single transaction releases payment directly to the freelancer's address.",
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "escrow"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "task-disputes",
+    "title": "How Disputes Are Resolved",
+    "summary": "Transparent peer arbitration through JudgeDAO if deliverables do not match requirements.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 45,
+    "sources": {
+      "mp4": "/videos/dispute.mp4"
+    },
+    "poster": "/media/posters/task-disputes.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-disputes.en.vtt"
+      }
+    ],
+    "transcript": "In the rare event of a disagreement, either party can trigger arbitration. Selected JudgeDAO peer arbitrators inspect the milestone specs and code artifacts to cast on-chain ruling votes.",
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "judge"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "task-reputation",
+    "title": "Reputation & Soulbound Certificates",
+    "summary": "How every approved milestone mints a permanent, verifiable work credential to your wallet.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 30,
+    "sources": {
+      "mp4": "/videos/your-reputation.mp4"
+    },
+    "poster": "/media/posters/task-reputation.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/task-reputation.en.vtt"
+      }
+    ],
+    "transcript": "Your career history cannot be deleted or manipulated. Each completed contract mints an ERC-721 Soulbound Token with milestone metadata, star ratings, and CertifiedPass verification.",
+    "status": "ready",
+    "tags": [
+      "help",
+      "tutorial",
+      "reputation"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "first-payment-proof",
+    "title": "Verifiable First Payment Proof",
+    "summary": "Inspect real smart contract settlement transactions on the Polygon blockchain.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 30,
+    "sources": {
+      "mp4": "/get-paid.mp4"
+    },
+    "poster": "/media/posters/first-payment-proof.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/first-payment-proof.en.vtt"
+      }
+    ],
+    "transcript": "See real on-chain transaction hashes on Polygonscan verifying that funds transfer directly between wallets without centralized custodians or withheld balances.",
+    "status": "ready",
+    "tags": [
+      "trust",
+      "proof",
+      "polygonscan"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "safe-by-design",
+    "title": "Safe by Design Security Model",
+    "summary": "Non-custodial vaults, EIP-1167 proxy isolation, and automated bytecode verification.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 40,
+    "sources": {
+      "mp4": "/videos/client-escrow.mp4"
+    },
+    "poster": "/media/posters/safe-by-design.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/safe-by-design.en.vtt"
+      }
+    ],
+    "transcript": "Every escrow contract is an isolated proxy. PolyLance administrators never hold custody of user funds or private keys, ensuring maximum cryptographic security.",
+    "status": "ready",
+    "tags": [
+      "trust",
+      "security",
+      "audit"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "get-paid-cash-out",
+    "title": "Getting Paid & Local Currency Conversion",
+    "summary": "How to convert received crypto earnings to INR or USD using compliant off-ramps.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 30,
+    "sources": {
+      "mp4": "/get-paid.mp4"
+    },
+    "poster": "/media/posters/get-paid-cash-out.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/get-paid-cash-out.en.vtt"
+      }
+    ],
+    "transcript": "Once your escrow milestone releases in POL or USDC, withdraw directly to your bank account or exchange using standard Polygon-compatible gateways.",
+    "status": "ready",
+    "tags": [
+      "trust",
+      "payments",
+      "fiat"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "new-to-wallets",
+    "title": "New to Web3 Wallets? Quickstart",
+    "summary": "A friendly 45-second guide to setting up a self-custody wallet and getting Polygon gas tokens.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 45,
+    "sources": {
+      "mp4": "/videos/your-identity.mp4"
+    },
+    "poster": "/media/posters/new-to-wallets.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/new-to-wallets.en.vtt"
+      }
+    ],
+    "transcript": "Never used a crypto wallet before? Learn how to install MetaMask in two minutes, securely store your backup phrase, and interact with Web3 applications safely.",
+    "status": "ready",
+    "tags": [
+      "help",
+      "beginner",
+      "wallet"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "founder-intro",
+    "title": "Meet the Builders of PolyLance",
+    "summary": "Founders introduce the vision for decentralized sovereign freelancing and meritocracy.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 35,
+    "sources": {},
+    "poster": "/media/posters/founder-intro.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/founder-intro.en.vtt"
+      }
+    ],
+    "transcript": "Founders discuss why they created PolyLance to end unfair platform deplatforming, high 20% fees, and opaque dispute systems.",
+    "status": "coming-soon",
+    "tags": [
+      "people",
+      "founders",
+      "manifesto"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "story-freelancer",
+    "title": "Freelancer Experience Story",
+    "summary": "How a smart contract developer secured international clients with guaranteed payment safety.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 35,
+    "sources": {},
+    "poster": "/media/posters/story-freelancer.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/story-freelancer.en.vtt"
+      }
+    ],
+    "transcript": "A real developer perspective on delivering high-value milestones with smart contract escrow backing.",
+    "status": "coming-soon",
+    "tags": [
+      "people",
+      "story",
+      "freelancer"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "story-client",
+    "title": "Client Experience Story",
+    "summary": "How a Web3 startup hired verified frontend and smart contract engineering talent seamlessly.",
+    "type": "standard",
+    "aspect": "16:9",
+    "durationSeconds": 35,
+    "sources": {},
+    "poster": "/media/posters/story-client.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/story-client.en.vtt"
+      }
+    ],
+    "transcript": "A client explains how milestone locks and verifiable Soulbound profiles streamlined remote technical hiring.",
+    "status": "coming-soon",
+    "tags": [
+      "people",
+      "story",
+      "client"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "loop-hire",
+    "title": "Hire Milestone Flow",
+    "summary": "Ambient clip illustrating client job posting and milestone escrow configuration.",
+    "type": "ambient",
+    "aspect": "16:9",
+    "durationSeconds": 8,
+    "sources": {
+      "mp4": "/hire-talent.mp4"
+    },
+    "poster": "/media/posters/loop-hire.svg",
+    "captions": [],
+    "transcript": "",
+    "status": "ready",
+    "tags": [
+      "landing",
+      "action-loop",
+      "hire"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "loop-work",
+    "title": "Work Milestone Flow",
+    "summary": "Ambient clip demonstrating milestone progress updates and deliverable inspection.",
+    "type": "ambient",
+    "aspect": "16:9",
+    "durationSeconds": 8,
+    "sources": {
+      "mp4": "/delivery-work.mp4"
+    },
+    "poster": "/media/posters/loop-work.svg",
+    "captions": [],
+    "transcript": "",
+    "status": "ready",
+    "tags": [
+      "landing",
+      "action-loop",
+      "work"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "loop-paid",
+    "title": "Get Paid Milestone Flow",
+    "summary": "Ambient clip showing instant smart contract fund release and reputation minting.",
+    "type": "ambient",
+    "aspect": "16:9",
+    "durationSeconds": 8,
+    "sources": {
+      "mp4": "/get-paid.mp4"
+    },
+    "poster": "/media/posters/loop-paid.svg",
+    "captions": [],
+    "transcript": "",
+    "status": "ready",
+    "tags": [
+      "landing",
+      "action-loop",
+      "paid"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "category-web3",
+    "title": "Web3 & Smart Contracts Work",
+    "summary": "Ambient preview of Solidity audits, DeFi protocols, and token engineering contracts.",
+    "type": "ambient",
+    "aspect": "16:9",
+    "durationSeconds": 8,
+    "sources": {
+      "mp4": "/videos/web3.mp4"
+    },
+    "poster": "/media/posters/category-web3.svg",
+    "captions": [],
+    "transcript": "",
+    "status": "ready",
+    "tags": [
+      "category",
+      "ambient",
+      "web3"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "category-frontend",
+    "title": "Frontend Engineering Work",
+    "summary": "Ambient preview of React, TypeScript, Next.js, and modern decentralized Web3 interfaces.",
+    "type": "ambient",
+    "aspect": "16:9",
+    "durationSeconds": 8,
+    "sources": {
+      "mp4": "/videos/frontend.mp4"
+    },
+    "poster": "/media/posters/category-frontend.svg",
+    "captions": [],
+    "transcript": "",
+    "status": "ready",
+    "tags": [
+      "category",
+      "ambient",
+      "frontend"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "category-backend",
+    "title": "Backend & Indexer Work",
+    "summary": "Ambient preview of Node.js, Go, Rust APIs, blockchain indexers, and distributed systems.",
+    "type": "ambient",
+    "aspect": "16:9",
+    "durationSeconds": 8,
+    "sources": {
+      "mp4": "/videos/backend.mp4"
+    },
+    "poster": "/media/posters/category-backend.svg",
+    "captions": [],
+    "transcript": "",
+    "status": "ready",
+    "tags": [
+      "category",
+      "ambient",
+      "backend"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "category-mobile",
+    "title": "Mobile Application Work",
+    "summary": "Ambient preview of Flutter, React Native, and native iOS/Android mobile apps.",
+    "type": "ambient",
+    "aspect": "16:9",
+    "durationSeconds": 8,
+    "sources": {
+      "mp4": "/videos/mobile.mp4"
+    },
+    "poster": "/media/posters/category-mobile.svg",
+    "captions": [],
+    "transcript": "",
+    "status": "ready",
+    "tags": [
+      "category",
+      "ambient",
+      "mobile"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "social-intro",
+    "title": "Vertical Social Brand Intro",
+    "summary": "Mobile-optimized 9:16 short introduction for social media and mobile channels.",
+    "type": "standard",
+    "aspect": "9:16",
+    "durationSeconds": 30,
+    "sources": {},
+    "poster": "/media/posters/social-intro.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/social-intro.en.vtt"
+      }
+    ],
+    "transcript": "Stop losing 20% on traditional freelance sites. Switch to PolyLance with 2.5% fees and guaranteed smart contract escrow.",
+    "status": "coming-soon",
+    "tags": [
+      "social",
+      "vertical",
+      "short"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "social-first-payment",
+    "title": "Vertical Social Payment Proof",
+    "summary": "Mobile-first 9:16 spotlight showing live Polygon settlement and verified soulbound proof.",
+    "type": "standard",
+    "aspect": "9:16",
+    "durationSeconds": 30,
+    "sources": {},
+    "poster": "/media/posters/social-first-payment.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/social-first-payment.en.vtt"
+      }
+    ],
+    "transcript": "Watch a 1,000 POL milestone release instantly on Polygonscan. Sovereign escrow at the speed of Polygon.",
+    "status": "coming-soon",
+    "tags": [
+      "social",
+      "vertical",
+      "proof"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "social-story",
+    "title": "Vertical Social Freelancer Story",
+    "summary": "Quick vertical short highlighting sovereign career credentials that can never be revoked.",
+    "type": "standard",
+    "aspect": "9:16",
+    "durationSeconds": 30,
+    "sources": {},
+    "poster": "/media/posters/social-story.svg",
+    "captions": [
+      {
+        "lang": "en",
+        "label": "English",
+        "src": "/media/captions/social-story.en.vtt"
+      }
+    ],
+    "transcript": "Your reputation belongs to your wallet, not an algorithm. See how PolyLance credentials prove your craft anywhere in Web3.",
+    "status": "coming-soon",
+    "tags": [
+      "social",
+      "vertical",
+      "story"
+    ],
+    "isSample": true
+  },
+  {
+    "id": "why-polylance",
+    "title": "Why PolyLance: The On-Chain Advantage",
+    "summary": "Interactive in-app animated comparison of fees, escrow safety, and sovereign credentials.",
+    "type": "component",
+    "aspect": "16:9",
+    "durationSeconds": 0,
+    "sources": {},
+    "poster": "/media/posters/why-polylance.svg",
+    "captions": [],
+    "transcript": "",
+    "status": "coming-soon",
+    "tags": [
+      "comparison",
+      "component",
+      "landing"
+    ],
+    "isSample": true
+  }
+]

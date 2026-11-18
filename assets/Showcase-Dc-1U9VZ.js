@@ -1,0 +1,1 @@
+import"./rolldown-runtime-Bjp52BOI.js";import{n as e,r as t}from"./createLucideIcon-D54346_5.js";import{Demo as n}from"./Demo-q96DI1A9.js";t();var r=e(),i=()=>(0,r.jsx)(n,{});export{i as Showcase,i as default};

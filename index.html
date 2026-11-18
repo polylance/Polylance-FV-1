@@ -74,41 +74,42 @@
       };
     })();
   </script>
-  <link rel="icon" type="image/png" href="/Polylance-FV-1/polylanceLogo.png" />
+  <link rel="icon" href="/Polylance-FV-1/favicon.ico?v=3" sizes="48x48">
+  <link rel="icon" href="/Polylance-FV-1/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="icon" type="image/png" sizes="32x32" href="/Polylance-FV-1/favicon-32x32.png?v=3">
+  <link rel="icon" type="image/png" sizes="16x16" href="/Polylance-FV-1/favicon-16x16.png?v=3">
+  <link rel="apple-touch-icon" href="/Polylance-FV-1/apple-touch-icon.png?v=3">
+  <link rel="manifest" href="/Polylance-FV-1/site.webmanifest">
+  <meta name="theme-color" content="#0047AB">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="canonical" href="https://polylance.codes/" />
-  <title>PolyLance — Decentralized Freelance Marketplace &amp; Escrow on Polygon</title>
-  <meta name="description"
-    content="Get paid milestone by milestone. Funds are held in escrow until you both approve. Your reviews live in your wallet with Soulbound reputation and GitHub attestations on Polygon." />
+  <title>PolyLance — Web3 Freelance Marketplace with Polygon Escrow</title>
+  <meta name="description" content="Hire vetted Web3 developers or find crypto freelance jobs protected by Polygon smart contract escrow. Work safely with milestone releases and low fees." />
   <meta name="keywords"
     content="freelancing, freelance marketplace, smart contract escrow, Web3 freelancing, Polygon freelance, POL crypto payments, stablecoin escrow, Soulbound reputation, SBT, GitHub attestations, PolyLance" />
   <meta name="author" content="PolyLance Team" />
-  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-  <meta name="theme-color" content="#0047AB" />
+  <meta name="robots" content="index, follow" />
 
-  <!-- Google Fonts: Fraunces (Headings), DM Sans (UI/Body), JetBrains Mono (Hashes/Balances) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <!-- Preload Primary Variable Font (Plus Jakarta Sans) ONLY -->
+  <link rel="preload" href="/Polylance-FV-1/fonts/plus-jakarta-sans-variable.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
   <!-- Open Graph / Social Media Meta Tags -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="PolyLance" />
-  <meta property="og:title" content="PolyLance — Decentralized Freelance Marketplace & Escrow on Polygon" />
-  <meta property="og:description"
-    content="Get paid milestone by milestone. Funds are held in escrow until you both approve. Your reviews live in your wallet with Soulbound reputation and GitHub attestations on Polygon." />
+  <meta property="og:title" content="PolyLance — Web3 Freelance Marketplace with Polygon Escrow" />
+  <meta property="og:description" content="Hire vetted Web3 developers or find crypto freelance jobs protected by Polygon smart contract escrow. Work safely with milestone releases and low fees." />
   <meta property="og:url" content="https://polylance.codes/" />
   <meta property="og:image" content="https://polylance.codes/polylanceLogo.png" />
   <meta property="og:image:alt" content="PolyLance Web3 Freelance Marketplace & Escrow" />
 
   <!-- Twitter / X Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="PolyLance — Decentralized Freelance Marketplace & Escrow on Polygon" />
-  <meta name="twitter:description"
-    content="Get paid milestone by milestone with smart contract escrow on Polygon. 2.5% platform fee, instant payouts, and Soulbound reputation." />
+  <meta name="twitter:title" content="PolyLance — Web3 Freelance Marketplace with Polygon Escrow" />
+  <meta name="twitter:description" content="Hire vetted Web3 developers or find crypto freelance jobs protected by Polygon smart contract escrow. Work safely with milestone releases and low fees." />
   <meta name="twitter:image" content="https://polylance.codes/polylanceLogo.png" />
 
   <!-- SPA Routing & Subdomain / Social Media Deep Link Synchronizer for HashRouter -->
+  <!-- Canonical Hash-to-Path 301-equivalent redirect for legacy links -->
   <script type="text/javascript">
     (function (l) {
       var isCertifiedPass = (l.hostname === 'certifiedpass.polylance.codes' || l.hostname.indexOf('certifiedpass.') === 0);
@@ -116,60 +117,18 @@
         document.title = "CertifiedPass — Proof of What You've Achieved | Verification Oracle";
       }
 
-      // 1. Direct path routing: if landed on /verify, /audit, /attestation, /certifiedpass etc. without hash
-      if (l.pathname && l.pathname !== '/' && !l.pathname.endsWith('/index.html')) {
-        var cleanPath = l.pathname;
-        var search = l.search || '';
-
-        // If visiting /verify on any domain, cleanly route to #/verify preserving search params
-        if (cleanPath === '/verify' || cleanPath.indexOf('/verify/') === 0) {
-          var certPart = cleanPath.replace('/verify', '');
-          window.location.replace(l.protocol + '//' + l.host + '/#/verify' + certPart + search);
-          return;
-        }
-
-        window.location.replace(l.protocol + '//' + l.host + '/#' + cleanPath + search);
+      // Convert legacy hash routes (e.g. #/find-jobs or #/jobs/123) into clean standard paths
+      if (l.hash && l.hash.indexOf('#/') === 0) {
+        var cleanPath = l.hash.substring(1);
+        var targetUrl = l.protocol + '//' + l.host + cleanPath;
+        window.location.replace(targetUrl);
         return;
       }
 
-      // 2. If on CertifiedPass subdomain at root with no hash, ensure it loads CertifiedPass
-      if (isCertifiedPass && (!l.hash || l.hash === '#' || l.hash === '#/')) {
-        window.location.replace(l.protocol + '//' + l.host + '/#/certifiedpass' + (l.search || ''));
-        return;
-      }
-
-      // 3. Query parameter deep linking from LinkedIn, X/Twitter, or shared verification links
-      if (l.search) {
-        // Handle SPA GitHub Pages format: ?/...
-        if (l.search.indexOf('?/') === 0) {
-          var decoded = l.search.slice(2).split('&').map(function (s) {
-            return s.replace(/~and~/g, '&');
-          }).join('?');
-          window.location.replace(l.protocol + '//' + l.host + '/#' + decoded);
-          return;
-        }
-
-        // Handle direct social share or verification query params
-        var params = new URLSearchParams(l.search);
-        var auditAddr = params.get('audit') || params.get('audit-report');
-        var attestationId = params.get('attestation') || params.get('cert');
-        var certId = params.get('certId') || (isCertifiedPass ? (params.get('id') || params.get('q')) : null);
-        var role = params.get('role');
-
-        if (certId && !l.hash.includes('certifiedpass') && !l.hash.includes('verify')) {
-          window.location.replace(l.protocol + '//' + l.host + '/#/verify?certId=' + encodeURIComponent(certId));
-          return;
-        }
-
-        if (auditAddr) {
-          window.location.replace(l.protocol + '//' + l.host + '/#/audit/' + encodeURIComponent(auditAddr));
-          return;
-        }
-        if (attestationId) {
-          var roleParam = role ? '?role=' + encodeURIComponent(role) : '';
-          window.location.replace(l.protocol + '//' + l.host + '/#/attestation/' + encodeURIComponent(attestationId) + roleParam);
-          return;
-        }
+      // Handle SPA redirect query parameter (?p=/find-jobs) if routed via static 404
+      if (l.search && l.search.indexOf('?p=') === 0) {
+        var path = decodeURIComponent(l.search.slice(3));
+        window.history.replaceState(null, null, l.protocol + '//' + l.host + path);
       }
     }(window.location));
   </script>
@@ -310,23 +269,153 @@
       ]
     }
   </script>
-  <script type="module" crossorigin src="/Polylance-FV-1/assets/index-DzhhtvD4.js"></script>
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/rolldown-runtime-BG2f4sTM.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/preload-helper-Dp3tRy0W.js">
+  <script type="module" crossorigin src="/Polylance-FV-1/assets/index-9rodS2pq.js"></script>
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/rolldown-runtime-Bjp52BOI.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/createLucideIcon-D54346_5.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/units-BGhXAoYC.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/address-FXGxRTIE.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/chunk-OB3PAWPO-X_3jNbqc.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/proxy-Dr4GCdsE.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/AnimatePresence-B6RC39Cc.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/Value-zgShoQJE.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/createBatchScheduler-B_uH9BZD.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/createBatchScheduler-BGrC1T5U.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/utils-Bpv4vmSW.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/call-C9J5AOPS.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/http-wQ4I0per.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/secp256k1-q9vqbdX-.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/preload-helper-BubNV6aj.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/call-DD5oj1vV.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/createTransport-DrbF04Hb.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/secp256k1-BbQH_qzS.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/formatUnits-QyFbNVrn.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/eventemitter3-BjqSxerI.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/eventemitter3-Btg-p9f_.js">
-  <link rel="stylesheet" crossorigin href="/Polylance-FV-1/assets/index-DaQz7ZaG.css">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/public-DCZK6Xxe.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/chunk-JT4N2T7B-DkhyPGN6.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/tslib.es6-nx-Trewi.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/contracts-CpMgzkjO.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/apiClient-DErUF1sL.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/award-xT2Q1ax9.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/x-B1kCvbQC.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/useDataSaver-DdzTcR6K.js">
+  <link rel="stylesheet" crossorigin href="/Polylance-FV-1/assets/index-DmWbkN9-.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://polylance.codes/#organization",
+  "name": "PolyLance",
+  "url": "https://polylance.codes",
+  "logo": "https://polylance.codes/assets/logo.png",
+  "sameAs": [
+    "https://twitter.com/PolyLanceCodes",
+    "https://github.com/polylance"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "email": "support@polylance.codes",
+    "contactType": "customer support",
+    "availableLanguage": [
+      "English"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "https://polylance.codes/#website",
+  "name": "PolyLance",
+  "url": "https://polylance.codes",
+  "description": "Decentralized freelance marketplace with Polygon smart contract escrow.",
+  "publisher": {
+    "@id": "https://polylance.codes/#organization"
+  },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "https://polylance.codes/find-jobs?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "PolyLance",
+  "url": "https://polylance.codes",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "All",
+  "description": "Decentralized freelance escrow marketplace on Polygon blockchain.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is PolyLance?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "PolyLance is a freelance marketplace on the Polygon blockchain where project funds are locked in an escrow smart contract. Clients fund milestone escrows, freelancers deliver work, and payment is released upon client approval or verifiable milestones. Completed jobs also earn verifiable on-chain reputation certificates."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does PolyLance work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Clients post a project, select an applicant, and fund escrow on Polygon PoS. The freelancer completes the milestone, uploads proof-of-work, and client approval instantly releases funds directly to the freelancer wallet. For multi-phase projects, contracts can be organized and funded milestone by milestone."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need a crypto wallet to use PolyLance?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. You sign in and receive payments through a Polygon-compatible wallet such as MetaMask, Coinbase Wallet, or WalletConnect. Your cryptographic wallet address is your account identifier, eliminating passwords and centralized credential storage."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which blockchain and tokens does PolyLance use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "PolyLance operates on Polygon Mainnet (Chain ID 137). Supported payment tokens are native POL (the upgraded MATIC token), USDC, and USDT. Polygon delivers sub-cent network transaction fees and fast confirmations, making micro and enterprise freelance payments practical."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does PolyLance charge, and who pays it?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "PolyLance charges a 2.5% service fee to each side, 5% of the job budget in total. The client pays the job budget plus 2.5%, and the freelancer receives the job budget minus 2.5%. For example, on a 9 POL job the client pays 9.225 POL and the freelancer receives 8.775 POL. On a 10 USDC job, the client pays 10.25 USDC and the freelancer receives 9.75 USDC; on a 100 USDC job, the client pays 102.50 USDC and the freelancer receives 97.50 USDC; on a 1,000 USDC job, the client pays 1,025.00 USDC and the freelancer receives 975.00 USDC. Network (gas) fees are separate and are paid in POL to the Polygon network, not to PolyLance."
+      }
+    }
+  ]
+}
+</script>
 </head>
 
 <body class="bg-[#FFFFFF] text-[#0B0B0C] antialiased">
-  <div id="root"></div>
+  <div id="root">
+    <header style="max-width:1100px;margin:2rem auto;padding:1rem;text-align:center;">
+      <h1 style="font-size:2.25rem;font-weight:800;color:#0b0b0c;">PolyLance — Web3 Freelance Marketplace with Polygon Escrow</h1>
+      <p style="font-size:1.125rem;color:#4b5563;margin-top:1rem;max-width:700px;margin-left:auto;margin-right:auto;">
+        Hire vetted Web3 developers or find crypto freelance jobs protected by Polygon smart contract escrow. Work safely with milestone releases and low fees.
+      </p>
+    </header>
+    <main style="max-width:1100px;margin:1rem auto;padding:1rem;">
+      
+    </main>
+  </div>
+  <div id="overlay-root" data-lenis-prevent="true"></div>
 </body>
 
 </html>

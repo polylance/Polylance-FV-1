@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en" class="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <!-- Early Global Error, Web Vitals & Extension Guard -->
+  <script type="text/javascript">
+    (function () {
+      function formatArg(a) {
+        if (!a) return '';
+        if (typeof a === 'string') return a;
+        try {
+          return (a.message || '') + ' ' + (a.stack || '') + ' ' + (typeof a === 'object' ? JSON.stringify(a) : String(a));
+        } catch (e) {
+          return String(a);
+        }
+      }
+      function shouldSuppressText(str) {
+        if (!str) return false;
+        return (
+          str.indexOf('startTime') !== -1 ||
+          str.indexOf('reportAllChanges') !== -1 ||
+          str.indexOf('emitting session_request') !== -1 ||
+          str.indexOf('without any listeners') !== -1 ||
+          str.indexOf('deprecated parameters for the initialization function') !== -1 ||
+          str.indexOf('feature_collector') !== -1 ||
+          str.indexOf('MaxListenersExceededWarning') !== -1
+        );
+      }
+      function shouldSuppressArgs(args) {
+        for (var i = 0; i < args.length; i++) {
+          if (shouldSuppressText(formatArg(args[i]))) return true;
+        }
+        return false;
+      }
+
+      var origOnError = window.onerror;
+      window.onerror = function (msg, url, lineNo, columnNo, error) {
+        if (shouldSuppressText((msg || '') + ' ' + (error && error.stack || ''))) {
+          return true;
+        }
+        if (typeof origOnError === 'function') {
+          return origOnError.apply(this, arguments);
+        }
+      };
+
+      window.addEventListener('error', function (e) {
+        if (shouldSuppressText((e && e.message || '') + ' ' + (e && e.error && e.error.stack || ''))) {
+          e.preventDefault();
+          if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+          return true;
+        }
+      }, true);
+
+      window.addEventListener('unhandledrejection', function (e) {
+        var reasonMsg = (e && e.reason && e.reason.message) || (e && typeof e.reason === 'string' ? e.reason : '');
+        var reasonStack = (e && e.reason && e.reason.stack) || '';
+        if (shouldSuppressText(reasonMsg + ' ' + reasonStack)) {
+          e.preventDefault();
+          return true;
+        }
+      });
+
+      var origWarn = console.warn;
+      console.warn = function () {
+        if (shouldSuppressArgs(arguments)) return;
+        if (typeof origWarn === 'function') origWarn.apply(console, arguments);
+      };
+
+      var origErr = console.error;
+      console.error = function () {
+        if (shouldSuppressArgs(arguments)) return;
+        if (typeof origErr === 'function') origErr.apply(console, arguments);
+      };
+    })();
+  </script>
+  <link rel="icon" href="/Polylance-FV-1/favicon.ico?v=3" sizes="48x48">
+  <link rel="icon" href="/Polylance-FV-1/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="icon" type="image/png" sizes="32x32" href="/Polylance-FV-1/favicon-32x32.png?v=3">
+  <link rel="icon" type="image/png" sizes="16x16" href="/Polylance-FV-1/favicon-16x16.png?v=3">
+  <link rel="apple-touch-icon" href="/Polylance-FV-1/apple-touch-icon.png?v=3">
+  <link rel="manifest" href="/Polylance-FV-1/site.webmanifest">
+  <meta name="theme-color" content="#0047AB">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="canonical" href="https://polylance.codes/solidity-developer-jobs" />
+  <title>Solidity Developer Freelance Jobs & Smart Contracts</title>
+  <meta name="description" content="Explore verified freelance Solidity developer jobs. Build secure EVM smart contracts, token bridges, and DeFi protocols protected by on-chain escrow." />
+  <meta name="keywords"
+    content="freelancing, freelance marketplace, smart contract escrow, Web3 freelancing, Polygon freelance, POL crypto payments, stablecoin escrow, Soulbound reputation, SBT, GitHub attestations, PolyLance" />
+  <meta name="author" content="PolyLance Team" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Preload Primary Variable Font (Plus Jakarta Sans) ONLY -->
+  <link rel="preload" href="/Polylance-FV-1/fonts/plus-jakarta-sans-variable.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- Open Graph / Social Media Meta Tags -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PolyLance" />
+  <meta property="og:title" content="Solidity Developer Freelance Jobs & Smart Contracts" />
+  <meta property="og:description" content="Explore verified freelance Solidity developer jobs. Build secure EVM smart contracts, token bridges, and DeFi protocols protected by on-chain escrow." />
+  <meta property="og:url" content="https://polylance.codes/solidity-developer-jobs" />
+  <meta property="og:image" content="https://polylance.codes/polylanceLogo.png" />
+  <meta property="og:image:alt" content="PolyLance Web3 Freelance Marketplace & Escrow" />
+
+  <!-- Twitter / X Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Solidity Developer Freelance Jobs & Smart Contracts" />
+  <meta name="twitter:description" content="Explore verified freelance Solidity developer jobs. Build secure EVM smart contracts, token bridges, and DeFi protocols protected by on-chain escrow." />
+  <meta name="twitter:image" content="https://polylance.codes/polylanceLogo.png" />
+
+  <!-- SPA Routing & Subdomain / Social Media Deep Link Synchronizer for HashRouter -->
+  <!-- Canonical Hash-to-Path 301-equivalent redirect for legacy links -->
+  <script type="text/javascript">
+    (function (l) {
+      var isCertifiedPass = (l.hostname === 'certifiedpass.polylance.codes' || l.hostname.indexOf('certifiedpass.') === 0);
+      if (isCertifiedPass) {
+        document.title = "CertifiedPass — Proof of What You've Achieved | Verification Oracle";
+      }
+
+      // Convert legacy hash routes (e.g. #/find-jobs or #/jobs/123) into clean standard paths
+      if (l.hash && l.hash.indexOf('#/') === 0) {
+        var cleanPath = l.hash.substring(1);
+        var targetUrl = l.protocol + '//' + l.host + cleanPath;
+        window.location.replace(targetUrl);
+        return;
+      }
+
+      // Handle SPA redirect query parameter (?p=/find-jobs) if routed via static 404
+      if (l.search && l.search.indexOf('?p=') === 0) {
+        var path = decodeURIComponent(l.search.slice(3));
+        window.history.replaceState(null, null, l.protocol + '//' + l.host + path);
+      }
+    }(window.location));
+  </script>
+
+  <!-- SOVEREIGN IDENTITY & PROTOCOL SCHEMA (JSON-LD) -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://polylance.codes/#organization",
+          "name": "PolyLance",
+          "alternateName": [
+            "PolyLance",
+            "PolyLance Protocol"
+          ],
+          "url": "https://polylance.codes",
+          "logo": "https://polylance.codes/polylanceLogo.png",
+          "image": "https://polylance.codes/polylanceLogo.png",
+          "description": "PolyLance is a Web3 freelance marketplace on Polygon offering 2.5% platform fee smart contract escrows, Soulbound reputation tokens, GitHub skill attestations, and decentralized dispute arbitration.",
+          "slogan": "Your work history, verified and yours to keep.",
+          "keywords": "freelancing, freelance marketplace, hire freelancers, freelance escrow, decentralized freelancing, Web3 talent, Polygon escrow protocol",
+          "founder": [
+            {
+              "@type": "Person",
+              "name": "Akhil Muvva",
+              "jobTitle": "Founder & CEO / CTO",
+              "description": "Lead Architect of the PolyLance protocol. Driven by the mission of decentralized identity, smart contract escrows, and RWA settlement.",
+              "knowsAbout": [
+                "Smart Contract Architecture",
+                "RWA & Escrow Systems",
+                "Protocol Design",
+                "Solidity",
+                "Polygon Network"
+              ]
+            }
+          ],
+          "member": [
+            {
+              "@type": "Person",
+              "name": "Akhil Muvva",
+              "jobTitle": "Founder & CEO / CTO",
+              "description": "Lead Architect of the PolyLance protocol. Driven by the mission of decentralized identity, smart contract escrows, and RWA settlement.",
+              "knowsAbout": [
+                "Smart Contract Architecture",
+                "RWA & Escrow Systems",
+                "Protocol Design"
+              ]
+            },
+            {
+              "@type": "Person",
+              "name": "Balram Taddi",
+              "jobTitle": "Chief Security Officer (CSO)",
+              "description": "Chief Security Officer. Mapping the expansion, cross-chain interoperability, and security of PolyLance across the multichain ecosystem.",
+              "knowsAbout": [
+                "Cross-Chain Interoperability",
+                "Security Strategy",
+                "Ecosystem Expansion",
+                "Smart Contract Security"
+              ]
+            },
+            {
+              "@type": "Person",
+              "name": "Neeraj Chennamsetty",
+              "jobTitle": "Chief Financial Officer (CFO)",
+              "description": "Chief Financial Officer. Spearheading business strategies, capital growth, and sustainable financial architecture for the PolyLance ecosystem.",
+              "knowsAbout": [
+                "Business Strategy",
+                "Financial Growth & Modeling",
+                "Treasury Operations",
+                "Capital Management",
+                "Financial Architecture"
+              ]
+            },
+            {
+              "@type": "Person",
+              "name": "Sunny Pasumarthi",
+              "jobTitle": "CMO & Lead Frontend Developer",
+              "description": "Chief Marketing Officer & Lead Frontend Developer for PolyLance. Crafting high-performance UI/UX, responsive Web3 interfaces, and global brand adoption.",
+              "knowsAbout": [
+                "Web3 UI/UX Design",
+                "Frontend Architecture",
+                "Brand & Growth Marketing",
+                "React",
+                "TypeScript"
+              ]
+            }
+          ],
+          "knowsAbout": [
+            "Freelancing Marketplace",
+            "Smart Contract Escrow",
+            "Decentralized Identity (DID)",
+            "Soulbound Tokens (SBT)",
+            "GitHub Developer Attestations",
+            "Polygon PoS Network",
+            "Real World Asset (RWA) Settlement",
+            "Freelance Escrow Protocol",
+            "Web3 Gig Economy"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://polylance.codes/#website",
+          "url": "https://polylance.codes",
+          "name": "PolyLance",
+          "description": "Decentralized Freelance Marketplace & Escrow on Polygon",
+          "publisher": {
+            "@id": "https://polylance.codes/#organization"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://polylance.codes/#application",
+          "name": "PolyLance",
+          "applicationCategory": "BusinessApplication, DecentralizedFinanceApplication, MarketplaceApplication",
+          "operatingSystem": "Web, Multichain, EVM-Compatible",
+          "url": "https://polylance.codes",
+          "description": "Decentralized freelance marketplace on Polygon connecting global talent and clients with 2.5% platform fee smart contract escrows, verifiable skill attestations, and instant crypto payouts.",
+          "featureList": [
+            "Decentralized Smart Contract Escrows",
+            "Milestone Escrow Payments",
+            "Soulbound Token (SBT) Reputation",
+            "GitHub Developer Skill Attestations",
+            "Decentralized Dispute Resolution & Arbitration",
+            "Polygon Network & Multi-token Escrow (POL, USDC)"
+          ],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "POL",
+            "description": "Decentralized Escrow and Freelance Marketplace on Polygon"
+          },
+          "author": {
+            "@id": "https://polylance.codes/#organization"
+          }
+        }
+      ]
+    }
+  </script>
+  <script type="module" crossorigin src="/Polylance-FV-1/assets/index-9rodS2pq.js"></script>
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/rolldown-runtime-Bjp52BOI.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/createLucideIcon-D54346_5.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/units-BGhXAoYC.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/address-FXGxRTIE.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/chunk-OB3PAWPO-X_3jNbqc.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/proxy-Dr4GCdsE.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/AnimatePresence-B6RC39Cc.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/Value-zgShoQJE.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/createBatchScheduler-BGrC1T5U.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/utils-Bpv4vmSW.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/preload-helper-BubNV6aj.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/call-DD5oj1vV.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/createTransport-DrbF04Hb.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/secp256k1-BbQH_qzS.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/formatUnits-QyFbNVrn.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/public-DCZK6Xxe.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/chunk-JT4N2T7B-DkhyPGN6.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/tslib.es6-nx-Trewi.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/contracts-CpMgzkjO.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/apiClient-DErUF1sL.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/award-xT2Q1ax9.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/x-B1kCvbQC.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/useDataSaver-DdzTcR6K.js">
+  <link rel="stylesheet" crossorigin href="/Polylance-FV-1/assets/index-DmWbkN9-.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://polylance.codes/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Solidity Jobs",
+      "item": "https://polylance.codes/solidity-developer-jobs"
+    }
+  ]
+}
+</script>
+</head>
+
+<body class="bg-[#FFFFFF] text-[#0B0B0C] antialiased">
+  <div id="root">
+    <header style="max-width:1100px;margin:2rem auto;padding:1rem;text-align:center;">
+      <h1 style="font-size:2.25rem;font-weight:800;color:#0b0b0c;">Solidity Developer Freelance Jobs & Smart Contracts</h1>
+      <p style="font-size:1.125rem;color:#4b5563;margin-top:1rem;max-width:700px;margin-left:auto;margin-right:auto;">
+        Explore verified freelance Solidity developer jobs. Build secure EVM smart contracts, token bridges, and DeFi protocols protected by on-chain escrow.
+      </p>
+    </header>
+    <main style="max-width:1100px;margin:1rem auto;padding:1rem;">
+      
+    </main>
+  </div>
+  <div id="overlay-root" data-lenis-prevent="true"></div>
+</body>
+
+</html>
