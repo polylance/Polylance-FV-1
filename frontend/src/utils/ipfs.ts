@@ -25,6 +25,7 @@ export async function pinJsonToFilebase(body: Record<string, any>, name: string 
     try {
       const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
         method: 'POST',
+        signal: AbortSignal.timeout(1200),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${PINATA_JWT}`,
@@ -63,6 +64,7 @@ export async function pinJsonToFilebase(body: Record<string, any>, name: string 
 
       const res = await fetch('https://rpc.filebase.io/ipfs/upload', {
         method: 'POST',
+        signal: AbortSignal.timeout(1200),
         headers: {
           Authorization: `Bearer ${FILEBASE_API_KEY}`,
         },

@@ -1,28 +1,42 @@
 /**
- * PolyLance Motion Token System
- * Apple-inspired motion language — centralized constants for consistent
- * interaction quality across the entire application.
+ * PolyLance Human Interface Motion System
+ * Motion is purposeful, brief, precise, and tied to user action.
+ * Shows where elements emerge from and recede to. Reversible and interruptible.
  */
 
 // ─────────────────────────────────────────────────────────────────
-// PRIMARY EASING — Apple's signature spring-like cubic bezier
+// EASING TOKENS
 // ─────────────────────────────────────────────────────────────────
-export const appleEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
+// Movement and fades
+export const easeStandard: [number, number, number, number] = [0.2, 0, 0, 1];
+
+// Smooth deceleration for sheets, drawers, popovers
+export const easeSheet: [number, number, number, number] = [0.32, 0.72, 0, 1];
+
+// Dismissal / exit curves
+export const easeExit: [number, number, number, number] = [0.4, 0, 1, 1];
+
+export const fluidEase = easeStandard;
 
 // ─────────────────────────────────────────────────────────────────
-// DURATIONS
+// DURATIONS (in seconds)
 // ─────────────────────────────────────────────────────────────────
 export const duration = {
-  micro:   0.10,  // icon swaps, checkbox ticks
-  fast:    0.14,  // hover states, small badge changes
-  normal:  0.18,  // section transitions, tab changes
-  medium:  0.22,  // page transitions, dropdowns
-  slow:    0.35,  // card reveals, scroll-in sections
-  xslow:   0.50,  // number count-ups, progress bars
+  press:   0.10,  // button scale/press feedback (100ms)
+  micro:   0.10,  // icon swaps, toggle ticks
+  hover:   0.15,  // hover states (150ms)
+  state:   0.15,  // list selection crossfade (150ms)
+  fast:    0.15,  // state changes
+  popover: 0.18,  // popover reveal (180ms)
+  page:    0.20,  // page transition crossfade (200ms)
+  normal:  0.20,  // standard transitions
+  sheet:   0.28,  // bottom sheet slide-up (280ms)
+  modal:   0.28,  // dialog scale-up (280ms)
+  counter: 0.80,  // initial number count-up on first view (800ms)
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// SPRING CONFIG — physical, bouncy-but-controlled
+// SPRING CONFIG
 // ─────────────────────────────────────────────────────────────────
 export const spring = {
   default: { type: 'spring' as const, stiffness: 450, damping: 35 },
@@ -31,44 +45,50 @@ export const spring = {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// TRANSITIONS — pre-built for common use cases
+// TRANSITIONS
 // ─────────────────────────────────────────────────────────────────
 export const transition = {
-  micro:     { duration: duration.micro,  ease: appleEase },
-  fast:      { duration: duration.fast,   ease: appleEase },
-  normal:    { duration: duration.normal, ease: appleEase },
-  medium:    { duration: duration.medium, ease: appleEase },
-  slow:      { duration: duration.slow,   ease: appleEase },
-  page:      { duration: duration.medium, ease: appleEase },
+  press:     { duration: duration.press,   ease: easeStandard },
+  hover:     { duration: duration.hover,   ease: easeStandard },
+  state:     { duration: duration.state,   ease: easeStandard },
+  micro:     { duration: duration.micro,   ease: easeStandard },
+  fast:      { duration: duration.fast,    ease: easeStandard },
+  popover:   { duration: duration.popover, ease: easeSheet },
+  normal:    { duration: duration.normal,  ease: easeStandard },
+  medium:    { duration: duration.normal,  ease: easeStandard },
+  slow:      { duration: duration.modal,   ease: easeStandard },
+  base:      { duration: duration.normal,  ease: easeStandard },
+  page:      { duration: duration.page,    ease: easeStandard },
+  sheet:     { duration: duration.sheet,   ease: easeSheet },
+  modal:     { duration: duration.modal,   ease: easeStandard },
   spring:    spring.default,
   springSnappy: spring.snappy,
 } as const;
 
+export const transitions = transition;
+
 // ─────────────────────────────────────────────────────────────────
-// PAGE TRANSITION — fluid Apple iOS 26 GPU fade + slide + deblur (Butter smooth 60fps)
+// PAGE TRANSITION — 200ms smooth cross-fade + micro-slide
 // ─────────────────────────────────────────────────────────────────
 export const pageVariants = {
   initial: {
     opacity: 0,
-    y: 8,
-    filter: 'blur(3px)',
+    y: 4,
   },
   animate: {
     opacity: 1,
     y: 0,
-    filter: 'blur(0px)',
     transition: {
-      duration: 0.22,
-      ease: appleEase,
+      duration: duration.page,
+      ease: easeStandard,
     },
   },
   exit: {
     opacity: 0,
     y: -4,
-    filter: 'blur(2px)',
     transition: {
       duration: 0.12,
-      ease: [0.32, 0, 0.67, 0],
+      ease: easeExit,
     },
   },
 } as const;
@@ -77,86 +97,92 @@ export const pageVariants = {
 // SECTION TRANSITION — switching content within same page
 // ─────────────────────────────────────────────────────────────────
 export const sectionVariants = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  exit:    { opacity: 0, y: -6 },
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0, transition: { duration: duration.fast, ease: easeStandard } },
+  exit:    { opacity: 0, y: -4, transition: { duration: 0.1, ease: easeExit } },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// SCROLL REVEAL — section entering the viewport
+// SCROLL REVEAL — subtle section entry
 // ─────────────────────────────────────────────────────────────────
 export const scrollReveal = {
-  initial: { opacity: 0, y: 16 },
+  initial: { opacity: 0, y: 12 },
   whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.12 },
-  transition: { duration: duration.normal, ease: appleEase },
+  viewport: { once: true, amount: 0.1 },
+  transition: { duration: duration.normal, ease: easeStandard },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// STAGGER CONTAINER / ITEM — for card lists, leaderboards, etc.
+// STAGGER CONTAINER / ITEM
 // ─────────────────────────────────────────────────────────────────
 export const staggerContainer = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.05 },
+    transition: { staggerChildren: 0.04 },
   },
 } as const;
 
 export const staggerItem = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 8 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: duration.normal, ease: appleEase },
+    transition: { duration: duration.fast, ease: easeStandard },
   },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// DROPDOWN — fast scale-fade entrance
+// POPOVER & DROPDOWN — 180ms fade + 4px shift from trigger
 // ─────────────────────────────────────────────────────────────────
 export const dropdownVariants = {
   initial: { opacity: 0, y: -4, scale: 0.98 },
-  animate: { opacity: 1, y: 0,  scale: 1 },
-  exit:    { opacity: 0, y: -3, scale: 0.99 },
+  animate: { opacity: 1, y: 0,  scale: 1, transition: { duration: duration.popover, ease: easeSheet } },
+  exit:    { opacity: 0, y: -4, scale: 0.98, transition: { duration: 0.12, ease: easeExit } },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// MODAL — crisp scale entrance
+// MODAL & SHEET — 280ms
 // ─────────────────────────────────────────────────────────────────
 export const modalOverlayVariants = {
   initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit:    { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: duration.fast } },
+  exit:    { opacity: 0, transition: { duration: 0.12 } },
 } as const;
 
 export const modalContentVariants = {
-  initial: { opacity: 0, scale: 0.97, y: 10 },
-  animate: { opacity: 1, scale: 1,    y: 0 },
-  exit:    { opacity: 0, scale: 0.98, y: 6 },
+  initial: { opacity: 0, scale: 0.98, y: 8 },
+  animate: { opacity: 1, scale: 1,    y: 0, transition: { duration: duration.modal, ease: easeStandard } },
+  exit:    { opacity: 0, scale: 0.98, y: 6, transition: { duration: 0.15, ease: easeExit } },
+} as const;
+
+export const sheetVariants = {
+  initial: { opacity: 0, y: '100%' },
+  animate: { opacity: 1, y: 0, transition: { duration: duration.sheet, ease: easeSheet } },
+  exit:    { opacity: 0, y: '100%', transition: { duration: 0.20, ease: easeExit } },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// TOAST / NOTIFICATION — slide in from side
+// TOAST / NOTIFICATION
 // ─────────────────────────────────────────────────────────────────
 export const toastVariants = {
-  initial: { opacity: 0, x: 30, scale: 0.96 },
-  animate: { opacity: 1, x: 0,  scale: 1    },
-  exit:    { opacity: 0, x: 20, scale: 0.98 },
+  initial: { opacity: 0, y: 16, scale: 0.98 },
+  animate: { opacity: 1, y: 0,  scale: 1, transition: { duration: duration.fast, ease: easeStandard } },
+  exit:    { opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.12, ease: easeExit } },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// METRIC / NUMBER — fade + slide up on appear
+// METRIC / NUMBER
 // ─────────────────────────────────────────────────────────────────
 export const metricVariants = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.45, ease: appleEase } },
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.40, ease: easeStandard } },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────
-// FADE ONLY — simplest entrance, no movement
+// FADE ONLY
 // ─────────────────────────────────────────────────────────────────
 export const fadeVariants = {
   initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit:    { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: duration.fast } },
+  exit:    { opacity: 0, transition: { duration: 0.10 } },
 } as const;

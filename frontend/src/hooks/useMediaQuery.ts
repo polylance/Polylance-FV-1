@@ -6,29 +6,37 @@ import { useState, useEffect } from 'react';
  */
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return window.matchMedia(query).matches;
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      try {
+        return window.matchMedia(query).matches;
+      } catch {
+        return false;
+      }
     }
     return false;
   });
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
 
-    const mediaQueryList = window.matchMedia(query);
-    const updateMatch = (event: MediaQueryListEvent) => {
-      setMatches(event.matches);
-    };
+    try {
+      const mediaQueryList = window.matchMedia(query);
+      const updateMatch = (event: MediaQueryListEvent) => {
+        setMatches(event.matches);
+      };
 
-    setMatches(mediaQueryList.matches);
+      setMatches(mediaQueryList.matches);
 
-    if (mediaQueryList.addEventListener) {
-      mediaQueryList.addEventListener('change', updateMatch);
-      return () => mediaQueryList.removeEventListener('change', updateMatch);
-    } else {
-      // Legacy fallback
-      mediaQueryList.addListener(updateMatch);
-      return () => mediaQueryList.removeListener(updateMatch);
+      if (mediaQueryList.addEventListener) {
+        mediaQueryList.addEventListener('change', updateMatch);
+        return () => mediaQueryList.removeEventListener('change', updateMatch);
+      } else {
+        // Legacy fallback
+        mediaQueryList.addListener(updateMatch);
+        return () => mediaQueryList.removeListener(updateMatch);
+      }
+    } catch {
+      return;
     }
   }, [query]);
 

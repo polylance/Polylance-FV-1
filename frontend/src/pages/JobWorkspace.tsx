@@ -28,8 +28,9 @@ import {
   Edit3,
   ShieldAlert,
   Lock,
+  Award,
 } from 'lucide-react';
-import { truncateAddress } from '../utils/formatters';
+import { truncateAddress, getDeterministicSbtId } from '../utils/formatters';
 import { getJobInactivityStatus } from '../utils/inactivity';
 import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSubmissionPanel';
 import { ModifyJobModal } from '../components/ModifyJobModal';
@@ -37,6 +38,19 @@ import { EmptyState } from '../components/UIStates';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
 import { Job } from '../types';
 import { TokenIcon } from '../components/TokenIcon';
+import { PageContainer } from '../components/layout/PageContainer';
+import { StatusBadge } from '../components/common/StatusBadge';
+import { TokenAmount } from '../components/common/TokenAmount';
+import { getJobAmounts, ViewerRole } from '../lib/amounts/getJobAmounts';
+import { Stepper, StepItem } from '../components/common/Stepper';
+import { areAddressesEqual } from '../utils/accountMode';
+import { RequestExtensionModal } from '../components/RequestExtensionModal';
+import { getEngagementDisplayState } from '../types/lifecycle';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { backdropVariants, popoverVariants, reducedMotionVariants } from '../styles/popupMotion';
+import { usePlatformFeeDues } from '../hooks/usePlatformFeeDues';
+import { WalletBalanceModal } from '../components/WalletBalanceModal';
 
 export type JobCategoryFilter = 'all' | 'ongoing' | 'awaiting_release' | 'disputed' | 'negotiating' | 'completed';
 export type JobSortOption = 'latest' | 'priority' | 'oldest' | 'highest_budget' | 'lowest_budget' | 'title_az';
@@ -102,50 +116,65 @@ const getJobPriorityScore = (status: string, isNegotiating: boolean): number => 
 };
 
 export const JobWorkspace: React.FC = () => {
+  const prefersReducedMotion = useReducedMotion();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { address, currentRole, isConnected, connectWallet } = useWeb3();
-  const { jobs, profiles, deleteJob } = usePolyLanceData();
+  const { address, currentRole, isConnected, connectWallet, isArbitrator } = useWeb3();
+  const { jobs, profiles, deleteJob, requestTimeExtension, sendChatMessage } = usePolyLanceData();
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
 
   const userAddr = (address || '').toLowerCase();
   const isClientRole = currentRole === 'client';
 
-  // Filter jobs strictly relevant to connected user and active role:
-  // - Client mode: ONLY shows jobs posted by the connected client.
-  // - Freelancer mode: ONLY shows contracts awarded to the connected freelancer, or open proposals where no candidate has been hired yet.
-  // STRICT DATA PROTECTION: Completed, funded, or ongoing contracts of other developers are NEVER shown.
+  // Filter jobs strictly relevant to connected user:
+  // - Client who posted the job: ALWAYS has full access to their posted job in workspace.
+  // - Hired freelancer: has full access to their active/completed contracts.
+  // - Applicants/negotiators: can access jobs where they have an active proposal/negotiation.
+  // STRICT DATA PROTECTION: Contracts of other unrelated parties are NEVER shown.
   const myJobs = useMemo(() => {
     if (!userAddr) return [];
 
     return jobs.filter((job) => {
       if (isDemoOrMockJob(job)) return false;
 
-      const isClientOfJob = Boolean(job.client && job.client.toLowerCase() === userAddr);
-      const isFreelancerOfJob = Boolean(job.freelancer && job.freelancer.toLowerCase() === userAddr);
+      const isClientOfJob = Boolean(job.client && areAddressesEqual(job.client, userAddr));
+      const isFreelancerOfJob = Boolean(job.freelancer && areAddressesEqual(job.freelancer, userAddr));
 
-      // In Client Role: Strictly isolate to jobs posted by this client
-      if (isClientRole) {
-        return isClientOfJob;
-      }
-
-      // In Freelancer Role:
-      // 1. If user is the hired freelancer on the contract, they have full access to their working contract.
-      if (isFreelancerOfJob) {
+      // 1. If user posted this job as client OR is the assigned/selected freelancer, ALWAYS permit full access
+      if (isClientOfJob || isFreelancerOfJob) {
         return true;
       }
 
-      // 2. If the contract has already been awarded to another freelancer, unselected applicants must NEVER see it
-      if (job.freelancer && job.freelancer.toLowerCase() !== userAddr) {
+      // 2. If user is explicitly in Client Role (and did not post this job), do not show other freelance applications
+      if (isClientRole) {
         return false;
       }
 
-      // 3. For jobs that are still Open or in candidate review (no freelancer selected yet):
+      // 3. If the contract has already been awarded to another freelancer, unselected applicants must NEVER see it
+      if (job.freelancer && !areAddressesEqual(job.freelancer, userAddr)) {
+        return false;
+      }
+
+      // 5. For jobs that are still Open or in candidate review (no freelancer selected yet):
       // Show only if the user has an active application or negotiation
-      const hasApplied = Boolean(job.applications && job.applications.some((a) => a.applicant && a.applicant.toLowerCase() === userAddr));
+      const hasApplied = Boolean(
+        job.applications &&
+        job.applications.some((a) => areAddressesEqual(a.applicant, userAddr))
+      );
       const hasNegotiated = Boolean(
-        (job.negotiationProposals && job.negotiationProposals.some((p: any) => p.sender?.toLowerCase() === userAddr || p.applicantAddress?.toLowerCase() === userAddr)) ||
-        (job.preAcceptMessages && job.preAcceptMessages.some((m: any) => m.sender?.toLowerCase() === userAddr || m.senderAddress?.toLowerCase() === userAddr || m.applicantAddress?.toLowerCase() === userAddr))
+        (job.negotiationProposals &&
+          job.negotiationProposals.some(
+            (p: any) =>
+              areAddressesEqual(p.sender, userAddr) ||
+              areAddressesEqual(p.applicantAddress, userAddr)
+          )) ||
+        (job.preAcceptMessages &&
+          job.preAcceptMessages.some(
+            (m: any) =>
+              areAddressesEqual(m.sender, userAddr) ||
+              areAddressesEqual(m.senderAddress, userAddr) ||
+              areAddressesEqual(m.applicantAddress, userAddr)
+          ))
       );
 
       return (job.status === 'Open' || job.status === 'Selected') && (hasApplied || hasNegotiated);
@@ -153,6 +182,7 @@ export const JobWorkspace: React.FC = () => {
   }, [jobs, userAddr, isClientRole]);
 
   const [alertModalOptions, setAlertModalOptions] = useState<AlertModalOptions | null>(null);
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
 
   const handleDeleteActiveJob = () => {
     if (!activeJob) return;
@@ -199,7 +229,9 @@ export const JobWorkspace: React.FC = () => {
 
   useEffect(() => {
     if (queryJobId && myJobs.some(j => j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase())) {
-      setSelectedJobId(queryJobId);
+      if (selectedJobId !== queryJobId) {
+        setSelectedJobId(queryJobId);
+      }
     } else if (!selectedJobId) {
       const lastOpened = typeof window !== 'undefined' ? localStorage.getItem('polylance_last_opened_job') : null;
       if (lastOpened && myJobs.some(j => j.id === lastOpened || j.contractAddress?.toLowerCase() === lastOpened.toLowerCase())) {
@@ -232,6 +264,10 @@ export const JobWorkspace: React.FC = () => {
     return myJobs[0];
   }, [myJobs, selectedJobId, queryJobId]);
 
+  const isClientOfActive = Boolean(activeJob && userAddr && activeJob.client && areAddressesEqual(activeJob.client, userAddr));
+  const isFreelancerOfActive = Boolean(activeJob && userAddr && activeJob.freelancer && areAddressesEqual(activeJob.freelancer, userAddr));
+  const activeViewerRole: ViewerRole = isClientOfActive ? 'client' : (isFreelancerOfActive ? 'freelancer' : 'visitor');
+
   // Persist active job to localStorage so returning visitors resume this exact workspace
   useEffect(() => {
     if (activeJob?.id) {
@@ -240,6 +276,21 @@ export const JobWorkspace: React.FC = () => {
       } catch {}
     }
   }, [activeJob?.id]);
+
+  // Fee dues state for contextual notice on active job card
+  const { dues: feeDues, enabled: feeDuesEnabled } = usePlatformFeeDues();
+  const [feeNoticeDismissed, setFeeNoticeDismissed] = useState(false);
+  const [isFeeDuesBalanceModalOpen, setIsFeeDuesBalanceModalOpen] = useState(false);
+
+  const activeJobFeeDue = useMemo(() => {
+    if (!feeDuesEnabled || !activeJob || !userAddr) return null;
+    return feeDues.find(
+      (d) =>
+        (d.jobId === activeJob.id || (activeJob.contractAddress && d.jobId?.toLowerCase() === activeJob.contractAddress.toLowerCase())) &&
+        d.wallet.toLowerCase() === userAddr.toLowerCase() &&
+        d.status === 'DUE'
+    );
+  }, [feeDues, feeDuesEnabled, activeJob, userAddr]);
 
   // ── Job Switcher Dropdown & Sorting State ──
   const [isJobDropdownOpen, setIsJobDropdownOpen] = useState(false);
@@ -401,13 +452,13 @@ export const JobWorkspace: React.FC = () => {
 
     // 1. Category Filter
     if (selectedCategoryFilter === 'ongoing') {
-      list = list.filter((j) => !isJobUnderNegotiation(j) && (j.status === 'Funded' || j.status === 'Selected'));
+      list = list.filter((j) => j.status === 'Funded' || (j.status === 'Selected' && Boolean(j.clientAgreedTerms && j.freelancerAgreedTerms)));
     } else if (selectedCategoryFilter === 'awaiting_release') {
       list = list.filter((j) => j.status === 'Submitted');
     } else if (selectedCategoryFilter === 'disputed') {
       list = list.filter((j) => j.status === 'Disputed');
     } else if (selectedCategoryFilter === 'negotiating') {
-      list = list.filter((j) => isJobUnderNegotiation(j));
+      list = list.filter((j) => isJobUnderNegotiation(j) || (j.status === 'Selected' && !j.freelancerAgreedTerms));
     } else if (selectedCategoryFilter === 'completed') {
       list = list.filter((j) => j.status === 'Completed');
     }
@@ -472,11 +523,47 @@ export const JobWorkspace: React.FC = () => {
   }, [displayedBaseJobs, selectedCategoryFilter, jobSearchQuery, sortOption]);
 
   // Security Guard: Check if user attempted direct URL access to another user's private contract escrow
-  const isUnauthorizedQueryJob = Boolean(
-    queryJobId &&
-    jobs.some((j) => (j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase()) && !isDemoOrMockJob(j)) &&
-    !myJobs.some((j) => j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase())
-  );
+  const isUnauthorizedQueryJob = useMemo(() => {
+    if (!queryJobId || !userAddr) return false;
+    const targetJob = jobs.find(
+      (j) =>
+        (j.id === queryJobId ||
+          j.contractAddress?.toLowerCase() === queryJobId.toLowerCase()) &&
+        !isDemoOrMockJob(j)
+    );
+    if (!targetJob) return false;
+
+    // Authorized parties: client who posted it, hired freelancer, applicant/negotiator, or arbitrator
+    const isClient = Boolean(targetJob.client && areAddressesEqual(targetJob.client, userAddr));
+    const isFreelancer = Boolean(targetJob.freelancer && areAddressesEqual(targetJob.freelancer, userAddr));
+    const isApplicant = Boolean(
+      targetJob.applications &&
+      targetJob.applications.some((a) => areAddressesEqual(a.applicant, userAddr))
+    );
+    const isNegotiator = Boolean(
+      (targetJob.negotiationProposals &&
+        targetJob.negotiationProposals.some(
+          (p: any) =>
+            areAddressesEqual(p.sender, userAddr) ||
+            areAddressesEqual(p.applicantAddress, userAddr)
+        )) ||
+      (targetJob.preAcceptMessages &&
+        targetJob.preAcceptMessages.some(
+          (m: any) =>
+            areAddressesEqual(m.sender, userAddr) ||
+            areAddressesEqual(m.senderAddress, userAddr) ||
+            areAddressesEqual(m.applicantAddress, userAddr)
+        ))
+    );
+
+    if (isClient || isFreelancer || isApplicant || isNegotiator || isArbitrator) {
+      return false;
+    }
+
+    return !myJobs.some(
+      (j) => j.id === queryJobId || j.contractAddress?.toLowerCase() === queryJobId.toLowerCase()
+    );
+  }, [queryJobId, userAddr, jobs, myJobs, isArbitrator]);
 
   if (!isConnected) {
     return (
@@ -485,23 +572,22 @@ export const JobWorkspace: React.FC = () => {
           <ShieldAlert size={28} className="text-[#0047AB]" />
         </div>
         <div className="space-y-2">
-          <span className="text-[10px] font-mono uppercase font-semibold tracking-wider px-3 py-1 rounded-[4px] bg-[#F4F6F9] text-[#0B0B0C] border border-[#E2E6EC]">
-            POLYLANCE SECURITY GATEWAY • AUTHENTICATION REQUIRED
+          <span className="text-xs font-mono font-medium px-3 py-1 rounded-[6px] bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB]">
+            Authentication required
           </span>
-          <h2 className="font-serif text-2xl font-bold text-[#0B0B0C]">
-            Connect Wallet to Access Workspace
+          <h2 className="font-sans text-2xl font-semibold text-[#0B0B0F]">
+            Connect wallet to access workspace
           </h2>
           <p className="text-xs text-[#4B5563] font-sans leading-relaxed">
-            Decentralized escrows, private work deliverables, milestone dispute evidence, and encrypted communications are strictly protected. Connect your Web3 wallet to authenticate as an authorized participant.
+            Project escrows, private work deliverables, milestone dispute evidence, and encrypted communications are protected. Connect your Web3 wallet to authenticate as an authorized participant.
           </p>
         </div>
         <div className="pt-2">
           <button
             onClick={connectWallet}
-            className="w-full py-3 px-4 rounded-[8px] bg-gradient-to-r from-[#0047AB] via-[#0066FF] to-[#0047AB] hover:from-[#003A8C] hover:via-[#0052CC] hover:to-[#003A8C] text-white font-medium text-xs shadow-[0_2px_10px_rgba(0,102,255,0.25)] hover:shadow-[0_4px_16px_rgba(0,210,255,0.4)] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 rounded-[8px] bg-[#0047AB] hover:bg-[#003882] text-white font-medium text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
           >
-            <Zap size={15} className="text-[#00D2FF]" />
-            <span>Connect Polylancer Wallet</span>
+            <span>Connect wallet</span>
           </button>
         </div>
       </div>
@@ -510,16 +596,16 @@ export const JobWorkspace: React.FC = () => {
 
   if (isUnauthorizedQueryJob) {
     return (
-      <div className="max-w-lg mx-auto my-16 p-8 bg-white rounded-[10px] border border-[#E2E6EC] shadow-xs text-center space-y-5">
+      <div className="max-w-lg mx-auto my-16 p-8 bg-white rounded-[12px] border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.06)] text-center space-y-5">
         <div className="w-14 h-14 rounded-[8px] bg-[#FFF9E6] text-[#8C6B00] mx-auto flex items-center justify-center border border-[#F0D58C]">
-          <Lock size={26} className="text-[#8C6B00]" />
+          <Lock size={24} className="text-[#8C6B00]" />
         </div>
         <div className="space-y-2">
-          <span className="text-[10px] font-mono uppercase font-semibold tracking-wider px-3 py-1 rounded-[4px] bg-[#FFF9E6] text-[#8C6B00] border border-[#F0D58C]">
-            CONFIDENTIAL ESCROW • ACCESS RESTRICTED
+          <span className="text-xs font-mono font-medium px-3 py-1 rounded-[6px] bg-[#FFF9E6] text-[#8C6B00] border border-[#F0D58C]">
+            Access restricted
           </span>
-          <h2 className="font-serif text-2xl font-bold text-[#0B0B0C]">
-            Unauthorized Contract Access
+          <h2 className="font-sans text-2xl font-semibold text-[#0B0B0F]">
+            Unauthorized contract access
           </h2>
           <p className="text-xs text-[#4B5563] font-sans leading-relaxed">
             This project escrow belongs to another client and freelancer. Under PolyLance security standards, workspace deliverables, communication logs, and milestone submissions are strictly restricted to authorized contract participants.
@@ -566,112 +652,108 @@ export const JobWorkspace: React.FC = () => {
   const counterpartName = counterpartProfile?.displayName || (counterpartAddress ? truncateAddress(counterpartAddress) : 'Unassigned');
 
   return (
-    <div className="w-full py-6 space-y-6">
+    <PageContainer className="py-6 space-y-6 text-[#0B0B0F]">
 
       {/* ── TOP HEADER & INTERACTIVE MULTI-JOB SWITCHER ── */}
-      <div className="bg-white border border-[#E2E6EC] rounded-xl p-3 sm:p-5 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
+      <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
           {/* Job Switcher Trigger Area */}
           <div className="flex-1 min-w-0">
             {/* Label row */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 mb-2">
-              <span className="text-[10px] sm:text-[11px] font-mono uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1.5">
-                <Layers size={13} className="text-[#0066FF] shrink-0" />
-                <span>{isClient ? 'Client Project Workspace' : 'Freelancer Deliverable Workspace'}</span>
+              <span className="text-xs font-medium text-[#4B5563] flex items-center gap-1.5">
+                <Layers size={13} className="text-[#0047AB] shrink-0" />
+                <span>{isClient ? 'Client project workspace' : 'Freelancer deliverable workspace'}</span>
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="bg-slate-100 text-[#0B0B0C] text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border border-[#E2E6EC] whitespace-nowrap">
+                <span className="bg-[#F6F7F9] text-[#0B0B0F] text-xs font-medium px-2 py-0.5 rounded-[6px] border border-[#E5E7EB]">
                   {myJobs.length} {isClient ? 'Project' : 'Job'}{myJobs.length !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
+
+            {/* Contextual Fee Due Notice */}
+            {activeJobFeeDue && !feeNoticeDismissed && (
+              <div className="mb-3 p-3 rounded-[10px] bg-[#EAF1FB] border border-[#C9DAF2] text-xs text-[#0B0B0F] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-5 h-5 rounded-full bg-[#0047AB] text-white flex items-center justify-center shrink-0 text-[10px] font-bold">
+                    !
+                  </div>
+                  <span className="truncate text-xs font-medium text-[#0B0B0F]">
+                    A platform fee of {activeJobFeeDue.outstanding} {activeJobFeeDue.token} for &apos;{activeJob.title}&apos; is still open. Pay it in Payments.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsFeeDuesBalanceModalOpen(true)}
+                    className="px-2.5 py-1 rounded-[6px] bg-[#0047AB] hover:bg-[#003A8C] text-white font-medium text-xs transition-colors cursor-pointer"
+                  >
+                    Pay in Payments
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFeeNoticeDismissed(true)}
+                    className="text-[#6B7280] hover:text-[#0B0B0F] p-1 cursor-pointer"
+                    title="Dismiss notice"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Trigger button */}
             <button
               ref={triggerBtnRef}
               type="button"
               onClick={toggleDropdown}
-              className={`relative overflow-hidden w-full flex items-center justify-between gap-3 p-3 sm:p-4 rounded-xl border text-left transition-all cursor-pointer group ${
+              className={`relative overflow-hidden w-full flex items-center justify-between gap-3 p-3 sm:p-4 rounded-[10px] border text-left transition-all cursor-pointer group ${
                 isJobDropdownOpen
-                  ? 'bg-slate-50 border-[#0066FF] ring-2 ring-[#00D2FF]/25 shadow-[0_0_15px_rgba(0,102,255,0.12)]'
-                  : 'bg-white hover:bg-slate-50 border-[#E2E6EC] hover:border-[#0066FF]/40'
+                  ? 'bg-[#F6F7F9] border-[#0047AB]'
+                  : 'bg-white hover:bg-[#F6F7F9] border-[#E5E7EB] hover:border-[#0047AB]'
               }`}
               title="Click to switch active project workspace"
             >
               <div className="relative z-10 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 flex-1 w-full">
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                  {/* Squircle icon badge */}
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <FileText size={18} className="text-[#0B0B0C] stroke-[2.2] sm:hidden" />
-                    <FileText size={22} className="text-[#0B0B0C] stroke-[2.2] hidden sm:block" />
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] flex items-center justify-center shrink-0">
+                    <FileText size={18} className="text-[#0B0B0F]" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs sm:text-sm text-[#0B0B0C] line-clamp-1 group-hover:text-[#0047AB] transition-colors">
+                      <span className="font-semibold text-sm text-[#0B0B0F] line-clamp-1 group-hover:text-[#0047AB] transition-colors">
                         {activeJob.title}
                       </span>
                     </div>
-                    <div className="flex items-center flex-wrap gap-2 text-[11px] sm:text-xs font-mono mt-0.5 text-slate-500">
-                      <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600">
-                        <TokenIcon token={activeJob.paymentTokenSymbol || 'USDC'} size={14} />
-                        <span>
-                          {(() => {
-                            const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
-                            const isCrypto = sym === 'POL' || sym === 'MATIC';
-                            const tokenLabel = isCrypto ? 'POL' : sym;
-                            const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
-                            return isCrypto ? `${amt} ${tokenLabel}` : `$${amt} ${tokenLabel}`;
-                          })()}
-                        </span>
+                    <div className="flex items-center flex-wrap gap-2 text-xs font-mono mt-0.5 text-[#4B5563]">
+                      <span className="font-semibold text-[#10B981]">
+                        {(() => {
+                          const ja = getJobAmounts(activeJob, undefined, undefined, activeViewerRole);
+                          return `${ja.effectiveAmount} ${ja.token}`;
+                        })()}
                       </span>
-                      <span className="text-slate-300 hidden sm:inline">|</span>
-                      <span className="inline-flex items-center gap-1 text-slate-600">
-                        <User size={11} className="text-slate-400" />
-                        <span className="truncate max-w-[120px]">{counterpartName}</span>
+                      <span className="text-[#D1D5DB] hidden sm:inline">•</span>
+                      <span className="inline-flex items-center gap-1 text-[#4B5563]">
+                        <User size={11} className="text-[#9CA3AF]" />
+                        <span className="truncate max-w-[140px] font-sans">{counterpartName}</span>
                       </span>
-                      <span className="text-slate-300 hidden sm:inline">|</span>
-                      <span className="inline-flex items-center gap-1 text-slate-500">
-                        <Link2 size={11} className="text-slate-400" />
-                        <span>#{truncateAddress(activeJob.contractAddress || activeJob.id)}</span>
+                      <span className="text-[#D1D5DB] hidden sm:inline">•</span>
+                      <span className="text-[#9CA3AF]">
+                        #{truncateAddress(activeJob.contractAddress || activeJob.id)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 self-stretch sm:self-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 self-stretch sm:self-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-[#E5E7EB]">
                   {(() => {
-                    let badgeBg = 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
-                    let dotBg = 'bg-emerald-500';
-                    let badgeLabel = 'ACTIVE';
-
-                    if (activeJob.status === 'Completed') {
-                      badgeBg = 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
-                      dotBg = 'bg-emerald-500';
-                      badgeLabel = 'COMPLETED';
-                    } else if (activeJob.status === 'Disputed') {
-                      badgeBg = 'bg-rose-50 text-rose-700 border-rose-200/80';
-                      dotBg = 'bg-rose-500';
-                      badgeLabel = 'DISPUTED';
-                    } else if (activeJob.status === 'Submitted' || activeJob.proof) {
-                      badgeBg = 'bg-blue-50/80 text-[#0066FF] border-[#0066FF]/30';
-                      dotBg = 'bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] animate-pulse';
-                      badgeLabel = 'SUBMITTED • IN REVIEW';
-                    } else if (activeJob.status === 'Funded') {
-                      badgeBg = 'bg-blue-50/80 text-[#0066FF] border-[#0066FF]/30';
-                      dotBg = 'bg-[#0066FF]';
-                      badgeLabel = 'FUNDED';
-                    }
-
-                    return (
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full border font-mono font-bold text-[9.5px] sm:text-[10.5px] uppercase tracking-wider ${badgeBg}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${dotBg}`}></span>
-                        <span>{badgeLabel}</span>
-                      </span>
-                    );
+                    const disp = getEngagementDisplayState(activeJob);
+                    return <StatusBadge status={disp.isCompleted ? 'Completed' : disp.displayLabel || activeJob.status} />;
                   })()}
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-100 group-hover:bg-slate-200 text-[#0B0B0C] flex items-center justify-center transition-colors shrink-0">
-                    <ChevronDown size={13} className={`stroke-[2.5] transition-transform duration-200 ${isJobDropdownOpen ? 'rotate-180' : ''}`} />
+                  <div className="w-7 h-7 rounded-[6px] bg-[#F6F7F9] text-[#0B0B0F] flex items-center justify-center shrink-0">
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${isJobDropdownOpen ? 'rotate-180' : ''}`} />
                   </div>
                 </div>
               </div>
@@ -680,29 +762,37 @@ export const JobWorkspace: React.FC = () => {
 
           {/* Quick Action Navigation Buttons */}
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
-            {isClient && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setIsModifyModalOpen(true)}
-                  className="px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer truncate"
-                  title="Modify job title, description, budget, and review requirements"
-                >
-                  <Edit3 size={13} className="shrink-0 text-[#0047AB]" />
-                  <span className="truncate">Modify Job</span>
-                </button>
+            {(() => {
+              const isJobFunded = (activeJob.status as string) === 'Funded' || (activeJob.status as string) === 'Submitted' || (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Funded' || e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+              const isJobCompleted = (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+              const canModifyOrDelete = isClient && !isJobFunded && !isJobCompleted;
 
-                <button
-                  type="button"
-                  onClick={handleDeleteActiveJob}
-                  className="px-3 py-2 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer truncate"
-                  title="Delete this job posting"
-                >
-                  <Trash2 size={13} className="shrink-0 text-rose-600" />
-                  <span className="truncate">Delete</span>
-                </button>
-              </>
-            )}
+              if (!canModifyOrDelete) return null;
+
+              return (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsModifyModalOpen(true)}
+                    className="px-3 py-2 rounded-[8px] bg-white hover:bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Modify job title, description, budget"
+                  >
+                    <Edit3 size={13} className="shrink-0 text-[#0047AB]" />
+                    <span>Modify job</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteActiveJob}
+                    className="px-3 py-2 rounded-[8px] bg-white hover:bg-rose-50 text-[#DC2626] border border-[#FECACA] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Delete this job posting"
+                  >
+                    <Trash2 size={13} className="shrink-0 text-[#DC2626]" />
+                    <span>Delete</span>
+                  </button>
+                </>
+              );
+            })()}
 
             <button
               type="button"
@@ -711,116 +801,306 @@ export const JobWorkspace: React.FC = () => {
                 if (counterpartAddress) params.set('applicant', counterpartAddress);
                 navigate(`/chat?${params.toString()}`);
               }}
-              className="px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer truncate"
+              className="px-3 py-2 rounded-[8px] bg-white hover:bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               title="Open dedicated chat for this job"
             >
-              <MessageSquare size={13} className="shrink-0 text-slate-500" />
-              <span className="truncate">Messages</span>
+              <MessageSquare size={13} className="shrink-0 text-[#0047AB]" />
+              <span>Messages</span>
               <ArrowUpRight size={12} className="shrink-0" />
             </button>
 
+            {(() => {
+              const display = getEngagementDisplayState(activeJob);
+              if (!display.isCompleted) return null;
+              return (
+                <Link
+                  to={`/attestation/${activeJob.id}`}
+                  className="px-3 py-2 rounded-[8px] bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#0047AB] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  title="View soulbound work certificate"
+                >
+                  <Award size={13} className="shrink-0 text-[#0047AB]" />
+                  <span>Certificate</span>
+                </Link>
+              );
+            })()}
+
             <Link
               to={`/jobs/${activeJob.id}`}
-              className="px-3 py-2 rounded-lg bg-white hover:bg-slate-50 border border-[#E2E6EC] text-[#0B0B0C] font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs truncate"
+              className="px-3 py-2 rounded-[8px] bg-white hover:bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"
             >
-              <span className="truncate">Contract</span>
-              <ExternalLink size={12} className="shrink-0" />
+              <span>{getEngagementDisplayState(activeJob).isCompleted ? 'View job' : 'Listing'}</span>
             </Link>
           </div>
         </div>
       </div>
 
+      {/* ── 5-STEP MILESTONE TIMELINE (Funded -> In progress -> Submitted -> Approved -> Paid) ── */}
+      <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] text-left space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E7EB] pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[#0B0B0F]">Milestone timeline</span>
+            {(() => {
+              const disp = getEngagementDisplayState(activeJob);
+              return <StatusBadge status={disp.isCompleted ? 'Completed' : disp.displayLabel || activeJob.status} size="sm" />;
+            })()}
+          </div>
+          <Link
+            to={`/chat?jobId=${activeJob.id}${counterpartAddress ? `&applicant=${counterpartAddress}` : ''}`}
+            className="text-xs text-[#0047AB] font-medium hover:underline inline-flex items-center gap-1"
+          >
+            <MessageSquare size={13} />
+            <span>Open message thread</span>
+          </Link>
+        </div>
+
+        {(() => {
+          const display = getEngagementDisplayState(activeJob);
+          const isJobFunded = (activeJob.status as string) === 'Funded' || (activeJob.status as string) === 'Submitted' || (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Funded' || e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+          const isJobCompleted = display.isCompleted || display.isPaid || (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+          const isFunded = isJobFunded || isJobCompleted || activeJob.status === 'Funded' || (activeJob.status as string) === 'Submitted';
+
+          const getStepStatus = (idx: number): 'complete' | 'current' | 'upcoming' => {
+            if (isJobCompleted) return 'complete';
+            if (display.isApproved) {
+              if (idx < 4) return 'complete';
+              if (idx === 4) return 'current';
+              return 'upcoming';
+            }
+            if (display.state === 'UNDER_REVIEW' || display.state === 'SUBMITTED_LATE' || display.state === 'REVIEW_WINDOW_ENDED' || (activeJob.status as string) === 'Submitted') {
+              if (idx < 3) return 'complete';
+              if (idx === 3) return 'current';
+              return 'upcoming';
+            }
+            if (isFunded || activeJob.status === 'Funded') {
+              if (idx < 2) return 'complete';
+              if (idx === 2) return 'current';
+              return 'upcoming';
+            }
+            if (activeJob.status === 'Selected') {
+              if (!activeJob.freelancerAgreedTerms) {
+                if (idx === 0) return 'current';
+                return 'upcoming';
+              } else {
+                if (idx === 0) return 'complete';
+                if (idx === 1) return 'current';
+                return 'upcoming';
+              }
+            }
+            if (idx === 0) return 'current';
+            return 'upcoming';
+          };
+
+          const steps: StepItem[] = [
+            { 
+              id: 1, 
+              label: 'Terms & Offer', 
+              caption: activeJob.status === 'Selected' 
+                ? (activeJob.freelancerAgreedTerms ? 'Offer accepted' : 'Awaiting acceptance') 
+                : (isFunded ? 'Terms agreed' : 'Negotiating'), 
+              status: getStepStatus(0) 
+            },
+            { 
+              id: 2, 
+              label: 'Escrow Deposit', 
+              caption: isFunded 
+                ? 'Escrow funded' 
+                : (activeJob.freelancerAgreedTerms ? 'Ready to fund' : 'Pending agreement'), 
+              status: getStepStatus(1) 
+            },
+            { 
+              id: 3, 
+              label: 'In progress', 
+              caption: display.isOverdue ? 'Overdue' : (display.state === 'DUE_SOON' ? 'Due soon' : 'Work underway'), 
+              status: getStepStatus(2) 
+            },
+            { 
+              id: 4, 
+              label: display.isLate ? 'Submitted (Late)' : 'Submitted', 
+              caption: isJobCompleted ? 'Approved' : (display.isApproved ? 'Approved' : 'In review'), 
+              status: getStepStatus(3) 
+            },
+            { 
+              id: 5, 
+              label: 'Completed', 
+              caption: isJobCompleted ? 'Funds released' : (display.isApproved ? 'Release pending' : 'Pending release'), 
+              status: getStepStatus(4) 
+            },
+          ];
+
+          return <Stepper steps={steps} className="pt-1" />;
+        })()}
+      </div>
+
+      {/* ── CONTEXTUAL DEADLINE, OVERDUE & LATE SUBMISSION BANNER ── */}
+      {(() => {
+        const display = getEngagementDisplayState(activeJob);
+        const isJobCompleted = display.isCompleted || display.isPaid || (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+        if (
+          isJobCompleted ||
+          display.state === 'COMPLETED' ||
+          display.state === 'CANCELLED' ||
+          display.state === 'OFFER_SENT' ||
+          display.state === 'TERMS_AGREED'
+        ) {
+          return null;
+        }
+
+        const isClient = areAddressesEqual(activeJob.client, address);
+        const isFreelancer = areAddressesEqual(activeJob.freelancer, address);
+        const roleNotice = isClient ? display.whatHappensNext.client : display.whatHappensNext.freelancer;
+
+        let bannerStyle = "bg-blue-50/80 border-blue-200 text-blue-950";
+        if (display.badgeVariant === "destructive") {
+          bannerStyle = "bg-rose-50 border-rose-200 text-rose-950";
+        } else if (display.badgeVariant === "warning") {
+          bannerStyle = "bg-amber-50 border-amber-200 text-amber-950";
+        } else if (display.badgeVariant === "purple") {
+          bannerStyle = "bg-purple-50 border-purple-200 text-purple-950";
+        }
+
+        return (
+          <div className={`rounded-[12px] border p-4 text-xs space-y-2.5 transition-all text-left shadow-xs ${bannerStyle}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm">{display.displayLabel}</span>
+                {display.isLate && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                    Late by {Math.round(display.lateByMs / 3600000)}h
+                  </span>
+                )}
+                {display.isOverdue && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200 text-rose-900 border border-rose-300">
+                    Overdue
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isFreelancer && display.allowedActions.canRequestExtension && (
+                  <button
+                    onClick={() => setIsExtensionModalOpen(true)}
+                    className="px-3 py-1.5 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-slate-50 font-medium text-xs text-[#0B0B0F] transition-colors cursor-pointer"
+                  >
+                    Request Extension
+                  </button>
+                )}
+                {isClient && display.state === 'EXPIRED_NO_SUBMISSION' && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        setAlertModalOptions({
+                          title: "Keep Waiting for Deliverables",
+                          message: "The delivery deadline has expired, but the freelancer is still permitted to submit work while escrow remains locked. You can cancel or request review at any time.",
+                          type: "info",
+                        });
+                      }}
+                      className="px-2.5 py-1.5 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-slate-50 font-medium text-xs text-[#0B0B0F] transition-colors cursor-pointer"
+                    >
+                      Keep Waiting
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAlertModalOptions({
+                          title: "Request Escrow Refund Review",
+                          message: "Because the job delivery deadline and grace period expired without deliverables, your refund request requires JudgeDAO arbitrator review or mutual agreement. Funds will remain safely locked in escrow until confirmed.",
+                          type: "confirm",
+                          showCancel: true,
+                          confirmText: "Open Dispute / Review",
+                          onConfirm: () => {
+                            navigate(`/workspace?jobId=${activeJob.id}&action=dispute`);
+                          },
+                        });
+                      }}
+                      className="px-2.5 py-1.5 rounded-[8px] bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs transition-colors cursor-pointer"
+                    >
+                      Cancel & Refund Review
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed opacity-90">{roleNotice}</p>
+          </div>
+        );
+      })()}
+
       {/* ── MAIN WORKSPACE CONTENT ── */}
       <div id="deliverable-workspace" className="space-y-6">
-        {activeJob.status === 'Funded' || activeJob.status === 'Submitted' || activeJob.status === 'Disputed' || activeJob.status === 'Completed' || activeJob.status === 'Selected' || Boolean(activeJob.freelancer) || (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ? (
+        {activeJob.status === 'Funded' || (activeJob.status as string) === 'Submitted' || activeJob.status === 'Disputed' || (activeJob.status as string) === 'Completed' || activeJob.status === 'Selected' || Boolean(activeJob.freelancer) || (activeJob.clientAgreedTerms && activeJob.freelancerAgreedTerms) ? (
           <DeliverableWorkSubmissionPanel job={activeJob} />
         ) : (
-          <div className="bg-white border border-[#E2E6EC] rounded-xl p-6 sm:p-10 shadow-xs space-y-6">
+          <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-6 sm:p-8 shadow-[0_1px_2px_rgba(0,0,0,0.06)] space-y-6 text-left">
             {/* Header & Status */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E2E6EC]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E5E7EB]">
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] flex items-center justify-center shrink-0">
-                  <Scale size={28} className="text-[#0047AB]" />
+                <div className="w-12 h-12 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] flex items-center justify-center shrink-0">
+                  <Scale size={24} className="text-[#0047AB]" />
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                      Not Confirmed • Under Negotiation
-                    </span>
-                    <span className="text-[10px] font-mono uppercase font-bold text-slate-400">
-                      Stage: Candidate Review & Terms Discussion
+                    <StatusBadge status={activeJob.status} />
+                    <span className="text-xs text-[#4B5563]">
+                      Candidate review & terms discussion
                     </span>
                   </div>
-                  <h3 className="font-serif font-bold text-xl text-[#0B0B0C]">
-                    Terms & Milestone Negotiation in Progress
+                  <h3 className="font-sans font-semibold text-lg text-[#0B0B0F]">
+                    Terms negotiation in progress
                   </h3>
-                  <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+                  <p className="text-xs text-[#4B5563] max-w-2xl leading-relaxed">
                     {isClient
-                      ? 'This project escrow is currently in the negotiation stage. Work submission, deliverable proofs, and milestone verification will become available once you finalize agreed terms and fund the on-chain escrow vault.'
-                      : 'You have not yet been confirmed or hired on-chain for this project. The client and applicants are currently negotiating budget and delivery timelines. Use the Messages Hub to coordinate with the client.'}
+                      ? 'This project escrow is currently in the negotiation stage. Deliverable uploads and milestone verification will become available once you finalize agreed terms and fund escrow.'
+                      : 'You have not yet been confirmed on-chain for this project. The client and applicants are discussing scope and timeline. Use messages to coordinate.'}
                   </p>
                 </div>
               </div>
 
-              {/* Status Badge Pill */}
               <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-                <span className="bg-slate-100 text-[#0B0B0C] border border-[#E2E6EC] text-xs font-mono font-bold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-2xs">
-                  <Clock size={14} className="text-[#0047AB]" />
-                  <span>Awaiting Confirmation</span>
-                </span>
+                <StatusBadge status={activeJob.status} />
               </div>
             </div>
 
             {/* Negotiation Overview Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] space-y-1">
-                <span className="text-[10px] font-mono font-bold uppercase text-slate-400">
-                  Current Listed Budget
+              <div className="p-3 sm:p-4 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] space-y-1">
+                <span className="text-xs font-medium text-[#6B7280]">
+                  Current listed budget
                 </span>
-                <div className="text-lg font-bold text-[#0B0B0C] font-mono">
+                <div className="text-xl font-semibold text-[#0B0B0F] tabular-nums">
                   {(() => {
-                    const sym = (activeJob.paymentTokenSymbol || 'USDC').toUpperCase();
-                    const isCrypto = sym === 'POL' || sym === 'MATIC';
-                    const tokenLabel = isCrypto ? 'POL' : sym;
-                    const amt = isCrypto ? (activeJob.amountEth || activeJob.amountUsdc) : activeJob.amountUsdc;
-                    return isCrypto ? (
-                      <>
-                        <span>{amt}</span> <span className="text-xs font-bold text-slate-500 font-sans">{tokenLabel}</span>
-                        <span className="text-[11px] font-normal text-slate-400 block font-mono">≈ ${activeJob.amountUsdc} USDC</span>
-                      </>
-                    ) : (
-                      <>
-                        ${amt} <span className="text-xs font-bold text-slate-500 font-sans">{tokenLabel}</span>
-                      </>
+                    const ja = getJobAmounts(activeJob, undefined, undefined, activeViewerRole);
+                    return (
+                      <TokenAmount amount={ja.effectiveAmount} token={ja.token} />
                     );
                   })()}
                 </div>
-                <span className="text-[10px] font-mono text-[#0047AB] block">
-                  {activeJob.negotiatedAmount ? `Negotiated: ${activeJob.negotiatedAmount} ${activeJob.paymentTokenSymbol || 'USDC'}` : 'Standard listing price'}
+                <span className="text-xs text-[#0047AB] block">
+                  {(() => {
+                    const ja = getJobAmounts(activeJob, undefined, undefined, activeViewerRole);
+                    return ja.agreed ? `Agreed: ${ja.agreed} ${ja.token}` : (ja.proposed ? `Proposed: ${ja.proposed} ${ja.token}` : 'Standard listing price');
+                  })()}
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] space-y-1">
-                <span className="text-[10px] font-mono font-bold uppercase text-slate-400">
-                  Target Review Period
+              <div className="p-3 sm:p-4 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] space-y-1">
+                <span className="text-xs font-medium text-[#6B7280]">
+                  Target review period
                 </span>
-                <p className="text-lg font-bold text-[#0B0B0C] font-mono">
-                  {activeJob.reviewPeriodDays || 7} <span className="text-xs font-bold text-slate-500 font-sans">Days</span>
+                <p className="text-xl font-semibold text-[#0B0B0F] tabular-nums">
+                  {activeJob.reviewPeriodDays || 7} <span className="text-xs font-semibold text-[#4B5563]">days</span>
                 </p>
-                <span className="text-[10px] font-mono text-slate-500 block">
+                <span className="text-xs text-[#6B7280] block">
                   Client review SLA window
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] space-y-1">
-                <span className="text-[10px] font-mono font-bold uppercase text-slate-400">
-                  Candidates & Proposals
+              <div className="p-3 sm:p-4 rounded-[10px] bg-[#F6F7F9] border border-[#E5E7EB] space-y-1">
+                <span className="text-xs font-medium text-[#6B7280]">
+                  Candidates & proposals
                 </span>
-                <p className="text-lg font-bold text-[#0B0B0C] font-mono">
-                  {activeJob.applications?.length || 0} <span className="text-xs font-bold text-slate-500 font-sans">Applicant(s)</span>
+                <p className="text-xl font-semibold text-[#0B0B0F] tabular-nums">
+                  {activeJob.applications?.length || 0} <span className="text-xs font-semibold text-[#4B5563]">applicants</span>
                 </p>
-                <span className="text-[10px] font-mono text-[#0047AB] block">
-                  {activeJob.negotiationProposals?.length || 0} proposal term sheet(s)
+                <span className="text-xs text-[#0047AB] block">
+                  {activeJob.negotiationProposals?.length || 0} proposal term sheet{activeJob.negotiationProposals?.length === 1 ? '' : 's'}
                 </span>
               </div>
             </div>
@@ -833,27 +1113,35 @@ export const JobWorkspace: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
-                {isClient && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setIsModifyModalOpen(true)}
-                      className="px-4 py-2.5 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                    >
-                      <Edit3 size={14} className="text-[#0047AB]" />
-                      <span>Modify Job Details</span>
-                    </button>
+                {(() => {
+                  const isJobFunded = (activeJob.status as string) === 'Funded' || (activeJob.status as string) === 'Submitted' || (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Funded' || e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+                  const isJobCompleted = (activeJob.status as string) === 'Completed' || (activeJob as any).escrowStatus === 'RELEASED' || Boolean(activeJob.events?.some((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.status === 'completed'));
+                  const canModifyOrDelete = isClient && !isJobFunded && !isJobCompleted;
 
-                    <button
-                      type="button"
-                      onClick={handleDeleteActiveJob}
-                      className="px-4 py-2.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                    >
-                      <Trash2 size={14} className="text-rose-600" />
-                      <span>Delete Posting</span>
-                    </button>
-                  </>
-                )}
+                  if (!canModifyOrDelete) return null;
+
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsModifyModalOpen(true)}
+                        className="px-4 py-2.5 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      >
+                        <Edit3 size={14} className="text-[#0047AB]" />
+                        <span>Modify Job Details</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDeleteActiveJob}
+                        className="px-4 py-2.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      >
+                        <Trash2 size={14} className="text-rose-600" />
+                        <span>Delete Posting</span>
+                      </button>
+                    </>
+                  );
+                })()}
 
                 <button
                   type="button"
@@ -883,18 +1171,33 @@ export const JobWorkspace: React.FC = () => {
       </div>
 
       {/* ── FIXED-POSITION JOB SWITCHER DROPDOWN (escapes stacking context) ── */}
-      {isJobDropdownOpen && dropdownPos && (
-        <div
-          ref={dropdownRef}
-          style={{
-            position: 'fixed',
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            width: dropdownPos.width,
-            zIndex: 9999,
-          }}
-          className="bg-white rounded-xl border border-[#E2E6EC] shadow-2xl overflow-hidden animate-fadeIn"
-        >
+      <AnimatePresence>
+        {isJobDropdownOpen && dropdownPos && (
+          <>
+            <motion.div
+              variants={prefersReducedMotion ? reducedMotionVariants : backdropVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="fixed inset-0 bg-black/20 z-[9998]"
+              onClick={closeDropdown}
+            />
+            <motion.div
+              ref={dropdownRef}
+              variants={prefersReducedMotion ? reducedMotionVariants : popoverVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              style={{
+                position: 'fixed',
+                top: dropdownPos.top,
+                left: dropdownPos.left,
+                width: dropdownPos.width,
+                zIndex: 9999,
+                transformOrigin: 'top center',
+              }}
+              className="bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden"
+            >
           {/* Top Search Bar with ⌘ K */}
           <div className="p-4 pb-3 border-b border-[#E2E6EC] bg-white">
             <label className="relative flex items-center gap-3 bg-white border border-[#E2E6EC] rounded-xl px-4 py-3 focus-within:border-[#0047AB] focus-within:ring-1 focus-within:ring-[#0047AB] transition-all shadow-2xs cursor-text">
@@ -1119,7 +1422,10 @@ export const JobWorkspace: React.FC = () => {
           </div>
 
           {/* Scrollable job list */}
-          <div className="overflow-y-auto max-h-[480px] sm:max-h-[540px] p-3 pt-1 space-y-2">
+          <div
+            data-lenis-prevent="true"
+            className="overflow-y-auto overscroll-contain max-h-[480px] sm:max-h-[540px] min-h-0 p-3 pt-1 space-y-2 custom-scrollbar"
+          >
             {filteredMyJobs.length > 0 ? (
               filteredMyJobs.map((j) => {
                 const isSelected = j.id === activeJob.id;
@@ -1158,11 +1464,9 @@ export const JobWorkspace: React.FC = () => {
                   statusBadgeText = 'FUNDED';
                 }
 
-                const sym = (j.paymentTokenSymbol || 'USDC').toUpperCase();
-                const isCrypto = sym === 'POL' || sym === 'MATIC';
-                const tokenLabel = isCrypto ? 'POL' : sym;
-                const amt = isCrypto ? (j.amountEth || j.amountUsdc) : j.amountUsdc;
-                const amountDisplay = isCrypto ? `${amt} ${tokenLabel}` : `$${amt} ${tokenLabel}`;
+                const ja = getJobAmounts(j, undefined, undefined, isClientJob ? 'client' : (isFreelancerJob ? 'freelancer' : 'visitor'));
+                const sym = ja.token;
+                const amountDisplay = `${ja.effectiveAmount} ${ja.token}`;
                 const dateDisplay = formatJobDate(j.createdAt);
 
                 return (
@@ -1248,28 +1552,24 @@ export const JobWorkspace: React.FC = () => {
 
                     {/* Right Section: Status Pill & Action Chevron */}
                     <div className="relative z-10 flex items-center gap-2 shrink-0">
-                      {/* Active status pill */}
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border font-mono font-bold text-[9.5px] sm:text-[10px] uppercase tracking-wider shadow-2xs ${badgeStyle}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${dotStyle}`}></span>
-                        <span>{statusBadgeText}</span>
-                      </span>
+                      <StatusBadge status={j.status} size="sm" />
 
-                      {/* Chevron action button in rounded circle */}
-                      <div className="w-7 h-7 rounded-full bg-slate-50 border border-[#E2E6EC] group-hover:bg-[#0047AB] group-hover:border-[#0047AB] text-slate-500 group-hover:text-white flex items-center justify-center transition-all shadow-2xs">
-                        <ChevronRight size={14} className="stroke-[2.2]" />
+                      {/* Chevron action button */}
+                      <div className="w-7 h-7 rounded-[6px] bg-[#F6F7F9] border border-[#E5E7EB] text-[#4B5563] flex items-center justify-center">
+                        <ChevronRight size={14} />
                       </div>
                     </div>
                   </button>
                 );
               })
             ) : (
-              <div className="py-8 text-center text-xs text-slate-400 font-mono space-y-1">
+              <div className="py-8 text-center text-xs text-[#4B5563] font-mono space-y-1">
                 <p>No project escrows match the selected filter.</p>
                 {selectedCategoryFilter !== 'all' && (
                   <button
                     type="button"
                     onClick={() => setSelectedCategoryFilter('all')}
-                    className="text-[#0047AB] font-bold hover:underline cursor-pointer text-[11px] block mx-auto mt-1"
+                    className="text-[#0047AB] font-semibold hover:underline cursor-pointer text-xs block mx-auto mt-1"
                   >
                     View All Projects ({categoryCounts.all})
                   </button>
@@ -1277,8 +1577,10 @@ export const JobWorkspace: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
+        </>
       )}
+      </AnimatePresence>
 
       {/* Client Modify Job Details Modal */}
       <ModifyJobModal
@@ -1287,12 +1589,31 @@ export const JobWorkspace: React.FC = () => {
         onClose={() => setIsModifyModalOpen(false)}
       />
 
+      {/* Request Extension Modal */}
+      {activeJob && (
+        <RequestExtensionModal
+          isOpen={isExtensionModalOpen}
+          onClose={() => setIsExtensionModalOpen(false)}
+          jobTitle={activeJob.title}
+          onRequestExtension={(days, reason) => {
+            requestTimeExtension(activeJob.id, days, reason);
+            sendChatMessage(activeJob.id, `⏳ Extension Request: +${days} Days\n\nReason: ${reason}`, 'Freelancer');
+          }}
+        />
+      )}
+
       {/* PolyLance Alert & Confirmation Modal */}
       <PolyLanceAlertModal
         isOpen={Boolean(alertModalOptions)}
         options={alertModalOptions}
         onClose={() => setAlertModalOptions(null)}
       />
-    </div>
+
+      {/* Platform Fees / Balance Modal */}
+      <WalletBalanceModal
+        isOpen={isFeeDuesBalanceModalOpen}
+        onClose={() => setIsFeeDuesBalanceModalOpen(false)}
+      />
+    </PageContainer>
   );
 };

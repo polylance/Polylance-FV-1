@@ -742,9 +742,7 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({ onBypass }) =>
       {/* ── FOOTER SIGNATURES (POLYLANCE STYLE) ───────────────────────────── */}
       <footer className="w-full max-w-[1760px] mx-auto px-[clamp(16px,3vw,56px)] py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200/80 z-20 text-xs text-slate-500">
         <div className="flex items-center gap-2 font-mono text-[11px]">
-          <span>© {new Date().getFullYear()} POLYLANCE PROTOCOL</span>
-          <span>•</span>
-          <span>All rights reserved</span>
+          <span>POLYLANCE PROTOCOL</span>
         </div>
 
         <div className="flex items-center gap-4">

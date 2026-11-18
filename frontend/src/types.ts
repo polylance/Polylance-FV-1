@@ -1,3 +1,6 @@
+import type { JobEngagement, NegotiationTermVersion, EngagementState } from './types/lifecycle';
+export type { JobEngagement, NegotiationTermVersion, EngagementState };
+
 export type JobStatus = 'Open' | 'Selected' | 'Funded' | 'Submitted' | 'Disputed' | 'Completed' | 'Cancelled';
 
 export type DisputeReason = 'QUALITY' | 'NON_DELIVERY' | 'SCOPE_DISAGREEMENT' | 'PAYMENT_DISPUTE' | 'OTHER';
@@ -5,6 +8,7 @@ export type DisputeReason = 'QUALITY' | 'NON_DELIVERY' | 'SCOPE_DISAGREEMENT' | 
 export type SkillCategory = 'web3' | 'frontend' | 'backend' | 'mobile';
 
 export interface Application {
+  id?: string;
   applicant: string;
   proposalIpfsHash: string;
   proposalText: string;
@@ -13,6 +17,8 @@ export interface Application {
   githubVerified: boolean;
   githubScore: number;
   status?: string;
+  proposedAmountUsdc?: string;
+  estimatedDays?: number;
 }
 
 export interface DeliverableFile {
@@ -103,6 +109,8 @@ export interface NegotiationProposal {
   responseNote?: string;
 }
 
+export type MessageDeliveryStatus = 'sending' | 'sent' | 'seen' | 'failed';
+
 export interface ChatMessage {
   id?: string;
   sender: 'Client' | 'Freelancer' | 'Judge';
@@ -112,7 +120,12 @@ export interface ChatMessage {
   text: string;
   timestamp: number;
   proposal?: NegotiationProposal;
+  status?: MessageDeliveryStatus;
+  seenAt?: number;
+  seenBy?: string[];
+  failedReason?: string;
 }
+
 
 export interface Job {
   id: string;
@@ -142,15 +155,29 @@ export interface Job {
   extensionRequests?: TimeExtensionRequest[];
   modificationRequests?: ModificationRequest[];
   negotiationProposals?: NegotiationProposal[];
+  submissions?: any[];
   events: JobEvent[];
   chatMessages?: ChatMessage[];
-  sbtTokenId?: number;
+  sbtTokenId?: number | string;
   sbtTxHash?: string;
+  releaseTxHash?: string;
+  settlementPolRate?: string | number;
+  milestones?: any[];
+  escrowStatus?: string;
+  onchainTokenId?: number;
+  certificateNo?: number;
+  mintTxHash?: string;
   negotiatedAmount?: string;
   negotiatedDeadlineDays?: number;
   preAcceptMessages?: { sender: string; senderRole: 'Client' | 'Freelancer'; text: string; timestamp: number; proposal?: NegotiationProposal; applicantAddress?: string }[];
   completedAt?: number;
   chatClearedAt?: number;
+  clientReview?: {
+    rating: number; // 1-5
+    comment: string;
+    reviewedAt: number;
+  };
+  engagement?: JobEngagement;
 }
 
 export interface UserProfile {
@@ -177,9 +204,13 @@ export interface UserProfile {
   prsCount?: number;
   reputationTier?: string;
   role?: 'freelancer' | 'client' | 'admin' | 'judge';
+  accountMode?: AccountMode;
   title?: string;
   hourlyRateUsdc?: number;
+  isPublic?: boolean;
 }
+
+export type AccountMode = 'freelancer' | 'client' | 'both';
 
 export interface DaoProposal {
   id: number | string;

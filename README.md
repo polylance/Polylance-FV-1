@@ -6,19 +6,18 @@
 [![Security](https://img.shields.io/badge/Audited-AuditX_Verified-10b981?style=for-the-badge&logo=shield&logoColor=white)](https://polylance.codes/#/auditx)
 [![Credentials](https://img.shields.io/badge/Credentials-CertifiedPass_Oracle-9333ea?style=for-the-badge&logo=checkmarx&logoColor=white)](https://certifiedpass.polylance.codes/)
 
-> **Decentralized, trustless, and non-custodial milestone-based freelance marketplace on Polygon PoS. Eliminating the 20% intermediary tax, arbitrary account freezes, and opaque dispute processes with immutable smart escrows, Soulbound Token (SBT) reputation, and AI-assisted security audits.**
+> **Decentralized, trustless, and non-custodial milestone-based freelance marketplace on Polygon PoS. Featuring automated smart escrows, transparent 2.5% per side platform fees, Soulbound Token (SBT) work reputation, and automated security hardening.**
 
 ---
 
 ## 📌 Executive Summary
 
-Traditional freelance marketplaces (Upwork, Fiverr, Freelancer.com) extract between **10% and 20%+** in predatory platform fees from freelancers and clients alike. Furthermore, they operate as centralized black boxes:
-- **Delayed Payouts**: Withholding funds for 14+ days under "security clearance" policies.
-- **Unilateral Account Suspensions**: Disabling accounts and freezing hard-earned funds without transparent due process.
-- **Review Inflation & Fake Portfolios**: Inability to cryptographically verify if a freelancer actually authored delivered code or completed reported milestones.
-- **Centralized Arbitrators**: Non-technical customer support representatives resolving complex technical disputes without codebase visibility.
-
-**PolyLance** reimagines the global freelance economy as an open, trustless, on-chain protocol. By anchoring milestone escrows, reputation metrics, code audits, and dispute arbitration into immutable smart contracts on the **Polygon PoS network**, PolyLance offers an institutional-grade, zero-fee alternative.
+**PolyLance** is an open, non-custodial freelance protocol built on Polygon PoS. By anchoring milestone escrows, reputation metrics, automated security checks, and dispute arbitration directly into immutable smart contracts, PolyLance delivers:
+- **Instant Settlement**: Escrowed funds release immediately to the freelancer upon client approval.
+- **Sovereign Custody**: Tokens are locked in verified smart contracts rather than custodial bank accounts.
+- **Transparent 2.5% Protocol Fees**: 2.5% charged to the client at funding and 2.5% deducted from the freelancer upon release (5.0% total platform take rate).
+- **Verifiable Reputation**: Milestone completions automatically mint ERC-5192 Soulbound Tokens (SBTs) containing on-chain proof-of-work.
+- **Decentralized Arbitration**: Transparent dispute resolution via JudgeDAO multi-sig evidence evaluation.
 
 ---
 

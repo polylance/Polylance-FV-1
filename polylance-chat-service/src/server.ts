@@ -9,10 +9,24 @@ import { Server } from "socket.io";
 import { WebSocketServer, WebSocket as WsWebSocket } from "ws";
 import { PrismaClient } from "@prisma/client";
 import { ethers } from "ethers";
-import { verifyWalletAuth } from "./auth.js";
+import {
+  verifyWalletAuth,
+  sessionMiddleware,
+  requireAuth,
+  requireAdmin,
+  isPartyToJob,
+  generateAuthNonce,
+  verifySiweSignature,
+  createSessionToken,
+  isSystemAdmin,
+  isSystemJudge,
+} from "./auth.js";
 import { createConversationKey } from "./crypto/ecies.js";
 import { startPaymentListener } from "./paymentListener.js";
-import { authLimiter, messageLimiter, joinLimiter, deleteLimiter, httpLimiter } from "./ratelimit.js";
+import { authLimiter, messageLimiter, joinLimiter, deleteLimiter, httpLimiter, httpReadLimiter, nonceLimiter } from "./ratelimit.js";
+import { RpcPool } from "./rpc/RpcPool.js";
+import { TxManager, TransactionRecord } from "./transactions/TxManager.js";
+import { EventIndexer } from "./indexer/EventIndexer.js";
 import { 
   initCertifiedPassDatabase, 
   syncSBTToCertifiedPass, 
@@ -30,10 +44,33 @@ import {
   unlinkWalletTelegram,
   sendTelegramNotification 
 } from "./telegramBot.js";
+import {
+  canApplyToJob,
+  areAddressesEqual,
+  isModeAllowedForRole,
+  normalizeAddress,
+} from "./accountMode.js";
+import {
+  normalizeTimestampMs,
+  isValidJobTransition,
+  AppNotification,
+  NotificationType,
+  getEngagementDisplayState,
+} from "./lifecycle.js";
+import { DeadlineWorker } from "./workers/DeadlineWorker.js";
+import { DEADLINE_CONFIG } from "./deadlineConfig.js";
+import { feeDuesRouter } from "./feeDues.js";
+import { sbtRouter } from "./sbtRoutes.js";
+import { blogRouter } from "./blog/routes.js";
+import { publicStatsRouter } from "./publicStats.js";
 
 dotenv.config();
 
-const STATE_FILE = path.resolve(process.cwd(), "polylance_shared_state.json");
+const STATE_FILE = fs.existsSync(path.resolve(process.cwd(), "polylance_shared_state.json"))
+  ? path.resolve(process.cwd(), "polylance_shared_state.json")
+  : (fs.existsSync(path.resolve(process.cwd(), "polylance-chat-service", "polylance_shared_state.json"))
+    ? path.resolve(process.cwd(), "polylance-chat-service", "polylance_shared_state.json")
+    : path.resolve(process.cwd(), "polylance_shared_state.json"));
 
 export const serverRecentlyDeletedJobs = new Set<string>();
 
@@ -45,6 +82,9 @@ let sharedState: {
   judges: any[];
   treasuryProposals: any[];
   treasuryHistory: any[];
+  notifications: any[];
+  transactions?: Record<string, any>;
+  indexerCursor?: number;
   accountDeletionRequests?: Record<string, any>;
   deletedJobIds?: string[];
   maintenance?: {
@@ -70,6 +110,9 @@ let sharedState: {
   judges: [],
   treasuryProposals: [],
   treasuryHistory: [],
+  notifications: [],
+  transactions: {},
+  indexerCursor: 0,
   accountDeletionRequests: {},
   maintenance: {
     enabled: false,
@@ -118,7 +161,18 @@ try {
 
 function persistState() {
   try {
-    fs.writeFileSync(STATE_FILE, JSON.stringify(sharedState, null, 2), "utf-8");
+    const payload = JSON.stringify(sharedState, null, 2);
+    const candidatePaths = [
+      path.resolve(process.cwd(), "polylance_shared_state.json"),
+      path.resolve(process.cwd(), "polylance-chat-service", "polylance_shared_state.json"),
+      STATE_FILE
+    ];
+    const uniquePaths = Array.from(new Set(candidatePaths));
+    for (const p of uniquePaths) {
+      if (fs.existsSync(p) || p === STATE_FILE) {
+        fs.writeFileSync(p, payload, "utf-8");
+      }
+    }
   } catch (err) {
     console.warn("[STATE] Could not persist shared state file:", err);
   }
@@ -183,9 +237,56 @@ export async function loadStateFromDatabase() {
       if (record && record.data) {
         sharedState = { ...sharedState, ...(record.data as any) };
         console.log("[DB] Loaded shared state from Primary Database (Render PostgreSQL)");
-        persistState();
-        return;
       }
+
+      // Reconcile and enrich with permanent JobRecord & CertificateRecord tables
+      if (prisma.jobRecord) {
+        const dbJobs = await prisma.jobRecord.findMany().catch(() => []);
+        if (dbJobs && dbJobs.length > 0) {
+          const dbJobMap = new Map();
+          dbJobs.forEach((dj: any) => {
+            if (dj.id) dbJobMap.set(String(dj.id).toLowerCase(), dj);
+          });
+          sharedState.jobs = (sharedState.jobs || []).map((j: any) => {
+            const dj = dbJobMap.get(String(j.id || "").toLowerCase());
+            if (dj) {
+              return {
+                ...j,
+                status: dj.status || j.status,
+                onchainTokenId: dj.onchainTokenId !== null && dj.onchainTokenId !== undefined ? dj.onchainTokenId : j.onchainTokenId,
+                certificateNo: dj.certificateNo !== null && dj.certificateNo !== undefined ? dj.certificateNo : j.certificateNo,
+                mintTxHash: dj.mintTxHash || j.mintTxHash,
+              };
+            }
+            return j;
+          });
+        }
+      }
+
+      if (prisma.certificateRecord) {
+        const certs = await prisma.certificateRecord.findMany().catch(() => []);
+        if (certs && certs.length > 0) {
+          const certByJobId = new Map();
+          certs.forEach((c: any) => {
+            if (c.jobId) certByJobId.set(String(c.jobId).toLowerCase(), c);
+          });
+          sharedState.jobs = (sharedState.jobs || []).map((j: any) => {
+            const c = certByJobId.get(String(j.id || "").toLowerCase());
+            if (c) {
+              return {
+                ...j,
+                onchainTokenId: c.onchainTokenId !== null && c.onchainTokenId !== undefined ? c.onchainTokenId : j.onchainTokenId,
+                certificateNo: c.certificateNo !== null && c.certificateNo !== undefined ? c.certificateNo : j.certificateNo,
+                mintTxHash: c.mintTxHash || j.mintTxHash,
+              };
+            }
+            return j;
+          });
+        }
+      }
+
+      persistState();
+      return;
     }
   } catch (err: any) {
     console.warn("[DB] Primary DB load note:", err?.message || err);
@@ -295,6 +396,8 @@ export async function persistStateToDatabases() {
 function normalizeJobOnServer(job: any): any {
   if (!job) return job;
   const next = { ...job };
+  next.createdAt = normalizeTimestampMs(next.createdAt || next.events?.[0]?.timestamp);
+
   const isFundedEvent = (next.events || []).some((e: any) => e.step === 'Funded' && e.status === 'completed');
   const bothAgreed = Boolean(next.clientAgreedTerms && next.freelancerAgreedTerms);
 
@@ -346,37 +449,86 @@ const MOCK_OR_TEST_CLIENTS = new Set([
   '0x0000000000000000000000000000000000000000',
 ]);
 
+export const PURGED_OR_TEST_JOB_IDS = new Set([
+  '0x71c8a185b376',
+  '0x37835b31461a',
+  '0x2f463f3db8c0',
+  '0x881a13affd51d',
+  '0x771a13afc3007',
+  '0x771a13afd358d',
+  '0x771a13affd266',
+  'job-verify-1791982369172',
+  '0xeeacc05a99a2',
+  '0x03b7a86f3bfc',
+]);
+
 export function isDemoOrMockJobOnServer(job: any): boolean {
   if (!job) return true;
   const id = String(job.id || '').toLowerCase().trim();
+  const contract = String(job.contractAddress || '').toLowerCase().trim();
+
+  // Explicit purged test jobs & deleted job registry
   if (
-    id === 'job-101' ||
-    id === 'job-102' ||
-    id.startsWith('mock-') ||
-    id.startsWith('test-') ||
-    id.startsWith('demo-') ||
-    id.startsWith('job-mock-')
+    PURGED_OR_TEST_JOB_IDS.has(id) ||
+    PURGED_OR_TEST_JOB_IDS.has(contract) ||
+    serverRecentlyDeletedJobs.has(id) ||
+    serverRecentlyDeletedJobs.has(contract) ||
+    (Array.isArray(sharedState?.deletedJobIds) && (sharedState.deletedJobIds.includes(id) || sharedState.deletedJobIds.includes(contract)))
   ) {
     return true;
+  }
+
+  // Explicit mock / test flags
+  if (job.isArchived || job.isTest || job.isDemo || job.isMock) {
+    return true;
+  }
+
+  if (
+    process.env.NODE_ENV !== 'test' && (
+      id === 'job-101' ||
+      id === 'job-102' ||
+      id.startsWith('mock-') ||
+      id.startsWith('test-') ||
+      id.startsWith('demo-') ||
+      id.startsWith('job-mock-') ||
+      id.startsWith('job-verify-') ||
+      id.startsWith('sample-')
+    )
+  ) {
+    return true;
+  }
+
+  // Zero or negative budget is always considered a test / non-viable job
+  const eth = parseFloat(job.amountEth || '0');
+  const usdc = parseFloat(job.amountUsdc || '0');
+  if (isNaN(eth) && isNaN(usdc)) return true;
+  if (eth <= 0 && usdc <= 0) return true;
+
+  if (process.env.NODE_ENV !== 'test') {
+    // Title & description heuristic check
+    const title = String(job.title || '').toLowerCase().trim();
+    const desc = String(job.description || '').toLowerCase().trim();
+    if (
+      title === 'job to be declined' ||
+      title.includes('lifecycle test') ||
+      title === 'xmtp message test' ||
+      title === 'test payment workflow' ||
+      title === 'testing webrtc & web socket' ||
+      title === 'testing site' ||
+      title === 'full stack smart contract integration' ||
+      desc.includes('connect react 19 frontend with polygon amoy escrow contracts') ||
+      title.includes('privacy-job') ||
+      title.includes('confidential smart contract') ||
+      (title === 'job 1' && desc === 'test job 1') ||
+      (title === 'job 2' && desc === 'test job 2')
+    ) {
+      return true;
+    }
   }
 
   const client = String(job.client || '').toLowerCase().trim();
   const freelancer = String(job.freelancer || '').toLowerCase().trim();
   if (MOCK_OR_TEST_CLIENTS.has(client) || MOCK_OR_TEST_CLIENTS.has(freelancer)) {
-    return true;
-  }
-
-  const title = String(job.title || '').trim().toLowerCase();
-  const desc = String(job.description || '').trim().toLowerCase();
-
-  if (
-    title === 'job to select' ||
-    title === 'job 1' ||
-    title === 'job 2' ||
-    title === 'full stack smart contract integration' ||
-    desc.includes('connect react 19 frontend with polygon amoy escrow contracts') ||
-    title.includes('private confidential smart contract')
-  ) {
     return true;
   }
 
@@ -386,7 +538,9 @@ export function isDemoOrMockJobOnServer(job: any): boolean {
 export function isJobExpiredOnServer(job: any): boolean {
   if (!job) return false;
   if (job.status !== 'Open' || Boolean(job.freelancer)) return false;
-  const postedAt = job.createdAt || Date.now();
+  const rawCreatedAt = job.createdAt || job.events?.[0]?.timestamp;
+  if (!rawCreatedAt) return false;
+  const postedAt = normalizeTimestampMs(rawCreatedAt);
   return (Date.now() - postedAt) >= (JOB_AUTO_EXPIRY_DAYS * MS_PER_DAY);
 }
 
@@ -411,6 +565,55 @@ export function pruneExpiredJobsOnServer() {
     console.log(`[PRUNE] Automatically removed ${beforeCount - sharedState.jobs.length} expired / mock job(s) from database for production`);
     persistStateToDatabases().catch(() => {});
   }
+}
+
+export function createNotificationOnServer(notif: {
+  recipientWallet: string;
+  actorWallet?: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  entityType: 'job' | 'proposal' | 'dispute' | 'system';
+  entityId: string;
+  deepLink: string;
+  dedupeKey?: string;
+}): AppNotification | null {
+  if (!notif.recipientWallet) return null;
+  const recipient = notif.recipientWallet.toLowerCase().trim();
+  if (!recipient.startsWith('0x') || recipient.length !== 42) return null;
+
+  sharedState.notifications = Array.isArray(sharedState.notifications) ? sharedState.notifications : [];
+  const key = notif.dedupeKey || `${notif.type}_${notif.entityId}_${recipient}`;
+
+  const exists = sharedState.notifications.some((n: any) => n && n.dedupeKey === key);
+  if (exists) return null;
+
+  const newNotif: AppNotification = {
+    id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    recipientWallet: recipient,
+    actorWallet: (notif.actorWallet || '').toLowerCase().trim(),
+    type: notif.type,
+    title: notif.title,
+    body: notif.body,
+    entityType: notif.entityType,
+    entityId: notif.entityId,
+    deepLink: notif.deepLink,
+    readAt: null,
+    createdAt: Date.now(),
+    dedupeKey: key,
+  };
+
+  sharedState.notifications.unshift(newNotif);
+  if (sharedState.notifications.length > 1000) {
+    sharedState.notifications = sharedState.notifications.slice(0, 1000);
+  }
+
+  if (io) {
+    io.emit('notification:new', newNotif);
+  }
+
+  persistStateToDatabases().catch(() => {});
+  return newNotif;
 }
 
 function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
@@ -443,6 +646,7 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
 
   (incomingJobs || []).forEach((inJobRaw) => {
     if (!inJobRaw) return;
+    if (isDemoOrMockJobOnServer(inJobRaw)) return;
     const inJob = normalizeJobOnServer(inJobRaw);
     const inId = inJob.id ? String(inJob.id).toLowerCase() : '';
     const inContract = inJob.contractAddress ? String(inJob.contractAddress).toLowerCase() : '';
@@ -502,7 +706,7 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
       // Respect chatClearedAt so cleared messages are never re-merged from server memory
       const chatClearedAt = Math.max(curr.chatClearedAt || 0, inJob.chatClearedAt || 0);
 
-      // Merge chat messages with smart deduplication (same sender + text within 3.5 seconds)
+      // Merge chat messages with smart deduplication and unidirectional status progression
       const mergedMsgs: any[] = [];
       const allMsgs = [
         ...(curr.chatMessages || []),
@@ -512,16 +716,37 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
       );
       for (const m of allMsgs) {
         if (!m || !m.text) continue;
-        const isDuplicate = mergedMsgs.some(
-          (existing: any) =>
-            existing.sender === m.sender &&
-            existing.text.trim() === m.text.trim() &&
-            Math.abs((existing.timestamp || 0) - (m.timestamp || 0)) < 3500
+        const existingIdx = mergedMsgs.findIndex(
+          (em: any) =>
+            (m.id && em.id && m.id === em.id) ||
+            (em.sender === m.sender &&
+              em.text?.trim() === m.text?.trim() &&
+              Math.abs((em.timestamp || 0) - (m.timestamp || 0)) < 3500)
         );
-        if (!isDuplicate) {
+
+        if (existingIdx === -1) {
           mergedMsgs.push(m);
+        } else {
+          // Unidirectional status progression: sending (0) -> sent (1) -> seen (2)
+          const statusRank: Record<string, number> = { sending: 0, sent: 1, seen: 2, failed: -1 };
+          const existingMsg = mergedMsgs[existingIdx];
+          const currRank = statusRank[existingMsg.status || 'sent'] ?? 1;
+          const incomingRank = statusRank[m.status || 'sent'] ?? 1;
+
+          const mergedStatus = incomingRank >= currRank ? m.status || existingMsg.status : existingMsg.status;
+          const mergedSeenAt = m.seenAt || existingMsg.seenAt;
+          const mergedSeenBy = Array.from(new Set([...(existingMsg.seenBy || []), ...(m.seenBy || [])]));
+
+          mergedMsgs[existingIdx] = {
+            ...existingMsg,
+            ...m,
+            status: mergedStatus,
+            seenAt: mergedSeenAt,
+            seenBy: mergedSeenBy.length > 0 ? mergedSeenBy : undefined,
+          };
         }
       }
+
 
       // Merge pre-accept messages respecting chatClearedAt with deduplication
       const deduplicatedPreMsgs: any[] = [];
@@ -591,7 +816,43 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
 
       const currPriority = getStatusPriority(curr.status);
       const inPriority = getStatusPriority(inJob.status);
-      const resolvedStatus = inPriority >= currPriority ? (inJob.status || curr.status) : curr.status;
+
+      // Reliability & Trust Rule: Client-side sync cannot unilaterally promote a job to Funded or Completed.
+      // Only confirmed transactions via TxManager or verified on-chain events via EventIndexer can mark escrow as funded or completed.
+      let resolvedStatus = curr.status;
+      const allEvents = [...(curr.events || []), ...(inJob.events || [])];
+      const hasIndexedReleaseEvent = allEvents.some(
+        (e: any) => (e.step === 'Paid' || e.step === 'PaymentReleased' || e.step === 'AutoReleased' || e.step === 'Completed') &&
+          (e.status === 'completed' || e.status === 'CONFIRMED')
+      );
+      const hasConfirmedReleaseTx = Array.from((sharedState.transactions ? Object.values(sharedState.transactions) : []) as any[]).some(
+        (tx: any) => (tx.jobId === curr.id || (curr.contractAddress && areAddressesEqual(tx.to, curr.contractAddress))) &&
+          (tx.type === 'RELEASE' || tx.type === 'PAYMENT_RELEASED') && tx.status === 'CONFIRMED'
+      );
+
+      if (curr.status === 'Completed' || curr.escrowStatus === 'RELEASED' || hasIndexedReleaseEvent || hasConfirmedReleaseTx) {
+        resolvedStatus = 'Completed';
+      } else if (inJob.status === 'Completed') {
+        if (hasConfirmedReleaseTx || hasIndexedReleaseEvent) {
+          resolvedStatus = 'Completed';
+        } else {
+          console.warn(`[ESCROW SECURITY] Refusing unconfirmed client sync promotion to Completed for job ${curr.id}. Requires approved release confirmed on-chain.`);
+          resolvedStatus = curr.status;
+        }
+      } else if (inJob.status === 'Funded' && curr.status !== 'Funded') {
+        const hasConfirmedFundTx = Array.from((sharedState.transactions ? Object.values(sharedState.transactions) : []) as any[]).some(
+          (tx: any) => (tx.jobId === curr.id || (curr.contractAddress && areAddressesEqual(tx.to, curr.contractAddress))) && tx.status === 'CONFIRMED'
+        );
+        const hasIndexedFundedEvent = allEvents.some((e: any) => (e.step === 'Funded' || e.step === 'EscrowFunded') && (e.status === 'completed' || e.status === 'CONFIRMED'));
+        if (hasConfirmedFundTx || hasIndexedFundedEvent) {
+          resolvedStatus = 'Funded';
+        } else {
+          console.warn(`[ESCROW SECURITY] Refusing unconfirmed client sync promotion to Funded for job ${curr.id}. Waiting for on-chain confirmation.`);
+          resolvedStatus = curr.status;
+        }
+      } else {
+        resolvedStatus = inPriority >= currPriority ? (inJob.status || curr.status) : curr.status;
+      }
 
       // Title: Always preserve real user-created title over generic "Smart Contract Escrow (0x...)"
       const isCurrGenericTitle = isGenericEscrowTitle(curr.title);
@@ -630,6 +891,14 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
         ? curr.paymentTokenSymbol
         : (inJob.paymentTokenSymbol || curr.paymentTokenSymbol || 'POL');
 
+      // Merge submissions safely preserving all version history
+      const subMap = new Map<string, any>();
+      (curr.submissions || []).forEach((s: any) => s && subMap.set(String(s.version || s.versionLabel || s.submittedAt), s));
+      (inJob.submissions || []).forEach((s: any) => s && subMap.set(String(s.version || s.versionLabel || s.submittedAt), s));
+      const mergedSubmissions = Array.from(subMap.values()).sort(
+        (a: any, b: any) => (a.version || a.submittedAt || 0) - (b.version || b.submittedAt || 0)
+      );
+
       const merged = {
         ...curr,
         ...inJob,
@@ -639,6 +908,7 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
         category: resolvedCategory,
         contractAddress: inJob.contractAddress || curr.contractAddress,
         status: resolvedStatus,
+        escrowStatus: resolvedStatus === 'Completed' ? 'RELEASED' : (inJob.escrowStatus || curr.escrowStatus),
         freelancer: inJob.freelancer || curr.freelancer,
         clientAgreedTerms: inJob.clientAgreedTerms !== undefined ? inJob.clientAgreedTerms : curr.clientAgreedTerms,
         freelancerAgreedTerms: inJob.freelancerAgreedTerms !== undefined ? inJob.freelancerAgreedTerms : curr.freelancerAgreedTerms,
@@ -655,12 +925,16 @@ function mergeJobsOnServer(existingJobs: any[], incomingJobs: any[]): any[] {
         preAcceptMessages: mergedPreMsgs,
         events: inJob.events?.length ? inJob.events : (curr.events || []),
         dispute: inJob.dispute || curr.dispute,
-        proof: inJob.proof || curr.proof,
+        proof: (inJob.proof && (inJob.proof.submittedAt || 0) >= (curr.proof?.submittedAt || 0)) ? inJob.proof : (curr.proof || inJob.proof),
+        submissions: mergedSubmissions,
         progressUpdates: Array.from(progMap.values()),
         extensionRequests: Array.from(extMap.values()),
         modificationRequests: Array.from(modMap.values()),
-        sbtTokenId: inJob.sbtTokenId || curr.sbtTokenId,
+        sbtTokenId: inJob.sbtTokenId !== undefined ? inJob.sbtTokenId : curr.sbtTokenId,
         sbtTxHash: inJob.sbtTxHash || curr.sbtTxHash,
+        onchainTokenId: inJob.onchainTokenId !== undefined ? inJob.onchainTokenId : curr.onchainTokenId,
+        certificateNo: inJob.certificateNo !== undefined ? inJob.certificateNo : curr.certificateNo,
+        mintTxHash: inJob.mintTxHash || curr.mintTxHash,
         completedAt: inJob.completedAt || curr.completedAt,
         submittedAt: inJob.submittedAt || curr.submittedAt,
         chatClearedAt: chatClearedAt > 0 ? chatClearedAt : undefined,
@@ -704,8 +978,18 @@ app.use(cors({
   },
   credentials: true,
 }));
+app.disable("x-powered-by");
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ limit: "25mb", extended: true }));
+app.use(sessionMiddleware);
+
+// Block requests attempting to access sensitive dot-files (.env, .git, etc.)
+app.use((req: Request, res: Response, next) => {
+  if (/(^\/|\/)\./.test(req.path)) {
+    return res.status(404).json({ error: "Not Found" });
+  }
+  next();
+});
 
 // Security headers middleware
 app.use((req: Request, res: Response, next) => {
@@ -713,16 +997,42 @@ app.use((req: Request, res: Response, next) => {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader(
+    "Content-Security-Policy-Report-Only",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: ipfs: blob:; connect-src 'self' http://localhost:3001 ws://localhost:3001 https://polylance-fv-1-45wy.onrender.com wss://polylance-fv-1-45wy.onrender.com https://*.rpc.thirdweb.com https://polygon-rpc.com https://rpc-amoy.polygon.technology https://api.github.com; media-src 'self' https: data: blob:;"
+  );
   next();
 });
 
-// Global HTTP rate limiter for Express routes (bypasses /health for probes)
+// Global HTTP rate limiter for Express routes (bypasses /health for probes, studio routes, and test env)
 app.use(async (req: Request, res: Response, next) => {
-  if (req.path === "/health" || req.path === "/api/health") {
+  if (
+    req.path === "/health" ||
+    req.path === "/api/health" ||
+    req.path.startsWith("/api/studio") ||
+    process.env.NODE_ENV === "test"
+  ) {
     return next();
   }
   const ip = req.headers["x-forwarded-for"]?.toString() || req.socket.remoteAddress || "unknown";
-  const { success } = await httpLimiter.limit(ip);
+
+  // Fast read/polling paths use httpReadLimiter (300 req/min)
+  const isReadPath = req.method === "GET" && (
+    req.path.startsWith("/api/sync") ||
+    req.path.startsWith("/api/notifications") ||
+    req.path.startsWith("/api/account/balances") ||
+    req.path.startsWith("/api/tx/") ||
+    req.path.startsWith("/api/health") ||
+    req.path.startsWith("/api/maintenance") ||
+    req.path.startsWith("/api/certifiedpass") ||
+    req.path.startsWith("/polylance/verify") ||
+    req.path.startsWith("/api/sbt") ||
+    req.path.startsWith("/polylance/sbt") ||
+    req.path.startsWith("/token")
+  );
+
+  const limiter = isReadPath ? httpReadLimiter : httpLimiter;
+  const { success } = await limiter.limit(ip);
   if (!success) {
     res.status(429).json({ error: "Rate limit exceeded — try again shortly", code: "RATE_LIMITED" });
     return;
@@ -965,12 +1275,12 @@ export function sanitizeSharedStateForRequester(
     if (!job) return job;
     const clientAddr = (job.client || "").toLowerCase().trim();
     const freelancerAddr = (job.freelancer || "").toLowerCase().trim();
-    const isClient = Boolean(reqAddr && clientAddr === reqAddr);
-    const isHiredFreelancer = Boolean(reqAddr && freelancerAddr === reqAddr);
+    const isClient = Boolean(reqAddr && areAddressesEqual(clientAddr, reqAddr));
+    const isHiredFreelancer = Boolean(reqAddr && areAddressesEqual(freelancerAddr, reqAddr));
     const isParty = isClient || isHiredFreelancer;
     const isApplicant = Boolean(
       reqAddr &&
-      (job.applications || []).some((a: any) => a && a.applicant && a.applicant.toLowerCase().trim() === reqAddr)
+      (job.applications || []).some((a: any) => a && a.applicant && areAddressesEqual(a.applicant, reqAddr))
     );
     const isDisputeJudge = Boolean(isJudge && job.status === "Disputed");
 
@@ -992,7 +1302,7 @@ export function sanitizeSharedStateForRequester(
     } else {
       sanitizedApplications = rawApps.map((a: any) => {
         if (!a) return a;
-        const isOwn = reqAddr && a.applicant && a.applicant.toLowerCase().trim() === reqAddr;
+        const isOwn = reqAddr && a.applicant && areAddressesEqual(a.applicant, reqAddr);
         if (isOwn) return a;
         // Strip sensitive proposal text, preserve applicant overview for counters & public cards
         const { proposalText: _pt, ...publicApp } = a;
@@ -1002,6 +1312,7 @@ export function sanitizeSharedStateForRequester(
 
     // Proof of work: Only visible to authorized contract parties (client / hired freelancer / admin)
     const proof = canSeeProof ? job.proof : undefined;
+    const submissions = canSeeProof ? (job.submissions || []) : [];
     const negotiationProposals = canAccessPrivateJobChat ? (job.negotiationProposals || []) : (!job.freelancer && isApplicant ? (job.negotiationProposals || []).filter((p: any) => p && (p.sender === reqAddr || p.recipient === reqAddr)) : []);
     const modificationRequests = canSeeProof ? (job.modificationRequests || []) : [];
     const extensionRequests = canSeeProof ? (job.extensionRequests || []) : [];
@@ -1021,6 +1332,7 @@ export function sanitizeSharedStateForRequester(
       return {
         ...job,
         proof,
+        submissions,
         negotiationProposals,
         modificationRequests,
         extensionRequests,
@@ -1034,6 +1346,7 @@ export function sanitizeSharedStateForRequester(
       chatMessages,
       preAcceptMessages,
       proof: _p,
+      submissions: _sub,
       modificationRequests: _m,
       extensionRequests: _e,
       negotiationProposals: _np,
@@ -1042,11 +1355,22 @@ export function sanitizeSharedStateForRequester(
 
     return {
       ...publicJobFields,
-      chatMessages: [],
-      preAcceptMessages: canAccessPreAccept ? (job.preAcceptMessages || []) : [],
+      chatMessages: canAccessPreAccept ? (job.chatMessages || []).filter((m: any) => {
+        if (!m) return false;
+        const appAddr = (m.applicantAddress || '').toLowerCase().trim();
+        const sendAddr = (m.senderAddress || '').toLowerCase().trim();
+        return areAddressesEqual(appAddr, reqAddr) || areAddressesEqual(sendAddr, reqAddr);
+      }) : [],
+      preAcceptMessages: canAccessPreAccept ? (job.preAcceptMessages || []).filter((m: any) => {
+        if (!m) return false;
+        const appAddr = (m.applicantAddress || '').toLowerCase().trim();
+        const sendAddr = (m.sender || '').toLowerCase().trim();
+        return areAddressesEqual(appAddr, reqAddr) || areAddressesEqual(sendAddr, reqAddr);
+      }) : [],
       applications: sanitizedApplications,
       dispute: sanitizedDispute,
       proof: undefined,
+      submissions: [],
       modificationRequests: [],
       extensionRequests: [],
       negotiationProposals,
@@ -1110,7 +1434,27 @@ export function sanitizeSharedStateForRequester(
     sanitizedTreasuryHistory = state.treasuryHistory || [];
   }
 
-  // 5. Return sanitized public + scoped state
+  // 5. Sanitize Notifications:
+  // Strictly scoped to the connected recipient wallet (or admin)
+  const userNotifications = (state.notifications || []).filter((n: any) => {
+    if (!n) return false;
+    if (isAdmin) return true;
+    return reqAddr && areAddressesEqual(n.recipientWallet, reqAddr);
+  });
+
+  // 6. Sanitize Transactions:
+  // Scoped to transactions involving the requester wallet (from or to), or all for admins
+  const userTransactions: Record<string, any> = {};
+  if (state.transactions && typeof state.transactions === 'object') {
+    for (const [id, tx] of Object.entries(state.transactions)) {
+      if (!tx) continue;
+      if (isAdmin || (reqAddr && (areAddressesEqual((tx as any).from, reqAddr) || areAddressesEqual((tx as any).to, reqAddr)))) {
+        userTransactions[id] = tx;
+      }
+    }
+  }
+
+  // 7. Return sanitized public + scoped state
   return {
     jobs: sanitizedJobs,
     profiles: sanitizedProfiles,
@@ -1119,6 +1463,8 @@ export function sanitizeSharedStateForRequester(
     judges: state.judges || [],
     treasuryProposals: sanitizedTreasuryProposals,
     treasuryHistory: sanitizedTreasuryHistory,
+    notifications: userNotifications,
+    transactions: userTransactions,
     maintenance: state.maintenance || { enabled: false },
     deletedJobIds: Array.from(serverRecentlyDeletedJobs).slice(-100),
   };
@@ -1169,6 +1515,89 @@ io.on("connection", (socket) => {
     if (data && data.address && /^0x[a-fA-F0-9]{40}$/.test(data.address)) {
       socket.data.address = data.address.toLowerCase().trim();
       socket.emit("realtime-sync", sanitizeSharedStateForRequester(sharedState, socket.data.address));
+    }
+  });
+
+  // Real-time job room subscription for instant progress and submission fan-out
+  socket.on("join-job-realtime", (data: any) => {
+    const rawJobId = typeof data === "string" ? data : data?.jobId;
+    if (rawJobId) {
+      const cleanJobId = String(rawJobId).toLowerCase().trim();
+      socket.join(`job:${cleanJobId}`);
+    }
+  });
+
+  // Client sync handler to prevent socket event drop with server ack
+  socket.on("client-sync", async (data: any, callback?: (res: any) => void) => {
+    try {
+      const clientAddr = socket.data?.address;
+      if (!clientAddr || !data?.jobs || !Array.isArray(data.jobs)) {
+        return callback?.({ error: "Invalid sync payload or unauthenticated socket" });
+      }
+      const allowedJobs = data.jobs.filter((j: any) => {
+        if (!j) return false;
+        const isClient = areAddressesEqual(j.client, clientAddr);
+        const isFreelancer = areAddressesEqual(j.freelancer, clientAddr);
+        const isApplicant = (j.applications || []).some((a: any) => a && areAddressesEqual(a.applicant, clientAddr));
+        const isAdmin = isAuthorizedAdmin(clientAddr);
+        return isClient || isFreelancer || isApplicant || isAdmin;
+      });
+      if (allowedJobs.length > 0) {
+        sharedState.jobs = mergeJobsOnServer(sharedState.jobs, allowedJobs);
+        await persistStateToDatabases();
+        broadcastScopedRealtimeSync();
+      }
+      callback?.({ success: true, timestamp: Date.now() });
+    } catch (err: any) {
+      console.warn("[SOCKET client-sync]", err);
+      callback?.({ error: err?.message || "Sync error" });
+    }
+  });
+
+  // Dedicated read receipts marker handler (XEP-0333 chat markers equivalent)
+  socket.on("mark-messages-seen", async (data: { jobId: string; messageIds: string[]; readerAddress: string }, callback?: (res: any) => void) => {
+    try {
+      const { jobId, messageIds, readerAddress } = data || {};
+      if (!jobId || !Array.isArray(messageIds) || messageIds.length === 0 || !readerAddress) {
+        return callback?.({ error: "Missing required fields" });
+      }
+      const cleanReader = readerAddress.toLowerCase().trim();
+      let hasChanges = false;
+      const now = Date.now();
+
+      sharedState.jobs = (sharedState.jobs || []).map((job: any) => {
+        if (!matchJobServer(job, jobId)) return job;
+        const updatedChat = (job.chatMessages || []).map((m: any) => {
+          if (m && m.id && messageIds.includes(m.id)) {
+            if (m.status !== 'seen') {
+              hasChanges = true;
+              const seenBy = Array.from(new Set([...(m.seenBy || []), cleanReader]));
+              return {
+                ...m,
+                status: 'seen',
+                seenAt: now,
+                seenBy,
+              };
+            }
+          }
+          return m;
+        });
+
+        if (!hasChanges) return job;
+        return {
+          ...job,
+          chatMessages: updatedChat,
+        };
+      });
+
+      if (hasChanges) {
+        await persistStateToDatabases();
+        broadcastScopedRealtimeSync();
+      }
+      callback?.({ success: true, seenCount: messageIds.length });
+    } catch (err: any) {
+      console.warn("[SOCKET mark-messages-seen]", err);
+      callback?.({ error: err?.message || "Seen update failed" });
     }
   });
 
@@ -1322,8 +1751,8 @@ io.on("connection", (socket) => {
         if (isAdmin) return true;
         const client = (j.client || "").toLowerCase().trim();
         const freelancer = (j.freelancer || "").toLowerCase().trim();
-        const isApplicant = (j.applications || []).some((a: any) => a && a.applicant && a.applicant.toLowerCase().trim() === socketAddr);
-        return client === socketAddr || freelancer === socketAddr || isApplicant;
+        const isApplicant = (j.applications || []).some((a: any) => a && a.applicant && areAddressesEqual(a.applicant, socketAddr));
+        return areAddressesEqual(client, socketAddr) || areAddressesEqual(freelancer, socketAddr) || isApplicant;
       });
       if (allowedJobs.length > 0) {
         const prevJobs = [...(sharedState.jobs || [])];
@@ -1406,18 +1835,889 @@ io.on("connection", (socket) => {
   });
 });
 
-// REST endpoints for cross-device state synchronization
-app.get("/api/sync", async (req: Request, res: Response) => {
-  // If state is empty in memory, try fetching from primary or backup DB
-  if (!sharedState.jobs || sharedState.jobs.length === 0 || !sharedState.profiles || Object.keys(sharedState.profiles).length === 0) {
-    await loadStateFromDatabase();
+// ── Payment Reliability Core: Multi-Provider RPC Pool, TxManager, and EventIndexer ──
+const primaryRpc = process.env.RPC_URL_PRIMARY || "https://polygon-bor-rpc.publicnode.com";
+const secondaryRpc = process.env.RPC_URL_SECONDARY || "https://polygon.drpc.org";
+const fallbackRpc = process.env.RPC_URL_FALLBACK || "https://1rpc.io/matic";
+const rpcChainId = parseInt(process.env.CHAIN_ID || "137", 10);
+
+export const rpcPool = new RpcPool(
+  [
+    { id: "primary", url: primaryRpc },
+    { id: "secondary", url: secondaryRpc },
+    { id: "fallback", url: fallbackRpc },
+  ],
+  {
+    chainId: rpcChainId,
+    timeoutMs: 8000,
+    maxRetries: 3,
+    circuitBreakerThreshold: 3,
+    circuitBreakerCooldownMs: 30000,
+    blockLagTolerance: 5,
+    cacheTtlMs: 15000,
+  }
+);
+
+// Initialize TxManager from stored state
+const initialTxList: TransactionRecord[] = Object.values(sharedState.transactions || {});
+export const txManager = new TxManager(rpcPool, initialTxList);
+
+// Wire TxManager state transitions to jobs and notifications
+txManager.setOnStateChange(async (tx: TransactionRecord, job: any) => {
+  if (!sharedState.transactions) sharedState.transactions = {};
+  sharedState.transactions[tx.id] = tx;
+
+  if (job) {
+    const jobIndex = (sharedState.jobs || []).findIndex(
+      (j: any) => String(j.id).toLowerCase() === String(job.id).toLowerCase()
+    );
+    if (jobIndex >= 0) {
+      sharedState.jobs[jobIndex] = { ...sharedState.jobs[jobIndex], ...job };
+    }
   }
 
-  const requesterAddress = (
+  // Handle funding failure: return to TERMS_AGREED, keep job listed, notify client
+  if (tx.type === "FUND" && (tx.status === "FAILED" || tx.status === "DROPPED")) {
+    const targetJob = (sharedState.jobs || []).find(
+      (j: any) => String(j.id).toLowerCase() === String(tx.jobId).toLowerCase()
+    );
+    if (targetJob && targetJob.status !== "Funded" && targetJob.status !== "Completed") {
+      targetJob.status = "Selected"; // TERMS_AGREED state
+      targetJob.isJobListed = true;
+      createNotificationOnServer({
+        recipientWallet: tx.from,
+        actorWallet: "0x0000000000000000000000000000000000000000",
+        type: "JOB_STATUS_CHANGED" as any,
+        title: "Funding Transaction Failed",
+        body: "Funding transaction failed or was dropped from mempool. No funds were moved. You can retry funding whenever you are ready.",
+        entityType: "job",
+        entityId: targetJob.id,
+        deepLink: `/jobs/${targetJob.id}`,
+        dedupeKey: `tx_failed_${tx.id}_${tx.status}`,
+      });
+    }
+  }
+
+  // Handle funding confirmed: notify freelancer, mark job as Funded
+  if (tx.type === "FUND" && tx.status === "CONFIRMED") {
+    const targetJob = (sharedState.jobs || []).find(
+      (j: any) => String(j.id).toLowerCase() === String(tx.jobId).toLowerCase()
+    );
+    if (targetJob) {
+      targetJob.status = "Funded";
+      if (!Array.isArray(targetJob.events)) targetJob.events = [];
+      if (!targetJob.events.some((e: any) => e.step === "Funded" && e.status === "completed")) {
+        targetJob.events.push({
+          step: "Funded",
+          status: "completed",
+          timestamp: Date.now(),
+          txHash: tx.txHash,
+        });
+      }
+      if (targetJob.freelancer) {
+        createNotificationOnServer({
+          recipientWallet: targetJob.freelancer,
+          actorWallet: tx.from,
+          type: "JOB_FUNDED" as any,
+          title: "Escrow Funded & Locked",
+          body: `Escrow for "${targetJob.title || 'your job'}" has been verified on Polygon PoS. You may now commence work safely.`,
+          entityType: "job",
+          entityId: targetJob.id,
+          deepLink: `/jobs/${targetJob.id}`,
+          dedupeKey: `escrow_funded_${targetJob.id}_${tx.txHash}`,
+        });
+      }
+    }
+  }
+
+  // Handle release confirmed: notify parties, mark job as Completed
+  if (tx.type === "RELEASE" && tx.status === "CONFIRMED") {
+    const targetJob = (sharedState.jobs || []).find(
+      (j: any) => String(j.id).toLowerCase() === String(tx.jobId).toLowerCase()
+    );
+    if (targetJob) {
+      targetJob.status = "Completed";
+      if (!Array.isArray(targetJob.events)) targetJob.events = [];
+      if (!targetJob.events.some((e: any) => e.step === "Paid" && e.status === "completed")) {
+        targetJob.events.push({
+          step: "Paid",
+          status: "completed",
+          timestamp: Date.now(),
+          txHash: tx.txHash,
+        });
+      }
+      if (targetJob.freelancer) {
+        createNotificationOnServer({
+          recipientWallet: targetJob.freelancer,
+          actorWallet: tx.from,
+          type: "PAYMENT_RELEASED" as any,
+          title: "Payment Released",
+          body: `Funds for "${targetJob.title || 'your job'}" have been released to your wallet.`,
+          entityType: "job",
+          entityId: targetJob.id,
+          deepLink: `/jobs/${targetJob.id}`,
+          dedupeKey: `payment_released_${targetJob.id}_${tx.txHash}`,
+        });
+      }
+    }
+  }
+
+  await persistStateToDatabases();
+  broadcastScopedRealtimeSync();
+});
+
+// Start transaction tracker worker
+if (process.env.NODE_ENV !== "test") {
+  txManager.startWorker(4000);
+}
+
+// Initialize EventIndexer
+const factoryAddress = process.env.JOB_FACTORY_ADDRESS || "0xbE74923BBfd72d400a681915dBcf6e6Adc72C317";
+export const eventIndexer = new EventIndexer(
+  rpcPool,
+  factoryAddress,
+  sharedState.indexerCursor ? { lastBlockNumber: sharedState.indexerCursor, updatedAt: Date.now() } : undefined,
+  50,
+  () => {
+    return (sharedState.jobs || [])
+      .map((j: any) => j.contractAddress)
+      .filter((addr: any) => typeof addr === "string" && addr.startsWith("0x"));
+  }
+);
+
+eventIndexer.setOnEvent(async (eventLog) => {
+  console.log(`[INDEXER] On-chain event detected: ${eventLog.eventName} on ${eventLog.jobAddress} (tx: ${eventLog.txHash})`);
+  sharedState.indexerCursor = eventLog.blockNumber;
+
+  const job = (sharedState.jobs || []).find(
+    (j: any) => j.contractAddress && areAddressesEqual(j.contractAddress, eventLog.jobAddress)
+  );
+
+  if (job) {
+    if (eventLog.eventName === "JobFunded" && job.status !== "Funded" && job.status !== "Completed") {
+      job.status = "Funded";
+      job.escrowStatus = "FUNDED";
+      if (!Array.isArray(job.events)) job.events = [];
+      if (!job.events.some((e: any) => e.step === "Funded" && e.status === "completed")) {
+        job.events.push({
+          step: "Funded",
+          status: "completed",
+          timestamp: Date.now(),
+          txHash: eventLog.txHash,
+        });
+      }
+      if (job.freelancer) {
+        createNotificationOnServer({
+          recipientWallet: job.freelancer,
+          actorWallet: job.client || "0x0000000000000000000000000000000000000000",
+          type: "JOB_FUNDED" as any,
+          title: "Escrow Funded & Locked (Indexed)",
+          body: `Escrow for "${job.title || 'your job'}" was confirmed on-chain. Work can begin safely.`,
+          entityType: "job",
+          entityId: job.id,
+          deepLink: `/jobs/${job.id}`,
+          dedupeKey: `escrow_funded_${job.id}_${eventLog.txHash}`,
+        });
+      }
+    } else if (eventLog.eventName === "PaymentReleased" || eventLog.eventName === "AutoReleased") {
+      job.status = "Completed";
+      job.escrowStatus = "RELEASED";
+      if (!Array.isArray(job.events)) job.events = [];
+      if (!job.events.some((e: any) => (e.step === "Paid" || e.step === "Completed") && e.status === "completed")) {
+        job.events.push({
+          step: "Paid",
+          status: "completed",
+          timestamp: Date.now(),
+          txHash: eventLog.txHash,
+        });
+      }
+      if (job.freelancer) {
+        createNotificationOnServer({
+          recipientWallet: job.freelancer,
+          actorWallet: job.client || "0x0000000000000000000000000000000000000000",
+          type: "PAYMENT_RELEASED" as any,
+          title: "Payment Received",
+          body: `Payment for "${job.title || 'your job'}" has been released to your wallet.`,
+          entityType: "job",
+          entityId: job.id,
+          deepLink: `/jobs/${job.id}`,
+          dedupeKey: `payment_released_${job.id}_${eventLog.txHash}`,
+        });
+      }
+    } else if (eventLog.eventName === "JobCancelled") {
+      // Invariant: Once Completed or Released, a late/stale cancel event must never overwrite it!
+      if (job.status !== "Completed" && job.escrowStatus !== "RELEASED") {
+        job.status = "Cancelled";
+        job.escrowStatus = "CANCELLED";
+      } else {
+        console.warn(`[INDEXER] Refusing to overwrite finalized completed job ${job.id} with JobCancelled event.`);
+      }
+    } else if (eventLog.eventName === "DisputeRaised") {
+      if (job.status !== "Completed") {
+        job.status = "Disputed";
+        job.escrowStatus = "DISPUTED";
+      }
+    }
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+  }
+});
+
+if (process.env.NODE_ENV !== "test") {
+  eventIndexer.startIndexing(10000);
+}
+
+// Initialize DeadlineWorker for server-side deadline, overdue, and stalled step watchdog
+export const deadlineWorker = new DeadlineWorker({
+  getJobs: () => sharedState.jobs || [],
+  getTransactions: () => (sharedState.transactions ? Object.values(sharedState.transactions) : []),
+  rpcPool,
+  createNotification: (notif) => { createNotificationOnServer(notif); },
+  persistState: () => persistStateToDatabases(),
+  broadcastSync: () => broadcastScopedRealtimeSync(),
+  existingNotificationKeys: (sharedState.notifications || []).map((n: any) => n.dedupeKey).filter(Boolean),
+});
+
+if (process.env.NODE_ENV !== "test") {
+  deadlineWorker.start(60000);
+}
+
+// ── REST Endpoints for Durable Transaction Lifecycle ─────────────────────────
+
+// 1. POST /api/tx/intent — Server validates terms and creates immutable transaction record
+app.post("/api/tx/intent", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { jobId, engagementId, type, idempotencyKey } = req.body;
+    const requester = req.session?.wallet || "";
+
+    if (!requester || !ethers.isAddress(requester)) {
+      return res.status(401).json({ error: "Valid wallet address required", code: "UNAUTHORIZED" });
+    }
+    if (!jobId || !type || !idempotencyKey) {
+      return res.status(400).json({ error: "Missing required intent fields: jobId, type, idempotencyKey", code: "INVALID_REQUEST" });
+    }
+
+    // Look up job in server state
+    const job = (sharedState.jobs || []).find(
+      (j: any) => String(j.id).toLowerCase() === String(jobId).toLowerCase()
+    );
+    if (!job) {
+      return res.status(404).json({ error: "Job not found", code: "JOB_NOT_FOUND" });
+    }
+
+    // Enforce authorization
+    const client = (job.client || "").toLowerCase().trim();
+    const freelancer = (job.freelancer || "").toLowerCase().trim();
+    if (type === "FUND" && !areAddressesEqual(client, requester)) {
+      return res.status(403).json({ error: "Only the job client can fund escrow", code: "FORBIDDEN" });
+    }
+    if (type === "RELEASE" && !areAddressesEqual(client, requester) && !isAuthorizedAdmin(requester)) {
+      return res.status(403).json({ error: "Only the job client or admin can release payment", code: "FORBIDDEN" });
+    }
+
+    const { intent, isExisting } = txManager.createIntent({
+      jobId: String(job.id),
+      engagementId: engagementId || job.id,
+      type,
+      from: requester,
+      idempotencyKey,
+      jobData: job,
+    });
+
+    res.json({
+      success: true,
+      isExisting,
+      intent,
+    });
+  } catch (err: any) {
+    if (err.message?.includes("DUPLICATE_FUNDING_BLOCKED")) {
+      return res.status(409).json({
+        error: "A funding transaction is already pending confirmation for this job. You do not need to pay again.",
+        code: "DUPLICATE_FUNDING_BLOCKED",
+      });
+    }
+    console.error("[TX INTENT ERROR]", err);
+    res.status(500).json({ error: err.message || "Failed to create transaction intent", code: "INTENT_ERROR" });
+  }
+});
+
+// 2. POST /api/tx/submitted — Client submits txHash immediately after wallet signs
+app.post("/api/tx/submitted", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { intentId, txHash } = req.body;
+    const sessionWallet = req.session?.wallet || "";
+    if (!intentId || !txHash) {
+      return res.status(400).json({ error: "Missing required fields: intentId, txHash", code: "INVALID_REQUEST" });
+    }
+    if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+      return res.status(400).json({ error: "Invalid transaction hash format", code: "INVALID_HASH" });
+    }
+
+    const existingIntent = txManager.getTransaction(intentId);
+    if (!existingIntent) {
+      return res.status(404).json({ error: "Transaction intent not found", code: "INTENT_NOT_FOUND" });
+    }
+    if (!areAddressesEqual(existingIntent.from, sessionWallet) && !isAuthorizedAdmin(sessionWallet)) {
+      return res.status(403).json({ error: "Forbidden: You are not authorized to submit transactions for this intent", code: "FORBIDDEN" });
+    }
+
+    const intent = txManager.submitTransaction(intentId, txHash);
+    if (!sharedState.transactions) sharedState.transactions = {};
+    sharedState.transactions[intent.id] = intent;
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+
+    res.json({
+      success: true,
+      intent,
+    });
+  } catch (err: any) {
+    console.error("[TX SUBMIT ERROR]", err);
+    res.status(400).json({ error: err.message || "Failed to register submitted transaction", code: "SUBMIT_ERROR" });
+  }
+});
+
+// 3. GET /api/tx/:intentId — Transaction tracker real-time query
+app.get("/api/tx/:intentId", (req: Request, res: Response) => {
+  const { intentId } = req.params;
+  const idStr = Array.isArray(intentId) ? intentId[0] : String(intentId);
+  const tx = txManager.getTransaction(idStr) || txManager.getTransactionByHash(idStr);
+  if (!tx) {
+    return res.status(404).json({ error: "Transaction record not found", code: "NOT_FOUND" });
+  }
+  res.json({ success: true, transaction: tx });
+});
+
+// 4. GET /api/account/balances — Quorum-verified token balances from server RPC pool
+app.get("/api/account/balances", async (req: Request, res: Response) => {
+  try {
+    const rawAddress = (
+      (req.query.address as string) ||
+      ((req as any).session?.wallet as string) ||
+      (req.headers["x-wallet-address"] as string) ||
+      ""
+    ).trim();
+
+    if (!rawAddress || !ethers.isAddress(rawAddress)) {
+      return res.status(400).json({
+        error: "Valid Polygon (EVM) wallet address required",
+        code: "INVALID_ADDRESS",
+        received: req.query.address || null
+      });
+    }
+
+    const address = ethers.getAddress(rawAddress).toLowerCase();
+
+    const usdcAddr = process.env.USDC_ADDRESS || "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
+    const usdtAddr = process.env.USDT_ADDRESS || "0xc2132D05D31c914a87C6611C10748AEb04B58e8F";
+
+    const balances = await rpcPool.getBalances(address, usdcAddr, usdtAddr);
+    res.json({
+      success: true,
+      address,
+      balances: {
+        nativePOL: balances.nativePOL.toString(),
+        usdc: balances.usdc.toString(),
+        usdt: balances.usdt.toString(),
+      },
+      formatted: {
+        nativePOL: ethers.formatEther(balances.nativePOL),
+        usdc: ethers.formatUnits(balances.usdc, 6),
+        usdt: ethers.formatUnits(balances.usdt, 6),
+      },
+      timestamp: Date.now(),
+    });
+  } catch (err: any) {
+    console.warn("[RPC BALANCES ERROR]", err?.message || err);
+    res.status(503).json({ error: "Network is slow, unable to verify balances. Please retry shortly.", code: "RPC_SLOW" });
+  }
+});
+
+// Cache for network fee estimations
+let networkFeeCache: {
+  timestamp: number;
+  data: any;
+} | null = null;
+const BASE_FEE_HISTORY: bigint[] = [];
+
+// 4b. GET /api/network/fees — Live, cached, resilient Polygon PoS network gas fees
+app.get("/api/network/fees", async (_req: Request, res: Response) => {
+  const now = Date.now();
+  const CACHE_TTL_MS = 15000; // 15s cache
+
+  if (networkFeeCache && (now - networkFeeCache.timestamp) < CACHE_TTL_MS) {
+    return res.json({
+      ...networkFeeCache.data,
+      ageMs: now - networkFeeCache.timestamp,
+      isStale: false,
+    });
+  }
+
+  try {
+    const feeData = await rpcPool.execute(async (provider) => {
+      return await provider.getFeeData();
+    });
+
+    // Polygon minimum tip cap floor is 25-30 Gwei (30 Gwei safe floor)
+    const MIN_PRIORITY_FEE = ethers.parseUnits("30", "gwei");
+    const priorityFee = feeData.maxPriorityFeePerGas && feeData.maxPriorityFeePerGas > MIN_PRIORITY_FEE
+      ? feeData.maxPriorityFeePerGas
+      : MIN_PRIORITY_FEE;
+
+    // Derive base fee from gasPrice minus tip cap or fallback to standard 35 Gwei
+    const rawBaseFee = feeData.gasPrice ? (feeData.gasPrice > priorityFee ? feeData.gasPrice - priorityFee : 30000000000n) : 35000000000n;
+    const baseFee = rawBaseFee > 0n ? rawBaseFee : 35000000000n;
+
+    // Track rolling base fee history to detect network spikes
+    BASE_FEE_HISTORY.push(baseFee);
+    if (BASE_FEE_HISTORY.length > 20) BASE_FEE_HISTORY.shift();
+
+    const medianBaseFee = [...BASE_FEE_HISTORY].sort((a, b) => (a < b ? -1 : 1))[Math.floor(BASE_FEE_HISTORY.length / 2)] || baseFee;
+    const isBusy = baseFee > (medianBaseFee * 250n) / 100n;
+
+    // Typical fee per gas = baseFee + priorityFee
+    const typicalFeePerGas = baseFee + priorityFee;
+    // Wallet maximum = buffered base fee (1.35x) + priority fee
+    const maxFeePerGas = ((baseFee * 135n) / 100n) + priorityFee;
+
+    const ACTION_METRICS: Record<string, { medianGas: number; gasLimit: number; name: string }> = {
+      fundNative: { medianGas: 82000, gasLimit: 120000, name: "Fund Escrow (POL)" },
+      fundUsdc: { medianGas: 142000, gasLimit: 200000, name: "Fund Escrow (USDC)" },
+      approveUsdc: { medianGas: 48200, gasLimit: 75000, name: "Approve USDC" },
+      fundUsdt: { medianGas: 142000, gasLimit: 200000, name: "Fund Escrow (USDT)" },
+      releasePayment: { medianGas: 141800, gasLimit: 220000, name: "Release Escrow Payment" },
+      submitWork: { medianGas: 72000, gasLimit: 120000, name: "Submit Work Deliverable" },
+      payFeeDue: { medianGas: 52000, gasLimit: 90000, name: "Pay Platform Fee Due" },
+      refund: { medianGas: 65000, gasLimit: 100000, name: "Refund Escrow" },
+    };
+
+    const actionEstimates: Record<string, any> = {};
+    for (const [key, meta] of Object.entries(ACTION_METRICS)) {
+      const typicalCostWei = BigInt(meta.medianGas) * typicalFeePerGas;
+      const maxCostWei = BigInt(meta.gasLimit) * maxFeePerGas;
+
+      actionEstimates[key] = {
+        name: meta.name,
+        medianGas: meta.medianGas,
+        gasLimit: meta.gasLimit,
+        typicalWei: typicalCostWei.toString(),
+        maxWei: maxCostWei.toString(),
+        typicalPol: ethers.formatEther(typicalCostWei),
+        maxPol: ethers.formatEther(maxCostWei),
+      };
+    }
+
+    const payload = {
+      success: true,
+      chainId: 137,
+      baseFeeWei: baseFee.toString(),
+      priorityFeeWei: priorityFee.toString(),
+      typicalFeePerGasWei: typicalFeePerGas.toString(),
+      maxFeePerGasWei: maxFeePerGas.toString(),
+      baseFeeGwei: ethers.formatUnits(baseFee, "gwei"),
+      priorityFeeGwei: ethers.formatUnits(priorityFee, "gwei"),
+      typicalFeePerGasGwei: ethers.formatUnits(typicalFeePerGas, "gwei"),
+      maxFeePerGasGwei: ethers.formatUnits(maxFeePerGas, "gwei"),
+      trend: isBusy ? "busy" : "normal",
+      isBusy,
+      suggestedReservePol: "0.1",
+      actions: actionEstimates,
+      timestamp: now,
+    };
+
+    networkFeeCache = {
+      timestamp: now,
+      data: payload,
+    };
+
+    return res.json({
+      ...payload,
+      ageMs: 0,
+      isStale: false,
+    });
+  } catch (err: any) {
+    console.warn("[NETWORK FEES ERROR]", err?.message || err);
+    if (networkFeeCache) {
+      return res.json({
+        ...networkFeeCache.data,
+        ageMs: now - networkFeeCache.timestamp,
+        isStale: true,
+      });
+    }
+    return res.json({
+      success: true,
+      chainId: 137,
+      baseFeeGwei: "35.0",
+      priorityFeeGwei: "30.0",
+      typicalFeePerGasGwei: "65.0",
+      maxFeePerGasGwei: "90.0",
+      trend: "normal",
+      isBusy: false,
+      suggestedReservePol: "0.1",
+      ageMs: 0,
+      isStale: true,
+      fallback: true,
+      actions: {
+        fundNative: { medianGas: 82000, gasLimit: 120000, typicalPol: "0.0053", maxPol: "0.0108" },
+        fundUsdc: { medianGas: 142000, gasLimit: 200000, typicalPol: "0.0092", maxPol: "0.0180" },
+        approveUsdc: { medianGas: 48200, gasLimit: 75000, typicalPol: "0.0031", maxPol: "0.0068" },
+        releasePayment: { medianGas: 141800, gasLimit: 220000, typicalPol: "0.0092", maxPol: "0.0198" },
+        submitWork: { medianGas: 72000, gasLimit: 120000, typicalPol: "0.0047", maxPol: "0.0108" },
+        payFeeDue: { medianGas: 52000, gasLimit: 90000, typicalPol: "0.0034", maxPol: "0.0081" },
+      },
+      timestamp: now,
+    });
+  }
+});
+
+// 5. GET /api/health/rpc — RPC health, breakers, and public network banner
+app.get("/api/health/rpc", (req: Request, res: Response) => {
+  const requester = (
     (req.headers["x-wallet-address"] as string) ||
     (req.query.address as string) ||
-    "0x0000000000000000000000000000000000000000"
+    ""
   ).toLowerCase().trim();
+
+  const isAdmin = isAuthorizedAdmin(requester);
+  const health = rpcPool.getHealth();
+
+  if (isAdmin) {
+    // Admin receives full provider telemetry
+    return res.json({
+      success: true,
+      ...health,
+      indexer: {
+        cursor: sharedState.indexerCursor || 0,
+      },
+      transactions: {
+        total: txManager.getAllTransactions().length,
+      },
+    });
+  }
+
+  // Public receives sanitized status
+  const isDegraded = health.healthyProviders < health.totalProviders;
+  const isDown = health.healthyProviders === 0;
+
+  res.json({
+    success: true,
+    status: isDown ? "down" : (isDegraded ? "degraded" : "healthy"),
+    isHealthy: !isDown,
+    currentBlock: health.currentBlock,
+    message: isDown
+      ? "Network is experiencing severe latency. Your funds are completely safe on Polygon PoS."
+      : (isDegraded ? "Network is slower than usual. Confirmations may take a moment." : "Network is running normally."),
+  });
+});
+
+// 6. GET /api/reconciliation/report — Nightly / on-demand chain-to-DB reconciliation report
+app.get("/api/reconciliation/report", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const report = await eventIndexer.reconcile(sharedState.jobs || []);
+    res.json({
+      success: true,
+      report,
+    });
+  } catch (err: any) {
+    console.error("[RECONCILIATION ERROR]", err);
+    res.status(500).json({ error: err.message || "Failed to generate reconciliation report", code: "RECONCILE_ERROR" });
+  }
+});
+
+// 7. GET /api/health/deadline-worker — Health, tick latency, and notification metrics for deadline worker
+app.get("/api/health/deadline-worker", (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    status: deadlineWorker.getStatus(),
+    config: DEADLINE_CONFIG,
+  });
+});
+
+// 8. GET /api/admin/audit/lifecycle — Read-only data audit for mislabeled jobs, premature SBTs, unconfirmed fundings
+app.get("/api/admin/audit/lifecycle", requireAdmin, (req: Request, res: Response) => {
+
+  const jobs = sharedState.jobs || [];
+  const transactions: any[] = sharedState.transactions ? Object.values(sharedState.transactions) : [];
+  const sbtCerts = (sharedState as any).sbtCertificates || [];
+
+  const mislabeledJobs: any[] = [];
+  const prematureSbtIssuances: any[] = [];
+  const unconfirmedFundings: any[] = [];
+
+  for (const job of jobs) {
+    const events = Array.isArray(job.events) ? job.events : [];
+    const hasConfirmedReleaseTx = transactions.some(
+      (tx: any) => (tx.jobId === job.id || (job.contractAddress && areAddressesEqual(tx.to, job.contractAddress))) &&
+        tx.type === 'RELEASE' && tx.status === 'CONFIRMED'
+    );
+    const hasIndexedReleaseEvent = events.some(
+      (e: any) => (e.step === 'Paid' || e.step === 'PaymentReleased' || e.step === 'AutoReleased') && e.status === 'completed'
+    );
+
+    const hasConfirmedFundTx = transactions.some(
+      (tx: any) => (tx.jobId === job.id || (job.contractAddress && areAddressesEqual(tx.to, job.contractAddress))) &&
+        tx.status === 'CONFIRMED'
+    );
+    const hasIndexedFundEvent = events.some(
+      (e: any) => (e.step === 'Funded' || e.step === 'EscrowFunded') && e.status === 'completed'
+    );
+
+    // Mislabeled: Completed without confirmed release
+    if (job.status === 'Completed' && !hasConfirmedReleaseTx && !hasIndexedReleaseEvent) {
+      mislabeledJobs.push({
+        jobId: job.id,
+        title: job.title,
+        contractAddress: job.contractAddress || null,
+        client: job.client,
+        freelancer: job.freelancer,
+        currentStatus: job.status,
+        hasSubmission: Boolean(job.deliverableSubmittedAt || job.proof),
+        events,
+        violation: "Marked Completed without confirmed on-chain release transaction or indexed event",
+        proposedCorrection: {
+          action: "REVERT_TO_SUBMITTED_OR_IN_PROGRESS",
+          targetStatus: (job.deliverableSubmittedAt || job.proof) ? "Submitted" : "Funded",
+          note: "Awaiting client approval and on-chain release transaction confirmation",
+        },
+      });
+    }
+
+    // Premature SBT issuance without confirmed release
+    const sbt = sbtCerts.find((c: any) => c.jobId === job.id);
+    if ((sbt || job.nftMinted) && !hasConfirmedReleaseTx && !hasIndexedReleaseEvent) {
+      prematureSbtIssuances.push({
+        jobId: job.id,
+        sbtId: sbt?.id,
+        freelancer: job.freelancer,
+        violation: "SBT Work Certificate issued without confirmed on-chain escrow release",
+        proposedCorrection: {
+          action: "FLAG_PENDING_GOVERNANCE_REVIEW",
+          note: "Do not delete or revoke without administrator approval. Display as under review in UI.",
+        },
+      });
+    }
+
+    // Unconfirmed funding
+    if ((job.status === 'Funded' || job.status === 'Submitted') && !hasConfirmedFundTx && !hasIndexedFundEvent && !job.contractAddress) {
+      unconfirmedFundings.push({
+        jobId: job.id,
+        client: job.client,
+        currentStatus: job.status,
+        violation: "Job marked Funded or Submitted without confirmed funding transaction or contract address",
+        proposedCorrection: {
+          action: "REVERT_TO_SELECTED",
+          targetStatus: "Selected",
+          note: "Escrow was never locked on-chain.",
+        },
+      });
+    }
+  }
+
+  res.json({
+    success: true,
+    timestamp: Date.now(),
+    summary: {
+      totalJobsAudited: jobs.length,
+      mislabeledCompletedJobs: mislabeledJobs.length,
+      prematureSbtIssuances: prematureSbtIssuances.length,
+      unconfirmedFundings: unconfirmedFundings.length,
+    },
+    mislabeledJobs,
+    prematureSbtIssuances,
+    unconfirmedFundings,
+    executionPolicy: "READ_ONLY — No database mutations applied. Corrections require governance approval.",
+  });
+});
+
+// 9. POST /api/jobs/:id/extension/request — Freelancer requests deadline extension
+app.post("/api/jobs/:id/extension/request", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    const { requestedDays, reason } = req.body;
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    const job = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
+    if (!job) return res.status(404).json({ error: "Job not found" });
+
+    const isFreelancer = requesterAddress && areAddressesEqual(job.freelancer, requesterAddress);
+    const isAdmin = requesterAddress && isAuthorizedAdmin(requesterAddress);
+    if (!isFreelancer && !isAdmin) {
+      return res.status(403).json({ error: "Only the assigned freelancer can request a deadline extension" });
+    }
+
+    const days = Number(requestedDays);
+    if (!days || days < 1 || days > DEADLINE_CONFIG.MAX_EXTENSION_DAYS) {
+      return res.status(400).json({
+        error: `Requested days must be between 1 and ${DEADLINE_CONFIG.MAX_EXTENSION_DAYS}`,
+      });
+    }
+
+    const existingExtensions = job.extensionRequests || [];
+    const approvedCount = existingExtensions.filter((e: any) => e.status === "Approved").length;
+    if (approvedCount >= DEADLINE_CONFIG.MAX_EXTENSIONS) {
+      return res.status(409).json({
+        error: `Maximum number of deadline extensions (${DEADLINE_CONFIG.MAX_EXTENSIONS}) has already been reached.`,
+        code: "MAX_EXTENSIONS_EXCEEDED",
+      });
+    }
+
+    const pendingExt = existingExtensions.find((e: any) => e.status === "Pending");
+    if (pendingExt) {
+      return res.status(409).json({
+        error: "An extension request is already pending client review.",
+        code: "EXTENSION_PENDING",
+      });
+    }
+
+    const newExt = {
+      id: `ext_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      requestedDays: days,
+      reason: String(reason || "Additional time requested to complete deliverables").trim(),
+      requestedAt: Date.now(),
+      status: "Pending",
+    };
+
+    job.extensionRequests = [newExt, ...existingExtensions];
+    job.updatedAt = Date.now();
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+
+    if (job.client) {
+      createNotificationOnServer({
+        recipientWallet: job.client,
+        actorWallet: requesterAddress,
+        type: "DEADLINE_EXTENSION_REQUESTED",
+        title: `Deadline Extension Requested (+${days} Days)`,
+        body: `Freelancer requested +${days} days for "${job.title}". Reason: ${newExt.reason}`,
+        entityType: "job",
+        entityId: job.id,
+        deepLink: `/workspace?jobId=${job.id}`,
+        dedupeKey: `ext_req_${newExt.id}`,
+      });
+    }
+
+    res.json({ success: true, extension: newExt, job });
+  } catch (err: any) {
+    console.error("[EXTENSION REQUEST ERROR]", err);
+    res.status(500).json({ error: err.message || "Failed to submit extension request" });
+  }
+});
+
+// 10. POST /api/jobs/:id/extension/decision — Client approves or rejects deadline extension
+app.post("/api/jobs/:id/extension/decision", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    const { extensionId, decision, counterDays } = req.body;
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    const job = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
+    if (!job) return res.status(404).json({ error: "Job not found" });
+
+    const isClient = requesterAddress && areAddressesEqual(job.client, requesterAddress);
+    const isAdmin = requesterAddress && isAuthorizedAdmin(requesterAddress);
+    if (!isClient && !isAdmin) {
+      return res.status(403).json({ error: "Only the job client can approve or reject deadline extensions" });
+    }
+
+    const existingExtensions: any[] = job.extensionRequests || [];
+    const targetExt = existingExtensions.find((e: any) => e.id === extensionId || (!extensionId && e.status === "Pending"));
+    if (!targetExt || targetExt.status !== "Pending") {
+      return res.status(404).json({ error: "No pending extension request found to decide on" });
+    }
+
+    const isApproved = decision === "APPROVE";
+    targetExt.status = isApproved ? "Approved" : "Rejected";
+    targetExt.respondedAt = Date.now();
+    targetExt.approved = isApproved;
+
+    if (isApproved) {
+      const addedDays = Number(counterDays || targetExt.requestedDays);
+      const addedMs = addedDays * 86400000;
+
+      if (job.deadlineTimestamp) {
+        job.deadlineTimestamp = normalizeTimestampMs(job.deadlineTimestamp) + addedMs;
+      } else if (job.deadlineDays) {
+        job.deadlineDays = Number(job.deadlineDays) + addedDays;
+      } else {
+        job.deadlineTimestamp = Date.now() + addedMs;
+      }
+
+      job.deadlineVersion = (job.deadlineVersion || 1) + 1;
+      job.updatedAt = Date.now();
+
+      if (job.freelancer) {
+        createNotificationOnServer({
+          recipientWallet: job.freelancer,
+          actorWallet: requesterAddress,
+          type: "DEADLINE_EXTENSION_APPROVED",
+          title: `Extension Approved (+${addedDays} Days)`,
+          body: `Client approved your deadline extension for "${job.title}". New delivery deadline applied.`,
+          entityType: "job",
+          entityId: job.id,
+          deepLink: `/workspace?jobId=${job.id}`,
+          dedupeKey: `ext_app_${targetExt.id}`,
+        });
+      }
+    } else {
+      targetExt.status = "Rejected";
+      job.updatedAt = Date.now();
+
+      if (job.freelancer) {
+        createNotificationOnServer({
+          recipientWallet: job.freelancer,
+          actorWallet: requesterAddress,
+          type: "DEADLINE_EXTENSION_REJECTED",
+          title: "Extension Request Declined",
+          body: `Client declined the extension request for "${job.title}". Original deadline remains in effect.`,
+          entityType: "job",
+          entityId: job.id,
+          deepLink: `/workspace?jobId=${job.id}`,
+          dedupeKey: `ext_rej_${targetExt.id}`,
+        });
+      }
+    }
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+
+    res.json({ success: true, decision, extension: targetExt, job });
+  } catch (err: any) {
+    console.error("[EXTENSION DECISION ERROR]", err);
+    res.status(500).json({ error: err.message || "Failed to record extension decision" });
+  }
+});
+
+// REST endpoints for cross-device state synchronization
+app.get("/api/sync", async (req: Request, res: Response) => {
+  // If refresh is requested or state is empty in memory, try fetching from primary or backup DB
+  if (
+    req.query.refresh === "true" ||
+    ((!sharedState.jobs || sharedState.jobs.length === 0) &&
+     (!sharedState.profiles || Object.keys(sharedState.profiles).length === 0))
+  ) {
+    await loadStateFromDatabase();
+    if (fs.existsSync(STATE_FILE)) {
+      try {
+        const raw = fs.readFileSync(STATE_FILE, "utf-8");
+        sharedState = { ...sharedState, ...JSON.parse(raw) };
+      } catch {}
+    }
+  }
+
+  // Ensure mock or expired jobs are pruned from in-memory shared state before returning
+  pruneExpiredJobsOnServer();
+
+  const requesterAddress = ((req as any).session?.wallet || "0x0000000000000000000000000000000000000000").toLowerCase().trim();
 
   const sanitized = sanitizeSharedStateForRequester(sharedState, requesterAddress);
   res.json(sanitized);
@@ -1431,20 +2731,9 @@ app.get("/api/maintenance", (req: Request, res: Response) => {
   });
 });
 
-app.post("/api/maintenance/reset", async (req: Request, res: Response) => {
+app.post("/api/maintenance/reset", requireAdmin, async (req: Request, res: Response) => {
   try {
-    const requesterAddress = (
-      (req.headers["x-wallet-address"] as string) ||
-      (req.body?.address as string) ||
-      ""
-    ).toLowerCase().trim();
-
-    if (!isAuthorizedAdmin(requesterAddress)) {
-      return res.status(403).json({
-        error: "Forbidden: Only authorized protocol administrators can reset maintenance mode",
-        code: "FORBIDDEN_NOT_ADMIN"
-      });
-    }
+    const requesterAddress = req.session?.wallet || "";
 
     sharedState.maintenance = {
       enabled: false,
@@ -1463,21 +2752,9 @@ app.post("/api/maintenance/reset", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/maintenance/toggle", async (req: Request, res: Response) => {
+app.post("/api/maintenance/toggle", requireAdmin, async (req: Request, res: Response) => {
   try {
-    const requesterAddress = (
-      (req.headers["x-wallet-address"] as string) ||
-      (req.body?.address as string) ||
-      ""
-    ).toLowerCase().trim();
-
-    if (!isAuthorizedAdmin(requesterAddress)) {
-      return res.status(403).json({
-        error: "Forbidden: Only authorized protocol administrators can toggle maintenance mode",
-        code: "FORBIDDEN_NOT_ADMIN"
-      });
-    }
-
+    const requesterAddress = req.session?.wallet || "";
     const { enabled, durationMinutes, reason } = req.body || {};
     const isEnabled = Boolean(enabled);
     const minutes = Number(durationMinutes) || 45;
@@ -1506,21 +2783,9 @@ app.post("/api/maintenance/toggle", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/maintenance/changelog", async (req: Request, res: Response) => {
+app.post("/api/maintenance/changelog", requireAdmin, async (req: Request, res: Response) => {
   try {
-    const requesterAddress = (
-      (req.headers["x-wallet-address"] as string) ||
-      (req.body?.address as string) ||
-      ""
-    ).toLowerCase().trim();
-
-    if (!isAuthorizedAdmin(requesterAddress)) {
-      return res.status(403).json({
-        error: "Forbidden: Only authorized protocol administrators can post changelog updates",
-        code: "FORBIDDEN_NOT_ADMIN"
-      });
-    }
-
+    const requesterAddress = req.session?.wallet || "";
     const { title, desc, status } = req.body || {};
     if (!title || !desc) {
       return res.status(400).json({ error: "Missing required fields: title and desc are required" });
@@ -1554,20 +2819,9 @@ app.post("/api/maintenance/changelog", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/maintenance/changelog/delete", async (req: Request, res: Response) => {
+app.post("/api/maintenance/changelog/delete", requireAdmin, async (req: Request, res: Response) => {
   try {
-    const requesterAddress = (
-      (req.headers["x-wallet-address"] as string) ||
-      (req.body?.address as string) ||
-      ""
-    ).toLowerCase().trim();
-
-    if (!isAuthorizedAdmin(requesterAddress)) {
-      return res.status(403).json({
-        error: "Forbidden: Only authorized protocol administrators can delete changelog updates",
-        code: "FORBIDDEN_NOT_ADMIN"
-      });
-    }
+    const requesterAddress = req.session?.wallet || "";
 
     const { id } = req.body || {};
     if (!id) {
@@ -1593,22 +2847,12 @@ app.post("/api/maintenance/changelog/delete", async (req: Request, res: Response
   }
 });
 
-app.post("/api/sync", async (req: Request, res: Response) => {
+app.post("/api/sync", requireAuth, async (req: Request, res: Response) => {
   try {
-    let requesterAddress = (
-      (req.headers["x-wallet-address"] as string) ||
-      (req.query.address as string) ||
-      ""
-    ).toLowerCase().trim();
+    const requesterAddress = (req as any).session?.wallet || "";
 
-    // Fallback: If header was omitted in dual-write, extract client address from incoming job
-    if ((!requesterAddress || !/^0x[a-fA-F0-9]{40}$/.test(requesterAddress)) && req.body?.jobs && Array.isArray(req.body.jobs) && req.body.jobs[0]?.client) {
-      requesterAddress = String(req.body.jobs[0].client).toLowerCase().trim();
-    }
-
-    // Guard: Disallow unauthenticated or console anonymous state mutation attempts
     if (!requesterAddress || !/^0x[a-fA-F0-9]{40}$/.test(requesterAddress)) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: "Unauthorized: Valid authenticated wallet address required for state synchronization",
         code: "UNAUTHORIZED_CONSOLE_MUTATION"
       });
@@ -1634,13 +2878,41 @@ app.post("/api/sync", async (req: Request, res: Response) => {
 
       // 1. Jobs: Users can only create or update jobs they are party to (or admin)
       if (Array.isArray(incoming.jobs)) {
+        const requesterProf = (sharedState.profiles || {})[requesterAddress];
+        const requesterMode = requesterProf?.accountMode || 'both';
+        const existingJobIds = new Set((sharedState.jobs || []).map((j: any) => String(j.id).toLowerCase()));
+
         const allowedJobs = incoming.jobs.filter((j: any) => {
-          if (!j) return false;
+          if (!j || isDemoOrMockJobOnServer(j)) return false;
           if (isAdmin) return true;
           const client = (j.client || '').toLowerCase().trim();
           const freelancer = (j.freelancer || '').toLowerCase().trim();
-          const isApplicant = (j.applications || []).some((a: any) => a && a.applicant && a.applicant.toLowerCase().trim() === requesterAddress);
-          return client === requesterAddress || freelancer === requesterAddress || isApplicant;
+          const isNewJob = !existingJobIds.has(String(j.id).toLowerCase());
+
+          // If new job posting, enforce that freelancer-only accounts cannot post jobs
+          if (isNewJob && areAddressesEqual(client, requesterAddress) && requesterMode === 'freelancer') {
+            console.warn(`[ACCOUNT_MODE] Rejecting job creation from freelancer-only account ${requesterAddress}`);
+            return false;
+          }
+
+          // If applicant, check canApplyToJob (prevent owner applying or client-only applying)
+          if (Array.isArray(j.applications)) {
+            const myApp = j.applications.find((a: any) => a && a.applicant && areAddressesEqual(a.applicant, requesterAddress));
+            if (myApp) {
+              const jobWithoutMyApp = {
+                ...j,
+                applications: (j.applications || []).filter((a: any) => !(a && a.applicant && areAddressesEqual(a.applicant, requesterAddress)))
+              };
+              const check = canApplyToJob({ address: requesterAddress, accountMode: requesterMode }, jobWithoutMyApp);
+              if (!check.allowed && check.reason !== 'ALREADY_APPLIED') {
+                console.warn(`[ACCOUNT_MODE] Rejecting proposal from ${requesterAddress} on job ${j.id}: ${check.reason}`);
+                j.applications = j.applications.filter((a: any) => !(a && a.applicant && areAddressesEqual(a.applicant, requesterAddress)));
+              }
+            }
+          }
+
+          const isApplicant = (j.applications || []).some((a: any) => a && a.applicant && areAddressesEqual(a.applicant, requesterAddress));
+          return areAddressesEqual(client, requesterAddress) || areAddressesEqual(freelancer, requesterAddress) || isApplicant;
         });
         if (allowedJobs.length > 0) {
           sharedState.jobs = mergeJobsOnServer(sharedState.jobs, allowedJobs);
@@ -1655,10 +2927,29 @@ app.post("/api/sync", async (req: Request, res: Response) => {
         } else {
           for (const [profAddr, profData] of Object.entries(incoming.profiles)) {
             if (profAddr.toLowerCase().trim() === requesterAddress) {
+              const profObj: any = { ...(profData as any) };
+              // Enforce Sybil Resistance: check if GitHub account is already bound to another wallet
+              if (profObj && profObj.githubVerified && profObj.githubUsername) {
+                const targetGh = String(profObj.githubUsername).toLowerCase().trim();
+                let dupWallet: string | null = null;
+                for (const [wKey, existingProf] of Object.entries(sharedState.profiles || {})) {
+                  if (wKey.toLowerCase().trim() !== requesterAddress && existingProf?.githubVerified) {
+                    if (String(existingProf?.githubUsername || '').toLowerCase().trim() === targetGh) {
+                      dupWallet = wKey;
+                      break;
+                    }
+                  }
+                }
+                if (dupWallet) {
+                  console.warn(`[SYBIL SHIELD] Rejected duplicate GitHub binding for @${targetGh}. Already bound to ${dupWallet}`);
+                  delete profObj.githubUsername;
+                  profObj.githubVerified = false;
+                }
+              }
               sharedState.profiles = {
                 ...sharedState.profiles,
-                [requesterAddress]: profData as any,
-                [profAddr]: profData as any,
+                [requesterAddress]: profObj,
+                [profAddr]: profObj,
               };
             }
           }
@@ -1776,8 +3067,22 @@ app.post("/api/jobs", async (req: Request, res: Response) => {
       }
     }
 
+    // Account Mode Guard: Freelancer-only mode cannot post jobs
+    const requesterProfile = (sharedState.profiles || {})[requesterAddress];
+    const requesterMode = requesterProfile?.accountMode || "both";
+    if (!isModeAllowedForRole(requesterMode, "client")) {
+      return res.status(403).json({
+        error: "Freelancer-only mode cannot post jobs. Switch to client or both mode in settings.",
+        code: "FREELANCER_ONLY_MODE",
+      });
+    }
+
     const incomingJobs = Array.isArray(jobData) ? jobData : [jobData];
-    sharedState.jobs = mergeJobsOnServer(sharedState.jobs || [], incomingJobs);
+    const validIncoming = incomingJobs.filter((j: any) => !isDemoOrMockJobOnServer(j));
+    if (validIncoming.length === 0) {
+      return res.status(400).json({ error: "Invalid job payload or rejected test/mock job" });
+    }
+    sharedState.jobs = mergeJobsOnServer(sharedState.jobs || [], validIncoming);
 
     await persistStateToDatabases();
     broadcastScopedRealtimeSync();
@@ -1821,23 +3126,250 @@ app.patch("/api/jobs/:id", async (req: Request, res: Response) => {
     ).toLowerCase().trim();
 
     const targetJob = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
-
-    if (targetJob && requesterAddress) {
-      const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
-      const isAdmin = isAuthorizedAdmin(requesterAddress);
-      if (!isClient && !isAdmin) {
-        return res.status(403).json({ error: "Forbidden: Only job creator or admin can update job details" });
-      }
+    if (!targetJob) {
+      return res.status(404).json({ error: "Job not found" });
     }
+
+    const isClient = requesterAddress ? areAddressesEqual(targetJob.client, requesterAddress) : false;
+    const isFreelancer = requesterAddress ? areAddressesEqual(targetJob.freelancer, requesterAddress) : false;
+    const isApplicant = requesterAddress ? (targetJob.applications || []).some((a: any) => areAddressesEqual(a.applicant, requesterAddress)) : false;
+    const isAdmin = requesterAddress ? isAuthorizedAdmin(requesterAddress) : false;
+
+    if (requesterAddress && !isClient && !isFreelancer && !isApplicant && !isAdmin) {
+      return res.status(403).json({ error: "Forbidden: Only job participants or admin can update job details" });
+    }
+
+    // Engagement Display Guard: Once a job is completed and settled, block submissions, revisions, and modifications
+    const currentDisplay = getEngagementDisplayState(targetJob, sharedState.transactions ? Object.values(sharedState.transactions) : []);
+    if (currentDisplay.isCompleted || targetJob.status === 'Completed' || (targetJob as any).escrowStatus === 'RELEASED') {
+      return res.status(409).json({
+        error: "ACTION_LOCKED: Cannot update deliverables, submit work, or request revisions for a job that is already completed and settled.",
+        code: "JOB_ALREADY_COMPLETED",
+      });
+    }
+
+    // Role-specific mutation guards
+    const hasProgressUpdate = Boolean(updates.progressUpdate || (updates.progressUpdates && updates.progressUpdates.length > (targetJob.progressUpdates?.length || 0)));
+    const hasSubmission = Boolean(updates.proof || updates.submission || (updates.status === 'Submitted' && targetJob.status !== 'Submitted'));
+    const hasRevisionRequest = Boolean(updates.modificationRequest || (updates.modificationRequests && updates.modificationRequests.length > (targetJob.modificationRequests?.length || 0)));
+
+    if (hasProgressUpdate && requesterAddress && !isFreelancer && !isAdmin) {
+      return res.status(403).json({ error: "Only the assigned freelancer can post progress updates" });
+    }
+
+    if (hasSubmission && requesterAddress && !isFreelancer && !isAdmin) {
+      return res.status(403).json({ error: "Only the assigned freelancer can submit work deliverables" });
+    }
+
+    if (hasRevisionRequest && requesterAddress && !isClient && !isAdmin) {
+      return res.status(403).json({ error: "Only the client can request work revisions" });
+    }
+
+    // State machine validation
+    const validProgressStates = ['Selected', 'Funded', 'In Progress', 'Submitted', 'Revision Requested'];
+    if (hasProgressUpdate && !validProgressStates.some(st => st.toLowerCase() === (targetJob.status || '').toLowerCase()) && !isAdmin) {
+      return res.status(409).json({
+        error: `Cannot update progress when job is in "${targetJob.status}" status. Allowed states: ${validProgressStates.join(', ')}`,
+        code: "INVALID_STATE_TRANSITION"
+      });
+    }
+
+    const validSubmissionStates = ['Funded', 'In Progress', 'Revision Requested', 'Submitted'];
+    if (hasSubmission && !validSubmissionStates.some(st => st.toLowerCase() === (targetJob.status || '').toLowerCase()) && !isAdmin) {
+      return res.status(409).json({
+        error: `Cannot submit work when job is in "${targetJob.status}" status. Allowed states: ${validSubmissionStates.join(', ')}`,
+        code: "INVALID_STATE_TRANSITION"
+      });
+    }
+
+    if (hasRevisionRequest && (targetJob.status || '').toLowerCase() !== 'submitted' && !isAdmin) {
+      return res.status(409).json({
+        error: `Cannot request revision when job is in "${targetJob.status}" status. Work must be in "Submitted" status.`,
+        code: "INVALID_STATE_TRANSITION"
+      });
+    }
+
+    let realtimeEventType = 'JOB_UPDATED';
 
     sharedState.jobs = (sharedState.jobs || []).map((j: any) => {
       if (matchJobServer(j, jobId)) {
+        // 1. Append-only Progress Updates
+        let mergedProgress = j.progressUpdates || [];
+        if (updates.progressUpdate) {
+          realtimeEventType = 'PROGRESS_UPDATED';
+          const p = updates.progressUpdate;
+          const newEntry = {
+            id: p.id || `prog_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            version: (mergedProgress.length || 0) + 1,
+            author: requesterAddress || j.freelancer,
+            progressPercent: Number(p.progressPercent ?? p.percentage ?? 0),
+            statusNote: String(p.statusNote || p.notes || ''),
+            demoUrl: p.demoUrl || undefined,
+            timestamp: p.timestamp || Date.now(),
+            txHash: p.txHash || undefined,
+            attachments: p.attachments || [],
+          };
+          if (!mergedProgress.some((ex: any) => ex.id === newEntry.id || (ex.timestamp === newEntry.timestamp && ex.statusNote === newEntry.statusNote))) {
+            mergedProgress = [newEntry, ...mergedProgress];
+          }
+        } else if (Array.isArray(updates.progressUpdates)) {
+          const pMap = new Map();
+          (j.progressUpdates || []).forEach((ex: any) => pMap.set(ex.id || `${ex.timestamp}`, ex));
+          updates.progressUpdates.forEach((ex: any) => pMap.set(ex.id || `${ex.timestamp}`, ex));
+          mergedProgress = Array.from(pMap.values()).sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+        }
+
+        // 2. Versioned Submissions (Never overwrite earlier versions)
+        let mergedSubmissions = j.submissions || [];
+        let activeProof = j.proof;
+        let isSubmissionLate = false;
+        let submissionLateByMs = 0;
+        let submissionTimeMs = 0;
+
+        if (updates.proof || updates.submission) {
+          realtimeEventType = 'WORK_SUBMITTED';
+          const sub = updates.proof || updates.submission;
+          const nextVersion = (mergedSubmissions.length || 0) + 1;
+          submissionTimeMs = sub.submittedAt || Date.now();
+
+          // Calculate deadline to determine if submission is late
+          const deadlineMs = j.deadlineTimestamp
+            ? normalizeTimestampMs(j.deadlineTimestamp)
+            : (j.deadlineDays && j.fundedAt
+                ? normalizeTimestampMs(j.fundedAt) + j.deadlineDays * 86400000
+                : (j.durationDays && j.fundedAt
+                    ? normalizeTimestampMs(j.fundedAt) + j.durationDays * 86400000
+                    : null));
+
+          isSubmissionLate = Boolean(deadlineMs && submissionTimeMs > deadlineMs);
+          submissionLateByMs = isSubmissionLate && deadlineMs ? Math.max(0, submissionTimeMs - deadlineMs) : 0;
+
+          // Secure deliverable link validator: https only, reject localhost, private IPs, javascript:, file:
+          let validatedLink = '';
+          if (sub.externalLink && typeof sub.externalLink === 'string') {
+            const rawLink = sub.externalLink.trim();
+            try {
+              const parsedUrl = new URL(rawLink);
+              const hostname = parsedUrl.hostname.toLowerCase();
+              const isLocalOrPrivate = hostname === 'localhost' ||
+                hostname === '127.0.0.1' ||
+                hostname === '::1' ||
+                hostname.startsWith('192.168.') ||
+                hostname.startsWith('10.') ||
+                hostname.endsWith('.local') ||
+                hostname.endsWith('.internal');
+              if (parsedUrl.protocol === 'https:' && !isLocalOrPrivate) {
+                validatedLink = parsedUrl.toString();
+              }
+            } catch {
+              validatedLink = '';
+            }
+          }
+
+          const subEntry = {
+            version: nextVersion,
+            versionLabel: `v${nextVersion}`,
+            author: requesterAddress || j.freelancer,
+            title: sub.title || 'Deliverables & Proof of Work',
+            description: sub.description || '',
+            evidenceHashes: sub.evidenceHashes || [],
+            evidenceFiles: sub.evidenceFiles || [],
+            externalLink: validatedLink,
+            submittedAt: submissionTimeMs,
+            isLate: isSubmissionLate,
+            lateByMs: submissionLateByMs,
+            status: 'PENDING_REVIEW',
+          };
+          mergedSubmissions = [...mergedSubmissions, subEntry];
+          activeProof = {
+            ...sub,
+            submittedAt: submissionTimeMs,
+            isLate: isSubmissionLate,
+            lateByMs: submissionLateByMs,
+          };
+        }
+
+        // 3. Modification / Revision Requests (Append-only)
+        let mergedModifications = j.modificationRequests || [];
+        if (updates.modificationRequest) {
+          realtimeEventType = 'REVISION_REQUESTED';
+          const m = updates.modificationRequest;
+          const modEntry = {
+            id: m.id || `mod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            note: String(m.note || m.description || ''),
+            requestedAt: m.requestedAt || Date.now(),
+            status: 'Pending',
+          };
+          if (!mergedModifications.some((ex: any) => ex.id === modEntry.id)) {
+            mergedModifications = [modEntry, ...mergedModifications];
+          }
+        } else if (Array.isArray(updates.modificationRequests)) {
+          const mMap = new Map();
+          (j.modificationRequests || []).forEach((ex: any) => mMap.set(ex.id || `${ex.requestedAt}`, ex));
+          updates.modificationRequests.forEach((ex: any) => mMap.set(ex.id || `${ex.requestedAt}`, ex));
+          mergedModifications = Array.from(mMap.values()).sort((a: any, b: any) => (b.requestedAt || 0) - (a.requestedAt || 0));
+        }
+
+        // 4. Time Extension Requests
+        let mergedExtensions = j.extensionRequests || [];
+        if (updates.extensionRequest) {
+          realtimeEventType = 'EXTENSION_REQUESTED';
+          const ext = updates.extensionRequest;
+          const extEntry = {
+            id: ext.id || `ext_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            requestedDays: Number(ext.requestedDays || 1),
+            reason: String(ext.reason || ''),
+            requestedAt: ext.requestedAt || Date.now(),
+            responded: Boolean(ext.responded),
+            approved: Boolean(ext.approved),
+            status: ext.status || 'Pending',
+          };
+          if (!mergedExtensions.some((ex: any) => ex.id === extEntry.id)) {
+            mergedExtensions = [extEntry, ...mergedExtensions];
+          }
+        }
+
+        // Resolve Status
+        let nextStatus = updates.status || j.status;
+        if (hasRevisionRequest && nextStatus !== 'Completed') {
+          nextStatus = 'In Progress';
+        } else if (hasSubmission && nextStatus !== 'Completed') {
+          nextStatus = 'Submitted';
+        }
+
+        // Non-negotiable Money-State Rule:
+        // Completed may be set ONLY when approved AND release transaction is CONFIRMED on-chain!
+        if (nextStatus === 'Completed' && j.status !== 'Completed') {
+          const hasConfirmedReleaseTx = Array.from((sharedState.transactions ? Object.values(sharedState.transactions) : []) as any[]).some(
+            (tx: any) => (tx.jobId === j.id || (j.contractAddress && areAddressesEqual(tx.to, j.contractAddress))) &&
+              tx.type === 'RELEASE' && tx.status === 'CONFIRMED'
+          );
+          const hasIndexedReleaseEvent = (j.events || []).some(
+            (e: any) => (e.step === 'Paid' || e.step === 'PaymentReleased' || e.step === 'AutoReleased') && e.status === 'completed'
+          );
+          if (!hasConfirmedReleaseTx && !hasIndexedReleaseEvent) {
+            console.warn(`[ESCROW SECURITY] Refusing unconfirmed completion for job ${j.id}. Requires approved release confirmed on-chain.`);
+            nextStatus = hasSubmission ? 'Submitted' : j.status;
+          }
+        }
+
         return {
           ...j,
           ...updates,
           id: j.id,
+          status: nextStatus,
           contractAddress: j.contractAddress || updates.contractAddress,
+          progressUpdates: mergedProgress,
+          submissions: mergedSubmissions,
+          proof: activeProof,
+          deliverableSubmittedAt: hasSubmission ? submissionTimeMs : j.deliverableSubmittedAt,
+          isSubmittedLate: hasSubmission ? isSubmissionLate : j.isSubmittedLate,
+          lateByMs: hasSubmission ? submissionLateByMs : j.lateByMs,
+          modificationRequests: mergedModifications,
+          extensionRequests: mergedExtensions,
+          events: updates.events || j.events || [],
           updatedAt: Date.now(),
+          version: (j.version || 1) + 1,
         };
       }
       return j;
@@ -1845,17 +3377,935 @@ app.patch("/api/jobs/:id", async (req: Request, res: Response) => {
 
     const updatedJob = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
 
+    // Lifecycle Notifications
+    if (targetJob && updatedJob) {
+      // 1. Offer Sent (Freelancer Selected)
+      if (updates.freelancer && (!targetJob.freelancer || !areAddressesEqual(targetJob.freelancer, updates.freelancer))) {
+        createNotificationOnServer({
+          recipientWallet: updates.freelancer,
+          actorWallet: requesterAddress,
+          type: 'OFFER_SENT',
+          title: "You've Been Selected!",
+          body: `You were selected for "${targetJob.title}". Review and accept the offer to start work.`,
+          entityType: 'job',
+          entityId: targetJob.id,
+          deepLink: `/workspace?jobId=${targetJob.id}`,
+          dedupeKey: `offer_${targetJob.id}_${updates.freelancer}`,
+        });
+      }
+
+      // 2. Offer Accepted by Freelancer
+      if (updates.freelancerAgreedTerms && !targetJob.freelancerAgreedTerms && targetJob.client) {
+        createNotificationOnServer({
+          recipientWallet: targetJob.client,
+          actorWallet: requesterAddress,
+          type: 'OFFER_ACCEPTED',
+          title: 'Offer Accepted!',
+          body: `The freelancer accepted your terms for "${targetJob.title}". Please deposit escrow to activate the contract.`,
+          entityType: 'job',
+          entityId: targetJob.id,
+          deepLink: `/workspace?jobId=${targetJob.id}`,
+          dedupeKey: `terms_accepted_${targetJob.id}`,
+        });
+      }
+
+      // 3. Escrow Funded
+      if (updates.status === 'Funded' && targetJob.status !== 'Funded') {
+        const hired = updates.freelancer || targetJob.freelancer;
+        if (hired) {
+          createNotificationOnServer({
+            recipientWallet: hired,
+            actorWallet: requesterAddress,
+            type: 'ESCROW_FUNDED',
+            title: 'Escrow Funded!',
+            body: `Client deposited escrow for "${targetJob.title}". You may now submit deliverables.`,
+            entityType: 'job',
+            entityId: targetJob.id,
+            deepLink: `/workspace?jobId=${targetJob.id}`,
+            dedupeKey: `funded_${targetJob.id}`,
+          });
+        }
+      }
+
+      // 4. Progress Updated
+      if (hasProgressUpdate && targetJob.client) {
+        const latestProg = updatedJob.progressUpdates?.[0];
+        createNotificationOnServer({
+          recipientWallet: targetJob.client,
+          actorWallet: requesterAddress,
+          type: 'PROGRESS_UPDATED',
+          title: `Progress Update (${latestProg?.progressPercent || 0}%)`,
+          body: `${latestProg?.statusNote ? latestProg.statusNote.slice(0, 80) : `Milestone progress updated for "${targetJob.title}".`}`,
+          entityType: 'job',
+          entityId: targetJob.id,
+          deepLink: `/workspace?jobId=${targetJob.id}`,
+          dedupeKey: `prog_${targetJob.id}_${latestProg?.id || Date.now()}`,
+        });
+      }
+
+      // 5. Deliverable Submitted
+      if (hasSubmission && targetJob.client) {
+        if (updatedJob.isSubmittedLate) {
+          createNotificationOnServer({
+            recipientWallet: targetJob.client,
+            actorWallet: requesterAddress,
+            type: 'SUBMISSION_LATE',
+            title: 'Deliverables Submitted Late',
+            body: `Work deliverables have been submitted late for "${targetJob.title}". Please review submissions.`,
+            entityType: 'job',
+            entityId: targetJob.id,
+            deepLink: `/workspace?jobId=${targetJob.id}`,
+            dedupeKey: `submitted_late_${targetJob.id}_${Date.now()}`,
+          });
+        } else {
+          createNotificationOnServer({
+            recipientWallet: targetJob.client,
+            actorWallet: requesterAddress,
+            type: 'WORK_SUBMITTED',
+            title: 'Deliverable Submitted',
+            body: `Work deliverables have been submitted for "${targetJob.title}". Please review and approve.`,
+            entityType: 'job',
+            entityId: targetJob.id,
+            deepLink: `/workspace?jobId=${targetJob.id}`,
+            dedupeKey: `submitted_${targetJob.id}_${Date.now()}`,
+          });
+        }
+
+        // Freelancer confirmation receipt (explicitly under review, not complete)
+        const hired = targetJob.freelancer || updates.freelancer;
+        if (hired) {
+          createNotificationOnServer({
+            recipientWallet: hired,
+            actorWallet: requesterAddress,
+            type: 'WORK_SUBMITTED',
+            title: updatedJob.isSubmittedLate ? 'Deliverables Submitted Late (Under Review)' : 'Deliverables Submitted (Under Review)',
+            body: `Your work deliverables for "${targetJob.title}" have been submitted. Waiting for client review.`,
+            entityType: 'job',
+            entityId: targetJob.id,
+            deepLink: `/workspace?jobId=${targetJob.id}`,
+            dedupeKey: `receipt_submitted_${targetJob.id}_${Date.now()}`,
+          });
+        }
+      }
+
+      // 6. Revision Requested
+      if (hasRevisionRequest && targetJob.freelancer) {
+        const latestMod = updatedJob.modificationRequests?.[0];
+        createNotificationOnServer({
+          recipientWallet: targetJob.freelancer,
+          actorWallet: requesterAddress,
+          type: 'REVISION_REQUESTED',
+          title: 'Revision Requested',
+          body: `Client requested modifications on "${targetJob.title}": ${latestMod?.note ? latestMod.note.slice(0, 80) : 'Review changes required.'}`,
+          entityType: 'job',
+          entityId: targetJob.id,
+          deepLink: `/workspace?jobId=${targetJob.id}`,
+          dedupeKey: `revision_${targetJob.id}_${latestMod?.id || Date.now()}`,
+        });
+      }
+
+      // 7. Payment Released — strictly requires confirmed on-chain release transaction
+      if (updatedJob.status === 'Completed' && targetJob.status !== 'Completed') {
+        const hasConfirmedReleaseTx = Array.from((sharedState.transactions ? Object.values(sharedState.transactions) : []) as any[]).some(
+          (tx: any) => (tx.jobId === targetJob.id || (targetJob.contractAddress && areAddressesEqual(tx.to, targetJob.contractAddress))) &&
+            tx.type === 'RELEASE' && tx.status === 'CONFIRMED'
+        );
+        const hasIndexedReleaseEvent = (targetJob.events || []).some(
+          (e: any) => (e.step === 'Paid' || e.step === 'PaymentReleased' || e.step === 'AutoReleased') && e.status === 'completed'
+        );
+
+        if (hasConfirmedReleaseTx || hasIndexedReleaseEvent) {
+          const hired = updates.freelancer || targetJob.freelancer;
+          if (hired) {
+            createNotificationOnServer({
+              recipientWallet: hired,
+              actorWallet: requesterAddress,
+              type: 'PAYMENT_RELEASED',
+              title: 'Payment Released!',
+              body: `Escrow payment has been released for "${targetJob.title}". Attestation certificate minted.`,
+              entityType: 'job',
+              entityId: targetJob.id,
+              deepLink: `/workspace?jobId=${targetJob.id}`,
+              dedupeKey: `completed_${targetJob.id}`,
+            });
+          }
+        }
+      }
+
+      // 8. Dispute Opened
+      if (updates.status === 'Disputed' && targetJob.status !== 'Disputed') {
+        if (targetJob.client) {
+          createNotificationOnServer({
+            recipientWallet: targetJob.client,
+            actorWallet: requesterAddress,
+            type: 'DISPUTE_OPENED',
+            title: 'Dispute Raised',
+            body: `A dispute has been raised on "${targetJob.title}". Under arbitrator review.`,
+            entityType: 'dispute',
+            entityId: targetJob.id,
+            deepLink: `/workspace?jobId=${targetJob.id}`,
+            dedupeKey: `dispute_${targetJob.id}_client`,
+          });
+        }
+        const hired = updates.freelancer || targetJob.freelancer;
+        if (hired) {
+          createNotificationOnServer({
+            recipientWallet: hired,
+            actorWallet: requesterAddress,
+            type: 'DISPUTE_OPENED',
+            title: 'Dispute Raised',
+            body: `A dispute has been raised on "${targetJob.title}". Under arbitrator review.`,
+            entityType: 'dispute',
+            entityId: targetJob.id,
+            deepLink: `/workspace?jobId=${targetJob.id}`,
+            dedupeKey: `dispute_${targetJob.id}_freelancer`,
+          });
+        }
+      }
+    }
+
     await persistStateToDatabases();
     broadcastScopedRealtimeSync();
 
     if (io && updatedJob) {
       io.emit("job-updated", { job: updatedJob });
+      // Targeted room fanout for workspace live timeline updates
+      const cleanJobId = String(targetJob.id).toLowerCase().trim();
+      io.to(`job:${cleanJobId}`).emit("job-realtime-update", {
+        jobId: targetJob.id,
+        version: updatedJob.version || Date.now(),
+        type: realtimeEventType,
+        job: updatedJob,
+      });
+      if (targetJob.contractAddress) {
+        io.to(`job:${String(targetJob.contractAddress).toLowerCase().trim()}`).emit("job-realtime-update", {
+          jobId: targetJob.id,
+          version: updatedJob.version || Date.now(),
+          type: realtimeEventType,
+          job: updatedJob,
+        });
+      }
     }
 
     res.json({ success: true, jobId, job: updatedJob });
   } catch (err: any) {
     console.error("[PATCH /api/jobs/:id ERROR]", err);
     res.status(500).json({ error: "Failed to update job", details: err?.message });
+  }
+});
+
+// Real-time Event Catch-Up Endpoint (for network reconnect / tab resume)
+app.get("/api/jobs/:id/events", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    const sinceTimestamp = Number(req.query.since || 0);
+    const requesterAddress = (req as any).session?.wallet || "";
+
+    const job = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
+    if (!job) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    if (!isPartyToJob(job, requesterAddress)) {
+      return res.status(403).json({ error: "Forbidden: Not an authorized party to this job" });
+    }
+
+    const isClient = areAddressesEqual(job.client, requesterAddress);
+    const isFreelancer = areAddressesEqual(job.freelancer, requesterAddress);
+    const isAdmin = Boolean(req.session?.isAdmin);
+
+    const filteredProgress = (job.progressUpdates || []).filter((p: any) => (p.timestamp || 0) > sinceTimestamp);
+    const filteredEvents = (job.events || []).filter((e: any) => (e.timestamp || 0) > sinceTimestamp);
+    const filteredModifications = (job.modificationRequests || []).filter((m: any) => (m.requestedAt || 0) > sinceTimestamp);
+    const filteredSubmissions = (job.submissions || []).filter((s: any) => (s.submittedAt || 0) > sinceTimestamp);
+
+    res.json({
+      success: true,
+      jobId: job.id,
+      status: job.status,
+      version: job.version || 1,
+      updatedAt: job.updatedAt || Date.now(),
+      progressUpdates: filteredProgress,
+      submissions: filteredSubmissions,
+      modificationRequests: filteredModifications,
+      events: filteredEvents,
+      proof: (isClient || isFreelancer || isAdmin) ? job.proof : undefined,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to fetch job events", details: err?.message });
+  }
+});
+
+// Submit proposal / Apply to job (Enforces canApplyToJob: Blocks OWN_JOB and CLIENT_ONLY_MODE)
+app.post("/api/jobs/:id/apply", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      (req.body?.applicant as string) ||
+      (req.body?.applicantAddress as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    if (!requesterAddress || !/^0x[a-fA-F0-9]{40}$/.test(requesterAddress)) {
+      return res.status(401).json({ error: "Unauthorized: Valid authenticated wallet address required", code: "UNAUTHORIZED" });
+    }
+
+    let job = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
+
+    if (!job && req.body?.job && matchJobServer(req.body.job, jobId)) {
+      sharedState.jobs = mergeJobsOnServer(sharedState.jobs || [], [req.body.job]);
+      job = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
+    }
+
+    if (!job) {
+      return res.status(404).json({ error: "Job not found", code: "NOT_FOUND" });
+    }
+
+    const requesterProfile = (sharedState.profiles || {})[requesterAddress];
+    const requesterMode = requesterProfile?.accountMode || "both";
+
+    const applyCheck = canApplyToJob(
+      { address: requesterAddress, accountMode: requesterMode },
+      job
+    );
+
+    if (!applyCheck.allowed && applyCheck.reason !== 'ALREADY_APPLIED') {
+      return res.status(403).json({
+        error: applyCheck.message,
+        code: applyCheck.reason,
+      });
+    }
+
+    const proposalText = req.body?.proposalText || req.body?.coverLetter || "";
+    const newApp = {
+      id: `app-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      applicant: requesterAddress,
+      coverLetter: proposalText,
+      proposalText,
+      proposalIpfsHash: req.body?.proposalIpfsHash || "",
+      applicantSkills: req.body?.applicantSkills || req.body?.skills || [],
+      bidAmountUsdc: req.body?.bidAmountUsdc || job.amountUsdc,
+      submittedAt: Date.now(),
+      appliedAt: Date.now(),
+      githubVerified: requesterProfile?.githubVerified || Boolean(req.body?.githubVerified),
+      githubScore: requesterProfile?.primaryScore || Number(req.body?.githubScore) || 750,
+      ...req.body,
+    };
+
+    if (!job.applications) job.applications = [];
+    const existingIndex = job.applications.findIndex((a: any) => a && a.applicant && areAddressesEqual(a.applicant, requesterAddress));
+    if (existingIndex >= 0) {
+      job.applications[existingIndex] = { ...job.applications[existingIndex], ...newApp };
+    } else {
+      job.applications.unshift(newApp);
+    }
+
+    // Trigger server-side notification to client
+    if (job.client) {
+      createNotificationOnServer({
+        recipientWallet: job.client,
+        actorWallet: requesterAddress,
+        type: 'PROPOSAL_RECEIVED',
+        title: 'New Proposal Received',
+        body: `A freelancer submitted a proposal for "${job.title}".`,
+        entityType: 'job',
+        entityId: job.id,
+        deepLink: `/jobs/${job.id}`,
+        dedupeKey: `prop_${job.id}_${requesterAddress}`,
+      });
+    }
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+
+    if (io) {
+      io.emit("job-updated", { job });
+    }
+
+    return res.status(200).json({ success: true, application: newApp, job });
+  } catch (err: any) {
+    console.error("[POST /api/jobs/:id/apply ERROR]", err);
+    res.status(500).json({ error: "Failed to apply for job", details: err?.message });
+  }
+});
+
+// Decline candidate selection (Freelancer backs out before terms/funding)
+app.post("/api/jobs/:id/decline-selection", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      (req.body?.freelancer as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    const targetJob = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
+    if (!targetJob) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    const isFreelancer = areAddressesEqual(targetJob.freelancer, requesterAddress);
+    const isAdmin = isAuthorizedAdmin(requesterAddress);
+    if (!isFreelancer && !isAdmin) {
+      return res.status(403).json({ error: "Forbidden: Only the selected freelancer can decline this offer" });
+    }
+
+    if (targetJob.status !== 'Selected' && targetJob.status !== 'Open') {
+      return res.status(409).json({ error: "Cannot decline offer once escrow is funded or completed" });
+    }
+
+    const prevFreelancer = targetJob.freelancer;
+    targetJob.freelancer = "";
+    targetJob.status = "Open";
+    targetJob.freelancerAgreedTerms = false;
+    targetJob.updatedAt = Date.now();
+
+    if (Array.isArray(targetJob.events)) {
+      targetJob.events = targetJob.events.map((evt: any) => {
+        if (evt.step === 'Selected') return { ...evt, status: 'current', timestamp: 0, txHash: '' };
+        if (evt.step === 'Terms') return { ...evt, status: 'pending', timestamp: 0, txHash: '' };
+        return evt;
+      });
+    }
+
+    if (targetJob.client) {
+      createNotificationOnServer({
+        recipientWallet: targetJob.client,
+        actorWallet: requesterAddress,
+        type: 'OFFER_DECLINED',
+        title: 'Offer Declined',
+        body: `The freelancer declined the offer for "${targetJob.title}". The job is re-opened for other applicants.`,
+        entityType: 'job',
+        entityId: targetJob.id,
+        deepLink: `/jobs/${targetJob.id}`,
+        dedupeKey: `declined_${targetJob.id}_${prevFreelancer}_${Date.now()}`,
+      });
+    }
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+
+    if (io) {
+      io.emit("job-updated", { job: targetJob });
+    }
+
+    res.json({ success: true, job: targetJob });
+  } catch (err: any) {
+    console.error("[DECLINE SELECTION ERROR]", err);
+    res.status(500).json({ error: "Failed to decline offer", details: err?.message });
+  }
+});
+
+// Cancel candidate selection pre-funding (Client unilaterally removes selected candidate and re-lists job)
+app.post("/api/jobs/:id/cancel-selection", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      (req.body?.client as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    const targetJob = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
+    if (!targetJob) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    const isClient = areAddressesEqual(targetJob.client, requesterAddress);
+    const isAdmin = isAuthorizedAdmin(requesterAddress);
+    if (!isClient && !isAdmin) {
+      return res.status(403).json({ error: "Forbidden: Only the client can cancel selection" });
+    }
+
+    if (targetJob.status === 'Funded' || targetJob.status === 'Submitted' || targetJob.status === 'Completed' || targetJob.status === 'Disputed') {
+      return res.status(409).json({ error: "Cannot cancel selection once escrow is funded. Please use the refund or dispute procedure." });
+    }
+
+    // Verify on-chain if contract exists that it is not funded
+    if (targetJob.contractAddress && ethers.isAddress(targetJob.contractAddress)) {
+      try {
+        const rpcUrl = process.env.POLYGON_RPC_URL || "https://polygon-rpc.com";
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const code = await provider.getCode(targetJob.contractAddress).catch(() => '0x');
+        if (code && code !== '0x') {
+          const escrowAbi = ["function status() external view returns (uint8)"];
+          const escrow = new ethers.Contract(targetJob.contractAddress, escrowAbi, provider);
+          const contractStatus = await escrow.status().catch(() => 0);
+          // In JobEscrow.sol: Open = 0, Selected = 1, Funded = 2
+          if (Number(contractStatus) >= 2) {
+            return res.status(409).json({ error: "Escrow is already funded on-chain. Selection cancellation is closed." });
+          }
+        }
+      } catch (rpcErr) {
+        console.warn("[CANCEL SELECTION RPC NOTICE]", rpcErr);
+      }
+    }
+
+    const prevFreelancer = targetJob.freelancer;
+    const reason = req.body?.reason ? String(req.body.reason).trim() : "";
+
+    // Close active engagement
+    if (targetJob.engagement) {
+      targetJob.engagement.state = 'SELECTION_CANCELLED_BY_CLIENT';
+      targetJob.engagement.closedAt = Date.now();
+      targetJob.engagement.closeReason = reason || 'Cancelled by client';
+    }
+
+    // Mark previous freelancer's proposal
+    if (Array.isArray(targetJob.applications) && prevFreelancer) {
+      targetJob.applications = targetJob.applications.map((app: any) => {
+        if (areAddressesEqual(app.applicant, prevFreelancer)) {
+          return {
+            ...app,
+            status: 'cancelled_selection',
+            cancelledReason: reason || 'Selection cancelled by client',
+            cancelledAt: Date.now(),
+          };
+        }
+        return app;
+      });
+    }
+
+    targetJob.freelancer = "";
+    targetJob.status = "Open";
+    targetJob.clientAgreedTerms = false;
+    targetJob.freelancerAgreedTerms = false;
+    targetJob.updatedAt = Date.now();
+
+    if (Array.isArray(targetJob.events)) {
+      targetJob.events = targetJob.events.map((evt: any) => {
+        if (evt.step === 'Selected') return { ...evt, status: 'current', timestamp: 0, txHash: '' };
+        if (evt.step === 'Terms') return { ...evt, status: 'pending', timestamp: 0, txHash: '' };
+        return evt;
+      });
+    }
+
+    // Auto-post system message to chat thread
+    if (prevFreelancer) {
+      const channelId = `job:${targetJob.id}`;
+      const sysMsg = {
+        id: `sys-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        jobId: targetJob.id,
+        channelId,
+        sender: 'system',
+        text: `[System] Client cancelled the candidate selection.${reason ? ' Reason: ' + reason : ''} The job has been re-opened for proposals.`,
+        timestamp: Date.now(),
+        isSystem: true,
+      };
+      if (!targetJob.chatMessages) targetJob.chatMessages = [];
+      targetJob.chatMessages.push(sysMsg);
+
+      createNotificationOnServer({
+        recipientWallet: prevFreelancer,
+        actorWallet: requesterAddress,
+        type: 'SELECTION_CANCELLED',
+        title: 'Selection Cancelled',
+        body: `The client cancelled the selection for "${targetJob.title}".${reason ? ' Reason: ' + reason : ''}`,
+        entityType: 'job',
+        entityId: targetJob.id,
+        deepLink: `/workspace?jobId=${targetJob.id}`,
+        dedupeKey: `cancel_sel_${targetJob.id}_${Date.now()}`,
+      });
+    }
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+    if (io) io.emit("job-updated", { job: targetJob });
+
+    res.json({ success: true, job: targetJob });
+  } catch (err: any) {
+    console.error("[CANCEL SELECTION ERROR]", err);
+    res.status(500).json({ error: "Failed to cancel selection", details: err?.message });
+  }
+});
+
+// Submit a counter-offer amount before escrow is funded
+app.post("/api/jobs/:id/negotiate/counter", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      (req.body?.proposer as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    const targetJob = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
+    if (!targetJob) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    const isClient = areAddressesEqual(targetJob.client, requesterAddress);
+    const isFreelancer = areAddressesEqual(targetJob.freelancer, requesterAddress);
+    if (!isClient && !isFreelancer) {
+      return res.status(403).json({ error: "Forbidden: Only client or selected freelancer can negotiate" });
+    }
+
+    if (targetJob.status !== 'Selected' && targetJob.status !== 'Open') {
+      return res.status(409).json({ error: "Cannot negotiate once escrow is funded" });
+    }
+
+    const { amount, currency = 'POL', message } = req.body || {};
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ error: "Invalid counter amount: must be a positive number" });
+    }
+
+    if (!targetJob.engagement) {
+      targetJob.engagement = {
+        id: `eng-${targetJob.id}-${Date.now()}`,
+        jobId: targetJob.id,
+        client: targetJob.client,
+        freelancer: targetJob.freelancer,
+        state: 'OFFER_SENT',
+        currentVersion: 1,
+        history: [{
+          version: 1,
+          round: 1,
+          proposedBy: 'client',
+          proposerWallet: targetJob.client,
+          amountWei: ethers.parseEther(String(targetJob.amountEth || targetJob.amountUsdc || '10')).toString(),
+          currency: (targetJob.paymentTokenSymbol || 'POL').toUpperCase(),
+          status: 'SUPERSEDED',
+          createdAt: targetJob.createdAt || Date.now(),
+          expiresAt: Date.now() + 72 * 60 * 60 * 1000,
+        }],
+        selectedAt: Date.now(),
+      };
+    }
+
+    const engagement = targetJob.engagement;
+    const currentRound = (engagement.history?.length || 1);
+    if (currentRound >= 6) {
+      return res.status(409).json({
+        error: `Negotiation round cap reached (6 rounds). You may accept current terms or cancel selection.`,
+        code: "MAX_ROUNDS_REACHED"
+      });
+    }
+
+    // Optimistic concurrency check
+    const expectedVersion = Number(req.body?.expectedVersion);
+    if (expectedVersion && expectedVersion !== engagement.currentVersion) {
+      return res.status(409).json({
+        error: "This offer was updated. Review the latest terms.",
+        code: "CONCURRENCY_CONFLICT",
+        currentVersion: engagement.currentVersion,
+        engagement,
+      });
+    }
+
+    const nextVersion = engagement.currentVersion + 1;
+    let amountWeiStr = '';
+    const currUpper = String(currency).toUpperCase();
+    if (currUpper === 'POL' || currUpper === 'MATIC') {
+      amountWeiStr = ethers.parseEther(parsedAmount.toFixed(6)).toString();
+    } else {
+      const decimals = targetJob.paymentTokenDecimals || 6;
+      amountWeiStr = ethers.parseUnits(parsedAmount.toFixed(decimals), decimals).toString();
+    }
+
+    const newVersion: any = {
+      version: nextVersion,
+      round: currentRound + 1,
+      proposedBy: isClient ? 'client' : 'freelancer',
+      proposerWallet: requesterAddress,
+      amountWei: amountWeiStr,
+      currency: currUpper,
+      message: message ? String(message).trim() : undefined,
+      status: 'PENDING',
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 72 * 60 * 60 * 1000,
+    };
+
+    engagement.currentVersion = nextVersion;
+    engagement.history.push(newVersion);
+    engagement.state = isClient ? 'COUNTER_PROPOSED_BY_CLIENT' : 'COUNTER_PROPOSED_BY_FREELANCER';
+
+    // Invalidate unilateral agreement until both agree to this version
+    targetJob.clientAgreedTerms = isClient;
+    targetJob.freelancerAgreedTerms = !isClient;
+    targetJob.updatedAt = Date.now();
+
+    // Update proposed amount references on job
+    if (currUpper === 'POL' || currUpper === 'MATIC') {
+      targetJob.amountEth = parsedAmount.toFixed(4);
+    } else {
+      targetJob.amountUsdc = parsedAmount.toFixed(2);
+    }
+
+    const otherParty = isClient ? targetJob.freelancer : targetJob.client;
+    if (otherParty) {
+      createNotificationOnServer({
+        recipientWallet: otherParty,
+        actorWallet: requesterAddress,
+        type: 'COUNTER_OFFER_REQUESTED',
+        title: isClient ? 'Client Proposed Counter-Offer' : 'Freelancer Requested Different Amount',
+        body: `${isClient ? 'Client' : 'Freelancer'} counter-offered ${parsedAmount} ${currUpper} for "${targetJob.title}".`,
+        entityType: 'job',
+        entityId: targetJob.id,
+        deepLink: `/workspace?jobId=${targetJob.id}`,
+        dedupeKey: `counter_${targetJob.id}_v${nextVersion}`,
+      });
+    }
+
+    // Auto-post system message to chat
+    const channelId = `job:${targetJob.id}`;
+    const sysMsg = {
+      id: `sys-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      jobId: targetJob.id,
+      channelId,
+      sender: 'system',
+      text: `[System] ${isClient ? 'Client' : 'Freelancer'} proposed counter-offer: ${parsedAmount} ${currUpper}.${message ? ' "' + message + '"' : ''}`,
+      timestamp: Date.now(),
+      isSystem: true,
+    };
+    if (!targetJob.chatMessages) targetJob.chatMessages = [];
+    targetJob.chatMessages.push(sysMsg);
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+    if (io) io.emit("job-updated", { job: targetJob });
+
+    res.json({ success: true, job: targetJob, engagement, newVersion });
+  } catch (err: any) {
+    console.error("[NEGOTIATE COUNTER ERROR]", err);
+    res.status(500).json({ error: "Failed to submit counter-offer", details: err?.message });
+  }
+});
+
+// Respond to counter-offer: accept or reject
+app.post("/api/jobs/:id/negotiate/respond", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    const targetJob = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
+    if (!targetJob) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    const isClient = areAddressesEqual(targetJob.client, requesterAddress);
+    const isFreelancer = areAddressesEqual(targetJob.freelancer, requesterAddress);
+    if (!isClient && !isFreelancer) {
+      return res.status(403).json({ error: "Forbidden: Only parties to the engagement can respond" });
+    }
+
+    const { action } = req.body || {}; // 'accept' | 'reject'
+    if (action !== 'accept' && action !== 'reject') {
+      return res.status(400).json({ error: "Invalid response action: must be 'accept' or 'reject'" });
+    }
+
+    const engagement = targetJob.engagement;
+    if (!engagement || !engagement.history || engagement.history.length === 0) {
+      return res.status(400).json({ error: "No active negotiation engagement found" });
+    }
+
+    const latest = engagement.history[engagement.history.length - 1];
+    if (latest.status !== 'PENDING') {
+      return res.status(409).json({ error: `This term version is already ${latest.status.toLowerCase()}` });
+    }
+
+    if (action === 'accept') {
+      latest.status = 'ACCEPTED';
+      engagement.state = 'TERMS_AGREED';
+      engagement.agreedAt = Date.now();
+      targetJob.clientAgreedTerms = true;
+      targetJob.freelancerAgreedTerms = true;
+      targetJob.updatedAt = Date.now();
+
+      if (Array.isArray(targetJob.events)) {
+        targetJob.events = targetJob.events.map((evt: any) => {
+          if (evt.step === 'Terms') return { ...evt, status: 'completed', timestamp: Date.now() };
+          if (evt.step === 'Funded') return { ...evt, status: 'current' };
+          return evt;
+        });
+      }
+
+      // Notify both parties
+      if (targetJob.client) {
+        createNotificationOnServer({
+          recipientWallet: targetJob.client,
+          actorWallet: requesterAddress,
+          type: 'TERMS_AGREED',
+          title: 'Terms Agreed — Deposit Escrow to Start',
+          body: `Terms agreed for "${targetJob.title}". Deposit escrow to begin work.`,
+          entityType: 'job',
+          entityId: targetJob.id,
+          deepLink: `/workspace?jobId=${targetJob.id}`,
+          dedupeKey: `agreed_client_${targetJob.id}_v${latest.version}`,
+        });
+      }
+      if (targetJob.freelancer) {
+        createNotificationOnServer({
+          recipientWallet: targetJob.freelancer,
+          actorWallet: requesterAddress,
+          type: 'TERMS_AGREED',
+          title: 'Terms Agreed — Waiting for Escrow Deposit',
+          body: `Terms agreed for "${targetJob.title}". Waiting for client escrow deposit.`,
+          entityType: 'job',
+          entityId: targetJob.id,
+          deepLink: `/workspace?jobId=${targetJob.id}`,
+          dedupeKey: `agreed_free_${targetJob.id}_v${latest.version}`,
+        });
+      }
+
+      // Auto-post system message to chat
+      const channelId = `job:${targetJob.id}`;
+      const formattedAmount = ethers.formatUnits(latest.amountWei, latest.currency === 'POL' || latest.currency === 'MATIC' ? 18 : 6);
+      const sysMsg = {
+        id: `sys-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        jobId: targetJob.id,
+        channelId,
+        sender: 'system',
+        text: `[System] Both parties agreed to terms (${formattedAmount} ${latest.currency}). Client may now deposit escrow.`,
+        timestamp: Date.now(),
+        isSystem: true,
+      };
+      if (!targetJob.chatMessages) targetJob.chatMessages = [];
+      targetJob.chatMessages.push(sysMsg);
+    } else {
+      latest.status = 'REJECTED';
+      targetJob.updatedAt = Date.now();
+      const otherParty = isClient ? targetJob.freelancer : targetJob.client;
+      if (otherParty) {
+        createNotificationOnServer({
+          recipientWallet: otherParty,
+          actorWallet: requesterAddress,
+          type: 'COUNTER_OFFER_REJECTED',
+          title: 'Counter-Offer Rejected',
+          body: `${isClient ? 'Client' : 'Freelancer'} rejected the counter-offer for "${targetJob.title}".`,
+          entityType: 'job',
+          entityId: targetJob.id,
+          deepLink: `/workspace?jobId=${targetJob.id}`,
+          dedupeKey: `rejected_${targetJob.id}_v${latest.version}`,
+        });
+      }
+    }
+
+    await persistStateToDatabases();
+    broadcastScopedRealtimeSync();
+    if (io) io.emit("job-updated", { job: targetJob });
+
+    res.json({ success: true, job: targetJob, engagement, latest });
+  } catch (err: any) {
+    console.error("[NEGOTIATE RESPOND ERROR]", err);
+    res.status(500).json({ error: "Failed to respond to offer", details: err?.message });
+  }
+});
+
+// Withdraw submitted proposal (Freelancer withdraws before selection)
+app.post("/api/jobs/:id/proposals/withdraw", async (req: Request, res: Response) => {
+  try {
+    const jobId = String(req.params.id || "").toLowerCase().trim();
+    const requesterAddress = (
+      (req.headers["x-wallet-address"] as string) ||
+      (req.query.address as string) ||
+      (req.body?.applicant as string) ||
+      ""
+    ).toLowerCase().trim();
+
+    const targetJob = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
+    if (!targetJob) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    if (targetJob.status !== 'Open' && targetJob.status !== 'Selected') {
+      return res.status(409).json({ error: "Cannot withdraw proposal on funded or completed escrow contracts" });
+    }
+
+    const beforeCount = (targetJob.applications || []).length;
+    targetJob.applications = (targetJob.applications || []).filter(
+      (a: any) => !areAddressesEqual(a.applicant, requesterAddress) && !areAddressesEqual(a.applicantAddress, requesterAddress)
+    );
+
+    if (targetJob.applications.length !== beforeCount) {
+      targetJob.updatedAt = Date.now();
+      await persistStateToDatabases();
+      broadcastScopedRealtimeSync();
+      if (io) io.emit("job-updated", { job: targetJob });
+    }
+
+    res.json({ success: true, count: targetJob.applications.length });
+  } catch (err: any) {
+    console.error("[WITHDRAW PROPOSAL ERROR]", err);
+    res.status(500).json({ error: "Failed to withdraw proposal", details: err?.message });
+  }
+});
+
+// ── Notification REST Endpoints ─────────────────────────────────────────────
+app.get("/api/notifications", requireAuth, (req: Request, res: Response) => {
+  const sessionWallet = req.session?.wallet || "";
+  const isAdmin = Boolean(req.session?.isAdmin);
+  const list = (sharedState.notifications || []).filter((n: any) => {
+    if (!n) return false;
+    if (isAdmin) return true;
+    return areAddressesEqual(n.recipientWallet, sessionWallet);
+  });
+
+  res.json({ success: true, notifications: list });
+});
+
+app.post("/api/notifications/:id/read", requireAuth, async (req: Request, res: Response) => {
+  const sessionWallet = req.session?.wallet || "";
+  const isAdmin = Boolean(req.session?.isAdmin);
+  const id = req.params.id;
+  const notif = (sharedState.notifications || []).find((n: any) => n && n.id === id);
+  if (!notif) return res.status(404).json({ error: "Notification not found" });
+  if (!isAdmin && !areAddressesEqual(notif.recipientWallet, sessionWallet)) {
+    return res.status(403).json({ error: "Forbidden: Not your notification" });
+  }
+  notif.readAt = Date.now();
+  await persistStateToDatabases();
+  res.json({ success: true });
+});
+
+app.post("/api/notifications/read-all", requireAuth, async (req: Request, res: Response) => {
+  const sessionWallet = req.session?.wallet || "";
+  let updated = false;
+  (sharedState.notifications || []).forEach((n: any) => {
+    if (n && areAddressesEqual(n.recipientWallet, sessionWallet) && !n.readAt) {
+      n.readAt = Date.now();
+      updated = true;
+    }
+  });
+  if (updated) {
+    await persistStateToDatabases();
+  }
+  res.json({ success: true });
+});
+
+app.post("/api/notifications", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { recipientWallet, type, title, body, entityType, entityId, deepLink, dedupeKey } = req.body || {};
+    const requesterAddress = req.session?.wallet || "";
+
+    if (!recipientWallet || !type || !title) {
+      return res.status(400).json({ error: "Missing required notification fields" });
+    }
+
+    const notif = createNotificationOnServer({
+      recipientWallet,
+      actorWallet: requesterAddress,
+      type,
+      title,
+      body: body || "",
+      entityType: entityType || 'job',
+      entityId: entityId || '',
+      deepLink: deepLink || '/dashboard',
+      dedupeKey,
+    });
+
+    res.json({ success: true, notification: notif });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to create notification", details: err?.message });
   }
 });
 
@@ -1877,6 +4327,20 @@ app.delete("/api/jobs/:id", async (req: Request, res: Response) => {
       const isAdmin = isAuthorizedAdmin(requesterAddress);
       if (!isClient && !isAdmin) {
         return res.status(403).json({ error: "Forbidden: Only the job creator or protocol admin can delete this job" });
+      }
+
+      const display = getEngagementDisplayState(targetJob, sharedState.transactions ? Object.values(sharedState.transactions) : []);
+      if (display.isCompleted || targetJob.status === 'Completed' || (targetJob as any).escrowStatus === 'RELEASED') {
+        return res.status(409).json({
+          error: "ACTION_LOCKED: Cannot delete a job that is already completed and settled on-chain.",
+          code: "JOB_ALREADY_COMPLETED",
+        });
+      }
+      if (targetJob.status === 'Funded' || targetJob.status === 'Submitted') {
+        return res.status(409).json({
+          error: "ACTION_LOCKED: Cannot delete an active escrow job with funds in contract.",
+          code: "JOB_ESCROW_ACTIVE",
+        });
       }
     }
 
@@ -2210,6 +4674,19 @@ export async function verifyAndBindGithubOAuth(code: string, targetAddress: stri
     }
   }
 
+  // Prevent 2nd chance to re-link or switch GitHub account once bound to this wallet
+  const existingWalletProfile = (sharedState.profiles && (sharedState.profiles[cleanTargetAddress] || sharedState.profiles[targetAddress])) || {};
+  if (existingWalletProfile.githubVerified && existingWalletProfile.githubUsername) {
+    const boundLower = String(existingWalletProfile.githubUsername).toLowerCase().trim();
+    if (boundLower !== lowerGhUsername) {
+      const err: any = new Error(
+        `This wallet is already permanently linked to GitHub account @${existingWalletProfile.githubUsername}. PolyLance does not permit changing or transferring linked accounts.`
+      );
+      err.code = "WALLET_ALREADY_BOUND";
+      throw err;
+    }
+  }
+
   // 4. Generate cryptographic keccak256 proof of binding
   const attestationSeed = `polylance:github_oauth:${cleanTargetAddress}:${ghUserId}:${lowerGhUsername}:${Date.now()}`;
   const attestationUID = ethers.keccak256(ethers.toUtf8Bytes(attestationSeed));
@@ -2271,6 +4748,92 @@ export async function verifyAndBindGithubOAuth(code: string, targetAddress: stri
     reputationTier: repTier
   };
 }
+
+// ─── SIWE Cryptographic Authentication Endpoints ──────────────────
+app.get("/api/auth/nonce", async (req: Request, res: Response) => {
+  const ip = req.headers["x-forwarded-for"]?.toString() || req.socket.remoteAddress || "unknown";
+  const rawWallet = String(req.query.wallet || "").trim();
+  if (!rawWallet || !ethers.isAddress(rawWallet)) {
+    return res.status(400).json({ error: "Valid Polygon (EVM) wallet address required", code: "INVALID_ADDRESS" });
+  }
+  const wallet = ethers.getAddress(rawWallet).toLowerCase();
+
+  // Rate limit nonce requests per wallet/IP to mitigate flooding
+  if (process.env.NODE_ENV !== "test") {
+    const limit = await nonceLimiter.limit(wallet || ip);
+    if (!limit.success) {
+      return res.status(429).json({ error: "Too many nonce requests. Please wait a moment before trying again." });
+    }
+  }
+
+  const rawChainId = Number(req.query.chainId || 137);
+  const chainId = isNaN(rawChainId) ? 137 : rawChainId;
+  const requestedDomain = req.query.domain ? String(req.query.domain).trim() : undefined;
+  const requestedUri = req.query.uri ? String(req.query.uri).trim() : undefined;
+  const nonceRecord = generateAuthNonce(wallet, chainId, requestedDomain, requestedUri);
+  res.json({
+    success: true,
+    nonce: nonceRecord.nonce,
+    message: nonceRecord.message,
+    expiresAt: nonceRecord.expiresAt,
+  });
+});
+
+app.post("/api/auth/verify", async (req: Request, res: Response) => {
+  const { wallet: rawWallet, signature, message } = req.body || {};
+  if (!rawWallet || !signature || !message) {
+    return res.status(400).json({ error: "wallet, signature, and message are required" });
+  }
+
+  if (!ethers.isAddress(rawWallet)) {
+    return res.status(400).json({ error: "Valid Polygon (EVM) wallet address required", code: "INVALID_ADDRESS" });
+  }
+  const wallet = ethers.getAddress(rawWallet).toLowerCase();
+
+  const result = await verifySiweSignature(wallet, signature, message);
+  if (!result.valid || !result.wallet) {
+    return res.status(401).json({ error: result.reason || "Invalid signature" });
+  }
+
+  const sessionToken = createSessionToken(result.wallet);
+  const isProd = process.env.NODE_ENV === "production";
+
+  // Set HttpOnly, SameSite, Secure session cookie
+  res.cookie("polylance_session", sessionToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: "lax",
+    maxAge: 2 * 60 * 60 * 1000, // 2 hours
+    path: "/",
+  });
+
+  res.json({
+    success: true,
+    wallet: result.wallet,
+    token: sessionToken,
+    isAdmin: isSystemAdmin(result.wallet),
+    isJudge: isSystemJudge(result.wallet),
+  });
+});
+
+app.post("/api/auth/logout", (req: Request, res: Response) => {
+  res.clearCookie("polylance_session", { path: "/" });
+  res.json({ success: true, message: "Logged out" });
+});
+
+app.get("/api/auth/me", (req: Request, res: Response) => {
+  const session = (req as any).session;
+  if (!session || !session.wallet) {
+    return res.json({ authenticated: false, wallet: null, isAdmin: false, isJudge: false });
+  }
+  res.json({
+    authenticated: true,
+    wallet: session.wallet,
+    isAdmin: Boolean(session.isAdmin),
+    isJudge: Boolean(session.isJudge),
+    expiresAt: session.expiresAt,
+  });
+});
 
 // Redirect user to GitHub OAuth 2.0 Authorization Screen
 app.get("/api/auth/github", (req: Request, res: Response) => {
@@ -2433,6 +4996,56 @@ app.get("/api/auth/github/status/:address", (req: Request, res: Response) => {
     attestationUID: profile?.attestationUID || null,
     profile
   });
+});
+
+// Endpoint to verify whether a GitHub username is already bound to another wallet (Sybil resistance)
+app.get("/api/auth/github/check-availability", async (req: Request, res: Response) => {
+  try {
+    const rawUsername = (req.query.username as string || "").trim();
+    const rawAddress = ((req.query.address as string) || (req.headers["x-wallet-address"] as string) || "").toLowerCase().trim();
+
+    if (!rawUsername) {
+      return res.status(400).json({ error: "Missing GitHub username" });
+    }
+
+    let cleanUsername = rawUsername;
+    if (cleanUsername.includes("github.com/")) {
+      const parts = cleanUsername.split("github.com/");
+      cleanUsername = parts[parts.length - 1].split("/")[0];
+    }
+    cleanUsername = cleanUsername.replace(/^@/, "").replace(/\/$/, "").trim().toLowerCase();
+
+    // 1. Sybil Check: Scan existing bound profiles
+    let boundWallet: string | null = null;
+    if (sharedState.profiles && typeof sharedState.profiles === "object") {
+      for (const [walletKey, profile] of Object.entries(sharedState.profiles)) {
+        if (!profile || !profile.githubVerified) continue;
+        const pGhUser = String(profile.githubUsername || "").toLowerCase().trim();
+        if (pGhUser === cleanUsername) {
+          if (!rawAddress || walletKey.toLowerCase().trim() !== rawAddress) {
+            boundWallet = walletKey;
+            break;
+          }
+        }
+      }
+    }
+
+    if (boundWallet) {
+      return res.json({
+        available: false,
+        boundWallet,
+        error: `Security Shield: This GitHub account (@${cleanUsername}) is already bound to wallet ${boundWallet.slice(0, 6)}...${boundWallet.slice(-4)} on PolyLance. Each GitHub account can only be linked to one verified wallet.`
+      });
+    }
+
+    return res.json({
+      available: true,
+      boundWallet: null,
+      username: cleanUsername
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to check GitHub availability", details: err?.message });
+  }
 });
 
 // ─── TELEGRAM BOT PRIVATE NOTIFICATION ENDPOINTS ─────────────────────────────
@@ -2663,18 +5276,14 @@ app.post("/api/jobs/:id/renew", async (req: Request, res: Response) => {
 });
 
 // REST unlock endpoint for manual testing & event listeners (Authorized Escrow Party / Admin only)
-app.post("/api/unlock", async (req: Request, res: Response) => {
+app.post("/api/unlock", requireAuth, async (req: Request, res: Response) => {
   const { jobAddress } = req.body;
   if (!jobAddress) {
     res.status(400).json({ error: "Missing jobAddress" });
     return;
   }
 
-  const requesterAddress = (
-    (req.headers["x-wallet-address"] as string) ||
-    (req.query.address as string) ||
-    ""
-  ).toLowerCase().trim();
+  const requesterAddress = ((req as any).session?.wallet || "").toLowerCase().trim();
 
   const targetJob = (sharedState.jobs || []).find(
     (j: any) => j && String(j.contractAddress || j.id || "").toLowerCase() === String(jobAddress).toLowerCase()
@@ -2683,9 +5292,9 @@ app.post("/api/unlock", async (req: Request, res: Response) => {
   if (targetJob) {
     const isClient = String(targetJob.client || '').toLowerCase().trim() === requesterAddress;
     const isFreelancer = String(targetJob.freelancer || '').toLowerCase().trim() === requesterAddress;
-    const isAdmin = isAuthorizedAdmin(requesterAddress);
+    const isAdmin = Boolean((req as any).session?.isAdmin) || isAuthorizedAdmin(requesterAddress);
     if (!isClient && !isFreelancer && !isAdmin && process.env.NODE_ENV !== "test") {
-      res.status(403).json({ error: "Forbidden: Only contract parties or admin can unlock conversation registry" });
+      res.status(404).json({ error: "Not Found" });
       return;
     }
   }
@@ -3244,12 +5853,163 @@ app.post("/api/certifiedpass/sync-sbt", async (req: Request, res: Response) => {
   }
 });
 
+// Mount Platform Fees Due API (Behind FEE_DUES_ENABLED flag)
+app.use("/api/fees", feeDuesRouter);
+
+// Mount PolyLance SBT Public ERC-721 Metadata, Image & Verification API
+app.use("/api/sbt", sbtRouter);
+app.use("/polylance/sbt", sbtRouter);
+app.use("/token", sbtRouter);
+app.use("/api/metadata", (req: Request, res: Response, next) => {
+  req.url = "/metadata" + (req.url === "/" ? "" : req.url);
+  sbtRouter(req, res, next);
+});
+app.use("/metadata", (req: Request, res: Response, next) => {
+  req.url = "/metadata" + (req.url === "/" ? "" : req.url);
+  sbtRouter(req, res, next);
+});
+
+// Mount PolyLance Blog & Blog Studio API (Role-restricted and Public endpoints)
+app.use(blogRouter);
+
+// Mount PolyLance Public Real-Time Aggregated Statistics API
+app.use(publicStatsRouter);
+
 app.get("/health", (req: Request, res: Response) => {
   res.json({ status: "healthy", service: "polylance-chat-service" });
 });
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "healthy", service: "polylance-chat-service" });
+});
+
+// ── AuditX Endpoints ────────────────────────────────────────────────
+app.get("/api/auditx/capabilities", (req: Request, res: Response) => {
+  res.json({
+    version: "2.4.0",
+    supportedLanguages: ["Solidity"],
+    allowedExtensions: [".sol", ".zip"],
+    maxFileSizeBytes: 2097152,
+    maxTotalSizeBytes: 10485760,
+    maxFilesCount: 20,
+    retentionDays: 30,
+    pricing: {
+      tier: "free_preview",
+      scansPerDay: 15,
+      maxLinesPerScan: 5000,
+    },
+    privacy: {
+      isolatedPerUser: true,
+      codeEncryptedAtRest: true,
+      noPublicTraining: true,
+      deletionOnRequest: true,
+      needsConfirmation: true,
+    },
+    supportedCompilers: [
+      "v0.8.28",
+      "v0.8.26",
+      "v0.8.24",
+      "v0.8.20",
+      "v0.8.19",
+      "v0.7.6",
+    ],
+    categories: [
+      {
+        id: "reentrancy",
+        name: "Reentrancy Vulnerabilities",
+        description: "Detects state variable updates occurring after external calls (CEI violations).",
+        severityDefault: "Critical",
+        needsConfirmation: false,
+      },
+      {
+        id: "access-control",
+        name: "Access Control & Authorization",
+        description: "Unprotected administrative initializers, missing onlyOwner or custom role checks.",
+        severityDefault: "High",
+        needsConfirmation: false,
+      },
+      {
+        id: "arithmetic",
+        name: "Integer & Precision Issues",
+        description: "Checks division before multiplication, rounding discrepancies, unsafe type casting.",
+        severityDefault: "Medium",
+        needsConfirmation: true,
+      },
+      {
+        id: "unchecked-calls",
+        name: "Unchecked Return Values",
+        description: "Low-level .call() or ERC-20 transfer() without validating return boolean.",
+        severityDefault: "Medium",
+        needsConfirmation: false,
+      },
+      {
+        id: "gas-logic",
+        name: "Gas Optimization & Loop DOS",
+        description: "Unbounded array iterations, state reads inside loops, redundant storage ops.",
+        severityDefault: "Low",
+        needsConfirmation: true,
+      },
+      {
+        id: "best-practice",
+        name: "Code Quality & Informational",
+        description: "Missing NatSpec, hardcoded constants, floating pragmas, locked Ether.",
+        severityDefault: "Informational",
+        needsConfirmation: false,
+      },
+    ],
+  });
+});
+
+app.get("/api/auditx/internal-report", requireAdmin, (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    reportName: "PolyLance Smart Contract Security Report",
+    classification: "Internal & Confidential",
+    protocolVersion: "2.4.0",
+    generatedAt: "2026-10-24T12:00:00Z",
+    summary: {
+      totalContracts: 5,
+      overallStatus: "Hardened - Pre-Audit Review Complete",
+      thirdPartyAuditStatus: "Not yet independently audited by a third party",
+      criticalFindings: 0,
+      highFindings: 0,
+      mediumFindings: 0,
+      lowFindings: 2,
+      informationalFindings: 3,
+    },
+    contracts: [
+      {
+        name: "JobFactory",
+        address: "0xbE74923BBfd72d400a681915dBcf6e6Adc72C317",
+        status: "Verified",
+        compiler: "v0.8.24",
+      },
+      {
+        name: "JobEscrow",
+        address: "0x88dd19df1b6dBA8D2c53b3976f4ec39B75f17FbB",
+        status: "Verified",
+        compiler: "v0.8.24",
+      },
+      {
+        name: "ReputationSBT",
+        address: "0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879",
+        status: "Verified",
+        compiler: "v0.8.24",
+      },
+      {
+        name: "JudgeDAO",
+        address: "0xe991e45907Bd341a036CF4A6a95768af198d4b86",
+        status: "Verified",
+        compiler: "v0.8.24",
+      },
+      {
+        name: "Timelock",
+        address: "0x45602bE11306651C7FA5c96Bc7fa5051BA4a856f",
+        status: "Verified",
+        compiler: "v0.8.24",
+      },
+    ],
+  });
 });
 
 // PolyLance Mobile Gateway API Endpoints

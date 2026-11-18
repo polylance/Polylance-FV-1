@@ -1,11 +1,22 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useConnect } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useWeb3 } from '../context/Web3Context';
-import { DemoRole } from '../types';
-import { PolyLanceLogo } from './PolyLanceLogo';
-import { X, Check, ArrowRight, User, Briefcase, ShieldCheck, CheckCircle2, Zap, Sparkles, Lock } from 'lucide-react';
-import confetti from 'canvas-confetti';
-import { modalOverlayVariants, modalContentVariants, transition } from '../lib/motion';
+import { Modal } from './common/Modal';
+import { Button } from './common/Button';
+import { WalletLogo } from './brand/WalletLogo';
+import { useEip6963 } from '../utils/useEip6963';
+import {
+  HelpCircle,
+  ArrowRight,
+  CheckCircle2,
+  AlertTriangle,
+  ExternalLink,
+  Shield,
+  Loader2,
+  RefreshCw,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -13,238 +24,414 @@ interface LoginModalProps {
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
-  const { setRole, connectWallet } = useWeb3();
-  const [selectedRole, setSelectedRole] = useState<'freelancer' | 'client'>('freelancer');
+  const { connectWallet, isWrongNetwork, switchToTargetNetwork } = useWeb3();
+  const { connectors, connectAsync } = useConnect();
+  const { openConnectModal } = useConnectModal();
+  const { isMetaMaskInstalled, isCoinbaseInstalled, providers } = useEip6963();
+
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<
+    'rejected' | 'pending' | 'uninstalled' | 'network' | 'general' | null
+  >(null);
+  const [uninstalledWallet, setUninstalledWallet] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
+  const resetState = () => {
+    setConnectingProvider(null);
+    setErrorMessage(null);
+    setErrorType(null);
+    setUninstalledWallet(null);
+    setIsSuccess(false);
+  };
 
-  const walletProviders = [
-    {
-      id: 'metamask',
-      name: 'MetaMask',
-      logo: (
-        <img src={`${import.meta.env.BASE_URL}MetaMask_logo.png`} alt="MetaMask" className="w-5.5 h-5.5 object-contain shrink-0" />
-      )
-    },
-    {
-      id: 'walletconnect',
-      name: 'WalletConnect',
-      logo: (
-        <img src={`${import.meta.env.BASE_URL}WalletConnect_logo.png`} alt="WalletConnect" className="w-5.5 h-5.5 object-contain shrink-0" />
-      )
-    },
-    {
-      id: 'coinbase',
-      name: 'Coinbase',
-      logo: (
-        <img src={`${import.meta.env.BASE_URL}CoinBase_logo.png`} alt="Coinbase Wallet" className="w-5.5 h-5.5 object-contain shrink-0" />
-      )
-    },
-  ];
+  const handleModalClose = () => {
+    resetState();
+    onClose();
+  };
 
-
-  const handleWeb2Login = (provider: string) => {
+  const handleWalletConnect = async (provider: string) => {
     setConnectingProvider(provider);
-    setRole(selectedRole as DemoRole);
+    setErrorMessage(null);
+    setErrorType(null);
+    setUninstalledWallet(null);
 
-    setTimeout(async () => {
-      await connectWallet();
+    try {
+      if (provider === 'all') {
+        handleModalClose();
+        if (openConnectModal) {
+          openConnectModal();
+        } else {
+          await connectWallet();
+        }
+        return;
+      }
+
+      if (provider === 'MetaMask') {
+        if (!isMetaMaskInstalled && typeof window !== 'undefined' && !(window as any).ethereum) {
+          setErrorType('uninstalled');
+          setUninstalledWallet('MetaMask');
+          setErrorMessage('MetaMask is not installed in this browser.');
+          setConnectingProvider(null);
+          return;
+        }
+
+        const injected = connectors.find((c) => {
+          const id = c.id.toLowerCase();
+          const name = c.name.toLowerCase();
+          return id === 'injected' || id.includes('metamask') || name.includes('metamask');
+        });
+
+        if (injected) {
+          try {
+            await connectAsync({ connector: injected });
+            setIsSuccess(true);
+            setTimeout(() => {
+              handleModalClose();
+            }, 750);
+            return;
+          } catch (e: any) {
+            if (e?.name === 'UserRejectedRequestError' || e?.code === 4001) {
+              setErrorType('rejected');
+              setErrorMessage('Request rejected in wallet. Try again.');
+              return;
+            }
+            if (e?.message?.toLowerCase().includes('already pending') || e?.code === -32002) {
+              setErrorType('pending');
+              setErrorMessage('A request is already pending in your wallet. Check your extension.');
+              return;
+            }
+            setErrorType('general');
+            setErrorMessage(e?.message || 'MetaMask connection failed.');
+            return;
+          }
+        }
+      }
+
+      if (provider === 'Coinbase') {
+        if (!isCoinbaseInstalled && typeof window !== 'undefined' && !(window as any).coinbaseWalletExtension) {
+          setErrorType('uninstalled');
+          setUninstalledWallet('Coinbase Wallet');
+          setErrorMessage('Coinbase Wallet extension is not installed.');
+          setConnectingProvider(null);
+          return;
+        }
+
+        const cb = connectors.find((c) => {
+          const id = c.id.toLowerCase();
+          const name = c.name.toLowerCase();
+          return id.includes('coinbase') || name.includes('coinbase');
+        });
+
+        if (cb) {
+          try {
+            await connectAsync({ connector: cb });
+            setIsSuccess(true);
+            setTimeout(() => {
+              handleModalClose();
+            }, 750);
+            return;
+          } catch (e: any) {
+            if (e?.name === 'UserRejectedRequestError' || e?.code === 4001) {
+              setErrorType('rejected');
+              setErrorMessage('Request rejected in wallet. Try again.');
+              return;
+            }
+            if (e?.message?.toLowerCase().includes('already pending') || e?.code === -32002) {
+              setErrorType('pending');
+              setErrorMessage('A request is already pending in your wallet. Check your extension.');
+              return;
+            }
+            setErrorType('general');
+            setErrorMessage(e?.message || 'Coinbase Wallet connection failed.');
+            return;
+          }
+        }
+      }
+
+      // Fallback for WalletConnect or other providers
+      handleModalClose();
+      if (openConnectModal) {
+        openConnectModal();
+      } else {
+        await connectWallet();
+      }
+    } catch (err: any) {
+      if (err?.name === 'UserRejectedRequestError' || err?.code === 4001) {
+        setErrorType('rejected');
+        setErrorMessage('Request rejected in wallet. Try again.');
+      } else {
+        setErrorType('general');
+        setErrorMessage('Failed to connect wallet. Please try again.');
+      }
+    } finally {
       setConnectingProvider(null);
-      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
-      onClose();
-    }, 600);
+    }
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-    <motion.div
-      variants={modalOverlayVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      transition={transition.fast}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md"
+    <Modal
+      isOpen={isOpen}
+      onClose={handleModalClose}
+      title="Connect your wallet"
+      description="Your wallet is your PolyLance login. No email or password."
+      maxWidth="md"
     >
-        <motion.div
-          variants={modalContentVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={transition.medium}
-          className="glass-panel max-w-lg w-full p-6 sm:p-8 border-slate-200 bg-white hard-shadow relative space-y-5"
-        >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer z-20"
-        >
-          <X size={18} />
-        </button>
-
-        {/* Logo and Header */}
-        <div className="text-center relative pt-2">
-          <div className="relative z-10 flex justify-center mb-2">
-            <PolyLanceLogo size={58} />
+      <div className="space-y-5">
+        {/* Success State */}
+        {isSuccess && (
+          <div className="p-4 bg-[#F0FDF4] border border-[#BBF7D0] rounded-[10px] text-xs text-[#166534] flex items-center gap-3">
+            <CheckCircle2 size={18} className="text-[#16A34A] shrink-0" />
+            <div>
+              <span className="font-semibold block">Wallet connected successfully</span>
+              <span>Redirecting to your PolyLance workspace...</span>
+            </div>
           </div>
-          <h2 className="font-heading text-2xl font-black text-slate-900 tracking-tight">
-            Welcome to <span className="text-slate-900">PolyLance</span>
-          </h2>
-          <p className="text-xs text-slate-500 font-sans font-medium mt-1 leading-relaxed max-w-sm mx-auto">
-            The decentralized platform for verified talent and trusted opportunities.
-          </p>
-        </div>
+        )}
 
-        {/* Divider with Role Label */}
-        <div className="flex items-center justify-center gap-3 pt-1">
-          <div className="h-[1px] bg-slate-100 flex-1" />
-          <span className="font-mono text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
-            Choose Your Role
-          </span>
-          <div className="h-[1px] bg-slate-100 flex-1" />
-        </div>
-
-        {/* Role Selection Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Freelancer Card */}
-          <button
-            type="button"
-            onClick={() => setSelectedRole('freelancer')}
-            className={`relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer text-left h-full ${selectedRole === 'freelancer'
-                ? 'border-[#0047AB] bg-blue-50/40 shadow-xs ring-1 ring-blue-500/10'
-                : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-          >
-            <div className="flex gap-3 items-start min-w-0">
-              <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-800 shadow-2xs shrink-0 relative overflow-hidden">
-                <User size={18} className="text-slate-800" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-extrabold text-slate-900 text-xs sm:text-sm font-satoshi block">Freelancer</span>
-                <span className="text-[9.5px] text-slate-500 font-sans block mt-0.5 leading-tight font-medium">
-                  Offer your skills and get paid fairly.
-                </span>
-              </div>
+        {/* Connecting Banner */}
+        {connectingProvider && !isSuccess && (
+          <div className="p-3.5 bg-[#EFF6FF] border border-[#BFDBFE] rounded-[10px] text-xs text-[#0047AB] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <Loader2 size={16} className="animate-spin shrink-0" />
+              <span>
+                Connecting {connectingProvider}... <strong>Check your wallet to approve</strong>
+              </span>
             </div>
-
-            <div className="mt-3.5">
-              <div className="inline-block text-[8.5px] px-2.5 py-0.5 bg-slate-100 border border-slate-200 text-slate-700 font-mono font-black uppercase rounded-full tracking-wider">
-                Build • Earn • Grow
-              </div>
-            </div>
-
-            {selectedRole === 'freelancer' && (
-              <div className="absolute -top-1.5 -right-1.5 bg-[#0047AB] text-white p-0.5 rounded-full shadow-xs border border-white">
-                <Check size={10} className="stroke-[3.5]" />
-              </div>
-            )}
-          </button>
-
-          {/* Client Card */}
-          <button
-            type="button"
-            onClick={() => setSelectedRole('client')}
-            className={`relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer text-left h-full ${selectedRole === 'client'
-                ? 'border-[#0047AB] bg-blue-50/40 shadow-xs ring-1 ring-blue-500/10'
-                : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-          >
-            <div className="flex gap-3 items-start min-w-0">
-              <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-800 shadow-2xs shrink-0 relative overflow-hidden">
-                <Briefcase size={16} className="text-slate-800" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-extrabold text-slate-900 text-xs sm:text-sm font-satoshi block">Client</span>
-                <span className="text-[9.5px] text-slate-500 font-sans block mt-0.5 leading-tight font-medium">
-                  Find talent and get work done securely.
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-3.5">
-              <div className="inline-block text-[8.5px] px-2.5 py-0.5 bg-slate-100 border border-slate-200 text-slate-700 font-mono font-black uppercase rounded-full tracking-wider">
-                Hire • Collaborate • Scale
-              </div>
-            </div>
-
-            {selectedRole === 'client' && (
-              <div className="absolute -top-1.5 -right-1.5 bg-[#0047AB] text-white p-0.5 rounded-full shadow-xs border border-white">
-                <Check size={10} className="stroke-[3.5]" />
-              </div>
-            )}
-          </button>
-        </div>
-
-        {/* Divider */}
-        <div className="flex items-center justify-center my-3.5">
-          <div className="h-[1px] bg-slate-100 flex-grow" />
-          <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mx-3" />
-          <div className="h-[1px] bg-slate-100 flex-grow" />
-        </div>
-
-        {/* Connect Wallet section */}
-        <div className="space-y-4 pt-1">
-          <div className="w-8 h-8 rounded-xl bg-[#0B0B0C] text-white border border-slate-800 flex items-center justify-center mx-auto shadow-2xs shrink-0">
-            <Lock size={14} className="text-white" />
+            <button
+              type="button"
+              onClick={() => setConnectingProvider(null)}
+              className="text-[11px] font-semibold text-[#0047AB] hover:underline"
+            >
+              Cancel
+            </button>
           </div>
-          <div className="text-center">
-            <h3 className="font-heading text-sm font-black text-slate-900">
-              Connect Your Wallet
-            </h3>
-            <p className="text-[10.5px] text-slate-500 font-sans mt-0.5 font-medium">
-              Choose your preferred wallet to continue
-            </p>
-          </div>
+        )}
 
-          {/* Wallet Options Side-by-Side Grid */}
-          <div className="grid grid-cols-3 gap-2.5">
-            {walletProviders.map((prov) => (
+        {/* Wrong Network Notice */}
+        {isWrongNetwork && (
+          <div className="p-3.5 bg-[#EAF1FB] border border-[#C9DAF2] rounded-[10px] text-xs text-[#0B0B0F] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={16} className="shrink-0 text-[#0047AB]" />
+              <span>Connected to unsupported network. Switch to Polygon to proceed.</span>
+            </div>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={switchToTargetNetwork}
+              className="shrink-0"
+            >
+              Switch to Polygon
+            </Button>
+          </div>
+        )}
+
+        {/* Error States with action */}
+        {errorMessage && (
+          <div className="p-3.5 bg-[#FEF2F2] border border-[#FECACA] rounded-[10px] text-xs text-[#991B1B] space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={15} className="shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
               <button
-                key={prov.id}
                 type="button"
-                disabled={Boolean(connectingProvider)}
-                onClick={() => handleWeb2Login(prov.name)}
-                className="flex items-center justify-between p-2.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 hover:border-[#0047AB] transition-all cursor-pointer shadow-4xs group hover:scale-[1.01] duration-300 relative select-none"
+                onClick={() => setErrorMessage(null)}
+                className="font-medium hover:underline text-[11px]"
               >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {prov.logo}
-                  <span className="text-[9.5px] font-black text-slate-800 tracking-tight font-satoshi truncate">
-                    {prov.name}
+                Dismiss
+              </button>
+            </div>
+
+            {errorType === 'uninstalled' && uninstalledWallet === 'MetaMask' && (
+              <div className="pt-1 border-t border-[#FECACA] flex items-center justify-between">
+                <span>Download MetaMask extension:</span>
+                <a
+                  href="https://metamask.io/download/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-[#0047AB] hover:underline inline-flex items-center gap-1"
+                >
+                  <span>Install MetaMask</span>
+                  <ExternalLink size={12} />
+                </a>
+              </div>
+            )}
+
+            {errorType === 'uninstalled' && uninstalledWallet === 'Coinbase Wallet' && (
+              <div className="pt-1 border-t border-[#FECACA] flex items-center justify-between">
+                <span>Download Coinbase Wallet:</span>
+                <a
+                  href="https://www.coinbase.com/wallet"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-[#0047AB] hover:underline inline-flex items-center gap-1"
+                >
+                  <span>Install Coinbase Wallet</span>
+                  <ExternalLink size={12} />
+                </a>
+              </div>
+            )}
+
+            {errorType === 'rejected' && (
+              <div className="pt-1 border-t border-[#FECACA]">
+                <button
+                  type="button"
+                  onClick={() => handleWalletConnect(connectingProvider || 'MetaMask')}
+                  className="font-semibold text-[#991B1B] hover:underline inline-flex items-center gap-1"
+                >
+                  <RefreshCw size={12} />
+                  <span>Try again</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Wallet Rows (Equal Height, whole row clickable, official logos) */}
+        <div className="space-y-2.5">
+          {/* Row 1: MetaMask (Recommended) */}
+          <div
+            onClick={() => handleWalletConnect('MetaMask')}
+            className="w-full h-16 p-3.5 bg-white border border-[#E5E7EB] hover:border-[#0047AB] hover:bg-[#F9FAFB] rounded-[10px] cursor-pointer transition-all flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center p-1.5 shrink-0">
+                <WalletLogo name="MetaMask" size={26} />
+              </div>
+              <div className="text-left">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-[#0B0B0F] group-hover:text-[#0047AB] transition-colors">
+                    MetaMask
+                  </span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-[4px] bg-[#EFF6FF] text-[#0047AB] border border-[#BFDBFE]">
+                    Recommended
                   </span>
                 </div>
-                <ArrowRight size={9} className="text-slate-400 group-hover:text-[#0047AB] group-hover:translate-x-0.5 transition-all shrink-0" />
-              </button>
+                <span className="text-xs text-[#6B7280]">Browser extension & mobile</span>
+              </div>
+            </div>
+
+            {isMetaMaskInstalled ? (
+              <span className="text-[11px] font-semibold px-2 py-1 rounded-[6px] bg-[#F6F7F9] text-[#0B0B0F] border border-[#E5E7EB]">
+                Installed
+              </span>
+            ) : (
+              <ArrowRight size={16} className="text-[#9CA3AF] group-hover:text-[#0047AB] group-hover:translate-x-0.5 transition-all" />
+            )}
+          </div>
+
+          {/* Row 2: WalletConnect */}
+          <div
+            onClick={() => handleWalletConnect('WalletConnect')}
+            className="w-full h-16 p-3.5 bg-white border border-[#E5E7EB] hover:border-[#0047AB] hover:bg-[#F9FAFB] rounded-[10px] cursor-pointer transition-all flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center p-1.5 shrink-0">
+                <WalletLogo name="WalletConnect" size={26} />
+              </div>
+              <div className="text-left">
+                <span className="text-sm font-semibold text-[#0B0B0F] group-hover:text-[#0047AB] transition-colors block">
+                  WalletConnect
+                </span>
+                <span className="text-xs text-[#6B7280]">Scan with any mobile wallet</span>
+              </div>
+            </div>
+            <ArrowRight size={16} className="text-[#9CA3AF] group-hover:text-[#0047AB] group-hover:translate-x-0.5 transition-all" />
+          </div>
+
+          {/* Row 3: Coinbase Wallet */}
+          <div
+            onClick={() => handleWalletConnect('Coinbase')}
+            className="w-full h-16 p-3.5 bg-white border border-[#E5E7EB] hover:border-[#0047AB] hover:bg-[#F9FAFB] rounded-[10px] cursor-pointer transition-all flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center p-1.5 shrink-0">
+                <WalletLogo name="Coinbase" size={26} />
+              </div>
+              <div className="text-left">
+                <span className="text-sm font-semibold text-[#0B0B0F] group-hover:text-[#0047AB] transition-colors block">
+                  Coinbase Wallet
+                </span>
+                <span className="text-xs text-[#6B7280]">App or browser extension</span>
+              </div>
+            </div>
+
+            {isCoinbaseInstalled ? (
+              <span className="text-[11px] font-semibold px-2 py-1 rounded-[6px] bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0]">
+                Installed
+              </span>
+            ) : (
+              <ArrowRight size={16} className="text-[#9CA3AF] group-hover:text-[#0047AB] group-hover:translate-x-0.5 transition-all" />
+            )}
+          </div>
+
+          {/* Other detected EIP-6963 Wallets */}
+          {providers
+            .filter((p) => {
+              const name = p.info.name.toLowerCase();
+              return !name.includes('metamask') && !name.includes('coinbase');
+            })
+            .map((p) => (
+              <div
+                key={p.info.uuid}
+                onClick={() => handleWalletConnect(p.info.name)}
+                className="w-full h-16 p-3.5 bg-white border border-[#E5E7EB] hover:border-[#0047AB] hover:bg-[#F9FAFB] rounded-[10px] cursor-pointer transition-all flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-[8px] bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center p-1.5 shrink-0">
+                    <WalletLogo name={p.info.name} iconUrl={p.info.icon} size={26} />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-sm font-semibold text-[#0B0B0F] group-hover:text-[#0047AB] transition-colors block">
+                      {p.info.name}
+                    </span>
+                    <span className="text-xs text-[#6B7280]">Detected browser wallet</span>
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold px-2 py-1 rounded-[6px] bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0]">
+                  Installed
+                </span>
+              </div>
             ))}
-          </div>
-
-          <div className="flex items-center justify-center gap-1.5 text-[9.5px] text-slate-500 font-sans font-medium mt-1">
-            <ShieldCheck size={11.5} className="text-[#0047AB]" />
-            <span>Your data stays on-chain. You stay in control.</span>
-          </div>
         </div>
 
-        {/* Security / Bottom highlights bar inside the card */}
-        <div className="bg-slate-50 border-t border-slate-100 p-4 -mx-6 -mb-5 sm:-mx-8 sm:-mb-8 rounded-b-2xl grid grid-cols-3 gap-2 text-center select-none">
-          <div>
-            <ShieldCheck size={14} className="text-[#0047AB] mx-auto" />
-            <span className="text-[9px] font-black text-slate-800 block mt-1">100% On-Chain</span>
-            <span className="text-[7.5px] text-slate-500 block leading-tight font-sans mt-0.5">Transparent & Secure</span>
+        {/* View All Wallets button */}
+        <div className="text-center pt-1">
+          <button
+            type="button"
+            onClick={() => handleWalletConnect('all')}
+            className="text-xs text-[#0047AB] font-semibold hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>View all supported wallets</span>
+            <ArrowRight size={13} />
+          </button>
+        </div>
+
+        {/* Footer info: New to wallets? + Security guarantee */}
+        <div className="pt-3 border-t border-[#E5E7EB] space-y-2.5 text-xs text-[#4B5563]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[#0B0B0F] font-medium">
+              <HelpCircle size={14} className="text-[#0047AB]" />
+              <span>New to Web3 wallets?</span>
+            </div>
+            <Link
+              to="/help"
+              onClick={handleModalClose}
+              className="text-[#0047AB] hover:underline font-semibold"
+            >
+              Read beginner guide &rarr;
+            </Link>
           </div>
-          <div className="border-l border-slate-200">
-            <CheckCircle2 size={13.5} className="text-[#0047AB] mx-auto" />
-            <span className="text-[9px] font-black text-slate-800 block mt-1">Verified Platform</span>
-            <span className="text-[7.5px] text-slate-500 block leading-tight font-sans mt-0.5">Built for Trust</span>
-          </div>
-          <div className="border-l border-slate-200">
-            <Zap size={13.5} className="text-[#0047AB] mx-auto" />
-            <span className="text-[9px] font-black text-slate-800 block mt-1">Fair & Transparent</span>
-            <span className="text-[7.5px] text-slate-500 block leading-tight font-sans mt-0.5">No Middlemen</span>
+
+          <div className="flex items-center gap-1.5 text-[11px] text-[#4B5563] bg-[#F6F7F9] p-2.5 rounded-[8px] border border-[#E5E7EB]">
+            <Shield size={14} className="text-[#0047AB] shrink-0" />
+            <span>PolyLance never asks for your recovery phrase or private keys.</span>
           </div>
         </div>
-      </motion.div>
-    </motion.div>
-      )}
-    </AnimatePresence>
+      </div>
+    </Modal>
   );
 };
+
+export default LoginModal;

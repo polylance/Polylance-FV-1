@@ -5,6 +5,14 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://polylance-fv-1-45wy.onrender.com/api/$1"
+    },
+    {
+      "source": "/metadata/(.*)",
+      "destination": "https://polylance-fv-1-45wy.onrender.com/metadata/$1"
+    },
+    {
       "source": "/Polylance-FV-1/assets/(.*)",
       "destination": "/assets/$1"
     },

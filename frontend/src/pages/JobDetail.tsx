@@ -7,11 +7,16 @@ import { EscrowTimeline } from '../components/EscrowTimeline';
 import { ApplicantTable } from '../components/ApplicantTable';
 import { DisputePanel } from '../components/DisputePanel';
 import { DeliverableWorkSubmissionPanel } from '../components/DeliverableWorkSubmissionPanel';
+import { NegotiationCard } from '../components/NegotiationCard';
 import { DisputeReason, UserProfile } from '../types';
-import { truncateAddress, formatDaysRemaining, formatTimeAgo, getDeterministicSbtId, formatWeb3ErrorMessage, getPolygonScanAddressUrl } from '../utils/formatters';
-import { getIpfsGatewayUrl, generateIpfsCid } from '../utils/ipfs';
+import { truncateAddress, formatTimeAgo, getDeterministicSbtId, formatWeb3ErrorMessage, getPolygonScanAddressUrl, getCanonicalCategory } from '../utils/formatters';
+import { generateIpfsCid } from '../utils/ipfs';
 import { getJobInactivityStatus } from '../utils/inactivity';
-import { Shield, ShieldCheck, Wallet, Clock, Send, DollarSign, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft, FileText, Star, Building2, Receipt, Award, Github, Sparkles, ArrowUpRight, Calendar, Trash2, Edit3, RefreshCw, Share2, Loader2, Lock, Briefcase } from 'lucide-react';
+import { 
+  ShieldCheck, Clock, Send, SendHorizontal, CheckCircle2, AlertTriangle, MessageSquare, 
+  ExternalLink, ArrowLeft, FileText, Building2, Award, Github, Sparkles, 
+  Trash2, Edit3, RefreshCw, Lock, Briefcase, HelpCircle
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ErrorState } from '../components/UIStates';
 import { ActionStatusModal, ActionModalDetail } from '../components/ActionStatusModal';
@@ -19,17 +24,36 @@ import { FormattedJobDescription } from '../components/FormattedJobDescription';
 import { FundEscrowModal } from '../components/FundEscrowModal';
 import { PaymentReleasedModal } from '../components/PaymentReleasedModal';
 import { ModifyJobModal } from '../components/ModifyJobModal';
+import { GithubVerifyModal } from '../components/GithubVerifyModal';
+import { GithubScoreResult } from '../utils/githubOracle';
 import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceAlertModal';
-import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
-import { useLiveCurrencyRates } from '../utils/currency';
+import { PolyLanceSelect } from '../components/PolyLanceSelect';
 import { scrollToSection, extractTargetSection } from '../utils/scroll';
-import { TokenIcon } from '../components/TokenIcon';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
+import { StatusBadge } from '../components/common/StatusBadge';
+import { AddressChip } from '../components/common/AddressChip';
+import { FeeBreakdown } from '../components/common/FeeBreakdown';
+import { Amount } from '../components/common/Amount';
+import { TokenAmount } from '../components/common/TokenAmount';
+import { getJobAmounts } from '../lib/amounts/getJobAmounts';
+import { Button } from '../components/common/Button';
+import { Modal } from '../components/overlay';
+import { Disclosure } from '../components/common/Disclosure';
+import { WatchButton, VideoModal, useVideoModal } from '../components/video';
+import { getEngagementDisplayState } from '../types/lifecycle';
+import { canApplyToJob, areAddressesEqual } from '../utils/accountMode';
+import { toast } from '../utils/toast';
+import { useDemoMode } from '../context/DemoModeContext';
+import { Seo } from '../components/seo/Seo';
+import { buildJobSeo } from '../seo/templates';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const { address, isConnected, isArbitrator, currentRole, connectWallet } = useWeb3();
+  const { isDemoMode } = useDemoMode();
   const {
     jobs,
     deleteJob,
@@ -45,20 +69,23 @@ export const JobDetail: React.FC = () => {
     sendChatMessage,
     sendPreAcceptMessage,
     profiles,
+    updateProfile,
   } = usePolyLanceData();
-  const rates = useLiveCurrencyRates();
 
   const [isFundEscrowModalOpen, setIsFundEscrowModalOpen] = useState(false);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [isPaymentReleasedModalOpen, setIsPaymentReleasedModalOpen] = useState(false);
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
   const [releasedTxHash, setReleasedTxHash] = useState<string | undefined>(undefined);
+  const { activeVideoId, isOpen, openVideo, closeVideo, triggerRef } = useVideoModal();
 
   const [isResolvingJob, setIsResolvingJob] = useState(() => {
-    return !jobs.some(
+    const foundInReal = jobs.some(
       (j) =>
         (j.id && j.id.toLowerCase() === id?.toLowerCase()) ||
         (j.contractAddress && j.contractAddress.toLowerCase() === id?.toLowerCase())
     );
+    return !foundInReal;
   });
 
   React.useEffect(() => {
@@ -147,7 +174,7 @@ export const JobDetail: React.FC = () => {
     if (!job) return;
     setAlertModalOptions({
       title: 'Remove Job Posting',
-      message: `Are you sure you want to remove this job posting? It will be permanently cleaned from the marketplace, site, and database.`,
+      message: `Are you sure you want to remove this job posting? It will be permanently removed.`,
       type: 'confirm',
       showCancel: true,
       isDestructive: true,
@@ -161,16 +188,7 @@ export const JobDetail: React.FC = () => {
 
   const [applyProposalText, setApplyProposalText] = useState('');
   const [isApplyingModalOpen, setIsApplyingModalOpen] = useState(false);
-  const [chatInput, setChatInput] = useState('');
-  const [freelancerPreAcceptInput, setFreelancerPreAcceptInput] = useState('');
-
-  const handleFreelancerSendPreAccept = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!job || !freelancerPreAcceptInput.trim()) return;
-    sendPreAcceptMessage(job.id, freelancerPreAcceptInput.trim(), address || '', 'Freelancer');
-    setFreelancerPreAcceptInput('');
-  };
-
+  const [isApplyingSubmitting, setIsApplyingSubmitting] = useState(false);
   const [disputeReason, setDisputeReason] = useState<DisputeReason>('QUALITY');
   const [disputeEvidenceText, setDisputeEvidenceText] = useState('');
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
@@ -193,10 +211,11 @@ export const JobDetail: React.FC = () => {
     title: '',
   });
 
-  const job = jobs.find((j) => (j.id && j.id.toLowerCase() === id?.toLowerCase()) || (j.contractAddress && j.contractAddress.toLowerCase() === id?.toLowerCase()));
-  const chatMessages = job?.chatMessages || [
-    { sender: 'Client' as const, text: 'Welcome! Let us finalize the project scope and deliverables before funding.', timestamp: job?.createdAt || Date.now() - 3600000 }
-  ];
+  const job = jobs.find(
+    (j) =>
+      (j.id && j.id.toLowerCase() === id?.toLowerCase()) ||
+      (j.contractAddress && j.contractAddress.toLowerCase() === id?.toLowerCase())
+  );
 
   React.useEffect(() => {
     if (job?.id) {
@@ -206,129 +225,166 @@ export const JobDetail: React.FC = () => {
     }
   }, [job?.id]);
 
+  const isClient = Boolean(isConnected && address && job?.client && areAddressesEqual(address, job.client));
+
+  // Guard deep link or programmatic apply attempts by the job owner
+  React.useEffect(() => {
+    if (isApplyingModalOpen && isClient) {
+      setIsApplyingModalOpen(false);
+      toast.error("You can't apply to your own job", "As the job creator, you can manage candidates and escrow from this page.");
+    }
+  }, [isApplyingModalOpen, isClient]);
+
   if (!job) {
     if (isResolvingJob) {
       return (
-        <div className="max-w-xl mx-auto py-24 text-center space-y-4 font-sans">
-          <div className="w-14 h-14 rounded-xl bg-slate-100 text-[#0047AB] flex items-center justify-center mx-auto border border-[#E2E6EC]">
-            <RefreshCw className="animate-spin" size={24} />
+        <PageContainer>
+          <div className="max-w-xl mx-auto py-24 text-center space-y-4 font-sans">
+            <div className="w-12 h-12 rounded-xl bg-[#F6F7F9] text-[#0047AB] flex items-center justify-center mx-auto border border-[#E5E7EB]">
+              <RefreshCw className="animate-spin" size={20} />
+            </div>
+            <h2 className="text-xl font-semibold text-[#0B0B0F]">
+              Synchronizing escrow contract...
+            </h2>
+            <p className="text-xs text-[#4B5563]">
+              Fetching verified on-chain job data and escrow state for ID: {id}
+            </p>
           </div>
-          <h2 className="text-xl font-serif font-bold text-[#0B0B0C]">
-            Synchronizing Escrow Contract...
-          </h2>
-          <p className="text-xs text-slate-500 font-mono">
-            Fetching verified on-chain job data and escrow state across the PolyLance network for ID: {id}
-          </p>
-        </div>
+        </PageContainer>
       );
     }
     return (
-      <div className="max-w-xl mx-auto py-16">
-        <ErrorState
-          title="Job Contract Not Found"
-          description={`We couldn't locate an active smart contract escrow for ID: ${id}. It may have expired or been removed.`}
-          onRetry={() => window.location.reload()}
-          onDashboard={() => window.location.hash = '#/jobs'}
-        />
-      </div>
+      <PageContainer>
+        <div className="max-w-xl mx-auto py-16">
+          <ErrorState
+            title="Job Contract Not Found"
+            description={`We couldn't locate an active smart contract escrow for ID: ${id}. It may have expired or been removed.`}
+            onRetry={() => window.location.reload()}
+            onDashboard={() => window.location.hash = '#/jobs'}
+          />
+        </div>
+      </PageContainer>
     );
   }
 
   const clientProfileKey = Object.keys(profiles).find(k => k.toLowerCase() === job.client.toLowerCase());
   const clientProfile = clientProfileKey ? profiles[clientProfileKey] : null;
-  const clientDisplayName = clientProfile?.displayName || 'Anonymous Client';
+  const clientDisplayName = clientProfile?.displayName || truncateAddress(job.client);
 
   const freelancerAddr = job.freelancer;
   const freelancerProfileKey = freelancerAddr ? Object.keys(profiles).find(k => k.toLowerCase() === freelancerAddr.toLowerCase()) : null;
   const freelancerProfile = freelancerProfileKey ? profiles[freelancerProfileKey] : null;
-  const freelancerDisplayName = freelancerProfile?.displayName || (freelancerAddr ? 'Anonymous Freelancer' : 'Unassigned');
+  const freelancerDisplayName = freelancerProfile?.displayName || (freelancerAddr ? truncateAddress(freelancerAddr) : 'Unassigned');
 
   const currentUserProfKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
   const currentUserProf = currentUserProfKey ? profiles[currentUserProfKey] : null;
   const isUserVerified = Boolean(currentUserProf?.githubVerified);
 
-  const isClient = Boolean(isConnected && address && address.toLowerCase() === job.client.toLowerCase());
-  const isFreelancer = Boolean(isConnected && address && job.freelancer && address.toLowerCase() === job.freelancer.toLowerCase());
+  const isFreelancer = Boolean(isConnected && address && job.freelancer && areAddressesEqual(address, job.freelancer));
   const isParty = isClient || isFreelancer;
-  const hasApplied = Boolean(isConnected && address && (job.applications || []).some((a) => a.applicant.toLowerCase() === address.toLowerCase()));
+  const hasApplied = Boolean(isConnected && address && (job.applications || []).some((a) => areAddressesEqual(a.applicant, address)));
 
-  const getFormattedPayout = (amtUsdc: string, tokenSym?: string, amtEth?: string) => {
-    const sym = (tokenSym || 'USDC').toUpperCase();
-    if (sym === 'MATIC' || sym === 'POL') {
-      return `${amtEth || amtUsdc} POL`;
+  const display = getEngagementDisplayState(job);
+
+  const jobAmounts = getJobAmounts(job, undefined, undefined, isClient ? 'client' : (isFreelancer ? 'freelancer' : 'visitor'));
+  const tokenSymbol = jobAmounts.token;
+  const tokenAmount = jobAmounts.effectiveAmount;
+
+  const handleGithubVerified = (res: GithubScoreResult) => {
+    if (address) {
+      updateProfile(
+        {
+          githubVerified: true,
+          githubUsername: res.username,
+          githubId: res.id || res.username,
+          primaryScore: res.primaryScore,
+          secondaryScores: res.secondaryScores,
+          primaryCategory: res.primaryCategory,
+          languageBytes: res.languageBytes,
+          verifiedAt: res.verifiedAt,
+          attestationUID: res.attestationUID,
+          reputationTier: res.reputationTier,
+          avatarUrl: res.fetchedAvatarUrl || currentUserProf?.avatarUrl,
+          displayName: res.fetchedDisplayName || currentUserProf?.displayName,
+        },
+        address
+      );
     }
-    return `$${parseFloat(amtUsdc || '0').toLocaleString()} ${sym}`;
   };
 
-  const handleApplySubmit = (e: React.FormEvent) => {
+  const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!applyProposalText.trim()) return;
-    if (!isUserVerified) {
-      setActionModal({
-        isOpen: true,
-        title: 'GitHub Verification Required',
-        subtitle: 'Sybil-resistant verification is required before submitting job applications.',
-        icon: 'extension',
-        badgeText: 'VERIFICATION NEEDED',
-        details: [
-          { label: 'Requirement', value: 'GitHub OAuth Verification' },
-          { label: 'Action', value: 'Go to Profile Page to Verify' },
-        ],
-      });
+
+    if (!isConnected || !address) {
+      toast.error("Please connect your wallet to submit a proposal");
       return;
     }
-    applyToJob(
-      job.id,
-      applyProposalText,
-      address,
-      currentUserProf?.skills || ['Developer'],
-      Boolean(currentUserProf?.githubVerified),
-      currentUserProf?.primaryScore || 750
+
+    const eligibility = canApplyToJob(
+      { address, accountMode: currentUserProf?.accountMode || 'both', isConnected },
+      job
     );
-    setIsApplyingModalOpen(false);
-    setApplyProposalText('');
-    confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
-    const payoutStr = getFormattedPayout(job.amountUsdc, job.paymentTokenSymbol, job.amountEth);
-    setActionModal({
-      isOpen: true,
-      title: 'Job Proposal Submitted On-Chain',
-      subtitle: 'Your verified application and proposal have been recorded and sent to the client.',
-      icon: 'success',
-      badgeText: 'PROPOSAL ACTIVE',
-      details: [
-        { label: 'Escrow Budget', value: payoutStr, isBadge: true },
-        { label: 'Applicant', value: truncateAddress(address || ''), isMono: true },
-        { label: 'Review SLA', value: `${job.reviewPeriodDays || 7} Days` },
-      ],
-      primaryActionText: 'View Proposal in Application List',
-      targetSectionId: 'applications-panel',
-    });
+    if (!eligibility.allowed) {
+      setIsApplyingModalOpen(false);
+      toast.error(eligibility.message || "Cannot apply to this job");
+      return;
+    }
+
+    try {
+      setIsApplyingSubmitting(true);
+      await applyToJob(
+        job.id,
+        applyProposalText.trim(),
+        address,
+        currentUserProf?.skills || ['Developer'],
+        Boolean(currentUserProf?.githubVerified),
+        currentUserProf?.primaryScore || 750
+      );
+      setIsApplyingModalOpen(false);
+      setApplyProposalText('');
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+      setActionModal({
+        isOpen: true,
+        title: 'Job Proposal Submitted',
+        subtitle: 'Your proposal and credentials have been sent to the client.',
+        icon: 'success',
+        badgeText: 'PROPOSAL ACTIVE',
+        details: [
+          { label: 'Job budget', value: `${tokenAmount} ${tokenSymbol}`, isBadge: true },
+          { label: 'Applicant', value: truncateAddress(address || ''), isMono: true },
+          { label: 'Review Window', value: `${job.reviewPeriodDays || 7} Days` },
+        ],
+        primaryActionText: 'View in Applications',
+        targetSectionId: 'applications-panel',
+      });
+    } catch (err: any) {
+      console.error('Error applying to job:', err);
+      toast.error(err?.message || 'Failed to submit proposal. Please check your network and try again.');
+    } finally {
+      setIsApplyingSubmitting(false);
+    }
   };
 
   const handleProposeTermsAction = (jobId: string, userAddr: string) => {
     proposeTerms(jobId, userAddr);
     confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
-    const payoutStr = getFormattedPayout(job.amountUsdc, job.paymentTokenSymbol, job.amountEth);
     setActionModal({
       isOpen: true,
-      title: 'Milestone Terms Agreed On-Chain',
-      subtitle: 'Your acceptance of the project scope and SLA terms has been signed and recorded.',
+      title: 'Milestone Terms Agreed',
+      subtitle: 'Your acceptance of the project scope and SLA terms has been recorded.',
       icon: 'terms',
       badgeText: 'TERMS FINALIZED',
       details: [
         { label: 'Agreement Status', value: 'Terms Accepted', isBadge: true },
-        { label: 'Milestone Payout', value: payoutStr },
+        { label: 'Milestone Payout', value: `${tokenAmount} ${tokenSymbol}` },
         { label: 'Escrow Address', value: truncateAddress(job.contractAddress), isMono: true, explorerUrl: getPolygonScanAddressUrl(job.contractAddress) },
       ],
-      primaryActionText: 'View Escrow Details & Budget',
+      primaryActionText: 'View Escrow Details',
       targetSectionId: 'escrow-details',
       secondaryActionText: 'Take me to Dashboard',
       onSecondaryAction: () => navigate('/dashboard'),
     });
-  };
-
-  const handleFundJobAction = (jobId: string) => {
-    setIsFundEscrowModalOpen(true);
   };
 
   const handleConfirmFund = async () => {
@@ -337,24 +393,17 @@ export const JobDetail: React.FC = () => {
     setIsFundEscrowModalOpen(false);
     setActionModal({
       isOpen: true,
-      title: 'Escrow Vault Funded Successfully! 🚀',
-      subtitle: 'Your payment is safely locked in the smart contract escrow proxy. The deliverable workspace is now active.',
+      title: 'Escrow Vault Funded Successfully',
+      subtitle: 'Your payment is safely locked in the smart contract escrow. The workspace is now active.',
       icon: 'payment',
       badgeText: 'FUNDS SECURED',
       details: [
         { label: 'Escrow Status', value: 'Funded & In Progress', isBadge: true },
         { label: 'Contract Address', value: truncateAddress(job.contractAddress), isMono: true },
       ],
-      primaryActionText: 'Go to Work & Deliverables Workspace',
+      primaryActionText: 'Go to Workspace',
       targetSectionId: 'deliverable-workspace',
     });
-  };
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    sendChatMessage(job.id, chatInput, isClient ? 'Client' : 'Freelancer');
-    setChatInput('');
   };
 
   const handleReleasePayment = async () => {
@@ -384,8 +433,8 @@ export const JobDetail: React.FC = () => {
     setIsDisputeModalOpen(false);
     setActionModal({
       isOpen: true,
-      title: 'Escrow Case Escalated to DAO Judges',
-      subtitle: 'Your evidence and case details have been registered on-chain for decentralized arbitration.',
+      title: 'Case Escalated to Arbitration',
+      subtitle: 'Your evidence has been registered on-chain for arbitration.',
       icon: 'dispute',
       badgeText: 'DISPUTE SUBMITTED',
       details: [
@@ -393,451 +442,355 @@ export const JobDetail: React.FC = () => {
         { label: 'IPFS Evidence CID', value: evidenceCid, isMono: true },
         { label: 'Contract Address', value: truncateAddress(job.contractAddress), isMono: true },
       ],
-      primaryActionText: 'Inspect Dispute Docket in Court Panel',
+      primaryActionText: 'Inspect Dispute Docket',
       targetSectionId: 'dispute-panel',
     });
   };
 
   const inactivityStatus = getJobInactivityStatus(job);
 
-  // CONFIDENTIALITY & DATA PRIVACY PROTECTION:
-  // If a client selects a freelancer for their work, do NOT show confidential job details to other freelancers.
-  // Full job specifications, deliverables, and workspace are strictly reserved for the client and selected freelancer.
   const hasSelectedFreelancer = Boolean(job.freelancer);
   const isAuthorizedParty = isClient || isFreelancer || (Boolean(isArbitrator) && job.status === 'Disputed');
   const isConfidentialRestricted = hasSelectedFreelancer && !isAuthorizedParty;
 
   if (isConfidentialRestricted) {
     return (
-      <div className="space-y-8 py-6 w-full font-sans">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <Link to="/jobs" className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 font-mono font-bold">
-            <ArrowLeft size={14} /> Back to Find Jobs
-          </Link>
-          <span className="badge-status bg-slate-100 text-[#0B0B0C] border border-[#E2E6EC] font-mono text-xs font-bold px-3 py-1 rounded-full">
-            ● Talent Selected • Private Workspace
-          </span>
-        </div>
-
-        <div className="p-8 sm:p-10 border border-[#E2E6EC] bg-white text-center space-y-5 rounded-xl relative overflow-hidden shadow-xs">
-          <div className="w-16 h-16 rounded-xl bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] flex items-center justify-center mx-auto">
-            <Lock size={32} />
-          </div>
-
-          <div className="space-y-1.5 max-w-lg mx-auto">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0B0B0C] bg-slate-100 px-2.5 py-0.5 rounded-full border border-[#E2E6EC] inline-block">
-              Confidential Contract Workspace
-            </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0B0B0C] tracking-tight">
-              Access Restricted to Contract Parties
-            </h2>
-          </div>
-
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
-            The client has selected a verified freelancer for this work. To protect proprietary specifications, intellectual property, and milestone deliverables, full job details and escrow management are strictly confidential between the client (<strong className="text-[#0B0B0C]">{clientDisplayName}</strong>) and the selected talent (<strong className="text-[#0B0B0C]">{freelancerDisplayName}</strong>).
-          </p>
-
-          {/* Public Non-Confidential Escrow Summary */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E6EC] text-left space-y-2.5 font-mono text-xs max-w-lg mx-auto">
-            <div className="flex justify-between items-center text-slate-600">
-              <span className="text-[11px]">Job Title:</span>
-              <strong className="text-[#0B0B0C] truncate max-w-[220px]">{job.title}</strong>
-            </div>
-            <div className="flex justify-between items-center text-slate-600">
-              <span className="text-[11px]">Category:</span>
-              <span className="font-bold text-slate-800 uppercase text-[10.5px] bg-slate-200/60 px-2 py-0.5 rounded">
-                {job.category || 'Web3'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-slate-600">
-              <span className="text-[11px]">Contract Status:</span>
-              <span className="font-bold text-[#0047AB] uppercase text-[10.5px] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
-                {job.status === 'Completed' ? 'Completed & Settled' : 'Assigned & Active'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-slate-600">
-              <span className="text-[11px]">Escrow ID:</span>
-              <span className="text-slate-700 font-bold">{truncateAddress(job.contractAddress || job.id)}</span>
-            </div>
-          </div>
-
-          {/* If the viewer previously applied */}
-          {hasApplied && (
-            <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 max-w-lg mx-auto flex items-center gap-2.5 text-left">
-              <ShieldCheck size={18} className="text-[#0047AB] shrink-0" />
-              <span>
-                You submitted a proposal for this role. The client has finalized selection with another candidate. Thank you for your application!
-              </span>
-            </div>
-          )}
-
-          <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              to="/jobs"
-              className="px-5 py-2.5 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
-            >
-              <Briefcase size={14} />
-              <span>Browse Open Jobs</span>
+      <PageContainer>
+        <Seo customConfig={buildJobSeo(job)} extraData={{ job }} />
+        <div className="space-y-6 py-6 w-full font-sans">
+          <div className="flex items-center justify-between">
+            <Link to="/jobs" className="text-xs text-[#4B5563] hover:text-[#0B0B0F] flex items-center gap-1 font-medium">
+              <ArrowLeft size={14} /> Back to Find Jobs
             </Link>
-            <Link
-              to="/workspace"
-              className="px-5 py-2.5 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold text-xs transition-all flex items-center justify-center gap-1.5"
-            >
-              <span>Go to My Workspace</span>
-            </Link>
+            <StatusBadge status="In progress" />
+          </div>
+
+          <div className="p-8 sm:p-10 border border-[#E5E7EB] bg-white text-center space-y-4 rounded-xl">
+            <div className="w-12 h-12 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] text-[#0B0B0F] flex items-center justify-center mx-auto">
+              <Lock size={24} />
+            </div>
+
+            <div className="space-y-1 max-w-lg mx-auto">
+              <span className="text-xs text-[#4B5563] bg-[#F6F7F9] px-2.5 py-0.5 rounded border border-[#E5E7EB] inline-block font-medium">
+                Private workspace
+              </span>
+              <h2 className="text-2xl font-semibold text-[#0B0B0F]">
+                Access restricted to contract parties
+              </h2>
+            </div>
+
+            <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed max-w-lg mx-auto">
+              The client has selected a verified freelancer for this work. Full job specifications and workspace are reserved for the client (<strong className="text-[#0B0B0F]">{clientDisplayName}</strong>) and the selected freelancer (<strong className="text-[#0B0B0F]">{freelancerDisplayName}</strong>).
+            </p>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                to="/jobs"
+                className="px-4 py-2 rounded-lg bg-[#0047AB] text-white font-medium text-xs flex items-center justify-center gap-1.5"
+              >
+                <Briefcase size={14} />
+                <span>Browse open jobs</span>
+              </Link>
+              <Link
+                to="/workspace"
+                className="px-4 py-2 rounded-lg bg-white text-[#0B0B0F] border border-[#E5E7EB] font-medium text-xs flex items-center justify-center gap-1.5"
+              >
+                <span>Go to workspace</span>
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
+  // Format posted date once: e.g. "Posted Oct 1, 2026 - 7 days ago"
+  const formattedPostedDate = `Posted ${new Date(job.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · ${formatTimeAgo(job.createdAt || Date.now())}`;
+
   return (
-    <div className="space-y-8 py-6 w-full">
-      {/* Top Breadcrumb & Status Header */}
-      <ActionStatusModal 
-        {...actionModal} 
-        onClose={() => setActionModal({ ...actionModal, isOpen: false })} 
-      />
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link to="/jobs" className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 font-mono font-bold">
-          <ArrowLeft size={14} /> Back to Find Jobs
-        </Link>
-        <span className={`badge-status badge-${job.status.toLowerCase()}`}>
-          Status: {job.status}
-        </span>
-      </div>
+    <PageContainer>
+      <Seo customConfig={buildJobSeo(job)} extraData={{ job }} />
+      <div className="space-y-6 py-6 w-full font-sans">
+        <ActionStatusModal 
+          {...actionModal} 
+          onClose={() => setActionModal({ ...actionModal, isOpen: false })} 
+        />
 
-      {/* 10-Day Client Inactivity Reminder Banner (14-Day Auto-Removal Policy) */}
-      {inactivityStatus.isReminderActive && (
-        <div className="p-4 sm:p-5 rounded-xl bg-amber-50 border border-amber-300 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={20} />
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="font-serif font-bold text-amber-950 text-sm">
-                  10-Day Client Inactivity Reminder
-                </span>
-                <span className="bg-amber-200 text-amber-900 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
-                  {inactivityStatus.daysRemaining} DAY{inactivityStatus.daysRemaining === 1 ? '' : 'S'} REMAINING
-                </span>
-              </div>
-              <p className="text-xs text-amber-800 leading-relaxed font-sans">
-                This job was posted {Math.floor(inactivityStatus.daysElapsed)} days ago without an applicant selected or client response. Per protocol policy, jobs with no client action are automatically removed from the marketplace and database on Day 14.
-              </p>
-            </div>
-          </div>
-
-          {isClient && (
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-              <button
-                onClick={async () => {
-                  const ok = await renewJob(job.id);
-                  if (ok) {
-                    confetti({ particleCount: 50, spread: 60 });
-                    setActionModal({
-                      isOpen: true,
-                      title: 'Job Posting Renewed',
-                      subtitle: 'The 14-day inactivity timer has been refreshed for this job posting.',
-                      icon: 'success',
-                      badgeText: 'TIMER RESET',
-                    });
-                  }
-                }}
-                className="px-3.5 py-2 rounded-lg bg-[#0047AB] hover:bg-[#003A8C] text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
-              >
-                <RefreshCw size={13} />
-                <span>Renew (Keep Active)</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setAlertModalOptions({
-                    title: 'Cancel & Remove Job (Free & Gasless)',
-                    message: 'Are you sure you want to cancel and remove this job posting now? Deleting an unescrowed job is 100% free with no fee charged to the client.',
-                    type: 'confirm',
-                    showCancel: true,
-                    isDestructive: true,
-                    confirmText: 'Remove Job',
-                    onConfirm: async () => {
-                      const ok = await deleteJob(job.id);
-                      if (ok) navigate('/dashboard');
-                    },
-                  });
-                }}
-                className="px-3.5 py-2 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Trash2 size={13} />
-                <span>Remove Now</span>
-              </button>
-            </div>
-          )}
+        {/* Back Link */}
+        <div>
+          <Link to="/jobs" className="text-xs text-[#4B5563] hover:text-[#0B0B0F] inline-flex items-center gap-1 font-medium transition-colors">
+            <ArrowLeft size={14} /> Back to Find Jobs
+          </Link>
         </div>
-      )}
 
-      {/* Main 2-Column Layout */}
-      <div className="grid grid-cols-12 gap-8 items-start">
-        {/* Left Column: Job Details & Status Action Panels */}
-        <div className="col-span-12 lg:col-span-8 space-y-6">
-          {/* Header Block */}
-          <div id="job-overview" className="p-6 sm:p-8 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E6EC] pb-4">
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-mono font-bold rounded-full flex items-center gap-1">
-                  <CheckCircle2 size={13} /> Status: {job.status}
-                </span>
-                <span className="text-xs text-slate-500 font-mono">Posted on-chain</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {isClient && (
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setIsModifyModalOpen(true)}
-                      className="px-3 py-1 rounded-lg bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                      title="Modify job title, description, category, and budget"
-                    >
-                      <Edit3 size={13} className="text-[#0047AB]" />
-                      <span>Modify Job</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAlertModalOptions({
-                          title: 'Delete Job Posting (Free & Gasless)',
-                          message: `Are you sure you want to remove the job posting "${job.title}"? Deleting an unescrowed job is 100% free with no fee charged to the client.`,
-                          type: 'confirm',
-                          showCancel: true,
-                          isDestructive: true,
-                          confirmText: 'Delete Job',
-                          onConfirm: async () => {
-                            const ok = await deleteJob(job.id);
-                            if (ok) navigate('/jobs');
-                          },
-                        });
-                      }}
-                      className="px-3.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                      title="Delete this job posting"
-                    >
-                      <Trash2 size={13} className="text-rose-600" />
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                )}
-                <div className="flex items-center gap-1.5 text-[#0066FF] text-xs font-mono font-bold">
-                  <Shield size={16} className="text-[#00D2FF]" /> ESCROW SECURED
+        {/* Inactivity Reminder Banner */}
+        {inactivityStatus.isReminderActive && (
+          <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={18} />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-amber-950 text-sm">
+                    Client inactivity reminder
+                  </span>
+                  <span className="bg-amber-200 text-amber-900 text-xs px-2 py-0.2 rounded font-medium">
+                    {inactivityStatus.daysRemaining} days remaining
+                  </span>
                 </div>
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  This job was posted {Math.floor(inactivityStatus.daysElapsed)} days ago. Jobs with no action are removed on Day 14.
+                </p>
               </div>
             </div>
 
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#0B0B0C] leading-snug">
-              {job.title}
-            </h1>
-
-            <div className="flex flex-wrap gap-2 pt-1">
-              <span className="bg-slate-100 border border-[#E2E6EC] px-3 py-1 rounded text-xs font-mono text-[#0B0B0C] font-bold">
-                {job.category}
-              </span>
-              <span className="bg-slate-100 text-[#0B0B0C] border border-[#E2E6EC] px-3 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5">
-                <Clock size={13} className="text-[#0047AB]" />
-                Posted: {new Date(job.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ({formatTimeAgo(job.createdAt || Date.now())})
-              </span>
-              <span className="bg-slate-100 border border-[#E2E6EC] px-3 py-1 rounded text-xs font-mono text-slate-700">
-                Review Window: {job.reviewPeriodDays} Days
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-mono text-slate-500 border-t border-[#E2E6EC] pt-4">
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-400 font-bold">CLIENT:</span>
-                <Link 
-                  to={`/profile/${job.client}`}
-                  className="text-[#0047AB] font-bold hover:underline flex items-center gap-1"
+            {isClient && (
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={async () => {
+                    const ok = await renewJob(job.id);
+                    if (ok) {
+                      confetti({ particleCount: 50, spread: 60 });
+                      setActionModal({
+                        isOpen: true,
+                        title: 'Job Posting Renewed',
+                        subtitle: 'The 14-day inactivity timer has been refreshed.',
+                        icon: 'success',
+                      });
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-[#0047AB] text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer"
                 >
-                  <span>{clientDisplayName}</span>
-                  <span className="text-slate-400 font-normal">({truncateAddress(job.client)})</span>
-                  <ExternalLink size={11} className="text-[#0047AB]" />
-                </Link>
+                  <RefreshCw size={13} />
+                  <span>Renew job</span>
+                </button>
+                <button
+                  onClick={handleRemoveJobPost}
+                  className="px-3 py-1.5 rounded-lg bg-white text-rose-700 border border-rose-300 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 size={13} />
+                  <span>Remove</span>
+                </button>
               </div>
-              {job.freelancer && (
+            )}
+          </div>
+        )}
+
+        {/* Plain Page Header with chips and actions aligned on title baseline */}
+        <PageHeader
+          title={job.title}
+          subtitle={`${getCanonicalCategory(job.category).label} • ${formattedPostedDate} • Review window: ${job.reviewPeriodDays || 7} days`}
+          actions={
+            <div className="flex flex-wrap items-center gap-2.5">
+              <StatusBadge status={display.isCompleted ? 'Completed' : display.displayLabel ? display.displayLabel : job.status} />
+
+              <Link
+                to={`/profile/${job.client}`}
+                className="inline-flex items-center gap-1.5 bg-[#F6F7F9] hover:bg-slate-100 border border-[#E5E7EB] px-2.5 py-1 rounded-[8px] text-xs font-medium text-[#0B0B0F] transition-colors"
+              >
+                <Building2 size={13} className="text-[#0047AB]" />
+                <span>{clientDisplayName}</span>
+                {clientProfile?.githubVerified && (
+                  <span className="text-[10px] text-emerald-700 font-semibold">✓</span>
+                )}
+              </Link>
+
+              {isClient && !display.isCompleted && job.status === 'Open' && (
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400 font-bold">FREELANCER:</span>
-                  <Link 
-                    to={`/profile/${job.freelancer}`}
-                    className="text-[#0047AB] font-bold hover:underline flex items-center gap-1"
+                  <button
+                    type="button"
+                    onClick={() => setIsModifyModalOpen(true)}
+                    className="px-2.5 py-1.5 rounded-[8px] bg-white hover:bg-slate-50 text-[#0B0B0F] border border-[#E5E7EB] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <span>{freelancerDisplayName}</span>
-                    <span className="text-slate-400 font-normal">({truncateAddress(job.freelancer)})</span>
-                    <ExternalLink size={11} className="text-[#0047AB]" />
-                  </Link>
+                    <Edit3 size={13} className="text-[#0047AB]" />
+                    <span>Modify</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAlertModalOptions({
+                        title: 'Delete Job Posting',
+                        message: `Are you sure you want to remove the job posting "${job.title}"?`,
+                        type: 'confirm',
+                        showCancel: true,
+                        isDestructive: true,
+                        confirmText: 'Delete Job',
+                        onConfirm: async () => {
+                          const ok = await deleteJob(job.id);
+                          if (ok) navigate('/jobs');
+                        },
+                      });
+                    }}
+                    className="px-2.5 py-1.5 rounded-[8px] bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </button>
                 </div>
               )}
             </div>
+          }
+        />
 
-          </div>
-
-
-
-          {/* 10-Day Retention & Database Cleaning Alert for Client */}
-          {isClient && (Date.now() - (job.createdAt || Date.now()) >= 10 * 24 * 60 * 60 * 1000) && job.status === 'Open' && (
-            <div className="p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3 shadow-md animate-fade-in">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shrink-0 mt-0.5">
-                  <AlertTriangle size={22} />
-                </div>
-                <div className="space-y-1 flex-1">
-                  <h3 className="font-headline font-bold text-sm text-amber-900">
-                    10-Day Job Retention & Database Cleaning Alert
-                  </h3>
-                  <p className="text-xs text-amber-800 leading-relaxed font-sans font-medium">
-                    This job posting was created over 10 days ago (on {new Date(job.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}). To help keep the site, marketplace, and database clean and performant, please choose whether to keep this job active or remove and clean it permanently from the site and database.
-                  </p>
-                </div>
+        {/* Main 2-Column Grid with 24px rhythm */}
+        <div className="grid grid-cols-12 gap-6 items-start text-left">
+          {/* Left Column: Job Description & Status Panels (8 cols) */}
+          <div className="col-span-12 lg:col-span-8 space-y-6">
+            
+            {/* Job Description Card with Technical Disclosure */}
+            <div id="job-specs" className="p-5 border border-[#E5E7EB] bg-white rounded-[12px] space-y-4 shadow-xs text-left">
+              <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+                <h2 className="text-sm font-semibold text-[#0B0B0F] flex items-center gap-2">
+                  <FileText size={15} className="text-[#0047AB]" /> Job description
+                </h2>
+                <span className="text-xs text-[#6B7280]">
+                  {getCanonicalCategory(job.category).label}
+                </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-amber-200/80">
-                <button
-                  type="button"
-                  onClick={handleKeepJobActive}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                >
-                  <RefreshCw size={13} /> Keep Job Active (+10 Days)
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRemoveJobPost}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                >
-                  <Trash2 size={13} /> Remove & Clean from Database
-                </button>
+              <div className="bg-[#F6F7F9] p-4 rounded-[8px] border border-[#E5E7EB]">
+                <FormattedJobDescription description={job.description} />
               </div>
-            </div>
-          )}
 
-          {/* Job Description Card with CID tag & Posted Date */}
-          <div id="job-specs" className="p-6 sm:p-8 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-[#E2E6EC] pb-3">
-              <h2 className="font-serif text-lg font-bold text-[#0B0B0C] flex items-center gap-2">
-                <FileText size={18} className="text-[#0047AB]" /> Job Description
-              </h2>
-              <span className="font-data-hash text-[11px] text-[#0B0B0C] bg-slate-100 px-2.5 py-1 rounded border border-[#E2E6EC] font-bold">
-                CID: {generateIpfsCid(job.title).slice(0, 16)}...
-              </span>
-            </div>
-
-            {/* Prominent Posted Date Banner */}
-            <div className="flex flex-wrap items-center justify-between text-xs font-mono text-slate-600 bg-slate-50 p-3 rounded-xl border border-[#E2E6EC] gap-2">
-              <div className="flex items-center gap-1.5 font-bold text-[#0B0B0C]">
-                <Calendar size={14} className="text-[#0047AB]" />
-                <span>Posted Date: {new Date(job.createdAt || Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}</span>
-              </div>
-              <span className="text-[#0B0B0C] font-bold bg-white px-2.5 py-0.5 rounded-full border border-[#E2E6EC] shadow-2xs">
-                {formatTimeAgo(job.createdAt || Date.now())}
-              </span>
-            </div>
-
-            <div className="bg-slate-50 p-5 sm:p-6 rounded-xl border border-[#E2E6EC]">
-              <FormattedJobDescription description={job.description} />
-            </div>
-          </div>
-
-          {/* STATUS-DRIVEN CONTENT PANELS */}
-
-          {/* 1. STATUS: OPEN */}
-          {job.status === 'Open' && (
-            <div id="applications-panel" className="space-y-6">
-              {isClient ? (
-                <ApplicantTable
-                  jobId={job.id}
-                  jobAmount={job.amountUsdc}
-                  jobReviewPeriodDays={job.reviewPeriodDays}
-                  applications={job.applications}
-                  category={job.category}
-                  onSelect={async (freelancerAddr) => {
-                    await selectFreelancer(job.id, freelancerAddr);
-                    navigate(`/workspace?jobId=${job.id}`);
-                  }}
-                  isClient={true}
-                />
-              ) : (
-                <div className="space-y-4">
-                  {/* Status Banner */}
-                  <div className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <h3 className="font-serif text-lg font-bold text-[#0B0B0C]">
-                          {hasApplied ? 'Proposal Submitted & Under Review' : 'Submit Proposal'}
-                        </h3>
-                        <p className="text-xs text-slate-600">
-                          {hasApplied 
-                            ? 'Your proposal is active. You can discuss deliverables and terms directly with the client below.'
-                            : 'Submit your proposal with verified GitHub skill score breakdown'}
-                        </p>
-                      </div>
-
-                      {!isConnected ? (
-                        <button onClick={connectWallet} className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">
-                          Connect Wallet to Apply
-                        </button>
-                      ) : !isUserVerified ? (
-                        <div className="flex flex-col sm:flex-row items-center gap-3">
-                          <span className="text-xs text-amber-800 bg-amber-50 border border-amber-200 px-3.5 py-2.5 rounded-xl font-semibold flex items-center gap-1.5 shadow-2xs">
-                            <AlertTriangle size={15} className="text-amber-600 shrink-0" /> GitHub verification required to apply for jobs
-                          </span>
-                          <Link
-                            to="/profile"
-                            className="bg-[#0047AB] hover:bg-[#003A8C] text-white font-bold px-4 py-2.5 rounded-lg text-xs flex items-center gap-1.5 shadow-xs transition-all shrink-0"
-                          >
-                            <Github size={15} /> Verify GitHub Account
-                          </Link>
-                        </div>
-                      ) : hasApplied ? (
-                        <div className="flex items-center gap-2">
-                          <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5">
-                            <CheckCircle2 size={14} /> Proposal Active
-                          </span>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setIsApplyingModalOpen(true)}
-                          className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-3 rounded-lg text-xs font-bold flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-                        >
-                          <Send size={15} /> Apply for this Job
-                        </button>
-                      )}
-                    </div>
+              {/* Technical Details Disclosure */}
+              <Disclosure title="Technical specifications" subtitle="IPFS CID and contract details">
+                <div className="space-y-2 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-1 border-b border-[#E5E7EB]">
+                    <span className="text-[#4B5563]">IPFS Content CID</span>
+                    <span className="font-mono text-[#0B0B0F] break-all">{generateIpfsCid(job.title)}</span>
                   </div>
-
-                  {/* Pre-Acceptance Direct Negotiation with Client (Redirect to Messages) */}
-                  {hasApplied && (
-                    <div className="bg-white border border-[#E2E6EC] rounded-xl p-5 space-y-3 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <MessageSquare size={16} className="text-[#0047AB]" />
-                          <h4 className="text-sm font-bold text-[#0B0B0C]">
-                            Discuss Terms & Scope in Messages
-                          </h4>
-                        </div>
-                        <p className="text-xs text-slate-500 font-mono">
-                          Communicate with the client in real-time to adjust deliverables, proposal scope, and deadlines.
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/chat?jobId=${job.id}`)}
-                        className="bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] px-5 py-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs shrink-0 cursor-pointer transition-colors"
+                  {job.contractAddress && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-1">
+                      <span className="text-[#4B5563]">Escrow Contract</span>
+                      <a
+                        href={getPolygonScanAddressUrl(job.contractAddress)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-[#0047AB] hover:underline flex items-center gap-1"
                       >
-                        <MessageSquare size={14} />
-                        <span>Open Messages</span>
-                        <ArrowUpRight size={14} />
-                      </button>
+                        <span>{job.contractAddress}</span>
+                        <ExternalLink size={11} />
+                      </a>
                     </div>
                   )}
+                </div>
+              </Disclosure>
+            </div>
 
-                  {/* Candidate Overview Table for Freelancers */}
-                  {(job.applications || []).length > 0 && (
-                    <div className="pt-2">
+            {/* STATUS-DRIVEN CONTENT PANELS */}
+            {job.status === 'Open' && (
+              <div id="applications-panel" className="space-y-6">
+                {isClient ? (
+                  <ApplicantTable
+                    jobId={job.id}
+                    jobAmount={job.amountUsdc}
+                    jobReviewPeriodDays={job.reviewPeriodDays}
+                    applications={job.applications}
+                    category={job.category}
+                    onSelect={async (freelancerAddr) => {
+                      await selectFreelancer(job.id, freelancerAddr);
+                      navigate(`/workspace?jobId=${job.id}`);
+                    }}
+                    isClient={true}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    {/* MERGED STATUS PANEL (Proposal submitted / Discuss terms into ONE panel) */}
+                    {hasApplied ? (
+                      <div className="p-6 border border-[#E5E7EB] bg-white rounded-xl space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 size={16} className="text-emerald-600" />
+                              <h3 className="text-base font-semibold text-[#0B0B0F]">
+                                Proposal active and under review
+                              </h3>
+                            </div>
+                            <p className="text-xs text-[#4B5563] mt-1">
+                              Your proposal has been submitted. The client is reviewing proposals and can chat with you to adjust terms and scope.
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/chat?jobId=${job.id}`)}
+                            className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <MessageSquare size={14} />
+                            <span>Open messages</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : currentUserProf?.accountMode === 'client' ? (
+                      <div className="p-6 border border-[#E5E7EB] bg-[#F8FAFC] rounded-xl flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-base font-semibold text-[#0B0B0F]">
+                            Submit proposal
+                          </h3>
+                          <p className="text-xs text-[#4B5563] mt-0.5">
+                            Your account is set to Client only mode. Switch to Freelancer mode to apply.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (address) updateProfile({ accountMode: 'both' }, address);
+                              toast.success('Account mode updated to Freelancer');
+                            }}
+                            className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                          >
+                            Switch to Freelancer
+                          </button>
+                          <Link
+                            to="/settings"
+                            className="bg-white hover:bg-slate-50 text-[#0047AB] border border-[#CBD5E1] px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                          >
+                            Settings
+                          </Link>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 border border-[#E5E7EB] bg-white rounded-xl flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-base font-semibold text-[#0B0B0F]">
+                            Submit proposal
+                          </h3>
+                          <p className="text-xs text-[#4B5563] mt-0.5">
+                            Apply with your verified on-chain reputation and technical proposal.
+                          </p>
+                        </div>
+
+                        {!isConnected ? (
+                          <button onClick={connectWallet} className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer">
+                            Connect wallet to apply
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {!isUserVerified && (
+                              <button
+                                type="button"
+                                onClick={() => setIsVerifyModalOpen(true)}
+                                className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
+                                title="Verify your GitHub profile to boost proposal visibility and reputation"
+                              >
+                                <Github size={13} />
+                                <span>Connect GitHub (Boost 3x)</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setIsApplyingModalOpen(true)}
+                              className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+                            >
+                              <SendHorizontal size={14} className="stroke-[2.2] shrink-0" />
+                              <span>Apply for this job</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Candidate Overview Table for Freelancers */}
+                    {(job.applications || []).length > 0 && (
                       <ApplicantTable
                         jobId={job.id}
                         jobAmount={job.amountUsdc}
@@ -847,805 +800,479 @@ export const JobDetail: React.FC = () => {
                         onSelect={() => {}}
                         isClient={false}
                       />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 2. STATUS: SELECTED (Proposal Acceptance & Agreement Workspace) */}
-          {job.status === 'Selected' && (
-            isParty ? (
-              <div className="space-y-6">
-                {/* Dedicated Freelancer Acceptance Banner */}
-                {isFreelancer && (
-                  <div className="p-6 sm:p-8 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E6EC] pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-slate-100 border border-[#E2E6EC] text-[#0047AB] flex items-center justify-center font-bold">
-                          <Sparkles size={24} />
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-mono uppercase text-[#0047AB] font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                            ACTION REQUIRED • PROPOSAL ACCEPTED
-                          </span>
-                          <h3 className="font-serif text-xl font-bold text-[#0B0B0C] mt-1">
-                            🎉 Congratulations! The client selected your proposal
-                          </h3>
-                        </div>
-                      </div>
-                      <span className="text-xs font-mono font-bold px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full flex items-center gap-1">
-                        <CheckCircle2 size={14} /> Selected Candidate
-                      </span>
-                    </div>
-
-                    {/* Proposal & Scope Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
-                      <div className="bg-white p-4 rounded-xl border border-[#E2E6EC] shadow-2xs space-y-1">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Escrow Payout</span>
-                        {(() => {
-                          const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
-                          const isCrypto = sym === 'POL' || sym === 'MATIC';
-                          const tokenLabel = isCrypto ? 'POL' : sym;
-                          const tokenAmt = isCrypto ? (job.amountEth || job.amountUsdc) : job.amountUsdc;
-                          return (
-                            <>
-                              <div className="flex items-center gap-1.5 pt-0.5">
-                                <TokenIcon token={tokenLabel} size={18} />
-                                <span className="text-lg font-black text-emerald-700">
-                                  {isCrypto ? `${tokenAmt} ${tokenLabel}` : `$${parseFloat(job.amountUsdc || '0').toLocaleString()} ${tokenLabel}`}
-                                </span>
-                              </div>
-                              {isCrypto && (
-                                <span className="text-[10px] text-slate-500 block">≈ ${parseFloat(job.amountUsdc || '0').toFixed(2)} USDC</span>
-                              )}
-                            </>
-                          );
-                        })()}
-                      </div>
-                      <div className="bg-white p-4 rounded-xl border border-[#E2E6EC] shadow-2xs space-y-1">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Review Window SLA</span>
-                        <span className="text-lg font-bold text-[#0B0B0C]">{job.reviewPeriodDays || 7} Days</span>
-                        <span className="text-[10px] text-slate-500 block">Auto-release after submission</span>
-                      </div>
-                      <div className="bg-white p-4 rounded-xl border border-[#E2E6EC] shadow-2xs space-y-1">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Agreement Terms</span>
-                        <span className="text-base font-bold text-slate-800 flex items-center gap-1">
-                          {job.freelancerAgreedTerms ? (
-                            <span className="text-emerald-700 flex items-center gap-1 font-black">
-                              <CheckCircle2 size={16} /> Terms Accepted
-                            </span>
-                          ) : (
-                            <span className="text-amber-700 flex items-center gap-1 font-bold">
-                              <Clock size={16} /> Acceptance Pending
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-[10px] text-slate-500 block">
-                          Client: {job.clientAgreedTerms ? '✓ Agreed' : 'Pending'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Accepted Proposal Text Preview */}
-                    {(() => {
-                      const selApp = (job.applications || []).find((a) => a.applicant.toLowerCase() === address.toLowerCase());
-                      return selApp?.proposalText ? (
-                        <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] text-xs space-y-1">
-                          <span className="text-[10px] font-mono font-bold text-[#0B0B0C] uppercase">Your Accepted Proposal</span>
-                          <p className="text-slate-700 italic">"{selApp.proposalText}"</p>
-                        </div>
-                      ) : null;
-                    })()}
-
-                    {/* Acceptance Action CTA */}
-                    <div className="pt-2 flex flex-wrap items-center justify-between gap-4 border-t border-[#E2E6EC]">
-                      <p className="text-xs text-slate-600 max-w-md">
-                        {job.freelancerAgreedTerms
-                          ? '✓ You have accepted the assignment terms. Once the client funds the on-chain escrow, work can begin!'
-                          : 'Review the project requirements and click below to finalize the milestone terms on-chain.'}
-                      </p>
-
-                      {!job.freelancerAgreedTerms ? (
-                        <button
-                          onClick={() => handleProposeTermsAction(job.id, address || '')}
-                          className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-3 rounded-lg font-bold text-xs shadow-xs flex items-center gap-2 cursor-pointer transition-colors"
-                        >
-                          <CheckCircle2 size={16} />
-                          Accept Assignment & Agree to Terms
-                        </button>
-                      ) : (
-                        <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 font-mono">
-                          <CheckCircle2 size={16} /> Terms Agreed & Finalized
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
                 )}
-
-                {/* Client Selection Status Banner */}
-                {isClient && (
-                  <div className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E6EC] pb-3">
-                      <div>
-                        <span className="text-[10px] font-mono uppercase text-[#0066FF] font-bold bg-blue-50/80 px-2 py-0.5 rounded border border-[#0066FF]/30">
-                          HIRING PIPELINE
-                        </span>
-                        <h3 className="font-serif text-lg font-bold text-[#0B0B0C] mt-1">
-                          Freelancer Selected: <span className="text-[#0047AB] font-bold">{freelancerDisplayName}</span>
-                        </h3>
-                        <p className="text-xs text-slate-500 font-mono mt-0.5">
-                          Address: {truncateAddress(job.freelancer)}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono px-3 py-1 rounded-full font-bold bg-slate-100 text-[#0B0B0C] border border-[#E2E6EC]">
-                          Freelancer Status: {job.freelancerAgreedTerms ? '✓ Agreed Terms' : 'Pending Acceptance'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-                      <div className="space-y-1">
-                        <h4 className="font-serif text-sm font-bold text-[#0B0B0C]">Next Step: Fund Escrow Deposit</h4>
-                        <p className="text-xs text-slate-600">
-                          {(() => {
-                            const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
-                            const isCrypto = sym === 'POL' || sym === 'MATIC';
-                            const tokenLabel = isCrypto ? 'POL' : sym;
-                            const tokenAmt = isCrypto ? (job.amountEth || job.amountUsdc) : job.amountUsdc;
-                            return isCrypto
-                              ? `Lock ${tokenAmt} ${tokenLabel} (~$${job.amountUsdc} USDC) in the smart contract escrow to start the project.`
-                              : `Lock $${job.amountUsdc} ${tokenLabel} in the smart contract escrow to start the project.`;
-                          })()}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {!job.clientAgreedTerms && (
-                          <button
-                            onClick={() => handleProposeTermsAction(job.id, address || '')}
-                            className="bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] font-bold px-4 py-2.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
-                          >
-                            <CheckCircle2 size={15} /> Propose Terms Hash
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleFundJobAction(job.id)}
-                          className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-2.5 rounded-lg font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        >
-                          <TokenIcon token={job.paymentTokenSymbol || 'USDC'} size={15} /> Fund Escrow Contract
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Direct Messages & Terms Negotiation Hub Card */}
-                <div className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare size={18} className="text-[#0047AB]" />
-                      <h3 className="font-serif text-base font-bold text-[#0B0B0C]">
-                        Encrypted Negotiation & Communication Hub
-                      </h3>
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      Communicate directly in the Messages section to discuss milestones, scope adjustments, and time extensions.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/chat?jobId=${job.id}`)}
-                    className="bg-white hover:bg-slate-50 text-[#0B0B0C] border border-[#E2E6EC] px-5 py-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs shrink-0 cursor-pointer transition-colors"
-                  >
-                    <MessageSquare size={14} />
-                    <span>Open Messages</span>
-                    <ArrowUpRight size={14} />
-                  </button>
-                </div>
               </div>
-            ) : (
-              <div className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs text-center">
-                <MessageSquare className="w-10 h-10 text-[#0047AB] mx-auto mb-3" />
-                <h4 className="text-sm font-bold text-[#0B0B0C]">Encrypted Negotiation in Progress</h4>
-                <p className="text-xs text-slate-500 mt-1 font-mono">
-                  The client and selected freelancer are currently finalizing terms in an end-to-end encrypted session.
-                </p>
-              </div>
-            )
-          )}
+            )}
 
-          {/* DELIVERABLE SUBMISSION, WORK STATUS, EXTENSIONS & CLIENT APPROVAL WORKSPACE */}
-          {(job.status === 'Funded' || job.status === 'Submitted' || job.status === 'Disputed' || job.status === 'Completed') && (
-            <div id="deliverable-workspace">
-              <DeliverableWorkSubmissionPanel job={job} />
-            </div>
-          )}
-
-          {/* 4. STATUS: COMPLETED (Official Digital Transaction Bill) */}
-          {job.status === 'Completed' && (
-            <div id="transaction-bill" className="p-6 sm:p-8 border border-emerald-300 bg-white rounded-xl shadow-xs space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E2E6EC] pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-slate-100 text-[#0047AB] rounded-xl flex items-center justify-center font-bold border border-[#E2E6EC]">
-                    <Receipt size={24} />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono uppercase text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      OFFICIAL TRANSACTION BILL RECORD
-                    </span>
-                    <h3 className="font-serif text-xl font-bold text-[#0B0B0C] mt-1">
-                      Payment Released & Escrow Closed
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="text-right font-mono text-xs">
-                  <span className="text-slate-500 block">Record ID</span>
-                  <span className="font-bold text-[#0B0B0C]">#INV-2026-POLYLANCE-{job.id.slice(0, 6)}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
-                <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] space-y-1">
-                  <span className="text-slate-500 text-[10px] uppercase font-bold">
-                    {job.dispute?.resolved ? "Escrow Payout Distribution" : "Total Amount Released"}
-                  </span>
-                  {job.dispute?.resolved ? (
-                    <div className="space-y-1 pt-1">
-                      <p className="font-extrabold text-emerald-700 text-[11px]">
-                        Dev: ${(parseFloat(job.amountUsdc) * (job.dispute.rulingBps ?? 0) / 10000).toLocaleString()} USDC
-                      </p>
-                      <p className="font-extrabold text-slate-700 text-[11px]">
-                        Client: ${(parseFloat(job.amountUsdc) * (10000 - (job.dispute.rulingBps ?? 0)) / 10000).toLocaleString()} USDC
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="font-extrabold text-emerald-700 text-lg">${parseFloat(job.amountUsdc).toLocaleString()} USDC</p>
-                  )}
-                </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] space-y-1">
-                  <span className="text-slate-500 text-[10px] uppercase font-bold">Contractor Payout</span>
-                  <p className="font-bold text-[#0B0B0C] text-sm">
-                    {job.dispute?.resolved && (job.dispute.rulingBps ?? 0) === 0 ? "None (100% Refunded)" : freelancerDisplayName}
-                  </p>
-                  {!(job.dispute?.resolved && (job.dispute.rulingBps ?? 0) === 0) && (
-                    <p className="text-[10px] font-mono text-slate-500">{truncateAddress(job.freelancer)}</p>
-                  )}
-                </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-[#E2E6EC] space-y-1">
-                  <span className="text-slate-500 text-[10px] uppercase font-bold">Soulbound SBT Minted</span>
-                  {job.dispute?.resolved && (job.dispute.rulingBps ?? 0) === 0 ? (
-                    <p className="font-bold text-slate-400 text-xs">None (No SBT for 0% Payout)</p>
-                  ) : (
-                    <p className="font-bold text-[#0047AB] text-sm flex items-center gap-1">
-                      <Award size={14} /> Token #{job.sbtTokenId || getDeterministicSbtId(job.id)}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-xl border border-[#E2E6EC] font-mono text-xs text-[#0B0B0C] flex justify-between items-center">
-                <span>Immutable Proof of Delivery on Polygon Ledger</span>
-                <span className="font-bold text-[#0047AB]">Block Verified ✓</span>
-              </div>
-            </div>
-          )}
-
-          {/* 5. STATUS: DISPUTED */}
-          {job.status === 'Disputed' && job.dispute && (
-            <div id="dispute-panel">
-              <DisputePanel
-                dispute={job.dispute}
-                amountUsdc={job.amountUsdc}
-                clientAddress={job.client}
-                freelancerAddress={job.freelancer}
-                isJudge={isArbitrator}
-                isParty={isParty}
-                userAddress={address}
-                onResolveDispute={(freelancerBps, reasoningText) => resolveDispute(job.id, freelancerBps, reasoningText, address)}
-                onSubmitResponse={(responseText) => submitDisputeResponse(job.id, responseText, generateIpfsCid(responseText))}
+            {/* STATUS: SELECTED */}
+            {job.status === 'Selected' && isParty && (
+              <NegotiationCard
+                job={job}
+                isClient={isClient}
+                isFreelancer={isFreelancer}
+                onFundEscrow={async () => {
+                  setIsFundEscrowModalOpen(true);
+                }}
+                isFundingEscrow={false}
               />
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Right Column Sidebar */}
-        <aside className="col-span-12 lg:col-span-4 space-y-6">
-          {/* Budget & Escrow Platform Maintenance Fee Breakdown Card */}
-          <div id="escrow-details" className="p-6 border border-[#E2E6EC] bg-white rounded-xl shadow-xs space-y-4 font-sans">
-            {/* Header */}
-            <div className="flex flex-wrap items-center justify-between border-b border-[#E2E6EC] pb-3 gap-2.5">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-slate-100 border border-[#E2E6EC] flex items-center justify-center text-[#0B0B0C] shrink-0">
-                  <Wallet size={22} className="text-[#0B0B0C] stroke-[2.2]" />
+            {/* STATUS: FUNDED / SUBMITTED (Deliverable Work Workspace) */}
+            {((job.status as string) === 'Funded' || job.status === 'Submitted') && isParty && (
+              <DeliverableWorkSubmissionPanel job={job} />
+            )}
+
+            {/* STATUS: COMPLETED */}
+            {job.status === 'Completed' && (
+              <div className="p-6 border border-[#E5E7EB] bg-white rounded-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+                  <h3 className="text-base font-semibold text-[#0B0B0F] flex items-center gap-2">
+                    <CheckCircle2 size={18} className="text-emerald-600" /> Contract completed & settled
+                  </h3>
+                  <StatusBadge status="Completed" />
                 </div>
-                <div className="font-mono text-xs font-bold tracking-wider text-[#0B0B0C] leading-tight uppercase">
-                  <div>JOB ESCROW</div>
-                  <div>BUDGET</div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="bg-[#F6F7F9] p-3.5 rounded-lg border border-[#E5E7EB]">
+                    <span className="text-xs text-[#4B5563] block">Amount paid</span>
+                    <div className="mt-1 font-semibold text-[#0B0B0F]">
+                      <TokenAmount amount={jobAmounts.settled || tokenAmount} token={tokenSymbol} />
+                    </div>
+                  </div>
+                  <div className="bg-[#F6F7F9] p-3.5 rounded-lg border border-[#E5E7EB]">
+                    <span className="text-xs text-[#4B5563] block">Freelancer</span>
+                    <span className="mt-1 font-semibold text-[#0B0B0F] block">{freelancerDisplayName}</span>
+                  </div>
+                  <div className="bg-[#F6F7F9] p-3.5 rounded-lg border border-[#E5E7EB]">
+                    <span className="text-xs text-[#4B5563] block">Work certificate</span>
+                    <span className="mt-1 font-semibold text-[#0047AB] block flex items-center gap-1">
+                      <Award size={14} /> Token #{job.sbtTokenId || getDeterministicSbtId(job.id)}
+                    </span>
+                  </div>
                 </div>
               </div>
+            )}
 
-              <div className="px-3 py-1.5 rounded-full bg-slate-100 border border-[#E2E6EC] text-[#0B0B0C] font-mono text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap shrink-0">
-                <ShieldCheck size={13} className="text-[#0047AB] shrink-0 stroke-[2.5]" />
-                <span>2.5% Site Maintenance Fee</span>
+            {/* STATUS: DISPUTED */}
+            {job.status === 'Disputed' && job.dispute && (
+              <div id="dispute-panel">
+                <DisputePanel
+                  dispute={job.dispute}
+                  amountUsdc={job.amountUsdc}
+                  clientAddress={job.client}
+                  freelancerAddress={job.freelancer}
+                  isJudge={isArbitrator}
+                  isParty={isParty}
+                  userAddress={address}
+                  onResolveDispute={(freelancerBps, reasoningText) => resolveDispute(job.id, freelancerBps, reasoningText, address)}
+                  onSubmitResponse={(responseText) => submitDisputeResponse(job.id, responseText, generateIpfsCid(responseText))}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Sticky Right Column Sidebar (4 cols) */}
+          <aside className="col-span-12 lg:col-span-4 space-y-6 sticky top-[88px]">
+            {/* Budget Card with FeeBreakdown and ONE primary action button */}
+            <div id="escrow-details" className="p-5 border border-[#E5E7EB] bg-white rounded-[12px] shadow-xs space-y-4 text-left">
+              <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-semibold text-[#0B0B0F]">
+                    Job budget
+                  </h3>
+                  <WatchButton
+                    id="task-fund-release"
+                    label="Watch escrow guide (35s)"
+                    onOpen={openVideo}
+                  />
+                </div>
+                <span className="text-xs text-[#4B5563]">
+                  Escrow payment
+                </span>
+              </div>
+
+              {/* Shared FeeBreakdown Component */}
+              <FeeBreakdown
+                budget={tokenAmount}
+                token={tokenSymbol}
+                job={job}
+                isClient={isClient}
+                isFreelancer={isFreelancer}
+                accountMode={currentUserProf?.accountMode || 'both'}
+              />
+
+              {/* ONE Primary Action Button based on state/role */}
+              <div className="pt-2">
+                {!isConnected ? (
+                  <button
+                    onClick={connectWallet}
+                    className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Connect wallet
+                  </button>
+                ) : isClient ? (
+                  job.status === 'Open' ? (
+                    <div className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[10px] space-y-2 text-center">
+                      <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#0B0B0F]">
+                        <Briefcase size={14} className="text-[#0047AB]" />
+                        <span>You posted this job</span>
+                      </div>
+                      <p className="text-[11px] text-[#64748B]">
+                        {(job.applications || []).length} proposal(s) received so far.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => scrollToSection('applications-panel')}
+                        className="w-full bg-white hover:bg-slate-50 border border-[#CBD5E1] text-[#0B0B0F] py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        Manage proposals
+                      </button>
+                    </div>
+                  ) : job.status === 'Selected' ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsFundEscrowModalOpen(true)}
+                      className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      Fund escrow deposit
+                    </button>
+                  ) : !display.isCompleted && display.allowedActions.canApproveWork ? (
+                    <button
+                      type="button"
+                      onClick={handleReleasePayment}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      Approve work & release funds
+                    </button>
+                  ) : display.isCompleted ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/workspace?jobId=${job.id}`)}
+                      className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 size={14} />
+                      <span>View settled workspace</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => navigate(`/chat?jobId=${job.id}`)}
+                      className="w-full bg-white hover:bg-slate-50 text-[#0B0B0F] border border-[#E5E7EB] py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <MessageSquare size={14} className="text-[#0047AB]" />
+                      <span>Open messages</span>
+                    </button>
+                  )
+                ) : isFreelancer && ((job.status as string) === 'Funded' || (job.status as string) === 'In progress') ? (
+                  <button
+                    onClick={() => navigate(`/workspace?jobId=${job.id}`)}
+                    className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Submit work in workspace
+                  </button>
+                ) : hasApplied ? (
+                  <button
+                    onClick={() => navigate(`/chat?jobId=${job.id}`)}
+                    className="w-full bg-white hover:bg-slate-50 text-[#0B0B0F] border border-[#E5E7EB] py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <MessageSquare size={14} className="text-[#0047AB]" />
+                    <span>Applied · View proposal</span>
+                  </button>
+                ) : currentUserProf?.accountMode === 'client' ? (
+                  <div className="space-y-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (address) updateProfile({ accountMode: 'both' }, address);
+                        toast.success('Account mode updated to Freelancer');
+                      }}
+                      className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-center"
+                    >
+                      Switch to Freelancer & Apply
+                    </button>
+                    <div className="text-center">
+                      <Link
+                        to="/settings"
+                        className="text-[11px] text-[#0047AB] hover:underline font-medium"
+                      >
+                        Change in Settings → Account mode
+                      </Link>
+                    </div>
+                  </div>
+                ) : job.status === 'Open' ? (
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setIsApplyingModalOpen(true)}
+                      className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                    >
+                      <SendHorizontal size={14} className="stroke-[2.2] shrink-0" />
+                      <span>Apply for this job</span>
+                    </button>
+                    {!isUserVerified && (
+                      <button
+                        type="button"
+                        onClick={() => setIsVerifyModalOpen(true)}
+                        className="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Github size={12} />
+                        <span>Optional: Connect GitHub to boost reputation</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => navigate(`/chat?jobId=${job.id}`)}
+                    className="w-full bg-white hover:bg-slate-50 text-[#0B0B0F] border border-[#E5E7EB] py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <MessageSquare size={14} className="text-[#0047AB]" />
+                    <span>Open messages</span>
+                  </button>
+                )}
               </div>
             </div>
 
+            {/* Escrow Timeline */}
+            <EscrowTimeline events={job.events} />
+
+            {/* Client Summary (Factual only, no AA+ badge, no stars, New client if < 5 completed) */}
             {(() => {
-              const sym = (job.paymentTokenSymbol || 'USDC').toUpperCase();
-              const isCrypto = sym === 'POL' || sym === 'MATIC';
+              const clientJobs = jobs.filter(j => j.client.toLowerCase() === job.client.toLowerCase());
+              const totalOffered = clientJobs.length;
+              const completedJobsCount = clientJobs.filter(j => j.status === 'Completed').length;
+              const disputedJobsCount = clientJobs.filter(j => j.status === 'Disputed' || (j.events || []).some(e => e.step === 'Disputed')).length;
 
-              // Token Gross, Fee, and Net
-              const tokenGrossNum = parseFloat(isCrypto ? (job.amountEth || job.amountUsdc || '0') : (job.amountUsdc || '0')) || 0;
-              const tokenClientFee = tokenGrossNum * 0.025;
-              const tokenTotalClient = tokenGrossNum + tokenClientFee;
-              const tokenFreelancerFee = tokenGrossNum * 0.025;
-              const tokenNetPayout = tokenGrossNum - tokenFreelancerFee;
+              const polSpent = clientJobs
+                .filter(j => j.status === 'Completed' && (j.paymentTokenSymbol || 'POL').toUpperCase() === 'POL')
+                .reduce((sum, j) => sum + parseFloat(j.amountEth || j.amountUsdc || '0'), 0);
 
-              // USD Gross, Fee, and Net (grounded in live oracle price)
-              const tokenRateVsUsd = rates.cryptoPrices[sym] || (isCrypto ? (rates.cryptoPrices['POL'] || 0.45) : 1.0);
-              const usdGrossNum = isCrypto ? (tokenGrossNum * tokenRateVsUsd) : (parseFloat(job.amountUsdc || '0') || 0);
-              const usdClientFee = usdGrossNum * 0.025;
-              const usdTotalClient = usdGrossNum + usdClientFee;
-              const usdFreelancerFee = usdGrossNum * 0.025;
-              const usdNetPayout = usdGrossNum - usdFreelancerFee;
+              const usdcSpent = clientJobs
+                .filter(j => j.status === 'Completed' && (j.paymentTokenSymbol || '').toUpperCase() === 'USDC')
+                .reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
 
-              const isMeFreelancer = job.freelancer?.toLowerCase() === (address || '').toLowerCase() || currentRole === 'freelancer';
-              const isMeClient = job.client.toLowerCase() === (address || '').toLowerCase() || currentRole === 'client';
-
-              // High-precision token formatting that retains exact decimal places without premature rounding
-              const formatToken = (val: number) => {
-                if (val === 0) return '0';
-                return val.toLocaleString(undefined, {
-                  minimumFractionDigits: val % 1 === 0 ? 0 : 2,
-                  maximumFractionDigits: isCrypto ? 4 : 2
-                });
-              };
+              const isNewClient = completedJobsCount < 5;
 
               return (
-                <>
-                  {/* Primary Budget Amount & Value Pill */}
-                  <div className="flex items-center justify-between gap-2 pb-1">
-                    <div className="flex items-baseline gap-1.5 min-w-0">
-                      <span className="font-serif text-3xl font-extrabold text-[#0B0B0C] tracking-tight">
-                        {formatToken(tokenGrossNum)}
+                <div className="p-5 border border-[#E5E7EB] bg-white rounded-[12px] shadow-xs space-y-4 text-left">
+                  <div className="border-b border-[#E5E7EB] pb-3 flex items-center justify-between">
+                    <h3 className="text-xs text-[#4B5563] font-semibold uppercase tracking-wider">
+                      Client summary
+                    </h3>
+                    {isNewClient ? (
+                      <span className="text-[11px] bg-[#F6F7F9] text-[#4B5563] border border-[#E5E7EB] px-2 py-0.5 rounded font-medium">
+                        New client
                       </span>
-                      <span className="font-mono text-base font-bold text-[#0047AB]">{sym}</span>
-                    </div>
-                    {isCrypto && (
-                      <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-[#E2E6EC] text-[11px] font-mono font-bold shrink-0">
-                        ≈ ${usdGrossNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
+                    ) : (
+                      <span className="text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-medium">
+                        Verified client
                       </span>
                     )}
                   </div>
 
-                  {/* 2.5% Maintenance Fee & Escrow Details */}
-                  <div className="space-y-2.5 pt-2.5 border-t border-[#E2E6EC] text-xs font-mono">
-                    <div className="flex justify-between items-center text-slate-600">
-                      <span className="text-[11.5px] text-slate-500 font-medium">Principal Budget:</span>
-                      <div className="text-right">
-                        <span className="font-bold text-[#0B0B0C] block text-xs">
-                          {formatToken(tokenGrossNum)} {sym}
-                        </span>
-                        {isCrypto && (
-                          <span className="text-[10px] text-slate-400 font-normal block">
-                            ≈ ${usdGrossNum.toFixed(2)} USDC
-                          </span>
-                        )}
-                      </div>
+                  {/* Profile info */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#F6F7F9] border border-[#E5E7EB] flex items-center justify-center text-[#0B0B0F] shrink-0">
+                      <Building2 size={18} />
                     </div>
-
-                    <div className="flex justify-between items-center text-slate-600">
-                      <span className="text-[11.5px] text-slate-500 font-medium">Site Fee (2.5%):</span>
-                      <div className="text-right">
-                        <span className="font-bold text-[#0B0B0C] block text-xs">
-                          +{formatToken(tokenClientFee)} {sym}
-                        </span>
-                        {isCrypto && (
-                          <span className="text-[10px] text-slate-400 font-normal block">
-                            +${usdClientFee.toFixed(2)} USDC
-                          </span>
-                        )}
-                      </div>
+                    <div className="min-w-0">
+                      <Link to={`/profile/${job.client}`} className="text-sm font-semibold text-[#0B0B0F] hover:text-[#0047AB] transition-colors truncate block">
+                        {clientDisplayName}
+                      </Link>
+                      <AddressChip address={job.client} />
                     </div>
-
-                    <div className="flex justify-between items-center text-[#0B0B0C] border-t border-[#E2E6EC] pt-2">
-                      <span className="font-bold text-[11.5px]">Total Escrow Deposit:</span>
-                      <div className="text-right">
-                        <span className="text-[#0B0B0C] font-extrabold block text-xs">
-                          {formatToken(tokenTotalClient)} {sym}
-                        </span>
-                        {isCrypto && (
-                          <span className="text-[10px] text-slate-500 font-medium block">
-                            ≈ ${usdTotalClient.toFixed(2)} USDC
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Developer Net Payout highlight card */}
-                    <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200/90 flex items-center justify-between gap-3">
-                      <div>
-                        <span className="text-[10.5px] font-mono uppercase tracking-wider text-emerald-900 font-bold block">
-                          {isMeFreelancer ? 'Your Net Payout' : 'Developer Net Payout'}
-                        </span>
-                        <span className="text-[9.5px] font-mono text-emerald-700/80">
-                          Net after 2.5% protocol fee
-                        </span>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-emerald-700 text-sm sm:text-[15px] font-black block leading-tight">
-                          {formatToken(tokenNetPayout)} {sym}
-                        </span>
-                        {isCrypto && (
-                          <span className="text-[10px] font-mono text-emerald-600 block mt-0.5">
-                            ≈ ${usdNetPayout.toFixed(2)} USDC
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-[10px] font-sans text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-lg border border-[#E2E6EC]">
-                      💡 <strong>2.5% Site Maintenance Fee:</strong> Standard 2.5% site maintenance fee provides sovereign smart contract escrow protection and dispute resolution.
-                    </p>
                   </div>
-                </>
+
+                  {/* Factual stats table */}
+                  <div className="space-y-2 text-xs pt-1 border-t border-[#E5E7EB]">
+                    <div className="flex justify-between items-center py-1 border-b border-[#E5E7EB]">
+                      <span className="text-[#4B5563]">Jobs posted</span>
+                      <span className="font-semibold text-[#0B0B0F]">{totalOffered}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center py-1 border-b border-[#E5E7EB]">
+                      <span className="text-[#4B5563]">Payouts released</span>
+                      <span className="font-semibold text-[#0B0B0F]">{completedJobsCount}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center py-1 border-b border-[#E5E7EB]">
+                      <span className="text-[#4B5563]">Disputes</span>
+                      <span className={`font-semibold ${disputedJobsCount === 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {disputedJobsCount}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-[#4B5563]">Total spent</span>
+                      <span className="font-semibold text-[#0B0B0F]">
+                        {[
+                          polSpent > 0 ? `${polSpent.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} POL` : null,
+                          usdcSpent > 0 ? `${usdcSpent.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC` : null,
+                        ].filter(Boolean).join(' + ') || '0 POL'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               );
             })()}
+          </aside>
+        </div>
 
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2.5 text-xs text-emerald-800 font-mono font-bold">
-              <Shield size={16} />
-              <span>Escrow Fully Secured</span>
+        {/* Modals */}
+        <Modal
+          isOpen={isApplyingModalOpen}
+          onClose={() => setIsApplyingModalOpen(false)}
+          size="md"
+          title="Submit proposal"
+          subtitle="Specify your proposal terms and technical approach."
+          footer={
+            <div className="flex items-center justify-end gap-2 w-full">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsApplyingModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                disabled={!applyProposalText.trim() || isApplyingSubmitting}
+                onClick={(e) => handleApplySubmit(e as any)}
+              >
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap leading-none">
+                  <SendHorizontal size={14} className="stroke-[2.2] shrink-0" />
+                  <span>{isApplyingSubmitting ? 'Submitting proposal...' : 'Submit proposal'}</span>
+                </span>
+              </Button>
             </div>
-          </div>
-
-          {/* Escrow Timeline Sidebar (Vertical Stepper from reference code) */}
-          <EscrowTimeline events={job.events} />
-
-          {/* Detailed Client Trust & Legitimacy Scorecard Widget */}
-          {(() => {
-            const clientProfileKey = Object.keys(profiles).find(k => k.toLowerCase() === job.client.toLowerCase());
-            const clientProfile = clientProfileKey ? profiles[clientProfileKey] : null;
-            const clientDisplayName = clientProfile?.displayName || 'Anonymous Client';
-
-            const clientJobs = jobs.filter(j => j.client.toLowerCase() === job.client.toLowerCase());
-            const totalOffered = clientJobs.length;
-            const completedJobsCount = clientJobs.filter(j => j.status === 'Completed').length;
-            const disputedJobsCount = clientJobs.filter(j => j.status === 'Disputed' || (j.events || []).some(e => e.step === 'Disputed')).length;
-
-            const totalSpentUsdc = clientJobs
-              .filter(j => j.status === 'Completed')
-              .reduce((sum, j) => sum + parseFloat(j.amountUsdc || '0'), 0);
-
-            const escrowRatio = totalOffered > 0 ? Math.round((completedJobsCount / totalOffered) * 100) : 100;
-
-            let trustScore = 10.0;
-            if (totalOffered > 0) {
-              const disputeRatio = disputedJobsCount / totalOffered;
-              trustScore = Math.max(1.0, 10.0 - (disputeRatio * 10.0));
-            }
-            const trustScoreStr = totalOffered > 0 ? trustScore.toFixed(1) : '10.0';
-
-            let trustBadge = 'NEW CLIENT';
-            let trustColor = 'bg-slate-100 text-slate-700 border-slate-300';
-            if (totalOffered > 0) {
-              if (trustScore >= 9.0) {
-                trustBadge = 'AA+ TRUSTED';
-                trustColor = 'bg-emerald-100 text-emerald-800 border-emerald-300';
-              } else if (trustScore >= 7.0) {
-                trustBadge = 'A+ ACTIVE';
-                trustColor = 'bg-blue-100 text-blue-800 border-blue-300';
-              } else {
-                trustBadge = 'CAUTION';
-                trustColor = 'bg-rose-100 text-rose-800 border-rose-300';
-              }
-            }
-
-            let avgSpeedText = 'No Release Speed History';
-            let speedSub = 'This client has not released any milestone payments yet.';
-            const releaseSpeeds = clientJobs
-              .filter(j => j.status === 'Completed')
-              .map(j => {
-                const postedEvent = (j.events || []).find(e => e.step === 'Posted');
-                const completedEvent = (j.events || []).find(e => e.step === 'Completed');
-                if (postedEvent && completedEvent && completedEvent.timestamp > 0 && postedEvent.timestamp > 0) {
-                  return (completedEvent.timestamp - postedEvent.timestamp) / 3600000;
-                }
-                return null;
-              })
-              .filter((v): v is number => v !== null && v > 0);
-
-            if (releaseSpeeds.length > 0) {
-              const avgHours = releaseSpeeds.reduce((a, b) => a + b, 0) / releaseSpeeds.length;
-              avgSpeedText = `${avgHours.toFixed(1)}h Average Payout Speed`;
-              speedSub = 'Average time from job publication to complete milestone payout release.';
-            }
-
-            const isMultisig = job.client.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_1 || '').toLowerCase() ||
-                               job.client.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_2 || '').toLowerCase() ||
-                               job.client.toLowerCase() === (import.meta.env.VITE_ADMIN_ADDRESS_3 || '').toLowerCase();
-
-            return (
-              <div className="glass-panel p-6 border-slate-200 bg-white hard-shadow space-y-5">
-                <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-                  <h3 className="font-label-mono text-xs text-slate-500 uppercase tracking-wider font-extrabold flex items-center gap-1.5">
-                    <Shield size={14} className="text-emerald-600" /> Client Legitimacy Audit
-                  </h3>
-                  <span className={`text-[10px] font-mono font-black border px-2 py-0.5 rounded-md ${trustColor}`}>
-                    {trustBadge}
-                  </span>
-                </div>
-
-                {/* Profile Info */}
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[#0B0B0C] shrink-0">
-                    <Building2 size={20} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-extrabold text-slate-900 text-sm truncate">{clientDisplayName}</p>
-                    <p className="text-[10px] font-mono text-slate-500 truncate">{truncateAddress(job.client)}</p>
-                  </div>
-                </div>
-
-                {/* Primary Trust Rating */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between font-mono text-xs">
-                  <div>
-                    <span className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold block">Client Trust Index</span>
-                    <span className="text-2xl font-black text-slate-800">{trustScoreStr}</span>
-                    <span className="text-xs text-slate-400 font-bold"> / 10.0</span>
-                  </div>
-                  <div className="text-right space-y-1">
-                    <div className="flex text-amber-500 justify-end">
-                      {Array.from({ length: 5 }).map((_, index) => {
-                        const starValue = index + 1;
-                        const rating = trustScore / 2;
-                        const isFilled = rating >= starValue;
-                        return (
-                          <Star 
-                            key={index} 
-                            size={13} 
-                            className={isFilled ? "fill-amber-500 text-amber-500" : "text-slate-350"} 
-                          />
-                        );
-                      })}
-                    </div>
-                    <span className="text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300/40 px-2 py-0.5 rounded-full font-black">
-                      {escrowRatio}% Escrow Ratio
-                    </span>
-                  </div>
-                </div>
-
-                {/* Verification Checklist */}
-                <div className="space-y-3 pt-1">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Legitimacy Audit Checklist</span>
-
-                  <div className="space-y-2.5 text-[11px] font-mono">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-slate-800 font-bold block">{totalOffered} Escrow Project{totalOffered === 1 ? '' : 's'} Offered</span>
-                        <span className="text-slate-500 text-[10px]">Successfully published {totalOffered} smart contract escrow{totalOffered === 1 ? '' : 's'} on Polygon Ledger.</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-slate-800 font-bold block">{completedJobsCount} Payout{completedJobsCount === 1 ? '' : 's'} Fully Released</span>
-                        <span className="text-slate-500 text-[10px]">{completedJobsCount} escrow{completedJobsCount === 1 ? '' : 's'} released to freelancers without dispute history.</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-slate-800 font-bold block">{avgSpeedText}</span>
-                        <span className="text-slate-500 text-[10px]">{speedSub}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-slate-800 font-bold block">{disputedJobsCount} Dispute{disputedJobsCount === 1 ? '' : 's'} Escalated</span>
-                        <span className="text-slate-500 text-[10px]">
-                          {disputedJobsCount === 0 
-                            ? '100% clean record. Zero disputes escalated to DAO arbitration.' 
-                            : `${disputedJobsCount} project escrow${disputedJobsCount === 1 ? '' : 's'} required DAO dispute resolution.`
-                          }
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-slate-800 font-bold block">
-                          {isMultisig ? 'Safe Multi-Sig Wallet' : 'Standard Web3 EOA'}
-                        </span>
-                        <span className="text-slate-500 text-[10px]">
-                          {isMultisig 
-                            ? 'Client wallet address is a verified Safe multi-signature organization contract.' 
-                            : 'Client wallet is a standard externally owned account (EOA).'
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trust Totals */}
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 grid grid-cols-2 gap-2 text-center text-xs font-mono">
-                  <div className="border-r border-slate-200">
-                    <span className="text-[9px] text-slate-400 font-bold uppercase block">Jobs Created</span>
-                    <span className="font-extrabold text-slate-800">{totalOffered} Escrow{totalOffered === 1 ? '' : 's'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 font-bold uppercase block">Spent Volume</span>
-                    <span className="font-extrabold text-[#0B0B0C]">${totalSpentUsdc.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-      </aside>
-    </div>
-
-      {/* Modals */}
-      {isApplyingModalOpen && (() => {
-        const userProfileKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
-        const userProfile = userProfileKey ? profiles[userProfileKey] : null;
-        return createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-            <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 border border-[#E2E6EC] shadow-2xl relative space-y-5 animate-in fade-in zoom-in duration-200">
-              <div className="border-b border-[#E2E6EC] pb-3">
-                <h3 className="font-serif text-xl font-bold text-[#0B0B0C] tracking-tight">Submit Proposal</h3>
-                <p className="text-xs text-slate-500 font-mono mt-1">Specify proposal terms and attest Github developer footprints on-chain.</p>
-              </div>
-
-              {userProfile?.githubVerified && (
-                <div className="bg-emerald-50/70 border border-emerald-200 p-3.5 rounded-xl flex items-center justify-between text-xs text-emerald-950 font-mono">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-extrabold block">Verified GitHub Footprints</span>
-                      <span className="text-[10px] text-slate-500 font-sans leading-relaxed">Attestation hash will be committed to escrow contract.</span>
-                    </div>
-                  </div>
-                  <span className="bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-1 rounded text-[10px] shrink-0">
-                    {userProfile.primaryScore || 750} Score
-                  </span>
-                </div>
-              )}
-
-              <form onSubmit={handleApplySubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Proposal Statement & Milestones *
-                  </label>
-                  <textarea
-                    required
-                    rows={5}
-                    placeholder="Describe your technical roadmap, milestones breakdown, and delivery schedule..."
-                    value={applyProposalText}
-                    onChange={(e) => setApplyProposalText(e.target.value)}
-                    className="w-full bg-white border border-[#E2E6EC] focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none rounded-xl p-4 text-xs font-sans text-[#0B0B0C] transition-all placeholder:text-slate-400 leading-relaxed"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsApplyingModalOpen(false)}
-                    className="px-5 py-2.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-50 border border-[#E2E6EC] transition-all cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-6 py-2.5 rounded-lg text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5 transition-colors">
-                    <Send size={14} /> Submit Proposal On-Chain
-                  </button>
-                </div>
-              </form>
+          }
+        >
+          <form onSubmit={handleApplySubmit} className="space-y-4 text-xs font-sans">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-slate-700">
+                Proposal statement and milestones *
+              </label>
+              <textarea
+                autoFocus
+                required
+                rows={5}
+                placeholder="Describe your technical roadmap, milestones breakdown, and delivery schedule..."
+                value={applyProposalText}
+                onChange={(e) => setApplyProposalText(e.target.value)}
+                className="w-full bg-white border border-slate-200 focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none rounded-xl p-3 text-xs text-[#0B0B0F] transition-all placeholder:text-slate-400 leading-relaxed resize-none"
+              />
             </div>
-          </div>,
-          document.body
-        );
-      })()}
+          </form>
+        </Modal>
 
-      {isDisputeModalOpen && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 border border-[#E2E6EC] shadow-2xl relative space-y-5 animate-in fade-in zoom-in duration-200">
-            <div className="border-b border-[#E2E6EC] pb-3">
-              <h3 className="font-serif text-xl font-bold text-rose-900 tracking-tight flex items-center gap-2">
-                <AlertTriangle className="text-rose-600 animate-pulse" /> Raise On-Chain Dispute
-              </h3>
-              <p className="text-xs text-rose-600 font-mono mt-1">DAO Judge Panel arbitration requires full evidence disclosure.</p>
+        <Modal
+          isOpen={isDisputeModalOpen}
+          onClose={() => setIsDisputeModalOpen(false)}
+          size="md"
+          title="Raise on-chain dispute"
+          subtitle="Dispute claims are escalated to the judge panel for arbitration."
+          footer={
+            <div className="flex items-center justify-end gap-2 w-full">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsDisputeModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                disabled={!disputeEvidenceText.trim()}
+                onClick={(e) => handleRaiseDisputeSubmit(e as any)}
+              >
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap leading-none">
+                  <AlertTriangle size={13} className="shrink-0" />
+                  <span>Submit dispute</span>
+                </span>
+              </Button>
+            </div>
+          }
+        >
+          <form onSubmit={handleRaiseDisputeSubmit} className="space-y-4 text-xs font-sans">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-slate-700">
+                Dispute reason *
+              </label>
+              <PolyLanceSelect
+                value={disputeReason}
+                onChange={(val) => setDisputeReason(val as DisputeReason)}
+                options={[
+                  { value: 'QUALITY', label: 'Quality issues', sublabel: 'Deliverable fails specifications' },
+                  { value: 'NON_DELIVERY', label: 'Non-delivery', sublabel: 'Work not delivered on time' },
+                  { value: 'SCOPE_DISAGREEMENT', label: 'Scope disagreement', sublabel: 'Milestone ambiguity' },
+                  { value: 'PAYMENT_DISPUTE', label: 'Payment dispute', sublabel: 'Budget payment claim' },
+                ]}
+                variant="standard"
+                className="w-full"
+              />
             </div>
 
-            <form onSubmit={handleRaiseDisputeSubmit} className="space-y-4 font-sans text-xs">
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  Dispute Category Reason *
-                </label>
-                <PolyLanceSelect
-                  value={disputeReason}
-                  onChange={(val) => setDisputeReason(val as DisputeReason)}
-                  options={[
-                    { value: 'QUALITY', label: 'QUALITY', sublabel: 'Deliverable fails specifications' },
-                    { value: 'NON_DELIVERY', label: 'NON_DELIVERY', sublabel: 'Work not delivered on time' },
-                    { value: 'SCOPE_DISAGREEMENT', label: 'SCOPE_DISAGREEMENT', sublabel: 'Milestone ambiguity' },
-                    { value: 'PAYMENT_DISPUTE', label: 'PAYMENT_DISPUTE', sublabel: 'Budget payment claim' },
-                  ]}
-                  variant="standard"
-                  className="w-full"
-                />
-              </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-slate-700">
+                Claim and evidence summary *
+              </label>
+              <textarea
+                required
+                rows={4}
+                placeholder="Explain why the submitted work is non-compliant or disputed..."
+                value={disputeEvidenceText}
+                onChange={(e) => setDisputeEvidenceText(e.target.value)}
+                className="w-full bg-white border border-slate-200 focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] outline-none rounded-xl p-3 text-xs text-[#0B0B0F] transition-all placeholder:text-slate-400 leading-relaxed resize-none"
+              />
+            </div>
+          </form>
+        </Modal>
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  Dispute Claim & Evidence Summary *
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  placeholder="Explain why the submitted work is non-compliant or disputed..."
-                  value={disputeEvidenceText}
-                  onChange={(e) => setDisputeEvidenceText(e.target.value)}
-                  className="w-full bg-white border border-[#E2E6EC] focus:border-rose-600 focus:ring-1 focus:ring-rose-600 outline-none rounded-xl p-4 text-xs font-sans text-[#0B0B0C] transition-all placeholder:text-slate-400 leading-relaxed"
-                />
-              </div>
+        {job && (
+          <>
+            <FundEscrowModal
+              isOpen={isFundEscrowModalOpen}
+              onClose={() => setIsFundEscrowModalOpen(false)}
+              job={job}
+              onConfirmFund={handleConfirmFund}
+            />
+            <PaymentReleasedModal
+              isOpen={isPaymentReleasedModalOpen}
+              onClose={() => setIsPaymentReleasedModalOpen(false)}
+              job={job}
+              txHash={releasedTxHash}
+              onViewAttestation={() => navigate(`/jobs/${job.id}/attestation`)}
+            />
+            <ModifyJobModal
+              isOpen={isModifyModalOpen}
+              job={job}
+              onClose={() => setIsModifyModalOpen(false)}
+            />
+          </>
+        )}
 
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsDisputeModalOpen(false)}
-                  className="px-5 py-2.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-50 border border-[#E2E6EC] transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="bg-rose-600 hover:bg-rose-700 text-white px-6 py-2.5 rounded-lg text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5 transition-colors">
-                  <AlertTriangle size={14} /> File Dispute Claim
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
+        <PolyLanceAlertModal
+          isOpen={Boolean(alertModalOptions)}
+          options={alertModalOptions}
+          onClose={() => setAlertModalOptions(null)}
+        />
 
-      {job && (
-        <>
-          <FundEscrowModal
-            isOpen={isFundEscrowModalOpen}
-            onClose={() => setIsFundEscrowModalOpen(false)}
-            job={job}
-            onConfirmFund={handleConfirmFund}
-          />
-          <PaymentReleasedModal
-            isOpen={isPaymentReleasedModalOpen}
-            onClose={() => setIsPaymentReleasedModalOpen(false)}
-            job={job}
-            txHash={releasedTxHash}
-            onViewAttestation={() => navigate(`/jobs/${job.id}/attestation`)}
-          />
-          <ModifyJobModal
-            isOpen={isModifyModalOpen}
-            job={job}
-            onClose={() => setIsModifyModalOpen(false)}
-          />
-        </>
-      )}
+        {/* Global Video Modal */}
+        <VideoModal
+          id={activeVideoId}
+          isOpen={isOpen}
+          onClose={closeVideo}
+          triggerRef={triggerRef}
+        />
 
-      {/* PolyLance Alert & Confirmation Modal */}
-      <PolyLanceAlertModal
-        isOpen={Boolean(alertModalOptions)}
-        options={alertModalOptions}
-        onClose={() => setAlertModalOptions(null)}
-      />
-    </div>
+        <GithubVerifyModal
+          isOpen={isVerifyModalOpen}
+          onClose={() => setIsVerifyModalOpen(false)}
+          userAddress={address || ''}
+          onVerified={handleGithubVerified}
+        />
+      </div>
+    </PageContainer>
   );
 };

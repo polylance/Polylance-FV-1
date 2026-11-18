@@ -1,4 +1,9 @@
 import { Job, UserProfile } from '../types';
+import {
+  calculateFreelancerReputation,
+  TaskEvaluationResult,
+  UserReputationSummary,
+} from '../config/reputationTasks';
 
 export interface ReputationScores {
   totalPoints: number;
@@ -6,23 +11,27 @@ export interface ReputationScores {
   volumePoints: number;
   attestationBonus: number;
   arbitrationPoints: number;
+  eventBonusPoints: number;
   completedJobsCount: number;
   totalVolume: number;
   successRatePercent: number;
+  taskResults?: TaskEvaluationResult[];
 }
 
 /**
- * Standardized PolyLance Reputation Calculation Formula:
- * 1. SBT Escrow Deliveries: 100 pts per completed escrow delivery / minted SBT
- * 2. Escrow Volume Settled: 1 pt per $25 completed volume (4 pts per $100)
- * 3. Verified Developer Attestation: +50 pts (if GitHub verified)
- * 4. Governance & Dispute Arbitration: +50 pts per ruling / DAO vote (if arbitrator)
+ * Standardized PolyLance Freelancer Reputation Calculation Formula:
+ * Powered by modular configuration in `src/config/reputationTasks.ts`.
+ * 
+ * Rules:
+ * 1. Reputation scores are strictly awarded to freelancers based on genuine deliverables.
+ * 2. Accounts acting strictly as clients do not receive freelance reputation points.
+ * 3. Eliminates phantom/fake score fallbacks to keep leaderboard deterministic and consistent.
  */
 export const calculateReputationScores = (
   targetAddress: string,
   jobs: Job[],
   profileObj?: UserProfile | null,
-  sbtCount: number = 0,
+  _sbtCount: number = 0,
   isJudgeAccount: boolean = false,
   _judgeAddr: string = ''
 ): ReputationScores => {
@@ -33,80 +42,46 @@ export const calculateReputationScores = (
       volumePoints: 0,
       attestationBonus: 0,
       arbitrationPoints: 0,
+      eventBonusPoints: 0,
       completedJobsCount: 0,
       totalVolume: 0,
       successRatePercent: 0,
+      taskResults: [],
     };
   }
 
-  const lower = targetAddress.toLowerCase();
-  const profileJobs = jobs.filter(
-    (j) => j.freelancer?.toLowerCase() === lower
+  const result: UserReputationSummary = calculateFreelancerReputation(
+    targetAddress,
+    jobs,
+    profileObj,
+    isJudgeAccount
   );
-  const completedJobs = profileJobs.filter((j) => j.status === 'Completed');
-
-  // Verified completed deliveries count:
-  // Must strictly reflect verified completed freelance deliverables.
-  // Guards against client-side payment releases or phantom metadata inflating developer scores.
-  const verifiedDeliveriesCount = completedJobs.length;
-  const onChainCount = typeof sbtCount === 'number' && sbtCount > 0 ? sbtCount : 0;
-  // If local jobs are tracked, anchor strictly to verified freelance completions.
-  // Fall back to genuine on-chain SBT count only if no local jobs are loaded yet.
-  const completedCount = verifiedDeliveriesCount > 0
-    ? verifiedDeliveriesCount
-    : onChainCount;
-
-  const completedVolume = completedJobs.reduce((sum, j) => {
-    const earnedFraction = j.dispute?.resolved ? ((j.dispute.rulingBps ?? 0) / 10000) : 1.0;
-    return sum + (parseFloat(j.amountUsdc || '0') * earnedFraction);
-  }, 0);
-
-  const escrowPts = completedCount * 100;
-  const volumePts = Math.floor(completedVolume / 25);
-  const hasGithub = Boolean(profileObj?.githubVerified);
-  const attestationBonus = hasGithub ? 50 : 0;
-  
-  // Real arbitration points: ONLY awarded when the judge actually presided over and resolved that dispute
-  const resolvedDisputes = jobs.filter(
-    (j) => j.dispute?.resolved && j.dispute.judge?.toLowerCase() === lower
-  );
-  const arbitrationPts = resolvedDisputes.length * 50;
-
-  const totalPts = escrowPts + volumePts + attestationBonus + arbitrationPts;
-
-  // Real success rate percentage:
-  // (Completed jobs with good ruling or no dispute) / (Total finished jobs = completed + resolved disputes)
-  const finishedJobs = profileJobs.filter(
-    (j) => j.status === 'Completed' || (j.status === 'Disputed' && j.dispute?.resolved)
-  );
-  const successfulJobs = completedJobs.filter(
-    (j) => !j.dispute || (j.dispute.resolved && (j.dispute.rulingBps ?? 0) >= 5000)
-  );
-  const successRatePercent = finishedJobs.length > 0
-    ? Math.round((successfulJobs.length / finishedJobs.length) * 100)
-    : (completedJobs.length > 0 ? 100 : 0);
 
   return {
-    totalPoints: totalPts,
-    escrowPoints: escrowPts,
-    volumePoints: volumePts,
-    attestationBonus,
-    arbitrationPoints: arbitrationPts,
-    completedJobsCount: completedCount,
-    totalVolume: completedVolume,
-    successRatePercent,
+    totalPoints: result.totalPoints,
+    escrowPoints: result.escrowPoints,
+    volumePoints: result.volumePoints,
+    attestationBonus: result.attestationBonus,
+    arbitrationPoints: result.arbitrationPoints,
+    eventBonusPoints: result.eventBonusPoints,
+    completedJobsCount: result.completedJobsCount,
+    totalVolume: result.totalVolume,
+    successRatePercent: result.successRatePercent,
+    taskResults: result.taskResults,
   };
 };
 
-export const getReputationTier = (totalPoints: number): { tier: string; label: string; color: string } => {
-  if (totalPoints >= 800) return { tier: 'Diamond', label: 'Diamond League', color: 'blue' };
-  if (totalPoints >= 300) return { tier: 'Gold', label: 'Gold League', color: 'gold' };
-  if (totalPoints >= 100) return { tier: 'Silver', label: 'Silver League', color: 'silver' };
-  return { tier: 'None', label: 'Starter League', color: 'slate' };
+export const getReputationTier = (totalPoints: number): { tier: 'Bronze' | 'Silver' | 'Gold' | 'Diamond'; label: string; color: string } => {
+  if (totalPoints >= 1000) return { tier: 'Diamond', label: 'Diamond Tier', color: 'blue' };
+  if (totalPoints >= 500) return { tier: 'Gold', label: 'Gold Tier', color: 'gold' };
+  if (totalPoints >= 200) return { tier: 'Silver', label: 'Silver Tier', color: 'silver' };
+  return { tier: 'Bronze', label: 'Bronze Tier', color: 'slate' };
 };
 
 export const formatEarnings = (val: number): string => {
-  if (!val || val <= 0) return '$0.0k';
-  if (val >= 1000) return `$${(val / 1000).toFixed(1)}k`;
-  return `$${val.toFixed(1)}`;
+  if (!val || val <= 0) return '$0';
+  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+  if (val >= 1_000) return `$${(val / 1_000).toFixed(1)}k`;
+  if (val % 1 === 0) return `$${val}`;
+  return `$${val.toFixed(2)}`;
 };

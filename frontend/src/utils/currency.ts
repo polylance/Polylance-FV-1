@@ -31,9 +31,9 @@ export const SUPPORTED_FIAT: FiatCurrency[] = [
 ];
 
 export const SUPPORTED_CRYPTO: CryptoToken[] = [
-  { id: 'POL', name: 'Polygon', symbol: 'POL', priceUsd: 0.45, color: 'text-slate-900 border-slate-300 bg-slate-100', iconBg: 'bg-[#0B0B0C]' },
-  { id: 'USDC', name: 'USD Coin', symbol: 'USDC', priceUsd: 1.0, color: 'text-blue-600 border-blue-200 bg-blue-50/50', iconBg: 'bg-blue-500' },
-  { id: 'USDT', name: 'Tether', symbol: 'USDT', priceUsd: 1.0, color: 'text-emerald-600 border-emerald-200 bg-emerald-50/50', iconBg: 'bg-emerald-500' }
+  { id: 'POL', name: 'Polygon', symbol: 'POL', priceUsd: 0.089, color: 'text-[#0B0B0F] border-[#E5E7EB] bg-[#F6F7F9]', iconBg: 'bg-[#0B0B0F]' },
+  { id: 'USDC', name: 'USD Coin', symbol: 'USDC', priceUsd: 1.0, color: 'text-[#0047AB] border-[#E5E7EB] bg-[#F6F7F9]', iconBg: 'bg-[#0047AB]' },
+  { id: 'USDT', name: 'Tether', symbol: 'USDT', priceUsd: 1.0, color: 'text-[#1E8449] border-[#E5E7EB] bg-[#F6F7F9]', iconBg: 'bg-[#1E8449]' }
 ];
 
 export interface ConversionRates {
@@ -42,7 +42,7 @@ export interface ConversionRates {
   lastUpdated: number;
 }
 
-// Initial/Fallback rates
+// Initial/Fallback rates (POL defaults to live market rate ~0.089)
 let activeRates: ConversionRates = {
   fiatRates: {
     USD: 1.0,
@@ -59,7 +59,7 @@ let activeRates: ConversionRates = {
   cryptoPrices: {
     USDC: 1.0,
     USDT: 1.0,
-    POL: 0.45
+    POL: 0.089
   },
   lastUpdated: Date.now()
 };
@@ -81,12 +81,71 @@ function notifyRateListeners() {
   });
 }
 
-// Async fetch utility to fetch latest rates dynamically with primary Binance oracle and CoinGecko fallback
-export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
-  try {
-    // 1. Fetch Fiat rates vs USD
+// Global active fiat currency preference listener (default: USD)
+let globalFiatCurrency: string = typeof window !== 'undefined'
+  ? localStorage.getItem('polylance_fiat_pref') || 'USD'
+  : 'USD';
+
+const fiatListeners = new Set<(fiat: string) => void>();
+
+export function getGlobalFiat(): string {
+  return globalFiatCurrency;
+}
+
+export function setGlobalFiat(fiat: string): void {
+  globalFiatCurrency = fiat;
+  if (typeof window !== 'undefined') {
     try {
-      const fiatRes = await fetch('https://open.er-api.com/v6/latest/USD');
+      localStorage.setItem('polylance_fiat_pref', fiat);
+    } catch {}
+  }
+  fiatListeners.forEach(cb => {
+    try { cb(fiat); } catch {}
+  });
+}
+
+export function useGlobalFiat(): [string, (fiat: string) => void] {
+  const [fiat, setFiat] = useState<string>(globalFiatCurrency);
+  useEffect(() => {
+    const cb = (next: string) => setFiat(next);
+    fiatListeners.add(cb);
+    return () => { fiatListeners.delete(cb); };
+  }, []);
+  return [fiat, setGlobalFiat];
+}
+
+// In-flight request deduplication guard
+let isFetchingRates = false;
+const RATE_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
+
+// Try restoring cached rates from localStorage on startup
+if (typeof window !== 'undefined') {
+  try {
+    const rawCache = localStorage.getItem('polylance_currency_rates_cache');
+    if (rawCache) {
+      const parsed = JSON.parse(rawCache);
+      if (parsed && parsed.lastUpdated && Date.now() - parsed.lastUpdated < RATE_CACHE_TTL_MS) {
+        activeRates = parsed;
+      }
+    }
+  } catch {}
+}
+
+// Async fetch utility to fetch latest rates dynamically with 3s timeout and deduplication
+export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
+  // If recently updated or already in-flight, return current cache
+  if (isFetchingRates || Date.now() - activeRates.lastUpdated < RATE_CACHE_TTL_MS) {
+    return activeRates;
+  }
+  isFetchingRates = true;
+
+  try {
+    // 1. Fetch Fiat rates vs USD with 3s timeout
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const fiatRes = await fetch('https://open.er-api.com/v6/latest/USD', { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (fiatRes.ok) {
         const fiatData = await fiatRes.json();
         if (fiatData && fiatData.rates) {
@@ -98,16 +157,18 @@ export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
           });
         }
       }
-    } catch (fiatErr) {
-      console.warn('Fiat rate fetch notice:', fiatErr);
-    }
+    } catch {}
 
-    // 2. Fetch Crypto prices in USD (Primary: Binance real-time public ticker - zero rate limit, CORS allowed)
+    // 2. Fetch Crypto prices in USD (Primary: Binance public ticker, Secondary: CoinGecko)
     let cryptoSuccess = false;
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       const binanceRes = await fetch(
-        'https://api.binance.com/api/v3/ticker/price?symbols=%5B%22USDCUSDT%22,%22POLUSDT%22%5D'
+        'https://api.binance.com/api/v3/ticker/price?symbols=%5B%22USDCUSDT%22,%22POLUSDT%22%5D',
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
       if (binanceRes.ok) {
         const binanceData: Array<{ symbol: string; price: string }> = await binanceRes.json();
         activeRates.cryptoPrices.USDT = 1.0;
@@ -131,42 +192,54 @@ export async function fetchLiveExchangeRates(): Promise<ConversionRates> {
       }
     } catch {}
 
-    // Fallback: CoinGecko public simple price
+    // Resilient fallback to CoinGecko if Binance is inaccessible (e.g. ISP blocked in India)
     if (!cryptoSuccess) {
       try {
-        const cryptoRes = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=usd-coin,tether,matic-network&vs_currencies=usd'
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const cgRes = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=polygon-ecosystem-token,usd-coin,tether&vs_currencies=usd',
+          { signal: controller.signal }
         );
-        if (cryptoRes.ok) {
-          const cryptoData = await cryptoRes.json();
-          const mappings: Record<string, string> = {
-            'usd-coin': 'USDC',
-            'tether': 'USDT',
-            'matic-network': 'POL'
-          };
-          Object.entries(mappings).forEach(([cgId, tokenCode]) => {
-            if (cryptoData[cgId] && cryptoData[cgId].usd) {
-              activeRates.cryptoPrices[tokenCode] = cryptoData[cgId].usd;
-              const token = SUPPORTED_CRYPTO.find(c => c.id === tokenCode);
-              if (token) token.priceUsd = cryptoData[cgId].usd;
+        clearTimeout(timeoutId);
+        if (cgRes.ok) {
+          const cgData = await cgRes.json();
+          if (cgData['polygon-ecosystem-token']?.usd) {
+            activeRates.cryptoPrices.POL = cgData['polygon-ecosystem-token'].usd;
+          }
+          if (cgData['usd-coin']?.usd) {
+            activeRates.cryptoPrices.USDC = cgData['usd-coin'].usd;
+          }
+          if (cgData['tether']?.usd) {
+            activeRates.cryptoPrices.USDT = cgData['tether'].usd;
+          }
+          SUPPORTED_CRYPTO.forEach((c) => {
+            if (activeRates.cryptoPrices[c.id]) {
+              c.priceUsd = activeRates.cryptoPrices[c.id];
             }
           });
+          cryptoSuccess = true;
         }
-      } catch (cgErr) {
-        console.warn('CoinGecko fallback notice:', cgErr);
-      }
+      } catch {}
     }
-    
+
     activeRates.lastUpdated = Date.now();
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('polylance_currency_rates_cache', JSON.stringify(activeRates));
+      } catch {}
+    }
     notifyRateListeners();
-  } catch (err) {
-    console.warn('Failed to fetch live exchange rates, using active cache:', err);
+  } catch {
+    // Fail silently, preserving active default rates
+  } finally {
+    isFetchingRates = false;
   }
   return activeRates;
 }
 
 let pollingTimer: any = null;
-export function startRatePolling(intervalMs = 15000) {
+export function startRatePolling(intervalMs = 300000) { // 5 minutes default
   if (pollingTimer) return;
   fetchLiveExchangeRates();
   pollingTimer = setInterval(() => {
@@ -178,9 +251,6 @@ export function getActiveRates(): ConversionRates {
   return activeRates;
 }
 
-/**
- * React hook to automatically subscribe to realtime exchange rates
- */
 export function useLiveCurrencyRates(): ConversionRates {
   const [rates, setRates] = useState<ConversionRates>(() => ({ ...activeRates }));
 
@@ -188,8 +258,7 @@ export function useLiveCurrencyRates(): ConversionRates {
     const unsub = subscribeToRates((newRates) => {
       setRates({ ...newRates });
     });
-    // Trigger rate fetch if stale (>15 seconds)
-    if (Date.now() - activeRates.lastUpdated > 15000) {
+    if (Date.now() - activeRates.lastUpdated > RATE_CACHE_TTL_MS) {
       fetchLiveExchangeRates();
     }
     return unsub;
@@ -199,30 +268,62 @@ export function useLiveCurrencyRates(): ConversionRates {
 }
 
 /**
- * Calculates conversion from a Crypto amount to a specific Fiat currency.
- * @param cryptoAmount - Amount of crypto token (e.g. 2.5)
- * @param tokenCode - Code of crypto (e.g. 'POL')
- * @param fiatCode - Code of target fiat (e.g. 'INR')
+ * Normalizes token symbol to standard POL / USDC / USDT (converts legacy MATIC -> POL)
  */
-export function convertCryptoToFiat(cryptoAmount: number, tokenCode: string, fiatCode: string): { amount: number; formatted: string } {
-  const tokenPriceUsd = activeRates.cryptoPrices[tokenCode] || 1.0;
-  const fiatRateVsUsd = activeRates.fiatRates[fiatCode] || 1.0;
-  
-  const totalUsd = cryptoAmount * tokenPriceUsd;
-  const totalFiat = totalUsd * fiatRateVsUsd;
-  
-  const fiat = SUPPORTED_FIAT.find(f => f.code === fiatCode) || SUPPORTED_FIAT[0];
-  
-  return {
-    amount: totalFiat,
-    formatted: `${fiat.flag} ${fiat.symbol}${totalFiat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${fiat.code}`
-  };
+export function normalizeTokenSymbol(symbol: string | undefined): 'POL' | 'USDC' | 'USDT' {
+  const s = (symbol || 'POL').toUpperCase().trim();
+  if (s === 'MATIC') return 'POL';
+  if (s === 'USDC') return 'USDC';
+  if (s === 'USDT') return 'USDT';
+  return 'POL';
 }
 
 /**
- * Calculates how much crypto is needed to match a desired target USD amount.
+ * Canonical helper to format fiat value with clean symbol prefix:
+ * e.g. USD -> "$1.02", INR -> "₹85.17"
+ * Tiny amounts (< 0.01) format cleanly as "< $0.01" or "< ₹0.01"
  */
+export function formatFiatAmount(value: number, fiatCode: string = globalFiatCurrency): string {
+  const code = (fiatCode || 'USD').toUpperCase();
+  const fiat = SUPPORTED_FIAT.find(f => f.code === code) || SUPPORTED_FIAT[0];
+  const sym = fiat.symbol;
+
+  if (value <= 0) {
+    return `${sym}0.00`;
+  }
+  if (value < 0.01) {
+    return `< ${sym}0.01`;
+  }
+  return `${sym}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/**
+ * Converts a crypto token amount into formatted fiat string:
+ * Always prefixed with "~ " as required by design specification.
+ * e.g. 10 POL -> "~ $4.50" (or "~ ₹375.75" if INR is selected)
+ */
+export function convertCryptoToFiat(
+  cryptoAmount: number | string,
+  tokenCode: string = 'POL',
+  fiatCode: string = globalFiatCurrency
+): { amount: number; formatted: string } {
+  const num = typeof cryptoAmount === 'number' ? cryptoAmount : parseFloat(String(cryptoAmount).replace(/[^0-9.-]/g, '')) || 0;
+  const sym = normalizeTokenSymbol(tokenCode);
+  const tokenPriceUsd = activeRates.cryptoPrices[sym] ?? (sym === 'POL' ? 0.089 : 1.0);
+  const targetFiat = (fiatCode || globalFiatCurrency).toUpperCase();
+  const fiatRateVsUsd = activeRates.fiatRates[targetFiat] ?? (targetFiat === 'INR' ? 83.5 : 1.0);
+
+  const totalUsd = num * tokenPriceUsd;
+  const totalFiat = totalUsd * fiatRateVsUsd;
+
+  return {
+    amount: totalFiat,
+    formatted: `~ ${formatFiatAmount(totalFiat, targetFiat)}`
+  };
+}
+
 export function convertUsdToCrypto(usdAmount: number, tokenCode: string): number {
-  const tokenPriceUsd = activeRates.cryptoPrices[tokenCode] || 1.0;
+  const sym = normalizeTokenSymbol(tokenCode);
+  const tokenPriceUsd = activeRates.cryptoPrices[sym] || (sym === 'POL' ? 0.089 : 1.0);
   return usdAmount / tokenPriceUsd;
 }

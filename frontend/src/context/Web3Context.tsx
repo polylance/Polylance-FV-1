@@ -9,6 +9,8 @@ import ReputationSBTABI from '../config/abis/ReputationSBT.json';
 import { detectPrivilegedRole, isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 
 import { PAYMENT_TOKENS } from '../config/paymentTokens';
+import { getBackendSyncUrl } from '../utils/backendUrl';
+import { sharedPoller } from '../utils/sharedPoller';
 
 export const DEMO_WALLETS: Record<DemoRole, { address: string; label: string; isArbitrator: boolean; isTreasuryAdmin: boolean; reputationCount: number; }> = {
   visitor: {
@@ -174,8 +176,10 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [currentRole, setCurrentRole] = useState<DemoRole>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('polylance_demo_role') as DemoRole;
-      if (saved && saved in DEMO_WALLETS) return saved;
+      const saved = localStorage.getItem('polylance_demo_role');
+      if (saved && ['freelancer', 'client', 'judge', 'admin'].includes(saved)) {
+        return saved as DemoRole;
+      }
     }
     return 'visitor';
   });
@@ -183,8 +187,20 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isArbitrator, setIsArbitrator] = useState(false);
   const [isTreasuryAdmin, setIsTreasuryAdmin] = useState(false);
   const [reputationCount, setReputationCount] = useState(0);
-  const [balanceNative, setBalanceNative] = useState<string>('0.00');
-  const [balanceUsdc, setBalanceUsdc] = useState<string>('0.00');
+  const [balanceNative, setBalanceNative] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const demoBal = localStorage.getItem('polylance_demo_balance_native');
+      if (demoBal) return demoBal;
+    }
+    return '0.00';
+  });
+  const [balanceUsdc, setBalanceUsdc] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const demoBal = localStorage.getItem('polylance_demo_balance_usdc');
+      if (demoBal) return demoBal;
+    }
+    return '0.00';
+  });
   const [balanceUsdt, setBalanceUsdt] = useState<string>('0.00');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -303,19 +319,48 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [getActiveProvider]);
 
   const isRefreshingBalancesRef = useRef(false);
-
   const refreshBalances = useCallback(async (overrideAddress?: string) => {
-    const targetAddr = overrideAddress || (walletIsConnected ? walletAddress : '');
-    if (!targetAddr || !ethers.isAddress(targetAddr)) {
+    const demoNative = typeof window !== 'undefined' ? localStorage.getItem('polylance_demo_balance_native') : null;
+    const demoUsdc = typeof window !== 'undefined' ? localStorage.getItem('polylance_demo_balance_usdc') : null;
+    if (demoNative) {
+      setBalanceNative(demoNative);
+      setBalanceUsdc(demoUsdc || '0.00');
+      setBalanceUsdt('0.00');
+      return;
+    }
+
+    const mockAddr = typeof window !== 'undefined' ? localStorage.getItem('polylance_mock_address') : null;
+    const targetAddr = overrideAddress || (walletIsConnected ? walletAddress : (mockAddr || '')) || '';
+    if (!targetAddr || !ethers.isAddress(targetAddr) || isWrongNetwork) {
       setBalanceNative('0.00');
       setBalanceUsdc('0.00');
       setBalanceUsdt('0.00');
       return;
     }
+    const checksumAddr = ethers.getAddress(targetAddr);
     if (isRefreshingBalancesRef.current) return;
     isRefreshingBalancesRef.current = true;
 
     try {
+      // 1. Primary Path: Read quorum-verified balances from our server RPC pool (zero client-side direct RPC strain)
+      try {
+        const syncUrl = getBackendSyncUrl();
+        const res = await sharedPoller.fetchDeduplicated<{
+          success: boolean;
+          formatted?: { nativePOL: string; usdc: string; usdt: string };
+        }>(`${syncUrl}/api/account/balances?address=${checksumAddr}`);
+
+        if (res && res.success && res.formatted) {
+          setBalanceNative(res.formatted.nativePOL || '0.00');
+          setBalanceUsdc(res.formatted.usdc || '0.00');
+          setBalanceUsdt(res.formatted.usdt || '0.00');
+          return;
+        }
+      } catch (serverErr) {
+        console.debug('Backend balance fetch notice, attempting resilient fallback:', serverErr);
+      }
+
+      // 2. Fallback Path: Only if backend is temporarily unreachable
       const p = getNetworkProvider();
       const usdcAddress = PAYMENT_TOKENS.USDC.address;
       const usdtAddress = PAYMENT_TOKENS.USDT.address;
@@ -329,20 +374,13 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             if (!usdcAddress || usdcAddress === ethers.ZeroAddress) return 0n;
             const validUsdc = ethers.getAddress(usdcAddress.toLowerCase());
-            const code = await p.getCode(validUsdc).catch(() => '0x');
-            if (!code || code === '0x' || code === '0x0') return 0n;
-
             const usdcContract = new ethers.Contract(
               validUsdc,
               ["function balanceOf(address) view returns (uint256)"],
               p
             );
             return await usdcContract.balanceOf(targetAddr);
-          } catch (err: any) {
-            // Silently handle addresses without deployed bytecode or RPC 0x return data
-            if (err?.code !== 'BAD_DATA' && err?.code !== 'CALL_EXCEPTION') {
-              console.warn("Failed to fetch USDC balance:", err);
-            }
+          } catch {
             return 0n;
           }
         })(),
@@ -354,20 +392,13 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
               usdtAddress.toLowerCase() === usdcAddress.toLowerCase()
             ) return 0n;
             const validUsdt = ethers.getAddress(usdtAddress.toLowerCase());
-            const code = await p.getCode(validUsdt).catch(() => '0x');
-            if (!code || code === '0x' || code === '0x0') return 0n;
-
             const usdtContract = new ethers.Contract(
               validUsdt,
               ["function balanceOf(address) view returns (uint256)"],
               p
             );
             return await usdtContract.balanceOf(targetAddr);
-          } catch (err: any) {
-            // Silently handle mock addresses that have no deployed bytecode on testnet (0x return data)
-            if (err?.code !== 'BAD_DATA' && err?.code !== 'CALL_EXCEPTION') {
-              console.warn("Failed to fetch USDT balance:", err);
-            }
+          } catch {
             return 0n;
           }
         })(),
@@ -381,7 +412,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       setBalanceUsdc(formattedUsdc);
       setBalanceUsdt(formattedUsdt);
     } catch (e) {
-      console.warn("Failed to fetch wallet balances:", e);
+      console.warn("Notice: could not refresh balances:", e);
     } finally {
       isRefreshingBalancesRef.current = false;
     }
@@ -463,18 +494,38 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [walletAddress, loadRealOnChainState, refreshBalances]);
 
-  // Sync state between wallet connection and mock role settings
+  // Sync state between wallet connection and active role
   useEffect(() => {
-    if (walletIsConnected && walletAddress) {
-      loadRealOnChainState(walletAddress);
-      refreshBalances(walletAddress);
+    const activeMock = typeof window !== 'undefined' ? localStorage.getItem('polylance_mock_address') : null;
+    const effectiveAddr = (walletIsConnected && walletAddress) ? walletAddress : (activeMock || null);
+    if (effectiveAddr) {
+      loadRealOnChainState(effectiveAddr);
+      refreshBalances(effectiveAddr);
+    } else {
+      // Disconnected: strictly visitor role and zero balances; no demo account persistence
+      setCurrentRole('visitor');
+      const demoNative = typeof window !== 'undefined' ? localStorage.getItem('polylance_demo_balance_native') : null;
+      const demoUsdc = typeof window !== 'undefined' ? localStorage.getItem('polylance_demo_balance_usdc') : null;
+      setBalanceNative(demoNative || '0.00');
+      setBalanceUsdc(demoUsdc || '0.00');
+      setBalanceUsdt('0.00');
+      setIsArbitrator(false);
+      setIsTreasuryAdmin(false);
+      setReputationCount(0);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('polylance_demo_role');
+      }
     }
   }, [walletAddress, walletIsConnected, loadRealOnChainState, refreshBalances]);
 
   const setRole = (role: DemoRole) => {
     setCurrentRole(role);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('polylance_demo_role', role);
+      if (walletIsConnected) {
+        localStorage.setItem('polylance_demo_role', role);
+      } else {
+        localStorage.removeItem('polylance_demo_role');
+      }
     }
   };
 
@@ -577,8 +628,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   }, [walletClient, connector, walletAddress, getActiveProvider]);
 
-  const address = walletIsConnected ? walletAddress || '' : '';
-  const isConnected = Boolean(walletIsConnected);
+  const mockAddr = typeof window !== 'undefined' ? localStorage.getItem('polylance_mock_address') : null;
+  const address = (walletIsConnected ? walletAddress : (mockAddr || '')) || '';
+  const isConnected = Boolean(walletIsConnected || mockAddr);
 
   const contextValue = React.useMemo<Web3ContextType>(() => ({
     address,

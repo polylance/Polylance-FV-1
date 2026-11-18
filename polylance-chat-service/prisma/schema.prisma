@@ -41,11 +41,41 @@ model JobRecord {
   freelancer      String?
   status          String
   data            Json
+  onchainTokenId  Int?
+  certificateNo   Int?
+  mintTxHash      String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([client])
   @@index([freelancer])
+  @@index([onchainTokenId])
+}
+
+model CertificateRecord {
+  id              String    @id
+  jobId           String
+  certType        String    // 'Patronage' | 'Verified Work'
+  holderRole      String    // 'Client' | 'Freelancer'
+  holderWallet    String
+  certificateNo   Int?
+  onchainTokenId  Int?
+  contractAddress String?   @default("0x22A61f83cEB94233d30a20EEacBdEB9BCC1C2879")
+  chainId         Int?      @default(137)
+  mintTxHash      String?
+  mintBlock       Int?
+  mintedAt        DateTime?
+  metadataUrl     String?
+  commitmentHash  String?
+  status          String    @default("Pending")
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([jobId])
+  @@index([holderWallet])
+  @@index([onchainTokenId])
+  @@index([certificateNo])
 }
 
 model ProfileRecord {
