@@ -33,28 +33,9 @@ export const CategoryDetailPage: React.FC = () => {
   const [tokenFilter, setTokenFilter] = useState<'ALL' | 'POL' | 'USDC'>('ALL');
   const [showBlueprint, setShowBlueprint] = useState<boolean>(false);
 
-  if (!category) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
-        <AlertCircle size={48} className="text-[#DC2626] mb-3" />
-        <h1 className="text-xl font-bold text-[#0B0B0F]">Category Not Found</h1>
-        <p className="text-sm text-[#6B7280] mt-1 max-w-md">
-          The requested category &ldquo;{slug}&rdquo; does not exist in our 10-domain taxonomy.
-        </p>
-        <Link
-          to="/categories"
-          className="mt-4 px-4 py-2 bg-[#0047AB] text-white rounded-[8px] text-xs font-semibold hover:bg-[#00388A] active:scale-[0.98] transition-[transform,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0047AB] focus-visible:ring-offset-2"
-        >
-          View all 10 categories
-        </Link>
-      </div>
-    );
-  }
-
-  const theme = getCategoryThemeStyles(category.themeColor);
-
-  // Filter real jobs
+  // Filter real jobs (called unconditionally before early return to satisfy Rules of Hooks)
   const categoryJobs = useMemo(() => {
+    if (!category) return [];
     return (jobs || []).filter((j) => {
       const matchCat =
         j.category?.toLowerCase() === category.slug ||
@@ -86,7 +67,8 @@ export const CategoryDetailPage: React.FC = () => {
 
   // Real specialists / profiles matching category
   const categorySpecialists = useMemo(() => {
-    return Object.entries(profiles || {}).filter(([_, p]) => {
+    if (!category) return [];
+    return Object.entries(profiles || {}).filter(([, p]) => {
       if (p.primaryCategory === category.slug || p.primaryCategory === category.id) return true;
       if (p.skills && category.subcategories.some((sub) => sub.skills.some((s) => p.skills?.includes(s)))) {
         return true;
@@ -94,6 +76,26 @@ export const CategoryDetailPage: React.FC = () => {
       return false;
     });
   }, [profiles, category]);
+
+  if (!category) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
+        <AlertCircle size={48} className="text-[#DC2626] mb-3" />
+        <h1 className="text-xl font-bold text-[#0B0B0F]">Category Not Found</h1>
+        <p className="text-sm text-[#6B7280] mt-1 max-w-md">
+          The requested category &ldquo;{slug}&rdquo; does not exist in our 10-domain taxonomy.
+        </p>
+        <Link
+          to="/categories"
+          className="mt-4 px-4 py-2 bg-[#0047AB] text-white rounded-[8px] text-xs font-semibold hover:bg-[#00388A] active:scale-[0.98] transition-[transform,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0047AB] focus-visible:ring-offset-2"
+        >
+          View all 10 categories
+        </Link>
+      </div>
+    );
+  }
+
+  const theme = getCategoryThemeStyles(category.themeColor);
 
   const handleSubChange = (newSub: string) => {
     setSelectedSub(newSub);
