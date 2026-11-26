@@ -5,11 +5,9 @@ export interface PageContainerProps {
   className?: string;
   as?: React.ElementType;
   /**
-   * Container width presets:
-   * - 'wide': max-w-[1320px] for hero, navbar, and wide-grid surfaces
-   * - 'standard' (default): max-w-[1200px] for Apple-calm standard content
-   * - 'reading': max-w-[760px] for focused legal/editorial reading
-   * - 'legacy-wide': max-w-[1540px] for legacy dashboard layouts
+   * Fluid container width presets utilizing the full viewport cleanly:
+   * - 'wide' / 'standard' / 'legacy-wide': max-w-[1600px]
+   * - 'reading': max-w-[840px]
    * - 'full': w-full max-w-none
    */
   size?: 'wide' | 'standard' | 'reading' | 'full' | 'legacy-wide';
@@ -23,20 +21,24 @@ export const PageContainer: React.FC<PageContainerProps> = ({
   size = 'standard',
   noVerticalPadding = false,
 }) => {
-  const sizeClasses = {
-    wide: 'max-w-[1440px]',
-    standard: 'max-w-[1440px]',
-    reading: 'max-w-[760px]',
-    full: 'w-full max-w-none',
-    'legacy-wide': 'max-w-[1440px]',
-  }[size];
+  const isReading = size === 'reading';
+  const outerClass =
+    size === 'full'
+      ? 'w-full max-w-none px-6 lg:px-10'
+      : 'w-full max-w-[1440px] mx-auto px-6 lg:px-10';
 
-  const verticalPaddingClasses = noVerticalPadding ? '' : 'pt-4 sm:pt-6 pb-8 sm:pb-12';
+  const verticalPaddingClasses = noVerticalPadding ? '' : 'py-12 lg:py-[72px]';
+
+  if (isReading) {
+    return (
+      <Component className={`${outerClass} ${verticalPaddingClasses} ${className}`}>
+        <div className="max-w-[840px] w-full">{children}</div>
+      </Component>
+    );
+  }
 
   return (
-    <Component
-      className={`w-full ${sizeClasses} mx-auto px-[clamp(20px,3vw,48px)] ${verticalPaddingClasses} ${className}`}
-    >
+    <Component className={`${outerClass} ${verticalPaddingClasses} ${className}`}>
       {children}
     </Component>
   );

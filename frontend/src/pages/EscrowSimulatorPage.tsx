@@ -12,6 +12,7 @@ import {
   ExternalLink,
   PlusCircle,
   Search,
+  Calculator,
 } from 'lucide-react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Button } from '../components/common/Button';
@@ -370,6 +371,20 @@ export const EscrowSimulatorPage: React.FC = () => {
                   <div className="text-[11px] text-[#6B7280]">
                     Each milestone holds ~{perMilestoneBudget} {token} in escrow
                   </div>
+                </div>
+
+                {/* Simulation Button */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleBudgetChange(budget);
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#EAF1FB] hover:bg-[#D4E4FA] text-[#0047AB] font-bold text-xs transition-all active:scale-[0.985] cursor-pointer border border-[#BFDBFE]"
+                  >
+                    <Calculator size={14} />
+                    <span>Run Simulation · Recalculate Escrow Math</span>
+                  </button>
                 </div>
 
                 {/* Contextual Action Button */}

@@ -66,6 +66,15 @@ export const Modal: React.FC<ModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
   const prefersReducedMotion = useReducedMotion();
+  const hasInitialFocusedRef = useRef(false);
+
+  // Keep latest refs to prevent re-triggering effects on parent re-renders while typing
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const disableDismissRef = useRef(disableDismiss);
+  disableDismissRef.current = disableDismiss;
+  const isPendingRef = useRef(isPending);
+  isPendingRef.current = isPending;
 
   const [isMobile, setIsMobile] = useState<boolean>(() => {
     return typeof window !== 'undefined' ? window.innerWidth < 640 : false;
@@ -118,9 +127,16 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen, modalId]);
 
-  // Scroll lock, Lenis pause, and Focus management
+  // Scroll lock, Lenis pause, and Initial Focus management (ONLY on initial open)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      hasInitialFocusedRef.current = false;
+      return;
+    }
+
+    // Never re-run initial focus if modal is already open
+    if (hasInitialFocusedRef.current) return;
+    hasInitialFocusedRef.current = true;
 
     previouslyFocusedElement.current = document.activeElement as HTMLElement | null;
 
@@ -135,9 +151,17 @@ export const Modal: React.FC<ModalProps> = ({
     }
     pauseLenis();
 
-    // Auto-focus input field or container (never header close button)
+    // Auto-focus input field on initial open only; NEVER steal focus if user is already focused or typing inside
     const focusTimer = setTimeout(() => {
       if (modalRef.current) {
+        // If user already has focus inside an interactive element within the modal, do not shift focus
+        if (
+          modalRef.current.contains(document.activeElement) &&
+          document.activeElement !== modalRef.current
+        ) {
+          return;
+        }
+
         const autoFocused = modalRef.current.querySelector<HTMLElement>('[autofocus], [data-autofocus]');
         if (autoFocused) {
           autoFocused.focus();
@@ -160,10 +184,10 @@ export const Modal: React.FC<ModalProps> = ({
       // Escape closes ONLY the top active modal
       if (e.key === 'Escape') {
         const isCurrentTop = activeModalStack.length === 0 || activeModalStack[activeModalStack.length - 1] === modalId;
-        if (isCurrentTop && !disableDismiss && !isPending) {
+        if (isCurrentTop && !disableDismissRef.current && !isPendingRef.current) {
           e.preventDefault();
           e.stopPropagation();
-          onClose();
+          onCloseRef.current();
         }
       } else if (e.key === 'Tab') {
         // Trap focus inside modal
@@ -192,6 +216,7 @@ export const Modal: React.FC<ModalProps> = ({
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      hasInitialFocusedRef.current = false;
       clearTimeout(focusTimer);
       document.body.style.overflow = originalOverflow;
       document.body.style.paddingRight = originalPaddingRight;
@@ -201,7 +226,7 @@ export const Modal: React.FC<ModalProps> = ({
         previouslyFocusedElement.current.focus();
       }
     };
-  }, [isOpen, onClose, disableDismiss, isPending, modalId]);
+  }, [isOpen, modalId]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget && !disableDismiss && !isPending) {
@@ -243,7 +268,7 @@ export const Modal: React.FC<ModalProps> = ({
               exit="closed"
               onClick={handleBackdropClick}
               aria-hidden="true"
-              className="fixed inset-0 bg-[#0B0B0F]/48 cursor-pointer"
+              className="fixed inset-0 z-0 bg-[#0B0B0F]/48 backdrop-blur-[2px] cursor-pointer"
             />
 
             {/* Modal Dialog Card (Mobile Bottom Sheet / Desktop Centered) */}
@@ -257,11 +282,10 @@ export const Modal: React.FC<ModalProps> = ({
               exit="closed"
               style={{
                 scale: isNestedUnderneath ? 0.98 : undefined,
-                opacity: isNestedUnderneath ? 0.9 : undefined,
-                transition: 'scale 0.2s ease, opacity 0.2s ease',
+                filter: isNestedUnderneath ? 'brightness(0.94)' : undefined,
                 transformOrigin: isMobile ? 'bottom center' : 'center center',
               }}
-              className={`relative w-full ${maxWidthClassMap[effectiveMaxWidth]} bg-white rounded-t-[16px] sm:rounded-[16px] border border-[#E5E7EB] shadow-[0_8px_24px_rgba(11,11,15,0.12)] z-10 flex flex-col min-h-0 max-h-[90dvh] sm:max-h-[calc(100dvh-48px)] overflow-hidden outline-none ${className}`}
+              className={`relative w-full ${maxWidthClassMap[effectiveMaxWidth]} bg-white rounded-t-[16px] sm:rounded-[16px] border border-[#E5E7EB] shadow-[0_12px_32px_rgba(11,11,15,0.14)] z-10 flex flex-col min-h-0 max-h-[90dvh] sm:max-h-[calc(100dvh-48px)] overflow-hidden outline-none ${className}`}
             >
               {/* Mobile Sheet Grab Handle */}
               <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">

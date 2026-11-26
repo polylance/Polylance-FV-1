@@ -16,16 +16,26 @@ import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceA
 import { SkillSelector } from '../components/SkillSelector';
 import { Modal } from '../components/overlay/Modal';
 import { LocalAvatar } from '../components/common/LocalAvatar';
+import { ClientTrustBadge } from '../components/common/ClientTrustBadge';
+import { PortfolioVerifierForm } from '../components/onboarding/PortfolioVerifierForm';
 
 export const Onboarding: React.FC = () => {
   const { address, currentRole, isConnected, connectWallet } = useWeb3();
-  const { profiles, updateProfile } = usePolyLanceData();
+  const { jobs, profiles, updateProfile } = usePolyLanceData();
   const navigate = useNavigate();
 
   // Retrieve user profile case-insensitively
   const existingKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
   const existing = (existingKey ? profiles[existingKey] : {}) as UserProfile;
   const isClient = currentRole === 'client';
+
+  const [freelancerTrack, setFreelancerTrack] = useState<'tech' | 'non-tech'>(() => {
+    if (typeof window !== 'undefined') {
+      const qTrack = new URLSearchParams(window.location.search).get('track');
+      if (qTrack === 'non-tech' || qTrack === 'tech') return qTrack;
+    }
+    return existing.freelancerTrack || 'tech';
+  });
 
   const [step, setStep] = useState<1 | 2>(1);
   const [displayName, setDisplayName] = useState(existing.displayName || '');
@@ -320,7 +330,7 @@ export const Onboarding: React.FC = () => {
       });
       return;
     }
-    if (!isClient && githubError) {
+    if (!isClient && freelancerTrack === 'tech' && githubError) {
       setAlertModalOptions({
         title: 'Unique GitHub Required',
         message: 'Cannot finalize profile: Please connect a unique, authenticated GitHub account for Sybil resistance.',
@@ -340,7 +350,10 @@ export const Onboarding: React.FC = () => {
         ipfsHash: profileIpfsCid,
         skills,
         role: currentRole === 'client' ? 'client' : 'freelancer',
-        ...(githubVerified
+        accountMode: currentRole === 'client' ? 'client' : 'freelancer',
+        freelancerTrack: currentRole === 'client' ? undefined : freelancerTrack,
+        onboardingCompleted: true,
+        ...(githubVerified && freelancerTrack === 'tech'
           ? {
               githubVerified: true,
               githubUsername: githubUsername.trim(),
@@ -437,8 +450,92 @@ export const Onboarding: React.FC = () => {
               </p>
             </div>
 
-            {/* SECURE GITHUB OAUTH 2.0 ATTESTATION PANEL FOR TALENT */}
+            {/* CLIENT TRUST SCORE SUMMARY (NO GITHUB / NO PORTFOLIO REQUIRED) */}
+            {isClient && (
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-[#EFF6FF]/60 border border-[#BFDBFE] p-4 flex items-start gap-3 text-xs">
+                  <ShieldCheck size={20} className="text-[#0A52B8] shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold text-[#0F172A]">How Your Client Trust Score Works</p>
+                    <p className="text-slate-600 leading-relaxed">
+                      Clients verify on-chain by funding milestone escrows—no GitHub or creative portfolio is required. Your Client Score and rating update automatically as jobs settle.
+                    </p>
+                  </div>
+                </div>
+                <ClientTrustBadge clientAddress={address} jobs={jobs} profile={existing} />
+              </div>
+            )}
+
+            {/* FREELANCER VERIFICATION TRACK SWITCHER (TECH VS NON-TECH) */}
             {!isClient && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFreelancerTrack('tech')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      freelancerTrack === 'tech'
+                        ? 'bg-[#EFF6FF] border-[#0A52B8] ring-1 ring-[#0A52B8]/20'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-[#0F172A]">Tech Freelancer (GitHub Verified ✓)</div>
+                    <p className="text-[11px] text-slate-600 mt-1">
+                      Development &amp; IT, Web3 &amp; Blockchain, AI &amp; Automation, Data &amp; Analytics
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFreelancerTrack('non-tech')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      freelancerTrack === 'non-tech'
+                        ? 'bg-[#EFF6FF] border-[#0A52B8] ring-1 ring-[#0A52B8]/20'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-[#0F172A]">Non-Tech &amp; Creative (Portfolio Verified ✓)</div>
+                    <p className="text-[11px] text-slate-600 mt-1">
+                      Design, Video &amp; Motion, Creators, Marketing, Writing, Admin — skips GitHub
+                    </p>
+                  </button>
+                </div>
+
+                {freelancerTrack === 'non-tech' && (
+                  <div className="border border-slate-200 bg-white rounded-2xl p-6 shadow-xs space-y-4">
+                    <div className="border-b border-slate-100 pb-3">
+                      <h3 className="font-headline font-bold text-sm text-slate-900">
+                        Portfolio Showcase Verification
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Add up to 5 verified portfolio links (Behance, Dribbble, YouTube, Instagram, Figma, Notion, LinkedIn, or Website). Clients can inspect your work directly on proposals.
+                      </p>
+                    </div>
+                    <PortfolioVerifierForm
+                      initialLinks={existing.portfolioLinks || []}
+                      initialDiscipline={existing.primaryDiscipline}
+                      submitLabel="Save Verified Portfolio & Continue"
+                      onSave={async (data) => {
+                        if (!address) return;
+                        await updateProfile(
+                          {
+                            freelancerTrack: 'non-tech',
+                            primaryDiscipline: data.primaryDiscipline,
+                            primaryCategory: data.primaryDiscipline,
+                            portfolioLinks: data.portfolioLinks,
+                            portfolioVerified: data.portfolioVerified,
+                          },
+                          address
+                        );
+                        setStep(2);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SECURE GITHUB OAUTH 2.0 ATTESTATION PANEL FOR TECH TALENT */}
+            {!isClient && freelancerTrack === 'tech' && (
               <div className="border border-slate-200 bg-white rounded-2xl p-6 shadow-xs space-y-5">
                 {/* Header Row with Verified Status Badge */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">

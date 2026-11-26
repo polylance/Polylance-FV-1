@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Skeleton } from '../components/mobile/Skeleton';
+import { Skeleton, SkeletonCard, SkeletonWell, SkeletonHighlightRow } from '../components/common/Skeleton';
+import { Workflow } from '../components/common/Workflow';
+import { CertificateBadge } from '../components/certificate/CertificateBadge';
+import { BadgeArrivalModal } from '../components/certificate/BadgeArrivalModal';
 import {
   EmptyState,
   LoadingState,
@@ -11,7 +14,8 @@ import {
 } from '../components/UIStates';
 
 export const DevStatesPage: React.FC = () => {
-  const [selectedState, setSelectedState] = useState<string>('skeletons');
+  const [selectedState, setSelectedState] = useState<string>('zenith-batch1');
+  const [isArrivalModalOpen, setIsArrivalModalOpen] = useState(false);
 
   return (
     <div className="w-full py-4 space-y-8 font-sans">
@@ -27,7 +31,8 @@ export const DevStatesPage: React.FC = () => {
       {/* State Switcher Pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
         {[
-          { id: 'skeletons', label: 'Skeletons' },
+          { id: 'zenith-batch1', label: '⭐ Zenith Batch 1 (Images 1, 2, 3)' },
+          { id: 'skeletons', label: 'Legacy Skeletons' },
           { id: 'empty', label: 'Empty State' },
           { id: 'loading', label: 'Loading State' },
           { id: 'error', label: 'Error State' },
@@ -52,7 +57,148 @@ export const DevStatesPage: React.FC = () => {
       </div>
 
       {/* Active State Container */}
-      <div className="p-4 sm:p-6 bg-slate-50/60 rounded-3xl border border-slate-200/80 min-h-[400px] flex items-center justify-center">
+      <div className="p-4 sm:p-6 bg-slate-50/60 rounded-3xl border border-slate-200/80 min-h-[400px]">
+        {selectedState === 'zenith-batch1' && (
+          <div className="w-full space-y-12">
+            {/* 1. Skeleton System (Image 1 reference) */}
+            <section className="space-y-4">
+              <div className="border-b border-[#E5E7EB] pb-2">
+                <span className="text-[10px] uppercase font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#0047AB]/10 text-[#0047AB]">
+                  Reference Image 1
+                </span>
+                <h2 className="text-lg font-bold text-[#0B0B0F] mt-1">Skeleton System (Zero-CLS & Exact Tokens)</h2>
+                <p className="text-xs text-[#6B7280]">
+                  Dark title bar (#0B0B0F), 2px cobalt rule (#0047AB), two soft gray wells (#F5F6FA), and cobalt highlight row (#EEF4FD) with 1.6s white sweep.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-xs font-semibold text-[#4B5563] mb-2">Skeleton Card (Image 1 Target)</h3>
+                  <SkeletonCard />
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-xs font-semibold text-[#4B5563] mb-2">Individual Wells & Highlight Row</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <SkeletonWell />
+                    <SkeletonWell delayIndex={1} />
+                  </div>
+                  <SkeletonHighlightRow />
+                  <SkeletonHighlightRow delayIndex={1} />
+                </div>
+              </div>
+            </section>
+
+            {/* 2. Workflow Stepper (Image 3 reference) */}
+            <section className="space-y-4">
+              <div className="border-b border-[#E5E7EB] pb-2">
+                <span className="text-[10px] uppercase font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#0047AB]/10 text-[#0047AB]">
+                  Reference Image 3
+                </span>
+                <h2 className="text-lg font-bold text-[#0B0B0F] mt-1">Workflow Stepper & Action Bar</h2>
+                <p className="text-xs text-[#6B7280]">
+                  48px numbered circles, 4px cobalt line (#0047AB), semantic green check "Done" on completion, rounded 12px Action Bar with status & action pill.
+                </p>
+              </div>
+
+              <div className="p-6 bg-white rounded-[20px] border border-[#E5E7EB] shadow-xs space-y-8">
+                {/* Mid-progress Stepper */}
+                <div>
+                  <h3 className="text-xs font-semibold text-[#4B5563] mb-4">In-Progress Lifecycle (Step 2 of 4)</h3>
+                  <Workflow
+                    steps={[
+                      { id: 1, label: 'Connect Wallet', caption: 'MetaMask / Coinbase' },
+                      { id: 2, label: 'Deposit Escrow', caption: 'Polygon POL / USDC' },
+                      { id: 3, label: 'Review Milestones', caption: 'Preview deliverables' },
+                      { id: 4, label: 'Release Payment', caption: 'Soulbound SBT minted', isFinal: true },
+                    ]}
+                    currentIndex={1}
+                    status="Escrow funded with 250 POL. Freelancer currently working on Milestone 1."
+                    actions={[
+                      { label: 'Submit Milestone', onClick: () => alert('Milestone action triggered') },
+                    ]}
+                  />
+                </div>
+
+                {/* Completed Stepper */}
+                <div className="pt-6 border-t border-[#F3F4F6]">
+                  <h3 className="text-xs font-semibold text-[#4B5563] mb-4">Completed Lifecycle (Done)</h3>
+                  <Workflow
+                    steps={[
+                      { id: 1, label: 'Connect Wallet' },
+                      { id: 2, label: 'Deposit Escrow' },
+                      { id: 3, label: 'Review Milestones' },
+                      { id: 4, label: 'Release Payment', isFinal: true },
+                    ]}
+                    currentIndex={4}
+                    status="Job completed and verified on Polygon. SBT certificate minted."
+                    actions={[
+                      { label: 'View Certificate', onClick: () => setIsArrivalModalOpen(true) },
+                    ]}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* 3. Completion Badge (Image 2 reference) */}
+            <section className="space-y-4">
+              <div className="border-b border-[#E5E7EB] pb-2 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#0047AB]/10 text-[#0047AB]">
+                    Reference Image 2
+                  </span>
+                  <h2 className="text-lg font-bold text-[#0B0B0F] mt-1">Soulbound Certificate Badge (SBT)</h2>
+                  <p className="text-xs text-[#6B7280]">
+                    1000x1000 square card, circular badge with verified seal, title bar, semantic green chip "Verified on-chain", PL-SBT #id, max 6deg hover tilt.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsArrivalModalOpen(true)}
+                  className="px-4 py-2 rounded-full bg-[#0047AB] text-white text-xs font-semibold hover:bg-[#00388A] transition-colors"
+                >
+                  Simulate Badge Arrival Modal
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-center">
+                <CertificateBadge
+                  onchainTokenId={7108}
+                  variant="work"
+                  jobTitle="Zero-Knowledge Escrow Architecture"
+                  recipientName="Alice Engineer"
+                  amount="250"
+                  tokenSymbol="POL"
+                  completedAt={1729000000000}
+                />
+                <CertificateBadge
+                  onchainTokenId={9805}
+                  variant="patronage"
+                  jobTitle="PolyLance Open Source Developer Grant"
+                  recipientName="Bob Creator"
+                  amount="1000"
+                  tokenSymbol="USDC"
+                  completedAt={1729000000000}
+                />
+              </div>
+            </section>
+
+            {/* Arrival Modal */}
+            <BadgeArrivalModal
+              isOpen={isArrivalModalOpen}
+              onClose={() => setIsArrivalModalOpen(false)}
+              certificate={{
+                onchainTokenId: 7108,
+                variant: 'work',
+                jobTitle: 'Zero-Knowledge Escrow Architecture',
+                recipientName: 'Alice Engineer',
+                amount: '250',
+                tokenSymbol: 'POL',
+              }}
+            />
+          </div>
+        )}
+
         {selectedState === 'skeletons' && (
           <div className="w-full max-w-md space-y-4">
             <h3 className="text-xs font-mono font-bold uppercase text-slate-400">Zero-CLS Skeleton Variants</h3>
@@ -75,7 +221,9 @@ export const DevStatesPage: React.FC = () => {
                   <Skeleton variant="text" className="w-2/3 h-3" />
                 </div>
               </div>
-              <Skeleton variant="text" lines={3} />
+              <Skeleton.Bar width="100%" height={12} />
+              <Skeleton.Bar width="90%" height={12} delayIndex={1} />
+              <Skeleton.Bar width="65%" height={12} delayIndex={2} />
               <div className="pt-2 flex justify-end">
                 <Skeleton variant="button" className="w-24 h-10" />
               </div>

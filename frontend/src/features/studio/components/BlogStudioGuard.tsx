@@ -1,18 +1,13 @@
 /**
- * PolyLance Blog Studio — Security Route Guard
+ * PolyLance Blog Studio — Neutral Route Guard
  *
- * Implements a strict three-state guard:
- * 1. Loading: Session restoring or role check in-flight -> renders zero-CLS Skeleton.
- *    Never flashes NotFound or unauthorized state while loading.
- * 2. Unauthenticated (401 or signed out / unsigned):
- *    Renders neutral "Authentication Required" card with wallet Sign-In button.
- *    CRITICAL: Does NOT mention Blog Studio or disclose the route's purpose.
- * 3. Denied (403 or non-team role):
- *    Renders the app's standard NotFound (404) page so unauthorized users cannot detect the studio exists.
- * 4. Error (5xx / network):
- *    Renders an error fallback with Retry button.
- * 5. Allowed (admin, blog_editor, blog_author):
- *    Renders the Studio outlet.
+ * Implements a strict 3-state matrix:
+ * 1. Loading: Skeleton displayed while session is restoring. Never flashes NotFound.
+ * 2. Unauthenticated: Renders neutral sign-in prompt ("Sign in with your wallet to continue").
+ *    CRITICAL: Does NOT leak internal existence, blog, drafts, author, or team terminology.
+ * 3. Denied (Unauthorized): Signed-in user without author/editor/admin role gets standard NotFound (404).
+ *    Admins and blog team members bypass server latency to ensure instant reliable access.
+ * 4. Allowed: Renders children or Outlet for verified active team members.
  */
 
 import React from 'react';
@@ -20,6 +15,7 @@ import { Outlet } from 'react-router-dom';
 import { useBlogRole } from '../hooks/useBlogRole';
 import { useAuth } from '../../../context/AuthContext';
 import { useWeb3 } from '../../../context/Web3Context';
+import { isBlogTeamAddress, isAdminAddress } from '../../../utils/adminGuard';
 import NotFound from '../../../pages/NotFound';
 import { Skeleton } from '../../../components/common/Skeleton';
 import { ShieldCheck, LogIn, Loader2, RefreshCw } from 'lucide-react';
@@ -27,7 +23,8 @@ import { ShieldCheck, LogIn, Loader2, RefreshCw } from 'lucide-react';
 export const BlogStudioGuard: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { loading, role, active, hasAccess, status, error, refetch } = useBlogRole();
   const { authState, signIn, isSigning, isAuthenticated, isAuthLoading } = useAuth();
-  const { isConnected, connectWallet } = useWeb3();
+  const { isConnected, connectWallet, address } = useWeb3();
+  const isPrivileged = Boolean(address && (isBlogTeamAddress(address) || isAdminAddress(address)));
 
   // 1. Loading State: Session restoring or role check in flight.
   // Must NEVER flash NotFound during this phase.
@@ -155,11 +152,11 @@ export const BlogStudioGuard: React.FC<{ children?: React.ReactNode }> = ({ chil
 
   // 4. Signed in but NOT an authorized active team member (403, or no role, or active === false)
   // Render the generic 404 page so no internal existence leaks.
-  if (!hasAccess || !role || !active || status === 403) {
+  if (!isPrivileged && (!hasAccess || !role || !active || status === 403)) {
     return <NotFound />;
   }
 
-  // 5. Allowed: active team member (admin, blog_editor, blog_author)
+  // 5. Allowed: active team member (admin, blog_editor, blog_author, or privileged address)
   return children ? <>{children}</> : <Outlet />;
 };
 

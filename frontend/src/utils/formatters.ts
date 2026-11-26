@@ -231,13 +231,74 @@ export function getCertifiedPassVerifyUrl(certId: string, tokenId?: string | num
 // UNIFIED CATEGORIES CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 export interface CategoryConfig {
-  id: 'web3' | 'frontend' | 'backend' | 'mobile';
+  id: string;
   label: string;
   description: string;
   skills: string[];
 }
 
 export const CATEGORIES: CategoryConfig[] = [
+  {
+    id: 'development-it',
+    label: 'Development & IT',
+    description: 'Full-stack software engineering, web, mobile, DevOps and cloud systems.',
+    skills: ['React', 'TypeScript', 'Next.js', 'Node.js', 'Python', 'Go', 'Rust', 'Tailwind CSS']
+  },
+  {
+    id: 'ai-automation',
+    label: 'AI & Automation',
+    description: 'AI/ML engineering, LLMs, chatbots, autonomous agents, no-code workflows.',
+    skills: ['Python', 'PyTorch', 'LangChain', 'OpenAI API', 'Hugging Face', 'RAG Systems', 'LlamaIndex']
+  },
+  {
+    id: 'web3-blockchain',
+    label: 'Web3 & Blockchain',
+    description: 'Smart contracts, security audits, dApp frontend, tokenomics, DeFi.',
+    skills: ['Solidity', 'Smart Contracts', 'Hardhat', 'Foundry', 'Polygon', 'Ethers.js', 'DeFi']
+  },
+  {
+    id: 'design-creative',
+    label: 'Design & Creative',
+    description: 'UI/UX design, graphic and brand identity, illustration, 3D and CAD.',
+    skills: ['Figma', 'UI/UX Design', 'Design Systems', 'Web Design', 'Wireframing', 'Prototyping']
+  },
+  {
+    id: 'video-audio',
+    label: 'Video, Audio & Animation',
+    description: 'Video editing, motion graphics, voice-over, music and sound design.',
+    skills: ['Premiere Pro', 'After Effects', 'DaVinci Resolve', 'Sound Design', 'Motion Graphics']
+  },
+  {
+    id: 'creators-brand-collabs',
+    label: 'Creators & Brand Collabs',
+    description: 'YouTube, UGC, short video, podcasts, livestreaming, brand sponsorships.',
+    skills: ['YouTube', 'UGC Creation', 'Brand Sponsorships', 'Short-Form Video', 'Podcasting']
+  },
+  {
+    id: 'marketing',
+    label: 'Marketing',
+    description: 'SEO, social media management, performance ads, email, brand growth.',
+    skills: ['SEO', 'Content Marketing', 'Social Media Marketing', 'Email Marketing', 'Growth Strategy']
+  },
+  {
+    id: 'writing-content',
+    label: 'Writing & Content',
+    description: 'Articles, copywriting, technical writing, translation and localization.',
+    skills: ['Technical Writing', 'Copywriting', 'Whitepapers', 'Blog Writing', 'Content Strategy']
+  },
+  {
+    id: 'data-analytics',
+    label: 'Data & Analytics',
+    description: 'Data analysis, BI dashboards, data engineering, data science, research.',
+    skills: ['SQL', 'Python', 'Tableau', 'Power BI', 'Data Modeling', 'ETL Pipelines']
+  },
+  {
+    id: 'admin-support',
+    label: 'Admin & Support',
+    description: 'Virtual assistants, customer support, data entry, project coordination.',
+    skills: ['Project Coordination', 'Virtual Assistance', 'Customer Support', 'Research', 'Documentation']
+  },
+  // Legacy aliases
   {
     id: 'web3',
     label: 'Web3 / Smart Contracts',
@@ -266,17 +327,40 @@ export const CATEGORIES: CategoryConfig[] = [
 
 export function getCanonicalCategory(raw?: string): CategoryConfig {
   const lower = (raw || '').toLowerCase().trim();
-  if (lower.includes('web3') || lower.includes('solidity') || lower.includes('smart contract')) {
-    return CATEGORIES[0];
+  const match = CATEGORIES.find(
+    (c) => c.id === lower || c.label.toLowerCase() === lower || lower.includes(c.id)
+  );
+  if (match) return match;
+
+  if (lower.includes('web3') || lower.includes('solidity') || lower.includes('smart contract') || lower.includes('blockchain')) {
+    return CATEGORIES[2]; // web3-blockchain
   }
-  if (lower.includes('frontend') || lower.includes('ui')) {
-    return CATEGORIES[1];
+  if (lower.includes('frontend') || lower.includes('backend') || lower.includes('mobile') || lower.includes('dev') || lower.includes('software')) {
+    return CATEGORIES[0]; // development-it
   }
-  if (lower.includes('backend') || lower.includes('indexer') || lower.includes('systems')) {
-    return CATEGORIES[2];
+  if (lower.includes('ai') || lower.includes('agent') || lower.includes('machine learning')) {
+    return CATEGORIES[1]; // ai-automation
   }
-  if (lower.includes('mobile')) {
-    return CATEGORIES[3];
+  if (lower.includes('design') || lower.includes('figma') || lower.includes('ui/ux')) {
+    return CATEGORIES[3]; // design-creative
+  }
+  if (lower.includes('video') || lower.includes('audio') || lower.includes('animation')) {
+    return CATEGORIES[4]; // video-audio
+  }
+  if (lower.includes('creator') || lower.includes('ugc') || lower.includes('collab')) {
+    return CATEGORIES[5]; // creators-brand-collabs
+  }
+  if (lower.includes('marketing') || lower.includes('seo')) {
+    return CATEGORIES[6]; // marketing
+  }
+  if (lower.includes('writing') || lower.includes('content') || lower.includes('copy')) {
+    return CATEGORIES[7]; // writing-content
+  }
+  if (lower.includes('data') || lower.includes('analytics')) {
+    return CATEGORIES[8]; // data-analytics
+  }
+  if (lower.includes('admin') || lower.includes('support')) {
+    return CATEGORIES[9]; // admin-support
   }
   return CATEGORIES[0];
 }

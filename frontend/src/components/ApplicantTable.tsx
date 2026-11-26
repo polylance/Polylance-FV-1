@@ -5,7 +5,8 @@ import { truncateAddress } from '../utils/formatters';
 import { calculateReputationScores } from '../utils/reputation';
 import { AddressChip } from './common/AddressChip';
 import { LocalAvatar } from './common/LocalAvatar';
-import { 
+import { isDualVerified } from '../utils/portfolioPlatforms';
+import {
   CheckCircle2, 
   UserCheck, 
   ArrowUpDown, 
@@ -28,6 +29,7 @@ import {
   AlertCircle,
   Sliders,
   Check,
+  Sparkles,
   HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -36,6 +38,7 @@ import { useWeb3 } from '../context/Web3Context';
 import { UserProfileBioModal } from './UserProfileBioModal';
 import { UsdcIcon } from './TokenIcon';
 import { PolyLanceSelect, SelectOption } from './PolyLanceSelect';
+import { PortfolioPreviewGrid } from './common/PortfolioPreviewGrid';
 
 const APPLICANT_MIN_REP_OPTIONS: SelectOption<number>[] = [
   { value: 0, label: 'Any' },
@@ -324,9 +327,20 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                         >
                           {name}
                         </Link>
+                        {isDualVerified(profile) && (
+                          <span className="inline-flex items-center gap-1 text-[10px] bg-[#0A52B8] text-white px-2 py-0.5 rounded-full font-semibold">
+                            <Sparkles size={10} />
+                            <span>Dual Verified • Tech &amp; Creative</span>
+                          </span>
+                        )}
                         {isVerified && (
-                          <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded font-medium">
-                            Verified
+                          <span className="text-[10px] bg-[#EFF6FF] text-[#0A52B8] border border-[#BFDBFE] px-2 py-0.5 rounded-full font-semibold">
+                            GitHub Verified ✓
+                          </span>
+                        )}
+                        {profile?.portfolioVerified && (
+                          <span className="text-[10px] bg-[#EFF6FF] text-[#0A52B8] border border-[#BFDBFE] px-2 py-0.5 rounded-full font-semibold">
+                            Portfolio Verified ✓
                           </span>
                         )}
                       </div>
@@ -460,8 +474,15 @@ export const ApplicantTable: React.FC<ApplicantTableProps> = ({
                       animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
                       exit={{ opacity: 0, height: 0, marginTop: 0 }}
                       transition={{ duration: 0.25 }}
-                      className="overflow-hidden border-t border-[#E5E7EB] pt-3"
+                      className="overflow-hidden border-t border-[#E5E7EB] pt-3 space-y-4"
                     >
+                      {profile?.portfolioLinks && profile.portfolioLinks.length > 0 && (
+                        <PortfolioPreviewGrid
+                          items={profile.portfolioLinks}
+                          discipline={profile.primaryDiscipline}
+                          verified={Boolean(profile.portfolioVerified)}
+                        />
+                      )}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-sans text-xs">
                         
                         {/* COL 1: Performance */}

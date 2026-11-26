@@ -29,6 +29,7 @@ import {
   ShieldAlert,
   Lock,
   Award,
+  Copy,
 } from 'lucide-react';
 import { truncateAddress, getDeterministicSbtId } from '../utils/formatters';
 import { getJobInactivityStatus } from '../utils/inactivity';
@@ -122,6 +123,7 @@ export const JobWorkspace: React.FC = () => {
   const { address, currentRole, isConnected, connectWallet, isArbitrator } = useWeb3();
   const { jobs, profiles, deleteJob, requestTimeExtension, sendChatMessage } = usePolyLanceData();
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
+  const [copiedHeaderContract, setCopiedHeaderContract] = useState(false);
 
   const userAddr = (address || '').toLowerCase();
   const isClientRole = currentRole === 'client';
@@ -651,26 +653,49 @@ export const JobWorkspace: React.FC = () => {
   const counterpartProfile = counterpartKey ? profiles[counterpartKey] : null;
   const counterpartName = counterpartProfile?.displayName || (counterpartAddress ? truncateAddress(counterpartAddress) : 'Unassigned');
 
+  const handleCopyHeaderContract = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!activeJob) return;
+    const targetAddr = activeJob.contractAddress || activeJob.id;
+    navigator.clipboard.writeText(targetAddr);
+    setCopiedHeaderContract(true);
+    setTimeout(() => setCopiedHeaderContract(false), 1800);
+  };
+
   return (
-    <PageContainer className="py-6 space-y-6 text-[#0B0B0F]">
+    <PageContainer className="pt-8 pb-16 space-y-6 text-[#0F172A]">
 
       {/* ── TOP HEADER & INTERACTIVE MULTI-JOB SWITCHER ── */}
-      <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
           {/* Job Switcher Trigger Area */}
           <div className="flex-1 min-w-0">
-            {/* Label row */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 mb-2">
-              <span className="text-xs font-medium text-[#4B5563] flex items-center gap-1.5">
-                <Layers size={13} className="text-[#0047AB] shrink-0" />
-                <span>{isClient ? 'Client project workspace' : 'Freelancer deliverable workspace'}</span>
-              </span>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="bg-[#F6F7F9] text-[#0B0B0F] text-xs font-medium px-2 py-0.5 rounded-[6px] border border-[#E5E7EB]">
-                  {myJobs.length} {isClient ? 'Project' : 'Job'}{myJobs.length !== 1 ? 's' : ''}
+            {/* Role Indicator Pill & Project Count */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] text-xs font-semibold text-[#0A52B8]">
+                  <Layers size={13} className="shrink-0" />
+                  <span>{isClientOfActive ? 'Client Workspace' : 'Freelancer Workspace'}</span>
                 </span>
+                <button
+                  type="button"
+                  onClick={handleCopyHeaderContract}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F8FAFC] hover:bg-slate-100 border border-slate-200 text-[11px] font-mono text-slate-600 transition-colors cursor-pointer"
+                  title="Copy contract address"
+                >
+                  <span>#{truncateAddress(activeJob.contractAddress || activeJob.id)}</span>
+                  {copiedHeaderContract ? (
+                    <Check size={11} className="text-[#0A52B8]" />
+                  ) : (
+                    <Copy size={11} className="text-slate-400" />
+                  )}
+                  {copiedHeaderContract && <span className="text-[#0A52B8] font-semibold">Copied</span>}
+                </button>
               </div>
+              <span className="bg-[#F8FAFC] text-[#0F172A] text-xs font-mono font-semibold px-2.5 py-1 rounded-full border border-slate-200">
+                {myJobs.length} {isClient ? 'Project' : 'Job'}{myJobs.length !== 1 ? 's' : ''}
+              </span>
             </div>
 
             {/* Contextual Fee Due Notice */}
@@ -727,8 +752,8 @@ export const JobWorkspace: React.FC = () => {
                         {activeJob.title}
                       </span>
                     </div>
-                    <div className="flex items-center flex-wrap gap-2 text-xs font-mono mt-0.5 text-[#4B5563]">
-                      <span className="font-semibold text-[#10B981]">
+                    <div className="flex items-center flex-wrap gap-2 text-xs font-mono mt-0.5 text-slate-600">
+                      <span className="font-bold text-[#0A52B8]">
                         {(() => {
                           const ja = getJobAmounts(activeJob, undefined, undefined, activeViewerRole);
                           return `${ja.effectiveAmount} ${ja.token}`;
@@ -891,39 +916,44 @@ export const JobWorkspace: React.FC = () => {
           };
 
           const steps: StepItem[] = [
-            { 
-              id: 1, 
-              label: 'Terms & Offer', 
-              caption: activeJob.status === 'Selected' 
-                ? (activeJob.freelancerAgreedTerms ? 'Offer accepted' : 'Awaiting acceptance') 
-                : (isFunded ? 'Terms agreed' : 'Negotiating'), 
-              status: getStepStatus(0) 
+            {
+              id: 1,
+              label: 'Terms & Offer',
+              caption: activeJob.status === 'Selected'
+                ? (activeJob.freelancerAgreedTerms ? 'Offer accepted' : 'Awaiting acceptance')
+                : (isFunded ? 'Terms agreed' : 'Negotiating'),
+              tooltip: activeJob.createdAt ? `Opened ${formatJobDate(activeJob.createdAt)}` : 'Contract initialized',
+              status: getStepStatus(0),
             },
-            { 
-              id: 2, 
-              label: 'Escrow Deposit', 
-              caption: isFunded 
-                ? 'Escrow funded' 
-                : (activeJob.freelancerAgreedTerms ? 'Ready to fund' : 'Pending agreement'), 
-              status: getStepStatus(1) 
+            {
+              id: 2,
+              label: 'Escrow Deposit',
+              caption: isFunded
+                ? 'Escrow funded'
+                : (activeJob.freelancerAgreedTerms ? 'Ready to fund' : 'Pending agreement'),
+              tooltip: isFunded ? `Contract ${truncateAddress(activeJob.contractAddress || activeJob.id)}` : 'Non-custodial lock pending',
+              status: getStepStatus(1),
             },
-            { 
-              id: 3, 
-              label: 'In progress', 
-              caption: display.isOverdue ? 'Overdue' : (display.state === 'DUE_SOON' ? 'Due soon' : 'Work underway'), 
-              status: getStepStatus(2) 
+            {
+              id: 3,
+              label: 'In Progress',
+              caption: display.isOverdue ? 'Overdue' : (display.state === 'DUE_SOON' ? 'Due soon' : 'Work underway'),
+              tooltip: activeJob.progressUpdates?.length ? `${activeJob.progressUpdates.length} update(s) logged` : 'Active execution phase',
+              status: getStepStatus(2),
             },
-            { 
-              id: 4, 
-              label: display.isLate ? 'Submitted (Late)' : 'Submitted', 
-              caption: isJobCompleted ? 'Approved' : (display.isApproved ? 'Approved' : 'In review'), 
-              status: getStepStatus(3) 
+            {
+              id: 4,
+              label: display.isLate ? 'Submitted (Late)' : 'Submitted',
+              caption: isJobCompleted ? 'Approved' : (display.isApproved ? 'Approved' : 'In review'),
+              tooltip: activeJob.submittedAt ? `Submitted ${formatJobDate(activeJob.submittedAt)}` : `${activeJob.reviewPeriodDays || 7}d client review SLA`,
+              status: getStepStatus(3),
             },
-            { 
-              id: 5, 
-              label: 'Completed', 
-              caption: isJobCompleted ? 'Funds released' : (display.isApproved ? 'Release pending' : 'Pending release'), 
-              status: getStepStatus(4) 
+            {
+              id: 5,
+              label: 'Completed',
+              caption: isJobCompleted ? 'Funds released' : (display.isApproved ? 'Release pending' : 'Pending release'),
+              tooltip: activeJob.releaseTxHash ? `Tx ${truncateAddress(activeJob.releaseTxHash)}` : 'Automatic SBT & payout release',
+              status: getStepStatus(4),
             },
           ];
 

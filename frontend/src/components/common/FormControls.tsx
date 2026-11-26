@@ -187,18 +187,51 @@ export const TagInput: React.FC<TagInputProps> = ({
   placeholder = 'Type and press Enter...',
   error,
   helperText,
-  maxTags = 10,
+  maxTags = 30,
 }) => {
   const [inputVal, setInputVal] = useState('');
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const commitTags = (raw: string) => {
+    const parts = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length === 0) return;
+
+    const next = [...tags];
+    for (const part of parts) {
+      if (next.length >= maxTags) break;
+      const alreadyExists = next.some((t) => t.toLowerCase() === part.toLowerCase());
+      if (!alreadyExists) {
+        next.push(part);
+      }
+    }
+    if (next.length !== tags.length) {
+      onChange(next);
+    }
+    setInputVal('');
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val.includes(',')) {
+      const segments = val.split(',');
+      const trailing = segments.pop() ?? '';
+      const completed = segments.join(',');
+      if (completed.trim()) {
+        commitTags(completed);
+      }
+      setInputVal(trailing);
+      return;
+    }
+    setInputVal(val);
+  };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
-      const trimmed = inputVal.trim();
-      if (trimmed && !tags.includes(trimmed) && tags.length < maxTags) {
-        onChange([...tags, trimmed]);
-        setInputVal('');
-      }
+      commitTags(inputVal);
     } else if (e.key === 'Backspace' && !inputVal && tags.length > 0) {
       onChange(tags.slice(0, -1));
     }
@@ -208,15 +241,23 @@ export const TagInput: React.FC<TagInputProps> = ({
     onChange(tags.filter((t) => t !== tagToRemove));
   };
 
+  const atLimit = tags.length >= maxTags;
+
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-xs md:text-sm font-medium text-[#4B5563] mb-1.5">
-          {label}
-        </label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-xs md:text-sm font-medium text-[#4B5563]">
+            {label}
+          </label>
+          <span className="text-[11px] font-medium text-[#6B7280] tabular-nums">
+            {tags.length}/{maxTags}
+          </span>
+        </div>
       )}
       <div
-        className={`w-full min-h-[42px] bg-white border rounded-[8px] p-2 flex flex-wrap gap-2 items-center focus-within:ring-2 focus-within:ring-[#0047AB] focus-within:border-[#0047AB] ${
+        onClick={() => inputRef.current?.focus()}
+        className={`w-full min-h-[42px] bg-white border rounded-[8px] p-2 flex flex-wrap gap-2 items-center cursor-text focus-within:ring-2 focus-within:ring-[#0047AB] focus-within:border-[#0047AB] ${
           error ? 'border-[#EF4444]' : 'border-[#E5E7EB]'
         }`}
       >
@@ -228,29 +269,54 @@ export const TagInput: React.FC<TagInputProps> = ({
             {tag}
             <button
               type="button"
-              onClick={() => removeTag(tag)}
-              className="hover:text-[#00388A] focus:outline-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeTag(tag);
+              }}
+              className="hover:text-[#00388A] focus:outline-none cursor-pointer"
               aria-label={`Remove ${tag}`}
             >
               <X className="w-3 h-3" />
             </button>
           </span>
         ))}
-        {tags.length < maxTags && (
-          <input
-            type="text"
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={tags.length === 0 ? placeholder : ''}
-            aria-label={label || placeholder || "Add skill tag"}
-            className="flex-1 min-w-[120px] bg-transparent text-sm text-[#0B0B0F] placeholder-[#9CA3AF] border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-transparent py-1 px-1"
-            style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-          />
+        {!atLimit && (
+          <div className="flex-1 min-w-[140px] flex items-center gap-1.5">
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputVal}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              onBlur={() => {
+                if (inputVal.trim()) commitTags(inputVal);
+              }}
+              placeholder={tags.length === 0 ? placeholder : 'Add another skill...'}
+              aria-label={label || placeholder || "Add skill tag"}
+              className="flex-1 min-w-[100px] bg-transparent text-sm text-[#0B0B0F] placeholder-[#9CA3AF] border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-transparent py-1 px-1"
+              style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+            />
+            {inputVal.trim() && (
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  commitTags(inputVal);
+                }}
+                className="px-2 py-0.5 rounded-[6px] bg-[#0047AB] hover:bg-[#00388A] text-white text-[11px] font-semibold shrink-0 cursor-pointer"
+              >
+                + Add
+              </button>
+            )}
+          </div>
         )}
       </div>
       {error ? (
         <p className="mt-1 text-xs text-[#DC2626] font-medium">{error}</p>
+      ) : atLimit ? (
+        <p className="mt-1 text-xs text-[#6B7280]">
+          Maximum {maxTags} skills reached. Remove one to add another.
+        </p>
       ) : helperText ? (
         <p className="mt-1 text-xs text-[#4B5563]">{helperText}</p>
       ) : (

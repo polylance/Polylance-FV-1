@@ -105,7 +105,16 @@ export const Login: React.FC = () => {
         return;
       }
 
+      const isMobileDevice = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
       if (provider === 'MetaMask') {
+        if (isMobileDevice && !(window as any).ethereum?.isMetaMask) {
+          const cleanHost = window.location.host;
+          const currentPath = window.location.pathname + window.location.search + window.location.hash;
+          window.location.href = `https://metamask.app.link/dapp/${cleanHost}${currentPath}`;
+          return;
+        }
+
         if (!isMetaMaskInstalled && typeof window !== 'undefined' && !(window as any).ethereum) {
           setErrorType('uninstalled');
           setUninstalledWallet('MetaMask');
@@ -144,6 +153,12 @@ export const Login: React.FC = () => {
       }
 
       if (provider === 'Coinbase') {
+        if (isMobileDevice && !(window as any).coinbaseWalletExtension && !(window as any).ethereum?.isCoinbaseWallet) {
+          const fullUrl = encodeURIComponent(window.location.href);
+          window.location.href = `https://go.cb-w.com/dapp?cb_url=${fullUrl}`;
+          return;
+        }
+
         if (!isCoinbaseInstalled && typeof window !== 'undefined' && !(window as any).coinbaseWalletExtension) {
           setErrorType('uninstalled');
           setUninstalledWallet('Coinbase Wallet');

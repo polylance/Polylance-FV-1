@@ -67,8 +67,8 @@ export const backdropVariants: Variants = {
 export const centerModalVariants: Variants = {
   closed: {
     opacity: 0,
-    scale: 0.96,
-    y: 12,
+    scale: 0.97,
+    y: 10,
     transition: {
       duration: POPUP_TIMINGS.modal.exitDuration,
       ease: POPUP_TIMINGS.ease.exit,
@@ -78,7 +78,11 @@ export const centerModalVariants: Variants = {
     opacity: 1,
     scale: 1,
     y: 0,
-    transition: POPUP_TIMINGS.modal.spring,
+    transition: {
+      scale: POPUP_TIMINGS.modal.spring,
+      y: POPUP_TIMINGS.modal.spring,
+      opacity: { duration: 0.05, ease: 'easeOut' },
+    },
   },
 };
 

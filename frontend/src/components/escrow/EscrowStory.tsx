@@ -152,7 +152,7 @@ export const EscrowStory: React.FC<EscrowStoryProps> = ({ className = '' }) => {
           ease: 'power1.inOut',
         },
         invalidateOnRefresh: true,
-        onUpdate: (self) => {
+        onUpdate: (self: any) => {
           const p = self.progress;
           setProgress(p);
 

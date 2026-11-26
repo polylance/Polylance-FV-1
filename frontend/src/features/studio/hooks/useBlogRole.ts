@@ -18,6 +18,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWeb3 } from '../../../context/Web3Context';
 import { useAuth } from '../../../context/AuthContext';
 import { fetchStudioMe, StudioAuthError } from '../api';
+import { isBlogTeamAddress } from '../../../utils/adminGuard';
 import { BlogRole } from '../types';
 
 export type RoleState = 'unknown' | 'loading' | 'loaded' | 'error';
@@ -259,16 +260,17 @@ export async function executeRoleFetch(
       const status = err instanceof StudioAuthError ? err.status : 500;
 
       if (status === 401) {
-        // Wait for sign-in; do not retry with backoff on 401
+        // If known admin/team member, preserve admin access immediately
+        const fallbackAdmin = isBlogTeamAddress(normAddress) ? 'admin' : null;
         globalSnapshot = {
           state: 'loaded',
-          role: null,
-          active: false,
+          role: fallbackAdmin,
+          active: Boolean(fallbackAdmin),
           address: normAddress,
-          sessionId: null,
+          sessionId: targetSessionId,
           timestamp: Date.now(),
           error: err instanceof Error ? err : new Error(String(err)),
-          lastPositiveRole: null,
+          lastPositiveRole: fallbackAdmin,
         };
         persistPositiveRole(normAddress, null);
         notifyListeners();
@@ -437,8 +439,10 @@ export function useBlogRole() {
   // Display conditions:
   // - Show item when role is verified OR when revalidating with last-known positive role
   // - Hide immediately when loaded with role === null
-  const effectiveRole = snapshot.role || (snapshot.state === 'loading' ? snapshot.lastPositiveRole : null);
-  const hasAccess = Boolean(effectiveRole && (snapshot.role ? snapshot.active : true));
+  const norm = address ? address.toLowerCase().trim() : null;
+  const isPrivileged = Boolean(norm && isBlogTeamAddress(norm));
+  const effectiveRole = snapshot.role || (isPrivileged ? 'admin' : (snapshot.state === 'loading' ? snapshot.lastPositiveRole : null));
+  const hasAccess = Boolean(isPrivileged || (effectiveRole && (snapshot.role ? snapshot.active : true)));
 
   // Badge label matches exact role
   const badgeLabel: 'Admin' | 'Editor' | 'Author' =
@@ -452,7 +456,7 @@ export function useBlogRole() {
     state: snapshot.state,
     role: effectiveRole,
     verifiedRole: snapshot.role,
-    active: snapshot.active,
+    active: Boolean(isPrivileged || snapshot.active),
     address: snapshot.address,
     loading: snapshot.state === 'loading' || isAuthLoading,
     isLoading: snapshot.state === 'loading' || isAuthLoading,

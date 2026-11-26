@@ -12,11 +12,13 @@ import { DisputeReason, UserProfile } from '../types';
 import { truncateAddress, formatTimeAgo, getDeterministicSbtId, formatWeb3ErrorMessage, getPolygonScanAddressUrl, getCanonicalCategory } from '../utils/formatters';
 import { generateIpfsCid } from '../utils/ipfs';
 import { getJobInactivityStatus } from '../utils/inactivity';
-import { 
-  ShieldCheck, Clock, Send, SendHorizontal, CheckCircle2, AlertTriangle, MessageSquare, 
-  ExternalLink, ArrowLeft, FileText, Building2, Award, Github, Sparkles, 
-  Trash2, Edit3, RefreshCw, Lock, Briefcase, HelpCircle
+import {
+  ShieldCheck, Clock, Send, SendHorizontal, CheckCircle2, AlertTriangle, MessageSquare,
+  ExternalLink, ArrowLeft, FileText, Building2, Award, Github, Sparkles,
+  Trash2, Edit3, RefreshCw, Lock, Briefcase, HelpCircle, Palette, ArrowRight
 } from 'lucide-react';
+import { PortfolioVerifierForm } from '../components/onboarding/PortfolioVerifierForm';
+import { classifyJobVerificationTrack } from '../utils/portfolioPlatforms';
 import confetti from 'canvas-confetti';
 import { ErrorState } from '../components/UIStates';
 import { ActionStatusModal, ActionModalDetail } from '../components/ActionStatusModal';
@@ -47,6 +49,7 @@ import { toast } from '../utils/toast';
 import { useDemoMode } from '../context/DemoModeContext';
 import { Seo } from '../components/seo/Seo';
 import { buildJobSeo } from '../seo/templates';
+import { ClientTrustBadge } from '../components/common/ClientTrustBadge';
 
 export const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -73,6 +76,7 @@ export const JobDetail: React.FC = () => {
   } = usePolyLanceData();
 
   const [isFundEscrowModalOpen, setIsFundEscrowModalOpen] = useState(false);
+  const [showInlinePortfolioForm, setShowInlinePortfolioForm] = useState(false);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [isPaymentReleasedModalOpen, setIsPaymentReleasedModalOpen] = useState(false);
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
@@ -279,6 +283,10 @@ export const JobDetail: React.FC = () => {
   const currentUserProfKey = address ? Object.keys(profiles).find(k => k.toLowerCase() === address.toLowerCase()) : null;
   const currentUserProf = currentUserProfKey ? profiles[currentUserProfKey] : null;
   const isUserVerified = Boolean(currentUserProf?.githubVerified);
+  const isPortfolioVerified = Boolean(
+    currentUserProf?.portfolioVerified && (currentUserProf?.portfolioLinks?.length ?? 0) > 0
+  );
+  const jobVerificationTrack = classifyJobVerificationTrack(job.category, job.skillsRequired);
 
   const isFreelancer = Boolean(isConnected && address && job.freelancer && areAddressesEqual(address, job.freelancer));
   const isParty = isClient || isFreelancer;
@@ -593,6 +601,7 @@ export const JobDetail: React.FC = () => {
                   <span className="text-[10px] text-emerald-700 font-semibold">✓</span>
                 )}
               </Link>
+              <ClientTrustBadge compact clientAddress={job.client} jobs={jobs} profile={clientProfile} />
 
               {isClient && !display.isCompleted && job.status === 'Open' && (
                 <div className="flex items-center gap-1.5">
@@ -750,40 +759,105 @@ export const JobDetail: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="p-6 border border-[#E5E7EB] bg-white rounded-xl flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                          <h3 className="text-base font-semibold text-[#0B0B0F]">
-                            Submit proposal
-                          </h3>
-                          <p className="text-xs text-[#4B5563] mt-0.5">
-                            Apply with your verified on-chain reputation and technical proposal.
-                          </p>
+                      <div className="space-y-3">
+                        <div className="p-6 border border-[#E5E7EB] bg-white rounded-xl flex flex-wrap items-center justify-between gap-4">
+                          <div>
+                            <h3 className="text-base font-semibold text-[#0B0B0F]">
+                              Submit proposal
+                            </h3>
+                            <p className="text-xs text-[#4B5563] mt-0.5">
+                              Apply with your verified on-chain reputation and deliverable plan.
+                            </p>
+                          </div>
+
+                          {!isConnected ? (
+                            <button onClick={connectWallet} className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer">
+                              Connect wallet to apply
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setIsApplyingModalOpen(true)}
+                                className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+                              >
+                                <SendHorizontal size={14} className="stroke-[2.2] shrink-0" />
+                                <span>Apply for this job</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
 
-                        {!isConnected ? (
-                          <button onClick={connectWallet} className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer">
-                            Connect wallet to apply
-                          </button>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            {!isUserVerified && (
+                        {/* Contextual Cross-Verification Banner (Tech vs Non-Tech Jobs, Never Shown to Clients) */}
+                        {isConnected && !isClient && jobVerificationTrack === 'tech' && !isUserVerified && (
+                          <div className="p-4 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                            <div className="flex items-start gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-[#0A52B8] text-white flex items-center justify-center shrink-0">
+                                <Github size={15} />
+                              </div>
+                              <div className="space-y-0.5">
+                                <p className="text-xs font-bold text-[#0F172A]">
+                                  Applying to a technical contract? Connect your GitHub to boost client trust and verify your code skills.
+                                </p>
+                                {isPortfolioVerified && (
+                                  <p className="text-[11px] text-[#0A52B8]">
+                                    Your verified portfolio links remain attached to your profile as supplementary proof.
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setIsVerifyModalOpen(true)}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#0A52B8] hover:bg-[#084298] text-white text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                            >
+                              <span>Connect GitHub</span>
+                              <ArrowRight size={13} />
+                            </button>
+                          </div>
+                        )}
+
+                        {isConnected && !isClient && jobVerificationTrack === 'non-tech' && !isPortfolioVerified && (
+                          <div className="p-4 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] space-y-3 text-left">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex items-start gap-2.5">
+                                <div className="w-8 h-8 rounded-lg bg-[#0A52B8] text-white flex items-center justify-center shrink-0">
+                                  <Palette size={15} />
+                                </div>
+                                <p className="text-xs font-bold text-[#0F172A]">
+                                  Applying to a creative or non-tech contract? Add your portfolio links so the client can review your work directly.
+                                </p>
+                              </div>
                               <button
                                 type="button"
-                                onClick={() => setIsVerifyModalOpen(true)}
-                                className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
-                                title="Verify your GitHub profile to boost proposal visibility and reputation"
+                                onClick={() => setShowInlinePortfolioForm((v) => !v)}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#0A52B8] hover:bg-[#084298] text-white text-xs font-semibold transition-colors cursor-pointer shrink-0"
                               >
-                                <Github size={13} />
-                                <span>Connect GitHub (Boost 3x)</span>
+                                <span>{showInlinePortfolioForm ? 'Close Form' : 'Connect Portfolio'}</span>
+                                <ArrowRight size={13} />
                               </button>
+                            </div>
+                            {showInlinePortfolioForm && (
+                              <div className="bg-white rounded-xl border border-slate-200 p-4">
+                                <PortfolioVerifierForm
+                                  compact
+                                  initialLinks={currentUserProf?.portfolioLinks || []}
+                                  initialDiscipline={currentUserProf?.primaryDiscipline}
+                                  submitLabel="Save & Attach Portfolio"
+                                  onSave={async (data) => {
+                                    if (!address) return;
+                                    await updateProfile(
+                                      {
+                                        portfolioLinks: data.portfolioLinks,
+                                        primaryDiscipline: data.primaryDiscipline,
+                                        portfolioVerified: data.portfolioVerified,
+                                      },
+                                      address
+                                    );
+                                    setShowInlinePortfolioForm(false);
+                                  }}
+                                />
+                              </div>
                             )}
-                            <button
-                              onClick={() => setIsApplyingModalOpen(true)}
-                              className="bg-[#0047AB] hover:bg-[#003A8C] text-white px-5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
-                            >
-                              <SendHorizontal size={14} className="stroke-[2.2] shrink-0" />
-                              <span>Apply for this job</span>
-                            </button>
                           </div>
                         )}
                       </div>
@@ -1009,14 +1083,24 @@ export const JobDetail: React.FC = () => {
                       <SendHorizontal size={14} className="stroke-[2.2] shrink-0" />
                       <span>Apply for this job</span>
                     </button>
-                    {!isUserVerified && (
+                    {jobVerificationTrack === 'tech' && !isUserVerified && (
                       <button
                         type="button"
                         onClick={() => setIsVerifyModalOpen(true)}
-                        className="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                        className="w-full bg-[#EFF6FF] hover:bg-[#DBEAFE] text-[#0A52B8] border border-[#BFDBFE] py-1.5 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                       >
                         <Github size={12} />
-                        <span>Optional: Connect GitHub to boost reputation</span>
+                        <span>Connect GitHub →</span>
+                      </button>
+                    )}
+                    {jobVerificationTrack === 'non-tech' && !isPortfolioVerified && (
+                      <button
+                        type="button"
+                        onClick={() => setShowInlinePortfolioForm(true)}
+                        className="w-full bg-[#EFF6FF] hover:bg-[#DBEAFE] text-[#0A52B8] border border-[#BFDBFE] py-1.5 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Palette size={12} />
+                        <span>Connect Portfolio →</span>
                       </button>
                     )}
                   </div>

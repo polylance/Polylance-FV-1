@@ -1,0 +1,436 @@
+/* ==========================================================================
+   CATEGORY SCENES TIMELINE ANIMATIONS
+   Rules:
+   - Strictly transform, opacity, and stroke-dashoffset ONLY (GPU composited).
+   - No gradients, glows, shadows, blurs, gold, orange, or purple.
+   - Controlled via [data-scene-state] and [data-scene-paused].
+   ========================================================================== */
+
+.pl-scene-root {
+  --scene-dur: 4000ms;
+  --scene-loops: 2;
+  --scene-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --scene-ease-io: cubic-bezier(0.77, 0, 0.175, 1);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background-color: #FFFFFF;
+  overflow: hidden;
+}
+
+/* Pause all descendant CSS animations when offscreen or document hidden */
+.pl-scene-root[data-scene-paused="true"] *,
+.pl-scene-root[data-scene-state="first"] *,
+.pl-scene-root[data-scene-state="reduced"] *,
+.pl-scene-root[data-scene-state="final"] * {
+  animation-play-state: paused !important;
+}
+
+/* Reduced motion & Final resting states skip animations completely */
+.pl-scene-root[data-scene-state="reduced"] .pl-anim,
+.pl-scene-root[data-scene-state="final"] .pl-anim {
+  animation: none !important;
+}
+
+.pl-scene-root[data-scene-state="first"] .pl-anim {
+  animation: none !important;
+}
+
+/* Explicit FIRST FRAME resting state (clean initial frame, zero overlay overlap) */
+.pl-scene-root[data-scene-state="first"] .pl-anim-skel-out,
+.pl-scene-root[data-scene-state="first"] .pl-anim-screen-out,
+.pl-scene-root[data-scene-state="first"] .pl-anim-count-1 {
+  opacity: 1 !important;
+}
+.pl-scene-root[data-scene-state="first"] .pl-anim-step-2,
+.pl-scene-root[data-scene-state="first"] .pl-anim-step-3,
+.pl-scene-root[data-scene-state="first"] .pl-anim-step-4,
+.pl-scene-root[data-scene-state="first"] .pl-anim-step-5,
+.pl-scene-root[data-scene-state="first"] .pl-anim-ui-in,
+.pl-scene-root[data-scene-state="first"] .pl-anim-verified,
+.pl-scene-root[data-scene-state="first"] .pl-anim-type-1,
+.pl-scene-root[data-scene-state="first"] .pl-anim-type-2,
+.pl-scene-root[data-scene-state="first"] .pl-anim-type-3,
+.pl-scene-root[data-scene-state="first"] .pl-anim-banner,
+.pl-scene-root[data-scene-state="first"] .pl-anim-cursor,
+.pl-scene-root[data-scene-state="first"] .pl-anim-ripple,
+.pl-scene-root[data-scene-state="first"] .pl-anim-packet,
+.pl-scene-root[data-scene-state="first"] .pl-anim-scan,
+.pl-scene-root[data-scene-state="first"] .pl-anim-bug,
+.pl-scene-root[data-scene-state="first"] .pl-anim-swatch-1,
+.pl-scene-root[data-scene-state="first"] .pl-anim-swatch-2,
+.pl-scene-root[data-scene-state="first"] .pl-anim-swatch-3,
+.pl-scene-root[data-scene-state="first"] .pl-anim-count-2,
+.pl-scene-root[data-scene-state="first"] .pl-anim-count-3 {
+  opacity: 0 !important;
+}
+.pl-scene-root[data-scene-state="first"] .pl-anim-draw-1,
+.pl-scene-root[data-scene-state="first"] .pl-anim-draw-2,
+.pl-scene-root[data-scene-state="first"] .pl-anim-draw-long,
+.pl-scene-root[data-scene-state="first"] .pl-anim-rect {
+  opacity: 0.25 !important;
+}
+.pl-scene-root[data-scene-state="first"] .pl-anim-lock {
+  transform: translateY(-6px) !important;
+}
+.pl-scene-root[data-scene-state="first"] .pl-anim-token {
+  transform: translateX(0px) !important;
+  opacity: 1 !important;
+}
+.pl-scene-root[data-scene-state="first"] .pl-anim-bar-y {
+  transform: scaleY(0.15) !important;
+  opacity: 0.45 !important;
+}
+.pl-scene-root[data-scene-state="first"] .pl-anim-bar-x {
+  transform: scaleX(0.08) !important;
+  opacity: 0.45 !important;
+}
+
+/* Base visibility helpers based on scene state */
+.pl-scene-root[data-scene-state="final"] .pl-final-visible,
+.pl-scene-root[data-scene-state="reduced"] .pl-final-visible {
+  opacity: 1 !important;
+  transform: none !important;
+  stroke-dashoffset: 0 !important;
+}
+
+.pl-scene-root[data-scene-state="final"] .pl-final-hidden,
+.pl-scene-root[data-scene-state="reduced"] .pl-final-hidden {
+  opacity: 0 !important;
+}
+
+.pl-scene-root[data-scene-state="final"] .pl-final-lock,
+.pl-scene-root[data-scene-state="reduced"] .pl-final-lock {
+  transform: translateY(0px) !important;
+}
+
+.pl-scene-root[data-scene-state="final"] .pl-final-token,
+.pl-scene-root[data-scene-state="reduced"] .pl-final-token {
+  transform: translateX(312px) !important;
+  opacity: 1 !important;
+}
+
+.pl-scene-root[data-scene-state="final"] .pl-final-scale1,
+.pl-scene-root[data-scene-state="reduced"] .pl-final-scale1 {
+  transform: scale(1) !important;
+  opacity: 1 !important;
+}
+
+/* Cross-fade stage transition (200ms) */
+.pl-stage-fade {
+  transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* ==========================================================================
+   COMMON TIMELINE KEYFRAMES (all mapped across 0% -> 100% of --scene-dur)
+   ========================================================================== */
+
+/* Sequential Draw (stroke-dashoffset 100 -> 0) */
+@keyframes pl-draw-1 {
+  0%, 8% { stroke-dashoffset: 120; opacity: 0.2; }
+  22%, 100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes pl-draw-2 {
+  0%, 20% { stroke-dashoffset: 120; opacity: 0.2; }
+  36%, 100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes pl-draw-line-long {
+  0%, 35% { stroke-dashoffset: 320; opacity: 0.3; }
+  70%, 100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+/* Sequential Pop / Fade Up */
+@keyframes pl-step-1 {
+  0% { opacity: 0.75; transform: translateY(3px) scale(0.98); }
+  14%, 100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pl-step-2 {
+  0%, 18% { opacity: 0; transform: translateY(8px) scale(0.95); }
+  30%, 100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pl-step-3 {
+  0%, 34% { opacity: 0; transform: translateY(8px) scale(0.95); }
+  48%, 100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pl-step-4 {
+  0%, 52% { opacity: 0; transform: translateY(6px) scale(0.95); }
+  66%, 100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pl-step-5 {
+  0%, 68% { opacity: 0; transform: translateY(6px) scale(0.95); }
+  82%, 100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pl-verified-pop {
+  0%, 74% { opacity: 0; transform: scale(0.9); }
+  86%, 100% { opacity: 1; transform: scale(1); }
+}
+
+/* Web3 Specific */
+@keyframes pl-lock-close {
+  0%, 24% { transform: translateY(-6px); }
+  36%, 100% { transform: translateY(0px); }
+}
+@keyframes pl-token-travel {
+  0%, 32% { transform: translateX(0px) scale(0.92); opacity: 0; }
+  38% { transform: translateX(0px) scale(1); opacity: 1; }
+  72%, 100% { transform: translateX(312px) scale(1); opacity: 1; }
+}
+@keyframes pl-hash-type-1 {
+  0%, 48% { opacity: 0; }
+  54%, 100% { opacity: 1; }
+}
+@keyframes pl-hash-type-2 {
+  0%, 58% { opacity: 0; }
+  64%, 100% { opacity: 1; }
+}
+@keyframes pl-hash-type-3 {
+  0%, 66% { opacity: 0; }
+  72%, 100% { opacity: 1; }
+}
+
+/* Frontend Specific */
+@keyframes pl-skeleton-fadeout {
+  0%, 22% { opacity: 1; }
+  34%, 100% { opacity: 0; }
+}
+@keyframes pl-ui-resolve {
+  0%, 20% { opacity: 0; transform: translateY(6px); }
+  36%, 100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes pl-cursor-move {
+  0%, 36% { opacity: 0; transform: translate(110px, 60px); }
+  42% { opacity: 1; transform: translate(110px, 60px); }
+  58% { opacity: 1; transform: translate(0px, 0px) scale(1); }
+  62% { opacity: 1; transform: translate(0px, 0px) scale(0.88); }
+  68%, 100% { opacity: 1; transform: translate(0px, 0px) scale(1); }
+}
+@keyframes pl-btn-press {
+  0%, 58% { transform: scale(1); }
+  62% { transform: scale(0.94); }
+  68%, 100% { transform: scale(1); }
+}
+
+/* Backend Specific */
+@keyframes pl-packet-roundtrip {
+  0%, 10% { opacity: 0; transform: translateX(0px); }
+  14% { opacity: 1; transform: translateX(0px); }
+  36% { opacity: 1; transform: translateX(176px); }
+  54% { opacity: 1; transform: translateX(352px); }
+  72% { opacity: 1; transform: translateX(176px); }
+  84% { opacity: 1; transform: translateX(0px); }
+  92%, 100% { opacity: 0; transform: translateX(0px); }
+}
+@keyframes pl-bar-grow-x {
+  0%, 68% { transform: scaleX(0); opacity: 0.4; }
+  86%, 100% { transform: scaleX(1); opacity: 1; }
+}
+
+/* Mobile Specific */
+@keyframes pl-ripple {
+  0%, 44% { opacity: 0; transform: scale(0.5); }
+  52% { opacity: 0.7; transform: scale(1); }
+  62%, 100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes pl-screen-swap-out {
+  0%, 54% { opacity: 1; transform: translateY(0); }
+  64%, 100% { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes pl-banner-slide {
+  0%, 68% { opacity: 0; transform: translateY(-20px); }
+  80%, 100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Design Artboard Specific */
+@keyframes pl-rect-draw {
+  0%, 16% { stroke-dashoffset: 380; opacity: 0.2; }
+  40%, 100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes pl-swatch-1 {
+  0%, 46% { opacity: 0; transform: scale(0.9); }
+  56%, 100% { opacity: 1; transform: scale(1); }
+}
+@keyframes pl-swatch-2 {
+  0%, 54% { opacity: 0; transform: scale(0.9); }
+  64%, 100% { opacity: 1; transform: scale(1); }
+}
+@keyframes pl-swatch-3 {
+  0%, 62% { opacity: 0; transform: scale(0.9); }
+  72%, 100% { opacity: 1; transform: scale(1); }
+}
+
+/* Data & AI Bars */
+@keyframes pl-bar-grow-y {
+  0%, 28% { transform: scaleY(0.1); opacity: 0.3; }
+  56%, 100% { transform: scaleY(1); opacity: 1; }
+}
+
+/* Security Scan Sweep */
+@keyframes pl-scan-sweep {
+  0%, 10% { opacity: 0; transform: translateY(0px); }
+  16% { opacity: 1; transform: translateY(0px); }
+  52% { opacity: 1; transform: translateY(156px); }
+  60%, 100% { opacity: 0; transform: translateY(156px); }
+}
+@keyframes pl-bug-flash {
+  0%, 28% { opacity: 0; }
+  36%, 56% { opacity: 1; }
+  68%, 100% { opacity: 0; }
+}
+
+/* Video Playhead */
+@keyframes pl-playhead-move {
+  0%, 34% { transform: translateX(0px); }
+  82%, 100% { transform: translateX(260px); }
+}
+
+/* Discrete counter steps (opacity swap, no layout) */
+@keyframes pl-count-step-1 {
+  0%, 40% { opacity: 1; }
+  41%, 100% { opacity: 0; }
+}
+@keyframes pl-count-step-2 {
+  0%, 40% { opacity: 0; }
+  41%, 68% { opacity: 1; }
+  69%, 100% { opacity: 0; }
+}
+@keyframes pl-count-step-3 {
+  0%, 68% { opacity: 0; }
+  69%, 100% { opacity: 1; }
+}
+
+/* ==========================================================================
+   PLAYING BINDINGS
+   ========================================================================== */
+.pl-scene-root[data-scene-state="playing"] .pl-anim-draw-1 {
+  stroke-dasharray: 120;
+  animation: pl-draw-1 var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-draw-2 {
+  stroke-dasharray: 120;
+  animation: pl-draw-2 var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-draw-long {
+  stroke-dasharray: 320;
+  animation: pl-draw-line-long var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-step-1 {
+  animation: pl-step-1 var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-step-2 {
+  animation: pl-step-2 var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-step-3 {
+  animation: pl-step-3 var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-step-4 {
+  animation: pl-step-4 var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-step-5 {
+  animation: pl-step-5 var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-verified {
+  animation: pl-verified-pop var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-lock {
+  animation: pl-lock-close var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-token {
+  animation: pl-token-travel var(--scene-dur) var(--scene-ease-io) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-type-1 {
+  animation: pl-hash-type-1 var(--scene-dur) linear 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-type-2 {
+  animation: pl-hash-type-2 var(--scene-dur) linear 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-type-3 {
+  animation: pl-hash-type-3 var(--scene-dur) linear 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-skel-out {
+  animation: pl-skeleton-fadeout var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-ui-in {
+  animation: pl-ui-resolve var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-cursor {
+  animation: pl-cursor-move var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-btn {
+  animation: pl-btn-press var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-packet {
+  animation: pl-packet-roundtrip var(--scene-dur) var(--scene-ease-io) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-bar-x {
+  animation: pl-bar-grow-x var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-ripple {
+  animation: pl-ripple var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-screen-out {
+  animation: pl-screen-swap-out var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-banner {
+  animation: pl-banner-slide var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-rect {
+  stroke-dasharray: 380;
+  animation: pl-rect-draw var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-swatch-1 {
+  animation: pl-swatch-1 var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-swatch-2 {
+  animation: pl-swatch-2 var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-swatch-3 {
+  animation: pl-swatch-3 var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-bar-y {
+  animation: pl-bar-grow-y var(--scene-dur) var(--scene-ease) 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-scan {
+  animation: pl-scan-sweep var(--scene-dur) linear 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-bug {
+  animation: pl-bug-flash var(--scene-dur) ease-out 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-playhead {
+  animation: pl-playhead-move var(--scene-dur) linear 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-count-1 {
+  animation: pl-count-step-1 var(--scene-dur) linear 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-count-2 {
+  animation: pl-count-step-2 var(--scene-dur) linear 0ms var(--scene-loops) forwards;
+}
+.pl-scene-root[data-scene-state="playing"] .pl-anim-count-3 {
+  animation: pl-count-step-3 var(--scene-dur) linear 0ms var(--scene-loops) forwards;
+}
+
+/* ==========================================================================
+   MINI TAB ICON ANIMATIONS (Active ONLY on hover, focus, or selected)
+   ========================================================================== */
+@keyframes pl-mini-nudge {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-2px); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pl-mini-trigger:hover .pl-mini-active-motif {
+    animation: pl-mini-nudge 600ms cubic-bezier(0.23, 1, 0.32, 1) 1;
+  }
+}
+
+.pl-mini-trigger:focus-visible .pl-mini-active-motif,
+.pl-mini-trigger[data-selected="true"] .pl-mini-active-motif {
+  animation: pl-mini-nudge 600ms cubic-bezier(0.23, 1, 0.32, 1) 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-mini-trigger:hover .pl-mini-active-motif,
+  .pl-mini-trigger:focus-visible .pl-mini-active-motif,
+  .pl-mini-trigger[data-selected="true"] .pl-mini-active-motif {
+    animation: none !important;
+  }
+}

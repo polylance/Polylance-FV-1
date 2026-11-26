@@ -17,7 +17,7 @@ import { Amount } from './common/Amount';
 import { PlatformFeeDue, usePlatformFeeDues } from '../hooks/usePlatformFeeDues';
 import { useWeb3 } from '../context/Web3Context';
 import { truncateAddress, getPolygonScanAddressUrl, getPolygonScanTxUrl } from '../utils/formatters';
-import { NETWORK_CONFIG } from '../config/contracts';
+import { NETWORK_CONFIG, TREASURY_WALLET } from '../config/contracts';
 import { ethers } from 'ethers';
 import { TransactionTracker, TxTrackerStep } from './common/TransactionTracker';
 
@@ -42,7 +42,7 @@ export const PlatformFeePayModal: React.FC<PlatformFeePayModalProps> = ({
   const [step, setStep] = useState<TxTrackerStep>('IDLE');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
-  const [treasuryAddr, setTreasuryAddr] = useState<string>('0x9099bE621d9812A2613D211F793E91901a1d13f9');
+  const [treasuryAddr, setTreasuryAddr] = useState<string>(TREASURY_WALLET || '0x940D8475689b2156D6174555F3382b5E6951653F');
   const [txHash, setTxHash] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 

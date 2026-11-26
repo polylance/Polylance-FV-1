@@ -42,11 +42,11 @@
       "publishedAt": "2026-09-15T00:00:00Z",
       "createdAt": "2026-09-15T00:00:00Z",
       "updatedAt": "2026-10-25T10:52:02.792Z",
-      "coverImage": "/escrow-flow-poster.jpg",
+      "coverImage": "/images/blog/escrow-flow-poster.jpg",
       "coverAlt": "PolyLance Non-Custodial Smart Contract Escrow Architecture on Polygon",
       "authorRole": "Core Protocol Contributor",
       "authorBio": "Specializing in non-custodial milestone architecture, multi-sig escrow, and decentralized settlement on Polygon.",
-      "authorAvatar": "/sunny-avatar.png",
+      "authorAvatar": "/images/team/sunny-avatar.png",
       "keyTakeaways": [
         "Non-custodial smart contracts eliminate human counterparty risk by locking deposits on Polygon.",
         "Milestones feature automated release mechanisms triggered when the client review period elapses.",
@@ -406,6 +406,13 @@
       "active": true,
       "addedBy": "0x0000000000000000000000000000000000000000",
       "addedAt": "2026-10-25T05:04:22.047Z"
+    },
+    "0xb8aa0398b91a150b041da819bc954bb356e009dd": {
+      "wallet": "0xb8aa0398b91a150b041da819bc954bb356e009dd",
+      "role": "admin",
+      "active": true,
+      "addedBy": "0x0000000000000000000000000000000000000000",
+      "addedAt": "2026-10-30T16:53:14.483Z"
     }
   },
   "media": [],

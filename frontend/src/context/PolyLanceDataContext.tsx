@@ -50,7 +50,7 @@ interface PolyLanceDataContextType {
   treasury: TreasuryState;
   treasuryBalanceUsdc: number;
   treasuryBalanceEth: number;
-  treasuryHistory: { id: string; type: 'FEE_COLLECTED' | 'WITHDRAWAL'; amountUsdc: number; txHash: string; timestamp: number; by?: string }[];
+  treasuryHistory: { id: string; type: 'FEE_COLLECTED' | 'WITHDRAWAL'; amountUsdc: number; amountEth?: number; txHash: string; timestamp: number; by?: string }[];
   profiles: Record<string, UserProfile>;
   judges: JudgeRecord[];
   addJudge: (address: string, name: string, notes?: string, addedBy?: string) => void;
@@ -3394,6 +3394,40 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       events: updatedEvents,
     };
 
+    // Credit 2.5% Client Platform Fee to Treasury Wallet state & history
+    const isTokenJob = Boolean(
+      updatedJob.paymentTokenSymbol &&
+      updatedJob.paymentTokenSymbol !== 'POL' &&
+      updatedJob.paymentTokenSymbol !== 'MATIC'
+    );
+    const feeCalc = calculateFeeBreakdownFromString(
+      isTokenJob
+        ? (updatedJob.amountUsdc || '0')
+        : (updatedJob.amountEth || updatedJob.amountUsdc || '0'),
+      updatedJob.paymentTokenSymbol || 'POL'
+    );
+    const clientFeeAmount = parseFloat(feeCalc.formatted.clientFee);
+
+    if (clientFeeAmount > 0) {
+      if (isTokenJob) {
+        setTreasuryBalanceUsdc((prev) => prev + clientFeeAmount);
+      } else {
+        setTreasuryBalanceEth((prev) => prev + clientFeeAmount);
+      }
+      setTreasuryHistory((prev) => [
+        {
+          id: `${Date.now()}-client-fee`,
+          type: 'FEE_COLLECTED',
+          amountUsdc: isTokenJob ? clientFeeAmount : 0,
+          amountEth: !isTokenJob ? clientFeeAmount : 0,
+          txHash,
+          timestamp: Date.now(),
+          by: `Client 2.5% Deposit Fee (#${updatedJob.id.slice(0, 6).toUpperCase()})`,
+        },
+        ...prev,
+      ]);
+    }
+
     setJobs((prev) =>
       prev.map((j) => (matchJob(j, jobId) ? updatedJob : j))
     );
@@ -4057,13 +4091,38 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setJobs((prev) =>
       prev.map((j) => {
         if (!matchJob(j, jobId)) return j;
-        const feeCalc = calculateFeeBreakdownFromString(j.amountUsdc || j.amountEth || '0', j.paymentTokenSymbol || 'POL');
-        const feeAmount = parseFloat(feeCalc.formatted.platformTotal);
-        setTreasuryBalanceUsdc((b) => b + feeAmount);
-        setTreasuryHistory((h) => [
-          { id: Date.now().toString(), type: 'FEE_COLLECTED', amountUsdc: feeAmount, txHash, timestamp: Date.now() },
-          ...h,
-        ]);
+        const isTokenJob = Boolean(
+          j.paymentTokenSymbol &&
+          j.paymentTokenSymbol !== 'POL' &&
+          j.paymentTokenSymbol !== 'MATIC'
+        );
+        const feeCalc = calculateFeeBreakdownFromString(
+          isTokenJob
+            ? (j.amountUsdc || '0')
+            : (j.amountEth || j.amountUsdc || '0'),
+          j.paymentTokenSymbol || 'POL'
+        );
+        const freelancerFeeAmount = parseFloat(feeCalc.formatted.freelancerFee);
+
+        if (freelancerFeeAmount > 0) {
+          if (isTokenJob) {
+            setTreasuryBalanceUsdc((b) => b + freelancerFeeAmount);
+          } else {
+            setTreasuryBalanceEth((b) => b + freelancerFeeAmount);
+          }
+          setTreasuryHistory((h) => [
+            {
+              id: `${Date.now()}-freelancer-fee`,
+              type: 'FEE_COLLECTED',
+              amountUsdc: isTokenJob ? freelancerFeeAmount : 0,
+              amountEth: !isTokenJob ? freelancerFeeAmount : 0,
+              txHash,
+              timestamp: Date.now(),
+              by: `Freelancer 2.5% Settlement Fee (#${j.id.slice(0, 6).toUpperCase()})`,
+            },
+            ...h,
+          ]);
+        }
 
         // Dual SBT Minting: Credit BOTH Freelancer AND Client with Soulbound Reputation Badges & Score Boost
         setProfiles((prevProfiles) => {
@@ -4404,12 +4463,38 @@ export const PolyLanceDataProvider: React.FC<{ children: React.ReactNode }> = ({
       prev.map((j) => {
         if (j.id !== jobId || !j.dispute) return j;
         const freelancerPercent = freelancerBps / 100;
-        const fee = parseFloat(j.amountUsdc) * 0.025;
-        setTreasuryBalanceUsdc((b) => b + fee);
-        setTreasuryHistory((h) => [
-          { id: Date.now().toString(), type: 'FEE_COLLECTED', amountUsdc: fee, txHash, timestamp: Date.now() },
-          ...h,
-        ]);
+        const isTokenJob = Boolean(
+          j.paymentTokenSymbol &&
+          j.paymentTokenSymbol !== 'POL' &&
+          j.paymentTokenSymbol !== 'MATIC'
+        );
+        const feeCalc = calculateFeeBreakdownFromString(
+          isTokenJob
+            ? (j.amountUsdc || '0')
+            : (j.amountEth || j.amountUsdc || '0'),
+          j.paymentTokenSymbol || 'POL'
+        );
+        const disputeFeeAmount = parseFloat(feeCalc.formatted.freelancerFee);
+
+        if (disputeFeeAmount > 0) {
+          if (isTokenJob) {
+            setTreasuryBalanceUsdc((b) => b + disputeFeeAmount);
+          } else {
+            setTreasuryBalanceEth((b) => b + disputeFeeAmount);
+          }
+          setTreasuryHistory((h) => [
+            {
+              id: `${Date.now()}-dispute-fee`,
+              type: 'FEE_COLLECTED',
+              amountUsdc: isTokenJob ? disputeFeeAmount : 0,
+              amountEth: !isTokenJob ? disputeFeeAmount : 0,
+              txHash,
+              timestamp: Date.now(),
+              by: `Dispute Resolution Fee (#${j.id.slice(0, 6).toUpperCase()})`,
+            },
+            ...h,
+          ]);
+        }
 
         if (j.freelancer) {
           const flAddr = j.freelancer.toLowerCase();

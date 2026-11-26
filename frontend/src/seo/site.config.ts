@@ -8,14 +8,14 @@ import { SiteConfig } from './types';
 // Strict canonical host: polylance.codes, protocol: https
 const ENV_SITE_URL = typeof process !== 'undefined' && process.env?.VITE_SITE_URL
   ? process.env.VITE_SITE_URL
-  : (typeof window !== 'undefined' && (window as any).__ENV__?.VITE_SITE_URL) || 'https://polylance.codes';
+  : (typeof window !== 'undefined' && (window as any).__ENV__?.VITE_SITE_URL) || 'https://polylancezenith.com';
 
 export const SITE_URL = ENV_SITE_URL.replace(/\/+$/, '');
 export const SITE_NAME = 'PolyLance';
 export const DEFAULT_LOCALE = 'en-US';
 export const THEME_COLOR = '#0047AB'; // PolyLance Blue
-export const CONTACT_EMAIL = 'support@polylance.codes';
-export const SECURITY_EMAIL = 'security@polylance.codes';
+export const CONTACT_EMAIL = 'support@polylancezenith.com';
+export const SECURITY_EMAIL = 'security@polylancezenith.com';
 export const TWITTER_HANDLE = '@PolyLanceCodes';
 export const GITHUB_URL = 'https://github.com/polylance';
 

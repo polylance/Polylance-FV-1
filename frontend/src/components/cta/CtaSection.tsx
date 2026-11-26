@@ -1,90 +1,136 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, PlusCircle } from 'lucide-react';
-import { PageContainer } from '../layout/PageContainer';
-import { Reveal } from '../common/MotionPrimitives';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
 
-export const CtaSection: React.FC = () => {
+interface CtaSectionProps {
+  onOpenVideo?: (videoId: string) => void;
+}
+
+export const CtaSection: React.FC<CtaSectionProps> = () => {
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start end', 'end start'],
+  });
+
+  const yLeftTop = useTransform(scrollYProgress, [0, 1], [-18, 18]);
+  const yLeftBottom = useTransform(scrollYProgress, [0, 1], [16, -16]);
+  const yRightTop = useTransform(scrollYProgress, [0, 1], [20, -20]);
+  const yRightBottom = useTransform(scrollYProgress, [0, 1], [-14, 14]);
+
   return (
     <section
-      className="w-full relative overflow-hidden py-[72px] border-b border-[#003882]"
-      style={{
-        background: 'linear-gradient(180deg, #0047AB 0%, #003A91 100%)',
-      }}
-      aria-label="Call to action"
+      ref={sectionRef}
+      aria-label="Get started"
+      className="w-full bg-white py-16 sm:py-24 overflow-x-clip"
     >
-      {/* ── Faint radial highlight behind the heading ── */}
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[680px] h-[380px] rounded-full pointer-events-none -z-0"
-        style={{
-          background: 'radial-gradient(ellipse at center, rgba(255, 255, 255, 0.09) 0%, transparent 70%)',
-        }}
-        aria-hidden="true"
-      />
+      <div className="max-w-[1440px] w-full mx-auto px-6 lg:px-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className="relative overflow-hidden rounded-[28px] bg-[#F8FAFC] border border-slate-200/80 px-6 sm:px-10 lg:px-14 py-14 sm:py-20"
+        >
+          {/* Floating Flanking Studio Artwork Thumbnails (Desktop lg+) */}
+          <motion.div
+            style={{ y: yLeftTop }}
+            aria-hidden="true"
+            className="hidden lg:block absolute top-8 left-8 w-36 aspect-square rounded-2xl overflow-hidden bg-white border border-slate-200/90 shadow-md -rotate-3 pointer-events-none"
+          >
+            <img
+              src="/images/showcase/ai-agents.webp"
+              alt=""
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
 
-      <PageContainer noVerticalPadding>
-        <div className="max-w-2xl mx-auto text-center space-y-6 relative z-10">
-          {/* ── Headline: Pure white #FFFFFF, tracking -0.02em, 9.15:1 contrast ── */}
-          <Reveal delay={0} riseDistance={16}>
-            <h2
-              className="text-display font-extrabold text-white"
-              style={{
-                color: '#FFFFFF',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Start working with escrow protection today.
-            </h2>
-          </Reveal>
+          <motion.div
+            style={{ y: yLeftBottom }}
+            aria-hidden="true"
+            className="hidden lg:block absolute bottom-7 left-14 w-40 aspect-[16/11] rounded-2xl overflow-hidden bg-white border border-slate-200/90 shadow-md rotate-2 pointer-events-none"
+          >
+            <img
+              src="/images/showcase/ui-design.webp"
+              alt=""
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
 
-          {/* ── Paragraph: White at 88% opacity, 18px, line-height 1.6, max 640px, 7.35:1 contrast ── */}
-          <Reveal delay={80} riseDistance={16}>
-            <p
-              className="text-[18px] leading-[1.6] max-w-[640px] mx-auto text-center font-normal"
-              style={{
-                color: 'rgba(255, 255, 255, 0.88)',
-              }}
-            >
-              Join verified clients and freelancers transacting safely on Polygon. No upfront setup fees, no lock-in, and instant milestone payouts.
+          <motion.div
+            style={{ y: yRightTop }}
+            aria-hidden="true"
+            className="hidden lg:block absolute top-8 right-10 w-38 aspect-[16/11] rounded-2xl overflow-hidden bg-white border border-slate-200/90 shadow-md rotate-3 pointer-events-none"
+          >
+            <img
+              src="/images/showcase/motion-graphics.webp"
+              alt=""
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
+
+          <motion.div
+            style={{ y: yRightBottom }}
+            aria-hidden="true"
+            className="hidden lg:block absolute bottom-7 right-8 w-36 aspect-square rounded-2xl overflow-hidden bg-white border border-slate-200/90 shadow-md -rotate-2 pointer-events-none"
+          >
+            <img
+              src="/images/showcase/mobile-wallet.webp"
+              alt=""
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
+
+          {/* Centered Editorial CTA Stack */}
+          <div className="max-w-xl mx-auto text-center relative z-10 space-y-6">
+            <p className="text-xs font-mono font-semibold uppercase tracking-widest text-[#0A52B8]">
+              Polygon Mainnet · Chain 137
             </p>
-          </Reveal>
 
-          {/* ── Two Buttons: Find work (white) & Post a job (outline) ── */}
-          <Reveal delay={160} riseDistance={16}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-3">
-              {/* Find work: White with cobalt text and soft shadow */}
+            <h2
+              className="text-3xl sm:text-4xl md:text-[44px] font-bold tracking-tight text-[#0F172A] leading-[1.1]"
+              style={{ textWrap: 'balance' }}
+            >
+              Ready to hire or build without borders?
+            </h2>
+
+            <p className="text-base sm:text-lg text-slate-600 max-w-lg mx-auto leading-relaxed">
+              Launch smart contract escrow in seconds—only a 5% flat fee with instant POL or USDC payouts.
+            </p>
+
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3.5">
+              <Link
+                to="/onboarding"
+                className="group relative overflow-hidden inline-flex items-center gap-2 bg-[#0A52B8] hover:bg-[#084298] text-white px-6 py-3.5 rounded-xl font-semibold text-sm shadow-sm transition-colors"
+              >
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-y-0 -left-full w-2/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-[320%]"
+                />
+                <span className="relative z-10">Get Started</span>
+                <ArrowRight
+                  size={16}
+                  className="relative z-10 transition-transform duration-200 group-hover:translate-x-1"
+                />
+              </Link>
+
               <Link
                 to="/jobs"
-                className="w-full sm:w-auto h-[52px] px-6 text-[16px] font-semibold rounded-[12px] bg-white text-[#0047AB] hover:bg-[#F9FAFB] active:bg-[#E5E7EB] shadow-[0_4px_14px_rgba(0,0,0,0.15)] inline-flex items-center justify-center gap-2.5 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0047AB]"
+                className="inline-flex items-center justify-center bg-white border border-slate-300 hover:border-[#0A52B8] hover:text-[#0A52B8] text-[#0F172A] px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors"
               >
-                <span>Find work</span>
-                <ArrowRight size={16} strokeWidth={2.5} />
-              </Link>
-
-              {/* Post a job: 1.5px white border at 70% opacity, white text, hover fills white at 12% */}
-              <Link
-                to="/jobs/post"
-                className="w-full sm:w-auto h-[52px] px-6 text-[16px] font-semibold rounded-[12px] border-[1.5px] border-white/70 text-white hover:bg-white/12 hover:border-white active:bg-white/20 inline-flex items-center justify-center gap-2 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0047AB]"
-              >
-                <PlusCircle size={16} strokeWidth={2} />
-                <span>Post a job</span>
+                Browse Jobs
               </Link>
             </div>
-          </Reveal>
-
-          {/* ── Footnote: White at 80% opacity, 13px, 6.1:1 contrast ── */}
-          <Reveal delay={240} riseDistance={16}>
-            <div
-              className="pt-4 text-[13px] text-center"
-              style={{
-                color: 'rgba(255, 255, 255, 0.80)',
-              }}
-            >
-              Transparent 2.5% fee per side (5% total protocol fee) • Instant settlement on Polygon Mainnet
-            </div>
-          </Reveal>
-        </div>
-      </PageContainer>
+          </div>
+        </motion.div>
+      </div>
     </section>
   );
 };
+
+export default CtaSection;

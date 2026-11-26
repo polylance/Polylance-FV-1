@@ -15,11 +15,13 @@ import {
   PlusCircle,
   Search,
   Calculator,
+  Coins,
 } from 'lucide-react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Button } from '../components/common/Button';
 import { Seo } from '../components/seo/Seo';
 import { FaqSection } from '../components/faq/FaqSection';
+import { IndiaTaxExplainer } from '../components/tax/IndiaTaxExplainer';
 import {
   REVIEW_WINDOW_DAYS,
   PLATFORM_FEE_PERCENT,
@@ -77,8 +79,17 @@ export const HowItWorksPage: React.FC = () => {
   const [activeStep, setActiveStep] = useState<number>(1);
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#fund-escrow') {
-      setActiveStep(1);
+    if (typeof window !== 'undefined') {
+      if (window.location.hash === '#fund-escrow') {
+        setActiveStep(1);
+      } else if (window.location.hash === '#india-tax') {
+        setTimeout(() => {
+          const el = document.getElementById('india-tax');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      }
     }
   }, []);
 
@@ -131,6 +142,11 @@ export const HowItWorksPage: React.FC = () => {
               <Link to="/fees" className="hover:underline">
                 Transparent Fee Schedule (2.5% per side)
               </Link>
+              <span className="text-gray-300">·</span>
+              <a href="#india-tax" className="inline-flex items-center gap-1.5 hover:underline text-[#0047AB]">
+                <Coins size={14} />
+                <span>India Tax Explainer &amp; Calculator</span>
+              </a>
             </div>
           </div>
         </PageContainer>
@@ -393,6 +409,11 @@ export const HowItWorksPage: React.FC = () => {
               </div>
             </div>
 
+            {/* India Tax Explainer Section */}
+            <div id="india-tax" className="scroll-mt-28">
+              <IndiaTaxExplainer />
+            </div>
+
             {/* FAQs */}
             <div className="pt-6">
               <FaqSection pageId="/how-it-works" />
@@ -401,7 +422,7 @@ export const HowItWorksPage: React.FC = () => {
             {/* Bottom Actions CTA */}
             <div className="p-8 sm:p-10 rounded-2xl bg-gradient-to-b from-[#0047AB] to-[#003882] text-white text-center space-y-6">
               <div className="max-w-2xl mx-auto space-y-2">
-                <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-white !text-white tracking-tight">
                   Ready to start working with escrow protection?
                 </h3>
                 <p className="text-sm sm:text-base text-blue-100 leading-relaxed">
@@ -413,10 +434,10 @@ export const HowItWorksPage: React.FC = () => {
                 <Button
                   as="Link"
                   to="/jobs"
-                  variant="secondary"
+                  variant="inverse"
                   size="lg"
                   leadingIcon={<Search size={16} />}
-                  className="w-full sm:w-auto bg-white text-[#0047AB] hover:bg-gray-100"
+                  className="w-full sm:w-auto"
                 >
                   Find freelance work
                 </Button>
@@ -433,10 +454,10 @@ export const HowItWorksPage: React.FC = () => {
                 <Button
                   as="Link"
                   to="/escrow-simulator"
-                  variant="secondary"
+                  variant="outline-inverse"
                   size="lg"
                   leadingIcon={<Calculator size={16} />}
-                  className="w-full sm:w-auto bg-transparent border-white/30 text-white hover:bg-white/10"
+                  className="w-full sm:w-auto !bg-transparent hover:!bg-white/10 active:!bg-white/20 !text-white border border-white/70 hover:border-white shadow-none"
                 >
                   Try the simulator
                 </Button>

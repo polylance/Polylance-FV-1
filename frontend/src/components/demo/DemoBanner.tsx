@@ -18,12 +18,12 @@ export const DemoBanner: React.FC = () => {
       <div className="max-w-[1280px] mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5 sm:gap-3">
         {/* Left: Indicator & Description */}
         <div className="flex items-center gap-2.5 flex-wrap justify-center md:justify-start text-center md:text-left">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] bg-[#0047AB] text-white font-mono text-[11px] font-semibold uppercase tracking-wider">
-            <Sparkles size={11} className="text-white" />
-            Sample Demo
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[6px] bg-[#EFF6FF] text-[#0A52B8] border border-[#BFDBFE] text-[12px] font-bold uppercase tracking-[0.05em]">
+            <Sparkles size={11} className="text-[#2563EB]" />
+            Example Preview
           </span>
-          <span className="text-[#0B0B0F] font-medium text-xs">
-            You're viewing a demo with sample data. No wallet needed.
+          <span className="text-[#0B0B0C] font-medium text-[14px]">
+            You are viewing an interactive example without a connected wallet.
           </span>
         </div>
 

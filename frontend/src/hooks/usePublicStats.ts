@@ -60,6 +60,7 @@ export interface PublicStatsData {
   disputes: PublicStatsDisputes;
   jobs: {
     completed: number;
+    total?: number;
   };
   reputation: {
     tiers: PublicStatsReputationTier[];

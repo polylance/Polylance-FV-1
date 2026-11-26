@@ -5,7 +5,22 @@ export type JobStatus = 'Open' | 'Selected' | 'Funded' | 'Submitted' | 'Disputed
 
 export type DisputeReason = 'QUALITY' | 'NON_DELIVERY' | 'SCOPE_DISAGREEMENT' | 'PAYMENT_DISPUTE' | 'OTHER';
 
-export type SkillCategory = 'web3' | 'frontend' | 'backend' | 'mobile';
+export type SkillCategory =
+  | 'development-it'
+  | 'ai-automation'
+  | 'web3-blockchain'
+  | 'design-creative'
+  | 'video-audio'
+  | 'creators-brand-collabs'
+  | 'marketing'
+  | 'writing-content'
+  | 'data-analytics'
+  | 'admin-support'
+  | 'web3'
+  | 'frontend'
+  | 'backend'
+  | 'mobile'
+  | (string & {});
 
 export interface Application {
   id?: string;
@@ -180,6 +195,15 @@ export interface Job {
   engagement?: JobEngagement;
 }
 
+export interface PortfolioLinkItem {
+  id: string;
+  title: string;
+  url: string;
+  platform: string;
+  description?: string;
+  discipline?: string;
+}
+
 export interface UserProfile {
   address: string;
   displayName: string;
@@ -205,8 +229,21 @@ export interface UserProfile {
   reputationTier?: string;
   role?: 'freelancer' | 'client' | 'admin' | 'judge';
   accountMode?: AccountMode;
+  freelancerTrack?: 'tech' | 'non-tech';
+  primaryDiscipline?: string;
+  portfolioVerified?: boolean;
+  portfolioLinks?: PortfolioLinkItem[];
+  onboardingCompleted?: boolean;
   title?: string;
   hourlyRateUsdc?: number;
+  headline?: string;
+  hourlyRate?: number;
+  creatorProfile?: any;
+  subcategories?: string[];
+  preferredToken?: string;
+  availability?: string;
+  portfolioUrl?: string;
+  showreelUrl?: string;
   isPublic?: boolean;
 }
 

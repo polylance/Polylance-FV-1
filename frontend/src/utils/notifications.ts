@@ -93,7 +93,16 @@ export function useNotifications() {
     });
 
     if (id.startsWith('notif-')) {
-      apiClient.post(`/api/notifications/${encodeURIComponent(id)}/read`).catch(() => {});
+      apiClient.post(`/api/notifications/${encodeURIComponent(id)}/read`).catch(() => {
+        // Rollback optimistic read on network failure
+        setReadIds((prev) => {
+          const reverted = prev.filter((item) => item !== id);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(reverted));
+          } catch {}
+          return reverted;
+        });
+      });
     }
   }, []);
 

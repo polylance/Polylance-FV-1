@@ -4,12 +4,20 @@ import { LayoutDashboard, Briefcase, Grid, MessageSquare, MoreHorizontal, User, 
 import { useWeb3 } from '../../context/Web3Context';
 import { useDemoMode } from '../../context/DemoModeContext';
 import { Sheet } from '../overlay/Sheet';
+import { isJudgeAddress, isAdminAddress } from '../../utils/adminGuard';
 
 export const BottomTabBar: React.FC = () => {
   const location = useLocation();
-  const { isConnected, address, currentRole } = useWeb3();
+  const { isConnected, address, currentRole, isArbitrator } = useWeb3();
   const { isDemoMode } = useDemoMode();
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
+
+  const isJudgeUser = Boolean(
+    address &&
+      (isJudgeAddress(address) || isAdminAddress(address)) &&
+      (currentRole === 'judge' || currentRole === 'admin' || isArbitrator)
+  );
+  const isAdminUser = Boolean(address && isAdminAddress(address));
 
   // Show bottom tab bar on dApp routes when user is connected or in demo mode
   const dAppRoutes = [
@@ -48,11 +56,11 @@ export const BottomTabBar: React.FC = () => {
     { to: profilePath, label: 'Profile', icon: User },
     { to: '/reputation', label: 'Reputation & Leaderboard', icon: Award },
     { to: '/settings', label: 'Settings', icon: Settings },
-    ...(currentRole === 'judge' || currentRole === 'admin'
+    ...(isJudgeUser
       ? [{ to: '/judge', label: 'Judge Panel', icon: Shield }]
       : []),
     { to: '/dao', label: 'Governance & DAO', icon: Vote },
-    ...(currentRole === 'admin'
+    ...(isAdminUser
       ? [{ to: '/treasury', label: 'Treasury Management', icon: Landmark }]
       : []),
     { to: '/help', label: 'Help & Tutorials', icon: HelpCircle },
@@ -65,7 +73,7 @@ export const BottomTabBar: React.FC = () => {
       <nav
         role="navigation"
         aria-label="Mobile Navigation Bar"
-        className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] border-t border-[#E5E7EB] pb-safe lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl bg-white/90 border-t border-[#E5E7EB]/80 pb-[env(safe-area-inset-bottom)] lg:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.03)]"
       >
         <div className="flex items-center justify-around px-2 h-14 max-w-md mx-auto">
           {primaryTabs.map((tab) => {
@@ -77,15 +85,15 @@ export const BottomTabBar: React.FC = () => {
                 key={tab.to}
                 to={tab.to}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 transition-colors relative select-none ${
+                className={`flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 transition-all duration-150 relative select-none active:scale-95 ${
                   isActive ? 'text-[#0047AB]' : 'text-[#6B7280] hover:text-[#0B0B0F]'
                 }`}
               >
                 {isActive && (
-                  <span className="absolute -top-[1px] w-6 h-[2px] bg-[#0047AB]" />
+                  <span className="absolute -top-[1px] w-6 h-[2.5px] rounded-full bg-[#0047AB]" />
                 )}
-                <Icon size={18} strokeWidth={isActive ? 2 : 1.5} />
-                <span className={`text-[10px] leading-tight ${isActive ? 'font-semibold' : 'font-normal'}`}>
+                <Icon size={18} strokeWidth={isActive ? 2.2 : 1.7} />
+                <span className={`text-[10.5px] tracking-tight leading-tight ${isActive ? 'font-semibold' : 'font-medium'}`}>
                   {tab.label}
                 </span>
               </Link>
@@ -97,15 +105,15 @@ export const BottomTabBar: React.FC = () => {
             type="button"
             onClick={() => setIsMoreSheetOpen(true)}
             aria-expanded={isMoreSheetOpen}
-            className={`flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 transition-colors relative select-none cursor-pointer ${
+            className={`flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 transition-all duration-150 relative select-none cursor-pointer active:scale-95 ${
               isMoreActive ? 'text-[#0047AB]' : 'text-[#6B7280] hover:text-[#0B0B0F]'
             }`}
           >
             {isMoreActive && (
-              <span className="absolute -top-[1px] w-6 h-[2px] bg-[#0047AB]" />
+              <span className="absolute -top-[1px] w-6 h-[2.5px] rounded-full bg-[#0047AB]" />
             )}
-            <MoreHorizontal size={18} strokeWidth={isMoreActive ? 2 : 1.5} />
-            <span className={`text-[10px] leading-tight ${isMoreActive ? 'font-semibold' : 'font-normal'}`}>
+            <MoreHorizontal size={18} strokeWidth={isMoreActive ? 2.2 : 1.7} />
+            <span className={`text-[10.5px] tracking-tight leading-tight ${isMoreActive ? 'font-semibold' : 'font-medium'}`}>
               More
             </span>
           </button>

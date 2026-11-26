@@ -35,6 +35,8 @@ export function getSiweConfig() {
  * Client-supplied domains outside this allowlist are strictly rejected.
  */
 export const ALLOWED_SIWE_DOMAINS = [
+    "polylancezenith.com",
+    "www.polylancezenith.com",
     "polylance.codes",
     "www.polylance.codes",
     ...(process.env.NODE_ENV !== "production" ? ["localhost:5173", "localhost", "127.0.0.1:5173", "127.0.0.1"] : []),

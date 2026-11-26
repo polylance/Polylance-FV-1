@@ -22,4 +22,4 @@ Disallow: /studio/
 Disallow: /studio/*
 
 # Sitemap index
-Sitemap: https://polylance.codes/sitemap.xml
+Sitemap: https://polylancezenith.com/sitemap.xml

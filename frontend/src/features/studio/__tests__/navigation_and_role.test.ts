@@ -20,12 +20,13 @@ describe('Shared Navigation Config (MORE_MENU_GROUPS)', () => {
 
   it('Group 2 (Protocol) has correct items in order', () => {
     const items = MORE_MENU_GROUPS[1].items;
-    expect(items).toHaveLength(5);
+    expect(items).toHaveLength(6);
     expect(items[0]).toMatchObject({ label: 'How It Works', to: '/how-it-works' });
-    expect(items[1]).toMatchObject({ label: 'Fee Schedule', to: '/fees' });
-    expect(items[2]).toMatchObject({ label: 'Security Architecture', to: '/security' });
-    expect(items[3]).toMatchObject({ label: 'AuditX Security', to: '/auditx' });
-    expect(items[4]).toMatchObject({ label: 'FAQ Hub', to: '/faq' });
+    expect(items[1]).toMatchObject({ label: 'Escrow Simulator', to: '/escrow-simulator' });
+    expect(items[2]).toMatchObject({ label: 'Fee Schedule', to: '/fees' });
+    expect(items[3]).toMatchObject({ label: 'Security Architecture', to: '/security' });
+    expect(items[4]).toMatchObject({ label: 'AuditX Security', to: '/auditx' });
+    expect(items[5]).toMatchObject({ label: 'FAQ Hub', to: '/faq' });
   });
 
   it('Group 3 (Legal & Compliance) has correct items including Risk Notice at /disclaimer', () => {

@@ -38,7 +38,7 @@ export const FEE_DUES_CONFIG = {
   DUST_THRESHOLD_USDC: 10000n,            // 0.01 USDC (6 decimals)
   REMINDER_SCHEDULE_DAYS: [0, 3, 7, 14, 21, 28],
   MAX_REMINDERS: 5,
-  TREASURY_ADDRESS: (process.env.TREASURY_ADDRESS || "0x940D3DE5F6fe25950d753b890C36676cf237653F").toLowerCase(),
+  TREASURY_ADDRESS: (process.env.TREASURY_ADDRESS || "0x940D8475689b2156D6174555F3382b5E6951653F").toLowerCase(),
 };
 
 // In-memory / shared state collection of fee dues
