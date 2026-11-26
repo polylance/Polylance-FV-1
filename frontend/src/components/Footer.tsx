@@ -232,21 +232,10 @@ export const Footer: React.FC = () => {
 
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-6 border-t border-[#1F2937] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#9CA3AF]">
-          <div className="font-medium text-gray-300">
+        {/* Bottom Bar: Strictly "PolyLance Protocol" with zero copyright */}
+        <div className="pt-6 border-t border-[#1F2937] flex items-center justify-between gap-4 text-[14px] text-[#D1D5DB]">
+          <div className="font-medium text-white">
             PolyLance Protocol
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="inline-flex items-center gap-1.5 font-mono text-[11px] text-[#9CA3AF]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>Network: Normal</span>
-            </div>
-            <span className="text-[#6B7280]">·</span>
-            <span className="font-sans text-[#9CA3AF]">Verified Work Certificates</span>
-            <span className="text-[#6B7280]">·</span>
-            <span>Smart Contract Escrow</span>
           </div>
         </div>
 

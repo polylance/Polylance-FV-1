@@ -87,9 +87,10 @@ export const HeroVideoFrame: React.FC = () => {
                   ref={(el) => {
                     videoRefs.current[idx] = el;
                   }}
+                  autoPlay
                   muted
                   playsInline
-                  preload={idx === 0 ? 'metadata' : 'none'}
+                  preload={idx === 0 ? 'auto' : 'metadata'}
                   onEnded={handleVideoEnded}
                   onLoadedMetadata={handleLoadedMetadata}
                   className="absolute inset-0 w-full h-full object-cover"
@@ -98,7 +99,6 @@ export const HeroVideoFrame: React.FC = () => {
                     height: '100%',
                   }}
                 >
-                  <source src={item.webm} type="video/webm" />
                   <source src={item.mp4} type="video/mp4" />
                 </video>
               </div>

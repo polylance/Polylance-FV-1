@@ -158,20 +158,20 @@ export const BlogIndexPage: React.FC = () => {
   }, [posts]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0B0B0F] flex flex-col">
+    <div className="min-h-screen bg-[#FFFFFF] text-[#15171A] flex flex-col font-sans">
       <Seo routeKey="/blog" />
 
       {/* Header & Search Hero */}
-      <header className="w-full bg-white border-b border-[#E2E6EC] py-14 sm:py-20 px-4 sm:px-6">
+      <header className="w-full bg-white border-b border-[#E4E0D8] pt-8 pb-6 sm:pt-12 sm:pb-8 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E7EEF9] text-[#0047AB] text-xs font-bold tracking-wide">
             <BookOpen size={14} />
             <span>KNOWLEDGE & GUIDES</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-[#0B0B0F] tracking-tight">
+          <h1 className="font-serif text-3xl sm:text-5xl font-semibold text-[#15171A] tracking-[-0.015em]">
             Web3 Freelancing & Escrow Blog
           </h1>
-          <p className="text-base sm:text-lg text-[#4B5563] max-w-2xl mx-auto leading-relaxed">
+          <p className="font-sans text-base sm:text-lg text-[#5B606A] max-w-[62ch] mx-auto leading-relaxed">
             In-depth guides and security tutorials on crypto escrow, getting paid in USDC, and decentralized work.
           </p>
 
@@ -183,7 +183,7 @@ export const BlogIndexPage: React.FC = () => {
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search guides and tutorials..."
-              className="w-full pl-11 pr-10 py-3 bg-white border border-[#CBD5E1] rounded-2xl text-sm font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0047AB] focus:border-transparent shadow-xs transition-all"
+              className="w-full pl-11 pr-10 py-2.5 bg-white border border-[#E4E0D8] rounded-[8px] text-sm font-sans text-[#15171A] placeholder-[#5B606A] focus:outline-none focus:ring-2 focus:ring-[#0047AB] focus:border-[#0047AB] shadow-none transition-colors"
             />
             {searchQuery && (
               <button
@@ -200,9 +200,9 @@ export const BlogIndexPage: React.FC = () => {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-[1540px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      <main className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 sm:pt-6 sm:pb-16">
         {/* Horizontal Category Filter Row */}
-        <nav aria-label="Blog categories" className="w-full overflow-x-auto pb-2 -mb-2 no-scrollbar">
+        <nav aria-label="Blog categories" className="w-full overflow-x-auto pb-2 mb-8 sm:mb-10 no-scrollbar">
           <div className="flex items-center gap-2 min-w-max">
             {categoriesWithCounts.map((cat) => {
               const isActive = selectedCategory.toLowerCase() === cat.name.toLowerCase();
@@ -211,10 +211,10 @@ export const BlogIndexPage: React.FC = () => {
                   key={cat.name}
                   type="button"
                   onClick={() => handleCategorySelect(cat.name)}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0047AB] ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs sm:text-sm font-sans font-medium transition-colors cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0047AB] ${
                     isActive
-                      ? 'bg-[#0047AB] text-white shadow-xs'
-                      : 'bg-white hover:bg-slate-100 text-slate-600 border border-[#E2E6EC]'
+                      ? 'bg-[#0047AB] text-white border border-[#0047AB]'
+                      : 'bg-white hover:bg-[#FFFFFF] text-[#15171A] border border-[#E4E0D8]'
                   }`}
                 >
                   <span>{cat.name}</span>

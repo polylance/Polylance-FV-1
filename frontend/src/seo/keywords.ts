@@ -18,15 +18,35 @@ export const KEYWORDS: Record<string, KeywordDefinition> = {
     status: 'active',
     notes: 'Primary brand navigation query'
   },
-  'brand-polylance-codes': {
-    id: 'brand-polylance-codes',
-    term: 'polylance.codes',
+  'brand-polylance-zenith': {
+    id: 'brand-polylance-zenith',
+    term: 'PolyLance Zenith',
     cluster: 'brand',
     intent: 'navigational',
     priority: 1,
     targetPage: '/',
     status: 'active',
-    notes: 'Exact official domain search'
+    notes: 'Primary brand name search query'
+  },
+  'brand-polylance-zenith-domain': {
+    id: 'brand-polylance-zenith-domain',
+    term: 'polylancezenith.com',
+    cluster: 'brand',
+    intent: 'navigational',
+    priority: 1,
+    targetPage: '/',
+    status: 'active',
+    notes: 'Primary official production domain query'
+  },
+  'brand-polylance-codes': {
+    id: 'brand-polylance-codes',
+    term: 'polylance.codes',
+    cluster: 'brand',
+    intent: 'navigational',
+    priority: 2,
+    targetPage: '/',
+    status: 'active',
+    notes: 'Legacy domain search fallback'
   },
   'brand-polylance-reviews': {
     id: 'brand-polylance-reviews',

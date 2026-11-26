@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData, isDemoOrMockJob, MOCK_ADDRESSES_TO_PURGE, isMockOrDemoProfile } from '../context/PolyLanceDataContext';
 import { UserProfile } from '../types';
@@ -31,6 +32,8 @@ import { REPUTATION_TASKS } from '../config/reputationTasks';
 import { LocalAvatar } from '../components/common/LocalAvatar';
 import { TierEmblem, RankEmblem, CompactTierChip } from '../components/common/TierEmblem';
 import { Modal } from '../components/overlay/Modal';
+import { CountUp, ScrollReveal, SpotlightCard } from '../components/common/MotionPrimitives';
+import { useReducedMotion } from '../media/useDataSaver';
 
 const ROLE_OPTIONS: SelectOption[] = [
   { value: 'all', label: 'All roles' },
@@ -74,9 +77,25 @@ export const Reputation: React.FC = () => {
   } | null>(null);
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isAllTasksModalOpen, setIsAllTasksModalOpen] = useState(false);
+  const [showFloatingStanding, setShowFloatingStanding] = useState(false);
+  const heroCardRef = useRef<HTMLElement>(null);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    const heroEl = heroCardRef.current;
+    if (!heroEl || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        setShowFloatingStanding(!entry.isIntersecting && window.scrollY > 120);
+      },
+      { threshold: 0.05 }
+    );
+    io.observe(heroEl);
+    return () => io.disconnect();
   }, []);
 
   // Retrieve user profile case-insensitively
@@ -371,19 +390,44 @@ export const Reputation: React.FC = () => {
   const ceilingProgress = Math.min(1, Math.max(0, totalPoints / 1000));
   const strokeDashoffset = circumference - (ceilingProgress * circumference);
 
+  const tierProgressPercent =
+    activeTier === 'Diamond'
+      ? 100
+      : activeTier === 'Gold'
+      ? 72
+      : activeTier === 'Silver'
+      ? 45
+      : 16;
+
   return (
-    <PageContainer className="space-y-8 py-6 text-[#0B0B0F]">
+    <PageContainer className="space-y-8 py-6 pb-28 text-[#0A0D14]">
 
       {/* =========================================================================
-          HERO: THE STANDING CARD (#0B0B0F, 140px segmented ring, tabular numbers)
+          HERO: DEEP OBSIDIAN-TO-COBALT DARK GLASS STANDING CARD
          ========================================================================= */}
-      <section className="relative overflow-hidden bg-[#0B0B0F] rounded-xl text-white border border-[#1E2330] shadow-sm">
-        {/* Cobalt hairline accent line */}
-        <div className="h-1 w-full bg-[#0047AB]" />
+      <section
+        ref={heroCardRef}
+        className="relative overflow-hidden rounded-2xl text-white border border-blue-500/20 shadow-[0_20px_50px_rgba(10,82,184,0.18)]"
+        style={{
+          background: 'linear-gradient(135deg, #0A0D14 0%, #0F172A 58%, rgba(10, 82, 184, 0.55) 100%)',
+        }}
+      >
+        {/* Subtle Animated Electric Blue Ambient Mesh Glow */}
+        <motion.div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 -right-16 w-[360px] h-[360px] rounded-full blur-3xl opacity-55"
+          style={{
+            background: 'radial-gradient(circle, rgba(56,189,248,0.28) 0%, rgba(37,99,235,0.16) 50%, transparent 75%)',
+          }}
+          animate={reducedMotion ? undefined : { scale: [0.95, 1.08, 0.95], opacity: [0.45, 0.65, 0.45] }}
+          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+        />
 
-        <div className="p-6 sm:p-8 flex flex-col lg:flex-row items-center justify-between gap-8">
-          
-          {/* Left Column: Avatar/Emblem, Tabular Score, Rank callout, Tier pill */}
+        {/* Glowing Electric Blue Top Accent Line */}
+        <div className="h-1 w-full bg-gradient-to-r from-[#0A52B8] via-[#2563EB] to-[#38BDF8]" />
+
+        <div className="relative z-10 p-6 sm:p-8 flex flex-col lg:flex-row items-center justify-between gap-8">
+          {/* Left Column: Avatar/Emblem, Animated CountUp Score, Rank callout, Tier pill */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
             <div className="relative shrink-0">
               <TierEmblem tier={activeTier} size={96} isCurrent={true} />
@@ -396,31 +440,31 @@ export const Reputation: React.FC = () => {
 
             <div className="space-y-2">
               <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
-                <span className="text-[11px] font-semibold tracking-wider text-[#8892A0] uppercase">
+                <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
                   Reputation Score
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-[#EAF1FB] text-[#0047AB]">
+                <span className="px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-[#2563EB]/25 text-[#93C5FD] border border-[#38BDF8]/30">
                   {activeTier} Tier
                 </span>
-                <span className="text-[12px] font-mono text-[#8892A0]">
+                <span className="text-[12px] font-mono text-slate-400">
                   Polygon Mainnet
                 </span>
               </div>
 
-              {/* 52px bold white score */}
+              {/* 52px Animated Score Counter */}
               <div className="text-[52px] font-bold font-mono tracking-tight leading-none text-white tabular-nums">
-                {totalPoints}
+                <CountUp value={totalPoints} durationMs={750} />
               </div>
 
               {/* Rank Callout */}
-              <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 text-[13px] text-[#C9DAF2]">
+              <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 text-[13px] text-[#93C5FD]">
                 {Boolean(address) && totalPoints > 0 ? (
                   <>
                     <RankEmblem rank={userRank} size={20} />
                     <span>Rank <strong className="text-white font-mono">{userLeaderboardItem?.displayRank || `#${userRank}`}</strong> of {leaderboardData.length} verified builders</span>
                   </>
                 ) : (
-                  <span className="text-[#8892A0]">
+                  <span className="text-slate-400">
                     {address ? 'Complete escrow jobs to calculate your rank' : 'Connect wallet to inspect personal standing'}
                   </span>
                 )}
@@ -428,36 +472,43 @@ export const Reputation: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: 140px Segmented Progress Ring */}
-          <div className="relative w-[140px] h-[140px] shrink-0 flex items-center justify-center">
+          {/* Right Column: Animated Circular SVG Progress Ring */}
+          <div className="relative w-[144px] h-[144px] shrink-0 flex items-center justify-center">
             <svg
-              width="140"
-              height="140"
+              width="144"
+              height="144"
               viewBox="0 0 140 140"
-              className="rotate-[-90deg] select-none"
+              className="rotate-[-90deg] select-none overflow-visible"
               aria-label="Tier progress ring"
             >
-              {/* Background remainder arc (#1E2330) */}
+              <defs>
+                <linearGradient id="repRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#0A52B8" />
+                  <stop offset="55%" stopColor="#2563EB" />
+                  <stop offset="100%" stopColor="#38BDF8" />
+                </linearGradient>
+              </defs>
               <circle
                 cx="70"
                 cy="70"
                 r={ringRadius}
                 fill="none"
-                stroke="#1E2330"
+                stroke="#1E293B"
                 strokeWidth="8"
               />
-              {/* Completed cobalt arc (#0047AB) */}
-              <circle
+              <motion.circle
                 cx="70"
                 cy="70"
                 r={ringRadius}
                 fill="none"
-                stroke="#0047AB"
-                strokeWidth="8"
+                stroke="url(#repRingGrad)"
+                strokeWidth="8.5"
                 strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
-                className="transition-all duration-700 ease-out"
+                style={{ filter: 'drop-shadow(0 0 8px rgba(56, 189, 248, 0.55))' }}
+                initial={reducedMotion ? { strokeDashoffset } : { strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset }}
+                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
               />
             </svg>
 
@@ -465,7 +516,7 @@ export const Reputation: React.FC = () => {
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2">
               {activeTier === 'Diamond' ? (
                 <>
-                  <span className="text-[10px] font-semibold tracking-wider text-[#8892A0] uppercase">
+                  <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
                     Pinnacle
                   </span>
                   <span className="text-[13px] font-bold text-white font-mono mt-0.5">
@@ -474,14 +525,14 @@ export const Reputation: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <span className="text-[10px] font-semibold text-[#8892A0] uppercase tracking-wider">
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                     Next Tier
                   </span>
                   <div className="flex items-center gap-1 font-mono font-bold text-white text-[14px] mt-0.5 tabular-nums">
                     <span>+{ptsLeft}</span>
-                    <span className="text-[#7FA3DB]">pts</span>
+                    <span className="text-[#38BDF8]">pts</span>
                   </div>
-                  <span className="text-[10px] text-[#C9DAF2] mt-0.5 font-medium truncate max-w-[100px]">
+                  <span className="text-[10px] text-[#93C5FD] mt-0.5 font-medium truncate max-w-[100px]">
                     {nextTierName}
                   </span>
                 </>
@@ -490,10 +541,10 @@ export const Reputation: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom row: Hairline dividers, tabular numbers (Jobs completed, On-time delivery, Dispute win rate) */}
-        <div className="border-t border-[#1E2330] grid grid-cols-3 divide-x divide-[#1E2330] bg-[#0B0B0F]/80">
+        {/* Bottom row: Hairline dividers, tabular numbers */}
+        <div className="relative z-10 border-t border-slate-800/80 grid grid-cols-3 divide-x divide-slate-800/80 bg-[#0A0D14]/65 backdrop-blur-xs">
           <div className="p-4 sm:px-8 text-center">
-            <span className="text-[11px] font-semibold text-[#8892A0] uppercase tracking-wider block">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
               Jobs completed
             </span>
             <span className="text-[18px] sm:text-[22px] font-bold font-mono text-white tabular-nums block mt-0.5">
@@ -501,7 +552,7 @@ export const Reputation: React.FC = () => {
             </span>
           </div>
           <div className="p-4 sm:px-8 text-center">
-            <span className="text-[11px] font-semibold text-[#8892A0] uppercase tracking-wider block">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
               On-time delivery
             </span>
             <span className="text-[18px] sm:text-[22px] font-bold font-mono text-white tabular-nums block mt-0.5">
@@ -509,7 +560,7 @@ export const Reputation: React.FC = () => {
             </span>
           </div>
           <div className="p-4 sm:px-8 text-center">
-            <span className="text-[11px] font-semibold text-[#8892A0] uppercase tracking-wider block">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
               Dispute win rate
             </span>
             <span className="text-[18px] sm:text-[22px] font-bold font-mono text-white tabular-nums block mt-0.5">
@@ -519,339 +570,397 @@ export const Reputation: React.FC = () => {
         </div>
       </section>
 
+      {/* =========================================================================
+          TIER LADDER TRACK & INTERACTIVE POINT BREAKDOWN
+         ========================================================================= */}
+      <ScrollReveal>
+        <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-6 shadow-[0_4px_20px_rgba(10,13,20,0.03)]">
+          <div>
+            <h2
+              className="text-[18px] font-semibold text-[#0A0D14] tracking-tight"
+              style={{ fontSize: '1.125rem', lineHeight: 1.3 }}
+            >
+              Tier Progression Ladder
+            </h2>
+            <p className="text-[13px] text-[#64748B] mt-0.5">
+              Fixed reputation milestones unlock verifiable protocol privileges and fee discounts
+            </p>
+          </div>
+
+          {/* Animated Horizontal Glowing Electric Blue Progress Track + Stepper */}
+          <div className="relative pt-3">
+            <div
+              aria-hidden="true"
+              className="hidden md:block absolute top-[54px] left-[12.5%] right-[12.5%] h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden z-0"
+            >
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-[#0A52B8] via-[#2563EB] to-[#38BDF8] origin-left shadow-[0_0_12px_rgba(37,99,235,0.45)]"
+                initial={reducedMotion ? { scaleX: tierProgressPercent / 100 } : { scaleX: 0 }}
+                whileInView={{ scaleX: tierProgressPercent / 100 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </div>
+
+            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { name: 'Bronze', pts: 0, maxPts: 199 },
+                { name: 'Silver', pts: 200, maxPts: 499 },
+                { name: 'Gold', pts: 500, maxPts: 999 },
+                { name: 'Diamond', pts: 1000, maxPts: '1000+' },
+              ].map((tierItem) => {
+                const isCurrent = activeTier === tierItem.name;
+                const isUnlocked = totalPoints >= tierItem.pts;
+                const isLocked = !isUnlocked;
+
+                return (
+                  <motion.div
+                    key={tierItem.name}
+                    onClick={() => openTierDetails(tierItem.name)}
+                    whileHover={reducedMotion ? undefined : { transform: 'translate3d(0, -3px, 0)' }}
+                    transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+                    className={`relative p-4 rounded-xl border text-center cursor-pointer flex flex-col items-center justify-between min-h-[176px] transition-colors ${
+                      isCurrent
+                        ? 'border-[#2563EB] bg-[#EFF6FF]/90 ring-2 ring-[#2563EB]/25 shadow-[0_8px_24px_rgba(37,99,235,0.12)]'
+                        : isUnlocked
+                          ? 'border-[#E2E8F0] bg-white hover:border-[#0A52B8]/50'
+                          : 'border-[#E2E8F0] bg-[#F8FAFC]/80 opacity-85 hover:opacity-100'
+                    }`}
+                  >
+                    {isCurrent && (
+                      <motion.div
+                        animate={reducedMotion ? undefined : { y: [0, -2, 0] }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                        className="absolute -top-3 px-3 py-0.5 rounded-full text-[10px] font-bold bg-[#0A52B8] text-white shadow-[0_4px_12px_rgba(10,82,184,0.3)]"
+                      >
+                        You are here
+                      </motion.div>
+                    )}
+
+                    <div className="pt-2">
+                      <TierEmblem
+                        tier={tierItem.name}
+                        size={48}
+                        isCurrent={isCurrent}
+                        isLocked={isLocked}
+                      />
+                    </div>
+
+                    <div className="space-y-0.5 mt-2">
+                      <span className="font-semibold text-[14px] text-[#0A0D14] block">
+                        {tierItem.name}
+                      </span>
+                      <span className="text-[12px] font-mono text-[#64748B] tabular-nums block">
+                        {tierItem.pts}+ pts
+                      </span>
+                    </div>
+
+                    <div className="mt-2 w-full pt-2 border-t border-[#E2E8F0]">
+                      {isCurrent ? (
+                        <span className="text-[11px] font-bold text-[#0A52B8]">Active Tier</span>
+                      ) : isUnlocked ? (
+                        <span className="text-[11px] font-medium text-[#475569]">Unlocked</span>
+                      ) : (
+                        <span className="text-[11px] font-medium text-[#64748B] flex items-center justify-center gap-1">
+                          <Lock size={11} />
+                          <span>Locked</span>
+                        </span>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4 Interactive Reputation Task Breakdown Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+            {[
+              {
+                title: 'Verified Deliverables',
+                icon: Briefcase,
+                pts: `+${escrowPoints} pts`,
+                desc: '+25 base pts per escrow milestone + volume multiplier',
+              },
+              {
+                title: 'On-Time Delivery',
+                icon: CheckCircle2,
+                pts: '+25 pts',
+                desc: 'Awarded for milestones completed within deadline',
+              },
+              {
+                title: 'Tribunal Rulings',
+                icon: Scale,
+                pts: `+${multisigPoints} pts`,
+                desc: '+15 pts per verified dispute resolved as arbitrator',
+              },
+              {
+                title: 'GitHub Verification',
+                icon: Github,
+                pts: `+${govPoints} pts`,
+                desc: '+100 pts for cryptographic OAuth developer attestation',
+              },
+            ].map((taskCard) => {
+              const TaskIcon = taskCard.icon;
+              return (
+                <SpotlightCard
+                  key={taskCard.title}
+                  spotlightColor="rgba(37, 99, 235, 0.12)"
+                  className="p-4 rounded-xl bg-[#F8FAFC] hover:bg-white cursor-pointer"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsAllTasksModalOpen(true)}
+                    className="w-full text-left space-y-1.5 cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between text-[12px] gap-2">
+                      <span className="font-semibold text-[#0A0D14] flex items-center gap-1.5 min-w-0">
+                        <TaskIcon size={14} className="text-[#0A52B8] shrink-0" />
+                        <span className="truncate">{taskCard.title}</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] font-mono font-bold text-[#0A52B8] tabular-nums shrink-0 group-hover:scale-105 transition-transform">
+                        {taskCard.pts}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#64748B] leading-relaxed">
+                      {taskCard.desc}
+                    </p>
+                  </button>
+                </SpotlightCard>
+              );
+            })}
+          </div>
+
+          {/* View All Tasks Trigger */}
+          <div className="pt-1 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setIsAllTasksModalOpen(true)}
+              className="px-4 py-2 text-[13px] font-semibold text-[#0A52B8] bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <ListChecks size={15} />
+              <span>View All Reputation Tasks ({REPUTATION_TASKS.length})</span>
+            </button>
+          </div>
+        </section>
+      </ScrollReveal>
 
       {/* =========================================================================
-          TIER LADDER TRACK & POINT BREAKDOWN
+          LEADERBOARD REDESIGN: TOP 3 PODIUM + LAYOUT-ID SWITCHER + ANIMATED ROWS
          ========================================================================= */}
-      <section className="bg-white border border-[#E5E7EB] rounded-xl p-6 space-y-6">
-        <div>
-          <h2 className="text-[18px] font-semibold text-[#0B0B0F] tracking-tight">
-            Tier Progression Ladder
-          </h2>
-          <p className="text-[13px] text-[#4B5563] mt-0.5">
-            Fixed reputation milestones unlock verifiable protocol privileges and fee discounts
-          </p>
-        </div>
+      <ScrollReveal>
+        <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-6 shadow-[0_4px_20px_rgba(10,13,20,0.03)]">
+          {/* Header & layoutId Sliding Cobalt Pill Filter Controls */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#E2E8F0] pb-5">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Trophy size={18} className="text-[#0A52B8]" />
+                <h2
+                  className="text-[18px] font-semibold text-[#0A0D14]"
+                  style={{ fontSize: '1.125rem', lineHeight: 1.3 }}
+                >
+                  Global Leaderboard
+                </h2>
+              </div>
+              <p className="text-[12px] text-[#64748B]">
+                Ranked by verified on-chain score, completed jobs, and total escrow volume
+              </p>
+            </div>
 
-        {/* Horizontal Ladder Stepper */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-          {[
-            { name: 'Bronze', pts: 0, maxPts: 199 },
-            { name: 'Silver', pts: 200, maxPts: 499 },
-            { name: 'Gold', pts: 500, maxPts: 999 },
-            { name: 'Diamond', pts: 1000, maxPts: '1000+' },
-          ].map((tierItem) => {
-            const isCurrent = activeTier === tierItem.name;
-            const isUnlocked = totalPoints >= tierItem.pts;
-            const isLocked = !isUnlocked;
+            <div className="relative flex items-center gap-1 bg-[#F8FAFC] p-1 rounded-xl border border-[#E2E8F0]">
+              {(['all', 'monthly', 'weekly'] as const).map((period) => {
+                const active = filterPeriod === period;
+                return (
+                  <button
+                    key={period}
+                    type="button"
+                    onClick={() => setFilterPeriod(period)}
+                    className={`relative z-10 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                      active ? 'text-white' : 'text-[#64748B] hover:text-[#0A0D14]'
+                    }`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="leaderboard-period-pill"
+                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                        className="absolute inset-0 -z-10 rounded-lg bg-[#0A52B8] shadow-[0_2px_8px_rgba(10,82,184,0.28)]"
+                      />
+                    )}
+                    {period === 'all' ? 'All Time' : period === 'monthly' ? 'This Month' : 'This Week'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-            return (
-              <div
-                key={tierItem.name}
-                onClick={() => openTierDetails(tierItem.name)}
-                className={`relative p-4 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between min-h-[170px] ${
-                  isCurrent 
-                    ? 'border-[#0047AB] bg-[#EAF1FB]/40 ring-1 ring-[#0047AB]' 
-                    : isUnlocked 
-                      ? 'border-[#E5E7EB] bg-white hover:border-[#7FA3DB]' 
-                      : 'border-[#E5E7EB] bg-[#F6F7F9]/60 opacity-80 hover:opacity-100'
-                }`}
-              >
-                {/* "You are here" indicator chip */}
-                {isCurrent && (
-                  <div className="absolute -top-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#0047AB] text-white shadow-xs">
-                    You are here
-                  </div>
-                )}
-
-                <div className="pt-2">
-                  <TierEmblem 
-                    tier={tierItem.name} 
-                    size={48} 
-                    isCurrent={isCurrent} 
-                    isLocked={isLocked} 
-                  />
+          {/* Top 3 Animated Podium */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 items-end">
+            {/* Rank 2 */}
+            <SpotlightCard spotlightColor="rgba(37, 99, 235, 0.12)" className="order-2 md:order-1 min-h-[210px]">
+              <div className="p-5 text-center flex flex-col justify-between h-full">
+                <div className="flex justify-between items-center">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] text-[11px] font-bold text-[#0A52B8] font-mono">
+                    #2
+                  </span>
+                  <CompactTierChip tier={secondPlace?.tier || 'Silver'} />
                 </div>
 
-                <div className="space-y-0.5 mt-2">
-                  <span className="font-semibold text-[14px] text-[#0B0B0F] block">
-                    {tierItem.name}
-                  </span>
-                  <span className="text-[12px] font-mono text-[#4B5563] tabular-nums block">
-                    {tierItem.pts}+ pts
-                  </span>
-                </div>
-
-                <div className="mt-2 w-full pt-2 border-t border-[#E5E7EB]">
-                  {isCurrent ? (
-                    <span className="text-[11px] font-bold text-[#0047AB]">Active Tier</span>
-                  ) : isUnlocked ? (
-                    <span className="text-[11px] font-medium text-[#4B5563]">Unlocked</span>
+                <div className="flex flex-col items-center space-y-2 py-3">
+                  {secondPlace ? (
+                    <>
+                      <Link to={`/profile/${secondPlace.address}`} className="relative hover:opacity-90">
+                        <LocalAvatar
+                          address={secondPlace.address}
+                          name={secondPlace.name}
+                          avatarUrl={secondPlace.avatar}
+                          size={52}
+                          className="w-13 h-13 rounded-full border-2 border-[#BFDBFE]"
+                        />
+                      </Link>
+                      <div>
+                        <Link to={`/profile/${secondPlace.address}`} className="font-semibold text-[14px] text-[#0A0D14] hover:text-[#0A52B8] hover:underline block truncate max-w-[180px]">
+                          {secondPlace.name}
+                        </Link>
+                        <span className="text-[12px] text-[#64748B] block truncate max-w-[180px]">{secondPlace.role}</span>
+                      </div>
+                    </>
                   ) : (
-                    <span className="text-[11px] font-medium text-[#8892A0] flex items-center justify-center gap-1">
-                      <Lock size={11} />
-                      <span>Locked</span>
-                    </span>
+                    <div className="text-[#64748B] text-sm py-4">Open Podium Spot</div>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
 
-        {/* Grouped Point Breakdown Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-          {/* Verified Deliverables */}
-          <div className="p-4 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] space-y-1.5">
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="font-semibold text-[#0B0B0F] flex items-center gap-1.5">
-                <Briefcase size={14} className="text-[#0047AB]" />
-                <span>Verified Deliverables</span>
-              </span>
-              <span className="font-mono font-bold text-[#0047AB] tabular-nums">+{escrowPoints} pts</span>
-            </div>
-            <p className="text-[11px] text-[#4B5563]">
-              +25 base pts per escrow milestone + volume multiplier
-            </p>
-          </div>
-
-          {/* On-Time Delivery */}
-          <div className="p-4 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] space-y-1.5">
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="font-semibold text-[#0B0B0F] flex items-center gap-1.5">
-                <CheckCircle2 size={14} className="text-[#0047AB]" />
-                <span>On-Time Delivery</span>
-              </span>
-              <span className="font-mono font-bold text-[#0047AB] tabular-nums">+25 pts</span>
-            </div>
-            <p className="text-[11px] text-[#4B5563]">
-              Awarded for milestones completed within deadline
-            </p>
-          </div>
-
-          {/* Dispute Won / Arbitration */}
-          <div className="p-4 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] space-y-1.5">
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="font-semibold text-[#0B0B0F] flex items-center gap-1.5">
-                <Scale size={14} className="text-[#0047AB]" />
-                <span>Tribunal Rulings</span>
-              </span>
-              <span className="font-mono font-bold text-[#0047AB] tabular-nums">+{multisigPoints} pts</span>
-            </div>
-            <p className="text-[11px] text-[#4B5563]">
-              +15 pts per verified dispute resolved as arbitrator
-            </p>
-          </div>
-
-          {/* GitHub eKYC */}
-          <div className="p-4 rounded-xl bg-[#F6F7F9] border border-[#E5E7EB] space-y-1.5">
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="font-semibold text-[#0B0B0F] flex items-center gap-1.5">
-                <Github size={14} className="text-[#0B0B0F]" />
-                <span>GitHub Verification</span>
-              </span>
-              <span className="font-mono font-bold text-[#0047AB] tabular-nums">+{govPoints} pts</span>
-            </div>
-            <p className="text-[11px] text-[#4B5563]">
-              +100 pts for cryptographic OAuth developer attestation
-            </p>
-          </div>
-        </div>
-
-        {/* View All Tasks Trigger */}
-        <div className="pt-2 flex justify-end">
-          <button
-            type="button"
-            onClick={() => setIsAllTasksModalOpen(true)}
-            className="px-4 py-2 text-[13px] font-semibold text-[#0047AB] bg-[#EAF1FB] hover:bg-[#C9DAF2] rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <ListChecks size={15} />
-            <span>View All Reputation Tasks ({REPUTATION_TASKS.length})</span>
-          </button>
-        </div>
-      </section>
-
-
-      {/* =========================================================================
-          LEADERBOARD REDESIGN: PODIUM & 56px TABLE ROWS
-         ========================================================================= */}
-      <section className="bg-white border border-[#E5E7EB] rounded-xl p-6 space-y-6">
-        
-        {/* Header & Filter Controls */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Trophy size={18} className="text-[#0047AB]" />
-              <h2 className="text-[18px] font-semibold text-[#0B0B0F]">
-                Global Leaderboard
-              </h2>
-            </div>
-            <p className="text-[12px] text-[#4B5563]">
-              Ranked by verified on-chain score, completed jobs, and total escrow volume
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 bg-[#F6F7F9] p-1 rounded-lg border border-[#E5E7EB]">
-            {(['all', 'monthly', 'weekly'] as const).map((period) => (
-              <button
-                key={period}
-                onClick={() => setFilterPeriod(period)}
-                className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors cursor-pointer capitalize ${
-                  filterPeriod === period
-                    ? 'bg-white text-[#0B0B0F] shadow-xs border border-[#E5E7EB] font-semibold'
-                    : 'text-[#4B5563] hover:text-[#0B0B0F]'
-                }`}
-              >
-                {period === 'all' ? 'All time' : period === 'monthly' ? 'This month' : 'This week'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Stepped Podium (Order: Rank 2 on Left, Rank 1 in Center, Rank 3 on Right) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 items-end">
-          
-          {/* Rank 2 (Left, Height 200px) */}
-          <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 text-center flex flex-col justify-between order-2 md:order-1 min-h-[200px]">
-            <div className="flex justify-between items-center">
-              <RankEmblem rank={2} size={28} />
-              <CompactTierChip tier={secondPlace?.tier || 'Silver'} />
-            </div>
-
-            <div className="flex flex-col items-center space-y-2 py-2">
-              {secondPlace ? (
-                <>
-                  <Link to={`/profile/${secondPlace.address}`} className="relative hover:opacity-90">
-                    <LocalAvatar
-                      address={secondPlace.address}
-                      name={secondPlace.name}
-                      avatarUrl={secondPlace.avatar}
-                      size={48}
-                      className="w-12 h-12 rounded-full border border-[#E5E7EB]"
-                    />
-                  </Link>
+                <div className="grid grid-cols-3 border-t border-[#E2E8F0] pt-2.5 text-[12px]">
                   <div>
-                    <Link to={`/profile/${secondPlace.address}`} className="font-semibold text-[14px] text-[#0B0B0F] hover:text-[#0047AB] hover:underline block truncate max-w-[180px]">
-                      {secondPlace.name}
-                    </Link>
-                    <span className="text-[12px] text-[#4B5563] block truncate max-w-[180px]">{secondPlace.role}</span>
+                    <span className="text-[#64748B] block text-[11px]">Points</span>
+                    <span className="font-bold text-[#0A52B8] font-mono tabular-nums">
+                      <CountUp value={secondPlace?.points || 0} durationMs={650} />
+                    </span>
                   </div>
-                </>
-              ) : (
-                <div className="text-[#8892A0] text-sm py-4">Open Podium Spot</div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 border-t border-[#E5E7EB] pt-2 text-[12px]">
-              <div>
-                <span className="text-[#8892A0] block text-[11px]">Points</span>
-                <span className="font-bold text-[#0B0B0F] font-mono tabular-nums">{secondPlace?.points || 0}</span>
-              </div>
-              <div>
-                <span className="text-[#8892A0] block text-[11px]">Success</span>
-                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{secondPlace?.successRate || '0%'}</span>
-              </div>
-              <div>
-                <span className="text-[#8892A0] block text-[11px]">Volume</span>
-                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{secondPlace?.earnings || '$0'}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Rank 1 (Center, Height 240px, Cobalt Border) */}
-          <div className="bg-white border-2 border-[#0047AB] rounded-xl p-5 text-center flex flex-col justify-between order-1 md:order-2 min-h-[240px] shadow-sm">
-            <div className="flex justify-between items-center">
-              <RankEmblem rank={1} size={36} />
-              <CompactTierChip tier={firstPlace?.tier || 'Diamond'} />
-            </div>
-
-            <div className="flex flex-col items-center space-y-2 py-2">
-              {firstPlace ? (
-                <>
-                  <Link to={`/profile/${firstPlace.address}`} className="relative hover:opacity-90">
-                    <LocalAvatar
-                      address={firstPlace.address}
-                      name={firstPlace.name}
-                      avatarUrl={firstPlace.avatar}
-                      size={64}
-                      className="w-16 h-16 rounded-full border-2 border-[#0047AB]"
-                    />
-                  </Link>
                   <div>
-                    <Link to={`/profile/${firstPlace.address}`} className="font-bold text-[15px] text-[#0B0B0F] hover:text-[#0047AB] hover:underline block truncate max-w-[200px]">
-                      {firstPlace.name}
-                    </Link>
-                    <span className="text-[12px] text-[#4B5563] block truncate max-w-[200px]">{firstPlace.role}</span>
+                    <span className="text-[#64748B] block text-[11px]">Success</span>
+                    <span className="font-semibold text-[#0A0D14] font-mono tabular-nums">{secondPlace?.successRate || '0%'}</span>
                   </div>
-                </>
-              ) : (
-                <div className="text-[#8892A0] text-sm py-4">Open Podium Spot</div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 border-t border-[#E5E7EB] pt-2 text-[12px]">
-              <div>
-                <span className="text-[#8892A0] block text-[11px]">Points</span>
-                <span className="font-bold text-[#0047AB] font-mono tabular-nums text-[14px]">{firstPlace?.points || 0}</span>
-              </div>
-              <div>
-                <span className="text-[#8892A0] block text-[11px]">Success</span>
-                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{firstPlace?.successRate || '0%'}</span>
-              </div>
-              <div>
-                <span className="text-[#8892A0] block text-[11px]">Volume</span>
-                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{firstPlace?.earnings || '$0'}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Rank 3 (Right, Height 180px) */}
-          <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 text-center flex flex-col justify-between order-3 min-h-[180px]">
-            <div className="flex justify-between items-center">
-              <RankEmblem rank={3} size={28} />
-              <CompactTierChip tier={thirdPlace?.tier || 'Bronze'} />
-            </div>
-
-            <div className="flex flex-col items-center space-y-2 py-2">
-              {thirdPlace ? (
-                <>
-                  <Link to={`/profile/${thirdPlace.address}`} className="relative hover:opacity-90">
-                    <LocalAvatar
-                      address={thirdPlace.address}
-                      name={thirdPlace.name}
-                      avatarUrl={thirdPlace.avatar}
-                      size={48}
-                      className="w-12 h-12 rounded-full border border-[#E5E7EB]"
-                    />
-                  </Link>
                   <div>
-                    <Link to={`/profile/${thirdPlace.address}`} className="font-semibold text-[14px] text-[#0B0B0F] hover:text-[#0047AB] hover:underline block truncate max-w-[180px]">
-                      {thirdPlace.name}
-                    </Link>
-                    <span className="text-[12px] text-[#4B5563] block truncate max-w-[180px]">{thirdPlace.role}</span>
+                    <span className="text-[#64748B] block text-[11px]">Volume</span>
+                    <span className="font-semibold text-[#0A0D14] font-mono tabular-nums">{secondPlace?.earnings || '$0'}</span>
                   </div>
-                </>
-              ) : (
-                <div className="text-[#8892A0] text-sm py-4">Open Podium Spot</div>
-              )}
-            </div>
+                </div>
+              </div>
+            </SpotlightCard>
 
-            <div className="grid grid-cols-3 border-t border-[#E5E7EB] pt-2 text-[12px]">
-              <div>
-                <span className="text-[#8892A0] block text-[11px]">Points</span>
-                <span className="font-bold text-[#0B0B0F] font-mono tabular-nums">{thirdPlace?.points || 0}</span>
+            {/* Rank 1 Elevated Cobalt Spotlight Card */}
+            <motion.div
+              whileHover={reducedMotion ? undefined : { transform: 'translate3d(0, -4px, 0)' }}
+              transition={{ type: 'spring', stiffness: 340, damping: 26 }}
+              className="relative order-1 md:order-2 min-h-[248px] rounded-2xl border-2 border-[#2563EB] bg-gradient-to-b from-[#EFF6FF]/90 via-white to-white p-5 text-center flex flex-col justify-between shadow-[0_14px_40px_rgba(10,82,184,0.14)] overflow-hidden"
+            >
+              <div className="flex justify-between items-center relative z-10">
+                <motion.span
+                  animate={reducedMotion ? undefined : { y: [0, -2, 0] }}
+                  transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+                  className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0A52B8] text-[11px] font-bold text-white font-mono shadow-xs"
+                >
+                  <Trophy size={11} />
+                  #1 Leader
+                </motion.span>
+                <CompactTierChip tier={firstPlace?.tier || 'Diamond'} />
               </div>
-              <div>
-                <span className="text-[#8892A0] block text-[11px]">Success</span>
-                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{thirdPlace?.successRate || '0%'}</span>
+
+              <div className="flex flex-col items-center space-y-2 py-3 relative z-10">
+                {firstPlace ? (
+                  <>
+                    <Link to={`/profile/${firstPlace.address}`} className="relative hover:opacity-90">
+                      <LocalAvatar
+                        address={firstPlace.address}
+                        name={firstPlace.name}
+                        avatarUrl={firstPlace.avatar}
+                        size={64}
+                        className="w-16 h-16 rounded-full border-2 border-[#0A52B8] shadow-[0_0_20px_rgba(37,99,235,0.22)]"
+                      />
+                    </Link>
+                    <div>
+                      <Link to={`/profile/${firstPlace.address}`} className="font-bold text-[15px] text-[#0A0D14] hover:text-[#0A52B8] hover:underline block truncate max-w-[200px]">
+                        {firstPlace.name}
+                      </Link>
+                      <span className="text-[12px] text-[#64748B] block truncate max-w-[200px]">{firstPlace.role}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-[#64748B] text-sm py-4">Open Podium Spot</div>
+                )}
               </div>
-              <div>
-                <span className="text-[#8892A0] block text-[11px]">Volume</span>
-                <span className="font-semibold text-[#0B0B0F] font-mono tabular-nums">{thirdPlace?.earnings || '$0'}</span>
+
+              <div className="grid grid-cols-3 border-t border-[#E2E8F0] pt-2.5 text-[12px] relative z-10">
+                <div>
+                  <span className="text-[#64748B] block text-[11px]">Points</span>
+                  <span className="font-bold text-[#0A52B8] font-mono tabular-nums text-[14px]">
+                    <CountUp value={firstPlace?.points || 0} durationMs={700} />
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#64748B] block text-[11px]">Success</span>
+                  <span className="font-semibold text-[#0A0D14] font-mono tabular-nums">{firstPlace?.successRate || '0%'}</span>
+                </div>
+                <div>
+                  <span className="text-[#64748B] block text-[11px]">Volume</span>
+                  <span className="font-semibold text-[#0A0D14] font-mono tabular-nums">{firstPlace?.earnings || '$0'}</span>
+                </div>
               </div>
-            </div>
+            </motion.div>
+
+            {/* Rank 3 */}
+            <SpotlightCard spotlightColor="rgba(37, 99, 235, 0.12)" className="order-3 min-h-[195px]">
+              <div className="p-5 text-center flex flex-col justify-between h-full">
+                <div className="flex justify-between items-center">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F8FAFC] border border-[#E2E8F0] text-[11px] font-bold text-[#475569] font-mono">
+                    #3
+                  </span>
+                  <CompactTierChip tier={thirdPlace?.tier || 'Bronze'} />
+                </div>
+
+                <div className="flex flex-col items-center space-y-2 py-3">
+                  {thirdPlace ? (
+                    <>
+                      <Link to={`/profile/${thirdPlace.address}`} className="relative hover:opacity-90">
+                        <LocalAvatar
+                          address={thirdPlace.address}
+                          name={thirdPlace.name}
+                          avatarUrl={thirdPlace.avatar}
+                          size={48}
+                          className="w-12 h-12 rounded-full border border-[#E2E8F0]"
+                        />
+                      </Link>
+                      <div>
+                        <Link to={`/profile/${thirdPlace.address}`} className="font-semibold text-[14px] text-[#0A0D14] hover:text-[#0A52B8] hover:underline block truncate max-w-[180px]">
+                          {thirdPlace.name}
+                        </Link>
+                        <span className="text-[12px] text-[#64748B] block truncate max-w-[180px]">{thirdPlace.role}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-[#64748B] text-sm py-4">Open Podium Spot</div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 border-t border-[#E2E8F0] pt-2.5 text-[12px]">
+                  <div>
+                    <span className="text-[#64748B] block text-[11px]">Points</span>
+                    <span className="font-bold text-[#0A52B8] font-mono tabular-nums">
+                      <CountUp value={thirdPlace?.points || 0} durationMs={650} />
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748B] block text-[11px]">Success</span>
+                    <span className="font-semibold text-[#0A0D14] font-mono tabular-nums">{thirdPlace?.successRate || '0%'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748B] block text-[11px]">Volume</span>
+                    <span className="font-semibold text-[#0A0D14] font-mono tabular-nums">{thirdPlace?.earnings || '$0'}</span>
+                  </div>
+                </div>
+              </div>
+            </SpotlightCard>
           </div>
-        </div>
 
         {/* Search, Filter, and Tie-break Info */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
@@ -914,11 +1023,14 @@ export const Reputation: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                paginatedRows.map((row) => (
-                  <tr 
+                paginatedRows.map((row, idx) => (
+                  <motion.tr
                     key={row.address}
-                    className={`h-14 hover:bg-[#F6F7F9] transition-colors ${
-                      row.isUser ? 'bg-[#EAF1FB]/50 font-medium' : ''
+                    initial={reducedMotion ? undefined : { opacity: 0, transform: 'translate3d(-8px, 0, 0)' }}
+                    animate={reducedMotion ? undefined : { opacity: 1, transform: 'translate3d(0px, 0, 0)' }}
+                    transition={{ duration: 0.25, delay: Math.min(idx, 8) * 0.035, ease: [0.22, 1, 0.36, 1] }}
+                    className={`h-14 hover:bg-[#EFF6FF]/45 transition-colors ${
+                      row.isUser ? 'bg-[#EFF6FF]/70 font-medium' : ''
                     }`}
                   >
                     {/* Rank (RankEmblem for 1-3, tabular numbers for others, T5 for ties) */}
@@ -1006,7 +1118,7 @@ export const Reputation: React.FC = () => {
                         </span>
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))
               )}
             </tbody>
@@ -1066,26 +1178,26 @@ export const Reputation: React.FC = () => {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EB]">
-            <p className="text-[12px] text-[#4B5563]">
+          <div className="flex items-center justify-between pt-3 border-t border-[#E2E8F0]">
+            <p className="text-[12px] text-[#64748B]">
               Showing {Math.min(filteredLeaderboard.length, (currentPage - 1) * pageSize + 1)} to {Math.min(filteredLeaderboard.length, currentPage * pageSize)} of {filteredLeaderboard.length} builders
             </p>
             <div className="flex items-center gap-2">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                className="px-3 py-1.5 text-[12px] font-medium border border-[#E5E7EB] rounded-lg text-[#0B0B0F] hover:bg-[#F6F7F9] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
+                className="px-3 py-1.5 text-[12px] font-medium border border-[#E2E8F0] rounded-lg text-[#0A0D14] hover:bg-[#F8FAFC] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
               >
                 <ChevronLeft size={14} />
                 <span>Previous</span>
               </button>
-              <span className="text-[12px] text-[#4B5563] px-2 font-mono tabular-nums">
+              <span className="text-[12px] text-[#64748B] px-2 font-mono tabular-nums">
                 {currentPage} / {totalPages}
               </span>
               <button
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                className="px-3 py-1.5 text-[12px] font-medium border border-[#E5E7EB] rounded-lg text-[#0B0B0F] hover:bg-[#F6F7F9] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
+                className="px-3 py-1.5 text-[12px] font-medium border border-[#E2E8F0] rounded-lg text-[#0A0D14] hover:bg-[#F8FAFC] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
               >
                 <span>Next</span>
                 <ChevronRight size={14} />
@@ -1094,46 +1206,57 @@ export const Reputation: React.FC = () => {
           </div>
         )}
       </section>
+      </ScrollReveal>
 
-      {/* Sticky "Your Position" Bar at bottom when connected */}
-      {isConnected && address && userLeaderboardItem && (
-        <div className="sticky bottom-4 z-20 bg-[#0B0B0F] text-white p-3.5 sm:px-6 rounded-xl border border-[#1E2330] shadow-xl flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <img
-              src={userLeaderboardItem.avatar}
-              alt="You"
-              className="w-8 h-8 rounded-full border border-[#0047AB] object-cover shrink-0"
-            />
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-[13px] text-white truncate">
-                  Your Standing
-                </span>
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#0047AB] text-white font-mono tabular-nums">
-                  {userLeaderboardItem.displayRank}
+      {/* Non-Overlapping Floating "Your Standing" Dock (Visible only when scrolled past Hero card) */}
+      <AnimatePresence>
+        {showFloatingStanding && isConnected && address && userLeaderboardItem && (
+          <motion.div
+            initial={reducedMotion ? undefined : { opacity: 0, transform: 'translate3d(0, 24px, 0)' }}
+            animate={reducedMotion ? undefined : { opacity: 1, transform: 'translate3d(0, 0px, 0)' }}
+            exit={reducedMotion ? undefined : { opacity: 0, transform: 'translate3d(0, 24px, 0)' }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-4xl z-30 backdrop-blur-md bg-[#0A0D14]/90 text-white p-3.5 sm:px-6 rounded-2xl border border-blue-500/25 shadow-[0_16px_42px_rgba(10,13,20,0.35)] flex items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <LocalAvatar
+                address={address}
+                name={userLeaderboardItem.name}
+                avatarUrl={userLeaderboardItem.avatar}
+                size={34}
+                className="w-8.5 h-8.5 rounded-full border border-[#2563EB] shrink-0"
+              />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-[13px] text-white truncate">
+                    Your Standing
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#0A52B8] border border-[#38BDF8]/30 text-white font-mono tabular-nums">
+                    {userLeaderboardItem.displayRank}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-400 font-mono block">
+                  {truncateAddress(address)}
                 </span>
               </div>
-              <span className="text-[11px] text-[#8892A0] font-mono block">
-                {truncateAddress(address)}
-              </span>
             </div>
-          </div>
 
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="hidden sm:block">
-              <CompactTierChip tier={activeTier} className="bg-white/10 text-white border-white/10" />
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="hidden sm:block">
+                <CompactTierChip tier={activeTier} className="bg-blue-500/15 text-[#93C5FD] border-blue-400/25" />
+              </div>
+              <div className="text-right">
+                <span className="font-mono font-bold text-[14px] text-white block tabular-nums">
+                  {totalPoints} pts
+                </span>
+                <span className="text-[11px] text-[#38BDF8] font-mono tabular-nums">
+                  {formatEarnings(userScores.totalVolume)}
+                </span>
+              </div>
             </div>
-            <div className="text-right">
-              <span className="font-mono font-bold text-[14px] text-white block tabular-nums">
-                {totalPoints} pts
-              </span>
-              <span className="text-[11px] text-[#8892A0] font-mono tabular-nums">
-                {formatEarnings(userScores.totalVolume)}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
 
       {/* =========================================================================

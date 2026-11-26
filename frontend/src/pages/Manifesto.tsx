@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, ShieldCheck, Lock, Scale, 
   ArrowRight, Award, Cpu, TrendingUp, Code2, CheckCircle2, Users, LineChart, ExternalLink, Shield,
-  X, Maximize2
+  X, Maximize2, PlusCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -29,8 +29,9 @@ export const Manifesto: React.FC = () => {
       id: 'akhil',
       initials: 'AM',
       name: 'Akhil Muvva',
-      image: '/akhil-avatar.png',
-      fullImage: '/founder-akhil.png',
+      image: '/images/team/akhil-avatar.png',
+      fullImage: '/images/team/founder-akhil.png',
+      avatarScaleClass: 'object-center',
       role: 'Founder & CEO / CTO',
       specialty: 'PROTOCOL ARCHITECTURE',
       productBadge: {
@@ -113,8 +114,9 @@ export const Manifesto: React.FC = () => {
       id: 'sunny',
       initials: 'SP',
       name: 'Sunny Pasumarthi',
-      image: '/sunny-avatar.png',
-      fullImage: '/dev.sunny.png',
+      image: '/images/team/sunny-avatar.png',
+      fullImage: '/images/team/dev.sunny.png',
+      avatarScaleClass: 'scale-[1.08] translate-x-[3.5%] object-center',
       role: 'CMO & Lead Frontend Developer',
       specialty: 'FRONTEND ARCHITECTURE',
       productBadge: {
@@ -328,19 +330,15 @@ export const Manifesto: React.FC = () => {
                           }`}
                         >
                           {m.image ? (
-                            <>
-                              <img
-                                src={m.image}
-                                alt={m.name}
-                                className="w-full h-full object-cover rounded-full"
-                                loading="eager"
-                              />
-                              {m.fullImage && (
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 hover:!opacity-100 transition-opacity flex items-center justify-center text-white pointer-events-none">
-                                  <Maximize2 size={16} strokeWidth={2.5} className="drop-shadow-md" />
-                                </div>
-                              )}
-                            </>
+                            <img
+                              src={m.image}
+                              alt={m.name}
+                              width={64}
+                              height={64}
+                              decoding="async"
+                              className={`w-full h-full object-cover rounded-full transition-transform duration-300 ${m.avatarScaleClass || 'object-center'}`}
+                              loading="lazy"
+                            />
                           ) : (
                             <span className="font-headline font-black text-white text-2xl tracking-tight drop-shadow-sm">
                               {m.initials}
@@ -421,76 +419,38 @@ export const Manifesto: React.FC = () => {
         </section>
 
         {/* SECTION 4: CALL TO ACTION FOOTER BANNER (REDESIGNED WITH POLYLANCE LOGO COLOR & ELECTRIC BLUE) */}
-        <section className="bg-[#0B0B0C] text-white rounded-3xl p-8 sm:p-12 text-center space-y-6 relative overflow-hidden shadow-2xl border border-[#0066FF]/25 hover:border-[#00D2FF]/40 transition-all duration-500 group">
-          {/* Ambient PolyLance Logo & Electric Blue Radial Glows */}
-          <div 
-            className="absolute top-0 right-0 w-96 h-96 pointer-events-none rounded-full blur-3xl opacity-35 transition-opacity group-hover:opacity-50"
-            style={{
-              background: 'radial-gradient(circle, rgba(0, 210, 255, 0.4) 0%, rgba(0, 102, 255, 0.2) 40%, transparent 70%)'
-            }}
-          />
-          <div 
-            className="absolute -bottom-20 -left-20 w-96 h-96 pointer-events-none rounded-full blur-3xl opacity-30 transition-opacity group-hover:opacity-45"
-            style={{
-              background: 'radial-gradient(circle, rgba(0, 71, 171, 0.5) 0%, rgba(0, 102, 255, 0.15) 50%, transparent 75%)'
-            }}
-          />
-
+        <section className="bg-[#0E1013] text-white rounded-[14px] p-8 sm:p-12 text-center space-y-6 relative overflow-hidden border border-white/10 shadow-none">
           <div className="max-w-2xl mx-auto space-y-4 relative z-10">
-            {/* Electric Protocol Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0066FF]/10 border border-[#00D2FF]/30 text-[#00D2FF] text-xs font-mono font-semibold tracking-wider uppercase shadow-[0_0_15px_rgba(0,210,255,0.2)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00D2FF] animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[6px] bg-white/10 border border-white/15 text-white/90 text-xs font-sans font-medium tracking-[0.06em] uppercase">
               <span>THE SOVEREIGN LABOR PROTOCOL</span>
             </div>
 
-            {/* Glowing Gradient Headline */}
-            <h3 className="font-headline font-black text-2xl sm:text-4xl text-white tracking-tight leading-tight">
-              Ready to Join the{' '}
-              <span className="bg-gradient-to-r from-white via-[#00D2FF] to-[#0066FF] bg-clip-text text-transparent">
-                Decentralized Work Revolution?
-              </span>
+            <h3
+              style={{ color: '#FFFFFF' }}
+              className="font-serif font-semibold text-2xl sm:text-4xl text-white !text-white tracking-[-0.015em] leading-[1.2]"
+            >
+              Ready to Join the Decentralized Work Revolution?
             </h3>
 
-            <p className="text-xs sm:text-base text-slate-300 font-sans font-medium max-w-xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base text-white/80 font-sans leading-relaxed max-w-xl mx-auto">
               Start freelancing or hiring talent with on-chain escrows, instant settlement, and permanent soulbound reputation.
             </p>
 
-            {/* High-Contrast Action Buttons */}
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
+            <div className="flex flex-wrap items-center justify-center gap-3.5 pt-3">
               <Link
                 to="/jobs"
-                className="px-8 py-3.5 bg-white hover:bg-slate-50 !text-[#0B0B0C] rounded-2xl font-headline font-bold text-sm sm:text-base flex items-center gap-2.5 shadow-[0_4px_20px_rgba(0,102,255,0.3)] hover:shadow-[0_6px_28px_rgba(0,210,255,0.55)] transition-all hover:scale-105 cursor-pointer group/btn border border-white"
-                style={{ color: '#0B0B0C' }}
+                className="h-11 px-6 bg-white hover:bg-[#FFFFFF] text-[#15171A] rounded-[8px] font-sans font-medium text-sm inline-flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <span className="!text-[#0B0B0C] font-extrabold" style={{ color: '#0B0B0C' }}>
-                  Browse Marketplace
-                </span>
-                <ArrowRight size={17} className="!text-[#0047AB] group-hover/btn:translate-x-1 group-hover/btn:!text-[#0066FF] transition-all" />
+                <span>Browse Escrow Jobs</span>
+                <ArrowRight size={16} />
               </Link>
-
               <Link
-                to="/security"
-                className="px-7 py-3.5 bg-white/[0.06] hover:bg-[#0066FF]/20 border border-[#0066FF]/35 hover:border-[#00D2FF]/60 !text-white rounded-2xl font-headline font-bold text-sm sm:text-base transition-all hover:scale-105 cursor-pointer flex items-center gap-2 backdrop-blur-xs shadow-xs"
+                to="/jobs/post"
+                className="h-11 px-6 bg-white/10 hover:bg-white/15 border border-white/20 text-white rounded-[8px] font-sans font-medium text-sm inline-flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <ShieldCheck size={17} className="text-[#00D2FF]" />
-                <span className="text-white">Inspect Contract Audits</span>
+                <PlusCircle size={16} />
+                <span>Post a Job</span>
               </Link>
-            </div>
-
-            {/* Micro Feature Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-5 pt-4 text-[11px] sm:text-xs text-slate-400 font-mono">
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00D2FF]" />
-                <span>Zero Custodial Risk</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />
-                <span>Polygon Mainnet Escrows</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0047AB]" />
-                <span>ERC-5192 Soulbound Merit</span>
-              </div>
             </div>
           </div>
         </section>

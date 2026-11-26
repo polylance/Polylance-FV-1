@@ -46,7 +46,7 @@ describe("GitHub OAuth 2.0 & Sybil Resistance Security Suite", () => {
     expect(url.hostname).toBe("github.com");
     expect(url.pathname).toBe("/login/oauth/authorize");
     expect(url.searchParams.get("client_id")).toBe("Ov23liwzYmozvQE55pvk");
-    expect(url.searchParams.get("scope")).toBe("read:user user:email");
+    expect(url.searchParams.get("scope")).toBe("read:user");
 
     const statePayload = url.searchParams.get("state");
     expect(statePayload).toBeDefined();

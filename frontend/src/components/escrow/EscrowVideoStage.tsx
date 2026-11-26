@@ -45,7 +45,7 @@ export const EscrowVideoStage: React.FC<EscrowVideoStageProps> = ({
           <span className="w-2.5 h-2.5 rounded-full bg-[#D1D5DB]" />
         </div>
         <div className="text-[11px] font-mono text-[#6B7280] truncate max-w-[200px] sm:max-w-xs">
-          polylance.codes
+          {typeof window !== 'undefined' ? window.location.hostname : 'polylancezenith.com'}
         </div>
         <div className="w-8" />
       </div>
@@ -77,6 +77,7 @@ export const EscrowVideoStage: React.FC<EscrowVideoStageProps> = ({
                   ref={(el) => {
                     videoRefs.current[idx] = el;
                   }}
+                  autoPlay={isActive}
                   muted
                   playsInline
                   preload="metadata"

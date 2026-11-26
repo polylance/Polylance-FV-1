@@ -40,6 +40,9 @@ model JobRecord {
   client          String
   freelancer      String?
   status          String
+  categoryId      String?  @map("category_id")
+  subcategoryId   String?  @map("subcategory_id")
+  legacyCategory  String?  @map("legacy_category")
   data            Json
   onchainTokenId  Int?
   certificateNo   Int?
@@ -49,7 +52,10 @@ model JobRecord {
 
   @@index([client])
   @@index([freelancer])
+  @@index([freelancer, status])
   @@index([onchainTokenId])
+  @@index([categoryId, status, createdAt])
+  @@index([subcategoryId, status])
 }
 
 model CertificateRecord {
@@ -74,13 +80,71 @@ model CertificateRecord {
 
   @@index([jobId])
   @@index([holderWallet])
+  @@index([holderWallet, status])
+  @@index([holderWallet, certType, status])
   @@index([onchainTokenId])
   @@index([certificateNo])
 }
 
 model ProfileRecord {
-  address   String   @id
-  data      Json
-  updatedAt DateTime @updatedAt
+  address            String   @id
+  primaryCategoryId  String?  @map("primary_category_id")
+  reputationPoints   Int      @default(0) @map("reputation_points")
+  completedJobsCount Int      @default(0) @map("completed_jobs_count")
+  data               Json
+  updatedAt          DateTime @updatedAt
+
+  @@index([primaryCategoryId, reputationPoints, completedJobsCount, address])
+  @@index([reputationPoints, completedJobsCount, address])
 }
 
+model CategoryLegacyMapping {
+  legacyKey       String   @id @map("legacy_key")
+  categoryId      String   @map("category_id")
+  subcategoryId   String   @map("subcategory_id")
+  displayFallback String   @default("Legacy") @map("display_fallback")
+  createdAt       DateTime @default(now()) @map("created_at")
+}
+
+model GithubProof {
+  id            String   @id @default(uuid())
+  walletAddress String   @unique @map("wallet_address")
+  githubId      String   @unique @map("github_id")
+  githubLogin   String   @map("github_login")
+  statsSnapshot Json     @map("stats_snapshot")
+  lastSyncedAt  DateTime @default(now()) @map("last_synced_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([githubLogin])
+  @@index([lastSyncedAt])
+}
+
+model PortfolioLink {
+  id            String   @id @default(uuid())
+  walletAddress String   @map("wallet_address")
+  title         String
+  url           String
+  role          String
+  categoryTag   String   @map("category_tag")
+  position      Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([walletAddress, position])
+  @@index([categoryTag])
+}
+
+model ProfileStrengthScore {
+  id            String   @id @default(uuid())
+  walletAddress String   @unique @map("wallet_address")
+  status        String   @default("demo")
+  value         Int?
+  factors       Json
+  modelVersion  String   @default("rule-demo-v1.0.0") @map("model_version")
+  optedOut      Boolean  @default(false) @map("opted_out")
+  computedAt    DateTime @default(now()) @map("computed_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+}

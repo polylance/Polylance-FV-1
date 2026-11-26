@@ -22,6 +22,7 @@ import { BlogStudioTeamPanel } from './components/BlogStudioTeamPanel';
 import { BlogStudioMediaModal } from './components/BlogStudioMediaModal';
 import { BlogStudioAuditLog } from './components/BlogStudioAuditLog';
 import NotFound from '../../pages/NotFound';
+import { isBlogTeamAddress, isAdminAddress } from '../../utils/adminGuard';
 import { io as socketIO } from 'socket.io-client';
 import { getBackendSyncUrl } from '../../utils/backendUrl';
 import { RefreshCw, AlertCircle } from 'lucide-react';
@@ -29,6 +30,9 @@ import { useModalScrollLock } from './hooks/useModalScrollLock';
 
 export const BlogStudioPage: React.FC = () => {
   const { loading: authLoading, authorized, role, address, refetch } = useBlogStudioAuth();
+  const isPrivileged = Boolean(address && (isBlogTeamAddress(address) || isAdminAddress(address)));
+  const effectiveRole = role || (isPrivileged ? 'admin' : null);
+  const isAllowed = Boolean(isPrivileged || (authorized && role));
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams<{ id?: string }>();
@@ -159,7 +163,7 @@ export const BlogStudioPage: React.FC = () => {
   }
 
   // Security invariant: If unauthorized or signed out, render NotFound identical to unknown route
-  if (!authorized || !role) {
+  if (!isAllowed) {
     return <NotFound />;
   }
 
@@ -254,7 +258,7 @@ export const BlogStudioPage: React.FC = () => {
       {activePost ? (
         <BlogStudioEditor
           post={activePost}
-          role={role}
+          role={role || 'admin'}
           revisions={activeRevisions}
           onSave={handleSavePost}
           onPublish={handlePublishPost}
@@ -289,7 +293,7 @@ export const BlogStudioPage: React.FC = () => {
 
           <BlogStudioDashboard
             posts={posts}
-            role={role}
+            role={role || 'admin'}
             currentWallet={address || ''}
             onEditPost={handleEditPost}
             onNewPost={handleNewPost}

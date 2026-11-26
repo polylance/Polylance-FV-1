@@ -1,0 +1,239 @@
+openapi: 3.0.3
+info:
+  title: PolyLance Protocol Backend API
+  version: 1.1.0-part1
+  description: Off-chain indexing, taxonomy validation, and browse endpoints (Part 1).
+paths:
+  /api/categories:
+    get:
+      summary: List canonical 10-domain taxonomy categories with real open job counts and legacy alias mappings
+      responses:
+        '200':
+          description: Taxonomy categories and counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        slug: { type: string }
+                        name: { type: string }
+                        track: { type: string, enum: [tech, non-tech, hybrid] }
+                        openJobsCount: { type: integer }
+                        subcategories: { type: array }
+                  legacyMapping:
+                    type: object
+                  queryMs:
+                    type: number
+  /api/jobs:
+    get:
+      summary: Query jobs with category, subcategory, track, keyword, status filters and cursor pagination
+      parameters:
+        - in: query
+          name: category
+          schema: { type: string }
+          description: Category ID, slug, or legacy alias (web3, frontend, backend, mobile)
+        - in: query
+          name: subcategory
+          schema: { type: string }
+        - in: query
+          name: track
+          schema: { type: string, enum: [tech, non-tech, hybrid] }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        '200':
+          description: Filtered paginated jobs
+        '400':
+          description: Invalid filter value
+    post:
+      summary: Create or update jobs with authenticated session and strict taxonomy validation
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Job persisted
+        '400':
+          description: Invalid categoryId or subcategoryId
+        '401':
+          description: Missing valid authenticated wallet session
+        '403':
+          description: Client address mismatch or freelancer-only account mode
+  /api/sync:
+    post:
+      summary: Synchronize authenticated user jobs/profile state with strict taxonomy validation
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Synchronized successfully
+        '400':
+          description: Invalid categoryId or subcategoryId
+        '401':
+          description: Missing valid authenticated wallet session
+  /me/proof:
+    get:
+      summary: Retrieve authenticated user's verified GitHub proof snapshot (no tokens, emails, or phone numbers stored)
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Proof snapshot and privacy disclosure
+        '401':
+          description: Unauthorized
+  /me/proof/github/start:
+    get:
+      summary: Generate signed GitHub OAuth start URL using minimum read:user scope (no user:email, no repo)
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Signed authorizeUrl and scope
+        '302':
+          description: Redirect to GitHub OAuth authorize screen when redirect=true
+  /me/proof/github/callback:
+    get:
+      summary: Exchange GitHub code once to verify identity and capture public stats snapshot, then discard token
+      responses:
+        '200':
+          description: Snapshot saved and token discarded
+        '400':
+          description: Invalid or expired HMAC OAuth state or code
+        '409':
+          description: GitHub account already bound to another wallet
+  /me/proof/github/refresh:
+    post:
+      summary: Refresh public GitHub stats snapshot on demand with 15-minute cooldown
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Refreshed snapshot
+        '404':
+          description: GitHub proof not connected
+        '429':
+          description: Cooldown active (includes Retry-After and nextRefreshAt)
+  /me/proof/github:
+    delete:
+      summary: Disconnect GitHub proof and delete stored snapshot
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Proof snapshot deleted
+  /me/portfolio:
+    get:
+      summary: List authenticated user's saved portfolio links (max 5)
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Saved portfolio links
+        '401':
+          description: Unauthorized
+    put:
+      summary: Replace up to 5 validated portfolio links (strict HTTPS public-domain format only; no server URL fetching)
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Portfolio links updated
+        '400':
+          description: Validation error, SSRF host rejected, or max 5 limit exceeded
+    post:
+      summary: Append 1 validated portfolio link (max 5 total)
+      security:
+        - WalletSession: []
+      responses:
+        '201':
+          description: Portfolio link added
+        '400':
+          description: Validation error or max 5 limit exceeded
+  /me/portfolio/{id}:
+    delete:
+      summary: Remove one portfolio link by ID
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Portfolio link removed
+        '404':
+          description: Link not found
+  /api/profiles/{address}/portfolio:
+    get:
+      summary: Read public portfolio links for a wallet address
+      responses:
+        '200':
+          description: Public portfolio links list
+  /me/score:
+    get:
+      summary: Retrieve authenticated user's own rule-based Profile Strength Score (visible only to owner until status is live; never used for ranking, payouts, or disputes)
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Score breakdown with status, value, factors, model_version, computed_at
+        '401':
+          description: Unauthorized
+    delete:
+      summary: Opt out and delete stored Profile Strength Score snapshot (subsequent GET /me/score returns status unavailable)
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Score snapshot deleted and marked unavailable
+  /me/score/recompute:
+    post:
+      summary: Opt back in and recompute Profile Strength Score on demand
+      security:
+        - WalletSession: []
+      responses:
+        '200':
+          description: Recomputed score snapshot
+  /leaderboard:
+    get:
+      summary: Cursor-paginated global or category reputation leaderboard built strictly from on-chain/completed-job reputation points, plus caller's own rank
+      parameters:
+        - in: query
+          name: category
+          schema: { type: string }
+          description: Category ID, slug, or legacy alias (web3, frontend, backend, mobile)
+        - in: query
+          name: cursor
+          schema: { type: string }
+          description: Wallet address cursor from previous page
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - in: query
+          name: address
+          schema: { type: string }
+          description: Optional wallet address to compute myRank when unauthenticated
+      responses:
+        '200':
+          description: Ranked entries, pagination cursor, myRank, and query/cache metadata
+        '400':
+          description: Invalid address query parameter
+  /leaderboard/top-by-category:
+    get:
+      summary: Top 3 ranked builders per category, returned only for categories with real reputation data
+      responses:
+        '200':
+          description: Category leaderboard groups (only populated categories included)

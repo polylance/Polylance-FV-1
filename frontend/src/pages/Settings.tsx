@@ -47,12 +47,14 @@ import { PolyLanceAlertModal, AlertModalOptions } from '../components/PolyLanceA
 import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 import { scoreGithubUser, GithubScoreResult } from '../utils/githubOracle';
 import { GithubVerifyModal } from '../components/GithubVerifyModal';
+import { VerificationCredentialsHub } from '../components/onboarding/VerificationCredentialsHub';
 import { SkillSelector } from '../components/SkillSelector';
 import { findSkillByIdOrName, formatSkillDisplayName } from '../data/skillsData';
 import { UsdcIcon } from '../components/TokenIcon';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 import { LocalAvatar } from '../components/common/LocalAvatar';
+import { ClientTrustBadge } from '../components/common/ClientTrustBadge';
 
 export type SettingsSection = 'profile' | 'accountMode' | 'notifications' | 'privacy' | 'appearance' | 'admin';
 
@@ -958,54 +960,31 @@ export const Settings: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* GitHub Handle & Verification Banner */}
-                  <div className="pt-2 border-t border-[#E5E7EB]">
-                    {githubUsername ? (
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2 text-[#4B5563]">
-                          <Github size={15} className="text-[#0B0B0F]" />
-                          <span>Linked GitHub:</span>
-                          <a
-                            href={`https://github.com/${githubUsername}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[#0047AB] hover:underline font-semibold inline-flex items-center gap-1"
-                          >
-                            @{githubUsername}
-                          </a>
-                          <span className="px-2 py-0.5 bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0] rounded-[6px] text-[10px] font-semibold">
-                            VERIFIED
-                          </span>
-                        </div>
-                        <span className="text-xs text-[#166534] font-medium inline-flex items-center gap-1.5 bg-[#F0FDF4] px-2.5 py-1 rounded-[6px] border border-[#BBF7D0]">
-                          <ShieldCheck size={13} className="text-[#166534]" />
-                          <span>Permanently bound to wallet</span>
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-[#F9FAFB] rounded-[8px] border border-[#E5E7EB]">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-[6px] bg-[#0B0B0F] flex items-center justify-center text-white shrink-0">
-                            <Github size={16} />
-                          </div>
-                          <div>
-                            <span className="text-xs font-semibold text-[#0B0B0F] block">
-                              GitHub verification required
-                            </span>
-                            <span className="text-[11px] text-[#6B7280]">
-                              Link your account to unlock job applications and earn reputation points.
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsVerifyModalOpen(true)}
-                          className="px-3.5 py-1.5 bg-[#0047AB] hover:bg-[#00388A] text-white rounded-[6px] text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors"
-                        >
-                          <Github size={13} />
-                          <span>Connect GitHub</span>
-                        </button>
-                      </div>
+                  {/* Verification & Role-Specific Proof (GitHub for Tech / Portfolio for Non-Tech / Trust Score for Clients) */}
+                  <div className="pt-3 border-t border-[#E5E7EB] space-y-4">
+                    {(accountMode === 'client' || currentProfile?.role === 'client') && (
+                      <ClientTrustBadge clientAddress={address} jobs={jobs} profile={currentProfile} />
+                    )}
+
+                    {accountMode !== 'client' && (
+                      <VerificationCredentialsHub
+                        profile={currentProfile}
+                        isOwner={Boolean(address)}
+                        onConnectGithub={() => setIsVerifyModalOpen(true)}
+                        onSavePortfolio={async (data) => {
+                          if (!address) return;
+                          await updateProfile(
+                            {
+                              portfolioLinks: data.portfolioLinks,
+                              primaryDiscipline: data.primaryDiscipline,
+                              portfolioVerified: data.portfolioVerified,
+                            },
+                            address
+                          );
+                          setSaveSuccess(true);
+                          setTimeout(() => setSaveSuccess(false), 3000);
+                        }}
+                      />
                     )}
                   </div>
                 </div>

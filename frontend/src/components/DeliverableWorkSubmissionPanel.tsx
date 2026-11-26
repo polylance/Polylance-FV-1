@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Job, DisputeReason, DeliverableFile } from '../types';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
@@ -790,15 +791,15 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
             </span>
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
               isCompletedOrReleased
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                ? 'bg-[#EFF6FF] text-[#0A52B8] border border-[#BFDBFE]'
                 : currentJob.status === 'Submitted'
-                ? 'bg-blue-50 text-[#0047AB] border border-blue-200'
-                : 'bg-amber-50 text-amber-800 border border-amber-200'
+                ? 'bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE]'
+                : 'bg-slate-100 text-[#0F172A] border border-slate-200'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${
-                isCompletedOrReleased ? 'bg-emerald-500' : 'bg-[#0047AB]'
+                isCompletedOrReleased ? 'bg-[#0A52B8]' : 'bg-[#2563EB]'
               }`} />
-              <span>{isCompletedOrReleased ? 'Completed' : currentJob.status === 'Submitted' ? 'Submitted • Under Review' : currentJob.status}</span>
+              <span>{isCompletedOrReleased ? 'Completed & Settled' : currentJob.status === 'Submitted' ? 'Submitted • Under Review' : currentJob.status}</span>
             </span>
           </div>
 
@@ -865,353 +866,356 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       )}
 
       {/* ========================================================================= */}
-      {/* 2. DEDICATED COMPLETED VIEW (NO SUBMISSION FORMS, ONLY VERIFIED DETAILS) */}
+      {/* 2. DEDICATED COMPLETED VIEW — BALANCED 2-COLUMN SAAS WORKSPACE */}
       {/* ========================================================================= */}
       {isCompletedOrReleased ? (
-        <div className="space-y-4 animate-fadeIn">
-          {/* COMPACT ROLE-BASED CERTIFICATE CARD */}
-          {(() => {
-            const certVariant = isClient ? 'patronage' : 'work';
-            const known = currentJob ? (KNOWN_ONCHAIN_TOKENS[(currentJob.id || '').toLowerCase()] || KNOWN_ONCHAIN_TOKENS[String(currentJob.sbtTokenId || '')]) : null;
-            const realTokenId = currentJob.onchainTokenId ?? known?.onchainTokenId;
-            const certTokenId = realTokenId ?? (currentJob.sbtTokenId ? Number(currentJob.sbtTokenId) : 1);
-            const certNo = currentJob.certificateNo ?? known?.certificateNo;
-            const certAmount = rawEscrowAmount || 10;
-            
-            let certSvg = '';
-            try {
-              certSvg = generateCertificateSvg({
-                tokenId: certTokenId,
-                certificateNo: certNo,
-                variant: certVariant,
-                jobTitle: currentJob.title,
-                recipientAddress: currentJob.freelancer || '',
-                recipientName: undefined,
-                clientAddress: currentJob.client || '',
-                clientName: undefined,
-                amount: certAmount,
-                tokenSymbol: paymentSymbol,
-                completedAt: currentJob.completedAt || currentJob.createdAt || Date.now(),
-                contractAddress: CONTRACTS.ReputationSBT,
-              });
-            } catch {
-              certSvg = '';
-            }
-
-            const polygonscanUrl = realTokenId !== undefined
-              ? `https://polygonscan.com/nft/${CONTRACTS.ReputationSBT}/${realTokenId}`
-              : (currentJob.releaseTxHash ? `https://polygonscan.com/tx/${currentJob.releaseTxHash}` : `https://polygonscan.com/address/${CONTRACTS.ReputationSBT}`);
-
-            return (
-              <div className="bg-white border border-[#E5E7EB] rounded-[12px] p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5 min-w-0">
-                  {/* Scaled Square Thumbnail using Canonical Certificate Generator */}
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[8px] border border-[#E5E7EB] overflow-hidden bg-[#FAFAF8] shrink-0 shadow-xs flex items-center justify-center">
-                    {certSvg ? (
-                      <div 
-                        className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full select-none"
-                        dangerouslySetInnerHTML={{ __html: certSvg }} 
-                      />
-                    ) : (
-                      <Award size={24} className="text-[#0047AB]" />
-                    )}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* MAIN COLUMN (lg:col-span-8): Deliverables & Proof Files */}
+          <div className="lg:col-span-8 space-y-5">
+            {/* Final Submitted Deliverables & Proof of Work Card */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] text-[#0A52B8] border border-[#BFDBFE] flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={20} />
                   </div>
-
-                  <div className="space-y-1 min-w-0">
+                  <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold text-[#0047AB] bg-[#EFF6FF] border border-[#BFDBFE] px-2 py-0.5 rounded-[6px]">
-                        PL-SBT #{certTokenId}
+                      <span className="font-mono font-bold text-[10px] uppercase text-[#0A52B8] bg-[#EFF6FF] border border-[#BFDBFE] px-2.5 py-0.5 rounded-full">
+                        Verified Deliverables
                       </span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                        <CheckCircle2 size={11} className="text-emerald-600" />
-                        <span>Issued</span>
+                      <span className="text-[11px] font-mono text-slate-500">
+                        Submitted by {truncateAddress(currentJob.freelancer || '')}
                       </span>
                     </div>
-
-                    <h3 className="text-sm font-semibold text-[#0B0B0F] truncate">
-                      {isClient ? 'Escrow Patronage Certificate' : 'Proof of Work Certificate'}
-                    </h3>
-
-                    <p className="text-xs text-[#4B5563]">
-                      ERC-5192 Soulbound Token cryptographically minted to Polygon PoS
-                    </p>
+                    <h4 className="font-bold text-base sm:text-lg text-[#0F172A] mt-0.5">
+                      {currentJob.proof?.title || 'Final Milestone Deliverables & Proof of Work'}
+                    </h4>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 flex-wrap sm:flex-nowrap">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => navigate(`/certificate/${certTokenId}`)}
-                    icon={<ExternalLink size={13} />}
-                  >
-                    View certificate
-                  </Button>
-                  <a
-                    href={polygonscanUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-[#F6F7F9] text-xs font-medium text-[#0B0B0F] transition-colors inline-flex items-center gap-1.5"
-                  >
-                    <span>Verify on Polygonscan</span>
-                    <ExternalLink size={12} className="text-[#6B7280]" />
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const shareUrl = `${window.location.origin}/#/certificate/${certTokenId}`;
-                      navigator.clipboard.writeText(shareUrl);
-                      setCopiedSbtCertId(true);
-                      setTimeout(() => setCopiedSbtCertId(false), 2000);
-                    }}
-                    className="px-3 py-1.5 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-[#F6F7F9] text-xs font-medium text-[#0B0B0F] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Share2 size={12} className="text-[#6B7280]" />
-                    <span>{copiedSbtCertId ? 'Copied link!' : 'Share'}</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* CLIENT REVIEW & QUALITY RATING SECTION */}
-          <div className="bg-white border border-[#E5E7EB] rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E7EB] pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center font-bold shrink-0">
-                  <Star size={16} className="fill-amber-500 text-amber-500" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm sm:text-base text-[#0B0B0F]">
-                    Client Review & Quality Rating
-                  </h4>
-                  <p className="text-xs text-[#4B5563]">
-                    Verified feedback recorded on the freelancer's public profile and reputation record
-                  </p>
-                </div>
-              </div>
-
-              {currentJob.clientReview && isClient && !isEditingReview && (
-                <button
-                  type="button"
-                  onClick={() => setIsEditingReview(true)}
-                  className="text-xs text-[#0047AB] hover:underline font-medium flex items-center gap-1 cursor-pointer"
-                >
-                  Edit Review
-                </button>
-              )}
-            </div>
-
-            {/* Review form for client when no review or editing */}
-            {isClient && (!currentJob.clientReview || isEditingReview) ? (
-              <form onSubmit={handleReviewSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-[#0B0B0F]">
-                    Rate Freelancer Performance (1 to 5 stars)
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setReviewRating(star)}
-                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
-                        title={`${star} star${star > 1 ? 's' : ''}`}
-                      >
-                        <Star
-                          size={24}
-                          className={star <= reviewRating ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}
-                        />
-                      </button>
-                    ))}
-                    <span className="text-xs font-semibold text-[#0B0B0F] ml-2">
-                      {reviewRating === 5 ? '5.0 - Exceptional Work' :
-                       reviewRating === 4 ? '4.0 - Great Delivery' :
-                       reviewRating === 3 ? '3.0 - Satisfactory' :
-                       reviewRating === 2 ? '2.0 - Needs Improvement' : '1.0 - Poor'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#0B0B0F]">
-                    Client Feedback & Testimonial
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={reviewComment}
-                    onChange={(e) => setReviewComment(e.target.value)}
-                    placeholder="Describe the freelancer's communication, speed, deliverable quality, and overall experience..."
-                    className="w-full text-xs p-3 border border-[#E5E7EB] rounded-xl bg-white focus:outline-none focus:border-[#0047AB] focus:ring-1 focus:ring-[#0047AB] resize-none"
-                    required
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    type="submit"
-                    disabled={isSubmittingReview || !reviewComment.trim()}
-                    className="px-4 py-2 bg-[#0047AB] hover:bg-[#003882] disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    {isSubmittingReview ? (
-                      <>
-                        <Loader2 size={13} className="animate-spin" />
-                        <span>Submitting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check size={13} />
-                        <span>{isEditingReview ? 'Update Review' : 'Submit Review'}</span>
-                      </>
-                    )}
-                  </button>
-
-                  {isEditingReview && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingReview(false)}
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-xl transition-colors cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  )}
-
-                  {reviewSuccess && (
-                    <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                      <CheckCircle2 size={13} /> Review recorded successfully!
-                    </span>
-                  )}
-                </div>
-              </form>
-            ) : currentJob.clientReview ? (
-              <div className="p-4 bg-[#F6F7F9] border border-[#E5E7EB] rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star
-                          key={s}
-                          size={15}
-                          className={s <= currentJob.clientReview!.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs font-bold text-[#0B0B0F]">
-                      {currentJob.clientReview.rating}.0 / 5.0 Rating
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-[#6B7280]">
-                    Verified Client Review
-                  </span>
-                </div>
-
-                <p className="text-xs text-[#0B0B0F] leading-relaxed italic bg-white p-3 rounded-lg border border-[#E5E7EB]">
-                  "{currentJob.clientReview.comment}"
-                </p>
-              </div>
-            ) : (
-              <div className="p-4 bg-[#F6F7F9] border border-[#E5E7EB] rounded-xl text-center text-xs text-[#6B7280]">
-                <span>No review has been posted by the client yet. Once submitted, it will be displayed on the freelancer's public profile.</span>
-              </div>
-            )}
-          </div>
-
-
-          {/* Final Submitted Deliverables & Proof of Work Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-sm space-y-3.5 sm:space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-slate-100 pb-3 sm:pb-4">
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold shrink-0">
-                  <CheckCircle2 size={16} className="sm:hidden" />
-                  <CheckCircle2 size={20} className="hidden sm:block" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="font-mono font-bold text-[9px] sm:text-[10px] uppercase text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full">
-                      Verified Deliverables
-                    </span>
-                    <span className="text-[10px] sm:text-[11px] font-mono text-slate-400">
-                      Submitted by {truncateAddress(currentJob.freelancer || '')}
-                    </span>
-                  </div>
-                  <h4 className="font-headline font-black text-base sm:text-lg text-slate-900 mt-0.5">
-                    {currentJob.proof?.title || 'Final Milestone Deliverables & Proof of Work'}
-                  </h4>
-                </div>
-              </div>
-
-              {currentJob.proof?.externalLink && (
-                <div className="flex items-center gap-2">
+                {currentJob.proof?.externalLink && (
                   <a
                     href={currentJob.proof.externalLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-[11px] sm:text-xs border border-slate-300 flex items-center gap-1.5 transition-all shadow-2xs"
+                    className="px-3.5 py-2 rounded-xl bg-[#F8FAFC] hover:bg-[#EFF6FF] text-[#0A52B8] font-semibold text-xs border border-slate-200 hover:border-[#BFDBFE] flex items-center gap-1.5 transition-colors shrink-0"
                   >
-                    <ExternalLink size={12} />
+                    <ExternalLink size={13} />
                     <span>Open Deliverable / PR</span>
                   </a>
+                )}
+              </div>
+
+              {(currentJob.proof?.description || currentJob.description) && (
+                <div className="space-y-2">
+                  <span className="font-mono text-[10.5px] uppercase tracking-wider font-semibold text-slate-500 block">
+                    Deliverable Scope &amp; Submission Notes
+                  </span>
+                  <div className="p-4 rounded-xl bg-[#F8FAFC] border border-slate-200/80">
+                    <FormattedJobDescription description={currentJob.proof?.description || currentJob.description} />
+                  </div>
+                </div>
+              )}
+
+              {currentJob.proof?.evidenceFiles && currentJob.proof.evidenceFiles.length > 0 && (
+                <div className="space-y-2.5">
+                  <span className="font-mono text-[10.5px] uppercase tracking-wider font-semibold text-slate-500 block">
+                    Attached Deliverables &amp; IPFS Proof Files ({currentJob.proof.evidenceFiles.length})
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {currentJob.proof.evidenceFiles.map((file: DeliverableFile, idx: number) => (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-xl bg-white border border-slate-200 hover:border-[#0A52B8] flex items-center justify-between gap-3 transition-all group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="w-9 h-9 rounded-lg bg-[#EFF6FF] text-[#0A52B8] border border-[#BFDBFE] flex items-center justify-center shrink-0">
+                            <FileText size={16} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="font-semibold text-xs text-[#0F172A] truncate block" title={file.name}>
+                              {file.name}
+                            </span>
+                            <span className="text-[10.5px] font-mono text-slate-500 flex items-center gap-1.5 mt-0.5">
+                              <span>{(file.size / 1024).toFixed(1)} KB</span>
+                              <span>•</span>
+                              <span className="text-[9.5px] font-semibold text-[#0A52B8] bg-[#EFF6FF] px-1.5 rounded border border-[#BFDBFE]">
+                                IPFS
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openOrDownloadIpfsFile(file.cid, file.name)}
+                          className="px-3 py-1.5 rounded-lg bg-[#F8FAFC] hover:bg-[#0A52B8] text-[#0A52B8] hover:text-white border border-slate-200 hover:border-[#0A52B8] font-semibold text-xs flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                        >
+                          <Download size={12} />
+                          <span>Download</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Deliverable Notes */}
-            {(currentJob.proof?.description || currentJob.description) && (
-              <div className="space-y-1.5 sm:space-y-2">
-                <span className="font-mono text-[9.5px] sm:text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">
-                  Deliverable Scope & Submission Notes
-                </span>
-                <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200/80">
-                  <FormattedJobDescription description={currentJob.proof?.description || currentJob.description} />
+            {/* Client Review & Quality Rating Card */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#EFF6FF] text-[#0A52B8] border border-[#BFDBFE] flex items-center justify-center shrink-0">
+                    <Star size={16} className="fill-[#0A52B8] text-[#0A52B8]" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm sm:text-base text-[#0F172A]">
+                      Client Review &amp; Quality Rating
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Verified feedback recorded on the freelancer&apos;s public profile and reputation record
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
 
-            {/* Attached Files / Media Artifacts */}
-            {currentJob.proof?.evidenceFiles && currentJob.proof.evidenceFiles.length > 0 && (
-              <div className="space-y-2 sm:space-y-2.5">
-                <span className="font-mono text-[9.5px] sm:text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">
-                  Attached Deliverables & IPFS Proof Files ({currentJob.proof.evidenceFiles.length})
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
-                  {currentJob.proof.evidenceFiles.map((file: DeliverableFile, idx: number) => (
-                    <div 
-                      key={idx} 
-                      className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/90 flex items-center justify-between gap-2.5 sm:gap-3 shadow-2xs hover:border-slate-400 hover:shadow-xs transition-all"
+                {currentJob.clientReview && isClient && !isEditingReview && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingReview(true)}
+                    className="text-xs text-[#0A52B8] hover:underline font-semibold cursor-pointer"
+                  >
+                    Edit Review
+                  </button>
+                )}
+              </div>
+
+              {isClient && (!currentJob.clientReview || isEditingReview) ? (
+                <form onSubmit={handleReviewSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-[#0F172A]">
+                      Rate Freelancer Performance (1 to 5 stars)
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(star)}
+                          className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                          title={`${star} star${star > 1 ? 's' : ''}`}
+                        >
+                          <Star
+                            size={22}
+                            className={star <= reviewRating ? 'text-[#0A52B8] fill-[#0A52B8]' : 'text-slate-300'}
+                          />
+                        </button>
+                      ))}
+                      <span className="text-xs font-semibold text-[#0F172A] ml-2">
+                        {reviewRating}.0 / 5.0
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-[#0F172A]">
+                      Client Feedback &amp; Testimonial
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Describe communication, speed, deliverable quality, and overall experience..."
+                      className="w-full text-xs p-3 border border-slate-200 rounded-xl bg-white focus:outline-none focus:border-[#0A52B8] focus:ring-2 focus:ring-[#0A52B8]/20 resize-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={isSubmittingReview || !reviewComment.trim()}
+                      className="px-4 py-2 bg-[#0A52B8] hover:bg-[#084298] disabled:opacity-50 text-white font-semibold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
                     >
-                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-100 text-[#0047AB] border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
-                          <FileText size={16} className="sm:hidden" />
-                          <FileText size={18} className="hidden sm:block" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="font-bold text-xs sm:text-sm text-slate-900 truncate block" title={file.name}>
-                            {file.name}
-                          </span>
-                          <span className="text-[10px] sm:text-[10.5px] font-mono text-slate-500 flex items-center gap-1.5 whitespace-nowrap mt-0.5">
-                            <span>{(file.size / 1024).toFixed(1)} KB</span>
-                            <span>•</span>
-                            <span className="text-[9px] sm:text-[9.5px] font-bold text-[#0047AB] bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
-                              IPFS
-                            </span>
-                          </span>
-                        </div>
-                      </div>
+                      {isSubmittingReview ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" />
+                          <span>Submitting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check size={13} />
+                          <span>{isEditingReview ? 'Update Review' : 'Submit Review'}</span>
+                        </>
+                      )}
+                    </button>
+
+                    {isEditingReview && (
                       <button
                         type="button"
-                        onClick={() => openOrDownloadIpfsFile(file.cid, file.name)}
-                        className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-[#0047AB] font-extrabold text-[11px] sm:text-xs flex items-center gap-1 shadow-2xs transition-all cursor-pointer shrink-0 active:scale-95"
+                        onClick={() => setIsEditingReview(false)}
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-xl transition-colors cursor-pointer"
                       >
-                        <Download size={12} />
-                        <span>Download</span>
+                        Cancel
+                      </button>
+                    )}
+
+                    {reviewSuccess && (
+                      <span className="text-xs text-[#0A52B8] font-semibold flex items-center gap-1">
+                        <CheckCircle2 size={13} /> Review recorded!
+                      </span>
+                    )}
+                  </div>
+                </form>
+              ) : currentJob.clientReview ? (
+                <div className="p-4 bg-[#F8FAFC] border border-slate-200 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            size={15}
+                            className={s <= currentJob.clientReview!.rating ? 'text-[#0A52B8] fill-[#0A52B8]' : 'text-slate-300'}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs font-bold text-[#0F172A]">
+                        {currentJob.clientReview.rating}.0 / 5.0
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-500">Verified Client Review</span>
+                  </div>
+
+                  <p className="text-xs text-[#0F172A] leading-relaxed bg-white p-3 rounded-lg border border-slate-200/80">
+                    &ldquo;{currentJob.clientReview.comment}&rdquo;
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 bg-[#F8FAFC] border border-slate-200 rounded-xl text-center text-xs text-slate-500">
+                  <span>No review has been posted by the client yet.</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SIDE COLUMN (lg:col-span-4): Interactive SBT Certificate + Settlement Summary */}
+          <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-24">
+            {/* Interactive ERC-5192 SBT Patronage Certificate Card */}
+            {(() => {
+              const certVariant = isClient ? 'patronage' : 'work';
+              const known = currentJob ? (KNOWN_ONCHAIN_TOKENS[(currentJob.id || '').toLowerCase()] || KNOWN_ONCHAIN_TOKENS[String(currentJob.sbtTokenId || '')]) : null;
+              const realTokenId = currentJob.onchainTokenId ?? known?.onchainTokenId;
+              const certTokenId = realTokenId ?? (currentJob.sbtTokenId ? Number(currentJob.sbtTokenId) : 1);
+              const certNo = currentJob.certificateNo ?? known?.certificateNo;
+              const certAmount = rawEscrowAmount || 10;
+
+              let certSvg = '';
+              try {
+                certSvg = generateCertificateSvg({
+                  tokenId: certTokenId,
+                  certificateNo: certNo,
+                  variant: certVariant,
+                  jobTitle: currentJob.title,
+                  recipientAddress: currentJob.freelancer || '',
+                  recipientName: undefined,
+                  clientAddress: currentJob.client || '',
+                  clientName: undefined,
+                  amount: certAmount,
+                  tokenSymbol: paymentSymbol,
+                  completedAt: currentJob.completedAt || currentJob.createdAt || Date.now(),
+                  contractAddress: CONTRACTS.ReputationSBT,
+                });
+              } catch {
+                certSvg = '';
+              }
+
+              const polygonscanUrl = realTokenId !== undefined
+                ? `https://polygonscan.com/nft/${CONTRACTS.ReputationSBT}/${realTokenId}`
+                : (currentJob.releaseTxHash ? `https://polygonscan.com/tx/${currentJob.releaseTxHash}` : `https://polygonscan.com/address/${CONTRACTS.ReputationSBT}`);
+
+              return (
+                <motion.div
+                  whileHover={{ y: -2, scale: 1.01 }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+                  className="bg-white border border-slate-200/90 hover:border-[#0A52B8] rounded-2xl p-5 shadow-2xs space-y-4 group"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-mono font-bold text-[#0A52B8] bg-[#EFF6FF] border border-[#BFDBFE] px-2.5 py-0.5 rounded-full">
+                      PL-SBT #{certTokenId}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0A52B8] bg-[#F8FAFC] border border-slate-200 px-2.5 py-0.5 rounded-full">
+                      <CheckCircle2 size={11} />
+                      <span>ERC-5192 Issued</span>
+                    </span>
+                  </div>
+
+                  {/* Interactive Sheen Preview Frame */}
+                  <div className="relative w-full aspect-[1414/1000] rounded-xl border border-slate-200 overflow-hidden bg-[#F8FAFC]">
+                    {certSvg ? (
+                      <div
+                        className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full select-none"
+                        dangerouslySetInnerHTML={{ __html: certSvg }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Award size={32} className="text-[#0A52B8]" />
+                      </div>
+                    )}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-[#0F172A]">
+                      {isClient ? 'Escrow Patronage Certificate' : 'Proof of Work Certificate'}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Soulbound credential permanently minted on Polygon PoS.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-1">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => navigate(`/certificate/${certTokenId}`)}
+                      icon={<ExternalLink size={13} />}
+                      className="w-full"
+                    >
+                      View Certificate
+                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <a
+                        href={polygonscanUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 rounded-xl bg-[#F8FAFC] border border-slate-200 hover:border-[#0A52B8] text-[11px] font-semibold text-[#0F172A] hover:text-[#0A52B8] transition-colors inline-flex items-center justify-center gap-1"
+                      >
+                        <span>Polygonscan</span>
+                        <ExternalLink size={11} />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const shareUrl = `${window.location.origin}/#/certificate/${certTokenId}`;
+                          navigator.clipboard.writeText(shareUrl);
+                          setCopiedSbtCertId(true);
+                          setTimeout(() => setCopiedSbtCertId(false), 2000);
+                        }}
+                        className="px-3 py-2 rounded-xl bg-[#F8FAFC] border border-slate-200 hover:border-[#0A52B8] text-[11px] font-semibold text-[#0F172A] hover:text-[#0A52B8] transition-colors inline-flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Share2 size={11} />
+                        <span>{copiedSbtCertId ? 'Copied!' : 'Share'}</span>
                       </button>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
+                </motion.div>
+              );
+            })()}
 
-            {/* Clean Receipt-Style Escrow Settlement Summary */}
+            {/* Settlement & Fee Summary Card */}
             {(() => {
               const completedEvt = currentJob.events?.find((e: any) => (e.step === 'Completed' || e.step === 'Paid' || e.step === 'PaymentReleased') && e.txHash);
               const txHash = completedEvt?.txHash || currentJob.contractAddress;
@@ -1247,78 +1251,48 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
               };
 
               return (
-                <div className={`rounded-[12px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs space-y-0 ${isCompletedOrReleased ? 'bg-[#F0FDF4]/30' : ''}`}>
-                  <div className="p-4 bg-[#F6F7F9] border-b border-[#E5E7EB] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 size={16} className="text-emerald-600" />
-                      <span className="text-sm font-semibold text-[#0B0B0F]">
-                        Escrow Settlement Summary
-                      </span>
-                    </div>
-                    <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                      {isCompletedOrReleased ? '100% Released' : 'Release Pending'}
+                <div className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-2xs">
+                  <div className="p-4 bg-[#F8FAFC] border-b border-slate-100 flex items-center justify-between">
+                    <span className="text-sm font-bold text-[#0F172A]">Settlement Summary</span>
+                    <span className="text-[11px] font-semibold text-[#0A52B8] bg-[#EFF6FF] border border-[#BFDBFE] px-2.5 py-0.5 rounded-full">
+                      {isCompletedOrReleased ? 'Settled' : 'Pending'}
                     </span>
                   </div>
 
-                  <div className="p-4 divide-y divide-[#E5E7EB] text-xs space-y-0">
-                    <div className="py-2.5 flex justify-between items-center">
-                      <span className="text-[#4B5563]">Gross job budget</span>
-                      <span className="font-semibold text-[#0B0B0F] tabular-nums">
+                  <div className="p-4 divide-y divide-slate-100 text-xs">
+                    <div className="py-2 flex justify-between items-center">
+                      <span className="text-slate-600">Gross budget</span>
+                      <span className="font-mono font-semibold text-[#0F172A] tabular-nums">
                         {feeDetails.budgetFormatted} {paymentSymbol}
                       </span>
                     </div>
-
-                    <div className="py-2.5 flex justify-between items-center">
-                      <span className="text-[#4B5563]">Client service fee</span>
-                      <span className="font-semibold text-[#0B0B0F] tabular-nums">
-                        +{feeDetails.clientFeeFormatted} {paymentSymbol}
-                      </span>
-                    </div>
-
-                    <div className="py-2.5 flex justify-between items-center">
-                      <span className="text-[#4B5563]">Total client deposit</span>
-                      <span className="font-semibold text-[#0B0B0F] tabular-nums">
-                        {feeDetails.clientDepositFormatted} {paymentSymbol}
-                      </span>
-                    </div>
-
-                    <div className="py-2.5 flex justify-between items-center">
-                      <span className="text-[#4B5563]">Freelancer platform fee (2.5%)</span>
-                      <span className="font-semibold text-rose-600 tabular-nums">
-                        -{feeDetails.freelancerFeeFormatted} {paymentSymbol}
-                      </span>
-                    </div>
-
-                    <div className="py-2.5 flex justify-between items-center bg-[#F0FDF4]/60 px-3 -mx-4 font-medium">
-                      <span className="text-emerald-950 font-semibold">Net released to talent</span>
-                      <span className="font-bold text-emerald-900 text-sm tabular-nums">
-                        {feeDetails.freelancerNetFormatted} {paymentSymbol}
-                      </span>
-                    </div>
-
-                    <div className="py-2.5 flex justify-between items-center">
-                      <span className="text-[#4B5563]">PolyLance platform total</span>
-                      <span className="font-semibold text-[#0B0B0F] tabular-nums">
+                    <div className="py-2 flex justify-between items-center">
+                      <span className="text-slate-600">Platform fee (5% total)</span>
+                      <span className="font-mono font-semibold text-[#0F172A] tabular-nums">
                         {feeDetails.platformTotalFormatted} {paymentSymbol}
                       </span>
                     </div>
-
-                    <div className="py-2.5 flex justify-between items-center">
-                      <span className="text-[#4B5563]">Settlement network</span>
-                      <span className="font-medium text-[#0B0B0F] inline-flex items-center gap-1">
-                        <PolygonLogo variant="mark" size={13} />
+                    <div className="py-2 flex justify-between items-center">
+                      <span className="font-semibold text-[#0F172A]">Net released to talent</span>
+                      <span className="font-mono font-bold text-[#0A52B8] tabular-nums">
+                        {feeDetails.freelancerNetFormatted} {paymentSymbol}
+                      </span>
+                    </div>
+                    <div className="py-2 flex justify-between items-center">
+                      <span className="text-slate-600">Network</span>
+                      <span className="font-medium text-[#0F172A] inline-flex items-center gap-1">
+                        <PolygonLogo variant="mark" size={12} />
                         <span>Polygon PoS</span>
                       </span>
                     </div>
-
                     {hasConfirmedTx && (
-                      <div className="py-2.5 flex justify-between items-center">
-                        <span className="text-[#4B5563]">On-chain transaction</span>
+                      <div className="py-2 flex justify-between items-center">
+                        <span className="text-slate-600">On-chain tx</span>
                         <a
                           href={getPolygonScanUrl(txHash)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-mono text-[#0047AB] hover:underline inline-flex items-center gap-1 text-[11px]"
+                          className="font-mono text-[#0A52B8] hover:underline inline-flex items-center gap-1 text-[11px]"
                         >
                           <span>{truncateAddress(txHash)}</span>
                           <ExternalLink size={11} />
@@ -1327,17 +1301,14 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                     )}
                   </div>
 
-                  <div className="p-3 bg-[#F6F7F9] border-t border-[#E5E7EB] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-                    <span className="text-[11px] text-[#6B7280]">
-                      Treasury vault: {truncateAddress(TREASURY_WALLET || '0x0000...0000')}
-                    </span>
+                  <div className="p-3 bg-[#F8FAFC] border-t border-slate-100">
                     <button
                       type="button"
                       onClick={handleDownloadCsvReceipt}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-white border border-[#E5E7EB] hover:bg-slate-50 text-xs font-medium text-[#0B0B0F] transition-colors cursor-pointer"
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#0A52B8] text-xs font-semibold text-[#0F172A] hover:text-[#0A52B8] transition-colors cursor-pointer"
                     >
-                      <Download size={13} className="text-[#6B7280]" />
-                      <span>Download receipt (CSV)</span>
+                      <Download size={13} />
+                      <span>Download Receipt (CSV)</span>
                     </button>
                   </div>
                 </div>
@@ -2473,204 +2444,137 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
       )}
 
       {/* ========================================================================= */}
-      {/* 4. REAL-TIME ACTIVITY TIMELINE (COMPACT SIZE + ATTRACTIVE FILTER BUTTONS) */}
+      {/* 4. REAL-TIME ACTIVITY TIMELINE (COBALT + LAYOUTID FILTER TABS) */}
       {/* ========================================================================= */}
-      <div id="activity-timeline-section" className="border border-slate-200/80 rounded-2xl bg-white p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
-        
-        {/* Timeline Header with Redesigned Sleek Filter Buttons */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2 sm:pb-2.5">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center shrink-0 shadow-2xs">
-              <TrendingUp size={13} className="text-rose-500" />
+      <div id="activity-timeline-section" className="border border-slate-200/90 rounded-2xl bg-white p-5 shadow-2xs space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#EFF6FF] text-[#0A52B8] border border-[#BFDBFE] flex items-center justify-center shrink-0">
+              <TrendingUp size={15} />
             </div>
             <div>
-              <h3 className="font-headline font-black text-slate-900 text-xs sm:text-sm leading-tight">
+              <h3 className="font-bold text-[#0F172A] text-sm leading-tight">
                 Project Progress Updates Log
               </h3>
-              <p className="text-[9.5px] sm:text-[10px] text-slate-500 font-medium">
-                Real-time updates and activities happening on this escrow.
+              <p className="text-[11px] text-slate-500">
+                Real-time contract events, milestone proofs, and settlement updates.
               </p>
             </div>
           </div>
 
-          {/* Attractive Modern Pill Filter Buttons (Strictly Single Line) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 relative select-none shrink-0 self-start sm:self-auto">
-            
-            {/* Category Filter Pill */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFilterDropdownOpen(!isFilterDropdownOpen);
-                  setIsSortDropdownOpen(false);
-                }}
-                className="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-200 shadow-2xs hover:border-slate-300 transition-all inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
-              >
-                <Filter size={10} className="text-blue-500 shrink-0" />
-                <span className="whitespace-nowrap">{activityFilter === 'all' ? 'All Activities' : activityFilter === 'progress' ? 'Progress Updates' : activityFilter === 'milestone' ? 'Milestones' : 'Escrow'}</span>
-                <ChevronDown size={10} className={`text-slate-400 shrink-0 transition-transform ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {isFilterDropdownOpen && (
-                <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-44 sm:w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-1.5 text-xs space-y-0.5 animate-fadeIn">
+          <div className="flex flex-wrap items-center gap-2 select-none">
+            <div className="inline-flex items-center p-1 rounded-xl bg-[#F8FAFC] border border-slate-200/80 gap-0.5">
+              {[
+                { id: 'all' as const, label: 'All Activities' },
+                { id: 'funded' as const, label: 'Payments' },
+                { id: 'milestone' as const, label: 'Milestones' },
+                { id: 'progress' as const, label: 'Progress' },
+              ].map((tab) => {
+                const active = activityFilter === tab.id;
+                return (
                   <button
+                    key={tab.id}
                     type="button"
-                    onClick={() => { setActivityFilter('all'); setIsFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'all' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
+                    onClick={() => setActivityFilter(tab.id)}
+                    className={`relative px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                      active ? 'text-[#0A52B8]' : 'text-slate-600 hover:text-[#0F172A]'
+                    }`}
                   >
-                    <span>All Activities</span>
-                    {activityFilter === 'all' && <Check size={12} className="text-blue-600" />}
+                    {active && (
+                      <motion.span
+                        layoutId="workspaceActivityFilter"
+                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                        className="absolute inset-0 rounded-lg bg-white border border-slate-200 shadow-2xs z-0"
+                      />
+                    )}
+                    <span className="relative z-10">{tab.label}</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => { setActivityFilter('progress'); setIsFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'progress' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
-                  >
-                    <span>Progress Updates</span>
-                    {activityFilter === 'progress' && <Check size={12} className="text-blue-600" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setActivityFilter('milestone'); setIsFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'milestone' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
-                  >
-                    <span>Milestones & Proofs</span>
-                    {activityFilter === 'milestone' && <Check size={12} className="text-blue-600" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setActivityFilter('funded'); setIsFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${activityFilter === 'funded' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
-                  >
-                    <span>Escrow & Payments</span>
-                    {activityFilter === 'funded' && <Check size={12} className="text-blue-600" />}
-                  </button>
-                </div>
-              )}
+                );
+              })}
             </div>
 
-            {/* Sort Order Pill */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSortDropdownOpen(!isSortDropdownOpen);
-                  setIsFilterDropdownOpen(false);
-                }}
-                className="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-200 shadow-2xs hover:border-slate-300 transition-all inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
-              >
-                <ArrowUpDown size={10} className="text-[#0047AB] shrink-0" />
-                <span className="whitespace-nowrap">{sortOrder === 'latest' ? 'Newest First' : 'Oldest First'}</span>
-                <ChevronDown size={10} className={`text-slate-400 shrink-0 transition-transform ${isSortDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {isSortDropdownOpen && (
-                <div className="absolute right-0 mt-1.5 w-36 sm:w-40 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-1.5 text-xs space-y-0.5 animate-fadeIn">
-                  <button
-                    type="button"
-                    onClick={() => { setSortOrder('latest'); setIsSortDropdownOpen(false); }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${sortOrder === 'latest' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
-                  >
-                    <span>Newest First</span>
-                    {sortOrder === 'latest' && <Check size={12} className="text-blue-600" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setSortOrder('oldest'); setIsSortDropdownOpen(false); }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between whitespace-nowrap cursor-pointer transition-all ${sortOrder === 'oldest' ? 'font-black text-blue-600 bg-blue-50 border border-blue-100 shadow-2xs' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'}`}
-                  >
-                    <span>Oldest First</span>
-                    {sortOrder === 'oldest' && <Check size={12} className="text-blue-600" />}
-                  </button>
-                </div>
-              )}
-            </div>
-
+            <button
+              type="button"
+              onClick={() => setSortOrder(sortOrder === 'latest' ? 'oldest' : 'latest')}
+              className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-[#0A52B8] text-[11px] font-semibold text-[#0F172A] inline-flex items-center gap-1 cursor-pointer"
+            >
+              <ArrowUpDown size={11} className="text-[#0A52B8]" />
+              <span>{sortOrder === 'latest' ? 'Newest' : 'Oldest'}</span>
+            </button>
           </div>
         </div>
 
-        {/* Compact Connected Activities Track */}
-        <div className="relative flex gap-2 sm:gap-3 pt-0.5">
-          
-          {/* Vertical Track Line and Connected Nodes */}
+        <div className="relative flex gap-3 pt-1">
           <div className="relative flex flex-col justify-between items-center py-2 shrink-0 w-3">
             <div className="absolute top-2.5 bottom-2.5 w-[1.5px] bg-slate-200 z-0" />
-            
-            {displayedActivities.map((act, i) => {
-              const nodeBg = act.type === 'progress' ? 'bg-blue-600 ring-blue-100' : act.type === 'milestone' ? 'bg-emerald-500 ring-emerald-100' : act.type === 'extension' ? 'bg-[#0047AB] ring-slate-100' : 'bg-amber-500 ring-amber-100';
-              return (
-                <div key={`node-${act.id}-${i}`} className={`w-2.5 h-2.5 rounded-full ${nodeBg} border-2 border-white ring-2 z-10 shadow-2xs my-auto`} />
-              );
-            })}
+            {displayedActivities.map((act, i) => (
+              <div
+                key={`node-${act.id}-${i}`}
+                className={`w-2.5 h-2.5 rounded-full ${
+                  act.type === 'progress' || act.type === 'funded'
+                    ? 'bg-[#2563EB] ring-[#EFF6FF]'
+                    : 'bg-[#0A52B8] ring-slate-100'
+                } border-2 border-white ring-2 z-10 my-auto`}
+              />
+            ))}
           </div>
 
-          {/* Compact Activity Cards */}
-          <div className="flex-1 space-y-2 min-w-0">
+          <div className="flex-1 space-y-2.5 min-w-0">
             {displayedActivities.length === 0 ? (
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+              <div className="p-4 rounded-xl bg-[#F8FAFC] border border-slate-200 text-center text-xs text-slate-500">
                 No activity recorded yet for this filter.
               </div>
             ) : (
-              displayedActivities.map((act) => {
-                const cardBg = act.type === 'progress' ? 'bg-[#F4F8FF] border-blue-200/90' : act.type === 'milestone' ? 'bg-[#F0FDF4] border-emerald-200/90' : act.type === 'extension' ? 'bg-slate-50 border-slate-200' : 'bg-[#FFFBEB]/70 border-amber-200/90';
-                const iconBg = act.type === 'progress' ? 'bg-blue-100/80 text-blue-700 border-blue-200' : act.type === 'milestone' ? 'bg-emerald-100/80 text-emerald-700 border-emerald-200' : act.type === 'extension' ? 'bg-slate-100 text-[#0047AB] border-slate-200' : 'bg-amber-100/80 text-amber-700 border-amber-200';
-
-                return (
-                  <div
-                    key={act.id}
-                    className={`${cardBg} border rounded-xl p-2 sm:p-3 flex flex-col gap-1.5 shadow-2xs`}
-                  >
-                    {/* Top Header Row: Icon, Event Badge, Date, and Status Pill */}
-                    <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                        <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg ${iconBg} border flex items-center justify-center shrink-0 shadow-2xs`}>
-                          {act.icon}
-                        </div>
-                        <span className={`${act.badgeClass} px-1.5 sm:px-2 py-0.5 rounded font-mono font-bold text-[8px] sm:text-[9px] uppercase tracking-wide shrink-0`}>
-                          {act.badge}
-                        </span>
-                        <span className="text-slate-400 font-mono text-[8.5px] sm:text-[9.5px] shrink-0">
-                          {act.dateStr}
-                        </span>
+              displayedActivities.map((act, idx) => (
+                <motion.div
+                  key={act.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.2) }}
+                  className="bg-[#F8FAFC] border border-slate-200/90 hover:border-[#BFDBFE] rounded-xl p-3 flex flex-col gap-1.5 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-white text-[#0A52B8] border border-slate-200 flex items-center justify-center shrink-0">
+                        {act.icon}
                       </div>
-
-                      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 ml-auto">
-                        {act.demoUrl && (
-                          <a
-                            href={act.demoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0047AB] text-white text-[10px] font-medium transition-colors cursor-pointer shrink-0"
-                            title="Open submitted deliverable or project PR"
-                          >
-                            <span>Open deliverable</span>
-                            <ExternalLink size={10} className="text-white shrink-0" />
-                          </a>
-                        )}
-                        <span className={`${act.statusPill.pillClass} font-bold text-[8.5px] sm:text-[9.5px] px-1.5 sm:px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-2xs shrink-0 whitespace-nowrap`}>
-                          {act.statusPill.dotClass && (
-                            <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${act.statusPill.dotClass} inline-block animate-pulse shrink-0`} />
-                          )}
-                          {act.statusPill.showCheck && (
-                            <Check size={8.5} className="shrink-0" />
-                          )}
-                          <span>{act.statusPill.text}</span>
-                        </span>
-                      </div>
+                      <span className="px-2 py-0.5 rounded-md bg-[#EFF6FF] border border-[#BFDBFE] text-[#0A52B8] font-mono font-bold text-[9.5px] uppercase tracking-wide shrink-0">
+                        {act.badge}
+                      </span>
+                      <span className="text-slate-400 font-mono text-[10px] shrink-0">
+                        {act.dateStr}
+                      </span>
                     </div>
 
-                    {/* Content: Title & Subtitle cleanly indented */}
-                    <div className="pl-7 sm:pl-9 space-y-0.5 min-w-0">
-                      <h4 className="text-[11.5px] sm:text-xs font-black text-slate-900 font-headline leading-tight break-words">
-                        {act.title}
-                      </h4>
-                      <p className="text-[10px] sm:text-[10.5px] text-slate-600 font-medium break-words leading-relaxed max-w-xl">
-                        {act.subtitle}
-                      </p>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                      {act.demoUrl && (
+                        <a
+                          href={act.demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#0A52B8] text-white text-[10px] font-semibold shrink-0"
+                        >
+                          <span>Open deliverable</span>
+                          <ExternalLink size={10} />
+                        </a>
+                      )}
+                      <span className="bg-white border border-slate-200 text-[#0F172A] font-semibold text-[10px] px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 whitespace-nowrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
+                        <span>{act.statusPill.text}</span>
+                      </span>
                     </div>
                   </div>
-                );
-              })
+
+                  <div className="pl-9 space-y-0.5 min-w-0">
+                    <h4 className="text-xs font-bold text-[#0F172A] leading-tight break-words">
+                      {act.title}
+                    </h4>
+                    <p className="text-[11px] text-slate-600 break-words leading-relaxed max-w-xl">
+                      {act.subtitle}
+                    </p>
+                  </div>
+                </motion.div>
+              ))
             )}
           </div>
         </div>
@@ -2738,7 +2642,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 <img
                   src={previewFile.dataUrl}
                   alt={previewFile.name}
-                  className="max-h-[60vh] max-w-full rounded-xl object-contain shadow-xs"
+                  loading="lazy" decoding="async" className="max-h-[60vh] max-w-full rounded-xl object-contain shadow-xs"
                 />
               </div>
             ) : previewFile.type === 'application/pdf' || /\.pdf$/i.test(previewFile.name) ? (
@@ -2746,7 +2650,7 @@ export const DeliverableWorkSubmissionPanel: React.FC<DeliverableWorkSubmissionP
                 <iframe
                   src={previewFile.dataUrl}
                   title={previewFile.name}
-                  className="w-full h-full border-none"
+                  loading="lazy" className="w-full h-full border-none"
                 />
               </div>
             ) : (

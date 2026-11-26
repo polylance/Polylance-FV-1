@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useReducedMotion } from '../../media/useDataSaver';
 import { MOTION } from '../../styles/motion';
 
@@ -20,7 +21,7 @@ export interface RevealProps {
 export const Reveal: React.FC<RevealProps> = ({
   children,
   delay = 0,
-  riseDistance = 16,
+  riseDistance = 12,
   scaleFrom = 1,
   className = '',
   as: Component = 'div',
@@ -33,31 +34,41 @@ export const Reveal: React.FC<RevealProps> = ({
     const element = ref.current;
     if (!element) return;
 
-    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+    if (
+      reducedMotion ||
+      typeof window === 'undefined' ||
+      !('IntersectionObserver' in window)
+    ) {
+      setIsVisible(true);
+      return;
+    }
+
+    const rect = element.getBoundingClientRect();
+    if (rect.top <= window.innerHeight * 1.15) {
       setIsVisible(true);
       return;
     }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting || entry.boundingClientRect.top <= window.innerHeight) {
           setIsVisible(true);
           observer.unobserve(element);
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.02, rootMargin: '60px 0px' }
     );
 
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [reducedMotion]);
 
-  const duration = scaleFrom !== 1 || riseDistance > 16 ? MOTION.duration.slow : MOTION.duration.standard;
+  const duration = scaleFrom !== 1 || riseDistance > 12 ? MOTION.duration.sequence : MOTION.duration.reveal;
 
   const style: React.CSSProperties = {
-    transition: reducedMotion
-      ? `opacity ${MOTION.duration.fast}ms ease-out`
-      : `opacity ${duration}ms ${MOTION.ease.brand}, transform ${duration}ms ${MOTION.ease.brand}`,
+    transitionProperty: reducedMotion ? 'opacity' : 'opacity, transform',
+    transitionDuration: `${reducedMotion ? MOTION.duration.fast : duration}ms`,
+    transitionTimingFunction: reducedMotion ? 'ease-out' : MOTION.ease.brand,
     transitionDelay: delay ? `${delay}ms` : '0ms',
     opacity: isVisible ? 1 : 0,
     transform: reducedMotion
@@ -116,33 +127,40 @@ export const CountUp: React.FC<CountUpProps> = ({
     const element = ref.current;
     if (!element) return;
 
+    const startAnimation = () => {
+      if (hasAnimated) return;
+      setHasAnimated(true);
+      const startTime = performance.now();
+      const startVal = 0;
+      const endVal = value;
+
+      const step = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / safeDurationMs, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        const current = startVal + (endVal - startVal) * easeProgress;
+        setDisplayValue(current);
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          setDisplayValue(endVal);
+        }
+      };
+
+      requestAnimationFrame(step);
+    };
+
+    if (element.getBoundingClientRect().top <= window.innerHeight * 1.05) {
+      startAnimation();
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated) {
-          setHasAnimated(true);
+        if (entry.isIntersecting || entry.boundingClientRect.top <= window.innerHeight) {
+          startAnimation();
           observer.unobserve(element);
-
-          const startTime = performance.now();
-          const startVal = 0;
-          const endVal = value;
-
-          const step = (currentTime: number) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / safeDurationMs, 1);
-            // Cubic bezier ease-out approximation: 1 - (1 - progress)^3
-            const easeProgress = 1 - Math.pow(1 - progress, 3);
-            const current = startVal + (endVal - startVal) * easeProgress;
-
-            setDisplayValue(current);
-
-            if (progress < 1) {
-              requestAnimationFrame(step);
-            } else {
-              setDisplayValue(endVal);
-            }
-          };
-
-          requestAnimationFrame(step);
         }
       },
       { threshold: 0.15 }
@@ -311,4 +329,289 @@ export const Skeleton: React.FC<SkeletonProps> = ({
     />
   );
 };
+
+export interface ScrollParallaxBandProps {
+  children: React.ReactNode;
+  className?: string;
+  offsetPx?: number;
+}
+
+/**
+ * <ScrollParallaxBand>
+ * Lightweight GPU-composited scroll-reactive motion wrapper.
+ * Gently translates & settles content as the section moves into view; static under reduced motion.
+ */
+export const ScrollParallaxBand: React.FC<ScrollParallaxBandProps> = ({
+  children,
+  className = '',
+  offsetPx = 18,
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || reducedMotion || typeof window === 'undefined') return;
+
+    let rafId = 0;
+    const update = () => {
+      rafId = 0;
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight || 800;
+      // Normalized progress [-1..1] around viewport center
+      const centerProgress = (rect.top + rect.height * 0.35 - vh * 0.6) / vh;
+      const clamped = Math.max(-1, Math.min(1, centerProgress));
+      const y = Number((clamped * offsetPx).toFixed(2));
+      el.style.transform = `translate3d(0, ${y}px, 0)`;
+    };
+
+    const onScroll = () => {
+      if (!rafId) rafId = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (rafId) window.cancelAnimationFrame(rafId);
+      el.style.transform = 'none';
+    };
+  }, [offsetPx, reducedMotion]);
+
+  return (
+    <div ref={ref} className={className} style={{ willChange: reducedMotion ? 'auto' : 'transform' }}>
+      {children}
+    </div>
+  );
+};
+
+export interface ScrollRevealProps {
+  children: React.ReactNode;
+  delay?: number;
+  stagger?: number;
+  className?: string;
+}
+
+const PREMIUM_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+/**
+ * <MaskedHeadingReveal>
+ * Overflow-masked headline entrance sliding cleanly out of view boundary (y: 28 -> 0).
+ */
+export const MaskedHeadingReveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({
+  children,
+  className = '',
+  delay = 0,
+}) => {
+  const hasIO = typeof window !== 'undefined' && 'IntersectionObserver' in window;
+
+  if (!hasIO) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <div className={`overflow-hidden ${className}`}>
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.12 }}
+        transition={{ duration: 0.55, delay, ease: PREMIUM_EASE }}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+};
+
+/**
+ * <ScrollReveal>
+ * Glide-up entrance triggered once at 12% viewport visibility with [0.22, 1, 0.36, 1] easing.
+ */
+export const ScrollReveal: React.FC<ScrollRevealProps> = ({
+  children,
+  delay = 0,
+  className = '',
+}) => {
+  const hasIO = typeof window !== 'undefined' && 'IntersectionObserver' in window;
+
+  if (!hasIO) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.985 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, amount: 0.12 }}
+      transition={{ duration: 0.54, delay, ease: PREMIUM_EASE }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+export interface ScrollRevealGroupProps {
+  children: React.ReactNode;
+  staggerSec?: number;
+  className?: string;
+}
+
+/**
+ * <ScrollRevealGroup>
+ * Coordinates staggered child entrances (0.09s stagger by default) with scale 0.98 -> 1.
+ */
+export const ScrollRevealGroup: React.FC<ScrollRevealGroupProps> = ({
+  children,
+  staggerSec = 0.09,
+  className = '',
+}) => {
+  const hasIO = typeof window !== 'undefined' && 'IntersectionObserver' in window;
+  const items = React.Children.toArray(children);
+
+  if (!hasIO) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <div className={className}>
+      {items.map((child, idx) => (
+        <motion.div
+          key={idx}
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{
+            duration: 0.52,
+            delay: Math.min(idx, 6) * staggerSec,
+            ease: PREMIUM_EASE,
+          }}
+          className="h-full"
+        >
+          {child}
+        </motion.div>
+      ))}
+    </div>
+  );
+};
+
+export interface SpotlightCardProps {
+  children: React.ReactNode;
+  className?: string;
+  spotlightColor?: string;
+}
+
+/**
+ * <SpotlightCard>
+ * Bento card with cursor-tracking radial spotlight glow, fine-pointer spring hover lift (y: -4),
+ * and full reduced-motion safety.
+ */
+export const SpotlightCard: React.FC<SpotlightCardProps> = ({
+  children,
+  className = '',
+  spotlightColor = 'rgba(10, 82, 184, 0.08)',
+}) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ x: number; y: number; active: boolean }>({
+    x: 50,
+    y: 50,
+    active: false,
+  });
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch' || !cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setCoords({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      active: true,
+    });
+  };
+
+  return (
+    <motion.div
+      ref={cardRef}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={() => setCoords((prev) => ({ ...prev, active: false }))}
+      whileHover={{ y: -4 }}
+      transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+      className={`group relative rounded-2xl bg-white border border-slate-200/80 overflow-hidden shadow-sm hover:border-[#0A52B8]/35 hover:shadow-[0_14px_34px_rgba(10,82,184,0.08)] transition-[border-color,box-shadow] duration-200 ${className}`}
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-px transition-opacity duration-300"
+        style={{
+          opacity: coords.active ? 1 : 0,
+          background: `radial-gradient(360px circle at ${coords.x}px ${coords.y}px, ${spotlightColor}, transparent 65%)`,
+        }}
+      />
+      <div className="relative z-10 h-full">{children}</div>
+    </motion.div>
+  );
+};
+
+export interface ScrollScaleShowcaseProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+/**
+ * <ScrollScaleShowcase>
+ * Smooth scroll-linked scale (0.94 -> 1) and brightness/opacity reveal tied to viewport entry.
+ */
+export const ScrollScaleShowcase: React.FC<ScrollScaleShowcaseProps> = ({
+  children,
+  className = '',
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start 0.92', 'center 0.55'],
+  });
+
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 160,
+    damping: 26,
+    mass: 0.6,
+  });
+
+  const scale = useTransform(smoothProgress, [0, 1], [0.94, 1]);
+  const opacity = useTransform(smoothProgress, [0, 1], [0.84, 1]);
+
+  if (reducedMotion) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <motion.div
+      ref={ref}
+      style={{ scale, opacity, willChange: 'transform, opacity' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+export interface ParallaxAmbientLayerProps {
+  className?: string;
+  variant?: 'cool' | 'warm';
+}
+
+/**
+ * <ParallaxAmbientLayer>
+ * Soft floating geometric outlines and radial gradient orbs driven by scroll position (useTransform).
+ */
+export const ParallaxAmbientLayer: React.FC<ParallaxAmbientLayerProps> = ({
+  className = '',
+}) => {
+  return (
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none select-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#CBD5E1]/70 to-transparent ${className}`}
+    />
+  );
+};
+
 

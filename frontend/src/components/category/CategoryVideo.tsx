@@ -11,13 +11,13 @@ export interface CategoryVideoProps {
   className?: string;
 }
 
-const CATEGORY_MEDIA: Record<DomainId, {
+const CATEGORY_MEDIA: Partial<Record<DomainId, {
   poster: string;
   webm: string;
   mp4: string;
   altMp4: string;
   defaultObjectPosition: string;
-}> = {
+}>> = {
   web3: {
     poster: '/media/posters/category-web3.svg',
     webm: '/videos/web3.webm',
@@ -68,7 +68,7 @@ export const CategoryVideo: React.FC<CategoryVideoProps> = ({
   const [isInView, setIsInView] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
 
-  const media = CATEGORY_MEDIA[categoryId];
+  const media = CATEGORY_MEDIA[categoryId] ?? CATEGORY_MEDIA.web3!;
 
   // Helper to strictly enforce 0.8x playback rate
   const enforceRate = useCallback((video: HTMLVideoElement | null) => {

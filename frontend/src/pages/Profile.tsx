@@ -32,9 +32,12 @@ import {
   Lock,
   Download,
   Copy,
+  Sparkles,
 } from 'lucide-react';
 import { GithubEkycCard } from '../components/GithubEkycCard';
 import { GithubVerifyModal } from '../components/GithubVerifyModal';
+import { VerificationCredentialsHub } from '../components/onboarding/VerificationCredentialsHub';
+import { isDualVerified } from '../utils/portfolioPlatforms';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Avatar } from '../components/common/Avatar';
 import { AddressChip } from '../components/common/AddressChip';
@@ -54,6 +57,7 @@ import { CONTRACTS } from '../config/contracts';
 import { renderCertificate, renderCertificateToPng, svgToDataUri, KNOWN_ONCHAIN_TOKENS } from '../utils/certificateGenerator';
 import { Seo } from '../components/seo/Seo';
 import { buildProfileSeo } from '../seo/templates';
+import { ClientTrustBadge } from '../components/common/ClientTrustBadge';
 
 function stripMarkdown(text: string): string {
   if (!text) return '';
@@ -104,11 +108,12 @@ export const Profile: React.FC = () => {
   const [editSkills, setEditSkills] = useState<string[]>(userProfile.skills || []);
 
   useEffect(() => {
+    if (isEditModalOpen) return; // Do not overwrite user input while modal is actively open
     setEditName(userProfile.displayName || '');
     setEditHeadline(userProfile.primaryCategory || 'Web3 Full-Stack Developer');
     setEditBio(userProfile.bio || '');
     setEditSkills(userProfile.skills || []);
-  }, [userProfile.displayName, userProfile.primaryCategory, userProfile.bio, userProfile.skills]);
+  }, [isEditModalOpen, userProfile.displayName, userProfile.primaryCategory, userProfile.bio, userProfile.skills]);
 
   const handleShareProfile = async () => {
     if (typeof window !== 'undefined') {
@@ -421,12 +426,27 @@ export const Profile: React.FC = () => {
                 <h1 className="text-2xl font-semibold text-[#0B0B0F] tracking-tight">
                   {userProfile.displayName}
                 </h1>
-                {userProfile.githubVerified && (
-                  <Badge variant="cobalt" icon={<CheckCircle2 size={13} />}>
-                    Verified
+                {isDualVerified(userProfile) && (
+                  <Badge variant="cobalt" icon={<Sparkles size={13} />}>
+                    Dual Verified • Tech &amp; Creative
                   </Badge>
                 )}
-                <CompactTierChip tier={tierInfo.tier} />
+                {userProfile.githubVerified && (
+                  <Badge variant="cobalt" icon={<CheckCircle2 size={13} />}>
+                    GitHub Verified ✓
+                  </Badge>
+                )}
+                {userProfile.portfolioVerified && (
+                  <Badge variant="cobalt" icon={<CheckCircle2 size={13} />}>
+                    Portfolio Verified ✓
+                  </Badge>
+                )}
+                {(userProfile.accountMode === 'client' || userProfile.role === 'client' || clientJobs.length > 0) && (
+                  <ClientTrustBadge compact clientAddress={userProfile.address} jobs={jobs} profile={userProfile} />
+                )}
+                {userProfile.accountMode !== 'client' && userProfile.role !== 'client' && (
+                  <CompactTierChip tier={tierInfo.tier} />
+                )}
               </div>
 
               <p className="text-sm text-[#4B5563]">
@@ -451,7 +471,7 @@ export const Profile: React.FC = () => {
           <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-auto">
             {isOwnProfile ? (
               <div className="flex items-center gap-2">
-                {!userProfile.githubVerified && (
+                {!userProfile.githubVerified && userProfile.accountMode !== 'client' && (
                   <Button
                     variant="secondary"
                     onClick={() => setIsVerifyModalOpen(true)}
@@ -562,8 +582,35 @@ export const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* GitHub Verification Card */}
-            <GithubEkycCard bytecodeMatrix={bytecodeMatrix} userProfile={userProfile} />
+            {/* Client Trust Record (if client or has posted escrows) */}
+            {(userProfile.accountMode === 'client' || userProfile.role === 'client' || clientJobs.length > 0) && (
+              <ClientTrustBadge clientAddress={userProfile.address} jobs={jobs} profile={userProfile} />
+            )}
+
+            {/* Cross-Skill Freelancer Verification Hub (Side-by-Side Tech & Creative Tracks) */}
+            {userProfile.accountMode !== 'client' && (
+              <VerificationCredentialsHub
+                profile={userProfile}
+                isOwner={isOwnProfile}
+                onConnectGithub={() => setIsVerifyModalOpen(true)}
+                onSavePortfolio={async (data) => {
+                  if (!currentAddress) return;
+                  await updateProfile(
+                    {
+                      portfolioLinks: data.portfolioLinks,
+                      primaryDiscipline: data.primaryDiscipline,
+                      portfolioVerified: data.portfolioVerified,
+                    },
+                    currentAddress
+                  );
+                }}
+              />
+            )}
+
+            {/* GitHub Bytecode Matrix Card when Verified */}
+            {userProfile.accountMode !== 'client' && userProfile.githubVerified && (
+              <GithubEkycCard bytecodeMatrix={bytecodeMatrix} userProfile={userProfile} />
+            )}
           </div>
         )}
 
@@ -1065,6 +1112,7 @@ export const Profile: React.FC = () => {
             label="Skills"
             tags={editSkills}
             onChange={setEditSkills}
+            maxTags={50}
             placeholder="Type skill and press Enter..."
           />
 

@@ -10,6 +10,7 @@ import { truncateAddress } from '../utils/formatters';
 import { scrollToSection } from '../utils/scroll';
 import { PolyLanceSelect, SelectOption } from './PolyLanceSelect';
 import { useWeb3 } from '../context/Web3Context';
+import { isAdminAddress, isJudgeAddress } from '../utils/adminGuard';
 import { Modal } from './overlay';
 import { Button } from './common/Button';
 import { getJobAmounts } from '../lib/amounts/getJobAmounts';
@@ -40,8 +41,8 @@ export const RaiseDisputeModal: React.FC<RaiseDisputeModalProps> = ({
   onRaiseDispute,
 }) => {
   const navigate = useNavigate();
-  const { currentRole } = useWeb3();
-  const isJudgeOrAdmin = currentRole === 'judge' || currentRole === 'admin';
+  const { currentRole, address, isArbitrator } = useWeb3();
+  const isJudgeOrAdmin = Boolean(address && (isAdminAddress(address) || isJudgeAddress(address)) && (currentRole === 'judge' || currentRole === 'admin' || isArbitrator));
   const [selectedJobId, setSelectedJobId] = useState<string>(() => {
     if (job) return job.id;
     if (jobs && jobs.length > 0) return jobs[0].id;

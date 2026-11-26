@@ -6,7 +6,7 @@ import { VideoModal, useVideoModal } from '../components/video';
 import { Seo } from '../components/seo/Seo';
 
 export const Landing: React.FC = () => {
-  const { jobs, profiles } = usePolyLanceData();
+  const { jobs, profiles, loading } = usePolyLanceData();
   const { activeVideoId, isOpen, closeVideo, openVideo, triggerRef } = useVideoModal();
   const navigate = useNavigate();
 
@@ -27,6 +27,7 @@ export const Landing: React.FC = () => {
       <LandingVisitor
         jobs={jobs}
         profiles={profiles}
+        isLoading={loading}
         onOpenVideo={openVideo}
       />
 

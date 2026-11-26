@@ -1,3 +1,4 @@
+import compression from "compression";
 import express from "express";
 import type { Request, Response } from "express";
 import http from "http";
@@ -23,7 +24,8 @@ import {
 } from "./auth.js";
 import { createConversationKey } from "./crypto/ecies.js";
 import { startPaymentListener } from "./paymentListener.js";
-import { authLimiter, messageLimiter, joinLimiter, deleteLimiter, httpLimiter, httpReadLimiter, nonceLimiter } from "./ratelimit.js";
+import { authLimiter, messageLimiter, joinLimiter, deleteLimiter, httpLimiter, httpReadLimiter, walletWriteLimiter, walletReadLimiter, nonceLimiter, evaluateIpAndWalletRateLimit } from "./ratelimit.js";
+import { redactSecretsForLog } from "./securityLog.js";
 import { RpcPool } from "./rpc/RpcPool.js";
 import { TxManager, TransactionRecord } from "./transactions/TxManager.js";
 import { EventIndexer } from "./indexer/EventIndexer.js";
@@ -63,6 +65,45 @@ import { feeDuesRouter } from "./feeDues.js";
 import { sbtRouter } from "./sbtRoutes.js";
 import { blogRouter } from "./blog/routes.js";
 import { publicStatsRouter } from "./publicStats.js";
+import { turnstileMiddleware, verifyTurnstileToken } from "./turnstile.js";
+import {
+  TAXONOMY_CATEGORIES,
+  LEGACY_CATEGORY_MAP,
+  filterAndPaginateJobs,
+  enrichJobCategoryFields,
+  computeCategoryOpenJobCounts,
+  validateAndPrepareIncomingJobs,
+} from "./taxonomy.js";
+import {
+  GITHUB_PROOF_MIN_SCOPE,
+  GITHUB_REFRESH_COOLDOWN_MS,
+  getGithubOAuthCredentials,
+  signGithubProofState,
+  verifyGithubProofState,
+  connectGithubProofWithSingleUseToken,
+  refreshGithubProofSnapshot,
+  getStoredGithubProof,
+  disconnectGithubProof,
+} from "./githubProof.js";
+import {
+  MAX_PORTFOLIO_LINKS,
+  validatePortfolioLinksList,
+  getStoredPortfolioLinks,
+  replacePortfolioLinks,
+  addPortfolioLink,
+  deletePortfolioLinkById,
+} from "./portfolioLinks.js";
+import {
+  getOrComputeOwnProfileScore,
+  disconnectAndDeleteProfileScore,
+} from "./profileScore.js";
+import {
+  LEADERBOARD_CACHE_TTL_MS,
+  invalidateLeaderboardCache,
+  buildOrGetLeaderboardEntries,
+  queryLeaderboardPage,
+  buildTopByCategoryGroups,
+} from "./leaderboard.js";
 
 dotenv.config();
 
@@ -73,6 +114,7 @@ const STATE_FILE = fs.existsSync(path.resolve(process.cwd(), "polylance_shared_s
     : path.resolve(process.cwd(), "polylance_shared_state.json"));
 
 export const serverRecentlyDeletedJobs = new Set<string>();
+export { turnstileMiddleware, verifyTurnstileToken };
 
 let sharedState: {
   jobs: any[];
@@ -87,6 +129,10 @@ let sharedState: {
   indexerCursor?: number;
   accountDeletionRequests?: Record<string, any>;
   deletedJobIds?: string[];
+  githubProofs?: Record<string, any>;
+  portfolioLinks?: Record<string, any[]>;
+  profileScores?: Record<string, any>;
+  profileScoreOptOut?: Record<string, boolean>;
   maintenance?: {
     enabled: boolean;
     startedAt?: number;
@@ -114,6 +160,10 @@ let sharedState: {
   transactions: {},
   indexerCursor: 0,
   accountDeletionRequests: {},
+  githubProofs: {},
+  portfolioLinks: {},
+  profileScores: {},
+  profileScoreOptOut: {},
   maintenance: {
     enabled: false,
     changelog: [
@@ -160,6 +210,7 @@ try {
 }
 
 function persistState() {
+  invalidateLeaderboardCache();
   try {
     const payload = JSON.stringify(sharedState, null, 2);
     const candidatePaths = [
@@ -178,8 +229,19 @@ function persistState() {
   }
 }
 
-const primaryDbUrl = process.env.DATABASE_URL;
-const backupDbUrl = process.env.BACKUP_DATABASE_URL;
+function configureDbPool(rawUrl?: string): string | undefined {
+  if (!rawUrl) return undefined;
+  if (!rawUrl.includes("connection_limit=")) {
+    const poolSize = process.env.DATABASE_POOL_SIZE || "10";
+    const poolTimeout = process.env.DATABASE_TIMEOUT || "10";
+    const sep = rawUrl.includes("?") ? "&" : "?";
+    return `${rawUrl}${sep}connection_limit=${poolSize}&pool_timeout=${poolTimeout}`;
+  }
+  return rawUrl;
+}
+
+const primaryDbUrl = configureDbPool(process.env.DATABASE_URL);
+const backupDbUrl = configureDbPool(process.env.BACKUP_DATABASE_URL);
 
 export let prisma: any = null;
 try {
@@ -960,15 +1022,39 @@ const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || [
   "http://localhost:5173",
   "https://polylance-fv-1-45wy.onrender.com",
   "https://polylance.github.io",
+  "https://polylancezenith.com",
+  "https://www.polylancezenith.com",
   "https://polylance.codes",
 ].join(",")).split(",").map(o => o.trim()).filter(Boolean);
 
 const isOriginAllowed = (origin?: string): boolean => {
-  if (!origin) return true;
-  if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) return true;
-  if (origin.includes("localhost") || origin.includes("127.0.0.1")) return true;
-  if (origin.includes("onrender.com") || origin.includes("github.io") || origin.includes("codes")) return true;
-  return true; // Allow all browser clients to interact with public chat and data sync
+  if (!origin) return true; // Allow non-browser, server-to-server, or mobile requests without Origin header
+  if (allowedOrigins.includes(origin)) return true;
+
+  // Local development origins
+  if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+    return true;
+  }
+
+  // Trusted production domains and subdomains
+  try {
+    const parsed = new URL(origin);
+    const host = parsed.hostname.toLowerCase();
+    if (
+      host === "polylancezenith.com" ||
+      host.endsWith(".polylancezenith.com") ||
+      host === "polylance.codes" ||
+      host.endsWith(".polylance.codes") ||
+      host === "polylance-fv-1-45wy.onrender.com" ||
+      host === "polylance.github.io"
+    ) {
+      return parsed.protocol === "https:";
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
 };
 
 app.use(cors({
@@ -979,6 +1065,37 @@ app.use(cors({
   credentials: true,
 }));
 app.disable("x-powered-by");
+
+// Enforce standard security headers on all HTTP responses
+// Mount Brotli/Gzip response compression with 1KB threshold
+app.use(compression({ threshold: 1024 }));
+
+// HTTP Cache-Control & CDN Edge Directives
+app.use("/api", (req: Request, res: Response, next) => {
+  if (
+    req.path.startsWith("/auth") ||
+    req.path.startsWith("/sync") ||
+    req.path.startsWith("/notifications") ||
+    req.path.startsWith("/studio") ||
+    req.path.startsWith("/tx")
+  ) {
+    res.setHeader("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  } else if (req.method === "GET") {
+    res.setHeader("Cache-Control", "public, s-maxage=10, stale-while-revalidate=30");
+  }
+  next();
+});
+
+app.use((_req: Request, res: Response, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  next();
+});
+
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ limit: "25mb", extended: true }));
 app.use(sessionMiddleware);
@@ -1019,6 +1136,18 @@ app.use(async (req: Request, res: Response, next) => {
   // Fast read/polling paths use httpReadLimiter (300 req/min)
   const isReadPath = req.method === "GET" && (
     req.path.startsWith("/api/sync") ||
+    req.path.startsWith("/api/jobs") ||
+    req.path.startsWith("/api/categories") ||
+    req.path.startsWith("/api/docs/") ||
+    req.path.startsWith("/me/proof") ||
+    req.path.startsWith("/api/me/proof") ||
+    req.path.startsWith("/me/portfolio") ||
+    req.path.startsWith("/api/me/portfolio") ||
+    req.path.startsWith("/me/score") ||
+    req.path.startsWith("/api/me/score") ||
+    req.path.startsWith("/leaderboard") ||
+    req.path.startsWith("/api/leaderboard") ||
+    req.path.startsWith("/api/profiles/") ||
     req.path.startsWith("/api/notifications") ||
     req.path.startsWith("/api/account/balances") ||
     req.path.startsWith("/api/tx/") ||
@@ -1031,10 +1160,18 @@ app.use(async (req: Request, res: Response, next) => {
     req.path.startsWith("/token")
   );
 
-  const limiter = isReadPath ? httpReadLimiter : httpLimiter;
-  const { success } = await limiter.limit(ip);
-  if (!success) {
-    res.status(429).json({ error: "Rate limit exceeded — try again shortly", code: "RATE_LIMITED" });
+  const decision = await evaluateIpAndWalletRateLimit({
+    ip,
+    wallet: (req as any).session?.wallet || null,
+    isReadPath,
+  });
+  res.setHeader("X-RateLimit-Remaining", String(decision.remaining));
+  if (!decision.allowed) {
+    res.setHeader("Retry-After", String(decision.retryAfterSeconds));
+    res.status(429).json({
+      error: "Rate limit exceeded — try again shortly",
+      code: decision.reason === "WALLET_RATE_LIMITED" ? "RATE_LIMITED_WALLET" : "RATE_LIMITED",
+    });
     return;
   }
   next();
@@ -2882,8 +3019,17 @@ app.post("/api/sync", requireAuth, async (req: Request, res: Response) => {
         const requesterMode = requesterProf?.accountMode || 'both';
         const existingJobIds = new Set((sharedState.jobs || []).map((j: any) => String(j.id).toLowerCase()));
 
-        const allowedJobs = incoming.jobs.filter((j: any) => {
-          if (!j || isDemoOrMockJobOnServer(j)) return false;
+        const nonDemoJobs = incoming.jobs.filter((j: any) => j && !isDemoOrMockJobOnServer(j));
+        const taxonomyCheck = validateAndPrepareIncomingJobs(nonDemoJobs);
+        if (!taxonomyCheck.ok) {
+          return res.status(400).json({
+            error: taxonomyCheck.error,
+            code: taxonomyCheck.code,
+            jobId: taxonomyCheck.jobId,
+          });
+        }
+
+        const allowedJobs = taxonomyCheck.jobs.filter((j: any) => {
           if (isAdmin) return true;
           const client = (j.client || '').toLowerCase().trim();
           const freelancer = (j.freelancer || '').toLowerCase().trim();
@@ -2945,6 +3091,18 @@ app.post("/api/sync", requireAuth, async (req: Request, res: Response) => {
                   delete profObj.githubUsername;
                   profObj.githubVerified = false;
                 }
+              }
+              if (profObj && profObj.portfolioLinks !== undefined) {
+                const pfCheck = validatePortfolioLinksList(profObj.portfolioLinks);
+                if (!pfCheck.valid) {
+                  return res.status(400).json({
+                    error: pfCheck.errorMessage,
+                    code: pfCheck.errorCode,
+                  });
+                }
+                profObj.portfolioLinks = pfCheck.links;
+                if (!sharedState.portfolioLinks) sharedState.portfolioLinks = {};
+                sharedState.portfolioLinks[requesterAddress] = pfCheck.links;
               }
               sharedState.profiles = {
                 ...sharedState.profiles,
@@ -3028,6 +3186,43 @@ app.post("/api/sync", requireAuth, async (req: Request, res: Response) => {
 });
 
 // ── Canonical REST Endpoints for Public and Authorized Jobs ──────────────────
+app.get("/api/docs/openapi.yaml", (_req: Request, res: Response) => {
+  const candidates = [
+    path.resolve(process.cwd(), "docs/openapi.yaml"),
+    path.resolve(process.cwd(), "polylance-chat-service/docs/openapi.yaml"),
+  ];
+  const specPath = candidates.find((p) => fs.existsSync(p));
+  if (!specPath) {
+    return res.status(404).json({ error: "OpenAPI spec not found" });
+  }
+  res.type("text/yaml").send(fs.readFileSync(specPath, "utf-8"));
+});
+
+app.get("/api/categories", async (_req: Request, res: Response) => {
+  try {
+    if (!sharedState.jobs || sharedState.jobs.length === 0) {
+      await loadStateFromDatabase();
+    }
+    const { countsByCategoryId, legacyUnmappedCount, queryMs } = computeCategoryOpenJobCounts(
+      sharedState.jobs || []
+    );
+    const categories = TAXONOMY_CATEGORIES.map((cat) => ({
+      ...cat,
+      openJobsCount: countsByCategoryId[cat.id] || 0,
+    }));
+    res.json({
+      success: true,
+      categories,
+      legacyMapping: LEGACY_CATEGORY_MAP,
+      legacyUnmappedCount,
+      meta: { queryMs },
+    });
+  } catch (err: any) {
+    console.error("[GET /api/categories ERROR]", err);
+    res.status(500).json({ error: "Failed to load categories", details: err?.message });
+  }
+});
+
 app.get("/api/jobs", async (req: Request, res: Response) => {
   if (!sharedState.jobs || sharedState.jobs.length === 0) {
     await loadStateFromDatabase();
@@ -3038,39 +3233,94 @@ app.get("/api/jobs", async (req: Request, res: Response) => {
     "0x0000000000000000000000000000000000000000"
   ).toLowerCase().trim();
 
+  const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
+  const subcategory = typeof req.query.subcategory === "string" ? req.query.subcategory.trim() : "";
+  const track = typeof req.query.track === "string" ? req.query.track.trim().toLowerCase() : "";
+  const status = typeof req.query.status === "string" ? req.query.status.trim() : "";
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const cursor = typeof req.query.cursor === "string" ? req.query.cursor.trim() : "";
+  const limitParam = parseInt(req.query.limit as string, 10);
+
+  if (track && track !== "tech" && track !== "non-tech" && track !== "hybrid") {
+    return res.status(400).json({
+      error: "Invalid track filter. Expected 'tech', 'non-tech', or 'hybrid'",
+      code: "INVALID_FILTER",
+    });
+  }
+
   const sanitized = sanitizeSharedStateForRequester(sharedState, requesterAddress);
-  res.json({ success: true, jobs: sanitized.jobs || [] });
+  const allJobs = sanitized.jobs || [];
+
+  const hasFilterOrPaging = Boolean(category || subcategory || track || status || q || cursor || !isNaN(limitParam));
+  const effectiveLimit = !isNaN(limitParam)
+    ? Math.min(Math.max(1, limitParam), 100)
+    : hasFilterOrPaging
+    ? 20
+    : Math.max(allJobs.length, 100);
+
+  const filtered = filterAndPaginateJobs(allJobs, {
+    category: category || undefined,
+    subcategory: subcategory || undefined,
+    track: track || undefined,
+    status: status || undefined,
+    q: q || undefined,
+    cursor: cursor || undefined,
+    limit: effectiveLimit,
+  });
+
+  const enrichedItems = filtered.items.map((j: any) => enrichJobCategoryFields(j));
+
+  if (hasFilterOrPaging) {
+    return res.json({
+      success: true,
+      jobs: enrichedItems,
+      pagination: {
+        limit: effectiveLimit,
+        cursor: filtered.nextCursor,
+        total: filtered.total,
+        hasMore: filtered.nextCursor !== null,
+      },
+      meta: { queryMs: filtered.queryMs },
+    });
+  }
+
+  res.json({
+    success: true,
+    jobs: enrichedItems,
+    total: filtered.total,
+    meta: { queryMs: filtered.queryMs },
+  });
 });
 
-app.post("/api/jobs", async (req: Request, res: Response) => {
+app.post("/api/jobs", requireAuth, async (req: Request, res: Response) => {
   try {
     const jobData = req.body;
-    if (!jobData || (!jobData.title && !jobData.id)) {
+    if (!jobData || (!jobData.title && !jobData.id && !Array.isArray(jobData))) {
       return res.status(400).json({ error: "Missing job payload" });
     }
 
-    const requesterAddress = (
-      (req.headers["x-wallet-address"] as string) ||
-      (req.query.address as string) ||
-      (jobData.client as string) ||
-      ""
-    ).toLowerCase().trim();
+    const requesterAddress = ((req as any).session?.wallet || "").toLowerCase().trim();
+    if (!requesterAddress || !/^0x[a-fA-F0-9]{40}$/.test(requesterAddress)) {
+      return res.status(401).json({
+        error: "Unauthorized: Valid authenticated wallet session required",
+        code: "UNAUTHORIZED_JOB_WRITE",
+      });
+    }
+
+    const isAdmin = isAuthorizedAdmin(requesterAddress);
 
     // Maintenance Guard
-    if (sharedState.maintenance?.enabled) {
-      const isAdmin = isAuthorizedAdmin(requesterAddress);
-      if (!isAdmin) {
-        return res.status(503).json({
-          error: "PolyLance is currently under scheduled maintenance. State mutations are paused to safeguard user data.",
-          code: "MAINTENANCE_LOCKED"
-        });
-      }
+    if (sharedState.maintenance?.enabled && !isAdmin) {
+      return res.status(503).json({
+        error: "PolyLance is currently under scheduled maintenance. State mutations are paused to safeguard user data.",
+        code: "MAINTENANCE_LOCKED"
+      });
     }
 
     // Account Mode Guard: Freelancer-only mode cannot post jobs
     const requesterProfile = (sharedState.profiles || {})[requesterAddress];
     const requesterMode = requesterProfile?.accountMode || "both";
-    if (!isModeAllowedForRole(requesterMode, "client")) {
+    if (!isAdmin && !isModeAllowedForRole(requesterMode, "client")) {
       return res.status(403).json({
         error: "Freelancer-only mode cannot post jobs. Switch to client or both mode in settings.",
         code: "FREELANCER_ONLY_MODE",
@@ -3078,16 +3328,37 @@ app.post("/api/jobs", async (req: Request, res: Response) => {
     }
 
     const incomingJobs = Array.isArray(jobData) ? jobData : [jobData];
-    const validIncoming = incomingJobs.filter((j: any) => !isDemoOrMockJobOnServer(j));
+    const validIncoming = incomingJobs.filter((j: any) => j && !isDemoOrMockJobOnServer(j));
     if (validIncoming.length === 0) {
       return res.status(400).json({ error: "Invalid job payload or rejected test/mock job" });
     }
-    sharedState.jobs = mergeJobsOnServer(sharedState.jobs || [], validIncoming);
+
+    const taxonomyCheck = validateAndPrepareIncomingJobs(validIncoming);
+    if (!taxonomyCheck.ok) {
+      return res.status(400).json({
+        error: taxonomyCheck.error,
+        code: taxonomyCheck.code,
+        jobId: taxonomyCheck.jobId,
+      });
+    }
+
+    const authorizedJobs = taxonomyCheck.jobs
+      .map((j: any) => ({ ...j, client: j.client || requesterAddress }))
+      .filter((j: any) => isAdmin || areAddressesEqual(j.client, requesterAddress));
+
+    if (authorizedJobs.length === 0) {
+      return res.status(403).json({
+        error: "Forbidden: Jobs may only be created for your authenticated wallet address",
+        code: "FORBIDDEN_JOB_CLIENT",
+      });
+    }
+
+    sharedState.jobs = mergeJobsOnServer(sharedState.jobs || [], authorizedJobs);
 
     await persistStateToDatabases();
     broadcastScopedRealtimeSync();
 
-    res.json({ success: true, count: incomingJobs.length });
+    res.json({ success: true, count: authorizedJobs.length, jobs: authorizedJobs });
   } catch (err: any) {
     console.error("[POST /api/jobs ERROR]", err);
     res.status(500).json({ error: "Failed to persist job", details: err?.message });
@@ -3113,17 +3384,40 @@ app.get("/api/jobs/:id", async (req: Request, res: Response) => {
   res.json({ success: true, job: target });
 });
 
-app.patch("/api/jobs/:id", async (req: Request, res: Response) => {
+app.patch("/api/jobs/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.id || "").toLowerCase().trim();
     const updates = req.body;
     if (!jobId || !updates) return res.status(400).json({ error: "Missing job ID or updates" });
 
-    const requesterAddress = (
-      (req.headers["x-wallet-address"] as string) ||
-      (req.query.address as string) ||
-      ""
-    ).toLowerCase().trim();
+    const requesterAddress = ((req as any).session?.wallet || "").toLowerCase().trim();
+    if (!requesterAddress || !/^0x[a-f0-9]{40}$/.test(requesterAddress)) {
+      return res.status(401).json({ error: "Unauthorized: Valid session required", code: "UNAUTHORIZED" });
+    }
+
+    if (updates.categoryId !== undefined || updates.subcategoryId !== undefined) {
+      const catCheck = validateAndPrepareIncomingJobs([
+        {
+          id: jobId,
+          categoryId: updates.categoryId,
+          subcategoryId: updates.subcategoryId,
+          category: updates.category,
+          subcategory: updates.subcategory,
+        },
+      ]);
+      if (!catCheck.ok) {
+        return res.status(400).json({
+          error: catCheck.error,
+          code: catCheck.code,
+          jobId,
+        });
+      }
+      updates.categoryId = catCheck.jobs[0].categoryId;
+      updates.subcategoryId = catCheck.jobs[0].subcategoryId;
+      if (catCheck.jobs[0].legacyCategory !== undefined) {
+        updates.legacyCategory = catCheck.jobs[0].legacyCategory;
+      }
+    }
 
     const targetJob = (sharedState.jobs || []).find((j: any) => matchJobServer(j, jobId));
     if (!targetJob) {
@@ -4250,6 +4544,33 @@ app.get("/api/notifications", requireAuth, (req: Request, res: Response) => {
     return areAddressesEqual(n.recipientWallet, sessionWallet);
   });
 
+  const limitParam = parseInt(req.query.limit as string, 10);
+  const cursor = (req.query.cursor as string || "").trim();
+
+  if (!isNaN(limitParam) || Boolean(cursor)) {
+    const limit = Math.min(Math.max(1, limitParam || 20), 100);
+    let startIndex = 0;
+    if (cursor) {
+      const idx = list.findIndex((n: any) => n.id === cursor);
+      if (idx !== -1) startIndex = idx + 1;
+    }
+    const pageItems = list.slice(startIndex, startIndex + limit);
+    const nextCursor = pageItems.length === limit && startIndex + limit < list.length
+      ? pageItems[pageItems.length - 1].id
+      : null;
+
+    return res.json({
+      success: true,
+      notifications: pageItems,
+      pagination: {
+        limit,
+        cursor: nextCursor,
+        total: list.length,
+        hasMore: nextCursor !== null
+      }
+    });
+  }
+
   res.json({ success: true, notifications: list });
 });
 
@@ -4598,7 +4919,13 @@ app.delete("/api/users/:address/deletion-request", async (req: Request, res: Res
 
 export async function verifyAndBindGithubOAuth(code: string, targetAddress: string, redirectUri?: string) {
   const clientId = (process.env.GITHUB_CLIENT_ID || "Ov23liwzYmozvQE55pvk").trim();
-  const clientSecret = (process.env.GITHUB_CLIENT_SECRET || "60eb74a3ca190caa70299c8e4a6034766f67af12").trim();
+  const clientSecret = (
+    process.env.GITHUB_CLIENT_SECRET ||
+    (process.env.NODE_ENV === "test" ? "test_github_client_secret" : "")
+  ).trim();
+  if (!clientSecret) {
+    throw new Error("GITHUB_CLIENT_SECRET is not configured on this server");
+  }
 
   // 1. Exchange authorization code with GitHub OAuth server
   const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
@@ -4619,7 +4946,7 @@ export async function verifyAndBindGithubOAuth(code: string, targetAddress: stri
   const tokenData: any = await tokenResponse.json();
   if (!tokenData.access_token) {
     const errorMsg = tokenData.error_description || tokenData.error || "Failed to exchange GitHub authorization code";
-    console.warn("[GITHUB OAUTH ERROR] Token exchange failed:", errorMsg);
+    console.warn("[GITHUB OAUTH ERROR] Token exchange failed:", redactSecretsForLog(errorMsg));
     throw new Error(errorMsg);
   }
 
@@ -4638,7 +4965,19 @@ export async function verifyAndBindGithubOAuth(code: string, targetAddress: stri
     throw new Error(`GitHub user verification request failed with HTTP ${userResponse.status}`);
   }
 
-  const ghUser: any = await userResponse.json();
+  const rawGhUser: any = await userResponse.json();
+  // Strip private/PII fields immediately (no email, phone, or private repo metrics stored)
+  const ghUser = {
+    id: rawGhUser.id,
+    login: rawGhUser.login,
+    name: rawGhUser.name,
+    avatar_url: rawGhUser.avatar_url,
+    bio: rawGhUser.bio,
+    public_repos: rawGhUser.public_repos,
+    followers: rawGhUser.followers,
+    created_at: rawGhUser.created_at,
+    html_url: rawGhUser.html_url,
+  };
   const lowerGhUsername = String(ghUser.login || "").toLowerCase().trim();
   const ghUserId = String(ghUser.id || "");
   const cleanTargetAddress = (targetAddress || "").toLowerCase().trim();
@@ -4849,7 +5188,7 @@ app.get("/api/auth/github", (req: Request, res: Response) => {
 
   const githubAuthUrl = new URL("https://github.com/login/oauth/authorize");
   githubAuthUrl.searchParams.set("client_id", clientId);
-  githubAuthUrl.searchParams.set("scope", "read:user user:email");
+  githubAuthUrl.searchParams.set("scope", GITHUB_PROOF_MIN_SCOPE);
   githubAuthUrl.searchParams.set("state", statePayload);
 
   res.redirect(githubAuthUrl.toString());
@@ -4950,7 +5289,7 @@ app.get("/api/auth/github/callback", async (req: Request, res: Response) => {
       attestationUID
     }, redirectObj.toString());
   } catch (err: any) {
-    console.error("[GITHUB CALLBACK ERROR]", err);
+    console.error("[GITHUB CALLBACK ERROR]", redactSecretsForLog(err));
     redirectObj.searchParams.set("github_error", err.message || "Failed to verify GitHub OAuth identity");
     if (err.code === "DUPLICATE_GITHUB_ACCOUNT") {
       redirectObj.searchParams.set("github_duplicate", "true");
@@ -4977,7 +5316,7 @@ app.post("/api/auth/github/exchange", async (req: Request, res: Response) => {
     const result = await verifyAndBindGithubOAuth(code, address, redirectUri);
     res.json({ success: true, ...result });
   } catch (err: any) {
-    console.error("[GITHUB EXCHANGE ERROR]", err);
+    console.error("[GITHUB EXCHANGE ERROR]", redactSecretsForLog(err));
     res.status(400).json({
       error: err.message || "Failed to exchange GitHub authorization code",
       code: err.code || "EXCHANGE_FAILED"
@@ -5045,6 +5384,424 @@ app.get("/api/auth/github/check-availability", async (req: Request, res: Respons
     });
   } catch (err: any) {
     return res.status(500).json({ error: "Failed to check GitHub availability", details: err?.message });
+  }
+});
+
+// ─── PART 2: MINIMAL-SCOPE GITHUB PROOF ENDPOINTS (/me/proof*) ──────────────
+app.get(["/me/proof", "/api/me/proof"], requireAuth, async (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  const github = getStoredGithubProof(wallet, sharedState);
+  return res.json({
+    success: true,
+    proof: {
+      github,
+      privacy: {
+        min_scope: GITHUB_PROOF_MIN_SCOPE,
+        email_stored: false,
+        phone_stored: false,
+        token_persisted: false,
+      },
+    },
+  });
+});
+
+app.get(["/me/proof/github/start", "/api/me/proof/github/start"], requireAuth, (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  const { clientId } = getGithubOAuthCredentials();
+  if (!clientId) {
+    return res.status(503).json({
+      error: "GitHub OAuth client ID is not configured",
+      code: "GITHUB_OAUTH_UNCONFIGURED",
+    });
+  }
+
+  const redirectUrl = typeof req.query.redirectUrl === "string" ? req.query.redirectUrl : "/";
+  const state = signGithubProofState(wallet, redirectUrl);
+  const callbackPrefix = req.path.startsWith("/api/") ? "/api" : "";
+  const callbackUri =
+    process.env.GITHUB_PROOF_CALLBACK_URL ||
+    `${req.protocol}://${req.get("host")}${callbackPrefix}/me/proof/github/callback`;
+
+  const authUrl = new URL("https://github.com/login/oauth/authorize");
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("redirect_uri", callbackUri);
+  authUrl.searchParams.set("scope", GITHUB_PROOF_MIN_SCOPE);
+  authUrl.searchParams.set("state", state);
+
+  if (req.query.redirect === "true" || req.query.redirect === "1") {
+    return res.redirect(authUrl.toString());
+  }
+
+  return res.json({
+    success: true,
+    authorizeUrl: authUrl.toString(),
+    scope: GITHUB_PROOF_MIN_SCOPE,
+    expiresInSeconds: 600,
+  });
+});
+
+app.get(["/me/proof/github/callback", "/api/me/proof/github/callback"], async (req: Request, res: Response) => {
+  const code = typeof req.query.code === "string" ? req.query.code.trim() : "";
+  const rawState = typeof req.query.state === "string" ? req.query.state.trim() : "";
+  const error = typeof req.query.error === "string" ? req.query.error.trim() : "";
+  const errorDescription = typeof req.query.error_description === "string" ? req.query.error_description.trim() : "";
+
+  const stateResult = verifyGithubProofState(rawState);
+  if (!stateResult.valid || !stateResult.payload) {
+    return res.status(400).json({
+      error: stateResult.reason || "Invalid OAuth state",
+      code: "INVALID_OAUTH_STATE",
+    });
+  }
+
+  if (error || !code) {
+    return res.status(400).json({
+      error: errorDescription || error || "Missing GitHub authorization code",
+      code: "GITHUB_AUTH_DENIED",
+    });
+  }
+
+  try {
+    const callbackPrefix = req.path.startsWith("/api/") ? "/api" : "";
+    const redirectUri =
+      process.env.GITHUB_PROOF_CALLBACK_URL ||
+      `${req.protocol}://${req.get("host")}${callbackPrefix}/me/proof/github/callback`;
+
+    const record = await connectGithubProofWithSingleUseToken({
+      code,
+      walletAddress: stateResult.payload.wallet,
+      redirectUri,
+      sharedState,
+      prisma,
+      persistState: async () => {
+        await persistStateToDatabases();
+        broadcastScopedRealtimeSync();
+      },
+    });
+
+    if (req.query.format === "html") {
+      return res.redirect(stateResult.payload.redirectUrl || "/");
+    }
+
+    return res.json({
+      success: true,
+      github: record,
+      token_persisted: false,
+      email_stored: false,
+      phone_stored: false,
+    });
+  } catch (err: any) {
+    const status = err?.statusCode || 400;
+    return res.status(status).json({
+      error: err?.message || "Failed to verify GitHub proof",
+      code: err?.code || "GITHUB_PROOF_FAILED",
+    });
+  }
+});
+
+app.post(["/me/proof/github/refresh", "/api/me/proof/github/refresh"], requireAuth, async (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  try {
+    const updated = await refreshGithubProofSnapshot({
+      walletAddress: wallet,
+      sharedState,
+      prisma,
+      persistState: async () => {
+        await persistStateToDatabases();
+        broadcastScopedRealtimeSync();
+      },
+      cooldownMs: GITHUB_REFRESH_COOLDOWN_MS,
+    });
+    return res.json({
+      success: true,
+      github: updated,
+      cooldownSeconds: Math.floor(GITHUB_REFRESH_COOLDOWN_MS / 1000),
+    });
+  } catch (err: any) {
+    if (err?.statusCode === 429 && err?.retryAfterSeconds) {
+      res.setHeader("Retry-After", String(err.retryAfterSeconds));
+    }
+    return res.status(err?.statusCode || 500).json({
+      error: err?.message || "Failed to refresh GitHub snapshot",
+      code: err?.code || "GITHUB_REFRESH_FAILED",
+      ...(err?.retryAfterSeconds ? { retryAfterSeconds: err.retryAfterSeconds } : {}),
+      ...(err?.nextRefreshAt ? { nextRefreshAt: err.nextRefreshAt } : {}),
+    });
+  }
+});
+
+app.delete(["/me/proof/github", "/api/me/proof/github"], requireAuth, async (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  const result = await disconnectGithubProof({
+    walletAddress: wallet,
+    sharedState,
+    prisma,
+    persistState: async () => {
+      await persistStateToDatabases();
+      broadcastScopedRealtimeSync();
+    },
+  });
+  return res.json({
+    success: true,
+    disconnected: result.disconnected,
+    github: null,
+  });
+});
+
+// ─── PART 3: PORTFOLIO LINKS ENDPOINTS (NON-TECH, STRICT FORMAT, NO SSRF) ────
+app.get(["/me/portfolio", "/api/me/portfolio"], requireAuth, (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  const portfolio = getStoredPortfolioLinks(wallet, sharedState);
+  return res.json({
+    success: true,
+    portfolio,
+    count: portfolio.length,
+    maxLinks: MAX_PORTFOLIO_LINKS,
+  });
+});
+
+app.put(["/me/portfolio", "/api/me/portfolio"], requireAuth, async (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  const items = Array.isArray(req.body) ? req.body : req.body?.links ?? req.body?.portfolio;
+  const result = await replacePortfolioLinks({
+    walletAddress: wallet,
+    items,
+    sharedState,
+    prisma,
+    persistState: async () => {
+      await persistStateToDatabases();
+      broadcastScopedRealtimeSync();
+    },
+  });
+
+  if (!result.valid) {
+    return res.status(400).json({
+      error: result.errorMessage || "Invalid portfolio submission",
+      code: result.errorCode || "INVALID_PORTFOLIO_PAYLOAD",
+    });
+  }
+
+  return res.json({
+    success: true,
+    portfolio: result.links,
+    count: result.links.length,
+    maxLinks: MAX_PORTFOLIO_LINKS,
+  });
+});
+
+app.post(["/me/portfolio", "/api/me/portfolio"], requireAuth, async (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  const result = await addPortfolioLink({
+    walletAddress: wallet,
+    item: req.body,
+    sharedState,
+    prisma,
+    persistState: async () => {
+      await persistStateToDatabases();
+      broadcastScopedRealtimeSync();
+    },
+  });
+
+  if (!result.valid) {
+    return res.status(400).json({
+      error: result.errorMessage || "Invalid portfolio entry",
+      code: result.errorCode || "INVALID_PORTFOLIO_PAYLOAD",
+    });
+  }
+
+  return res.status(201).json({
+    success: true,
+    portfolio: result.links,
+    count: result.links.length,
+    maxLinks: MAX_PORTFOLIO_LINKS,
+  });
+});
+
+app.delete(["/me/portfolio/:id", "/api/me/portfolio/:id"], requireAuth, async (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  const rawId = req.params.id;
+  const linkId = (Array.isArray(rawId) ? rawId[0] : rawId || "").trim();
+  if (!linkId) {
+    return res.status(400).json({ error: "Portfolio link id is required" });
+  }
+
+  const result = await deletePortfolioLinkById({
+    walletAddress: wallet,
+    linkId,
+    sharedState,
+    prisma,
+    persistState: async () => {
+      await persistStateToDatabases();
+      broadcastScopedRealtimeSync();
+    },
+  });
+
+  if (!result.found) {
+    return res.status(404).json({ error: "Portfolio link not found", code: "PORTFOLIO_LINK_NOT_FOUND" });
+  }
+
+  return res.json({
+    success: true,
+    portfolio: result.links,
+    count: result.links.length,
+    maxLinks: MAX_PORTFOLIO_LINKS,
+  });
+});
+
+app.get("/api/profiles/:address/portfolio", (req: Request, res: Response) => {
+  const rawAddress = req.params.address;
+  const addr = (Array.isArray(rawAddress) ? rawAddress[0] : rawAddress || "").toLowerCase().trim();
+  if (!addr || !ethers.isAddress(addr)) {
+    return res.status(400).json({ error: "Valid wallet address required", code: "INVALID_ADDRESS" });
+  }
+  const portfolio = getStoredPortfolioLinks(addr, sharedState);
+  return res.json({
+    success: true,
+    address: addr,
+    portfolio,
+    count: portfolio.length,
+  });
+});
+
+// ─── PART 4: PROFILE STRENGTH SCORE (DEMO PLACEHOLDER, USER-ONLY, NON-RANKING) ─
+app.get(["/me/score", "/api/me/score"], requireAuth, async (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  const forceRecompute = req.query.recompute === "true" || req.query.recompute === "1";
+  const score = await getOrComputeOwnProfileScore({
+    walletAddress: wallet,
+    sharedState,
+    prisma,
+    persistState: async () => {
+      await persistStateToDatabases();
+    },
+    forceRecompute,
+  });
+  return res.json(score);
+});
+
+app.post(["/me/score/recompute", "/api/me/score/recompute"], requireAuth, async (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  const score = await getOrComputeOwnProfileScore({
+    walletAddress: wallet,
+    sharedState,
+    prisma,
+    persistState: async () => {
+      await persistStateToDatabases();
+    },
+    forceRecompute: true,
+  });
+  return res.json(score);
+});
+
+app.delete(["/me/score", "/api/me/score"], requireAuth, async (req: Request, res: Response) => {
+  const wallet = ((req as any).session?.wallet || "").toLowerCase().trim();
+  const result = await disconnectAndDeleteProfileScore({
+    walletAddress: wallet,
+    sharedState,
+    prisma,
+    persistState: async () => {
+      await persistStateToDatabases();
+    },
+  });
+  return res.json({
+    success: true,
+    deleted: result.deleted,
+    ...result.score,
+  });
+});
+
+// ─── PART 5: REPUTATION LEADERBOARD ENDPOINTS (CACHED, CURSOR-PAGINATED) ─────
+app.get(["/leaderboard", "/api/leaderboard"], async (req: Request, res: Response) => {
+  try {
+    if (!sharedState.jobs || sharedState.jobs.length === 0) {
+      await loadStateFromDatabase();
+    }
+
+    const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
+    const cursor = typeof req.query.cursor === "string" ? req.query.cursor.trim() : "";
+    const limitParam = parseInt(req.query.limit as string, 10);
+    const limit = Math.min(Math.max(1, isNaN(limitParam) ? 20 : limitParam), 100);
+
+    const sessionWallet = (req as any).session?.wallet || null;
+    const rawQueryWallet = typeof req.query.address === "string" ? req.query.address.trim() : "";
+    if (rawQueryWallet && !ethers.isAddress(rawQueryWallet)) {
+      return res.status(400).json({ error: "Invalid wallet address filter", code: "INVALID_ADDRESS" });
+    }
+    const viewerAddress = sessionWallet || (rawQueryWallet ? rawQueryWallet.toLowerCase() : null);
+
+    const { entries, cached, queryMs } = await buildOrGetLeaderboardEntries({
+      sharedState,
+      prisma,
+    });
+
+    const page = queryLeaderboardPage({
+      entries,
+      category: category || undefined,
+      cursor: cursor || undefined,
+      limit,
+      viewerAddress,
+    });
+
+    return res.json({
+      success: true,
+      leaderboard: page.items,
+      pagination: {
+        limit,
+        cursor: page.nextCursor,
+        total: page.total,
+        hasMore: page.nextCursor !== null,
+      },
+      myRank: page.myRank,
+      meta: {
+        queryMs,
+        cached,
+        cacheTtlSeconds: Math.floor(LEADERBOARD_CACHE_TTL_MS / 1000),
+        scoringSource: "onchain_and_escrow_events_only",
+      },
+    });
+  } catch (err: any) {
+    console.error("[GET /leaderboard ERROR]", err);
+    return res.status(500).json({ error: "Failed to build leaderboard", details: err?.message });
+  }
+});
+
+app.get(["/leaderboard/top-by-category", "/api/leaderboard/top-by-category"], async (req: Request, res: Response) => {
+  try {
+    if (!sharedState.jobs || sharedState.jobs.length === 0) {
+      await loadStateFromDatabase();
+    }
+
+    const limitParam = parseInt(req.query.limitPerCategory as string, 10);
+    const limitPerCategory = Math.min(Math.max(1, isNaN(limitParam) ? 3 : limitParam), 10);
+
+    const sessionWallet = (req as any).session?.wallet || null;
+    const rawQueryWallet = typeof req.query.address === "string" ? req.query.address.trim() : "";
+    const viewerAddress =
+      sessionWallet || (rawQueryWallet && ethers.isAddress(rawQueryWallet) ? rawQueryWallet.toLowerCase() : null);
+
+    const { entries, cached, queryMs } = await buildOrGetLeaderboardEntries({
+      sharedState,
+      prisma,
+    });
+
+    const categories = buildTopByCategoryGroups({ entries, limitPerCategory });
+    const myRank = viewerAddress
+      ? queryLeaderboardPage({ entries, viewerAddress }).myRank
+      : null;
+
+    return res.json({
+      success: true,
+      categories,
+      myRank,
+      meta: {
+        queryMs,
+        cached,
+        cacheTtlSeconds: Math.floor(LEADERBOARD_CACHE_TTL_MS / 1000),
+      },
+    });
+  } catch (err: any) {
+    console.error("[GET /leaderboard/top-by-category ERROR]", err);
+    return res.status(500).json({ error: "Failed to load top-by-category leaderboard", details: err?.message });
   }
 });
 
@@ -6013,7 +6770,7 @@ app.get("/api/auditx/internal-report", requireAdmin, (req: Request, res: Respons
 });
 
 // PolyLance Mobile Gateway API Endpoints
-app.get(["/api/polylance/escrows", "/api/jobs"], async (req: Request, res: Response) => {
+app.get("/api/polylance/escrows", async (req: Request, res: Response) => {
   try {
     if (!sharedState.jobs || sharedState.jobs.length === 0) {
       await loadStateFromDatabase();

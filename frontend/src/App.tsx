@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { Web3Provider, useWeb3 } from './context/Web3Context';
 import { PolyLanceDataProvider } from './context/PolyLanceDataContext';
 import { Navbar } from './components/Navbar';
@@ -46,8 +46,13 @@ import { GetPaidInUsdcPage } from './pages/GetPaidInUsdcPage';
 import { GetPaidInCryptoPage } from './pages/GetPaidInCryptoPage';
 import { CategoryJobsHubPage } from './pages/CategoryJobsHubPage';
 import { SkillPage } from './pages/SkillPage';
+import { CategoriesIndexPage } from './pages/CategoriesIndexPage';
+import { CategoryDetailPage } from './pages/CategoryDetailPage';
+import { OnboardingWelcomePage } from './pages/OnboardingWelcomePage';
+import { CreatorsDirectoryPage } from './pages/CreatorsDirectoryPage';
+import { CommunityPage } from './pages/CommunityPage';
 
-export const FOOTER_HIDDEN_ROUTES: string[] = ['/'];
+export const FOOTER_HIDDEN_ROUTES: string[] = ['/', '/welcome'];
 import { FaqPage } from './pages/FaqPage';
 import { ContactPage } from './pages/ContactPage';
 import { BlogIndexPage } from './pages/BlogIndexPage';
@@ -67,6 +72,9 @@ const TypeLab = React.lazy(() => import('./pages/TypeLab').then((m) => ({ defaul
 const EmblemLab = React.lazy(() => import('./pages/EmblemLab').then((m) => ({ default: m.EmblemLab })));
 const DevPrimitivesPage = React.lazy(() => import('./pages/DevPrimitivesPage').then((m) => ({ default: m.DevPrimitivesPage })));
 const DevStatesPage = React.lazy(() => import('./pages/DevStatesPage').then((m) => ({ default: m.DevStatesPage })));
+const SceneLab = import.meta.env.DEV
+  ? React.lazy(() => import('./pages/SceneLab').then((m) => ({ default: m.SceneLab })))
+  : () => null;
 const NotFound = React.lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
 const BlogStudioPage = React.lazy(() => import('./features/studio/BlogStudioPage').then((m) => ({ default: m.BlogStudioPage })));
 const BlogStudioGuard = React.lazy(() => import('./features/studio/components/BlogStudioGuard').then((m) => ({ default: m.BlogStudioGuard })));
@@ -85,7 +93,7 @@ import { VideoManagerProvider } from './media';
 import { usePolyLanceData } from './context/PolyLanceDataContext';
 import { isAdminAddress, isJudgeAddress } from './utils/adminGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { pageVariants, transition } from './lib/motion';
+import { transition } from './lib/motion';
 import { scrollToSection, extractTargetSection } from './utils/scroll';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
 import { cleanupOrphanScrollLocks } from './utils/scrollLock';
@@ -101,19 +109,6 @@ const isCertifiedPassDomain = typeof window !== 'undefined' &&
   (window.location.hostname === 'certifiedpass.polylance.codes' || window.location.hostname.startsWith('certifiedpass.'));
 
 const PostJobRouteGuard: React.FC = () => {
-  const { accountMode } = useAccountMode();
-  React.useEffect(() => {
-    if (accountMode === 'freelancer') {
-      toast.error(
-        'Posting jobs is turned off',
-        'Your account is in Freelancer only mode. Switch to Client or Both in Settings to post jobs.'
-      );
-    }
-  }, [accountMode]);
-
-  if (accountMode === 'freelancer') {
-    return <Navigate to="/settings" replace />;
-  }
   return <PostJob />;
 };
 
@@ -214,13 +209,11 @@ const AnimatedRoutes: React.FC = () => {
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={location.pathname}
-        variants={pageVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         transition={transition.page}
         className={isConstrained ? "w-full h-full flex-1 min-h-0 flex flex-col overflow-hidden" : "w-full"}
-        style={{ willChange: 'transform, opacity' }}
       >
         <Routes location={location}>
           {/* PUBLIC & PERCEPTION ACCESS ROUTES */}
@@ -268,6 +261,12 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/get-paid-in-crypto" element={<GetPaidInCryptoPage />} />
           <Route path="/upwork-alternative" element={<Navigate to="/how-it-works" replace />} />
           <Route path="/fiverr-alternative" element={<Navigate to="/how-it-works" replace />} />
+          <Route path="/categories" element={<CategoriesIndexPage />} />
+          <Route path="/categories/:slug" element={<CategoryDetailPage />} />
+          <Route path="/category/:slug" element={<CategoryDetailPage />} />
+          <Route path="/creators" element={<CreatorsDirectoryPage />} />
+          <Route path="/welcome" element={<OnboardingWelcomePage />} />
+          <Route path="/community" element={<CommunityPage />} />
           <Route path="/web3-jobs" element={<CategoryJobsHubPage />} />
           <Route path="/polygon-jobs" element={<CategoryJobsHubPage />} />
           <Route path="/solidity-developer-jobs" element={<CategoryJobsHubPage />} />
@@ -290,6 +289,7 @@ const AnimatedRoutes: React.FC = () => {
               <Route path="/emblem-lab" element={<React.Suspense fallback={<RouteLoadingSpinner />}><EmblemLab /></React.Suspense>} />
               <Route path="/dev/primitives" element={<React.Suspense fallback={<RouteLoadingSpinner />}><DevPrimitivesPage /></React.Suspense>} />
               <Route path="/dev/states" element={<React.Suspense fallback={<RouteLoadingSpinner />}><DevStatesPage /></React.Suspense>} />
+              <Route path="/scene-lab" element={<React.Suspense fallback={<RouteLoadingSpinner />}><SceneLab /></React.Suspense>} />
             </>
           )}
 
@@ -434,6 +434,7 @@ const AppContent: React.FC = () => {
   const isStudio = location.pathname.startsWith('/studio');
   const isStudioEditor = location.pathname === '/studio/blog/new' || (location.pathname.startsWith('/studio/blog/') && location.pathname.endsWith('/edit'));
   const isViewportConstrained = isChat || isStudioEditor;
+  const isWelcome = location.pathname === '/welcome';
   const isFooterHidden = FOOTER_HIDDEN_ROUTES.includes(location.pathname);
   const showFooter = !isChat && !isAudit && !isStudio && !isFooterHidden;
 
@@ -478,13 +479,13 @@ const AppContent: React.FC = () => {
       <NetworkStatusBanner />
 
       {/* Production Navbar with Role-Aware Perception Navigation (Hidden on Audit Document and Chat/Messages Section) */}
-      {!isAudit && !isChat && <Navbar />}
+      {!isAudit && !isChat && !isWelcome && <Navbar />}
 
       {/* SIWE Authenticated Session Prompt Banner (rendered below navbar) */}
-      {!isAudit && !isChat && <AuthBanner />}
+      {!isAudit && !isChat && !isWelcome && <AuthBanner />}
 
       {/* Persistent Demo Mode Banner with Role Switcher & Tour Trigger */}
-      {!isAudit && !isChat && <DemoBanner />}
+      {!isAudit && !isChat && !isWelcome && <DemoBanner />}
 
       {/* Guided 8-Step Spotlight Product Tour */}
       <GuidedTour />
@@ -538,20 +539,22 @@ const ScrollToTop: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <Web3Provider>
-      <DemoModeProvider>
-        <AuthProvider>
-          <PolyLanceDataProvider>
-            <VideoManagerProvider>
-              <Router>
-                <ScrollToTop />
-                <AppContent />
-              </Router>
-            </VideoManagerProvider>
-          </PolyLanceDataProvider>
-        </AuthProvider>
-      </DemoModeProvider>
-    </Web3Provider>
+    <MotionConfig reducedMotion="never">
+      <Web3Provider>
+        <DemoModeProvider>
+          <AuthProvider>
+            <PolyLanceDataProvider>
+              <VideoManagerProvider>
+                <Router>
+                  <ScrollToTop />
+                  <AppContent />
+                </Router>
+              </VideoManagerProvider>
+            </PolyLanceDataProvider>
+          </AuthProvider>
+        </DemoModeProvider>
+      </Web3Provider>
+    </MotionConfig>
   );
 };
 

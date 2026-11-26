@@ -1,0 +1,655 @@
+{
+  "version": "1.0.0",
+  "categories": [
+    {
+      "id": "cat_dev_it",
+      "slug": "development-it",
+      "name": "Development & IT",
+      "description": "Full-stack software engineering, infrastructure, architecture, and cloud systems.",
+      "themeColor": "cobalt",
+      "accentColor": "#0047AB",
+      "subcategories": [
+        {
+          "id": "sub_web_dev",
+          "slug": "web-development",
+          "name": "Web Development",
+          "skills": [
+            "React", "TypeScript", "Next.js", "Node.js", "Vue.js", "Tailwind CSS",
+            "GraphQL", "REST APIs", "PostgreSQL", "HTML5/CSS3", "WebSockets", "Vite"
+          ]
+        },
+        {
+          "id": "sub_mobile_dev",
+          "slug": "mobile-development",
+          "name": "Mobile Apps",
+          "skills": [
+            "React Native", "Flutter", "Swift", "Kotlin", "iOS SDK", "Android Jetpack",
+            "Expo", "App Store Submission", "Play Store Publishing", "Mobile SQLite"
+          ]
+        },
+        {
+          "id": "sub_software_apis",
+          "slug": "software-apis",
+          "name": "Software Architecture & APIs",
+          "skills": [
+            "Go", "Rust", "Python", "Microservices", "gRPC", "Docker",
+            "API Gateway", "OAuth 2.0", "OpenAPI/Swagger", "Event-Driven Architecture", "Kafka"
+          ]
+        },
+        {
+          "id": "sub_devops_cloud",
+          "slug": "devops-cloud",
+          "name": "DevOps & Cloud",
+          "skills": [
+            "AWS", "GCP", "Kubernetes", "Terraform", "CI/CD Pipelines", "GitHub Actions",
+            "Cloudflare", "Linux Administration", "Prometheus/Grafana", "Serverless"
+          ]
+        },
+        {
+          "id": "sub_qa_testing",
+          "slug": "qa-testing",
+          "name": "QA & Automated Testing",
+          "skills": [
+            "Playwright", "Cypress", "Jest", "Vitest", "Selenium", "E2E Testing",
+            "Performance Testing", "Load Testing", "API Testing", "Bug Reporting"
+          ]
+        },
+        {
+          "id": "sub_it_support",
+          "slug": "it-support",
+          "name": "IT Systems & Support",
+          "skills": [
+            "System Administration", "Network Configuration", "VPN Setup", "DNS Management",
+            "Helpdesk Support", "Hardware Diagnosis", "Active Directory", "Data Backup"
+          ]
+        },
+        {
+          "id": "sub_cybersecurity",
+          "slug": "cybersecurity",
+          "name": "Cybersecurity & InfoSec",
+          "skills": [
+            "Penetration Testing", "Vulnerability Assessment", "OWASP Standards", "Zero Trust",
+            "SOC 2 Compliance", "Cryptography", "Identity & Access Management", "Incident Response"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat_ai_auto",
+      "slug": "ai-automation",
+      "name": "AI & Automation",
+      "description": "Machine learning, agentic workflows, autonomous systems, and model integration.",
+      "themeColor": "orange",
+      "accentColor": "#FF6A1F",
+      "subcategories": [
+        {
+          "id": "sub_ai_ml_eng",
+          "slug": "ai-ml-engineering",
+          "name": "AI/ML Engineering",
+          "skills": [
+            "PyTorch", "TensorFlow", "Hugging Face", "Fine-Tuning", "LoRA", "RAG Pipelines",
+            "Vector Databases (Pinecone/Qdrant)", "LangChain", "LlamaIndex", "Model Quantization"
+          ]
+        },
+        {
+          "id": "sub_chatbots_agents",
+          "slug": "chatbots-agents",
+          "name": "Autonomous Agents & Chatbots",
+          "skills": [
+            "Gemini API", "OpenAI Assistants", "Anthropic Claude SDK", "Function Calling",
+            "Multi-Agent Systems", "AutoGPT", "CrewAI", "Voice Agents", "Context Management"
+          ]
+        },
+        {
+          "id": "sub_prompt_workflow",
+          "slug": "prompt-workflow",
+          "name": "Prompt Engineering & Workflow Design",
+          "skills": [
+            "Structured Outputs", "Few-Shot Prompting", "Chain-of-Thought", "Evaluation Frameworks",
+            "LLM Benchmarking", "Synthetic Data Generation", "System Prompt Architecture"
+          ]
+        },
+        {
+          "id": "sub_nocode_auto",
+          "slug": "nocode-automation",
+          "name": "No-Code & Low-Code Automation",
+          "skills": [
+            "n8n", "Make.com", "Zapier", "Airtable Automation", "Webhook Integrations",
+            "Appsmith", "Retool", "Automated Workflows"
+          ]
+        },
+        {
+          "id": "sub_computer_vision",
+          "slug": "computer-vision",
+          "name": "Computer Vision & OCR",
+          "skills": [
+            "OpenCV", "YOLOv8", "Image Segmentation", "OCR", "Object Detection",
+            "Video Stream Analysis", "Face Recognition", "Multimodal Transformers"
+          ]
+        },
+        {
+          "id": "sub_data_labeling",
+          "slug": "data-labeling",
+          "name": "Data Labeling & Annotation",
+          "skills": [
+            "RLHF Human Feedback", "Dataset Curation", "Bounding Box Annotation",
+            "NER Tagging", "Quality Assurance", "Taxonomy Categorization"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat_web3_block",
+      "slug": "web3-blockchain",
+      "name": "Web3 & Blockchain",
+      "description": "Smart contract engineering, protocol auditing, decentralized frontends, and crypto systems.",
+      "themeColor": "cobalt",
+      "accentColor": "#0047AB",
+      "subcategories": [
+        {
+          "id": "sub_smart_contracts",
+          "slug": "smart-contracts",
+          "name": "Smart Contract Development",
+          "skills": [
+            "Solidity", "Hardhat", "Foundry", "Polygon PoS", "EIP-1167 Proxies", "ERC-20",
+            "ERC-721", "ERC-5192 Soulbound", "OpenZeppelin", "Gas Optimization", "Vyper"
+          ]
+        },
+        {
+          "id": "sub_security_review",
+          "slug": "security-review",
+          "name": "Security Auditing & Hardening",
+          "skills": [
+            "Slither", "Mythril", "Reentrancy Analysis", "Static Analysis", "Bytecode Decompilation",
+            "Invariable Testing", "Echidna", "Economic Exploit Modeling", "Formal Verification"
+          ]
+        },
+        {
+          "id": "sub_dapp_frontend",
+          "slug": "dapp-frontend",
+          "name": "dApp Frontend Integration",
+          "skills": [
+            "Wagmi", "Viem", "Ethers.js", "RainbowKit", "SIWE", "WalletConnect",
+            "IPFS/Pinata", "The Graph / Subgraphs", "Event Indexing", "Transaction Simulation"
+          ]
+        },
+        {
+          "id": "sub_tokenomics",
+          "slug": "tokenomics-research",
+          "name": "Tokenomics & Protocol Research",
+          "skills": [
+            "Token Economics", "Vesting Schedule Design", "Liquidity Mechanics", "Staking Logic",
+            "Governance Structures", "Whitepaper Writing", "Market Making Theory"
+          ]
+        },
+        {
+          "id": "sub_community_mgmt",
+          "slug": "web3-community",
+          "name": "Community & Ecosystem Growth",
+          "skills": [
+            "Discord Architecture", "Telegram Moderation", "DAO Governance Coordination",
+            "Ambassador Programs", "Collab Land / Guild.xyz", "Community Safety"
+          ]
+        },
+        {
+          "id": "sub_web3_marketing",
+          "slug": "web3-marketing",
+          "name": "Web3 Marketing & PR",
+          "skills": [
+            "KOL Campaigns", "Twitter Spaces", "DeFi Llama Listings", "CoinMarketCap Verification",
+            "Airdrop Campaign Design", "Crypto PR Releases"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat_design_creat",
+      "slug": "design-creative",
+      "name": "Design & Creative",
+      "description": "Human-centered digital interfaces, brand identity, illustration, and product design.",
+      "themeColor": "yellow",
+      "accentColor": "#FFC21A",
+      "subcategories": [
+        {
+          "id": "sub_ui_ux",
+          "slug": "ui-ux-design",
+          "name": "UI/UX & Product Design",
+          "skills": [
+            "Figma", "Design Systems", "Wireframing", "Mobile UI", "Web UI", "Prototyping",
+            "User Research", "Usability Testing", "Information Architecture", "WCAG Accessibility"
+          ]
+        },
+        {
+          "id": "sub_brand_identity",
+          "slug": "brand-identity",
+          "name": "Brand Identity & Logo Design",
+          "skills": [
+            "Brand Guidelines", "Logo Creation", "Typography Selection", "Color Theory",
+            "Iconography", "Vector Illustration", "Adobe Illustrator"
+          ]
+        },
+        {
+          "id": "sub_illustration",
+          "slug": "illustration",
+          "name": "Digital Illustration",
+          "skills": [
+            "Custom Vector Art", "Character Design", "Concept Art", "Editorial Illustration",
+            "Procreate", "Storyboarding", "NFT Artwork"
+          ]
+        },
+        {
+          "id": "sub_packaging",
+          "slug": "packaging-print",
+          "name": "Packaging & Print Design",
+          "skills": [
+            "Product Packaging", "Die-Cut Templates", "Label Design", "Print Preparation (CMYK)",
+            "Merchandise Design", "Brochures & Catalogs"
+          ]
+        },
+        {
+          "id": "sub_3d_cad",
+          "slug": "3d-cad",
+          "name": "3D Modeling & CAD",
+          "skills": [
+            "Blender", "Cinema 4D", "3D Product Rendering", "Character Modeling",
+            "Spline 3D", "CAD Modeling", "Texturing & Lighting", "glTF / WebGL Assets"
+          ]
+        },
+        {
+          "id": "sub_presentation",
+          "slug": "presentation-design",
+          "name": "Pitch Decks & Presentations",
+          "skills": [
+            "Investor Pitch Decks", "Keynote", "Pitch.com", "Sales Collateral",
+            "Data Visualization", "Infographics", "Executive Decks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat_video_audio",
+      "slug": "video-audio-animation",
+      "name": "Video, Audio & Animation",
+      "description": "Cinematic editing, motion graphics, original sound composition, and audio mastering.",
+      "themeColor": "red",
+      "accentColor": "#B1122B",
+      "subcategories": [
+        {
+          "id": "sub_video_editing",
+          "slug": "video-editing",
+          "name": "Video Editing & Post-Production",
+          "skills": [
+            "Adobe Premiere Pro", "DaVinci Resolve", "Color Grading", "Multi-Cam Editing",
+            "Audio Syncing", "Sound Design", "Pacing & Narrative"
+          ]
+        },
+        {
+          "id": "sub_motion_graphics",
+          "slug": "motion-graphics",
+          "name": "Motion Graphics & 2D Animation",
+          "skills": [
+            "After Effects", "Lottie Animations", "Title Sequences", "Explainer Videos",
+            "Kinetic Typography", "Logo Reveals", "UI Micro-Animations"
+          ]
+        },
+        {
+          "id": "sub_voiceover",
+          "slug": "voice-over",
+          "name": "Voice-Over & Dubbing",
+          "skills": [
+            "Commercial Voice-Over", "Explainer Narration", "Character Voices", "Multi-Language Dubbing",
+            "Audio Noise Reduction", "Professional Studio Recording"
+          ]
+        },
+        {
+          "id": "sub_music_sound",
+          "slug": "music-sound",
+          "name": "Music Production & Sound Design",
+          "skills": [
+            "Ableton Live", "Logic Pro", "Original Soundtrack", "Audio Mixing & Mastering",
+            "Foley Sound Effects", "Podcast Jingle", "Sonic Branding"
+          ]
+        },
+        {
+          "id": "sub_podcast_prod",
+          "slug": "podcast-production",
+          "name": "Podcast Production",
+          "skills": [
+            "Audio Cleanup", "Descript", "Show Notes Drafting", "Podcast Audiograms",
+            "Intro/Outro Mastering", "Episode Packaging"
+          ]
+        },
+        {
+          "id": "sub_shortform_video",
+          "slug": "shortform-editing",
+          "name": "Short-Form Video (Reels/TikTok/Shorts)",
+          "skills": [
+            "Retention Editing", "CapCut Pro", "Dynamic Subtitling", "Hook Optimization",
+            "Sound Effects Timing", "B-Roll Insertion", "Viral Format Pacing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat_creators_collab",
+      "slug": "creators-brand-collabs",
+      "name": "Creators & Brand Collabs",
+      "description": "Sponsorships, content co-creation, audience activations, and authentic creator marketing.",
+      "themeColor": "orange",
+      "accentColor": "#FF6A1F",
+      "subcategories": [
+        {
+          "id": "sub_youtube_collabs",
+          "slug": "youtube-sponsorships",
+          "name": "YouTube Integrations & Reviews",
+          "skills": [
+            "Dedicated Video", "60s Mid-Roll Integration", "Tech Product Review", "Developer Tutorial",
+            "Pinned Comment Promo", "End-Card Linkage", "Community Post Promotion"
+          ]
+        },
+        {
+          "id": "sub_instagram_reels",
+          "slug": "instagram-reels",
+          "name": "Instagram & Reels Activations",
+          "skills": [
+            "Sponsored Reel", "Story Sequence with Links", "Carousel Post", "Collab Post Feature",
+            "Brand Takeover", "Highlight Reel Feature"
+          ]
+        },
+        {
+          "id": "sub_short_video_creators",
+          "slug": "tiktok-shorts",
+          "name": "TikTok & Shorts Creators",
+          "skills": [
+            "Viral Sound Integration", "Challenge Participation", "Organic Product Placement",
+            "Green Screen Review", "Creator Marketplace Ad Authorization"
+          ]
+        },
+        {
+          "id": "sub_podcast_sponsors",
+          "slug": "podcast-host-reads",
+          "name": "Podcast Host-Read Ads",
+          "skills": [
+            "Host-Read Pre-Roll", "Host-Read Mid-Roll", "Sponsored Guest Segment",
+            "Custom Discount Code Promotion", "Newsletter Sponsorship Placement"
+          ]
+        },
+        {
+          "id": "sub_ugc_creators",
+          "slug": "ugc-content",
+          "name": "UGC (User-Generated Content)",
+          "skills": [
+            "Unboxing Video", "Problem-Agitation-Solution Video", "Testimonial Ad",
+            "App Walkthrough", "Direct-Response Creative", "Hook Variations"
+          ]
+        },
+        {
+          "id": "sub_livestreaming",
+          "slug": "livestream-sponsorships",
+          "name": "Livestreaming & Events",
+          "skills": [
+            "Twitch Stream Overlay", "Live Demo Session", "Chat Bot Link Promo",
+            "Exclusive Tournament/Event Stream", "Live Q&A Sponsorship"
+          ]
+        },
+        {
+          "id": "sub_brand_ambassadors",
+          "slug": "brand-ambassadors",
+          "name": "Brand Ambassadors & Key Opinions",
+          "skills": [
+            "Long-Term Ambassador Campaign", "Keynote Representation", "Social Bio Linkage",
+            "Product Co-Development", "Ad Creative Whitelisting"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat_marketing",
+      "slug": "marketing",
+      "name": "Marketing",
+      "description": "Search optimization, performance acquisition, lifecycle email, and organic growth.",
+      "themeColor": "yellow",
+      "accentColor": "#FFC21A",
+      "subcategories": [
+        {
+          "id": "sub_seo",
+          "slug": "seo",
+          "name": "Search Engine Optimization (SEO)",
+          "skills": [
+            "Technical SEO", "Keyword Research", "On-Page Optimization", "Backlink Strategy",
+            "Schema Markup", "Core Web Vitals Optimization", "Programmatic SEO"
+          ]
+        },
+        {
+          "id": "sub_smm",
+          "slug": "social-media-management",
+          "name": "Social Media Management",
+          "skills": [
+            "Content Calendar Execution", "X/Twitter Growth", "LinkedIn Personal Branding",
+            "Community Engagement", "Social Copywriting", "Trend Jacking"
+          ]
+        },
+        {
+          "id": "sub_performance_ads",
+          "slug": "performance-ads",
+          "name": "Paid Advertising & Performance",
+          "skills": [
+            "Google Search Ads", "Meta Ads Manager", "LinkedIn Ads", "Twitter Ads",
+            "Retargeting Campaigns", "Conversion Rate Optimization (CRO)", "ROAS Scaling"
+          ]
+        },
+        {
+          "id": "sub_email_marketing",
+          "slug": "email-marketing",
+          "name": "Email & Lifecycle Marketing",
+          "skills": [
+            "Klaviyo", "Mailchimp", "Drip Sequence Design", "Customer Segmentation",
+            "Newsletter Writing", "Deliverability & Warmup", "Churn Prevention Flows"
+          ]
+        },
+        {
+          "id": "sub_brand_strategy",
+          "slug": "brand-strategy",
+          "name": "Brand Strategy & Positioning",
+          "skills": [
+            "Competitor Auditing", "Value Proposition Design", "Messaging Hierarchy",
+            "Go-To-Market Planning", "Customer Persona Research"
+          ]
+        },
+        {
+          "id": "sub_growth_affiliate",
+          "slug": "affiliate-growth",
+          "name": "Growth Hacking & Affiliates",
+          "skills": [
+            "Affiliate Program Architecture", "Viral Loop Modeling", "Product-Led Growth",
+            "Referral System Design", "A/B Testing Experiments"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat_writing_content",
+      "slug": "writing-content",
+      "name": "Writing & Content",
+      "description": "Technical prose, high-converting copy, translation, and long-form research.",
+      "themeColor": "cobalt",
+      "accentColor": "#0047AB",
+      "subcategories": [
+        {
+          "id": "sub_articles_blogs",
+          "slug": "articles-blogs",
+          "name": "Articles & Long-Form Blogs",
+          "skills": [
+            "Thought Leadership", "SEO Content Writing", "Industry Research",
+            "Case Studies", "Interviews", "Editing & Proofreading"
+          ]
+        },
+        {
+          "id": "sub_copywriting",
+          "slug": "copywriting",
+          "name": "Direct-Response Copywriting",
+          "skills": [
+            "Landing Page Copy", "Sales Letters", "Ad Copy", "Email Sequence Copy",
+            "Headline Hook Writing", "Value Proposition Crafting"
+          ]
+        },
+        {
+          "id": "sub_technical_writing",
+          "slug": "technical-writing",
+          "name": "Technical Documentation",
+          "skills": [
+            "Developer Docs", "API Reference Manuals", "Smart Contract Guides",
+            "SDK Walkthroughs", "GitBook / Docusaurus", "Whitepaper Drafting"
+          ]
+        },
+        {
+          "id": "sub_translation_loc",
+          "slug": "translation-localization",
+          "name": "Translation & Localization",
+          "skills": [
+            "English to Hindi", "English to Spanish", "English to German", "English to Japanese",
+            "English to Arabic", "Software UI Localization", "Cultural Adaptation"
+          ]
+        },
+        {
+          "id": "sub_editing_proofreading",
+          "slug": "editing-proofreading",
+          "name": "Editing & Proofreading",
+          "skills": [
+            "Grammar & Syntax Auditing", "Structural Editing", "Style Guide Compliance",
+            "Academic Editing", "Manuscript Refinement"
+          ]
+        },
+        {
+          "id": "sub_scriptwriting",
+          "slug": "scriptwriting",
+          "name": "Scriptwriting for Video & Audio",
+          "skills": [
+            "YouTube Video Scripts", "Short-Form Video Hooks", "Podcast Run of Show",
+            "Commercial Ad Scripts", "Voiceover Timing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat_data_analytics",
+      "slug": "data-analytics",
+      "name": "Data & Analytics",
+      "description": "Business intelligence, analytics engineering, quantitative modeling, and data pipelines.",
+      "themeColor": "cobalt",
+      "accentColor": "#0047AB",
+      "subcategories": [
+        {
+          "id": "sub_data_analysis",
+          "slug": "data-analysis",
+          "name": "Data Analysis & Insights",
+          "skills": [
+            "SQL", "Python (Pandas/NumPy)", "Statistical Analysis", "Cohort Analysis",
+            "A/B Test Evaluation", "Exploratory Data Analysis"
+          ]
+        },
+        {
+          "id": "sub_bi_dashboards",
+          "slug": "bi-dashboards",
+          "name": "BI Dashboards & Visualization",
+          "skills": [
+            "Tableau", "Power BI", "Looker Studio", "Metabase", "Executive KPIs",
+            "Interactive Visualizations", "Dashboard Performance Optimization"
+          ]
+        },
+        {
+          "id": "sub_data_engineering",
+          "slug": "data-engineering",
+          "name": "Data Engineering & Pipelines",
+          "skills": [
+            "ETL/ELT Architecture", "dbt", "Snowflake", "BigQuery", "Apache Spark",
+            "Airflow", "Data Modeling", "Schema Optimization"
+          ]
+        },
+        {
+          "id": "sub_data_science",
+          "slug": "data-science",
+          "name": "Data Science & Predictive Modeling",
+          "skills": [
+            "Scikit-Learn", "Regression Analysis", "Classification Models",
+            "Time Series Forecasting", "Clustering", "Feature Engineering"
+          ]
+        },
+        {
+          "id": "sub_research_surveys",
+          "slug": "research-surveys",
+          "name": "Quantitative Research & Surveys",
+          "skills": [
+            "Survey Methodology", "Sample Bias Correction", "Qualtrics / Typeform",
+            "Cross-Tabulation", "Hypothesis Testing"
+          ]
+        },
+        {
+          "id": "sub_spreadsheets",
+          "slug": "advanced-spreadsheets",
+          "name": "Advanced Spreadsheets & Modeling",
+          "skills": [
+            "Google Sheets Advanced", "Excel Power Query", "VBA / Apps Script",
+            "Financial Modeling", "Pivot Tables", "Dynamic Formula Stacks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat_admin_support",
+      "slug": "admin-support",
+      "name": "Admin & Support",
+      "description": "Virtual operations, executive assistance, customer support, and process coordination.",
+      "themeColor": "red",
+      "accentColor": "#B1122B",
+      "subcategories": [
+        {
+          "id": "sub_virtual_assistants",
+          "slug": "virtual-assistants",
+          "name": "Executive & Virtual Assistants",
+          "skills": [
+            "Calendar Management", "Executive Inbox Triage", "Travel Logistics",
+            "Vendor Coordination", "Document Preparation", "Discretion & Confidentiality"
+          ]
+        },
+        {
+          "id": "sub_customer_support",
+          "slug": "customer-support",
+          "name": "Customer Support & Success",
+          "skills": [
+            "Zendesk", "Intercom", "Freshdesk", "Live Chat Support", "Ticket Resolution",
+            "SLA Management", "Customer Empathy", "Escalation Handling"
+          ]
+        },
+        {
+          "id": "sub_data_entry",
+          "slug": "data-entry",
+          "name": "Data Entry & Web Research",
+          "skills": [
+            "CRM Data Cleaning", "Lead List Building", "Product Catalog Uploads",
+            "Online Research", "Accurate Typing (70+ WPM)", "Data Validation"
+          ]
+        },
+        {
+          "id": "sub_project_mgmt",
+          "slug": "project-management",
+          "name": "Project Management & Scrum",
+          "skills": [
+            "Jira", "Linear", "Asana", "Notion Systems", "Sprint Planning",
+            "Agile/Scrum Framework", "Milestone Tracking", "Resource Allocation"
+          ]
+        },
+        {
+          "id": "sub_transcription",
+          "slug": "transcription",
+          "name": "Audio/Video Transcription",
+          "skills": [
+            "Verbatim Transcription", "Clean Read Editing", "Timestamping",
+            "Medical/Legal Terminology", "SubRip (.srt) Formatting"
+          ]
+        }
+      ]
+    }
+  ]
+}
+

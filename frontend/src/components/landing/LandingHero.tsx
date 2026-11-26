@@ -1,256 +1,240 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import {
-  ShieldCheck,
-  Search,
-  PlusCircle,
-  ArrowRight,
-  Play,
-  Clock,
-  Sparkles,
-  Calculator,
-} from 'lucide-react';
-import { PageContainer } from '../layout/PageContainer';
-import { Button } from '../common/Button';
-import { HeroVideoFrame } from '../hero/HeroVideoFrame';
-import { getVideo } from '../../media';
-import { REVIEW_WINDOW_DAYS, PLATFORM_FEE_PERCENT } from '../../seo/site.config';
-import { trackLandingEvent } from '../../utils/analytics';
-import { PublicActivityEvent } from '../../hooks/usePublicStats';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Play, Search, ShieldCheck, Wallet, Zap } from 'lucide-react';
 
 export type AudienceRole = 'freelancer' | 'client';
 
 interface LandingHeroProps {
-  audience: AudienceRole;
-  onAudienceChange: (role: AudienceRole) => void;
+  audience?: AudienceRole;
+  onAudienceChange?: (audience: AudienceRole) => void;
   onOpenVideo?: (videoId: string) => void;
-  latestActivity?: PublicActivityEvent | null;
 }
 
-import { isTestActivityEvent } from '../../config/testDataFilter';
+const TRENDING_TAGS = [
+  'Smart Contract Audits',
+  'AI Agents',
+  'Product Design',
+  'Motion Graphics',
+  'Full-Stack dApps',
+];
 
-export const LandingHero: React.FC<LandingHeroProps> = ({
-  audience,
-  onAudienceChange,
-  onOpenVideo,
-  latestActivity,
-}) => {
-  // Check if overview video is ready
-  const overviewVideo = getVideo('intro-30s');
-  const isVideoReady = overviewVideo?.status === 'ready' && !!overviewVideo.sources?.mp4;
+const HERO_CARDS = [
+  {
+    title: 'Full-Stack dApps',
+    tag: 'Polygon · Web3',
+    image: '/images/showcase/fullstack-apps.webp',
+    alt: 'Studio render of full-stack Web3 application dashboard',
+  },
+  {
+    title: 'Smart Contracts',
+    tag: 'Solidity · Verified',
+    image: '/images/showcase/smart-contracts.webp',
+    alt: 'Studio render of frosted glass and cobalt cryptographic cube',
+  },
+  {
+    title: 'Motion Graphics',
+    tag: '3D & Product Reels',
+    image: '/images/showcase/motion-graphics.webp',
+    alt: 'Studio render of sculpted cobalt and frosted glass motion ribbons',
+  },
+];
 
-  const handleAudienceClick = (role: AudienceRole) => {
-    onAudienceChange(role);
-    trackLandingEvent('landing_audience_toggle', { role });
-  };
+export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenVideo }) => {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
 
-  const handleVideoClick = () => {
-    if (onOpenVideo && isVideoReady) {
-      onOpenVideo('intro-30s');
-      trackLandingEvent('landing_video_open', { videoId: 'intro-30s' });
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = query.trim();
+    if (trimmed) {
+      navigate(`/jobs?search=${encodeURIComponent(trimmed)}`);
+    } else {
+      navigate('/jobs');
     }
   };
 
-  const hasRealActivity = latestActivity && !isTestActivityEvent(latestActivity);
+  const handleTagClick = (tag: string) => {
+    navigate(`/jobs?search=${encodeURIComponent(tag)}`);
+  };
 
   return (
-    <section className="w-full bg-white border-b border-[#E5E7EB] pt-12 pb-16 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24">
-      <PageContainer size="wide" noVerticalPadding>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-          
-          {/* Left Column: Headlines, Audience Toggle, CTAs */}
-          <div className="lg:col-span-7 space-y-6 text-left">
-            
-            {/* Top Row: Eyebrow + Audience Pill Toggle */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-eyebrow text-[#0047AB]">
-                Escrow-protected freelancing on Polygon
-              </div>
+    <section aria-label="Hero" className="w-full bg-white pb-8 sm:pb-12">
+      <div className="max-w-[1440px] w-full mx-auto px-6 lg:px-10 pt-5 sm:pt-6">
+        <div className="relative rounded-[28px] bg-gradient-to-br from-[#F8FAFC] via-white to-[#EFF6FF] border border-slate-200/80 overflow-hidden px-6 sm:px-10 lg:px-14 py-9 sm:py-12 lg:py-14">
+          {/* Subtle Architectural Coordinate Grid */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(to right, rgba(226, 232, 240, 0.45) 1px, transparent 1px), linear-gradient(to bottom, rgba(226, 232, 240, 0.45) 1px, transparent 1px)',
+              backgroundSize: '36px 36px',
+              WebkitMaskImage:
+                'radial-gradient(ellipse 85% 85% at 62% 50%, #000 35%, rgba(0,0,0,0.45) 75%, transparent 100%)',
+              maskImage:
+                'radial-gradient(ellipse 85% 85% at 62% 50%, #000 35%, rgba(0,0,0,0.45) 75%, transparent 100%)',
+            }}
+          />
 
-              {/* Audience Pill Toggle */}
-              <div
-                role="radiogroup"
-                aria-label="Target audience perspective"
-                className="inline-flex items-center p-1 rounded-full bg-[#F3F4F6] border border-[#E5E7EB] text-xs font-semibold shadow-2xs"
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+            {/* LEFT: Editorial Headline + Prominent Marketplace Search + Trending Pills + Trust Line */}
+            <div className="lg:col-span-6 text-left space-y-5 sm:space-y-6">
+              <motion.h1
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="text-4xl md:text-5xl lg:text-[56px] font-bold tracking-tight text-[#0F172A] leading-[1.06]"
+                style={{ textWrap: 'balance' }}
               >
+                Find vetted builders &amp; creators{' '}
+                <span className="text-[#0A52B8]">paid safely on-chain.</span>
+              </motion.h1>
+
+              {/* Prominent Hero Search Bar */}
+              <motion.form
+                onSubmit={handleSearch}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className="rounded-xl bg-white border border-slate-200 shadow-sm p-1.5 flex items-center gap-2 max-w-xl"
+              >
+                <Search size={18} className="text-slate-400 ml-2.5 shrink-0" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Try smart contracts, UI design, AI agents..."
+                  aria-label="Search marketplace services or jobs"
+                  className="flex-1 min-w-0 bg-transparent px-2 py-2 text-[14px] sm:text-[15px] text-[#0F172A] placeholder-slate-400 focus:outline-none"
+                />
                 <button
-                  type="button"
-                  role="radio"
-                  aria-checked={audience === 'freelancer'}
-                  onClick={() => handleAudienceClick('freelancer')}
-                  className={`px-3.5 py-1 rounded-full transition-all duration-150 cursor-pointer ${
-                    audience === 'freelancer'
-                      ? 'bg-white text-[#0047AB] shadow-sm font-bold'
-                      : 'text-[#4B5563] hover:text-[#0B0B0F]'
-                  }`}
+                  type="submit"
+                  className="px-5 py-2.5 rounded-lg bg-[#0A52B8] hover:bg-[#084298] text-white text-sm font-semibold transition-colors cursor-pointer shrink-0"
                 >
-                  I want to work
+                  Search
                 </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={audience === 'client'}
-                  onClick={() => handleAudienceClick('client')}
-                  className={`px-3.5 py-1 rounded-full transition-all duration-150 cursor-pointer ${
-                    audience === 'client'
-                      ? 'bg-white text-[#0047AB] shadow-sm font-bold'
-                      : 'text-[#4B5563] hover:text-[#0B0B0F]'
-                  }`}
-                >
-                  I want to hire
-                </button>
-              </div>
-            </div>
+              </motion.form>
 
-            {/* Display Headline (Exact User Mandate) */}
-            <h1 className="text-display text-[#0B0B0F]">
-              Get paid safely for every milestone.
-            </h1>
-
-            {/* 3-Step Value Strip */}
-            <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold text-[#0047AB] bg-[#EAF1FB] border border-[#D0DEF2] rounded-[8px] py-2 px-3 sm:px-4 w-fit">
-              <span>Fund escrow</span>
-              <span className="text-[#9CA3AF]">→</span>
-              <span>Deliver milestone</span>
-              <span className="text-[#9CA3AF]">→</span>
-              <span>Get paid</span>
-            </div>
-
-            {/* Dynamic Lead Paragraph */}
-            <p className="text-lead text-[#4B5563]">
-              {audience === 'freelancer' ? (
-                <>
-                  Never chase an invoice again. PolyLance secures client funds in smart contract escrow on Polygon before you write a single line of code. Deliver milestones, get approved, and receive payment instantly with a permanent on-chain work certificate.
-                </>
-              ) : (
-                <>
-                  Hire verified technical talent with zero payment risk. Funds are committed into Polygon escrow and released only when deliverables match your specifications. Transparent {PLATFORM_FEE_PERCENT}% fee per side ({PLATFORM_FEE_PERCENT * 2}% total protocol fee) with built-in {REVIEW_WINDOW_DAYS}-day milestone review protection.
-                </>
-              )}
-            </p>
-
-            {/* Action Buttons & Video Modal Trigger */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-              <Button
-                as="Link"
-                to={audience === 'freelancer' ? '/jobs' : '/jobs/post'}
-                variant="primary"
-                size="lg"
-                leadingIcon={
-                  audience === 'freelancer' ? (
-                    <Search size={18} strokeWidth={2.5} />
-                  ) : (
-                    <PlusCircle size={18} strokeWidth={2.5} />
-                  )
-                }
-                trailingIcon={<ArrowRight size={18} strokeWidth={2.5} />}
-                className="w-full sm:w-auto"
-                onClick={() =>
-                  trackLandingEvent('landing_cta_click', {
-                    target: audience === 'freelancer' ? '/jobs' : '/jobs/post',
-                    audience,
-                  })
-                }
+              {/* Quick Trending Filter Chips */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                className="flex flex-wrap items-center gap-2"
               >
-                {audience === 'freelancer' ? 'Find work' : 'Post a job'}
-              </Button>
+                <span className="text-xs font-mono text-slate-500 mr-1">Trending:</span>
+                {TRENDING_TAGS.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handleTagClick(tag)}
+                    className="px-3 py-1.5 rounded-full bg-white border border-slate-200 hover:border-[#0A52B8] hover:text-[#0A52B8] text-xs font-medium text-slate-700 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </motion.div>
 
-              <Button
-                as="Link"
-                to={audience === 'freelancer' ? '/jobs/post' : '/jobs'}
-                variant="secondary"
-                size="lg"
-                leadingIcon={
-                  audience === 'freelancer' ? (
-                    <PlusCircle size={18} strokeWidth={2} className="text-[#0047AB]" />
-                  ) : (
-                    <Search size={18} strokeWidth={2} className="text-[#0047AB]" />
-                  )
-                }
-                className="w-full sm:w-auto"
-                onClick={() =>
-                  trackLandingEvent('landing_cta_click', {
-                    target: audience === 'freelancer' ? '/jobs/post' : '/jobs',
-                    audience,
-                  })
-                }
+              {/* Compact Trust Line + Optional 30s Overview Link */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-slate-200/80 text-xs font-mono text-slate-600"
               >
-                {audience === 'freelancer' ? 'Post a job' : 'Find talent'}
-              </Button>
-
-              {/* Accessible 30-Second Explainer Video Trigger */}
-              {isVideoReady && (
-                <button
-                  type="button"
-                  onClick={handleVideoClick}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[8px] bg-white border border-[#E5E7EB] hover:border-[#0047AB] hover:text-[#0047AB] text-xs font-semibold text-[#374151] transition-all shadow-2xs hover:shadow-xs cursor-pointer select-none"
-                  aria-label="Watch 30-second platform overview video"
-                >
-                  <span className="w-5 h-5 rounded-full bg-[#EAF1FB] text-[#0047AB] flex items-center justify-center">
-                    <Play size={10} fill="currentColor" />
-                  </span>
-                  <span>Watch 30s overview</span>
-                </button>
-              )}
+                <span className="inline-flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-[#0A52B8] shrink-0" />
+                  5% Flat Fee
+                </span>
+                <span className="hidden sm:inline text-slate-300" aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Wallet size={14} className="text-[#0A52B8] shrink-0" />
+                  Non-Custodial Polygon Escrow
+                </span>
+                <span className="hidden sm:inline text-slate-300" aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Zap size={14} className="text-[#2563EB] shrink-0" />
+                  Instant POL / USDC Settlement
+                </span>
+                {onOpenVideo && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenVideo('intro')}
+                    className="inline-flex items-center gap-1 text-[#0A52B8] hover:underline font-sans font-semibold ml-auto cursor-pointer"
+                  >
+                    <Play size={12} className="fill-current" />
+                    <span>Watch 30s overview</span>
+                  </button>
+                )}
+              </motion.div>
             </div>
 
-            {/* Secondary Deep-Dive Text Links */}
-            <div className="pt-1 flex items-center gap-4 text-xs font-semibold text-[#0047AB]">
-              <Link to="/how-it-works" className="inline-flex items-center gap-1 hover:underline">
-                <span>How it works</span>
-                <ArrowRight size={13} />
-              </Link>
-              <span className="text-gray-300">·</span>
-              <Link to="/escrow-simulator" className="inline-flex items-center gap-1.5 hover:underline">
-                <Calculator size={13} />
-                <span>Try the simulator</span>
-              </Link>
-            </div>
-
-            {/* Microcopy Trust Row */}
-            <div className="pt-2 text-xs text-[#4B5563] flex items-center flex-wrap gap-2.5">
-              <span className="inline-flex items-center gap-1.5 font-medium text-[#0B0B0F]">
-                <ShieldCheck size={14} className="text-[#0047AB]" />
-                Escrow-protected
-              </span>
-              <span>•</span>
-              <span>{PLATFORM_FEE_PERCENT}% fee per side ({PLATFORM_FEE_PERCENT * 2}% total)</span>
-              <span>•</span>
-              <span className="inline-flex items-center gap-1">
-                <Clock size={13} className="text-[#6B7280]" />
-                {REVIEW_WINDOW_DAYS}-day review window
-              </span>
-              <span>•</span>
-              <span>Polygon Mainnet (Chain ID 137)</span>
-            </div>
-
-          </div>
-
-          {/* Right Column: Hero Visual Frame + Floating Real Activity Chip */}
-          <div className="lg:col-span-5 relative">
-            <HeroVideoFrame />
-
-            {/* Live Activity Chip Floater (Honest real data only) */}
-            {hasRealActivity && latestActivity && (
-              <div
-                className="absolute -bottom-4 right-2 sm:right-6 bg-white/95 backdrop-blur-md border border-[#E5E7EB] rounded-[10px] p-2.5 sm:p-3 shadow-lg flex items-center gap-2.5 text-xs text-[#0B0B0F] max-w-[280px] sm:max-w-[320px] pointer-events-none z-20"
-                aria-live="polite"
-              >
-                <div className="w-7 h-7 rounded-full bg-[#EAF1FB] text-[#0047AB] flex items-center justify-center shrink-0">
-                  <Sparkles size={14} />
+            {/* RIGHT: Curated Studio Artwork Collage (3 Staggered Floating Deliverable Cards) */}
+            <div className="lg:col-span-6">
+              <div className="grid grid-cols-12 gap-3.5 sm:gap-4 items-center">
+                {/* Large Featured dApp Mockup Left */}
+                <div className="col-span-7 space-y-3.5 sm:space-y-4">
+                  <div className="pl-float-a group relative rounded-2xl overflow-hidden bg-white border border-slate-200/90 shadow-[0_14px_38px_rgba(15,23,42,0.08)]">
+                    <div className="aspect-[4/3] overflow-hidden bg-slate-100">
+                      <img
+                        src={HERO_CARDS[0].image}
+                        alt={HERO_CARDS[0].alt}
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                      />
+                    </div>
+                    <div className="px-3.5 py-2.5 flex items-center justify-between bg-white border-t border-slate-100">
+                      <span className="text-xs font-semibold text-[#0F172A]">{HERO_CARDS[0].title}</span>
+                      <span className="text-[10.5px] font-mono text-[#0A52B8] bg-[#EFF6FF] px-2 py-0.5 rounded-full">
+                        {HERO_CARDS[0].tag}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <div className="font-semibold truncate">{latestActivity.title}</div>
-                  <div className="text-[11px] text-[#6B7280]">
-                    Verified on Polygon Mainnet
+
+                {/* Two Stacked Right Studio Cards */}
+                <div className="col-span-5 space-y-3.5 sm:space-y-4 pt-3 sm:pt-5">
+                  <div
+                    className="pl-float-b group relative rounded-2xl overflow-hidden bg-white border border-slate-200/90 shadow-[0_12px_32px_rgba(10,82,184,0.08)]"
+                    style={{ animationDelay: '0.4s' }}
+                  >
+                    <div className="aspect-square overflow-hidden bg-slate-100">
+                      <img
+                        src={HERO_CARDS[1].image}
+                        alt={HERO_CARDS[1].alt}
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                      />
+                    </div>
+                    <div className="px-3 py-2 flex items-center justify-between bg-white border-t border-slate-100">
+                      <span className="text-[11.5px] font-semibold text-[#0F172A] truncate">{HERO_CARDS[1].title}</span>
+                      <span className="w-2 h-2 rounded-full bg-[#2563EB] shrink-0" />
+                    </div>
+                  </div>
+
+                  <div
+                    className="pl-float-a group relative rounded-2xl overflow-hidden bg-white border border-slate-200/90 shadow-[0_12px_32px_rgba(15,23,42,0.07)]"
+                    style={{ animationDelay: '0.9s' }}
+                  >
+                    <div className="aspect-[16/10] overflow-hidden bg-slate-100">
+                      <img
+                        src={HERO_CARDS[2].image}
+                        alt={HERO_CARDS[2].alt}
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                      />
+                    </div>
+                    <div className="px-3 py-2 flex items-center justify-between bg-white border-t border-slate-100">
+                      <span className="text-[11.5px] font-semibold text-[#0F172A] truncate">{HERO_CARDS[2].title}</span>
+                      <span className="text-[10px] font-mono text-slate-500 shrink-0">Studio 3D</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
-
         </div>
-      </PageContainer>
+      </div>
     </section>
   );
 };
+
+export default LandingHero;

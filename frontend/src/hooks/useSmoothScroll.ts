@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Lenis from 'lenis';
+import 'lenis/dist/lenis.css';
 import { useReducedMotion } from '../media/useDataSaver';
 
 /**
@@ -33,9 +34,24 @@ export function resumeLenis(): void {
 }
 
 /**
- * Optional smooth scrolling with Lenis.
+ * Programmatic smooth scroll to any element or selector
+ */
+export function smoothScrollTo(target: string | HTMLElement, offset = -80): void {
+  if (activeLenisInstance) {
+    activeLenisInstance.scrollTo(target, { offset, duration: 1.1 });
+  } else if (typeof document !== 'undefined') {
+    const el = typeof target === 'string' ? document.querySelector(target) : target;
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+}
+
+/**
+ * High-performance smooth scrolling with Lenis.
  * - Automatically disabled when user prefers reduced motion or data-saver.
  * - Pauses when modals/drawers lock the body.
+ * - Smoothly navigates in-page anchor links (#why-polylance, #faq, etc.).
  * - Ignores nested scroll containers marked with data-lenis-prevent.
  * - Complete RAF lifecycle and instance cleanup on unmount.
  */
@@ -60,16 +76,20 @@ export function useSmoothScroll(): void {
 
     try {
       lenis = new Lenis({
-        duration: 1.0,
+        duration: 1.1,
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         orientation: 'vertical',
         gestureOrientation: 'vertical',
         smoothWheel: true,
-        wheelMultiplier: 1,
+        wheelMultiplier: 1.0,
         touchMultiplier: 1.5,
         infinite: false,
         prevent: (node: HTMLElement) => {
-          return Boolean(node && node.closest && node.closest('[data-lenis-prevent]'));
+          return Boolean(
+            node &&
+              node.closest &&
+              node.closest('[data-lenis-prevent], [data-lenis-prevent-wheel]')
+          );
         },
       });
 
@@ -81,16 +101,46 @@ export function useSmoothScroll(): void {
       };
 
       rafId = requestAnimationFrame(onRaf);
-    } catch {
-      // Graceful fallback if WebGL or window is unavailable
-    }
 
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      lenis?.destroy();
-      if (activeLenisInstance === lenis) {
-        activeLenisInstance = null;
-      }
-    };
-  }, [reducedMotion, isChat, location.pathname]);
+      // Intercept in-page anchor links for silky smooth animation
+      const handleAnchorClick = (e: MouseEvent) => {
+        const target = (e.target as HTMLElement)?.closest('a');
+        if (!target) return;
+        const href = target.getAttribute('href');
+        if (!href) return;
+        const hashIndex = href.indexOf('#');
+        if (hashIndex === -1) return;
+        const pathPart = href.slice(0, hashIndex);
+        const hashPart = href.slice(hashIndex);
+        const isCurrentRoot = pathPart === '' || pathPart === '/' || pathPart === window.location.pathname;
+        if (isCurrentRoot && hashPart.length > 1) {
+          const el = document.querySelector(hashPart);
+          if (el) {
+            e.preventDefault();
+            lenis?.scrollTo(el as HTMLElement, { offset: -116, duration: 1.0 });
+          }
+        }
+      };
+
+      document.addEventListener('click', handleAnchorClick);
+
+      return () => {
+        document.removeEventListener('click', handleAnchorClick);
+        if (rafId) cancelAnimationFrame(rafId);
+        lenis?.destroy();
+        if (activeLenisInstance === lenis) {
+          activeLenisInstance = null;
+        }
+      };
+    } catch {
+      // Graceful fallback
+    }
+  }, [reducedMotion, isChat, isStudio]);
+
+  // Route transition scroll reset
+  useEffect(() => {
+    if (activeLenisInstance && !location.hash) {
+      activeLenisInstance.scrollTo(0, { immediate: true });
+    }
+  }, [location.pathname, location.hash]);
 }

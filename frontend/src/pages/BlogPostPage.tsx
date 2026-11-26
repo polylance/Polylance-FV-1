@@ -510,7 +510,7 @@ export const BlogPostPage: React.FC = () => {
                 <img
                   src={post.authorAvatar}
                   alt={post.author}
-                  className="w-11 h-11 rounded-full object-cover border border-slate-200"
+                  width={44} height={44} loading="lazy" decoding="async" className="w-11 h-11 rounded-full object-cover border border-slate-200"
                 />
               ) : (
                 <div className="w-11 h-11 rounded-full bg-[#E7EEF9] text-[#0047AB] font-bold text-sm flex items-center justify-center border border-[#BFDBFE]">
@@ -536,7 +536,7 @@ export const BlogPostPage: React.FC = () => {
                 <img
                   src={post.authorAvatar}
                   alt={post.author}
-                  className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0"
+                  width={48} height={48} loading="lazy" decoding="async" className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0"
                 />
               ) : (
                 <div className="w-12 h-12 rounded-full bg-[#E7EEF9] text-[#0047AB] font-bold text-base flex items-center justify-center shrink-0 border border-[#BFDBFE]">

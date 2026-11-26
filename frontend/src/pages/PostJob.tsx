@@ -1,42 +1,47 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import confetti from 'canvas-confetti';
+import { motion } from 'framer-motion';
 import { useWeb3 } from '../context/Web3Context';
 import { usePolyLanceData } from '../context/PolyLanceDataContext';
 import { SkillCategory } from '../types';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 import { FeeBreakdown } from '../components/common/FeeBreakdown';
-import { Amount } from '../components/common/Amount';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
-import { TagInput, SkillAutocomplete } from '../components/common/FormControls';
+import { SkillAutocomplete } from '../components/common/FormControls';
 import { WatchButton, VideoModal, useVideoModal } from '../components/video';
+import { ClientTrustBadge } from '../components/common/ClientTrustBadge';
 import { CATEGORIES } from '../utils/formatters';
 import { resolveDomainId, DOMAIN_BY_ID } from '../utils/domainMapping';
+import { getCategories } from '../utils/taxonomy';
 import { calculateFeeBreakdownFromString } from '../utils/fees';
 import { useLiveCurrencyRates, convertCryptoToFiat, useGlobalFiat } from '../utils/currency';
 import { useAccountMode } from '../hooks/useAccountMode';
-import { toast } from '../utils/toast';
 import {
   ShieldCheck,
   CheckCircle2,
-  Clock,
   Bold,
   List,
   Code,
   Eye,
-  RefreshCw,
   Wallet,
-  ArrowRight,
   Bookmark,
-  AlertTriangle,
+  Briefcase,
+  Github,
+  Palette,
+  Sparkles,
+  Plus,
+  Trash2,
+  ArrowRight,
+  Lock,
 } from 'lucide-react';
 import { FormattedJobDescription } from '../components/FormattedJobDescription';
 import { PolyLanceSelect, SelectOption } from '../components/PolyLanceSelect';
 
-const CATEGORY_OPTIONS: SelectOption[] = CATEGORIES.map((cat) => ({
+const CATEGORY_OPTIONS: SelectOption[] = CATEGORIES.slice(0, 10).map((cat) => ({
   value: cat.id,
   label: cat.label,
   sublabel: cat.description,
@@ -49,6 +54,14 @@ const REVIEW_PERIOD_OPTIONS: SelectOption[] = [
   { value: '14', label: '14 days' },
 ];
 
+type VerificationPref = 'any' | 'github' | 'portfolio';
+
+interface MilestoneRow {
+  id: string;
+  title: string;
+  amount: string;
+}
+
 export const PostJob: React.FC = () => {
   const {
     address,
@@ -58,39 +71,50 @@ export const PostJob: React.FC = () => {
     balanceUsdc,
     balanceUsdt,
     isWrongNetwork,
-    targetChainName,
     switchToTargetNetwork,
+    currentRole,
+    setRole,
   } = useWeb3();
-  const { postJob } = usePolyLanceData();
-  const { accountMode } = useAccountMode();
+  const { jobs, profiles, postJob } = usePolyLanceData();
+  const { accountMode, setAccountMode, isClientAllowed } = useAccountMode();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  useEffect(() => {
-    if (accountMode === 'freelancer') {
-      toast.error(
-        'Posting jobs is turned off',
-        'Your account is in Freelancer only mode. Switch to Client or Both in Settings to post jobs.'
-      );
-      navigate('/settings', { replace: true });
-    }
-  }, [accountMode, navigate]);
-
-  // Form State
   const initialDomain = resolveDomainId(searchParams.get('domain') || searchParams.get('category'));
   const [title, setTitle] = useState('');
   const [titleTouched, setTitleTouched] = useState(false);
-  const [category, setCategory] = useState<SkillCategory>((initialDomain as SkillCategory) || 'web3');
+  const [category, setCategory] = useState<SkillCategory>((initialDomain as SkillCategory) || 'web3-blockchain');
+  const [subcategory, setSubcategory] = useState<string>('');
+  const [verificationPreference, setVerificationPreference] = useState<VerificationPref>('any');
   const [skills, setSkills] = useState<string[]>(
     initialDomain && DOMAIN_BY_ID[initialDomain]
-      ? DOMAIN_BY_ID[initialDomain].skills.slice(0, 2)
+      ? DOMAIN_BY_ID[initialDomain].skills.slice(0, 3)
       : ['Solidity', 'Smart Contracts']
   );
   const [description, setDescription] = useState('');
   const [descTouched, setDescTouched] = useState(false);
   const [showDescPreview, setShowDescPreview] = useState(false);
 
-  // Sync category & skills when domain search param changes
+  // Milestones & Budget
+  const [selectedToken, setSelectedToken] = useState<'POL' | 'USDC' | 'USDT'>('POL');
+  const [amount, setAmount] = useState('50');
+  const [milestones, setMilestones] = useState<MilestoneRow[]>([
+    { id: 'ms-1', title: 'Initial Architecture & Core Delivery', amount: '50' },
+  ]);
+  const [reviewPeriodDays, setReviewPeriodDays] = useState('7');
+  const { activeVideoId, isOpen, openVideo, closeVideo, triggerRef } = useVideoModal();
+  const [attachments, setAttachments] = useState<string[]>([]);
+  const [attachmentInput, setAttachmentInput] = useState('');
+
+  const taxonomyCategories = useMemo(() => getCategories(), []);
+  const activeTaxonomyCat = useMemo(
+    () =>
+      taxonomyCategories.find(
+        (c) => c.slug === category || c.slug === resolveDomainId(category)
+      ) || taxonomyCategories[0],
+    [taxonomyCategories, category]
+  );
+
   useEffect(() => {
     const rawParam = searchParams.get('domain') || searchParams.get('category');
     const resolved = resolveDomainId(rawParam);
@@ -98,28 +122,45 @@ export const PostJob: React.FC = () => {
       setCategory(resolved as SkillCategory);
       const domConfig = DOMAIN_BY_ID[resolved];
       if (domConfig && domConfig.skills.length > 0) {
-        setSkills(domConfig.skills.slice(0, 2));
+        setSkills(domConfig.skills.slice(0, 3));
       }
     }
   }, [searchParams]);
 
-  // Budget
-  const [selectedToken, setSelectedToken] = useState<'POL' | 'USDC' | 'USDT'>('POL');
-  const [amount, setAmount] = useState('50');
-  const [reviewPeriodDays, setReviewPeriodDays] = useState('7');
-  const { activeVideoId, isOpen, openVideo, closeVideo, triggerRef } = useVideoModal();
-  const [attachments, setAttachments] = useState<string[]>([]);
-  const [attachmentInput, setAttachmentInput] = useState('');
-
-  // Confirmation Modal
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [selectedFiat] = useGlobalFiat();
   const rates = useLiveCurrencyRates();
 
-  // Load draft from localStorage on mount
+  // Keep principal synced with milestones total if user edits milestones
+  const updateMilestone = (id: string, patch: Partial<MilestoneRow>) => {
+    const next = milestones.map((m) => (m.id === id ? { ...m, ...patch } : m));
+    setMilestones(next);
+    const total = next.reduce((sum, m) => sum + (parseFloat(m.amount) || 0), 0);
+    if (total > 0) setAmount(String(total));
+  };
+
+  const addMilestone = () => {
+    const next = [
+      ...milestones,
+      { id: `ms-${Date.now()}`, title: `Milestone ${milestones.length + 1}`, amount: '25' },
+    ];
+    setMilestones(next);
+    const total = next.reduce((sum, m) => sum + (parseFloat(m.amount) || 0), 0);
+    if (total > 0) setAmount(String(total));
+  };
+
+  const removeMilestone = (id: string) => {
+    if (milestones.length <= 1) return;
+    const next = milestones.filter((m) => m.id !== id);
+    setMilestones(next);
+    const total = next.reduce((sum, m) => sum + (parseFloat(m.amount) || 0), 0);
+    if (total > 0) setAmount(String(total));
+  };
+
   useEffect(() => {
     try {
       const draft = localStorage.getItem('polylance_job_draft');
@@ -143,7 +184,6 @@ export const PostJob: React.FC = () => {
     } catch {}
   };
 
-  // Validation
   const parsedAmount = parseFloat(amount) || 0;
   const isTitleValid = title.trim().length >= 5;
   const isDescValid = description.trim().length >= 20;
@@ -158,7 +198,6 @@ export const PostJob: React.FC = () => {
 
   const isFormValid = missingFields.length === 0;
 
-  // Wallet balance for selected token
   const walletBalance = useMemo(() => {
     if (selectedToken === 'POL') return parseFloat(balanceNative || '0');
     if (selectedToken === 'USDC') return parseFloat(balanceUsdc || '0');
@@ -171,14 +210,56 @@ export const PostJob: React.FC = () => {
     return walletBalance >= parseFloat(fb.clientDepositFormatted);
   }, [parsedAmount, amount, selectedToken, walletBalance]);
 
-  // Markdown toolbar insertion
+  // Strict Freelancer Role Guard (friendly light-mode notice)
+  const isFreelancerOnlyBlocked = accountMode === 'freelancer' || (!isClientAllowed && currentRole === 'freelancer');
+  if (isFreelancerOnlyBlocked) {
+    return (
+      <PageContainer className="pt-10 pb-20">
+        <div className="max-w-xl mx-auto rounded-3xl bg-white border border-slate-200/90 p-8 sm:p-10 text-center shadow-sm space-y-5">
+          <div className="w-14 h-14 rounded-2xl bg-[#EFF6FF] border border-[#BFDBFE] text-[#0A52B8] mx-auto flex items-center justify-center">
+            <Briefcase size={26} />
+          </div>
+          <div className="space-y-2">
+            <span className="text-xs font-mono uppercase tracking-widest font-semibold text-[#0A52B8]">
+              Client Account Required
+            </span>
+            <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
+              Posting jobs requires a Client account
+            </h1>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Your wallet is currently registered in <strong>Freelancer</strong> mode. Keep roles cleanly separated—either browse active contracts or switch/register a Client account to fund new escrows.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Button as="Link" to="/jobs" variant="primary" size="md" leadingIcon={<ArrowRight size={15} />}>
+              Browse Open Jobs
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              loading={isSwitchingRole}
+              onClick={async () => {
+                setIsSwitchingRole(true);
+                setRole('client');
+                await setAccountMode('client');
+                setIsSwitchingRole(false);
+              }}
+            >
+              Switch to Client Account
+            </Button>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+
   const insertMarkdown = (syntax: 'bold' | 'list' | 'code') => {
     if (syntax === 'bold') {
       setDescription((prev) => `${prev} **bold text** `);
     } else if (syntax === 'list') {
-      setDescription((prev) => `${prev}\n- Item 1\n- Item 2\n`);
+      setDescription((prev) => `${prev}\n- Deliverable 1\n- Deliverable 2\n`);
     } else if (syntax === 'code') {
-      setDescription((prev) => `${prev}\n\`\`\`solidity\n// code here\n\`\`\`\n`);
+      setDescription((prev) => `${prev}\n\`\`\`solidity\n// specification\n\`\`\`\n`);
     }
   };
 
@@ -195,7 +276,6 @@ export const PostJob: React.FC = () => {
       await connectWallet();
       return;
     }
-
     if (isWrongNetwork) {
       await switchToTargetNetwork();
       return;
@@ -214,15 +294,16 @@ export const PostJob: React.FC = () => {
           title: title.trim(),
           description: description.trim(),
           category,
+          skillsRequired: skills,
+          milestones,
           amountUsdc: usdEquivalent,
           amountEth: isNativeToken ? amount : undefined,
           paymentTokenSymbol: selectedToken,
           reviewPeriodDays: parseInt(reviewPeriodDays) || 7,
-        },
+        } as any,
         address
       );
 
-      // Clear draft
       try {
         localStorage.removeItem('polylance_job_draft');
       } catch {}
@@ -237,398 +318,516 @@ export const PostJob: React.FC = () => {
     }
   };
 
+  const currentClientProfile = address
+    ? profiles[Object.keys(profiles).find((k) => k.toLowerCase() === address.toLowerCase()) || '']
+    : null;
+  const previewBreakdown = calculateFeeBreakdownFromString(amount || '0', selectedToken);
+
   return (
-    <PageContainer>
-      {/* Page Title & Subtitle */}
+    <PageContainer className="pt-8 pb-20">
       <PageHeader
         title="Post a job"
-        subtitle="Create a verified milestone escrow contract. Funds remain safely locked until deliverables are approved."
-        actions={
-          <WatchButton
-            id="task-post-job"
-            label="Watch how to post (35s)"
-            onOpen={openVideo}
-          />
-        }
+        subtitle="Create a non-custodial milestone contract. Escrow locks cleanly on Polygon PoS and releases upon client approval."
+        actions={<WatchButton id="task-post-job" label="Watch how to post (35s)" onOpen={openVideo} />}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-left">
-        {/* LEFT COLUMN: Numbered Sections (1 to 6) */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* SECTION 1: Basics */}
-          <Card className="p-5 space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-[#E5E7EB]">
-              <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
-                1
-              </span>
-              <h2 className="text-base font-semibold text-[#0B0B0F]">Basics</h2>
-            </div>
-
-            {/* Title */}
-            <div>
-              <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
-                Job title
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onBlur={() => setTitleTouched(true)}
-                placeholder="e.g. Build an Escrow Staking Smart Contract in Foundry"
-                className={`w-full bg-white border rounded-[8px] px-3.5 py-2.5 text-sm text-[#0B0B0F] focus:outline-none focus:ring-2 focus:ring-[#0047AB] ${
-                  titleTouched && !isTitleValid ? 'border-[#EF4444]' : 'border-[#E5E7EB]'
-                }`}
-              />
-              <div className="flex items-center justify-between mt-1 text-xs">
-                {titleTouched && !isTitleValid ? (
-                  <span className="text-[#DC2626]">Title must be at least 5 characters</span>
-                ) : (
-                  <span className="text-[#6B7280]">Write a descriptive, outcome-focused title</span>
-                )}
-                <span className="text-[#6B7280]">{title.length}/100</span>
-              </div>
-            </div>
-
-            {/* Category */}
-            <div>
-              <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
-                Category
-              </label>
-              <PolyLanceSelect
-                value={category}
-                onChange={(val) => setCategory(val as SkillCategory)}
-                options={CATEGORY_OPTIONS}
-                size="md"
-              />
-            </div>
-
-            {/* Skills */}
-            <SkillAutocomplete
-              label="Required skills"
-              skills={skills}
-              onChange={setSkills}
-              selectedCategory={category}
-              placeholder="e.g. Solidity, React, Hardhat..."
-            />
-          </Card>
-
-          {/* SECTION 2: Description */}
-          <Card className="p-5 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
-                  2
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start text-left">
+        {/* LEFT COLUMN (lg:col-span-7): Guided 4-Step Job Composer */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* STEP 1: Category & Subcategory */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+            <Card className="p-6 rounded-2xl border-slate-200/90 space-y-4">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                <span className="w-6 h-6 rounded-full bg-[#0A52B8] text-white flex items-center justify-center text-xs font-bold">
+                  1
                 </span>
-                <h2 className="text-base font-semibold text-[#0B0B0F]">Description</h2>
+                <h2 className="text-base font-bold text-[#0F172A]">Category &amp; Subcategory</h2>
               </div>
-              {/* Markdown controls & Preview Toggle */}
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => insertMarkdown('bold')}
-                  className="p-1.5 rounded-[6px] hover:bg-[#F6F7F9] text-[#4B5563]"
-                  title="Bold"
-                >
-                  <Bold size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertMarkdown('list')}
-                  className="p-1.5 rounded-[6px] hover:bg-[#F6F7F9] text-[#4B5563]"
-                  title="List"
-                >
-                  <List size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertMarkdown('code')}
-                  className="p-1.5 rounded-[6px] hover:bg-[#F6F7F9] text-[#4B5563]"
-                  title="Code snippet"
-                >
-                  <Code size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowDescPreview(!showDescPreview)}
-                  className={`ml-2 px-2.5 py-1 rounded-[6px] text-xs font-medium border flex items-center gap-1 ${
-                    showDescPreview
-                      ? 'bg-[#EFF6FF] text-[#0047AB] border-[#BFDBFE]'
-                      : 'bg-white text-[#4B5563] border-[#E5E7EB]'
-                  }`}
-                >
-                  <Eye size={13} />
-                  <span>{showDescPreview ? 'Edit' : 'Preview'}</span>
-                </button>
-              </div>
-            </div>
 
-            {showDescPreview ? (
-              <div className="p-4 bg-[#F6F7F9] rounded-[8px] min-h-[160px] text-sm text-[#0B0B0F] max-w-none">
-                <FormattedJobDescription description={description || '_No description provided yet._'} />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                {taxonomyCategories.map((cat) => {
+                  const active = category === cat.slug || resolveDomainId(category) === cat.slug;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setCategory(cat.slug as SkillCategory);
+                        setSubcategory(cat.subcategories[0]?.slug || '');
+                        const resolved = resolveDomainId(cat.slug);
+                        const dom = resolved ? DOMAIN_BY_ID[resolved] : null;
+                        if (dom && dom.skills.length > 0) setSkills(dom.skills.slice(0, 3));
+                      }}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        active
+                          ? 'bg-[#EFF6FF] border-[#0A52B8] text-[#0A52B8] font-semibold'
+                          : 'bg-white border-slate-200 hover:border-slate-300 text-[#0F172A]'
+                      }`}
+                    >
+                      <span className="text-xs leading-tight block line-clamp-2">{cat.name}</span>
+                    </button>
+                  );
+                })}
               </div>
-            ) : (
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Primary Discipline</label>
+                  <PolyLanceSelect
+                    value={category}
+                    onChange={(val) => {
+                      setCategory(val as SkillCategory);
+                      const resolved = resolveDomainId(val);
+                      const domConfig = resolved ? DOMAIN_BY_ID[resolved] : null;
+                      if (domConfig && domConfig.skills.length > 0) {
+                        setSkills(domConfig.skills.slice(0, 3));
+                      }
+                    }}
+                    options={CATEGORY_OPTIONS}
+                    size="md"
+                  />
+                </div>
+                {activeTaxonomyCat && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Subcategory Focus</label>
+                    <PolyLanceSelect
+                      value={subcategory || activeTaxonomyCat.subcategories[0]?.slug || ''}
+                      onChange={setSubcategory}
+                      options={activeTaxonomyCat.subcategories.map((s) => ({
+                        value: s.slug,
+                        label: s.name,
+                      }))}
+                      size="md"
+                    />
+                  </div>
+                )}
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* STEP 2: Job Details & Required Skills */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: 0.05 }}>
+            <Card className="p-6 rounded-2xl border-slate-200/90 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-6 h-6 rounded-full bg-[#0A52B8] text-white flex items-center justify-center text-xs font-bold">
+                    2
+                  </span>
+                  <h2 className="text-base font-bold text-[#0F172A]">Job Details &amp; Required Skills</h2>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={() => insertMarkdown('bold')} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600" title="Bold">
+                    <Bold size={14} />
+                  </button>
+                  <button type="button" onClick={() => insertMarkdown('list')} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600" title="List">
+                    <List size={14} />
+                  </button>
+                  <button type="button" onClick={() => insertMarkdown('code')} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600" title="Code">
+                    <Code size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDescPreview(!showDescPreview)}
+                    className={`ml-2 px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1 cursor-pointer ${
+                      showDescPreview ? 'bg-[#EFF6FF] text-[#0A52B8] border-[#BFDBFE]' : 'bg-white text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    <Eye size={13} />
+                    <span>{showDescPreview ? 'Edit' : 'Preview'}</span>
+                  </button>
+                </div>
+              </div>
+
               <div>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  onBlur={() => setDescTouched(true)}
-                  rows={6}
-                  maxLength={5000}
-                  placeholder="Detail the deliverables, acceptance criteria, and technical stack required..."
-                  className={`w-full bg-white border rounded-[8px] p-3 text-sm text-[#0B0B0F] focus:outline-none focus:ring-2 focus:ring-[#0047AB] ${
-                    descTouched && !isDescValid ? 'border-[#EF4444]' : 'border-[#E5E7EB]'
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Job title</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={() => setTitleTouched(true)}
+                  placeholder="e.g. Build an Escrow Staking Smart Contract in Foundry"
+                  className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0A52B8]/25 focus:border-[#0A52B8] ${
+                    titleTouched && !isTitleValid ? 'border-rose-500' : 'border-slate-200'
                   }`}
                 />
                 <div className="flex items-center justify-between mt-1 text-xs">
-                  {descTouched && !isDescValid ? (
-                    <span className="text-[#DC2626]">
-                      Description must be at least 20 characters
-                    </span>
+                  {titleTouched && !isTitleValid ? (
+                    <span className="text-rose-600">Title must be at least 5 characters</span>
                   ) : (
-                    <span className="text-[#6B7280]">Markdown formatting supported</span>
+                    <span className="text-slate-500">Clear, outcome-focused title</span>
                   )}
-                  <span className="text-[#6B7280]">{description.length}/5000</span>
+                  <span className="text-slate-500 font-mono">{title.length}/100</span>
                 </div>
               </div>
-            )}
-          </Card>
 
-          {/* SECTION 3: Budget and payment */}
-          <Card className="p-5 space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-[#E5E7EB]">
-              <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
-                3
-              </span>
-              <h2 className="text-base font-semibold text-[#0B0B0F]">Budget and payment</h2>
-            </div>
+              {showDescPreview ? (
+                <div className="p-4 bg-[#F8FAFC] border border-slate-200 rounded-xl min-h-[140px] text-sm text-[#0F172A]">
+                  <FormattedJobDescription description={description || '_No description added yet._'} />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Scope &amp; Acceptance Criteria</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    onBlur={() => setDescTouched(true)}
+                    rows={5}
+                    maxLength={5000}
+                    placeholder="Detail deliverables, timeline expectations, and acceptance criteria..."
+                    className={`w-full bg-white border rounded-xl p-3.5 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0A52B8]/25 focus:border-[#0A52B8] ${
+                      descTouched && !isDescValid ? 'border-rose-500' : 'border-slate-200'
+                    }`}
+                  />
+                  {descTouched && !isDescValid && (
+                    <span className="text-xs text-rose-600 mt-1 block">Description must be at least 20 characters</span>
+                  )}
+                </div>
+              )}
 
-            {/* Token Selector Cards */}
-            <div>
-              <label className="block text-xs font-medium text-[#4B5563] mb-2">
-                Escrow settlement token
-              </label>
+              <SkillAutocomplete
+                label="Required skills"
+                skills={skills}
+                onChange={setSkills}
+                selectedCategory={category}
+                placeholder="e.g. Solidity, Figma, Video Editing..."
+              />
+            </Card>
+          </motion.div>
+
+          {/* STEP 3: Freelancer Verification Preference */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: 0.1 }}>
+            <Card className="p-6 rounded-2xl border-slate-200/90 space-y-4">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                <span className="w-6 h-6 rounded-full bg-[#0A52B8] text-white flex items-center justify-center text-xs font-bold">
+                  3
+                </span>
+                <h2 className="text-base font-bold text-[#0F172A]">Freelancer Verification Preference</h2>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  {
+                    id: 'any' as VerificationPref,
+                    label: 'Any Verified',
+                    desc: 'Open to both GitHub & Portfolio verified talent',
+                    icon: Sparkles,
+                  },
+                  {
+                    id: 'github' as VerificationPref,
+                    label: 'GitHub Verified',
+                    desc: 'Best for Engineering, Smart Contracts & AI roles',
+                    icon: Github,
+                  },
+                  {
+                    id: 'portfolio' as VerificationPref,
+                    label: 'Portfolio Verified',
+                    desc: 'Best for Design, Video, Creators & Marketing roles',
+                    icon: Palette,
+                  },
+                ].map((opt) => {
+                  const Icon = opt.icon;
+                  const active = verificationPreference === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setVerificationPreference(opt.id)}
+                      className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer space-y-1.5 ${
+                        active
+                          ? 'bg-[#EFF6FF] border-[#0A52B8] ring-1 ring-[#0A52B8]/20'
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F172A]">
+                        <Icon size={14} className="text-[#0A52B8]" />
+                        <span>{opt.label}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 leading-snug">{opt.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* STEP 4: Milestone & Escrow Budget */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: 0.15 }}>
+            <Card className="p-6 rounded-2xl border-slate-200/90 space-y-5">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                <span className="w-6 h-6 rounded-full bg-[#0A52B8] text-white flex items-center justify-center text-xs font-bold">
+                  4
+                </span>
+                <h2 className="text-base font-bold text-[#0F172A]">Milestone &amp; Escrow Budget</h2>
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
                 {(['POL', 'USDC', 'USDT'] as const).map((tok) => {
                   const isSelected = selectedToken === tok;
                   const price = rates.cryptoPrices[tok] || (tok === 'POL' ? 0.089 : 1.0);
                   return (
-                    <div
+                    <button
                       key={tok}
+                      type="button"
                       onClick={() => setSelectedToken(tok)}
-                      className={`p-3.5 rounded-[8px] border cursor-pointer transition-colors text-left ${
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-all text-left ${
                         isSelected
-                          ? 'border-[#0047AB] bg-[#EFF6FF]'
-                          : 'border-[#E5E7EB] bg-white hover:border-[#9CA3AF]'
+                          ? 'border-[#0A52B8] bg-[#EFF6FF]'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-[#0B0B0F]">{tok}</span>
-                        {isSelected && (
-                          <span className="w-2 h-2 rounded-full bg-[#0047AB]" />
-                        )}
+                        <span className="text-sm font-bold text-[#0F172A]">{tok}</span>
+                        {isSelected && <span className="w-2 h-2 rounded-full bg-[#0A52B8]" />}
                       </div>
-                      <span className={`text-xs block mt-1 ${isSelected ? 'text-[#0047AB] font-medium' : 'text-[#4B5563]'}`}>
-                        ~ ${price < 0.1 ? price.toFixed(4) : price.toFixed(2)} USD
+                      <span className={`text-xs block mt-1 ${isSelected ? 'text-[#0A52B8] font-medium' : 'text-slate-500'}`}>
+                        ~${price < 0.1 ? price.toFixed(4) : price.toFixed(2)} USD
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
-            </div>
 
-            {/* Amount input & presets */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="principal-amount" className="text-xs font-medium text-[#4B5563]">
-                  Principal amount ({selectedToken})
-                </label>
-                {parsedAmount > 0 && (
-                  <span className="text-xs text-[#6B7280] tabular-nums font-normal">
-                    {convertCryptoToFiat(parsedAmount, selectedToken, selectedFiat).formatted}
+              {/* Principal Input */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="principal-amount" className="text-xs font-semibold text-slate-700">
+                      Total Principal ({selectedToken})
+                    </label>
+                    {parsedAmount > 0 && (
+                      <span className="text-xs text-slate-500 tabular-nums">
+                        {convertCryptoToFiat(parsedAmount, selectedToken, selectedFiat).formatted}
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    id="principal-amount"
+                    aria-label={`Principal amount in ${selectedToken}`}
+                    type="number"
+                    step="any"
+                    min="0.01"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0A52B8]/25 focus:border-[#0A52B8]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Client Review SLA Window
+                  </label>
+                  <PolyLanceSelect
+                    value={reviewPeriodDays}
+                    onChange={setReviewPeriodDays}
+                    options={REVIEW_PERIOD_OPTIONS}
+                    size="md"
+                  />
+                </div>
+              </div>
+
+              {/* Interactive Milestones List */}
+              <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#0F172A]">
+                    Escrow Milestones ({milestones.length})
                   </span>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  id="principal-amount"
-                  aria-label={`Principal amount in ${selectedToken}`}
-                  type="number"
-                  step="any"
-                  min="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="flex-1 bg-white border border-[#E5E7EB] rounded-[8px] px-3.5 py-2.5 text-sm text-[#0B0B0F] focus:outline-none focus:ring-2 focus:ring-[#0047AB]"
-                />
-              </div>
-
-              {/* Presets */}
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-[#6B7280]">Presets:</span>
-                {[10, 50, 100, 500].map((preset) => (
                   <button
-                    key={preset}
                     type="button"
-                    onClick={() => setAmount(preset.toString())}
-                    className="px-2.5 py-1 rounded-[6px] bg-[#F6F7F9] border border-[#E5E7EB] text-xs font-medium text-[#0B0B0F] hover:bg-white"
+                    onClick={addMilestone}
+                    className="text-xs font-semibold text-[#0A52B8] hover:underline inline-flex items-center gap-1 cursor-pointer"
                   >
-                    {preset} {selectedToken}
+                    <Plus size={13} />
+                    <span>Add milestone</span>
                   </button>
-                ))}
-              </div>
+                </div>
 
-              {/* Plain language milestone note */}
-              <p className="mt-2.5 text-xs text-[#6B7280]">
-                You'll agree on milestones with the freelancer before funding.
-              </p>
-            </div>
-          </Card>
-
-          {/* SECTION 4: Timeline and review */}
-          <Card className="p-5 space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-[#E5E7EB]">
-              <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
-                4
-              </span>
-              <h2 className="text-base font-semibold text-[#0B0B0F]">Timeline and review</h2>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
-                Review window (days)
-              </label>
-              <PolyLanceSelect
-                value={reviewPeriodDays}
-                onChange={setReviewPeriodDays}
-                options={REVIEW_PERIOD_OPTIONS}
-                size="md"
-              />
-              <p className="mt-1.5 text-xs text-[#4B5563] max-w-[640px]">
-                After work is submitted, the client has {reviewPeriodDays} days to approve or dispute before funds auto-release.
-              </p>
-            </div>
-          </Card>
-
-          {/* SECTION 5: Attachments */}
-          <Card className="p-5 space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-[#E5E7EB]">
-              <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
-                5
-              </span>
-              <h2 className="text-base font-semibold text-[#0B0B0F]">Attachments & specs (optional)</h2>
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Add specification link or IPFS CID..."
-                value={attachmentInput}
-                onChange={(e) => setAttachmentInput(e.target.value)}
-                className="flex-1 bg-white border border-[#E5E7EB] rounded-[8px] px-3 py-2 text-xs text-[#0B0B0F] focus:outline-none focus:ring-2 focus:ring-[#0047AB]"
-              />
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  if (attachmentInput.trim()) {
-                    setAttachments([...attachments, attachmentInput.trim()]);
-                    setAttachmentInput('');
-                  }
-                }}
-              >
-                Add
-              </Button>
-            </div>
-
-            {attachments.length > 0 && (
-              <div className="space-y-1.5 pt-2">
-                {attachments.map((att, i) => (
-                  <div
-                    key={i}
-                    className="p-2 bg-[#F6F7F9] rounded-[8px] border border-[#E5E7EB] flex items-center justify-between text-xs"
-                  >
-                    <span className="truncate max-w-md text-[#0B0B0F]">{att}</span>
-                    <button
-                      type="button"
-                      onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))}
-                      className="text-[#DC2626] hover:underline"
-                    >
-                      Remove
-                    </button>
+                {milestones.map((m, i) => (
+                  <div key={m.id} className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-slate-400 w-5 shrink-0">0{i + 1}</span>
+                    <input
+                      type="text"
+                      value={m.title}
+                      onChange={(e) => updateMilestone(m.id, { title: e.target.value })}
+                      placeholder="Milestone scope"
+                      className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A]"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      value={m.amount}
+                      onChange={(e) => updateMilestone(m.id, { amount: e.target.value })}
+                      className="w-24 shrink-0 px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono text-[#0F172A]"
+                    />
+                    {milestones.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeMilestone(m.id)}
+                        className="p-2 text-slate-400 hover:text-rose-600 cursor-pointer shrink-0"
+                        aria-label="Remove milestone"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
-            )}
-          </Card>
 
-          {/* SECTION 6: Review and post */}
-          <Card className="p-5 space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-[#E5E7EB]">
-              <span className="w-6 h-6 rounded-full bg-[#0047AB] text-white flex items-center justify-center text-xs font-semibold">
-                6
-              </span>
-              <h2 className="text-base font-semibold text-[#0B0B0F]">Review and post</h2>
-            </div>
-
-            {/* Validation Feedback */}
-            {!isFormValid && (
-              <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] text-xs text-[#92400E] space-y-1">
-                <span className="font-semibold block">Complete the following to publish:</span>
-                <ul className="list-disc list-inside space-y-0.5">
-                  {missingFields.map((f) => (
-                    <li key={f}>{f}</li>
-                  ))}
-                </ul>
+              {/* Optional Specs/Attachments */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <label className="block text-xs font-semibold text-slate-700">Spec Links / IPFS CIDs (Optional)</label>
+                <div className="flex items-center gap-2 w-full">
+                  <input
+                    type="text"
+                    placeholder="Add Figma link, GitHub spec, or IPFS CID..."
+                    value={attachmentInput}
+                    onChange={(e) => setAttachmentInput(e.target.value)}
+                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-[#0F172A]"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      if (attachmentInput.trim()) {
+                        setAttachments([...attachments, attachmentInput.trim()]);
+                        setAttachmentInput('');
+                      }
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
               </div>
-            )}
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
-              <Button
-                variant="secondary"
-                onClick={handleSaveDraft}
-                icon={<Bookmark size={15} />}
-              >
-                Save draft
-              </Button>
+              {!isFormValid && (
+                <div className="p-3 bg-[#F8FAFC] border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1">
+                  <span className="font-semibold text-[#0F172A] block">Required to publish:</span>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    {missingFields.map((f) => (
+                      <li key={f}>{f}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-              <Button
-                variant="primary"
-                disabled={!isFormValid}
-                onClick={handleOpenConfirm}
-              >
-                Review and post job
-              </Button>
-            </div>
-          </Card>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                <Button variant="secondary" onClick={handleSaveDraft} icon={<Bookmark size={15} />}>
+                  Save draft
+                </Button>
+                <Button variant="primary" disabled={!isFormValid} onClick={handleOpenConfirm}>
+                  Review and post job
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
         </div>
 
-        {/* RIGHT COLUMN: ONE Sticky Summary */}
-        <div className="lg:col-span-4 sticky top-[88px] space-y-6">
-          <Card className="p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-[#0B0B0F]">Escrow breakdown</h3>
+        {/* RIGHT COLUMN (lg:col-span-5): Sticky Live Job Preview + Smart Contract Escrow Summary */}
+        <div className="lg:col-span-5 sticky top-[88px] space-y-5">
+          {/* Live Job Card Preview */}
+          <div className="rounded-2xl bg-white border border-slate-200/90 p-5 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-[#0A52B8]">
+                Live Freelancer Preview
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] text-[10px] font-mono font-semibold text-[#0A52B8]">
+                Escrow Draft
+              </span>
+            </div>
 
-            {/* Reused Single FeeBreakdown */}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#F8FAFC] border border-slate-200 text-[11px] font-semibold text-[#0F172A]">
+                  {activeTaxonomyCat?.name || 'Category'}
+                </span>
+                {verificationPreference !== 'any' && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] text-[11px] font-semibold text-[#0A52B8]">
+                    {verificationPreference === 'github' ? 'GitHub Verified Req.' : 'Portfolio Verified Req.'}
+                  </span>
+                )}
+              </div>
+
+              <h3 className="text-base font-bold text-[#0F172A] leading-snug">
+                {title.trim() || 'Your job title appears here'}
+              </h3>
+
+              <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+                {description.trim() ||
+                  'Add project scope and deliverables to preview how builders will evaluate this milestone contract.'}
+              </p>
+
+              <div className="flex flex-wrap gap-1.5">
+                {skills.slice(0, 5).map((s) => (
+                  <span
+                    key={s}
+                    className="px-2 py-0.5 rounded-md bg-[#F8FAFC] border border-slate-200 text-[11px] text-slate-700"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <ClientTrustBadge
+                  compact
+                  clientAddress={address}
+                  jobs={jobs}
+                  profile={currentClientProfile}
+                />
+                <div className="text-right font-mono text-xs font-bold text-[#0F172A]">
+                  {parsedAmount} {selectedToken}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Escrow Breakdown Summary */}
+          <Card className="p-5 rounded-2xl border-slate-200/90 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-[#0F172A]">Smart Contract Escrow Summary</h3>
+              <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[#0A52B8]">
+                <Lock size={12} />
+                <span>Non-Custodial</span>
+              </span>
+            </div>
+
             <FeeBreakdown budget={parsedAmount} token={selectedToken} isClient={true} />
 
-            {/* Guarantees */}
-            <div className="pt-3 border-t border-[#E5E7EB] space-y-2 text-xs text-[#4B5563]">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 size={14} className="text-[#166534] shrink-0 mt-0.5" />
-                <span>100% on-chain smart contract escrow deposit</span>
+            <div className="p-3 rounded-xl bg-[#F8FAFC] border border-slate-200/80 space-y-1.5 text-xs text-slate-600">
+              <div className="flex justify-between">
+                <span>Milestone Total</span>
+                <span className="font-mono font-semibold text-[#0F172A]">
+                  {previewBreakdown.budgetFormatted} {selectedToken}
+                </span>
               </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 size={14} className="text-[#166534] shrink-0 mt-0.5" />
-                <span>Arbitration rights protected by DAO Judge Panel</span>
+              <div className="flex justify-between">
+                <span>2.5% Protocol Fee</span>
+                <span className="font-mono font-semibold text-[#0A52B8]">
+                  {previewBreakdown.clientFeeFormatted} {selectedToken}
+                </span>
               </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 size={14} className="text-[#166534] shrink-0 mt-0.5" />
-                <span>Automatic Soulbound work certificate minted</span>
+              <div className="flex justify-between pt-1.5 border-t border-slate-200 font-bold text-[#0F172A]">
+                <span>Total Escrow Lock</span>
+                <span className="font-mono">
+                  {previewBreakdown.clientDepositFormatted} {selectedToken}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-[#0A52B8] shrink-0" />
+                <span>Isolated Polygon PoS escrow clone per job</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={14} className="text-[#0A52B8] shrink-0" />
+                <span>Protected by JudgeDAO arbitration &amp; ERC-5192 SBTs</span>
               </div>
             </div>
           </Card>
         </div>
       </div>
 
-      {/* CONFIRMATION & FUNDING MODAL */}
+      {/* Confirmation Modal */}
       <Modal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
@@ -638,49 +837,43 @@ export const PostJob: React.FC = () => {
       >
         <div className="space-y-5">
           {errorMessage && (
-            <div className="p-3 bg-[#FEF2F2] border border-[#FECACA] rounded-[8px] text-xs text-[#991B1B]">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900">
               {errorMessage}
             </div>
           )}
 
-          {/* Job summary recap */}
-          <div className="p-3 bg-[#F6F7F9] rounded-[8px] border border-[#E5E7EB] space-y-1">
-            <span className="text-xs text-[#6B7280] block">Job title</span>
-            <span className="text-sm font-semibold text-[#0B0B0F]">{title}</span>
+          <div className="p-3 bg-[#F8FAFC] rounded-xl border border-slate-200 space-y-1">
+            <span className="text-xs text-slate-500 block">Job title</span>
+            <span className="text-sm font-bold text-[#0F172A]">{title}</span>
           </div>
 
           <FeeBreakdown budget={parsedAmount} token={selectedToken} isClient={true} />
 
-          {/* Wallet Balance check */}
-          <div className="p-3 bg-white border border-[#E5E7EB] rounded-[8px] flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-[#4B5563]">
+          <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5 text-slate-600">
               <Wallet size={14} />
               <span>Available balance:</span>
             </div>
-            <span className="font-semibold text-[#0B0B0F]">
+            <span className="font-semibold text-[#0F172A]">
               {walletBalance.toFixed(3)} {selectedToken}
             </span>
           </div>
 
           {!hasSufficientBalance && (
-            <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] text-xs text-[#92400E] flex items-center justify-between">
+            <div className="p-3 bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl text-xs text-[#0A52B8] flex items-center justify-between">
               <span>Insufficient {selectedToken} balance for deposit and gas.</span>
               <button
                 type="button"
                 onClick={() => navigate('/dashboard')}
-                className="text-[#0047AB] font-semibold hover:underline"
+                className="font-semibold hover:underline"
               >
                 Top-up
               </button>
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E5E7EB]">
-            <Button
-              variant="ghost"
-              onClick={() => setIsConfirmModalOpen(false)}
-              disabled={isSubmitting}
-            >
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+            <Button variant="ghost" onClick={() => setIsConfirmModalOpen(false)} disabled={isSubmitting}>
               Back
             </Button>
             <Button
@@ -694,13 +887,7 @@ export const PostJob: React.FC = () => {
         </div>
       </Modal>
 
-      {/* Global Video Modal */}
-      <VideoModal
-        id={activeVideoId}
-        isOpen={isOpen}
-        onClose={closeVideo}
-        triggerRef={triggerRef}
-      />
+      <VideoModal id={activeVideoId} isOpen={isOpen} onClose={closeVideo} triggerRef={triggerRef} />
     </PageContainer>
   );
 };

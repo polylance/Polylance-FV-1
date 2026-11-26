@@ -100,10 +100,16 @@ export const Treasury: React.FC = () => {
     treasuryHistory.forEach((h) => {
       const typeText = h.type === 'FEE_COLLECTED' ? 'Fee Ingestion' : 'Safe Withdrawal';
       const changePrefix = h.type === 'FEE_COLLECTED' ? '+' : '-';
+      const amtStr = (h.amountUsdc && h.amountUsdc > 0)
+        ? `${h.amountUsdc.toFixed(2)} USDC`
+        : (h.amountEth && h.amountEth > 0)
+          ? `${h.amountEth.toFixed(4)} POL`
+          : `${(h.amountUsdc || 0).toFixed(2)} USDC`;
+      const txDisplay = h.txHash ? `Tx: ${h.txHash.slice(0, 10)}...` : 'On-Chain Escrow';
       list.push({
         timestamp: formatLogTime(h.timestamp),
         timeMs: h.timestamp,
-        text: `${typeText}: ${changePrefix}$${h.amountUsdc.toFixed(2)} USDC (Tx: ${h.txHash.slice(0, 10)}...)`,
+        text: `${h.by || typeText}: ${changePrefix}${amtStr} (${txDisplay})`,
         iconType: h.type === 'FEE_COLLECTED' ? 'zap' : 'warning'
       });
     });

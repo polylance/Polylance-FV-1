@@ -13,12 +13,10 @@ export interface DomainJobCounts {
 export function useDomainJobCounts(): DomainJobCounts {
   const { jobs, loading: contextLoading } = usePolyLanceData();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isError, setIsError] = useState(false);
   const [revalidationTick, setRevalidationTick] = useState(0);
 
   const refetch = useCallback(() => {
     setIsRefreshing(true);
-    setIsError(false);
     setTimeout(() => {
       setRevalidationTick((prev) => prev + 1);
       setIsRefreshing(false);
@@ -47,11 +45,15 @@ export function useDomainJobCounts(): DomainJobCounts {
   }, []);
 
   // 3. Compute live counts
-  const { counts, totalOpenJobs } = useMemo(() => {
+  const { counts, totalOpenJobs, isError } = useMemo(() => {
+    const emptyCounts = Object.fromEntries(
+      DOMAINS.map((d) => [d.id, 0])
+    ) as Record<DomainId, number>;
     try {
       const openJobs = (jobs || []).filter(isJobOpen);
 
       const domainCounts: Record<DomainId, number> = {
+        ...emptyCounts,
         web3: 0,
         frontend: 0,
         backend: 0,
@@ -72,13 +74,14 @@ export function useDomainJobCounts(): DomainJobCounts {
       return {
         counts: domainCounts,
         totalOpenJobs: matchedJobIds.size,
+        isError: false,
       };
     } catch (err) {
       console.error('Failed to calculate domain job counts:', err);
-      setIsError(true);
       return {
-        counts: { web3: 0, frontend: 0, backend: 0, mobile: 0 },
+        counts: { ...emptyCounts, web3: 0, frontend: 0, backend: 0, mobile: 0 },
         totalOpenJobs: 0,
+        isError: true,
       };
     }
     // revalidationTick is included to trigger memo recalculation on focus / timer
@@ -87,7 +90,7 @@ export function useDomainJobCounts(): DomainJobCounts {
   const isLoading = contextLoading || isRefreshing;
 
   return {
-    counts,
+    counts: counts as Record<DomainId, number>,
     totalOpenJobs,
     isLoading,
     isError,

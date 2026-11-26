@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Sparkles, ExternalLink, ShieldCheck } from 'lucide-react';
+import { ExternalLink, ShieldCheck } from 'lucide-react';
 import { PublicActivityEvent } from '../../hooks/usePublicStats';
 import { POLYGONSCAN_BASE_URL } from '../../seo/site.config';
 import { useReducedMotion } from '../../media/useDataSaver';
-
 import { isTestActivityEvent } from '../../config/testDataFilter';
 
 interface ActivityTickerProps {
@@ -14,19 +13,34 @@ export const ActivityTicker: React.FC<ActivityTickerProps> = ({ events = [] }) =
   const reducedMotion = useReducedMotion();
   const [isPaused, setIsPaused] = useState(false);
 
-  // Filter out any test/mock events
-  const realEvents = (events || []).filter((e) => !isTestActivityEvent(e));
+  const realEvents = (events || []).filter(
+    (e) => !isTestActivityEvent(e) && Boolean(e?.title?.trim())
+  );
 
   if (realEvents.length === 0) {
-    return null;
+    return (
+      <div
+        className="w-full h-[41px] bg-white border-b border-[#E5E7EB] flex items-center"
+        aria-label="Live platform activity status"
+      >
+        <div className="w-full max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-12 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[10.5px] font-mono font-bold text-[#0047AB] uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0B7A55]" />
+            <span>Polygon Mainnet Synced</span>
+          </div>
+          <span className="font-mono text-[11px] text-[#6B7280] truncate">
+            Real-time smart contract event feed active
+          </span>
+        </div>
+      </div>
+    );
   }
 
-  // Duplicate for seamless continuous ticker loop if animated
   const displayEvents = reducedMotion ? realEvents.slice(0, 4) : [...realEvents, ...realEvents];
 
   return (
     <div
-      className="w-full bg-[#EAF1FB]/50 border-y border-[#D0DEF2] py-2.5 overflow-hidden select-none"
+      className="w-full h-[41px] bg-white border-b border-[#E5E7EB] flex items-center overflow-hidden select-none"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
@@ -34,16 +48,16 @@ export const ActivityTicker: React.FC<ActivityTickerProps> = ({ events = [] }) =
       aria-label="Live platform activity ticker"
     >
       <div className="w-full max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-12 flex items-center gap-3">
-        {/* Ticker Badge */}
-        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-[6px] bg-white border border-[#D0DEF2] text-[11px] font-bold text-[#0047AB] uppercase tracking-wider shrink-0 shadow-2xs">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0047AB] opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0047AB]" />
+        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#EAF1FB] border border-[#C9DAF2] text-[10.5px] font-mono font-bold text-[#0047AB] uppercase tracking-wider shrink-0">
+          <span className="relative flex h-1.5 w-1.5">
+            {!reducedMotion && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0047AB] opacity-75" />
+            )}
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#0047AB]" />
           </span>
-          <span>Live Activity</span>
+          <span>Mainnet Feed</span>
         </div>
 
-        {/* Ticker Track */}
         <div className="flex-1 overflow-hidden relative">
           <div
             className={`flex items-center gap-6 whitespace-nowrap ${
@@ -51,7 +65,7 @@ export const ActivityTicker: React.FC<ActivityTickerProps> = ({ events = [] }) =
             }`}
             style={{
               animationPlayState: isPaused ? 'paused' : 'running',
-              animationDuration: `${Math.max(25, events.length * 6)}s`,
+              animationDuration: `${Math.max(25, realEvents.length * 6)}s`,
             }}
           >
             {displayEvents.map((item, idx) => (
@@ -62,8 +76,11 @@ export const ActivityTicker: React.FC<ActivityTickerProps> = ({ events = [] }) =
                 <ShieldCheck size={13} className="text-[#0047AB] shrink-0" />
                 <span className="font-semibold text-[#0B0B0F]">{item.title}</span>
                 <span className="text-[#9CA3AF]">•</span>
-                <span className="text-[11px] text-[#6B7280]">
-                  {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <span className="text-[11px] font-mono text-[#6B7280]">
+                  {new Date(item.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                 </span>
                 {item.txHash && (
                   <a

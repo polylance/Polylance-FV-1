@@ -14,7 +14,7 @@ export const PAGES_SEO: Record<string, RouteSeoConfig> = {
     description: 'Hire vetted Web3 developers or find crypto freelance jobs protected by Polygon smart contract escrow. Work safely with milestone releases and low fees.',
     canonicalPath: '/',
     primaryKeywordId: 'core-web3-freelance-marketplace',
-    secondaryKeywordIds: ['brand-polylance', 'core-freelance-jobs-crypto', 'problem-freelance-escrow-payment'],
+    secondaryKeywordIds: ['brand-polylance-zenith', 'brand-polylance-zenith-domain', 'brand-polylance', 'core-freelance-jobs-crypto', 'problem-freelance-escrow-payment'],
     robots: 'index, follow',
     jsonLdTypes: ['Organization', 'WebSite', 'SoftwareApplication', 'FAQPage'],
     sitemapPriority: 1.0,

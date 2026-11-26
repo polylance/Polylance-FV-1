@@ -74,6 +74,6 @@ export const NETWORK_CONFIG = {
 export const TREASURY_WALLET = (
   import.meta.env.VITE_TREASURY_ADDRESS || 
   import.meta.env.NEXT_PUBLIC_TREASURY_ADDRESS ||
-  ""
+  "0x940D8475689b2156D6174555F3382b5E6951653F"
 ) as string;
 
