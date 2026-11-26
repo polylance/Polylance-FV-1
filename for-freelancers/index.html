@@ -74,6 +74,17 @@
       };
     })();
   </script>
+  <script type="text/javascript">
+    (function () {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('type') === 'b') {
+          document.documentElement.setAttribute('data-type', 'b');
+        }
+      } catch (e) {}
+    })();
+  </script>
+
   <link rel="icon" href="/Polylance-FV-1/favicon.ico?v=3" sizes="48x48">
   <link rel="icon" href="/Polylance-FV-1/favicon.svg?v=3" type="image/svg+xml">
   <link rel="icon" type="image/png" sizes="32x32" href="/Polylance-FV-1/favicon-32x32.png?v=3">
@@ -81,32 +92,33 @@
   <link rel="apple-touch-icon" href="/Polylance-FV-1/apple-touch-icon.png?v=3">
   <link rel="manifest" href="/Polylance-FV-1/site.webmanifest">
   <meta name="theme-color" content="#0047AB">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="canonical" href="https://polylance.codes/for-freelancers" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <link rel="canonical" href="https://polylancezenith.com/for-freelancers" />
   <title>Crypto Freelance Marketplace for Web3 Talent | PolyLance</title>
   <meta name="description" content="Get hired by top Web3 projects and receive payments in USDC or POL. Build a tamper-proof on-chain portfolio of soulbound work reputation certificates." />
   <meta name="keywords"
-    content="freelancing, freelance marketplace, smart contract escrow, Web3 freelancing, Polygon freelance, POL crypto payments, stablecoin escrow, Soulbound reputation, SBT, GitHub attestations, PolyLance" />
+    content="PolyLance Zenith, polylancezenith.com, freelancing, freelance marketplace, smart contract escrow, Polygon freelance, milestone escrow payments, POL payments, USDC escrow, decentralized arbitration" />
   <meta name="author" content="PolyLance Team" />
   <meta name="robots" content="index, follow" />
 
-  <!-- Preload Primary Variable Font (Plus Jakarta Sans) ONLY -->
+  <!-- Preload ONLY Primary Heading & Body Self-Hosted Variable WOFF2 Files -->
   <link rel="preload" href="/Polylance-FV-1/fonts/plus-jakarta-sans-variable.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="preload" href="/Polylance-FV-1/fonts/geist-variable.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
   <!-- Open Graph / Social Media Meta Tags -->
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="PolyLance" />
+  <meta property="og:site_name" content="PolyLance Zenith" />
   <meta property="og:title" content="Crypto Freelance Marketplace for Web3 Talent | PolyLance" />
   <meta property="og:description" content="Get hired by top Web3 projects and receive payments in USDC or POL. Build a tamper-proof on-chain portfolio of soulbound work reputation certificates." />
-  <meta property="og:url" content="https://polylance.codes/for-freelancers" />
-  <meta property="og:image" content="https://polylance.codes/polylanceLogo.png" />
+  <meta property="og:url" content="https://polylancezenith.com/for-freelancers" />
+  <meta property="og:image" content="https://polylancezenith.com/polylanceLogo.png" />
   <meta property="og:image:alt" content="PolyLance Web3 Freelance Marketplace & Escrow" />
 
   <!-- Twitter / X Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Crypto Freelance Marketplace for Web3 Talent | PolyLance" />
   <meta name="twitter:description" content="Get hired by top Web3 projects and receive payments in USDC or POL. Build a tamper-proof on-chain portfolio of soulbound work reputation certificates." />
-  <meta name="twitter:image" content="https://polylance.codes/polylanceLogo.png" />
+  <meta name="twitter:image" content="https://polylancezenith.com/polylanceLogo.png" />
 
   <!-- SPA Routing & Subdomain / Social Media Deep Link Synchronizer for HashRouter -->
   <!-- Canonical Hash-to-Path 301-equivalent redirect for legacy links -->
@@ -140,15 +152,15 @@
       "@graph": [
         {
           "@type": "Organization",
-          "@id": "https://polylance.codes/#organization",
+          "@id": "https://polylancezenith.com/#organization",
           "name": "PolyLance",
           "alternateName": [
             "PolyLance",
             "PolyLance Protocol"
           ],
-          "url": "https://polylance.codes",
-          "logo": "https://polylance.codes/polylanceLogo.png",
-          "image": "https://polylance.codes/polylanceLogo.png",
+          "url": "https://polylancezenith.com",
+          "logo": "https://polylancezenith.com/polylanceLogo.png",
+          "image": "https://polylancezenith.com/polylanceLogo.png",
           "description": "PolyLance is a Web3 freelance marketplace on Polygon offering 2.5% platform fee smart contract escrows, Soulbound reputation tokens, GitHub skill attestations, and decentralized dispute arbitration.",
           "slogan": "Your work history, verified and yours to keep.",
           "keywords": "freelancing, freelance marketplace, hire freelancers, freelance escrow, decentralized freelancing, Web3 talent, Polygon escrow protocol",
@@ -232,21 +244,21 @@
         },
         {
           "@type": "WebSite",
-          "@id": "https://polylance.codes/#website",
-          "url": "https://polylance.codes",
+          "@id": "https://polylancezenith.com/#website",
+          "url": "https://polylancezenith.com",
           "name": "PolyLance",
           "description": "Decentralized Freelance Marketplace & Escrow on Polygon",
           "publisher": {
-            "@id": "https://polylance.codes/#organization"
+            "@id": "https://polylancezenith.com/#organization"
           }
         },
         {
           "@type": "SoftwareApplication",
-          "@id": "https://polylance.codes/#application",
+          "@id": "https://polylancezenith.com/#application",
           "name": "PolyLance",
           "applicationCategory": "BusinessApplication, DecentralizedFinanceApplication, MarketplaceApplication",
           "operatingSystem": "Web, Multichain, EVM-Compatible",
-          "url": "https://polylance.codes",
+          "url": "https://polylancezenith.com",
           "description": "Decentralized freelance marketplace on Polygon connecting global talent and clients with 2.5% platform fee smart contract escrows, verifiable skill attestations, and instant crypto payouts.",
           "featureList": [
             "Decentralized Smart Contract Escrows",
@@ -263,20 +275,19 @@
             "description": "Decentralized Escrow and Freelance Marketplace on Polygon"
           },
           "author": {
-            "@id": "https://polylance.codes/#organization"
+            "@id": "https://polylancezenith.com/#organization"
           }
         }
       ]
     }
   </script>
-  <script type="module" crossorigin src="/Polylance-FV-1/assets/index-9rodS2pq.js"></script>
+  <script type="module" crossorigin src="/Polylance-FV-1/assets/index-BwMDJIjr.js"></script>
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/rolldown-runtime-Bjp52BOI.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/createLucideIcon-D54346_5.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/units-BGhXAoYC.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/address-FXGxRTIE.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/chunk-OB3PAWPO-X_3jNbqc.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/proxy-Dr4GCdsE.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/AnimatePresence-B6RC39Cc.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/vendor-icons-B3Hlp2gs.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/vendor-recharts-Bi5fR5fC.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/chunk-OB3PAWPO-DrDpfbg7.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/vendor-markdown-B7fc8Mgs.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/vendor-motion-WSgfV8Jt.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/Value-zgShoQJE.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/createBatchScheduler-BGrC1T5U.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/utils-Bpv4vmSW.js">
@@ -287,13 +298,20 @@
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/formatUnits-QyFbNVrn.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/public-DCZK6Xxe.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/chunk-JT4N2T7B-DkhyPGN6.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/vendor-ethers-CyBDkuS6.js">
   <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/tslib.es6-nx-Trewi.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/contracts-CpMgzkjO.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/apiClient-DErUF1sL.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/award-xT2Q1ax9.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/x-B1kCvbQC.js">
-  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/useDataSaver-DdzTcR6K.js">
-  <link rel="stylesheet" crossorigin href="/Polylance-FV-1/assets/index-DmWbkN9-.css">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/contracts-BxiC6eHn.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/apiClient-BYrDjhuF.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/fees-ugPj99_k.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/formatters-3aixjO3s.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/useDataSaver-BoxaQgdU.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/useSmoothScroll-BTtoArbx.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/useReducedMotion-BHTEIWtH.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/Modal-CSP0bKc2.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/TokenIcon-BelbjlQl.js">
+  <link rel="modulepreload" crossorigin href="/Polylance-FV-1/assets/site.config-DpKXCtc7.js">
+  <link rel="stylesheet" crossorigin href="/Polylance-FV-1/assets/useSmoothScroll-fOJvfYOR.css">
+  <link rel="stylesheet" crossorigin href="/Polylance-FV-1/assets/index-t2DUnhuZ.css">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -303,13 +321,13 @@
       "@type": "ListItem",
       "position": 1,
       "name": "Home",
-      "item": "https://polylance.codes/"
+      "item": "https://polylancezenith.com/"
     },
     {
       "@type": "ListItem",
       "position": 2,
       "name": "For Freelancers",
-      "item": "https://polylance.codes/for-freelancers"
+      "item": "https://polylancezenith.com/for-freelancers"
     }
   ]
 }

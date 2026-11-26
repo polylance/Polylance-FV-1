@@ -1,0 +1,1 @@
+import"./rolldown-runtime-Bjp52BOI.js";import{Cr as e}from"./vendor-icons-B3Hlp2gs.js";import{i as t}from"./vendor-markdown-B7fc8Mgs.js";import{Demo as n}from"./Demo-CdC1VGT-.js";e();var r=t(),i=()=>(0,r.jsx)(n,{});export{i as Showcase,i as default};
